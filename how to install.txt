@@ -1,0 +1,15 @@
+composer install
+cp .env.example .env
+php artisan key:generate
+Setting database di .env
+
+npm install
+npm run dev
+php artisan serve
+
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=dev_laravel
+DB_USERNAME=asw
+DB_PASSWORD=asw@2025
