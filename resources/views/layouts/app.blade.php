@@ -5,36 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'Admin Panel' }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+
+    {{-- Anti-FOUC: set theme from localStorage before render --}}
+    <script>
+        (function() {
+            var t = localStorage.getItem('neon-theme') || 'neon-dark';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
          [x-cloak] { display: none !important; }
     </style>
-    
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
     @stack('styles')
 </head>
-<body class="bg-gray-100 font-sans">
-    <div class="flex h-screen overflow-hidden" x-data="{ sidebarOpen: true }"
-        <!-- Sidebar -->
-        <x-sidebar />
-        
-        <!-- Main Content Area -->
-        <div class="flex flex-col flex-1 overflow-hidden">
-            <!-- Navbar -->
+<body x-data="{
+    theme: localStorage.getItem('neon-theme') || 'neon-dark',
+    get isDark() { return this.theme === 'neon-dark'; },
+    toggleTheme() {
+        this.theme = this.theme === 'neon-dark' ? 'neon-light' : 'neon-dark';
+        localStorage.setItem('neon-theme', this.theme);
+        document.documentElement.setAttribute('data-theme', this.theme);
+    }
+}">
+    <div class="drawer lg:drawer-open" x-data="{ sidebarOpen: true }">
+        <input id="sidebar-drawer" type="checkbox" class="drawer-toggle" />
+
+        {{-- Main Content Area --}}
+        <div class="drawer-content flex flex-col min-h-screen">
+            {{-- Navbar --}}
             <x-navbar :title="$title ?? 'Dashboard'" />
-            
-            <!-- Page Content -->
-            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
-                <div class="mx-auto">
-                    {{ $slot }}
-                </div>
+
+            {{-- Page Content --}}
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-base-200 p-6">
+                {{ $slot }}
             </main>
-            
-            <!-- Footer -->
+
+            {{-- Footer --}}
             <x-footer />
+        </div>
+
+        {{-- Sidebar --}}
+        <div class="drawer-side z-40">
+            <label for="sidebar-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+            <x-sidebar />
         </div>
     </div>
 

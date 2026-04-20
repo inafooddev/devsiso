@@ -1,12 +1,10 @@
-<footer class="bg-white border-t border-gray-200 py-4">
-    <div class="mx-auto px-6">
-        <div class="flex flex-col md:flex-row items-center justify-between text-sm text-gray-600">
-            <p>
-                &copy; {{ date('Y') }} <strong class="text-gray-800">SISO</strong>. All rights reserved.
-            </p>
-            <p class="mt-2 md:mt-0">
-                Version <strong>4.0.0</strong>
-            </p>
-        </div>
+<footer class="footer footer-center bg-base-100 border-t border-base-300 p-4">
+    <div class="flex flex-col md:flex-row items-center justify-between w-full text-sm text-base-content/60 gap-1">
+        <p>
+            &copy; {{ date('Y') }} <strong class="text-base-content">SISO</strong>. All rights reserved.
+        </p>
+        <p>
+            Version <strong class="text-base-content">4.0.0</strong>
+        </p>
     </div>
 </footer>
