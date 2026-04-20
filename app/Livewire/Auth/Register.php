@@ -1,51 +1,67 @@
 <?php
 
-
 namespace App\Livewire\Auth;
 
 use Livewire\Component;
 use App\Models\User;
 use App\Models\MasterDistributor;
-use Spatie\Permission\Models\Role; // <-- Import model Role Spatie
+use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 
-#[Layout('components.layouts.guest')] // <-- Diubah menyesuaikan struktur folder Anda
+#[Layout('components.layouts.guest')]
 class Register extends Component
 {
-    // Properti Form
-    public $userid;
+    // FORM
+    public $userid = 'admin';
     public $name;
     public $email;
     public $password;
-    public $password_confirmation; // Untuk konfirmasi password
-    public $role = ''; // <-- Properti role baru
-    public $region_code = []; 
+    public $password_confirmation;
+    public $role = 'admin';
+    public $region_code = [];
 
-    // Validasi form khusus register
+    public $hasSearched = false;
+
+    public function mount()
+    {
+        $this->userid = 'admin';
+        $this->role = 'admin';
+    }
+
+    // VALIDATION RULES
     protected $rules = [
-        'userid' => 'required|string|unique:users,userid',
+        'userid' => 'required|string|max:50',
         'name' => 'required|string|max:255',
         'email' => 'required|email|unique:users,email',
-        'password' => 'required|min:6|confirmed', // Pastikan ada konfirmasi
-        'role' => 'required|string|exists:roles,name', // Validasi role harus ada di tabel
+        'password' => 'required|min:6|confirmed',
     ];
+
+    // REALTIME VALIDATION USERID
+    public function updatedUserid()
+    {
+        if (!$this->userid) return;
+
+        if (User::where('userid', $this->userid)->exists()) {
+            $this->addError('userid', 'User ID sudah digunakan.');
+        } else {
+            $this->resetErrorBag('userid');
+        }
+    }
 
     public function render()
     {
-        // Mengambil data region
         $availableRegions = MasterDistributor::select('region_code', 'region_name')
             ->whereNotNull('region_code')
             ->distinct()
             ->orderBy('region_name')
             ->get();
 
-        // Mengambil semua role yang tersedia
         $roles = Role::orderBy('name')->get();
 
         return view('livewire.auth.register', [
             'availableRegions' => $availableRegions,
-            'roles' => $roles, // Kirim ke view
+            'roles' => $roles,
         ]);
     }
 
@@ -53,22 +69,28 @@ class Register extends Component
     {
         $this->validate();
 
-        // 1. Buat User Baru
+        // 🔍 CEK DUPLICATE USERID
+        if (User::where('userid', $this->userid)->exists()) {
+            $this->addError('userid', 'User ID sudah digunakan.');
+            return;
+        }
+
+        // ✅ INSERT USER
         $user = User::create([
-            'userid' => $this->userid,
+            'userid' => strtolower($this->userid),
             'name' => $this->name,
             'email' => $this->email,
-            'password' => bcrypt($this->password),
+            'password' => $this->password, // auto hash dari model
             'region_code' => empty($this->region_code) ? null : $this->region_code,
         ]);
 
-        // 2. Assign Role Spatie (Berdasarkan pilihan user di form)
+        // ASSIGN ROLE
         $user->assignRole($this->role);
 
-        // 3. Login otomatis setelah register
+        // AUTO LOGIN
         Auth::login($user);
 
-        // 4. Redirect ke dashboard atau halaman utama
-        return redirect()->route('dashboard'); 
+        // REDIRECT
+        return redirect()->route('dashboard');
     }
 }

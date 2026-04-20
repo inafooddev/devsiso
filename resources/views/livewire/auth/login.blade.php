@@ -1,88 +1,88 @@
-<div class="max-w-md w-full animate-fade-in">
-        <!-- Card Container -->
-        <div class="glass-card p-10 rounded-3xl shadow-2xl overflow-hidden relative">
-            
-            <!-- Decorative Element -->
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
-            <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl"></div>
+<div class="max-w-md w-full animate-fade-in z-10 relative">
+    <!-- Main Card Container -->
+    <div class="bg-base-100 p-10 rounded-[2.5rem] shadow-2xl shadow-black/40 ring-1 ring-white/5 overflow-hidden relative">
+        
+        <!-- Decorative Glow Effects -->
+        <div class="absolute -top-20 -right-20 w-48 h-48 bg-primary/20 rounded-full blur-[80px]"></div>
+        <div class="absolute -bottom-20 -left-20 w-48 h-48 bg-blue-500/20 rounded-full blur-[80px]"></div>
 
-            <div class="text-center mb-10 relative">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-200 transform -rotate-6">
-                    <span class="text-white text-2xl font-black italic">S</span>
+        <div class="text-center mb-10 relative z-10">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-white/5 ring-1 ring-white/10 backdrop-blur-md rounded-2xl mb-5 shadow-lg shadow-black/20">
+                <x-heroicon-s-shield-check class="w-8 h-8 text-white" />
+            </div>
+            <h2 class="text-3xl font-extrabold text-white tracking-tight">
+                SISO<span class="text-primary">.</span>
+            </h2>
+            <p class="text-base-content/60 mt-2 text-sm">Welcome back! Please enter your details.</p>
+        </div>
+
+        <form wire:submit.prevent="authenticate" class="space-y-6 relative z-10">
+            <!-- User ID Field -->
+            <div class="form-control">
+                <label class="label pb-1"><span class="label-text text-base-content/60 font-medium">User ID</span></label>
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <x-heroicon-o-user class="w-5 h-5 text-base-content/40 group-focus-within:text-primary transition-colors" />
+                    </div>
+                    <input type="text" wire:model="userid" 
+                        class="input w-full pl-11 bg-base-200/50 border border-white/5 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-transparent outline-none transition-all duration-300 text-base-content placeholder-base-content/30"
+                        placeholder="Enter your User ID" required autofocus>
                 </div>
-                <h2 class="text-4xl font-black text-gray-800 tracking-tight italic">
-                    SISO<span class="text-blue-600">.</span>
-                </h2>
-                <p class="text-gray-500 mt-2 font-medium">Selamat datang kembali!</p>
+                @error('userid') 
+                    <span class="text-error text-xs mt-2 flex items-center">
+                        <x-heroicon-s-exclamation-circle class="w-3 h-3 mr-1" />
+                        {{ $message }}
+                    </span> 
+                @enderror
             </div>
 
-            <form wire:submit="authenticate" class="space-y-6 relative">
-                <!-- User ID Field -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2 ml-1">User ID</label>
-                    <div class="relative group">
-                        <input type="text" wire:model="userid" 
-                            class="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 input-focus-effect group-hover:border-blue-300"
-                            placeholder="Masukkan User ID" required autofocus>
+            <!-- Password Field -->
+            <div class="form-control">
+                <label class="label pb-1"><span class="label-text text-base-content/60 font-medium">Password</span></label>
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <x-heroicon-o-lock-closed class="w-5 h-5 text-base-content/40 group-focus-within:text-primary transition-colors" />
                     </div>
-                    @error('userid') 
-                        <span class="text-red-500 text-xs mt-2 ml-1 flex items-center">
-                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
-                            {{ $message }}
-                        </span> 
-                    @enderror
+                    <input type="password" wire:model="password" 
+                        class="input w-full pl-11 bg-base-200/50 border border-white/5 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-transparent outline-none transition-all duration-300 text-base-content placeholder-base-content/30"
+                        placeholder="••••••••" required>
                 </div>
+                @error('password') 
+                    <span class="text-error text-xs mt-2 flex items-center">
+                        <x-heroicon-s-exclamation-circle class="w-3 h-3 mr-1" />
+                        {{ $message }}
+                    </span> 
+                @enderror
+            </div>
 
-                <!-- Password Field -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2 ml-1">Password</label>
-                    <div class="relative group">
-                        <input type="password" wire:model="password" 
-                            class="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 input-focus-effect group-hover:border-blue-300"
-                            placeholder="••••••••" required>
-                    </div>
-                    @error('password') 
-                        <span class="text-red-500 text-xs mt-2 ml-1 flex items-center">
-                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
-                            {{ $message }}
-                        </span> 
-                    @enderror
-                </div>
+            <!-- Helpers -->
+            <div class="flex items-center justify-between pt-1">
+                <label class="flex items-center cursor-pointer group">
+                    <input type="checkbox" wire:model="remember" class="checkbox checkbox-sm checkbox-primary rounded bg-base-200 border-white/10">
+                    <span class="ml-2 text-sm text-base-content/60 font-medium group-hover:text-base-content transition-colors select-none">Remember Me</span>
+                </label>
+                
+                <a href="#" class="text-sm font-medium text-primary hover:text-primary-content transition-colors">Forgot password?</a>
+            </div>
 
-                <!-- Helpers -->
-                <div class="flex items-center justify-between">
-                    <label class="flex items-center cursor-pointer group">
-                        <div class="relative">
-                            <input type="checkbox" id="remember" wire:model="remember" class="sr-only">
-                            <div class="w-5 h-5 border-2 border-gray-300 rounded-md transition-all group-hover:border-blue-500 flex items-center justify-center bg-white">
-                                <svg class="w-3.5 h-3.5 text-blue-600 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="check-icon"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-                            </div>
-                        </div>
-                        <span class="ml-2 text-sm text-gray-600 font-medium select-none">Ingat Saya</span>
-                    </label>
-                </div>
-
-                <!-- Submit Button -->
-                <button type="submit" 
-                    class="w-full relative group overflow-hidden bg-blue-600 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-blue-200 hover:shadow-blue-400 transform transition-all active:scale-95 duration-200">
-                    <span class="relative z-10 flex items-center justify-center">
-                        <span wire:loading.remove wire:target="authenticate">LOG IN</span>
-                        <span wire:loading wire:target="authenticate" class="flex items-center">
-                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            MEMPROSES...
-                        </span>
+            <!-- Submit Button -->
+            <button type="submit" 
+                class="btn btn-primary w-full h-12 rounded-xl shadow-lg shadow-primary/20 normal-case text-base border-none relative overflow-hidden group">
+                <span class="relative z-10 flex items-center justify-center gap-2">
+                    <span wire:loading.remove wire:target="authenticate">Sign In</span>
+                    <span wire:loading wire:target="authenticate" class="flex items-center">
+                        <span class="loading loading-spinner loading-sm mr-2"></span>
+                        Authenticating...
                     </span>
-                    <div class="absolute inset-0 bg-gradient-to-r from-blue-700 to-indigo-600 transition-transform duration-300 transform translate-x-full group-hover:translate-x-0"></div>
-                </button>
-            </form>
+                </span>
+                <div class="absolute inset-0 bg-white/20 transition-transform duration-300 transform -translate-x-full group-hover:translate-x-0"></div>
+            </button>
+        </form>
 
-            <div class="mt-8 text-center">
-                <p class="text-sm text-gray-500">
-                    &copy; 2026 SISO Team.
-                </p>
-            </div>
+        <div class="mt-8 text-center relative z-10">
+            <p class="text-xs text-base-content/40 font-medium">
+                &copy; {{ date('Y') }} SISO Team. All rights reserved.
+            </p>
         </div>
     </div>
+</div>

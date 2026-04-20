@@ -63,16 +63,17 @@
                         </div>
                     @endif
 
-                    <!-- FILTER BUTTON -->
                     <x-ui.button size="sm" variant="outline" wire:click="$set('isFilterModalOpen', true)">
                         <x-heroicon-o-funnel class="w-4 h-4 mr-2" />
                         {{ $hasSearched ? 'Ubah Filter' : 'Filter' }}
                     </x-ui.button>
                     
+                    @unless(auth()->user()->hasRole('guest'))
                     <x-ui.button tag="a" href="{{ route('selling-in.index') }}" size="sm" variant="primary">
                         <x-heroicon-o-arrow-up-tray class="w-4 h-4 mr-2" />
                         Import
                     </x-ui.button>
+                    @endunless
                 </div>
             </div>
 
@@ -113,14 +114,14 @@
                         </tr>
 
                         <template x-for="(row, index) in filteredItems" :key="index">
-                            <tr class="hover:bg-base-200 transition-colors duration-200">
+                            <tr class="hover:bg-base-300/40 transition duration-200">
                                 <td x-text="row.region"></td>
                                 <td x-text="row.area"></td>
                                 <td x-text="row.cabang"></td>
-                                <td class="font-mono text-base-content/70 text-xs" x-text="row.kd_distributor"></td>
+                                <td x-text="row.kd_distributor"></td>
                                 <td class="font-medium" x-text="row.nama_distributor_fix"></td>
-                                <td class="text-right font-mono text-base-content/80 text-xs" x-text="formatNumber(row.qty_ktn)"></td>
-                                <td class="text-right font-bold text-primary font-mono text-xs" x-text="formatNumber(row.value_net)"></td>
+                                <td class="text-right text-primary/80 font-medium" x-text="formatNumber(row.qty_ktn)"></td>
+                                <td class="text-right text-primary/80 font-medium" x-text="'Rp ' + formatNumber(row.value_net)"></td>
                             </tr>
                         </template>
 

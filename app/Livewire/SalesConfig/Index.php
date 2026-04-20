@@ -85,6 +85,15 @@ class Index extends Component
     }
 
     /**
+     * Menutup modal konfirmasi tanpa menghapus data.
+     */
+    public function closeDeleteModal()
+    {
+        $this->isDeleteModalOpen = false;
+        $this->configToDeleteId = null;
+    }
+
+    /**
      * Menghapus data dari database setelah konfirmasi.
      */
     public function delete()
