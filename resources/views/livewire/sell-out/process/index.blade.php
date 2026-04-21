@@ -4,6 +4,7 @@
     <div class="mx-auto px-4 sm:px-6 py-8">
         <x-card flush>
             <!-- Header & Actions -->
+             @unless(auth()->user()->hasRole('guest'))
             <div class="px-6 py-5 border-b border-base-300 flex flex-col sm:flex-row justify-between items-center gap-4 bg-base-200/50">
                 <div class="flex flex-wrap items-center gap-3">
                     <button wire:click="$set('isFilterModalOpen', true)" 
@@ -33,6 +34,7 @@
                     </div>
                 @endif
             </div>
+            @endunless
 
             <!-- Log Proses Console -->
             <div class="p-6 bg-base-100" wire:poll.1500ms="syncLog">

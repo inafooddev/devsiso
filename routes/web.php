@@ -10,18 +10,10 @@ use App\Livewire\SalesInvoiceImport;
 use App\Livewire\MasterRegions\Index as MasterRegionsIndex;
 use App\Livewire\MasterRegions\Create as MasterRegionsCreate;
 use App\Livewire\MasterRegions\Edit as MasterRegionsEdit;
-use App\Livewire\MasterAreas\Index as MasterAreaIndex;
-use App\Livewire\MasterAreas\Create as MasterAreaCreate;
-use App\Livewire\MasterAreas\Edit as MasterAreaEdit;
+use App\Livewire\MasterAreas\Index as MasterAreaIndex;  
 use App\Livewire\MasterSupervisors\Index as MasterSupervisorIndex;
-use App\Livewire\MasterSupervisors\Create as MasterSupervisorCreate;
-use App\Livewire\MasterSupervisors\Edit as MasterSupervisorEdit;
 use App\Livewire\MasterBranches\Index as MasterBranchIndex;
-use App\Livewire\MasterBranches\Create as MasterBranchCreate;
-use App\Livewire\MasterBranches\Edit as MasterBranchEdit;
 use App\Livewire\MasterDistributors\Index as MasterDistributorsIndex;
-use App\Livewire\MasterDistributors\Create as MasterDistributorsCreate;
-use App\Livewire\MasterDistributors\Edit as MasterDistributorsEdit;
 use App\Livewire\SalesInvoiceReport\Index as SalesInvoiceReportIndex;
 use App\Livewire\Product\LineProduct\Index as ProductLineIndex; 
 use App\Livewire\Product\LineProduct\Create as ProductLineCreate;
@@ -159,30 +151,18 @@ Route::get('/import-sales-invoices', SalesInvoiceImport::class)->name('sales-inv
 
 // Route untuk Master Region
 Route::get('/master-regions', MasterRegionsIndex::class)->name('master-regions.index');
-Route::get('/master-regions/create', MasterRegionsCreate::class)->name('master-regions.create');
-Route::get('/master-regions/{hashedRegionId}/edit', MasterRegionsEdit::class)->name('master-regions.edit');
 
 // Master Areas Routes
 Route::get('/master-areas', MasterAreaIndex::class)->name('master-areas.index');
-Route::get('/master-areas/create', MasterAreaCreate::class)->name('master-areas.create');
-Route::get('/master-areas/{encodedAreaCode}/edit', MasterAreaEdit::class)->name('master-areas.edit');
 
 // Master Supervisors Routes
 Route::get('/master-supervisors', MasterSupervisorIndex::class)->name('master-supervisors.index');
-Route::get('/master-supervisors/create', MasterSupervisorCreate::class)->name('master-supervisors.create');
-Route::get('/master-supervisors/{encodedSupervisorCode}/edit', MasterSupervisorEdit::class)->name('master-supervisors.edit');
 
 // Master Branches Routes
 Route::get('/master-branches', MasterBranchIndex::class)->name('master-branches.index');
-Route::get('/master-branches/create', MasterBranchCreate::class)->name('master-branches.create');
-Route::get('/master-branches/{encodedBranchCode}/edit', MasterBranchEdit::class)->name('master-branches.edit');
 
 // Master Distributors
-Route::prefix('master-distributors')->name('master-distributors.')->group(function () {
-    Route::get('/', MasterDistributorsIndex::class)->name('index');
-    Route::get('/create', MasterDistributorsCreate::class)->name('create');
-    Route::get('/{distributor_code}/edit', MasterDistributorsEdit::class)->name('edit');
-});
+Route::get('/master-distributors', MasterDistributorsIndex::class)->name('master-distributors.index');
 
 // Route untuk Laporan Sales Invoice
 Route::get('/sales-invoice-report', SalesInvoiceReportIndex::class)->name('sales-invoice-report.index');

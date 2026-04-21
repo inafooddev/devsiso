@@ -6,10 +6,13 @@ use Livewire\Component;
 use App\Models\MasterDistributor;
 use App\Models\MasterRegion;
 use App\Models\MasterArea;
+use App\Models\MasterBranch;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use App\Exports\MasterDistributorsExport;
 use Maatwebsite\Excel\Facades\Excel;
+use Livewire\Attributes\Computed;
+use Illuminate\Validation\Rule;
 
 class Index extends Component
 {
@@ -22,10 +25,30 @@ class Index extends Component
     public $regionFilter = '';
     public $areaFilter = '';
 
+    // Modal & Form States
+    public $isFormModalOpen = false;
+    public $isEditing = false;
     public $isDeleteModalOpen = false;
     public $distributorIdToDelete;
 
-    // Tambahan untuk modal map
+    // Form Fields
+    public $distributor_code;
+    public $distributor_name;
+    public $join_date;
+    public $resign_date;
+    public $latitude;
+    public $longitude;
+    public $is_active = true;
+    public $branch_code = '';
+    
+    // UI Helpers
+    public $branchSearch = '';
+    public $selectedBranchName = '';
+    public $region_name = 'N/A';
+    public $area_name = 'N/A';
+    public $supervisor_name = 'N/A';
+
+    // Map Modal States
     public $isMapModalOpen = false;
     public $mapLatitude;
     public $mapLongitude;
@@ -39,13 +62,34 @@ class Index extends Component
     ];
 
     /**
+     * Aturan validasi.
+     */
+    protected function rules()
+    {
+        return [
+            'distributor_code' => [
+                'required', 'string', 'max:15',
+                $this->isEditing 
+                    ? Rule::unique('master_distributors')->ignore($this->distributor_code, 'distributor_code')
+                    : Rule::unique('master_distributors', 'distributor_code'),
+            ],
+            'distributor_name' => 'required|string|max:100',
+            'branch_code'      => 'required|exists:master_branches,branch_code',
+            'join_date'        => 'nullable|date',
+            'resign_date'      => 'nullable|date',
+            'latitude'         => 'nullable|numeric',
+            'longitude'        => 'nullable|numeric',
+            'is_active'        => 'required|boolean',
+        ];
+    }
+
+    /**
      * Helper untuk memfilter Query berdasarkan hak akses region user.
      */
     private function applyRegionAccess($query, $column = 'region_code')
     {
         $user = auth()->user();
 
-        // Jika bukan admin dan memiliki batasan region_code (array)
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
             $query->whereIn($column, $user->region_code);
         }
@@ -53,26 +97,153 @@ class Index extends Component
         return $query;
     }
 
-    /**
-     * Reset area filter when region filter is changed.
-     */
     public function updatingRegionFilter()
     {
         $this->reset('areaFilter');
     }
 
+    public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
     /**
-     * Render the component view.
+     * Search Branches for the form.
      */
+    #[Computed]
+    public function branchesSearch()
+    {
+        if (strlen($this->branchSearch) < 2) return collect();
+        
+        $query = MasterBranch::query();
+        $user = auth()->user();
+
+        // Filter branches by region access
+        if (!$user->hasRole('admin') && !empty($user->region_code)) {
+            $query->whereHas('supervisor.area', function ($q) use ($user) {
+                $q->whereIn('region_code', $user->region_code);
+            });
+        }
+
+        return $query->where(function($q) {
+                $q->where('branch_name', 'ilike', '%' . $this->branchSearch . '%')
+                  ->orWhere('branch_code', 'ilike', '%' . $this->branchSearch . '%');
+            })
+            ->take(5)
+            ->get();
+    }
+
+    /**
+     * Select a branch from search results.
+     */
+    public function selectBranch($branchCode, $branchName)
+    {
+        $this->branch_code = $branchCode;
+        $this->selectedBranchName = $branchName;
+        $this->branchSearch = '';
+        
+        $branch = MasterBranch::with(['supervisor.area.region'])->find($branchCode);
+        if ($branch) {
+            $this->region_name = $branch->supervisor->area->region->region_name ?? 'N/A';
+            $this->area_name = $branch->supervisor->area->area_name ?? 'N/A';
+            $this->supervisor_name = $branch->supervisor->supervisor_name ?? 'N/A';
+        }
+    }
+
+    /**
+     * CRUD Modal Operations.
+     */
+    public function openCreateModal()
+    {
+        $this->resetValidation();
+        $this->resetForm();
+        $this->isEditing = false;
+        $this->isFormModalOpen = true;
+    }
+
+    public function openEditModal($distributorCode)
+    {
+        $this->resetValidation();
+        $distributor = MasterDistributor::findOrFail($distributorCode);
+        
+        $this->distributor_code = $distributor->distributor_code;
+        $this->distributor_name = $distributor->distributor_name;
+        $this->join_date = $distributor->join_date ? $distributor->join_date->format('Y-m-d') : null;
+        $this->resign_date = $distributor->resign_date ? $distributor->resign_date->format('Y-m-d') : null;
+        $this->latitude = $distributor->latitude;
+        $this->longitude = $distributor->longitude;
+        $this->is_active = $distributor->is_active;
+
+        $this->branch_code = $distributor->branch_code;
+        $this->selectedBranchName = $distributor->branch_name;
+        $this->region_name = $distributor->region_name;
+        $this->area_name = $distributor->area_name;
+        $this->supervisor_name = $distributor->supervisor_name;
+        
+        $this->isEditing = true;
+        $this->isFormModalOpen = true;
+    }
+
+    private function resetForm()
+    {
+        $this->distributor_code = null;
+        $this->distributor_name = null;
+        $this->join_date = null;
+        $this->resign_date = null;
+        $this->latitude = null;
+        $this->longitude = null;
+        $this->is_active = true;
+        $this->branch_code = '';
+        $this->branchSearch = '';
+        $this->selectedBranchName = '';
+        $this->region_name = 'N/A';
+        $this->area_name = 'N/A';
+        $this->supervisor_name = 'N/A';
+    }
+
+    public function save()
+    {
+        $this->validate();
+
+        $branch = MasterBranch::with(['supervisor.area.region'])->find($this->branch_code);
+        
+        $data = [
+            'distributor_name' => $this->distributor_name,
+            'join_date'        => $this->join_date,
+            'resign_date'      => $this->resign_date,
+            'latitude'         => $this->latitude,
+            'longitude'        => $this->longitude,
+            'is_active'        => $this->is_active,
+            'branch_code'      => $this->branch_code,
+            'branch_name'      => $branch->branch_name ?? 'N/A',
+            'supervisor_code'  => $branch->supervisor->supervisor_code ?? 'N/A',
+            'supervisor_name'  => $branch->supervisor->supervisor_name ?? 'N/A',
+            'area_code'        => $branch->supervisor->area->area_code ?? 'N/A',
+            'area_name'        => $branch->supervisor->area->area_name ?? 'N/A',
+            'region_code'      => $branch->supervisor->area->region->region_code ?? 'N/A',
+            'region_name'      => $branch->supervisor->area->region->region_name ?? 'N/A',
+        ];
+
+        if ($this->isEditing) {
+            MasterDistributor::where('distributor_code', $this->distributor_code)->update($data);
+            session()->flash('message', 'Data distributor berhasil diperbarui.');
+        } else {
+            $data['distributor_code'] = $this->distributor_code;
+            MasterDistributor::create($data);
+            session()->flash('message', 'Distributor baru berhasil ditambahkan.');
+        }
+
+        $this->isFormModalOpen = false;
+        $this->resetForm();
+    }
+
     public function render()
     {
         $query = MasterDistributor::with('supervisor')
-        ->where('distributor_code', '!=', 'HOINA'); // Pastikan untuk mengecualikan distributor yang terkait dengan region 'national'
+            ->where('distributor_code', '!=', 'HOINA');
 
-        // 1. Terapkan proteksi hak akses region terlebih dahulu
         $this->applyRegionAccess($query);
 
-        // Apply search filter (Sudah aman dibungkus closure)
         if ($this->search) {
             $search = $this->search;
             $query->where(function ($q) use ($search) {
@@ -86,26 +257,21 @@ class Index extends Component
             });
         }
 
-        // Apply status filter
         if ($this->statusFilter !== '') {
             $query->where('is_active', $this->statusFilter);
         }
 
-        // Apply region filter
         if ($this->regionFilter) {
-            $query->where('region_code', $this->regionFilter)
-                  ->where('region_code', '!=', 'HOINA'); // Pastikan untuk mengecualikan region 'national' dari filter
+            $query->where('region_code', $this->regionFilter)->where('region_code', '!=', 'HOINA');
         }
 
-        // Apply area filter
         if ($this->areaFilter) {
             $query->where('area_code', $this->areaFilter);
         }
 
         $distributors = $query->latest()->paginate(10);
         
-        // Pilihan Region di dropdown juga harus difilter sesuai akses login
-        $regionQuery = MasterRegion::query()->where('region_code', '!=', 'HOINA'); // Pastikan untuk mengecualikan region 'national' dari dropdown
+        $regionQuery = MasterRegion::query()->where('region_code', '!=', 'HOINA');
         $this->applyRegionAccess($regionQuery);
         $regions = $regionQuery->orderBy('region_name')->get();
 
@@ -118,18 +284,8 @@ class Index extends Component
         ])->layout('layouts.app');
     }
 
-    public function updatingSearch()
-    {
-        $this->resetPage();
-    }
-
-    /**
-     * Synchronize denormalized data from master tables.
-     */
     public function synchronize()
     {
-        // Security Check: Karena ini query massal (DB::statement), kita blokir user biasa.
-        // Hanya Admin yang boleh melakukan Synchronize.
         if (!auth()->user()->hasRole('admin')) {
             session()->flash('error', 'Akses ditolak: Hanya Administrator yang dapat melakukan sinkronisasi data massal.');
             return;
@@ -157,26 +313,18 @@ class Index extends Component
         }
     }
 
-    /**
-     * Open the delete confirmation modal.
-     */
     public function confirmDelete($distributorCode)
     {
         $this->distributorIdToDelete = $distributorCode;
         $this->isDeleteModalOpen = true;
     }
 
-    /**
-     * Delete the distributor data.
-     */
     public function delete()
     {
-        // Security Check: Pastikan data yang dihapus masih dalam region user
         $query = MasterDistributor::query();
         $this->applyRegionAccess($query);
 
-        $distributor = $query->where('distributor_code', $this->distributorIdToDelete)
-                             ->orWhere('id', $this->distributorIdToDelete)->first();
+        $distributor = $query->where('distributor_code', $this->distributorIdToDelete)->first();
 
         if ($distributor) {
             $distributor->delete();
@@ -188,12 +336,8 @@ class Index extends Component
         $this->isDeleteModalOpen = false;
     }
 
-    /**
-     * Open the map modal with location data.
-     */
     public function showMap($distributorCode)
     {
-        // Security Check: Pastikan map yang dibuka berada dalam region user
         $query = MasterDistributor::query();
         $this->applyRegionAccess($query);
 
@@ -205,35 +349,22 @@ class Index extends Component
         }
         
         if ($distributor->latitude && $distributor->longitude) {
-            // Log untuk debugging
-            \Log::info('Map Data:', [
-                'distributor_code' => $distributor->distributor_code,
-                'name' => $distributor->distributor_name,
-                'latitude' => $distributor->latitude,
-                'longitude' => $distributor->longitude
-            ]);
-            
             $this->mapLatitude = $distributor->latitude;
             $this->mapLongitude = $distributor->longitude;
             $this->mapDistributorName = $distributor->distributor_name;
             $this->isMapModalOpen = true;
-            
-            // Dispatch event to initialize map
             $this->dispatch('map-opened');
         } else {
             session()->flash('error', 'Koordinat lokasi tidak tersedia untuk distributor ini.');
         }
     }
 
-    // [DITAMBAHKAN] Metode untuk mengekspor data
     public function export()
     {
         $finalRegionFilter = $this->regionFilter;
         $user = auth()->user();
 
-        // Validasi ekstra untuk Export (Mencegah manipulasi user biasa)
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            // Jika user iseng menginjeksi region lain yang tidak dia miliki, reset ke kosong
             if (!empty($finalRegionFilter) && !in_array($finalRegionFilter, $user->region_code)) {
                 $finalRegionFilter = ''; 
             }
@@ -242,9 +373,8 @@ class Index extends Component
         $filters = [
             'search' => $this->search,
             'statusFilter' => $this->statusFilter,
-            'regionFilter' => $finalRegionFilter, // Akan selalu berupa String murni (1 region atau kosong)
+            'regionFilter' => $finalRegionFilter,
             'areaFilter' => $this->areaFilter,
-            // Tambahkan parameter khusus untuk proteksi Array Scope
             'allowed_regions' => (!$user->hasRole('admin')) ? $user->region_code : [], 
         ];
 

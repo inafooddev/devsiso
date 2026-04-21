@@ -9,31 +9,53 @@
                 <!-- Left: Action Buttons -->
                 <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto">
 
-                    <button wire:click="$set('isFilterModalOpen', true)"
-                        class="btn btn-sm btn-outline border-base-300 hover:bg-base-200 hover:text-base-content text-base-content rounded-xl normal-case">
-                        <x-heroicon-o-funnel class="w-4 h-4" />
+                    {{-- FILTER --}}
+                    <x-ui.button
+                        variant="ghost"
+                        size="sm"
+                        icon="funnel"
+                        outline
+                        wire:click="$set('isFilterModalOpen', true)"
+                    >
                         Filter
-                    </button>
+                    </x-ui.button>
 
                     @unless(auth()->user()->hasRole('guest'))
-                    <a href="{{ route('sales-invoices.import') }}"
-                        class="btn btn-sm btn-primary rounded-xl normal-case shadow-sm shadow-primary/20">
-                        <x-heroicon-o-arrow-up-tray class="w-4 h-4" />
-                        Import
-                    </a>
 
-                    <button wire:click="$set('isExportModalOpen', true)"
-                        class="btn btn-sm btn-success rounded-xl normal-case text-white shadow-sm shadow-success/20">
-                        <x-heroicon-o-arrow-down-tray class="w-4 h-4" />
-                        Export
-                    </button>
+                        {{-- IMPORT --}}
+                        <x-ui.button
+                            tag="a"
+                            href="{{ route('sales-invoices.import') }}"
+                            variant="primary"
+                            size="sm"
+                            icon="arrow-up-tray"
+                        >
+                            Import
+                        </x-ui.button>
 
-                    <a href="{{ route('sales-configs.index') }}"
-                        class="btn btn-sm btn-warning rounded-xl normal-case text-white shadow-sm shadow-warning/20">
-                        <x-heroicon-o-cog-6-tooth class="w-4 h-4" />
-                        Config
-                    </a>
+                        {{-- EXPORT --}}
+                        <x-ui.button
+                            variant="success"
+                            size="sm"
+                            icon="arrow-down-tray"
+                            wire:click="$set('isExportModalOpen', true)"
+                        >
+                            Export
+                        </x-ui.button>
+
+                        {{-- CONFIG --}}
+                        <x-ui.button
+                            tag="a"
+                            href="{{ route('sales-configs.index') }}"
+                            variant="warning"
+                            size="sm"
+                            icon="cog-6-tooth"
+                        >
+                            Config
+                        </x-ui.button>
+
                     @endunless
+
                 </div>
 
                 <!-- Right: Search -->
@@ -265,9 +287,35 @@
                 </div>
 
                 <div class="px-6 py-4 border-t border-base-300 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-                    <button @click="open = false" type="button" class="btn btn-ghost rounded-xl normal-case sm:mr-auto">Batal</button>
-                    <button wire:click="resetFilters" type="button" class="btn btn-ghost border border-base-300 hover:bg-base-300 rounded-xl normal-case">Reset</button>
-                    <button type="submit" class="btn btn-primary rounded-xl normal-case shadow-sm shadow-primary/20">Terapkan</button>
+                    <x-ui.button
+                        size="sm"
+                        variant="ghost"
+                        type="button"
+                        @click="open = false"
+                        class="sm:mr-auto"
+                    >
+                        Batal
+                    </x-ui.button>
+
+                    <x-ui.button
+                        size="sm"
+                        variant="ghost"
+                        outline
+                        type="button"
+                        wire:click="resetFilters"
+                    >
+                        Reset
+                    </x-ui.button>
+
+                    <x-ui.button
+                        size="sm"
+                        type="submit"
+                        variant="primary"
+                        class="shadow-sm shadow-primary/20"
+                    >
+                        Terapkan
+                    </x-ui.button>
+
                 </div>
             </form>
         </div>

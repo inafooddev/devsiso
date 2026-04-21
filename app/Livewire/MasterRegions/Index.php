@@ -5,19 +5,58 @@ namespace App\Livewire\MasterRegions;
 use Livewire\Component;
 use App\Models\MasterRegion;
 use Livewire\WithPagination;
+use Illuminate\Validation\Rule;
 
 class Index extends Component
 {
     use WithPagination;
 
-    // Menambahkan baris ini untuk menggunakan tema paginasi Tailwind
     protected $paginationTheme = 'tailwind';
 
     public $search = '';
+    
+    // Modal & Form States
+    public $isFormModalOpen = false;
+    public $isEditing = false;
     public $isDeleteModalOpen = false;
+    
+    // Form Fields
+    public $regionId;
+    public $region_code;
+    public $region_name;
     public $regionIdToDelete;
 
     protected $queryString = ['search'];
+
+    /**
+     * Aturan validasi.
+     */
+    protected function rules()
+    {
+        return [
+            'region_code' => [
+                'required',
+                'string',
+                'max:15',
+                $this->isEditing 
+                    ? Rule::unique('master_regions')->ignore($this->regionId, 'region_code')
+                    : Rule::unique('master_regions', 'region_code'),
+            ],
+            'region_name' => 'required|string|max:50',
+        ];
+    }
+
+    /**
+     * Pesan validasi kustom.
+     */
+    protected function messages()
+    {
+        return [
+            'region_code.required' => 'Kode Region wajib diisi.',
+            'region_code.unique'   => 'Kode Region ini sudah digunakan.',
+            'region_name.required' => 'Nama Region wajib diisi.',
+        ];
+    }
 
     /**
      * Helper untuk memfilter Query berdasarkan hak akses region user.
@@ -26,7 +65,6 @@ class Index extends Component
     {
         $user = auth()->user();
 
-        // Jika bukan admin dan memiliki batasan region_code (array)
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
             $query->whereIn('region_code', $user->region_code);
         }
@@ -39,15 +77,77 @@ class Index extends Component
         $this->resetPage();
     }
 
+    /**
+     * Membuka modal untuk tambah data.
+     */
+    public function openCreateModal()
+    {
+        $this->resetValidation();
+        $this->resetForm();
+        $this->isEditing = false;
+        $this->isFormModalOpen = true;
+    }
+
+    /**
+     * Membuka modal untuk edit data.
+     */
+    public function openEditModal($regionCode)
+    {
+        $this->resetValidation();
+        $region = MasterRegion::findOrFail($regionCode);
+        
+        $this->regionId = $region->region_code;
+        $this->region_code = $region->region_code;
+        $this->region_name = $region->region_name;
+        
+        $this->isEditing = true;
+        $this->isFormModalOpen = true;
+    }
+
+    /**
+     * Reset form fields.
+     */
+    private function resetForm()
+    {
+        $this->regionId = null;
+        $this->region_code = null;
+        $this->region_name = null;
+    }
+
+    /**
+     * Menyimpan atau memperbarui data region.
+     */
+    public function save()
+    {
+        $this->validate();
+
+        if ($this->isEditing) {
+            $region = MasterRegion::find($this->regionId);
+            $region->update([
+                'region_code' => $this->region_code,
+                'region_name' => $this->region_name,
+            ]);
+            session()->flash('message', 'Region berhasil diperbarui.');
+        } else {
+            MasterRegion::create([
+                'region_code' => $this->region_code,
+                'region_name' => $this->region_name,
+            ]);
+            session()->flash('message', 'Region baru berhasil ditambahkan.');
+        }
+
+        $this->isFormModalOpen = false;
+        $this->resetForm();
+    }
+
     public function render()
     {
         $query = MasterRegion::query()
-        ->where('region_code', '!=', 'HOINA'); // Pastikan untuk mengecualikan region 'national' dari query utama
+            ->where('region_code', '!=', 'HOINA')
+            ->orderBy('region_code', 'asc');
 
-        // 1. Terapkan proteksi hak akses region terlebih dahulu
         $this->applyRegionAccess($query);
 
-        // 2. Terapkan filter pencarian (Harus dibungkus closure agar tidak merusak proteksi)
         if (!empty($this->search)) {
             $query->where(function($q) {
                 $q->where('region_code', 'ilike', '%' . $this->search . '%')
@@ -76,12 +176,10 @@ class Index extends Component
      */
     public function delete()
     {
-        // Security Check: Pastikan user hanya bisa menghapus data yang ada di dalam hak aksesnya
         $query = MasterRegion::query();
         $this->applyRegionAccess($query);
         
-        $region = $query->where('region_code', $this->regionIdToDelete)->first() 
-               ?? $query->find($this->regionIdToDelete);
+        $region = $query->where('region_code', $this->regionIdToDelete)->first();
 
         if ($region) {
             $region->delete();

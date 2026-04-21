@@ -4,7 +4,9 @@ namespace App\Livewire\MasterAreas;
 
 use Livewire\Component;
 use App\Models\MasterArea;
+use App\Models\MasterRegion;
 use Livewire\WithPagination;
+use Illuminate\Validation\Rule;
 
 class Index extends Component
 {
@@ -13,10 +15,49 @@ class Index extends Component
     protected $paginationTheme = 'tailwind';
 
     public $search = '';
+    
+    // Modal & Form States
+    public $isFormModalOpen = false;
+    public $isEditing = false;
     public $isDeleteModalOpen = false;
+    
+    // Form Fields
+    public $areaId;
+    public $area_code;
+    public $area_name;
+    public $region_code = '';
     public $areaIdToDelete;
 
     protected $queryString = ['search'];
+
+    /**
+     * Aturan validasi.
+     */
+    protected function rules()
+    {
+        return [
+            'area_code' => [
+                'required',
+                'string',
+                'max:15',
+                $this->isEditing 
+                    ? Rule::unique('master_areas')->ignore($this->areaId, 'area_code')
+                    : Rule::unique('master_areas', 'area_code'),
+            ],
+            'area_name'   => 'required|string|max:50',
+            'region_code' => 'required|exists:master_regions,region_code',
+        ];
+    }
+
+    /**
+     * Pesan validasi kustom.
+     */
+    protected function messages()
+    {
+        return [
+            'region_code.required' => 'Silakan pilih salah satu region.',
+        ];
+    }
 
     /**
      * Helper untuk memfilter Query berdasarkan hak akses region user.
@@ -25,32 +66,93 @@ class Index extends Component
     {
         $user = auth()->user();
 
-        // Jika bukan admin dan memiliki batasan region_code (array)
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            // Karena tabel master_areas memiliki relasi dan kolom region_code
             $query->whereIn('region_code', $user->region_code);
         }
 
         return $query;
     }
 
-    /**
-     * Reset paginasi saat pencarian diketik
-     */
     public function updatingSearch()
     {
         $this->resetPage();
     }
 
+    /**
+     * Membuka modal untuk tambah data.
+     */
+    public function openCreateModal()
+    {
+        $this->resetValidation();
+        $this->resetForm();
+        $this->isEditing = false;
+        $this->isFormModalOpen = true;
+    }
+
+    /**
+     * Membuka modal untuk edit data.
+     */
+    public function openEditModal($areaCode)
+    {
+        $this->resetValidation();
+        $area = MasterArea::findOrFail($areaCode);
+        
+        $this->areaId      = $area->area_code;
+        $this->area_code   = $area->area_code;
+        $this->area_name   = $area->area_name;
+        $this->region_code = $area->region_code;
+        
+        $this->isEditing = true;
+        $this->isFormModalOpen = true;
+    }
+
+    /**
+     * Reset form fields.
+     */
+    private function resetForm()
+    {
+        $this->areaId = null;
+        $this->area_code = null;
+        $this->area_name = null;
+        $this->region_code = '';
+    }
+
+    /**
+     * Menyimpan atau memperbarui data area.
+     */
+    public function save()
+    {
+        $this->validate();
+
+        if ($this->isEditing) {
+            $area = MasterArea::find($this->areaId);
+            $area->update([
+                'area_code'   => $this->area_code,
+                'area_name'   => $this->area_name,
+                'region_code' => $this->region_code,
+            ]);
+            session()->flash('message', 'Data area berhasil diperbarui.');
+        } else {
+            MasterArea::create([
+                'area_code'   => $this->area_code,
+                'area_name'   => $this->area_name,
+                'region_code' => $this->region_code,
+            ]);
+            session()->flash('message', 'Area baru berhasil ditambahkan.');
+        }
+
+        $this->isFormModalOpen = false;
+        $this->resetForm();
+    }
+
     public function render()
     {
         $query = MasterArea::with('region')
-        ->where('region_code', '!=', 'HOINA'); // Pastikan untuk mengecualikan area yang terkait dengan region 'national'
+            ->where('region_code', '!=', 'HOINA')
+            ->orderBy('region_code', 'asc');
 
-        // 1. Terapkan proteksi hak akses region terlebih dahulu
         $this->applyRegionAccess($query);
 
-        // 2. Terapkan filter pencarian (Sudah aman karena dibungkus closure oleh Anda)
         if (!empty($this->search)) {
             $query->where(function($q) {
                 $q->where('area_code', 'ilike', '%' . $this->search . '%')
@@ -61,10 +163,16 @@ class Index extends Component
             });
         }
 
-        $areas = $query->latest('area_code')->paginate(10);
+        $areas = $query->paginate(10);
+        
+        // Ambil data region untuk dropdown form
+        $regionsQuery = MasterRegion::orderBy('region_name', 'asc');
+        $this->applyRegionAccess($regionsQuery);
+        $regions = $regionsQuery->get();
 
         return view('livewire.master-areas.index', [
             'areas' => $areas,
+            'regions' => $regions,
         ])->layout('layouts.app');
     }
 
@@ -82,13 +190,10 @@ class Index extends Component
      */
     public function delete()
     {
-        // Security Check: Pastikan user hanya bisa menghapus data yang ada di dalam hak aksesnya
         $query = MasterArea::query();
         $this->applyRegionAccess($query);
         
-        // Cari data area, handle kemungkinan primary key berupa 'id' atau 'area_code'
-        $area = $query->find($this->areaIdToDelete) 
-             ?? $query->where('area_code', $this->areaIdToDelete)->first();
+        $area = $query->where('area_code', $this->areaIdToDelete)->first();
 
         if ($area) {
             $area->delete();

@@ -1,118 +1,234 @@
 <div>
     <x-slot name="title">Data Master Area</x-slot>
 
-    <div class="mx-auto px-6 py-8">
-        <!-- Notifikasi -->
-        @if (session()->has('message'))
-            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" 
-                 x-transition:enter="transition ease-out duration-300"
-                 x-transition:enter-start="opacity-0 transform -translate-y-2"
-                 x-transition:enter-end="opacity-100 transform translate-y-0"
-                 x-transition:leave="transition ease-in duration-200"
-                 x-transition:leave-start="opacity-100 transform translate-y-0"
-                 x-transition:leave-end="opacity-0 transform -translate-y-2"
-                 class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-md shadow-md" role="alert">
-                <div class="flex">
-                    <div class="py-1"><svg class="fill-current h-6 w-6 text-green-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM9 11V9h2v6H9v-4zm0-6h2v2H9V5z"/></svg></div>
+    <div class="mx-auto px-4 sm:px-6 py-8">
+        {{-- Notifikasi --}}
+        <div class="mb-6">
+            @if (session()->has('message'))
+                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
+                    <x-heroicon-s-check-circle class="w-6 h-6" />
                     <div>
-                        <p class="font-bold">Sukses</p>
-                        <p class="text-sm">{{ session('message') }}</p>
+                        <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
+                        <div class="text-sm">{{ session('message') }}</div>
                     </div>
                 </div>
-            </div>
-        @endif
-
-        <div class="bg-white shadow-xl rounded-2xl overflow-hidden">
-            <!-- Header Card -->
-            <div class="px-6 py-4 border-b flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 bg-gray-50">
-                <a href="{{ route('master-areas.create') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150 shadow-md hover:shadow-lg">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                    Tambah Area
-                </a>
-                <div class="w-full sm:w-auto">
-                    <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari Kode Area, Nama, atau Region..." class="w-full p-1  sm:w-64 form-input border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                </div>
-            </div>
-
-            <!-- Tabel Data -->
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">No</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Kode Area</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Nama Area</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Nama Region</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Tanggal Dibuat</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Tanggal Diperbarui</th>
-                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @forelse ($areas as $index => $area)
-                            <tr wire:key="area-{{ $area->area_code }}" class="hover:bg-gray-50 transition-colors duration-200">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $areas->firstItem() + $index }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $area->area_code }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $area->area_name }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $area->region->region_name ?? 'N/A' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $area->created_at->format('d M Y, H:i') }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $area->updated_at->format('d M Y, H:i') }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
-                                    <a href="{{ route('master-areas.edit', base64_encode($area->area_code)) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-full text-indigo-600 hover:text-indigo-900 hover:bg-indigo-100 transition-colors duration-200" title="Edit">
-                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                    </a>
-                                    <button wire:click="confirmDelete('{{ $area->area_code }}')" class="inline-flex items-center justify-center h-8 w-8 rounded-full text-red-600 hover:text-red-900 hover:bg-red-100 transition-colors duration-200" title="Hapus">
-                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                    </button>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="px-6 py-8 text-center text-gray-500">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                    <h3 class="mt-2 text-sm font-medium text-gray-900">Tidak Ada Data</h3>
-                                    <p class="mt-1 text-sm text-gray-500">Silakan tambahkan area baru untuk memulai.</p>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination -->
-            @if($areas->hasPages())
-            <div class="px-6 py-4 bg-gray-50 border-t">
-                {{ $areas->links() }}
-            </div>
             @endif
+
+            @if (session()->has('error'))
+                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
+                    <x-heroicon-s-x-circle class="w-6 h-6" />
+                    <div>
+                        <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
+                        <div class="text-sm">{{ session('error') }}</div>
+                    </div>
+                </div>
+            @endif
+        </div>
+
+        <x-card flush title="Master Area" icon="map" subtitle="Kelola data area cakupan distribusi" class="pb-6">
+            <x-slot:actions>
+                <div class="flex items-center gap-3">
+                    {{-- Pencarian --}}
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/30 group-focus-within:text-primary transition-colors">
+                            <x-heroicon-s-magnifying-glass class="w-4 h-4" />
+                        </div>
+                        <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari Area atau Region..." 
+                               class="input input-sm input-bordered pl-10 w-48 sm:w-64 rounded-xl bg-base-200 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                    </div>
+
+                    {{-- Tombol Tambah --}}
+                    @unless(auth()->user()->hasRole('guest'))
+                    <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
+                        <x-heroicon-s-plus class="w-4 h-4" />
+                        Tambah
+                    </button>
+                    @endunless
+                </div>
+            </x-slot:actions>
+
+            {{-- Tabel Data --}}
+            <x-ui.table loading="{{ false }}" empty="Tidak ada data area ditemukan.">
+                <x-slot:head>
+                    <tr>
+                        <th class="w-16">No</th>
+                        <th>Kode Area</th>
+                        <th>Nama Area</th>
+                        <th>Region</th>
+                        <th class="hidden md:table-cell">Dibuat Pada</th>
+                        <th class="text-center">Aksi</th>
+                    </tr>
+                </x-slot:head>
+
+                @foreach ($areas as $index => $area)
+                    <tr wire:key="area-{{ $area->area_code }}" class="group">
+                        <td>
+                            <span class="text-xs font-semibold text-base-content/40">{{ $areas->firstItem() + $index }}</span>
+                        </td>
+                        <td>
+                            <div class="flex items-center gap-2">
+                                <span class="badge badge-sm badge-outline border-base-300 text-primary font-bold px-2 py-3 rounded-lg">{{ $area->area_code }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="font-medium text-base-content/80 group-hover:text-primary transition-colors">{{ $area->area_name }}</span>
+                        </td>
+                        <td>
+                            <div class="flex items-center gap-2">
+                                <x-heroicon-s-map-pin class="w-3.5 h-3.5 text-base-content/30" />
+                                <span class="text-sm text-base-content/70">{{ $area->region->region_name ?? 'N/A' }}</span>
+                            </div>
+                        </td>
+                        <td class="hidden md:table-cell">
+                            <div class="flex flex-col text-[11px] text-base-content/50">
+                                <span class="font-medium">{{ $area->created_at->translatedFormat('d M Y') }}</span>
+                                <span>{{ $area->created_at->format('H:i') }} WIB</span>
+                            </div>
+                        </td>
+                        <td>
+                            @unless(auth()->user()->hasRole('guest'))
+                            <div class="flex items-center justify-center gap-1">
+                                <button wire:click="openEditModal('{{ $area->area_code }}')" 
+                                        class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit">
+                                    <x-heroicon-s-pencil-square class="w-4 h-4" />
+                                </button>
+                                <button wire:click="confirmDelete('{{ $area->area_code }}')" 
+                                        class="btn btn-ghost btn-xs btn-square rounded-lg text-error hover:bg-error/10 transition-all duration-200" title="Hapus">
+                                    <x-heroicon-s-trash class="w-4 h-4" />
+                                </button>
+                            </div>
+                            @endunless
+                        </td>
+                    </tr>
+                @endforeach
+            </x-ui.table>
+
+            @if($areas->hasPages())
+                <div class="mt-4 px-2">
+                    {{ $areas->links() }}
+                </div>
+            @endif
+        </x-card>
+    </div>
+
+    {{-- Modal Form (Create/Edit) --}}
+    <div x-data="{ open: @entangle('isFormModalOpen') }" 
+         x-show="open" 
+         x-cloak 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
+
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+             class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-lg overflow-hidden ring-1 ring-base-content/5">
+            
+            <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 rounded-2xl bg-primary/10 text-primary">
+                        @if($isEditing)
+                            <x-heroicon-s-pencil-square class="w-6 h-6" />
+                        @else
+                            <x-heroicon-s-plus-circle class="w-6 h-6" />
+                        @endif
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg text-base-content">{{ $isEditing ? 'Edit Area' : 'Tambah Area Baru' }}</h3>
+                        <p class="text-xs text-base-content/50">{{ $isEditing ? 'Perbarui data area cakupan operasional' : 'Daftarkan area baru ke dalam sistem' }}</p>
+                    </div>
+                </div>
+                <button @click="open = false" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300 transition-all duration-200">
+                    <x-heroicon-s-x-mark class="w-5 h-5" />
+                </button>
+            </div>
+
+            <form wire:submit.prevent="save">
+                <div class="p-6 space-y-5 bg-base-100">
+                    {{-- Region --}}
+                    <div class="space-y-1.5">
+                        <label for="region_code" class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Region</label>
+                        <div class="relative group">
+                            <select wire:model.blur="region_code" id="region_code" 
+                                    class="select select-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('region_code') select-error @enderror">
+                                <option value="">-- Pilih Region --</option>
+                                @foreach($regions as $region)
+                                    <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @error('region_code') <span class="text-error text-xs font-medium ml-1 flex items-center gap-1 mt-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" /> {{ $message }}</span> @enderror
+                    </div>
+
+                    {{-- Kode Area --}}
+                    <div class="space-y-1.5">
+                        <label for="area_code" class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Kode Area</label>
+                        <div class="relative group">
+                            <input wire:model.blur="area_code" type="text" id="area_code" placeholder="Contoh: INA01"
+                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('area_code') input-error @enderror"
+                                   {{ $isEditing ? 'disabled' : '' }}>
+                            @if($isEditing)
+                                <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-base-content/30">
+                                    <x-heroicon-s-lock-closed class="w-4 h-4" />
+                                </div>
+                            @endif
+                        </div>
+                        @error('area_code') <span class="text-error text-xs font-medium ml-1 flex items-center gap-1 mt-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" /> {{ $message }}</span> @enderror
+                    </div>
+
+                    {{-- Nama Area --}}
+                    <div class="space-y-1.5">
+                        <label for="area_name" class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Nama Area</label>
+                        <input wire:model.blur="area_name" type="text" id="area_name" placeholder="Contoh: INA JABODETABEK"
+                               class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('area_name') input-error @enderror">
+                        @error('area_name') <span class="text-error text-xs font-medium ml-1 flex items-center gap-1 mt-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" /> {{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 px-6 py-5 border-t border-base-300 bg-base-200/50">
+                    <button type="button" @click="open = false" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300 transition-all duration-200">Batal</button>
+                    <button type="submit" class="btn btn-primary rounded-xl px-8 normal-case shadow-sm shadow-primary/20 gap-2">
+                        <span wire:loading.remove wire:target="save">{{ $isEditing ? 'Simpan Perubahan' : 'Tambahkan Area' }}</span>
+                        <span wire:loading wire:target="save" class="loading loading-spinner loading-xs"></span>
+                        <x-heroicon-s-paper-airplane wire:loading.remove wire:target="save" class="w-4 h-4" />
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Modal Konfirmasi Hapus -->
-    <div x-data="{ open: @entangle('isDeleteModalOpen') }" x-show="open" x-cloak class="fixed z-10 inset-0 overflow-y-auto">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-            <div x-show="open" class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-red-600" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900">Hapus Area</h3>
-                            <div class="mt-2">
-                                <p class="text-sm text-gray-500">Apakah Anda yakin ingin menghapus area ini? Tindakan ini tidak dapat dibatalkan.</p>
-                            </div>
-                        </div>
-                    </div>
+    {{-- Modal Konfirmasi Hapus --}}
+    <div x-data="{ open: @entangle('isDeleteModalOpen') }" 
+         x-show="open" 
+         x-cloak 
+         class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
+
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+             class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-sm overflow-hidden ring-1 ring-base-content/5">
+            
+            <div class="p-8 text-center">
+                <div class="w-20 h-20 bg-error/10 text-error rounded-full flex items-center justify-center mx-auto mb-6">
+                    <x-heroicon-s-trash class="w-10 h-10" />
                 </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button wire:click="delete" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">Hapus</button>
-                    <button @click="open = false" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm">Batal</button>
-                </div>
+                <h3 class="text-xl font-bold text-base-content mb-2">Hapus Area?</h3>
+                <p class="text-sm text-base-content/60 leading-relaxed px-4">Apakah Anda yakin ingin menghapus area ini? Tindakan ini <span class="text-error font-bold italic">tidak dapat dibatalkan</span>.</p>
+            </div>
+
+            <div class="flex items-center justify-center gap-3 px-6 pb-8">
+                <button type="button" @click="open = false" class="btn btn-ghost flex-1 rounded-xl normal-case transition-all duration-200">Batal</button>
+                <button wire:click="delete" class="btn btn-error flex-1 rounded-xl normal-case shadow-sm shadow-error/20 transition-all duration-200 text-white">
+                    <span wire:loading.remove wire:target="delete">Ya, Hapus</span>
+                    <span wire:loading wire:target="delete" class="loading loading-spinner loading-sm"></span>
+                </button>
             </div>
         </div>
     </div>
 </div>
+
 
