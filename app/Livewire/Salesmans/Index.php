@@ -30,20 +30,29 @@ class Index extends Component
     public $regions = [];
     public $areas = [];
     public $distributors = [];
+    public $formRegions = [];
+    public $formAreas = [];
+    public $formDistributors = [];
 
     // State Modals
     public $isFilterModalOpen = false;
     public $isDeleteModalOpen = false;
-    public $isEditModalOpen = false;
+    public $isFormModalOpen = false;
+    public $isEditing = false;
     public $hasAppliedFilters = false;
 
-    // Properti Form Edit
+    // Properti Form
     public $originalDistributorCode;
     public $originalSalesmanCode;
     public $distributor_code;
     public $salesman_code;
     public $salesman_name;
-    public $is_active;
+    public $is_active = 1;
+    public $manual_number;
+    
+    // Properti filter untuk di form create
+    public $formRegionFilter;
+    public $formAreaFilter;
 
     // Properti Delete
     public $salesmanCodeToDelete;
@@ -82,10 +91,13 @@ class Index extends Component
         $regionQuery = MasterRegion::query()->where('region_code', '!=', 'HOINA'); // Pastikan untuk mengecualikan region 'national'
         $this->applyRegionAccess($regionQuery);
         $this->regions = $regionQuery->orderBy('region_name')->get();
+        $this->formRegions = $this->regions;
 
         // 2. Auto-select region jika user hanya memiliki akses ke 1 region
         if (!auth()->user()->hasRole('admin') && count($this->regions) === 1) {
             $this->regionFilter = $this->regions->first()->region_code;
+            $this->formRegionFilter = $this->regions->first()->region_code;
+            $this->updatedFormRegionFilter($this->formRegionFilter);
         }
 
         if (session()->has('salesman_filters')) {
@@ -113,8 +125,122 @@ class Index extends Component
     }
 
     /**
-     * Logika Edit: Memuat data salesman ke dalam modal
+     * Mendefinisikan aturan validasi.
      */
+    protected function rules()
+    {
+        $rules = [
+            'distributor_code' => 'required|string|exists:master_distributors,distributor_code',
+            'salesman_name' => 'required|string|max:150',
+            'is_active' => 'required|boolean',
+        ];
+
+        if ($this->isEditing) {
+            $rules['salesman_code'] = [
+                'required', 'string', 'max:15',
+                Rule::unique('salesmans')
+                    ->where('distributor_code', $this->distributor_code)
+                    ->ignore($this->originalSalesmanCode, 'salesman_code') // Abaikan record yang sedang diedit
+            ];
+        } else {
+            $rules['manual_number'] = 'required|string';
+            $rules['salesman_code'] = [
+                'required', 'string', 'max:15',
+                Rule::unique(Salesman::class, 'salesman_code')->where(function ($query) {
+                    return $query->where('distributor_code', $this->distributor_code);
+                }),
+            ];
+        }
+
+        return $rules;
+    }
+
+    protected function messages()
+    {
+        return [
+            'salesman_code.unique' => 'Kombinasi Distributor dan Kode Salesman ini sudah terdaftar.',
+            'manual_number.required' => 'Nomor manual harus diisi untuk membentuk kode.',
+        ];
+    }
+    
+    // --- Helper Form ---
+    public function updatedFormRegionFilter($value)
+    {
+        $this->reset(['formAreaFilter', 'distributor_code', 'salesman_code', 'manual_number']);
+        
+        $query = MasterArea::query();
+        if ($value) {
+            $query->where('region_code', $value);
+        }
+        $this->applyRegionAccess($query);
+        $this->formAreas = $value ? $query->orderBy('area_name')->get() : collect();
+    }
+
+    public function updatedFormAreaFilter($value)
+    {
+        $this->reset(['distributor_code', 'salesman_code', 'manual_number']);
+        
+        $query = MasterDistributor::query();
+        if ($value) {
+            $query->where('area_code', $value);
+        }
+        $this->applyRegionAccess($query);
+        $this->formDistributors = $value ? $query->orderBy('is_active', 'desc')->orderBy('distributor_code','asc')->get() : collect();
+    }
+
+    public function updatedDistributorCode()
+    {
+        if (!$this->isEditing) {
+            $this->generateSalesmanCode();
+        }
+    }
+
+    public function updatedManualNumber()
+    {
+        if (!$this->isEditing) {
+            $this->generateSalesmanCode();
+        }
+    }
+
+    private function generateSalesmanCode()
+    {
+        if ($this->distributor_code && $this->manual_number) {
+            // "SEI" + karakter ke 3-5 distributor (index 2, length 3) + nomor manual
+            $distPart = substr($this->distributor_code, 2, 3);
+            $this->salesman_code = 'SEI' . $distPart . $this->manual_number;
+        } else {
+            $this->salesman_code = '';
+        }
+    }
+
+    private function resetForm()
+    {
+        $this->distributor_code = null;
+        $this->salesman_code = null;
+        $this->salesman_name = null;
+        $this->is_active = 1;
+        $this->manual_number = null;
+        $this->originalDistributorCode = null;
+        $this->originalSalesmanCode = null;
+        
+        if (!auth()->user()->hasRole('admin') && count($this->regions) === 1) {
+            // keep formRegionFilter and formAreas
+        } else {
+            $this->formRegionFilter = null;
+            $this->formAreaFilter = null;
+            $this->formAreas = collect();
+            $this->formDistributors = collect();
+        }
+        $this->resetValidation();
+    }
+
+    public function openCreateModal()
+    {
+        $this->resetForm();
+        $this->isEditing = false;
+        $this->isFormModalOpen = true;
+    }
+
     public function edit($distributorCode, $salesmanCode)
     {
         // Security Check: Pastikan salesman berada di distributor yang boleh diakses user
@@ -132,6 +258,9 @@ class Index extends Component
             return;
         }
 
+        $this->resetValidation();
+        $this->isEditing = true;
+
         // Simpan kunci asli untuk query update nanti
         $this->originalDistributorCode = $salesman->distributor_code;
         $this->originalSalesmanCode = $salesman->salesman_code;
@@ -140,56 +269,56 @@ class Index extends Component
         $this->distributor_code = $salesman->distributor_code;
         $this->salesman_code = $salesman->salesman_code;
         $this->salesman_name = $salesman->salesman_name;
-        $this->is_active = $salesman->is_active;
+        $this->is_active = $salesman->is_active ? 1 : 0;
 
-        $this->isEditModalOpen = true;
+        $this->isFormModalOpen = true;
     }
 
-    /**
-     * Logika Update: Menggunakan kombinasi distributor & salesman code
-     */
-    public function update()
+    public function save()
     {
-        $this->validate([
-            'distributor_code' => 'required|string|exists:master_distributors,distributor_code',
-            'salesman_code' => [
-                'required', 'string', 'max:15',
-                Rule::unique('salesmans')
-                    ->where('distributor_code', $this->distributor_code)
-                    ->ignore($this->originalSalesmanCode, 'salesman_code') // Abaikan record yang sedang diedit
-            ],
-            'salesman_name' => 'required|string|max:150',
-            'is_active' => 'required|boolean',
-        ]);
+        $validatedData = $this->validate();
 
-        // Security Check: Pastikan user tidak merubah kode distributor ke wilayah lain
-        if (!$this->checkDistributorAccess($this->distributor_code) || !$this->checkDistributorAccess($this->originalDistributorCode)) {
-            session()->flash('error', 'Anda tidak memiliki otoritas untuk memindahkan atau mengubah data di distributor ini.');
+        // Security Check: Pastikan kode distributor yang disubmit ada dalam wilayah otoritas user
+        if (!$this->checkDistributorAccess($this->distributor_code)) {
+            session()->flash('error', 'Anda tidak memiliki otoritas untuk distributor tersebut.');
             return;
         }
 
         DB::beginTransaction();
         try {
-            Salesman::where('distributor_code', $this->originalDistributorCode)
-                ->where('salesman_code', $this->originalSalesmanCode)
-                ->update([
-                    'distributor_code' => $this->distributor_code,
-                    'salesman_code'    => $this->salesman_code,
-                    'salesman_name'    => $this->salesman_name,
-                    'is_active'        => $this->is_active,
-                    'updated_at'       => now(),
-                ]);
+            if ($this->isEditing) {
+                // Pastikan user tidak merubah kode distributor ke wilayah lain dari data aslinya
+                if (!$this->checkDistributorAccess($this->originalDistributorCode)) {
+                    session()->flash('error', 'Anda tidak memiliki otoritas untuk memindahkan atau mengubah data di distributor asli ini.');
+                    return;
+                }
+
+                Salesman::where('distributor_code', $this->originalDistributorCode)
+                    ->where('salesman_code', $this->originalSalesmanCode)
+                    ->update([
+                        'distributor_code' => $this->distributor_code,
+                        'salesman_code'    => $this->salesman_code,
+                        'salesman_name'    => $this->salesman_name,
+                        'is_active'        => $this->is_active,
+                        'updated_at'       => now(),
+                    ]);
+                $message = 'Salesman berhasil diperbarui.';
+            } else {
+                $dataToSave = collect($validatedData)->except(['manual_number'])->toArray();
+                Salesman::create($dataToSave);
+                $message = 'Salesman berhasil ditambahkan.';
+            }
 
             DB::commit();
-            $this->isEditModalOpen = false;
-            session()->flash('message', 'Salesman berhasil diperbarui.');
+            $this->isFormModalOpen = false;
+            session()->flash('message', $message);
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Gagal update: ' . $e->getMessage());
+            session()->flash('error', 'Gagal menyimpan: ' . $e->getMessage());
         }
     }
 
-    // --- Helper Filter ---
+    // --- Helper Filter (List) ---
     public function updatedRegionFilter($value)
     {
         $this->reset(['areaFilter', 'distributorFilter']);

@@ -1,100 +1,213 @@
 <div>
     <x-slot name="title">Pemetaan Kategori Produk</x-slot>
 
-    <div class="mx-auto px-6 py-8">
-        <!-- Notifikasi -->
-        @if (session()->has('message'))
-            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" 
-                 class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-md shadow-md" role="alert">
-                <p>{{ session('message') }}</p>
-            </div>
-        @endif
-
-        <div class="bg-white shadow-xl rounded-2xl overflow-hidden">
-            <!-- Header Card -->
-            <div class="px-6 py-4 border-b flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 bg-gray-50">
-                <a href="{{ route('product-categories.create') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150 shadow-md hover:shadow-lg">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                    Tambah Pemetaan
-                </a>
-                <div class="w-full sm:w-auto">
-                    <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari Nama Produk atau Kategori..." class="w-full sm:w-64 form-input border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+    <div class="mx-auto px-4 sm:px-6 py-8 text-base-content">
+        {{-- Notifikasi --}}
+        <div class="mb-6">
+            @if (session()->has('message'))
+                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
+                    <x-heroicon-s-check-circle class="w-6 h-6" />
+                    <div>
+                        <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
+                        <div class="text-sm">{{ session('message') }}</div>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Tabel Data -->
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">No</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">ID Produk</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Nama Produk</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Nama Kategori</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Dibuat</th>
-                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @forelse ($mappings as $index => $mapping)
-                            <tr wire:key="mapping-{{ $mapping->id }}" class="hover:bg-gray-50 transition-colors duration-200">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $mappings->firstItem() + $index }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $mapping->productMaster->product_id ?? 'N/A' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $mapping->productMaster->product_name ?? 'N/A' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $mapping->category->category_name ?? 'N/A' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $mapping->created_at->format('d M Y, H:i') }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
-                                    <a href="{{ route('product-categories.edit', $mapping->id) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-full text-indigo-600 hover:text-indigo-900 hover:bg-indigo-100 transition-colors duration-200" title="Edit">
-                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                    </a>
-                                    <button wire:click="confirmDelete('{{ $mapping->id }}')" class="inline-flex items-center justify-center h-8 w-8 rounded-full text-red-600 hover:text-red-900 hover:bg-red-100 transition-colors duration-200" title="Hapus">
-                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                    </button>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="px-6 py-8 text-center text-gray-500">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                    <h3 class="mt-2 text-sm font-medium text-gray-900">Tidak Ada Data</h3>
-                                    <p class="mt-1 text-sm text-gray-500">Belum ada pemetaan kategori produk.</p>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination -->
-            @if($mappings->hasPages())
-            <div class="px-6 py-4 bg-gray-50 border-t">
-                {{ $mappings->links() }}
-            </div>
             @endif
+
+            @if (session()->has('error'))
+                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
+                    <x-heroicon-s-x-circle class="w-6 h-6" />
+                    <div>
+                        <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
+                        <div class="text-sm">{{ session('error') }}</div>
+                    </div>
+                </div>
+            @endif
+        </div>
+
+        <x-card flush title="Product Category Mapping" icon="link" subtitle="Hubungkan produk dengan kategori untuk pelaporan yang terstruktur" class="pb-6">
+            <x-slot:actions>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="relative group mr-2">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/30 group-focus-within:text-primary transition-colors">
+                            <x-heroicon-s-magnifying-glass class="w-4 h-4" />
+                        </div>
+                        <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari Produk/Kategori..." 
+                               class="input input-sm input-bordered pl-10 w-full sm:w-64 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                    </div>
+
+                    {{-- Tombol Tambah --}}
+                    @unless(auth()->user()->hasRole('guest'))
+                    <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
+                        <x-heroicon-s-plus class="w-4 h-4" />
+                        Tambah Pemetaan
+                    </button>
+                    @endunless
+                </div>
+            </x-slot:actions>
+
+            {{-- Tabel Data --}}
+            <x-ui.table loading="{{ false }}" empty="Tidak ada data pemetaan kategori produk ditemukan.">
+                <x-slot:head>
+                    <tr>
+                        <th class="w-16">No</th>
+                        <th>Kode Produk</th>
+                        <th>Nama Produk</th>
+                        <th>Kategori</th>
+                        <th>Dibuat Pada</th>
+                        <th class="text-center w-32">Aksi</th>
+                    </tr>
+                </x-slot:head>
+
+                @foreach ($mappings as $index => $mapping)
+                    <tr wire:key="mapping-{{ $mapping->id }}" class="group text-sm">
+                        <td>
+                            <span class="text-xs font-semibold text-base-content/40">{{ $mappings->firstItem() + $index }}</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-sm badge-outline border-base-300 text-primary font-mono px-2 py-3 rounded-lg">{{ $mapping->productMaster->product_id ?? 'N/A' }}</span>
+                        </td>
+                        <td>
+                            <span class="font-bold text-base-content/80 group-hover:text-primary transition-colors">{{ $mapping->productMaster->product_name ?? 'N/A' }}</span>
+                        </td>
+                        <td>
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-primary/40"></div>
+                                <span class="text-base-content/70">{{ $mapping->category->category_name ?? 'N/A' }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="flex items-center gap-2 text-base-content/50">
+                                <x-heroicon-s-calendar class="w-3.5 h-3.5" />
+                                <span>{{ $mapping->created_at->format('d M Y') }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="flex items-center justify-center gap-1">
+                                @unless(auth()->user()->hasRole('guest'))
+                                <button wire:click="openEditModal('{{ $mapping->id }}')" 
+                                        class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit">
+                                    <x-heroicon-s-pencil-square class="w-4 h-4" />
+                                </button>
+                                <button wire:click="confirmDelete('{{ $mapping->id }}')" 
+                                        class="btn btn-ghost btn-xs btn-square rounded-lg text-error hover:bg-error/10 transition-all duration-200" title="Hapus">
+                                    <x-heroicon-s-trash class="w-4 h-4" />
+                                </button>
+                                @endunless
+                            </div>
+                        </td>
+                    </tr>
+                @endforeach
+            </x-ui.table>
+
+            @if($mappings->hasPages())
+                <div class="mt-4 px-6">
+                    {{ $mappings->links() }}
+                </div>
+            @endif
+        </x-card>
+    </div>
+
+    {{-- Modal Form (Create/Edit) --}}
+    <div x-data="{ open: @entangle('isFormModalOpen') }" 
+         x-show="open" 
+         x-cloak 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
+
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+             class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-lg overflow-hidden ring-1 ring-base-content/5 flex flex-col text-base-content">
+            
+            <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 rounded-2xl bg-primary/10 text-primary">
+                        @if($isEditing)
+                            <x-heroicon-s-pencil-square class="w-6 h-6" />
+                        @else
+                            <x-heroicon-s-plus-circle class="w-6 h-6" />
+                        @endif
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg leading-none">{{ $isEditing ? 'Edit Pemetaan' : 'Tambah Pemetaan Baru' }}</h3>
+                        <p class="text-[11px] text-base-content/50 mt-1 uppercase tracking-wider font-semibold">{{ $isEditing ? 'Perbarui hubungan produk & kategori' : 'Hubungkan produk dengan kategori' }}</p>
+                    </div>
+                </div>
+                <button @click="open = false" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300 transition-all duration-200">
+                    <x-heroicon-s-x-mark class="w-5 h-5" />
+                </button>
+            </div>
+
+            <form wire:submit.prevent="save">
+                <div class="p-6 space-y-6 bg-base-100">
+                    <div class="space-y-1.5">
+                        <label for="product_id" class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Pilih Produk</label>
+                        <select wire:model.live="product_id" id="product_id" 
+                                class="select select-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('product_id') select-error @enderror">
+                            <option value="">-- Pilih Produk --</option>
+                            @foreach($productList as $p)
+                                <option value="{{ $p->product_id }}">{{ $p->product_id }} - {{ $p->product_name }}</option>
+                            @endforeach
+                        </select>
+                        @error('product_id') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1 mt-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" /> {{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label for="category_id" class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Pilih Kategori</label>
+                        <select wire:model.live="category_id" id="category_id" 
+                                class="select select-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('category_id') select-error @enderror">
+                            <option value="">-- Pilih Kategori --</option>
+                            @foreach($categoryList as $c)
+                                <option value="{{ $c->category_id }}">{{ $c->category_id }} - {{ $c->category_name }}</option>
+                            @endforeach
+                        </select>
+                        @error('category_id') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1 mt-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" /> {{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 px-6 py-5 border-t border-base-300 bg-base-200/30 shrink-0">
+                    <button type="button" @click="open = false" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300 transition-all duration-200">Batal</button>
+                    <button type="submit" class="btn btn-primary rounded-xl px-10 normal-case shadow-sm shadow-primary/20 gap-2">
+                        <span wire:loading.remove wire:target="save">{{ $isEditing ? 'Simpan Perubahan' : 'Simpan Pemetaan' }}</span>
+                        <span wire:loading wire:target="save" class="loading loading-spinner loading-xs"></span>
+                        <x-heroicon-s-paper-airplane wire:loading.remove wire:target="save" class="w-4 h-4" />
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Modal Konfirmasi Hapus -->
-    <div x-data="{ open: @entangle('isDeleteModalOpen') }" x-show="open" x-cloak class="fixed z-20 inset-0 overflow-y-auto">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-            <div x-show="open" class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-red-600" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900">Hapus Pemetaan</h3>
-                            <p class="mt-2 text-sm text-gray-500">Apakah Anda yakin? Tindakan ini tidak dapat dibatalkan.</p>
-                        </div>
-                    </div>
+    {{-- Modal Konfirmasi Hapus --}}
+    <div x-data="{ open: @entangle('isDeleteModalOpen') }" 
+         x-show="open" 
+         x-cloak 
+         class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+        
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
+
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+             class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-sm overflow-hidden ring-1 ring-base-content/5">
+            
+            <div class="p-8 text-center text-base-content">
+                <div class="w-20 h-20 bg-error/10 text-error rounded-full flex items-center justify-center mx-auto mb-6">
+                    <x-heroicon-s-trash class="w-10 h-10" />
                 </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button wire:click="delete" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">Hapus</button>
-                    <button @click="open = false" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm">Batal</button>
-                </div>
+                <h3 class="text-xl font-bold mb-2 leading-none text-base-content">Hapus Pemetaan?</h3>
+                <p class="text-[13px] text-base-content/50 leading-relaxed px-4">Hubungan produk dengan kategori ini akan dihapus. Tindakan ini <span class="text-error font-bold italic">permanen</span>.</p>
+            </div>
+
+            <div class="flex items-center justify-center gap-3 px-6 pb-8">
+                <button type="button" @click="open = false" class="btn btn-ghost flex-1 rounded-xl normal-case transition-all duration-200">Batal</button>
+                <button wire:click="delete" class="btn btn-error flex-1 rounded-xl normal-case shadow-sm shadow-error/20 transition-all duration-200 text-white">
+                    <span wire:loading.remove wire:target="delete">Ya, Hapus</span>
+                    <span wire:loading wire:target="delete" class="loading loading-spinner loading-sm"></span>
+                </button>
             </div>
         </div>
     </div>

@@ -16,26 +16,12 @@ use App\Livewire\MasterBranches\Index as MasterBranchIndex;
 use App\Livewire\MasterDistributors\Index as MasterDistributorsIndex;
 use App\Livewire\SalesInvoiceReport\Index as SalesInvoiceReportIndex;
 use App\Livewire\Product\LineProduct\Index as ProductLineIndex; 
-use App\Livewire\Product\LineProduct\Create as ProductLineCreate;
-use App\Livewire\Product\LineProduct\Edit as ProductLineEdit; 
 use App\Livewire\Product\BrandProduct\Index as ProductBrandIndex;
-use App\Livewire\Product\BrandProduct\Create as ProductBrandCreate;
-use App\Livewire\Product\BrandProduct\Edit as ProductBrandEdit;
 use App\Livewire\Product\GroupProduct\Index as ProductGroupIndex;
-use App\Livewire\Product\GroupProduct\Create as ProductGroupCreate;
-use App\Livewire\Product\GroupProduct\Edit as ProductGroupEdit;
 use App\Livewire\Product\SubBrandProduct\Index as ProductSubBrandIndex;
-use App\Livewire\Product\SubBrandProduct\Create as ProductSubBrandCreate;
-use App\Livewire\Product\SubBrandProduct\Edit as ProductSubBrandEdit;
-use App\Livewire\Product\CategoriesProduct\Index as CategoryIndex; // [DITAMBAHKAN]
-use App\Livewire\Product\CategoriesProduct\Create as CategoryCreate; // [DITAMBAHKAN]
-use App\Livewire\Product\CategoriesProduct\Edit as CategoryEdit; // [DITAMBAHKAN]
-use App\Livewire\Product\MasterProduct\Index as ProductMasterIndex; // [DITAMBAHKAN]
-use App\Livewire\Product\MasterProduct\Create as ProductMasterCreate; // [DITAMBAHKAN]
-use App\Livewire\Product\MasterProduct\Edit as ProductMasterEdit; // [DITAMBAHKAN]
-use App\Livewire\Product\ProductCategories\Index as ProductCategoryIndex; // [DITAMBAHKAN]
-use App\Livewire\Product\ProductCategories\Create as ProductCategoryCreate; // [DITAMBAHKAN]
-use App\Livewire\Product\ProductCategories\Edit as ProductCategoryEdit; // [DITAMBAHKAN]
+use App\Livewire\Product\CategoriesProduct\Index as CategoryIndex;
+use App\Livewire\Product\MasterProduct\Index as ProductMasterIndex;
+use App\Livewire\Product\ProductCategories\Index as ProductCategoryIndex;
 use App\Livewire\Mapping\Product\Index as ProductMappingIndex; // [DITAMBAHKAN]
 use App\Livewire\Mapping\Product\Create as ProductMappingCreate; // [DITAMBAHKAN]
 use App\Livewire\Mapping\Product\Edit as ProductMappingEdit; // [DITAMBAHKAN]
@@ -168,53 +154,25 @@ Route::get('/master-distributors', MasterDistributorsIndex::class)->name('master
 Route::get('/sales-invoice-report', SalesInvoiceReportIndex::class)->name('sales-invoice-report.index');
 
 // Product Line Routes
-Route::prefix('product-lines')->name('product-lines.')->group(function () {
-    Route::get('/', ProductLineIndex::class)->name('index');
-    Route::get('/create', ProductLineCreate::class)->name('create');
-    Route::get('/{id}/edit', ProductLineEdit::class)->name('edit');
-});
+Route::get('/product-lines', ProductLineIndex::class)->name('product-lines.index');
 
 // Product Brand Routes
-Route::prefix('product-brands')->name('product-brands.')->group(function () {
-    Route::get('/', ProductBrandIndex::class)->name('index');
-    Route::get('/create', ProductBrandCreate::class)->name('create');
-    Route::get('/{id}/edit', ProductBrandEdit::class)->name('edit'); // Menggunakan {id} karena brand_id adalah primary key
-});
+Route::get('/product-brands', ProductBrandIndex::class)->name('product-brands.index');
 
 // Product Group Routes
-Route::prefix('product-groups')->name('product-groups.')->group(function () {
-    Route::get('/', ProductGroupIndex::class)->name('index');
-    Route::get('/create', ProductGroupCreate::class)->name('create');
-    Route::get('/{id}/edit', ProductGroupEdit::class)->name('edit'); // Menggunakan {id} karena product_group_id adalah primary key
-});
+Route::get('/product-groups', ProductGroupIndex::class)->name('product-groups.index');
 
 // Product Sub-Brand Routes
-Route::prefix('product-sub-brands')->name('product-sub-brands.')->group(function () {
-    Route::get('/', ProductSubBrandIndex::class)->name('index');
-    Route::get('/create', ProductSubBrandCreate::class)->name('create');
-    Route::get('/{id}/edit', ProductSubBrandEdit::class)->name('edit'); // Menggunakan {id} karena sub_brand_id adalah primary key
-});
+Route::get('/product-sub-brands', ProductSubBrandIndex::class)->name('product-sub-brands.index');
 
 // Product Categories Routes
-Route::prefix('categories')->name('categories.')->group(function () {
-    Route::get('/', CategoryIndex::class)->name('index');
-    Route::get('/create', CategoryCreate::class)->name('create');
-    Route::get('/{id}/edit', CategoryEdit::class)->name('edit'); // Menggunakan {id} karena category_id adalah primary key
-});
+Route::get('/categories', CategoryIndex::class)->name('categories.index');
 
 // Product Master Routes
-Route::prefix('product-masters')->name('product-masters.')->group(function () {
-    Route::get('/', ProductMasterIndex::class)->name('index');
-    Route::get('/create', ProductMasterCreate::class)->name('create');
-    Route::get('/{product:product_id}/edit', ProductMasterEdit::class)->name('edit'); ; // Menggunakan {id} karena product_id adalah primary key
-});
+Route::get('/product-masters', ProductMasterIndex::class)->name('product-masters.index');
 
 // Product Categories Mapping Routes
-Route::prefix('product-categories')->name('product-categories.')->group(function () {
-    Route::get('/', ProductCategoryIndex::class)->name('index');
-    Route::get('/create', ProductCategoryCreate::class)->name('create');
-    Route::get('/{mapping}/edit', ProductCategoryEdit::class)->name('edit'); // Menggunakan {id} karena id adalah primary key
-});
+Route::get('/product-categories', ProductCategoryIndex::class)->name('product-categories.index');
 
 
 // Product Mappings Routes
@@ -225,11 +183,7 @@ Route::prefix('product-mappings')->name('product-mappings.')->group(function () 
 });
 
 // Route untuk Salesmans
-Route::prefix('salesmans')->name('salesmans.')->group(function () {
-    Route::get('/', SalesmanIndex::class)->name('index');
-    Route::get('/create', SalesmanCreate::class)->name('create');
-    Route::get('/{id}/edit', SalesmanEdit::class)->name('edit'); // {id} akan di-hash
-});
+Route::get('/salesmans', SalesmanIndex::class)->name('salesmans.index');
 
 //Route untuk Salesman Mappings
 Route::prefix('salesman-mappings')->name('salesman-mappings.')->group(function () {
