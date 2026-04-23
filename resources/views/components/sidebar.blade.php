@@ -79,10 +79,10 @@
                 x-transition:leave-end="opacity-0 -translate-y-4 scale-95"
                 class="mt-1.5 space-y-1 ml-4 relative before:absolute before:inset-y-0 before:left-[9px] before:w-[1px] before:bg-base-content/10" x-cloak>
                 <li>
-                    <a href="{{ route('dashboard') }}"
-                       class="group flex items-center px-4 py-2.5 rounded-xl transition-all duration-300 hover:translate-x-1 text-sm {{ request()->routeIs('dashboard') ? 'bg-primary/10 text-primary font-medium' : 'text-base-content/60 hover:text-base-content hover:bg-base-content/5' }}">
-                        <div class="w-1.5 h-1.5 rounded-full mr-3 transition-all duration-300 group-hover:scale-150 {{ request()->routeIs('dashboard') ? 'scale-150 bg-primary' : 'bg-base-content/20 group-hover:bg-primary' }}"></div>
-                        <span class="whitespace-nowrap transition-transform duration-300">aioueo</span>
+                    <a href="{{ route('dashboard.analytics') }}"
+                       class="group flex items-center px-4 py-2.5 rounded-xl transition-all duration-300 hover:translate-x-1 text-sm {{ request()->routeIs('dashboard.analytics') ? 'bg-primary/10 text-primary font-medium' : 'text-base-content/60 hover:text-base-content hover:bg-base-content/5' }}">
+                        <div class="w-1.5 h-1.5 rounded-full mr-3 transition-all duration-300 group-hover:scale-150 {{ request()->routeIs('dashboard.analytics') ? 'scale-150 bg-primary' : 'bg-base-content/20 group-hover:bg-primary' }}"></div>
+                        <span class="whitespace-nowrap transition-transform duration-300">Selling In Summary</span>
                     </a>
                 </li>
                 <li>

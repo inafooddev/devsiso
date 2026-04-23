@@ -28,7 +28,7 @@ class Login extends Component
             session()->regenerate();
 
             // Arahkan ke dashboard setelah sukses
-            return redirect()->intended('/');
+            return redirect()->intended('/dashboard/analytics');
         }
 
         // Jika gagal

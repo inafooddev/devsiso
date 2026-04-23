@@ -522,19 +522,137 @@
                 };
 
                 // Region Contribution — donut with labels
-                if (d.contribution && document.querySelector('#chartRegionContribution')) {
-                    charts.contribution = new ApexCharts(document.querySelector('#chartRegionContribution'), {
-                        ...base,
-                        chart: { ...base.chart, type: 'donut' },
-                        series: d.contribution.series || [],
-                        labels: d.contribution.labels || [],
-                        colors: ['#6366f1','#38bdf8','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'],
-                        dataLabels: { enabled: true, formatter: (val, { seriesIndex, w }) => w.config.labels[seriesIndex] + ' ' + val.toFixed(1) + '%', style: { fontSize: '10px' }, dropShadow: { enabled: false } },
-                        plotOptions: { pie: { customScale: 0.95, donut: { size: '58%', labels: { show: true, total: { show: true, label: 'Regions', fontSize: '11px', formatter: (w) => w.globals.series.length } } } } },
-                        legend: { position: 'bottom',show: false, fontSize: '11px', itemMargin: { horizontal: 4 } }
-                    });
-                    charts.contribution.render();
+                // 1. Simpan referensi selector ke variabel agar lebih cepat dan bersih
+const chartElement = document.querySelector('#chartRegionContribution');
+
+if (d.contribution && chartElement) {
+    // 2. Gunakan metode destroy yang aman
+    if (charts.contribution && typeof charts.contribution.destroy === 'function') {
+        charts.contribution.destroy();
+    }
+
+    // 3. Inisialisasi Chart
+    charts.contribution = new ApexCharts(chartElement, {
+        ...base,
+        chart: {
+            ...base.chart,
+            type: 'donut',
+            height: 320,
+            dropShadow: {
+                enabled: true,
+                top: 2,
+                left: 0,
+                blur: 6,
+                opacity: 0.08
+            }
+        },
+
+        // Pastikan data series adalah angka (ApexCharts sensitif terhadap string)
+        series: Array.isArray(d.contribution.series) ? d.contribution.series.map(Number) : [],
+        labels: d.contribution.labels || [],
+
+        colors: ['#6366f1', '#38bdf8', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'],
+
+        stroke: {
+            width: 2,
+            colors: ['#ffffff']
+        },
+
+        plotOptions: {
+            pie: {
+                customScale: 1.05,
+                expandOnClick: true,
+                donut: {
+                    size: '70%',
+                    labels: {
+                        show: true,
+                        name: {
+                            show: true,
+                            fontSize: '13px',
+                            fontWeight: 500,
+                            color: '#94a3b8',
+                            offsetY: -8
+                        },
+                        value: {
+                            show: true,
+                            fontSize: '20px',
+                            fontWeight: 700,
+                            color: '#0f172a',
+                            // Formatter nilai di tengah donut
+                            formatter: (val) => {
+                                const num = parseFloat(val);
+                                return isNaN(num) ? val : num.toLocaleString() + '%';
+                            }
+                        },
+                        total: {
+                            show: true,
+                            label: 'Total Sales',
+                            fontSize: '12px',
+                            color: '#64748b',
+                            formatter: (w) => {
+                                const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                if (total >= 1e9) return (total / 1e9).toFixed(1) + 'B';
+                                if (total >= 1e6) return (total / 1e6).toFixed(1) + 'M';
+                                if (total >= 1e3) return (total / 1e3).toFixed(1) + 'K';
+                                return total.toFixed(0);
+                            }
+                        }
+                    }
                 }
+            }
+        },
+
+        dataLabels: {
+            enabled: true,
+            // Sembunyikan label jika slice terlalu kecil agar tidak tumpang tindih
+            formatter: (val) => val < 5 ? '' : val.toFixed(1),
+            style: {
+                fontSize: '11px',
+                fontWeight: 600,
+                colors: ['#fff']
+            },
+            dropShadow: { enabled: false }
+        },
+
+        legend: {
+            show: true, // Ubah ke true jika ingin melihat daftar di bawah
+            position: 'bottom',
+            horizontalAlign: 'center',
+            fontSize: '11px',
+            labels: { colors: '#64748b' },
+            markers: { radius: 12 },
+            itemMargin: { horizontal: 10, vertical: 6 }
+        },
+
+tooltip: {
+    enabled: true, // Ensure this is true
+    theme: 'light',
+    y: {
+        formatter: function(val) {
+            // Checks if val exists and is a number
+            if (typeof val !== 'undefined' && val !== null) {
+                return val.toFixed(1) ;
+            }
+            return "No Data";
+        },
+        title: {
+            formatter: (seriesName) => seriesName + ':'
+        }
+    }
+},
+
+        states: {
+            hover: {
+                filter: {
+                    type: 'darken',
+                    value: 0.85
+                }
+            }
+        }
+    });
+
+    charts.contribution.render();
+}
 
                 // Region Comparison — horizontal bar
                 if (d.regionHBar && document.querySelector('#chartRegionHBar')) {
@@ -552,41 +670,124 @@
                 }
 
                 // Performance Overview — combo (This Year vs Last Year + Growth %)
-                if (d.combo && document.querySelector('#chartCombo')) {
-                    if (charts.combo) charts.combo.destroy(); // Prevent overlapping
-                    charts.combo = new ApexCharts(document.querySelector('#chartCombo'), {
-                        ...base,
-                        chart: { ...base.chart, type: 'line' },
-                        series: [
-                            { name: 'This Year', type: 'column', data: d.combo.ty || [] }, 
-                            { name: 'Last Year', type: 'column', data: d.combo.ly || [] }, 
-                            { name: 'Growth %', type: 'line', data: d.combo.growth || [] }],
-                        xaxis: { categories: d.combo.labels || [] },
-                        colors: ['#6366f1', '#cbd5e1', '#10b981'],
-                        stroke: { width: [0, 0, 3] },
-                        yaxis: [
-                            { seriesName: 'This Year', title: { text: 'Value' }, labels: { formatter: fmt } }, 
-                            { seriesName: 'This Year', show: false }, // Last Year shares axis with This Year
-                            { seriesName: 'Growth %', 
-                                opposite: true, 
-                                show: false,
-                                title: { text: 'Growth %' }, 
-                                min: -50, 
-                                max: 100,
-                                labels: { formatter: (v) => v == null ? '-' : v.toFixed(1) + '%' } }
-                        ],
-                        plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } },
-                        legend: {
-                            position: 'bottom',
-                            show: false,
-                            horizontalAlign: 'center',
-                            itemMargin: { horizontal: 15, vertical: 0 }
-                        },
-                        tooltip: { y: { formatter: (v, { seriesIndex }) => seriesIndex < 2 ? fmt(v) : v.toFixed(1) + '%' } },
-                        legend: { position: 'bottom',show: false, fontSize: '11px', itemMargin: { horizontal: 4 } }
-                    });
-                    charts.combo.render();
+               if (d.combo && document.querySelector('#chartCombo')) {
+    if (charts.combo) charts.combo.destroy();
+
+    charts.combo = new ApexCharts(document.querySelector('#chartCombo'), {
+        ...base,
+
+        chart: {
+            ...base.chart,
+            type: 'line',
+            height: 300,
+            toolbar: { show: false },
+            zoom: { enabled: false }
+        },
+
+        series: [
+            { name: 'This Year', type: 'column', data: d.combo.ty || [] },
+            { name: 'Last Year', type: 'column', data: d.combo.ly || [] },
+            { name: 'Growth %', type: 'line', data: d.combo.growth || [] }
+        ],
+
+        xaxis: {
+            categories: d.combo.labels || [],
+            labels: {
+                style: { fontSize: '11px', colors: '#94a3b8' }
+            },
+            axisBorder: { show: false },
+            axisTicks: { show: false }
+        },
+
+        colors: ['#6366f1', '#e2e8f0', '#10b981'],
+
+        stroke: {
+            width: [0, 0, 3],
+            curve: 'smooth'
+        },
+
+        markers: {
+            size: 4,
+            strokeWidth: 2,
+            hover: { size: 6 }
+        },
+
+        grid: {
+            borderColor: '#f1f5f9',
+            strokeDashArray: 4
+        },
+
+        dataLabels: {
+            enabled: false
+        },
+
+        yaxis: [
+            {
+                seriesName: 'This Year',
+                title: { text: '' },
+                labels: {
+                    formatter: fmt,
+                    style: { fontSize: '11px', colors: '#64748b' }
                 }
+            },
+            {
+                seriesName: 'This Year',
+                show: false
+            },
+            {
+                seriesName: 'Growth %',
+                opposite: true,
+                min: -50,
+                max: 100,
+                labels: {
+                    formatter: (v) => v == null ? '-' : v.toFixed(1) + '%',
+                    style: { fontSize: '11px', colors: '#10b981' }
+                }
+            }
+        ],
+
+        plotOptions: {
+            bar: {
+                borderRadius: 6,
+                columnWidth: '45%',
+                distributed: false
+            }
+        },
+
+        fill: {
+            type: ['solid', 'solid', 'gradient'],
+            gradient: {
+                shade: 'light',
+                type: 'vertical',
+                opacityFrom: 0.7,
+                opacityTo: 0.2
+            }
+        },
+
+        legend: {
+            show: true,
+            position: 'top',
+            horizontalAlign: 'right',
+            fontSize: '12px',
+            labels: { colors: '#64748b' },
+            markers: { radius: 12 }
+        },
+
+        tooltip: {
+            shared: true,
+            intersect: false,
+            theme: 'light',
+            y: {
+                formatter: (v, { seriesIndex }) =>
+                    seriesIndex < 2
+                        ? fmt(v)
+                        : (v == null ? '-' : v.toFixed(1) + '%')
+            }
+        }
+    });
+
+    charts.combo.render();
+}
 
                 // Sales Trend — line
                 if (d.trend && document.querySelector('#chartSalesTrend')) {
