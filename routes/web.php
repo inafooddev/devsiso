@@ -40,6 +40,7 @@ use App\Livewire\Dashboard\DistributorMap;
 use App\Livewire\Pages\UnderConstruction;
 use App\Livewire\Pages\UnderBounce;
 use App\Livewire\Dashboard\MetabaseDashboard;
+use App\Livewire\Dashboard\AnalyticsDashboard;
 use App\Livewire\CustomerExportComponent;
 use App\Livewire\CustomerCsvExportComponent;
 use App\Livewire\Customers\CustomerData;
@@ -123,6 +124,7 @@ Route::get('/', Dashboard::class)->name('dashboard');
 
 Route::get('/dashboard/distributor-map', DistributorMap::class)->name('dashboard.distributor-map');
 Route::get('/dashboard/metabase', MetabaseDashboard::class)->name('dashboard.metabase');
+Route::get('/dashboard/analytics', AnalyticsDashboard::class)->name('dashboard.analytics');
 
 // Grup route untuk konfigurasi sales
 Route::prefix('sales-configs')->name('sales-configs.')->group(function () {
