@@ -17,8 +17,10 @@
 </style>
 
 <aside 
-    x-data="{ isPinned: false }"
-    x-init="sidebarOpen = false"
+    x-data="{ 
+        isPinned: localStorage.getItem('sidebarPinned') === 'true'
+    }"
+    x-init="sidebarOpen = isPinned"
     @mouseenter="sidebarOpen = true"
     @mouseleave="if(!isPinned) sidebarOpen = false"
     :class="sidebarOpen ? 'w-64' : 'w-20'" 
@@ -621,7 +623,7 @@
     <!-- Toggle Button -->
     <div class="p-4 bg-base-300 border-t border-base-content/10 z-10 relative">
         <button 
-            @click="isPinned = !isPinned; sidebarOpen = isPinned"
+            @click="isPinned = !isPinned; sidebarOpen = isPinned; localStorage.setItem('sidebarPinned', isPinned)"
             class="btn btn-ghost btn-sm w-full flex items-center justify-center gap-2"
             title="Pin / Unpin Sidebar"
         >

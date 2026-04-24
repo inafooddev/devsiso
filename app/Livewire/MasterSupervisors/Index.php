@@ -64,14 +64,18 @@ class Index extends Component
     /**
      * Helper untuk memfilter Query berdasarkan hak akses region user.
      */
-    private function applyRegionAccess($query)
+    private function applyRegionAccess($query, $type = 'supervisor')
     {
         $user = auth()->user();
 
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereHas('area', function ($areaQuery) use ($user) {
-                $areaQuery->whereIn('region_code', $user->region_code);
-            });
+            if ($type === 'supervisor') {
+                $query->whereHas('area', function ($areaQuery) use ($user) {
+                    $areaQuery->whereIn('region_code', $user->region_code);
+                });
+            } elseif ($type === 'area') {
+                $query->whereIn('region_code', $user->region_code);
+            }
         }
 
         return $query;
@@ -160,7 +164,7 @@ class Index extends Component
             ->leftJoin('master_areas', 'master_supervisors.area_code', '=', 'master_areas.area_code')
             ->where('master_supervisors.supervisor_code', '!=', 'HOINA');
 
-        $this->applyRegionAccess($query);
+        $this->applyRegionAccess($query, 'supervisor');
 
         if (!empty($this->search)) {
             $query->where(function($q) {
@@ -182,7 +186,7 @@ class Index extends Component
                              
         // Ambil data area untuk dropdown form
         $areasQuery = MasterArea::orderBy('area_name', 'asc');
-        $this->applyRegionAccess($areasQuery);
+        $this->applyRegionAccess($areasQuery, 'area');
         $areas = $areasQuery->get();
 
         return view('livewire.master-supervisors.index', [
@@ -206,7 +210,7 @@ class Index extends Component
     public function delete()
     {
         $query = MasterSupervisor::query();
-        $this->applyRegionAccess($query);
+        $this->applyRegionAccess($query, 'supervisor');
         
         $supervisor = $query->where('supervisor_code', $this->supervisorIdToDelete)->first();
 

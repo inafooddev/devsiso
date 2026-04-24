@@ -66,10 +66,10 @@
                             </div>
                         </div>
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-44 overflow-y-auto p-3 bg-base-200 rounded-xl">
-                            @foreach($regionsOption as $reg)
+                            @foreach($regionsOption as $code => $name)
                             <label class="flex items-center gap-2 cursor-pointer hover:bg-base-100 rounded-lg p-1.5 transition">
-                                <input type="checkbox" wire:model="selectedRegions" value="{{ $reg }}" class="checkbox checkbox-xs checkbox-primary" />
-                                <span class="text-xs">{{ $reg }}</span>
+                                <input type="checkbox" wire:model="selectedRegions" value="{{ $code }}" class="checkbox checkbox-xs checkbox-primary" />
+                                <span class="text-xs">{{ $name }}</span>
                             </label>
                             @endforeach
                         </div>

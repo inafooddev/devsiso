@@ -88,16 +88,16 @@ class AnalyticsDashboard extends Component
 
         // Load region options with access control
         $query = DB::table('v_sellinvstarget')
-            ->select('region')
+            ->select('region', 'region_code')
             ->distinct()
             ->orderBy('region');
 
-        $this->applyRegionAccess($query, 'region');
+        $this->applyRegionAccess($query, 'region_code');
 
-        $this->regionsOption = $query->pluck('region')->toArray();
+        $this->regionsOption = $query->pluck('region', 'region_code')->toArray();
 
         // Auto-select all regions by default
-        $this->selectedRegions = $this->regionsOption;
+        $this->selectedRegions = array_keys($this->regionsOption);
 
         $this->loadDashboardData();
     }
@@ -105,7 +105,7 @@ class AnalyticsDashboard extends Component
     // ======================
     // REGION ACCESS HELPER
     // ======================
-    private function applyRegionAccess($query, string $column = 'region'): void
+    private function applyRegionAccess($query, string $column = 'region_code'): void
     {
         $user = auth()->user();
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
@@ -127,7 +127,7 @@ class AnalyticsDashboard extends Component
 
         // Region
         if (!empty($this->selectedRegions)) {
-            $query->whereIn('region', $this->selectedRegions);
+            $query->whereIn('region_code', $this->selectedRegions);
         }
 
         // Reg/Fest
@@ -136,7 +136,7 @@ class AnalyticsDashboard extends Component
         }
 
         // User access control
-        $this->applyRegionAccess($query, 'region');
+        $this->applyRegionAccess($query, 'region_code');
     }
 
     private function applyLastYearFilters($query): void
@@ -147,14 +147,14 @@ class AnalyticsDashboard extends Component
               ->whereRaw('EXTRACT(MONTH FROM bulan) <= ?', [$this->selectedMonthTo]);
 
         if (!empty($this->selectedRegions)) {
-            $query->whereIn('region', $this->selectedRegions);
+            $query->whereIn('region_code', $this->selectedRegions);
         }
 
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
 
-        $this->applyRegionAccess($query, 'region');
+        $this->applyRegionAccess($query, 'region_code');
     }
 
     /**
@@ -169,7 +169,7 @@ class AnalyticsDashboard extends Component
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
-        $this->applyRegionAccess($query, 'region');
+        $this->applyRegionAccess($query, 'region_code');
     }
 
     /**
@@ -180,12 +180,12 @@ class AnalyticsDashboard extends Component
     {
         $query->whereYear('bulan', $this->selectedYear);
         if (!empty($this->selectedRegions)) {
-            $query->whereIn('region', $this->selectedRegions);
+            $query->whereIn('region_code', $this->selectedRegions);
         }
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
-        $this->applyRegionAccess($query, 'region');
+        $this->applyRegionAccess($query, 'region_code');
     }
 
     /**
@@ -195,12 +195,12 @@ class AnalyticsDashboard extends Component
     {
         $query->whereYear('bulan', $this->selectedYear - 1);
         if (!empty($this->selectedRegions)) {
-            $query->whereIn('region', $this->selectedRegions);
+            $query->whereIn('region_code', $this->selectedRegions);
         }
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
-        $this->applyRegionAccess($query, 'region');
+        $this->applyRegionAccess($query, 'region_code');
     }
 
     // ======================
@@ -220,7 +220,7 @@ class AnalyticsDashboard extends Component
         }
 
         if (empty($this->selectedRegions)) {
-            $this->selectedRegions = $this->regionsOption;
+            $this->selectedRegions = array_keys($this->regionsOption);
         }
 
         $this->resetPage();
@@ -231,7 +231,7 @@ class AnalyticsDashboard extends Component
 
     public function selectAllRegions(): void
     {
-        $this->selectedRegions = $this->regionsOption;
+        $this->selectedRegions = array_keys($this->regionsOption);
     }
 
     public function clearAllRegions(): void
