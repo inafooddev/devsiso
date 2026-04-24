@@ -503,14 +503,28 @@
                         fontFamily: 'Inter, sans-serif', 
                         toolbar: { show: false }, 
                         zoom: { enabled: false }, 
-                        animations: { enabled: true, easing: 'easeinout', speed: 600 },
-                        height: 260,
+                        animations: { 
+                            enabled: true, 
+                            easing: 'easeinout', 
+                            speed: 800,
+                            animateGradually: { enabled: true, delay: 150 },
+                            dynamicAnimation: { enabled: true, speed: 350 }
+                        },
                         parentHeightOffset: 0
                     },
+                    grid: {
+                        borderColor: '#f1f5f9',
+                        strokeDashArray: 4,
+                        padding: { top: 0, right: 10, bottom: 0, left: 10 }
+                    },
                     dataLabels: { enabled: false },
-                    tooltip: { theme: 'dark' }
+                    tooltip: { 
+                        theme: 'light',
+                        style: { fontSize: '12px' },
+                        marker: { show: true }
+                    }
                 };
-                // Number formatter: 1,500,000 → 1.5M
+                
                 const fmt = (val) => {
                     if (val === null || val === undefined || isNaN(val)) return '0';
                     const abs = Math.abs(val);
@@ -518,156 +532,285 @@
                     if (abs >= 1e9)  return (val / 1e9).toFixed(1) + 'B';
                     if (abs >= 1e6)  return (val / 1e6).toFixed(1) + 'M';
                     if (abs >= 1e3)  return (val / 1e3).toFixed(1) + 'K';
-                    return Number(val).toLocaleString();
+                    return new Intl.NumberFormat('id-ID').format(val);
                 };
 
                 // Region Contribution — donut with labels
-                // 1. Simpan referensi selector ke variabel agar lebih cepat dan bersih
-const chartElement = document.querySelector('#chartRegionContribution');
+                const chartElement = document.querySelector('#chartRegionContribution');
+                if (d.contribution && chartElement) {
+                    if (charts.contribution && typeof charts.contribution.destroy === 'function') {
+                        charts.contribution.destroy();
+                    }
 
-if (d.contribution && chartElement) {
-    // 2. Gunakan metode destroy yang aman
-    if (charts.contribution && typeof charts.contribution.destroy === 'function') {
-        charts.contribution.destroy();
+                    charts.contribution = new ApexCharts(chartElement, {
+                        ...base,
+                        chart: {
+                            ...base.chart,
+                            type: 'donut',
+                            height: 320,
+                            dropShadow: {
+                                enabled: true,
+                                top: 2,
+                                left: 0,
+                                blur: 6,
+                                opacity: 0.08
+                            }
+                        },
+
+                        series: Array.isArray(d.contribution.series) ? d.contribution.series.map(Number) : [],
+                        labels: d.contribution.labels || [],
+
+                        colors: ['#6366f1', '#38bdf8', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'],
+
+                        stroke: {
+                            width: 2,
+                            colors: ['#ffffff']
+                        },
+
+                        plotOptions: {
+                            pie: {
+                                customScale: 1.05,
+                                expandOnClick: true,
+                                donut: {
+                                    size: '70%',
+                                    labels: {
+                                        show: true,
+                                        name: {
+                                            show: true,
+                                            fontSize: '13px',
+                                            fontWeight: 500,
+                                            color: '#94a3b8',
+                                            offsetY: -8
+                                        },
+                                        value: {
+                                            show: true,
+                                            fontSize: '20px',
+                                            fontWeight: 700,
+                                            color: '#0f172a',
+                                            formatter: (val) => fmt(val)
+                                        },
+                                        total: {
+                                            show: true,
+                                            label: 'Total Sales',
+                                            fontSize: '12px',
+                                            color: '#64748b',
+                                            formatter: (w) => {
+                                                const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                                return fmt(total);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+
+                        dataLabels: {
+                            enabled: true,
+                            formatter: (val) => val < 5 ? '' : val.toFixed(1) + '%',
+                            style: {
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                colors: ['#fff']
+                            },
+                            dropShadow: { enabled: false }
+                        },
+
+                        legend: {
+                            show: false,
+                            position: 'bottom',
+                            horizontalAlign: 'center',
+                            fontSize: '11px',
+                            labels: { colors: '#64748b' },
+                            markers: { radius: 12 },
+                            itemMargin: { horizontal: 10, vertical: 6 }
+                        },    
+
+                        tooltip: {
+                            enabled: true,
+                            theme: 'light',
+                            y: {
+                                formatter: function(value) {
+                                    // Format angka ke ribuan dengan titik (ID)
+                                    return new Intl.NumberFormat('id-ID').format(value);
+                                }
+                            }
+                        },
+                        
+                        states: {
+                            hover: {
+                                filter: {
+                                    type: 'darken',
+                                    value: 0.85
+                                }
+                            }
+                        }
+                    });
+
+                    charts.contribution.render();
+                }
+
+                // Region Comparison — horizontal bar
+                if (d.regionHBar && document.querySelector('#chartRegionHBar')) {
+
+    // destroy aman
+    if (charts.regionH && typeof charts.regionH.destroy === 'function') {
+        charts.regionH.destroy();
     }
 
-    // 3. Inisialisasi Chart
-    charts.contribution = new ApexCharts(chartElement, {
+    charts.regionH = new ApexCharts(document.querySelector('#chartRegionHBar'), {
         ...base,
+
         chart: {
             ...base.chart,
-            type: 'donut',
+            type: 'bar',
             height: 320,
-            dropShadow: {
+            toolbar: { show: false },
+            animations: {
                 enabled: true,
-                top: 2,
-                left: 0,
-                blur: 6,
-                opacity: 0.08
+                easing: 'easeinout',
+                speed: 700
             }
         },
 
-        // Pastikan data series adalah angka (ApexCharts sensitif terhadap string)
-        series: Array.isArray(d.contribution.series) ? d.contribution.series.map(Number) : [],
-        labels: d.contribution.labels || [],
-
-        colors: ['#6366f1', '#38bdf8', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'],
-
-        stroke: {
-            width: 2,
-            colors: ['#ffffff']
-        },
+        series: [
+            {
+                name: 'Actual',
+                data: d.regionHBar.actuals || []
+            },
+            {
+                name: 'Target',
+                data: d.regionHBar.targets || []
+            }
+        ],
 
         plotOptions: {
-            pie: {
-                customScale: 1.05,
-                expandOnClick: true,
-                donut: {
-                    size: '70%',
-                    labels: {
-                        show: true,
-                        name: {
-                            show: true,
-                            fontSize: '13px',
-                            fontWeight: 500,
-                            color: '#94a3b8',
-                            offsetY: -8
-                        },
-                        value: {
-                            show: true,
-                            fontSize: '20px',
-                            fontWeight: 700,
-                            color: '#0f172a',
-                            // Formatter nilai di tengah donut
-                            formatter: (val) => {
-                                const num = parseFloat(val);
-                                return isNaN(num) ? val : num.toLocaleString() + '%';
-                            }
-                        },
-                        total: {
-                            show: true,
-                            label: 'Total Sales',
-                            fontSize: '12px',
-                            color: '#64748b',
-                            formatter: (w) => {
-                                const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
-                                if (total >= 1e9) return (total / 1e9).toFixed(1) + 'B';
-                                if (total >= 1e6) return (total / 1e6).toFixed(1) + 'M';
-                                if (total >= 1e3) return (total / 1e3).toFixed(1) + 'K';
-                                return total.toFixed(0);
-                            }
-                        }
-                    }
-                }
+            bar: {
+                horizontal: true,
+                borderRadius: 8,
+                barHeight: '55%',
+                distributed: false
             }
         },
 
         dataLabels: {
-            enabled: true,
-            // Sembunyikan label jika slice terlalu kecil agar tidak tumpang tindih
-            formatter: (val) => val < 5 ? '' : val.toFixed(1),
-            style: {
-                fontSize: '11px',
-                fontWeight: 600,
-                colors: ['#fff']
+            enabled: false
+        },
+
+        stroke: {
+            show: true,
+            width: 2,
+            colors: ['transparent']
+        },
+
+        grid: {
+            borderColor: '#f1f5f9',
+            strokeDashArray: 4,
+            xaxis: {
+                lines: { show: true }
             },
-            dropShadow: { enabled: false }
+            yaxis: {
+                lines: { show: false }
+            },
+            padding: {
+                top: 0,
+                right: 10,
+                bottom: 0,
+                left: 10
+            }
+        },
+
+        xaxis: {
+            categories: d.regionHBar.labels || [],
+            labels: {
+                style: {
+                    fontSize: '11px',
+                    colors: '#64748b'
+                },
+                formatter: fmt
+            },
+            axisBorder: { show: false },
+            axisTicks: { show: false }
+        },
+
+        yaxis: {
+            labels: {
+                style: {
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    colors: '#334155'
+                }
+            }
+        },
+
+        colors: [
+            '#6366f1', // actual
+            '#e2e8f0'  // target (soft neutral)
+        ],
+
+        fill: {
+            type: 'gradient',
+            gradient: {
+                shade: 'light',
+                type: 'horizontal',
+                shadeIntensity: 0.3,
+                gradientToColors: ['#818cf8', '#cbd5f1'],
+                inverseColors: false,
+                opacityFrom: 0.95,
+                opacityTo: 0.85,
+                stops: [0, 100]
+            }
+        },
+
+        tooltip: {
+            shared: true,
+            intersect: false,
+            theme: 'light',
+            style: {
+                fontSize: '12px'
+            },
+            marker: { show: true },
+            x: {
+                show: true
+            },
+            y: {
+                formatter: (val, { seriesIndex, dataPointIndex, w }) => {
+                    if (seriesIndex === 0) {
+                        const target = w.globals.initialSeries[1].data[dataPointIndex];
+                        const ach = target > 0 ? ((val / target) * 100).toFixed(1) : 0;
+
+                        return `
+                            <div style="padding:4px 0">
+                                <div><b>${fmt(val)}</b></div>
+                                <div style="color:#64748b;font-size:11px">
+                                    ${ach}% achievement
+                                </div>
+                            </div>
+                        `;
+                    }
+                    return `<b>${fmt(val)}</b>`;
+                }
+            }
         },
 
         legend: {
-            show: true, // Ubah ke true jika ingin melihat daftar di bawah
-            position: 'bottom',
-            horizontalAlign: 'center',
+            show: true,
+            position: 'top',
+            horizontalAlign: 'right',
             fontSize: '11px',
-            labels: { colors: '#64748b' },
-            markers: { radius: 12 },
-            itemMargin: { horizontal: 10, vertical: 6 }
-        },
-
-tooltip: {
-    enabled: true, // Ensure this is true
-    theme: 'light',
-    y: {
-        formatter: function(val) {
-            // Checks if val exists and is a number
-            if (typeof val !== 'undefined' && val !== null) {
-                return val.toFixed(1) ;
-            }
-            return "No Data";
-        },
-        title: {
-            formatter: (seriesName) => seriesName + ':'
-        }
-    }
-},
-
-        states: {
-            hover: {
-                filter: {
-                    type: 'darken',
-                    value: 0.85
-                }
+            labels: {
+                colors: '#64748b'
+            },
+            markers: {
+                radius: 12
+            },
+            itemMargin: {
+                horizontal: 8
             }
         }
     });
 
-    charts.contribution.render();
+    charts.regionH.render();
 }
-
-                // Region Comparison — horizontal bar
-                if (d.regionHBar && document.querySelector('#chartRegionHBar')) {
-                    charts.regionH = new ApexCharts(document.querySelector('#chartRegionHBar'), {
-                        ...base,
-                        chart: { ...base.chart, type: 'bar' },
-                        series: [{ name: 'Actual', data: d.regionHBar.actuals || [] }, { name: 'Target', data: d.regionHBar.targets || [] }],
-                        plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: '65%' } },
-                        xaxis: { categories: d.regionHBar.labels || [], labels: { formatter: fmt } },
-                        colors: ['#6366f1', '#e2e8f0'],
-                        tooltip: { y: { formatter: fmt } },
-                        legend: { position: 'bottom',show: false, fontSize: '11px', itemMargin: { horizontal: 4 } }
-                    });
-                    charts.regionH.render();
-                }
 
                 // Performance Overview — combo (This Year vs Last Year + Growth %)
                if (d.combo && document.querySelector('#chartCombo')) {
@@ -755,12 +898,14 @@ tooltip: {
         },
 
         fill: {
-            type: ['solid', 'solid', 'gradient'],
+            type: ['gradient', 'solid', 'gradient'],
             gradient: {
                 shade: 'light',
                 type: 'vertical',
-                opacityFrom: 0.7,
-                opacityTo: 0.2
+                shadeIntensity: 0.5,
+                opacityFrom: [0.85, 0.4, 0.7],
+                opacityTo: [0.6, 0.4, 0.2],
+                stops: [0, 100]
             }
         },
 
@@ -768,9 +913,9 @@ tooltip: {
             show: true,
             position: 'top',
             horizontalAlign: 'right',
-            fontSize: '12px',
+            fontSize: '11px',
             labels: { colors: '#64748b' },
-            markers: { radius: 12 }
+            markers: { radius: 12, width: 8, height: 8 }
         },
 
         tooltip: {
@@ -780,8 +925,8 @@ tooltip: {
             y: {
                 formatter: (v, { seriesIndex }) =>
                     seriesIndex < 2
-                        ? fmt(v)
-                        : (v == null ? '-' : v.toFixed(1) + '%')
+                        ? `<b>${fmt(v)}</b>`
+                        : `<b>${v == null ? '-' : v.toFixed(1) + '%'}</b>`
             }
         }
     });
@@ -798,10 +943,28 @@ tooltip: {
                         xaxis: { categories: d.trend.labels || [] },
                         colors: ['#6366f1', '#94a3b8'],
                         stroke: { curve: 'smooth', width: 3 },
-                        markers: { size: 4 },
-                        yaxis: { labels: { formatter: fmt } },
-                        tooltip: { y: { formatter: fmt } },
-                        legend: { position: 'bottom',show: false, fontSize: '11px', itemMargin: { horizontal: 4 } }
+                        fill: {
+                            type: 'gradient',
+                            gradient: {
+                                shadeIntensity: 1,
+                                opacityFrom: 0.35,
+                                opacityTo: 0.05,
+                                stops: [0, 90, 100]
+                            }
+                        },
+                        markers: { 
+                            size: 4, 
+                            strokeWidth: 2, 
+                            hover: { size: 6 } 
+                        },
+                        yaxis: { labels: { formatter: fmt, style: { colors: '#64748b' } } },
+                        tooltip: { 
+                            shared: true, 
+                            intersect: false, 
+                            theme: 'light', 
+                            y: { formatter: (v) => `<b>${fmt(v)}</b>` } 
+                        },
+                        legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '11px' }
                     });
                     charts.trend.render();
                 }
@@ -833,9 +996,34 @@ tooltip: {
                                 labels: { formatter: (v) => v == null ? '-' : v.toFixed(1) + '%' }
                             }
                         ],
-                        plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } },
-                        tooltip: { y: { formatter: (v, { seriesIndex }) => seriesIndex < 2 ? fmt(v) : v.toFixed(1) + '%' } },
-                        legend: { position: 'bottom',show: false, fontSize: '11px', itemMargin: { horizontal: 4 } }
+                        plotOptions: { 
+                            bar: { 
+                                borderRadius: 6, 
+                                columnWidth: '50%',
+                                dataLabels: { position: 'top' }
+                            } 
+                        },
+                        fill: {
+                            type: ['gradient', 'solid', 'gradient'],
+                            gradient: {
+                                shade: 'light',
+                                type: 'vertical',
+                                shadeIntensity: 0.5,
+                                opacityFrom: [0.85, 0.4, 0.7],
+                                opacityTo: [0.6, 0.4, 0.2],
+                                stops: [0, 100]
+                            }
+                        },
+                        tooltip: { 
+                            shared: true, 
+                            intersect: false, 
+                            theme: 'light', 
+                            y: { 
+                                formatter: (v, { seriesIndex }) => 
+                                    seriesIndex < 2 ? `<b>${fmt(v)}</b>` : `<b>${v == null ? '-' : v.toFixed(1) + '%'}</b>` 
+                            } 
+                        },
+                        legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '11px' }
                     });
                     charts.monthly.render();
                 }
@@ -848,9 +1036,18 @@ tooltip: {
                         series: [{ name: 'Growth %', data: d.growth.growth || [] }],
                         xaxis: { categories: d.growth.labels || [] },
                         colors: ['#10b981'],
-                        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.7, opacityTo: 0.1, stops: [0, 90, 100] } },
-                        yaxis: { labels: { formatter: (val) => val.toFixed(1) + '%' } },
-                        legend: { position: 'bottom',show: false, fontSize: '11px', itemMargin: { horizontal: 4 } }
+                        fill: { 
+                            type: 'gradient', 
+                            gradient: { 
+                                shadeIntensity: 1, 
+                                opacityFrom: 0.4, 
+                                opacityTo: 0.1, 
+                                stops: [0, 90, 100] 
+                            } 
+                        },
+                        yaxis: { labels: { formatter: (val) => val == null ? '-' : val.toFixed(1) + '%', style: { colors: '#64748b' } } },
+                        tooltip: { theme: 'light', y: { formatter: (val) => `<b>${val == null ? '-' : val.toFixed(1) + '%'}</b>` } },
+                        legend: { show: false }
                     });
                     charts.growth.render();
                 }
