@@ -13,6 +13,7 @@ use App\Imports\SalesmanMappingsImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
+use Illuminate\Validation\Rule;
 
 class Index extends Component
 {
@@ -20,55 +21,61 @@ class Index extends Component
 
     protected $paginationTheme = 'tailwind';
 
-    // Filter properties
+    // Properties for filter (List)
     public $regionFilter;
     public $areaFilter;
     public $distributorFilter;
     public $search = '';
 
-    // Data dropdown
+    // Data dropdown (List)
     public $regions = [];
     public $areas = [];
     public $distributors = [];
 
-    // Modal states
+    // State Modals
     public $isFilterModalOpen = false;
-    public $hasAppliedFilters = false;
+    public $isFormModalOpen = false;
     public $isDeleteModalOpen = false;
     public $isImportModalOpen = false;
-    public $isEditModalOpen = false;
-    
+    public $hasAppliedFilters = false;
+
+    // Form Properties (Create/Edit)
+    public $isEditing = false;
+    public $editingId = null;
+    public $formRegionFilter;
+    public $formAreaFilter;
+    public $distributor_code;
+    public $salesman_code_dist;
+    public $salesman_name_dist;
+    public $salesman_code_prc;
+    public $salesmanSearch = '';
+    public $selectedSalesmanName = '';
+
+    // Data Dropdown (Form)
+    public $formRegions = [];
+    public $formAreas = [];
+    public $formDistributors = [];
+    public $principalSalesmans = [];
+
     public $mappingIdToDelete;
     public $file;
-
-    // Properti Form Edit (Fokus pada mapping)
-    public $selectedMappingId;
-    public $distributor_name; // Hanya untuk tampilan
-    public $salesman_code_dist; // Hanya untuk tampilan
-    public $salesman_name_dist; // Hanya untuk tampilan
-    public $distributor_code;
-    public $salesman_code_prc;
-    public $principalSalesmans = [];
 
     protected $queryString = ['search'];
 
     /**
-     * Helper untuk memfilter Query berdasarkan hak akses region user.
+     * Helper to filter Query based on user region access.
      */
     private function applyRegionAccess($query, $column = 'region_code')
     {
         $user = auth()->user();
-
-        // Jika bukan admin dan memiliki batasan region_code (array)
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
             $query->whereIn($column, $user->region_code);
         }
-
         return $query;
     }
 
     /**
-     * Helper untuk memastikan distributor terkait berada di dalam wilayah user
+     * Helper to ensure distributor is within user's region
      */
     private function checkDistributorAccess($distributorCode)
     {
@@ -79,26 +86,28 @@ class Index extends Component
 
     public function mount()
     {
-        // 1. Terapkan akses region ke dropdown
-        $regionQuery = MasterRegion::query()->where('region_code', '!=', 'HOINA'); // Pastikan untuk mengecualikan region 'national'
+        // 1. Initial regions with access control
+        $regionQuery = MasterRegion::query()->where('region_code', '!=', 'HOINA');
         $this->applyRegionAccess($regionQuery);
         $this->regions = $regionQuery->orderBy('region_name')->get();
+        $this->formRegions = $this->regions;
 
-        // 2. Auto-select region jika user hanya memiliki akses ke 1 region
+        // 2. Auto-select if only 1 region
         if (!auth()->user()->hasRole('admin') && count($this->regions) === 1) {
             $this->regionFilter = $this->regions->first()->region_code;
+            $this->formRegionFilter = $this->regions->first()->region_code;
+            $this->loadFormAreas($this->formRegionFilter);
         }
 
-        // Restore filter dari session jika ada
+        // 3. Restore filters from session
         if (session()->has('salesman_mapping_filters')) {
-            $filters = session('salesman_mapping_filters');
+            $filters = session()->get('salesman_mapping_filters');
             $this->regionFilter = $filters['regionFilter'] ?? $this->regionFilter;
             $this->areaFilter = $filters['areaFilter'] ?? null;
             $this->distributorFilter = $filters['distributorFilter'] ?? null;
             $this->search = $filters['search'] ?? '';
             $this->hasAppliedFilters = $filters['hasAppliedFilters'] ?? false;
 
-            // Load ulang dropdown dependen dengan proteksi akses
             if ($this->regionFilter) {
                 $areaQuery = MasterArea::where('region_code', $this->regionFilter);
                 $this->applyRegionAccess($areaQuery);
@@ -110,39 +119,26 @@ class Index extends Component
                 $this->distributors = $distQuery->orderBy('is_active', 'desc')->get();
             }
         } elseif ($this->regionFilter) {
-            // Jika tidak ada session tapi ada auto-select region
             $this->updatedRegionFilter($this->regionFilter);
         }
     }
 
-    // --- LOGIKA FILTER ---
+    // --- FILTER LOGIC (LIST) ---
     public function updatedRegionFilter($value)
     {
         $this->reset(['areaFilter', 'distributorFilter']);
-        
         $query = MasterArea::query();
-        if ($value) {
-            $query->where('region_code', $value);
-        }
-        
-        // Amankan dropdown area
+        if ($value) $query->where('region_code', $value);
         $this->applyRegionAccess($query);
-        
         $this->areas = $value ? $query->orderBy('area_name')->get() : collect();
     }
 
     public function updatedAreaFilter($value)
     {
         $this->reset('distributorFilter');
-        
         $query = MasterDistributor::query();
-        if ($value) {
-            $query->where('area_code', $value);
-        }
-        
-        // Amankan dropdown distributor
+        if ($value) $query->where('area_code', $value);
         $this->applyRegionAccess($query);
-        
         $this->distributors = $value ? $query->orderBy('is_active','desc')->get() : collect();
     }
 
@@ -162,129 +158,205 @@ class Index extends Component
         $this->hasAppliedFilters = false;
         session()->forget('salesman_mapping_filters');
 
-        // Auto-select ulang setelah reset jika user biasa
         if (!auth()->user()->hasRole('admin') && count($this->regions) === 1) {
             $this->regionFilter = $this->regions->first()->region_code;
             $this->updatedRegionFilter($this->regionFilter);
         }
     }
 
-    protected function saveFiltersToSession()
+    // --- FORM LOGIC (CREATE/EDIT) ---
+    public function updatedFormRegionFilter($value)
     {
-        session()->put('salesman_mapping_filters', [
-            'regionFilter' => $this->regionFilter,
-            'areaFilter' => $this->areaFilter,
-            'distributorFilter' => $this->distributorFilter,
-            'search' => $this->search,
-            'hasAppliedFilters' => $this->hasAppliedFilters,
-        ]);
+        $this->reset(['formAreaFilter', 'distributor_code']);
+        $this->loadFormAreas($value);
     }
 
-    // --- LOGIKA EDIT (FOKUS MAPPING) ---
-    public function edit($id)
+    private function loadFormAreas($regionCode)
     {
-        $mapping = SalesmanMapping::with('masterDistributor')->findOrFail($id);
-        
-        // Security Check: Pastikan mapping ini berada di distributor yang boleh diakses user
+        $query = MasterArea::query();
+        if ($regionCode) $query->where('region_code', $regionCode);
+        $this->applyRegionAccess($query);
+        $this->formAreas = $regionCode ? $query->orderBy('area_name')->get() : collect();
+    }
+
+    public function updatedFormAreaFilter($value)
+    {
+        $this->reset('distributor_code');
+        $this->loadFormDistributors($value);
+    }
+
+    private function loadFormDistributors($areaCode)
+    {
+        $query = MasterDistributor::query();
+        if ($areaCode) $query->where('area_code', $areaCode);
+        $this->applyRegionAccess($query);
+        $this->formDistributors = $areaCode ? $query->orderBy('distributor_name')->get() : collect();
+    }
+
+    public function updatedDistributorCode($value)
+    {
+        $this->reset('salesman_code_prc');
+        $this->loadPrincipalSalesmans($value);
+    }
+
+    private function loadPrincipalSalesmans($distributorCode)
+    {
+        if (!$distributorCode) {
+            $this->principalSalesmans = collect();
+            return;
+        }
+        $this->principalSalesmans = Salesman::where('distributor_code', $distributorCode)
+                                    ->orderBy('salesman_name')
+                                    ->get();
+    }
+
+
+
+    public function openCreateModal()
+    {
+        $this->resetValidation();
+        $this->resetForm();
+        $this->isEditing = false;
+        $this->isFormModalOpen = true;
+    }
+
+    public function openEditModal($mappingId)
+    {
+        $this->resetValidation();
+        $mapping = SalesmanMapping::with('masterDistributor.area.region')->findOrFail($mappingId);
+
         if (!$this->checkDistributorAccess($mapping->distributor_code)) {
-            session()->flash('error', 'Anda tidak memiliki otoritas untuk mengedit data di wilayah ini.');
+            session()->flash('error', 'Anda tidak memiliki otoritas untuk mengedit data ini.');
             return;
         }
 
-        $this->selectedMappingId = $id;
+        $this->editingId = $mapping->id;
         $this->distributor_code = $mapping->distributor_code;
-        $this->distributor_name = $mapping->masterDistributor->distributor_name ?? 'N/A';
         $this->salesman_code_dist = $mapping->salesman_code_dist;
         $this->salesman_name_dist = $mapping->salesman_name_dist;
         $this->salesman_code_prc = $mapping->salesman_code_prc;
-
-        // Load daftar salesman principal berdasarkan distributor tetap ini
-        $this->loadPrincipalSalesmans();
         
-        $this->isEditModalOpen = true;
+        if($this->salesman_code_prc) {
+            $salesman = Salesman::where('salesman_code', $this->salesman_code_prc)->first();
+            $this->selectedSalesmanName = $salesman ? $salesman->salesman_name : '';
+        } else {
+            $this->selectedSalesmanName = '';
+        }
+
+        if ($mapping->masterDistributor && $mapping->masterDistributor->area) {
+            $this->formRegionFilter = $mapping->masterDistributor->area->region_code;
+            $this->loadFormAreas($this->formRegionFilter);
+            $this->formAreaFilter = $mapping->masterDistributor->area_code;
+            $this->loadFormDistributors($this->formAreaFilter);
+            
+            // Load principal salesmans for the edit modal
+            $this->loadPrincipalSalesmans($this->distributor_code);
+        }
+
+        $this->isEditing = true;
+        $this->isFormModalOpen = true;
     }
 
-    public function loadPrincipalSalesmans()
+    private function resetForm()
     {
-        $this->principalSalesmans = $this->distributor_code 
-            ? Salesman::where('distributor_code', $this->distributor_code)->orderBy('salesman_name')->get() 
-            : [];
+        $this->editingId = null;
+        $this->distributor_code = null;
+        $this->salesman_code_dist = null;
+        $this->salesman_name_dist = null;
+        $this->salesman_code_prc = null;
+        $this->salesmanSearch = '';
+        $this->selectedSalesmanName = '';
+        $this->principalSalesmans = collect();
+        
+        if (auth()->user()->hasRole('admin') || count($this->regions) > 1) {
+            $this->formRegionFilter = null;
+            $this->formAreaFilter = null;
+            $this->formAreas = collect();
+            $this->formDistributors = collect();
+        }
     }
 
-    public function update()
+    protected function rules()
     {
-        // Security Check Ekstra: Pastikan distributor_code yang sedang di-edit masih valid untuk user ini
+        $uniqueRule = Rule::unique('salesman_mappings')->where(function ($query) {
+            return $query->where('distributor_code', $this->distributor_code);
+        });
+
+        if ($this->isEditing) {
+            $uniqueRule->ignore($this->editingId);
+        }
+
+        return [
+            'distributor_code' => 'required|string|exists:master_distributors,distributor_code',
+            'salesman_code_dist' => ['required', 'string', 'max:255', $uniqueRule],
+            'salesman_name_dist' => 'nullable|string|max:255',
+            'salesman_code_prc' => 'nullable|string|max:15|exists:salesmans,salesman_code',
+        ];
+    }
+
+    protected $messages = [
+        'salesman_code_dist.unique' => 'Kode Salesman Distributor ini sudah dipetakan untuk distributor yang dipilih.',
+    ];
+
+    public function save()
+    {
+        $validatedData = $this->validate();
+
         if (!$this->checkDistributorAccess($this->distributor_code)) {
-            session()->flash('error', 'Anda tidak memiliki otoritas untuk memperbarui data ini.');
-            $this->isEditModalOpen = false;
+            session()->flash('error', 'Anda tidak memiliki otoritas untuk memetakan salesman ke distributor tersebut.');
             return;
         }
 
-        $this->validate([
-            'salesman_code_prc' => 'nullable|exists:salesmans,salesman_code',
-        ]);
-
-        $mapping = SalesmanMapping::findOrFail($this->selectedMappingId);
-        $mapping->update([
-            'salesman_code_prc' => $this->salesman_code_prc,
-        ]);
-
-        $this->isEditModalOpen = false;
-        session()->flash('message', 'Pemetaan Salesman Principal berhasil diperbarui.');
-    }
-
-    // --- CRUD LAINNYA ---
-    public function confirmDelete($mappingId)
-    {
-        $this->mappingIdToDelete = $mappingId;
-        $this->isDeleteModalOpen = true;
-    }
-
-    public function delete()
-    {
-        $mapping = SalesmanMapping::find($this->mappingIdToDelete);
-
-        if ($mapping) {
-            // Security Check: Pastikan data yang dihapus masih di bawah otoritas region user
-            if (!$this->checkDistributorAccess($mapping->distributor_code)) {
-                session()->flash('error', 'Anda tidak memiliki otoritas untuk menghapus data di wilayah ini.');
-                $this->isDeleteModalOpen = false;
-                return;
-            }
-
-            $mapping->delete();
-            session()->flash('message', 'Pemetaan Salesman berhasil dihapus.');
+        if ($this->isEditing) {
+            $mapping = SalesmanMapping::findOrFail($this->editingId);
+            $mapping->update($validatedData);
+            session()->flash('message', 'Pemetaan Salesman berhasil diperbarui.');
+        } else {
+            SalesmanMapping::create($validatedData);
+            session()->flash('message', 'Pemetaan Salesman berhasil ditambahkan.');
         }
 
-        $this->isDeleteModalOpen = false;
+        $this->isFormModalOpen = false;
+        $this->resetForm();
+        
+        // Refresh sidebar badges
+        \Illuminate\Support\Facades\Cache::forget('unmapped_counts_' . auth()->id());
+        
+        if ($this->hasAppliedFilters) {
+            $this->resetPage();
+        }
     }
 
+    // --- OTHER LOGIC ---
     public function render()
     {
-        $mappings = collect();
+        $mappings = collect(); 
 
         if ($this->hasAppliedFilters) {
             $query = SalesmanMapping::query()
                 ->with(['masterDistributor', 'principalSalesman'])
                 ->join('master_distributors', 'salesman_mappings.distributor_code', '=', 'master_distributors.distributor_code');
-            
-            // --- PROTEKSI KEAMANAN DATA ---
+
             $this->applyRegionAccess($query, 'master_distributors.region_code');
 
             if ($this->regionFilter) $query->where('master_distributors.region_code', $this->regionFilter);
             if ($this->areaFilter) $query->where('master_distributors.area_code', $this->areaFilter);
             if ($this->distributorFilter) $query->where('salesman_mappings.distributor_code', $this->distributorFilter);
-            
+
             if ($this->search) {
                 $query->where(function($q) {
                     $q->where('salesman_mappings.salesman_code_dist', 'ILIKE', '%' . $this->search . '%')
                       ->orWhere('salesman_mappings.salesman_name_dist', 'ILIKE', '%' . $this->search . '%')
                       ->orWhere('salesman_mappings.salesman_code_prc', 'ILIKE', '%' . $this->search . '%')
-                      ->orWhereHas('principalSalesman', fn($sq) => $sq->where('salesman_name', 'ILIKE', '%' . $this->search . '%'));
+                      ->orWhereHas('principalSalesman', fn($sq) => $sq->where('salesman_name', 'ILIKE', '%' . $this->search . '%'))
+                      ->orWhere('salesman_mappings.distributor_code', 'ILIKE', '%' . $this->search . '%')
+                      ->orWhere('master_distributors.distributor_name', 'ILIKE', '%' . $this->search . '%');
                 });
             }
 
-            $mappings = $query->select('salesman_mappings.*')->latest('salesman_mappings.created_at')->paginate(10);
+            $mappings = $query->select('salesman_mappings.*')
+                              ->latest('salesman_mappings.created_at')
+                              ->paginate(10);
         }
 
         return view('livewire.mapping.salesman.index', [
@@ -302,9 +374,7 @@ class Index extends Component
         $finalRegionFilter = $this->regionFilter;
         $user = auth()->user();
 
-        // Validasi ekstra untuk Export (Mencegah manipulasi user biasa)
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            // Jika user iseng menginjeksi region lain yang tidak dia miliki, reset ke kosong
             if (!empty($finalRegionFilter) && !in_array($finalRegionFilter, $user->region_code)) {
                 $finalRegionFilter = ''; 
             }
@@ -315,10 +385,67 @@ class Index extends Component
             'areaFilter' => $this->areaFilter,
             'distributorFilter' => $this->distributorFilter,
             'search' => $this->search,
-            // Parameter khusus untuk proteksi Array Scope pada proses Excel Export
             'allowed_regions' => (!$user->hasRole('admin')) ? $user->region_code : [],
         ];
 
-        return Excel::download(new \App\Exports\SalesmanMappingsExport($filters), 'salesman_mappings.xlsx');
+        return Excel::download(new SalesmanMappingsExport($filters), 'salesman_mappings.xlsx');
+    }
+
+    public function import()
+    {
+        $this->validate(['file' => 'required|mimes:xls,xlsx']);
+
+        try {
+            $importer = new SalesmanMappingsImport;
+            Excel::import($importer, $this->file);
+            session()->flash('message', "Impor berhasil: {$importer->importedCount} data diproses, {$importer->skippedCount} data dilewati.");
+        } catch (\Exception $e) {
+            session()->flash('error', 'Terjadi kesalahan saat impor: ' . $e->getMessage());
+        }
+
+        $this->isImportModalOpen = false;
+        $this->reset('file');
+        
+        if($this->hasAppliedFilters) $this->applyFilters();
+    }
+
+    public function confirmDelete($mappingId)
+    {
+        $this->mappingIdToDelete = $mappingId;
+        $this->isDeleteModalOpen = true;
+    }
+
+    public function delete()
+    {
+        $mapping = SalesmanMapping::find($this->mappingIdToDelete);
+        if ($mapping) {
+            if (!$this->checkDistributorAccess($mapping->distributor_code)) {
+                session()->flash('error', 'Anda tidak memiliki otoritas untuk menghapus data di wilayah ini.');
+                $this->isDeleteModalOpen = false;
+                return;
+            }
+            $mapping->delete();
+            session()->flash('message', 'Pemetaan Salesman berhasil dihapus.');
+        }
+        $this->isDeleteModalOpen = false;
+    }
+
+    protected function saveFiltersToSession()
+    {
+        session()->put('salesman_mapping_filters', [
+            'regionFilter' => $this->regionFilter,
+            'areaFilter' => $this->areaFilter,
+            'distributorFilter' => $this->distributorFilter,
+            'search' => $this->search,
+            'hasAppliedFilters' => $this->hasAppliedFilters,
+        ]);
+    }
+
+    public function updatedSearch()
+    {
+        if ($this->hasAppliedFilters) {
+            $this->resetPage();
+            $this->saveFiltersToSession();
+        }
     }
 }

@@ -13,43 +13,43 @@ class CustomerCsvExportComponent extends Component
 {
     use WithPagination;
 
-    // Form Inputs
-    public $selectedMonth;
-    
-    // Filter State
-    public $selectedRegions = []; 
-    public $selectedAreas = [];
-    public $selectedDistributors = [];
+    protected $paginationTheme = 'tailwind';
 
-    // Data Options
+    // Filter properties (Multi-select)
+    public $monthFilter;
+    public $regionFilter = []; 
+    public $areaFilter = [];
+    public $distributorFilter = [];
+
+    // Dropdown options
     public $regionsOption = [];
     public $areasOption = [];
     public $distributorsOption = [];
 
-    // Search & UI State
+    // UI states
     public $search = '';
-    public $isFiltered = false; // Default false agar data tidak langsung dimuat
+    public $isFiltered = false;
+    public $isFilterModalOpen = false;
+
+    protected $queryString = ['search'];
 
     /**
-     * Helper untuk memfilter Query berdasarkan hak akses region user.
+     * Helper to filter Query based on user region access.
      */
     private function applyRegionAccess($query, $column = 'region_code')
     {
         $user = auth()->user();
-
-        // Jika bukan admin dan memiliki batasan region_code (array)
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
             $query->whereIn($column, $user->region_code);
         }
-
         return $query;
     }
 
     public function mount()
     {
-        $this->selectedMonth = date('Y-m');
+        $this->monthFilter = date('Y-m');
         
-        // Load Region Awal dengan Proteksi
+        // 1. Initial regions with access control
         $query = DB::table('master_distributors')
             ->select('region_code', 'region_name')
             ->where('region_code', '!=', 'HOINA')
@@ -59,111 +59,167 @@ class CustomerCsvExportComponent extends Component
         $this->applyRegionAccess($query);
         $this->regionsOption = $query->orderBy('region_name')->get();
 
-        // Auto-select region jika user hanya memiliki akses ke 1 region
+        // 2. Auto-select if only 1 region
         if (!auth()->user()->hasRole('admin') && count($this->regionsOption) === 1) {
-            $this->selectedRegions = [$this->regionsOption->first()->region_code];
-            $this->updatedSelectedRegions();
+            $this->regionFilter = [$this->regionsOption->first()->region_code];
+            $this->updatedRegionFilter();
+        }
+
+        // 3. Restore filters from session
+        if (session()->has('customer_csv_export_filters')) {
+            $filters = session()->get('customer_csv_export_filters');
+            $this->monthFilter = $filters['monthFilter'] ?? $this->monthFilter;
+            $this->regionFilter = $filters['regionFilter'] ?? $this->regionFilter;
+            $this->areaFilter = $filters['areaFilter'] ?? [];
+            $this->distributorFilter = $filters['distributorFilter'] ?? [];
+            $this->search = $filters['search'] ?? '';
+            $this->isFiltered = $filters['isFiltered'] ?? false;
+
+            if (!empty($this->regionFilter)) {
+                $areaQuery = DB::table('master_distributors')
+                    ->whereIn('region_code', $this->regionFilter)
+                    ->select('area_code', 'area_name')
+                    ->distinct();
+                $this->applyRegionAccess($areaQuery);
+                $this->areasOption = $areaQuery->orderBy('area_name')->get();
+            }
+
+            if (!empty($this->areaFilter)) {
+                $distQuery = DB::table('master_distributors')
+                    ->whereIn('region_code', $this->regionFilter)
+                    ->whereIn('area_code', $this->areaFilter)
+                    ->where('is_active', true)
+                    ->select('distributor_code', 'distributor_name')
+                    ->distinct();
+                $this->applyRegionAccess($distQuery);
+                $this->distributorsOption = $distQuery->orderBy('distributor_name')->get();
+            }
         }
     }
 
-    // --- Dependent Dropdown Logic ---
+    // --- MULTI-SELECT HELPERS ---
 
-    public function updatedSelectedRegions()
+    public function selectAllRegions()
     {
-        $this->selectedAreas = [];
-        $this->selectedDistributors = [];
-        $this->areasOption = [];
-        $this->distributorsOption = [];
-        $this->isFiltered = false; // Reset filter jika pilihan berubah (opsional)
+        $this->regionFilter = $this->regionsOption->pluck('region_code')->toArray();
+        $this->updatedRegionFilter();
+    }
 
-        if (!empty($this->selectedRegions)) {
+    public function selectAllAreas()
+    {
+        $this->areaFilter = $this->areasOption->pluck('area_code')->toArray();
+        $this->updatedAreaFilter();
+    }
+
+    public function selectAllDistributors()
+    {
+        $this->distributorFilter = $this->distributorsOption->pluck('distributor_code')->toArray();
+    }
+
+    // --- DEPENDENT DROPDOWN ---
+
+    public function updatedRegionFilter()
+    {
+        $this->reset(['areaFilter', 'distributorFilter', 'areasOption', 'distributorsOption', 'isFiltered', 'search']);
+        if (!empty($this->regionFilter)) {
             $query = DB::table('master_distributors')
-                ->whereIn('region_code', $this->selectedRegions)
+                ->whereIn('region_code', $this->regionFilter)
                 ->select('area_code', 'area_name')
                 ->distinct();
-
-            // Amankan dropdown area
             $this->applyRegionAccess($query);
-
             $this->areasOption = $query->orderBy('area_name')->get();
         }
     }
 
-    public function updatedSelectedAreas()
+    public function updatedAreaFilter()
     {
-        $this->selectedDistributors = [];
-        $this->distributorsOption = [];
-        $this->isFiltered = false; // Reset filter jika pilihan berubah
-
-        if (!empty($this->selectedAreas)) {
+        $this->reset(['distributorFilter', 'distributorsOption', 'isFiltered', 'search']);
+        if (!empty($this->areaFilter)) {
             $query = DB::table('master_distributors')
-                ->whereIn('region_code', $this->selectedRegions)
-                ->whereIn('area_code', $this->selectedAreas)
+                ->whereIn('region_code', $this->regionFilter)
+                ->whereIn('area_code', $this->areaFilter)
                 ->where('is_active', true)
                 ->select('distributor_code', 'distributor_name')
                 ->distinct();
-
-            // Amankan dropdown distributor
             $this->applyRegionAccess($query);
-
             $this->distributorsOption = $query->orderBy('distributor_name')->get();
         }
     }
 
     public function updatedSearch()
     {
-        $this->resetPage();
+        if ($this->isFiltered) {
+            $this->resetPage();
+            $this->saveFiltersToSession();
+        }
     }
 
-    // --- Actions ---
+    // --- ACTIONS ---
 
-    public function filter()
+    public function applyFilters()
     {
         $this->validate([
-            'selectedMonth' => 'required',
-            'selectedRegions' => 'required|array|min:1', 
+            'monthFilter' => 'required',
+            'regionFilter' => 'required|array|min:1', 
         ]);
 
-        // Security check: Pastikan SEMUA region yang difilter (array) valid sesuai akses login
         $user = auth()->user();
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            $unauthorizedRegions = array_diff($this->selectedRegions, $user->region_code);
+            $unauthorizedRegions = array_diff($this->regionFilter, $user->region_code);
             if (!empty($unauthorizedRegions)) {
-                session()->flash('error', 'Anda tidak memiliki otoritas untuk memfilter beberapa wilayah yang dipilih.');
+                session()->flash('error', 'Anda tidak memiliki otoritas untuk wilayah yang dipilih.');
                 return;
             }
         }
 
         $this->isFiltered = true;
+        $this->isFilterModalOpen = false;
         $this->resetPage();
+        $this->saveFiltersToSession();
+    }
+
+    public function resetFilters()
+    {
+        $this->reset(['regionFilter', 'areaFilter', 'distributorFilter', 'search', 'isFiltered']);
+        $this->areasOption = [];
+        $this->distributorsOption = [];
+        $this->monthFilter = date('Y-m');
+        session()->forget('customer_csv_export_filters');
+
+        if (!auth()->user()->hasRole('admin') && count($this->regionsOption) === 1) {
+            $this->regionFilter = [$this->regionsOption->first()->region_code];
+            $this->updatedRegionFilter();
+        }
+    }
+
+    protected function saveFiltersToSession()
+    {
+        session()->put('customer_csv_export_filters', [
+            'monthFilter' => $this->monthFilter,
+            'regionFilter' => $this->regionFilter,
+            'areaFilter' => $this->areaFilter,
+            'distributorFilter' => $this->distributorFilter,
+            'search' => $this->search,
+            'isFiltered' => $this->isFiltered,
+        ]);
     }
 
     public function export()
     {
         $this->validate([
-            'selectedMonth' => 'required',
-            'selectedRegions' => 'required|array|min:1', 
+            'monthFilter' => 'required',
+            'regionFilter' => 'required|array|min:1', 
         ]);
-
-        // Security check tambahan untuk ekspor (Mencegah manipulasi user biasa di front-end)
-        $user = auth()->user();
-        if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            $unauthorizedRegions = array_diff($this->selectedRegions, $user->region_code);
-            if (!empty($unauthorizedRegions)) {
-                session()->flash('error', 'Anda tidak memiliki otoritas untuk mengekspor data wilayah yang dipilih.');
-                return;
-            }
-        }
 
         $timestamp = Carbon::now();
         $filename = 'PDAMASTER_SAP_' . $timestamp->format('Ymd_His') . '.txt';
 
         return Excel::download(
             new CustomerCsvExport(
-                $this->selectedMonth, 
-                $this->selectedRegions, 
-                $this->selectedAreas, 
-                $this->selectedDistributors, 
+                $this->monthFilter, 
+                $this->regionFilter, 
+                $this->areaFilter, 
+                $this->distributorFilter, 
                 $timestamp
             ), 
             $filename,
@@ -173,12 +229,11 @@ class CustomerCsvExportComponent extends Component
 
     public function render()
     {
-        $customers = [];
+        $customers = collect();
 
-        // Hanya jalankan query jika tombol filter sudah ditekan
         if ($this->isFiltered) {
-            $startDate = Carbon::createFromFormat('Y-m', $this->selectedMonth)->startOfMonth()->format('Y-m-d');
-            $endDate = Carbon::createFromFormat('Y-m', $this->selectedMonth)->endOfMonth()->format('Y-m-d');
+            $startDate = Carbon::createFromFormat('Y-m', $this->monthFilter)->startOfMonth()->format('Y-m-d');
+            $endDate = Carbon::createFromFormat('Y-m', $this->monthFilter)->endOfMonth()->format('Y-m-d');
 
             $query = DB::table('customer_prc_eska as cpe')
                 ->select(
@@ -201,18 +256,11 @@ class CustomerCsvExportComponent extends Component
                 ->leftJoin('master_distributors as md', 'die.distributor_code', '=', 'md.distributor_code')
                 ->whereBetween('cpe.bln', [$startDate, $endDate]);
 
-            // --- PROTEKSI KEAMANAN DATA ---
             $this->applyRegionAccess($query, 'md.region_code');
 
-            if (!empty($this->selectedRegions)) {
-                $query->whereIn('md.region_code', $this->selectedRegions);
-            }
-            if (!empty($this->selectedAreas)) {
-                $query->whereIn('md.area_code', $this->selectedAreas);
-            }
-            if (!empty($this->selectedDistributors)) {
-                $query->whereIn('md.distributor_code', $this->selectedDistributors);
-            }
+            if (!empty($this->regionFilter)) $query->whereIn('md.region_code', $this->regionFilter);
+            if (!empty($this->areaFilter)) $query->whereIn('md.area_code', $this->areaFilter);
+            if (!empty($this->distributorFilter)) $query->whereIn('md.distributor_code', $this->distributorFilter);
 
             if (!empty($this->search)) {
                 $query->where(function($q) {

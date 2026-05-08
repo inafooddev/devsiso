@@ -17,55 +17,44 @@ class SalesComparison extends Component
 
     protected $paginationTheme = 'tailwind';
 
-    // ======================
-    // FILTER
-    // ======================
-    public $selectedMonth;              // YYYY-MM
-    public $selectedRegions = [];       // multi select
-    public $selectedImplementasi = 'ALL'; // Default: ALL (Semua)
+    // Filters
+    public $monthFilter;
+    public $regionsFilter = [];
+    public $implementasiFilter = 'ALL'; 
+    public $statusFilter = 'ALL'; // New filter: ALL, OK, NOT_OK
 
-    // ======================
-    // UI STATE
-    // ======================
-    public $showFilterModal = false;
+    // UI States
+    public $isFilterModalOpen = false;
+    public $isImportModalOpen = false;
     public $isFiltered = false;
-    public $showImportModal = false;
 
-    // Import Variable
+    // Import
     public $importFile;
 
-    // ======================
-    // OPTIONS
-    // ======================
+    // Dropdown options
     public $regionsOption = [];
 
-    // ======================
-    // SUMMARY (GLOBAL)
-    // ======================
+    // Summary data
     public $summary = null;
 
+    protected $queryString = ['isFiltered'];
+
     /**
-     * Helper untuk memfilter Query berdasarkan hak akses region user.
+     * Helper to filter Query based on user region access.
      */
     private function applyRegionAccess($query, $column = 'region_code')
     {
         $user = auth()->user();
-
-        // Jika bukan admin dan memiliki batasan region_code (array)
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
             $query->whereIn($column, $user->region_code);
         }
-
         return $query;
     }
 
-    // ======================
-    // MOUNT
-    // ======================
     public function mount()
     {
-        $this->selectedMonth = date('Y-m');
-        $this->selectedImplementasi = 'ALL'; // Set default awal ke Semua
+        $this->monthFilter = date('Y-m');
+        $this->implementasiFilter = 'ALL';
 
         // Load Region Awal dengan Proteksi
         $query = DB::table('master_distributors')
@@ -79,35 +68,37 @@ class SalesComparison extends Component
 
         // Auto-select region jika user hanya memiliki akses ke 1 region
         if (!auth()->user()->hasRole('admin') && count($this->regionsOption) === 1) {
-            $this->selectedRegions = [$this->regionsOption->first()->region_code];
+            $this->regionsFilter = [$this->regionsOption->first()->region_code];
+        }
+
+        // Restore filters from session
+        if (session()->has('sales_comparison_filters')) {
+            $filters = session()->get('sales_comparison_filters');
+            $this->monthFilter = $filters['monthFilter'] ?? $this->monthFilter;
+            $this->regionsFilter = $filters['regionsFilter'] ?? $this->regionsFilter;
+            $this->implementasiFilter = $filters['implementasiFilter'] ?? $this->implementasiFilter;
+            $this->statusFilter = $filters['statusFilter'] ?? 'ALL';
+            $this->isFiltered = $filters['isFiltered'] ?? false;
         }
     }
 
-    // ======================
-    // SELECT ALL REGION
-    // ======================
     public function selectAllRegions()
     {
-        $this->selectedRegions = $this->regionsOption
-            ->pluck('region_code')
-            ->toArray();
+        $this->regionsFilter = collect($this->regionsOption)->pluck('region_code')->toArray();
     }
 
-    // ======================
-    // APPLY FILTER
-    // ======================
-    public function filter()
+    public function applyFilters()
     {
         $this->validate([
-            'selectedMonth'        => 'required',
-            'selectedRegions'      => 'required|array|min:1',
-            'selectedImplementasi' => 'required|in:Y,N,ALL', 
+            'monthFilter'        => 'required',
+            'regionsFilter'      => 'required|array|min:1',
+            'implementasiFilter' => 'required|in:Y,N,ALL', 
+            'statusFilter'       => 'required|in:OK,NOT_OK,ALL',
         ]);
 
-        // Security check: Pastikan SEMUA region yang difilter (array) valid sesuai akses login
         $user = auth()->user();
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            $unauthorizedRegions = array_diff($this->selectedRegions, $user->region_code);
+            $unauthorizedRegions = array_diff($this->regionsFilter, $user->region_code);
             if (!empty($unauthorizedRegions)) {
                 session()->flash('error', 'Anda tidak memiliki otoritas untuk memfilter beberapa wilayah yang dipilih.');
                 return;
@@ -115,8 +106,33 @@ class SalesComparison extends Component
         }
 
         $this->isFiltered = true;
-        $this->showFilterModal = false;
+        $this->isFilterModalOpen = false;
         $this->resetPage();
+        $this->saveFiltersToSession();
+    }
+
+    public function resetFilters()
+    {
+        $this->reset(['monthFilter', 'regionsFilter', 'implementasiFilter', 'statusFilter', 'isFiltered']);
+        $this->monthFilter = date('Y-m');
+        $this->implementasiFilter = 'ALL';
+        $this->statusFilter = 'ALL';
+        session()->forget('sales_comparison_filters');
+
+        if (!auth()->user()->hasRole('admin') && count($this->regionsOption) === 1) {
+            $this->regionsFilter = [$this->regionsOption->first()->region_code];
+        }
+    }
+
+    protected function saveFiltersToSession()
+    {
+        session()->put('sales_comparison_filters', [
+            'monthFilter' => $this->monthFilter,
+            'regionsFilter' => $this->regionsFilter,
+            'implementasiFilter' => $this->implementasiFilter,
+            'statusFilter' => $this->statusFilter,
+            'isFiltered' => $this->isFiltered,
+        ]);
     }
 
     public function updatedImportFile()
@@ -128,7 +144,6 @@ class SalesComparison extends Component
 
     public function import()
     {
-        // Hanya Admin yang biasanya diizinkan mengimpor data massal ini
         $user = auth()->user();
         if (!$user->hasRole('admin')) {
             session()->flash('error', 'Hanya Administrator yang diizinkan untuk mengimpor data Selling Out.');
@@ -141,40 +156,26 @@ class SalesComparison extends Component
 
         try {
             Excel::import(new SellingOutEskalinkImport, $this->importFile);
-            session()->flash('success', 'Import berhasil!');
-            $this->showImportModal = false;
+            session()->flash('message', 'Import data Selling Out berhasil dilakukan.');
+            $this->isImportModalOpen = false;
             $this->importFile = null;
-            $this->mount(); 
         } catch (\Exception $e) {
             session()->flash('error', 'Gagal Import: ' . $e->getMessage());
         }
     }
 
-    // ======================
-    // RENDER
-    // ======================
     public function render()
     {
         $comparisons = collect();
 
         if ($this->isFiltered) {
+            $startDate = Carbon::createFromFormat('Y-m', $this->monthFilter)->startOfMonth()->format('Y-m-d');
+            $endDate = Carbon::createFromFormat('Y-m', $this->monthFilter)->endOfMonth()->format('Y-m-d');
 
-            // ----------------------
-            // DATE RANGE
-            // ----------------------
-            $startDate = Carbon::createFromFormat('Y-m', $this->selectedMonth)
-                ->startOfMonth()->format('Y-m-d');
-
-            $endDate = Carbon::createFromFormat('Y-m', $this->selectedMonth)
-                ->endOfMonth()->format('Y-m-d');
-
-            // --- PROTEKSI KEAMANAN DATA RAW QUERY ---
-            // Kita saring ulang array region untuk memastikan aman dari payload bypass
-            $finalRegions = $this->selectedRegions;
+            $finalRegions = $this->regionsFilter;
             $user = auth()->user();
             if (!$user->hasRole('admin') && !empty($user->region_code)) {
                 $finalRegions = array_intersect($finalRegions, $user->region_code);
-                // Fallback jika kosong (user memanipulasi semua array sehingga terbuang semua)
                 if (empty($finalRegions)) {
                     $finalRegions = $user->region_code;
                 }
@@ -182,14 +183,13 @@ class SalesComparison extends Component
 
             $regionsString = "'" . implode("','", $finalRegions) . "'";
 
-            // =====================================================
-            // SUMMARY QUERY (NO PAGINATION)
-            // =====================================================
+            // Summary calculation
             $this->summary = DB::table(DB::raw("(
                 SELECT
                     die.eskalink_code AS branch_code,
                     FLOOR(COALESCE(soe.net_eska, 0)) AS net_eska,
-                    FLOOR(COALESCE(sid.net_siso, 0)) AS net_siso
+                    FLOOR(COALESCE(sid.net_siso, 0)) AS net_siso,
+                    ABS(FLOOR(COALESCE(soe.net_eska, 0)) - FLOOR(COALESCE(sid.net_siso, 0))) AS abs_selisih
                 FROM distributor_implementasi_eskalink die
                 LEFT JOIN master_distributors md
                     ON md.distributor_code = die.distributor_code
@@ -216,13 +216,12 @@ class SalesComparison extends Component
             ->selectRaw('
                 COUNT(*) AS total_branch,
                 SUM(CASE WHEN net_eska = 0 THEN 1 ELSE 0 END) AS net_siso_zero,
-                SUM(CASE WHEN net_eska <> 0 THEN 1 ELSE 0 END) AS net_siso_non_zero
+                SUM(CASE WHEN net_eska <> 0 THEN 1 ELSE 0 END) AS net_siso_non_zero,
+                SUM(CASE WHEN abs_selisih >= 1000 THEN 1 ELSE 0 END) AS total_not_ok
             ')
             ->first();
 
-            // =====================================================
-            // MAIN TABLE QUERY (WITH PAGINATION)
-            // =====================================================
+            // Main Query
             $query = DB::table(DB::raw("(
                 WITH sid_sum AS (
                     SELECT
@@ -292,14 +291,18 @@ class SalesComparison extends Component
             ) sales_data"));
 
             // Filter Implementasi (Sudah/Belum/Semua)
-            if ($this->selectedImplementasi === 'Y') {
-                // Sudah = Net Eska > 0
+            if ($this->implementasiFilter === 'Y') {
                 $query->where('net_eska', '>', 0);
-            } elseif ($this->selectedImplementasi === 'N') {
-                // Belum = Net Eska = 0
+            } elseif ($this->implementasiFilter === 'N') {
                 $query->where('net_eska', '=', 0);
             }
-            // Jika ALL, tidak ada filter tambahan (tampilkan semua)
+
+            // Filter Status Selisih (OK / NOT OK)
+            if ($this->statusFilter === 'OK') {
+                $query->whereRaw('ABS(net_eska - net_siso) < 1000');
+            } elseif ($this->statusFilter === 'NOT_OK') {
+                $query->whereRaw('ABS(net_eska - net_siso) >= 1000');
+            }
 
             $comparisons = $query
                 ->orderBy('region_code')

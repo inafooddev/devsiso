@@ -20,7 +20,7 @@ class Index extends Component
 
     protected $paginationTheme = 'tailwind';
 
-    // Filter
+    // Filter properties
     public $regionFilter;
     public $areaFilter;
     public $distributorFilter;
@@ -33,13 +33,13 @@ class Index extends Component
     public $areas = [];
     public $distributors = [];
 
-    // State
+    // Modal states
     public $isFilterModalOpen = false;
     public $hasAppliedFilters = false;
-
-    // Properti untuk Modal Mapping
     public $isMapModalOpen = false;
-    public $currentProductToMap = null; // [dist_code, prod_code, prod_name]
+
+    // Mapping Modal Properties
+    public $currentProductToMap = null; 
     public $productSearch = '';
     public $principalProducts = [];
     public $selectedPrincipalProduct;
@@ -48,22 +48,19 @@ class Index extends Component
     protected $queryString = ['search'];
 
     /**
-     * Helper untuk memfilter Query berdasarkan hak akses region user.
+     * Helper to filter Query based on user region access.
      */
     private function applyRegionAccess($query, $column = 'region_code')
     {
         $user = auth()->user();
-
-        // Jika bukan admin dan memiliki batasan region_code (array)
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
             $query->whereIn($column, $user->region_code);
         }
-
         return $query;
     }
 
     /**
-     * Helper untuk memastikan distributor terkait berada di dalam wilayah user
+     * Helper to ensure distributor is within user's region
      */
     private function checkDistributorAccess($distributorCode)
     {
@@ -74,47 +71,61 @@ class Index extends Component
 
     public function mount()
     {
-        // 1. Terapkan akses region ke dropdown
-        $regionQuery = MasterRegion::query()->where('region_code', '!=', 'HOINA'); // Pastikan untuk mengecualikan region 'national'
+        // 1. Initial regions with access control
+        $regionQuery = MasterRegion::query()->where('region_code', '!=', 'HOINA');
         $this->applyRegionAccess($regionQuery);
         $this->regions = $regionQuery->orderBy('region_name')->get();
 
-        // 2. Auto-select region jika user hanya memiliki akses ke 1 region
-        if (!auth()->user()->hasRole('admin') && count($this->regions) === 1) {
-            $this->regionFilter = $this->regions->first()->region_code;
-        }
-
+        // 2. Default Month/Year
         $this->monthFilter = now()->month;
         $this->yearFilter = now()->year;
+
+        // 3. Auto-select if only 1 region
+        if (!auth()->user()->hasRole('admin') && count($this->regions) === 1) {
+            $this->regionFilter = $this->regions->first()->region_code;
+            $this->updatedRegionFilter($this->regionFilter);
+        }
+
+        // 4. Restore filters from session
+        if (session()->has('unmapped_product_filters')) {
+            $filters = session()->get('unmapped_product_filters');
+            $this->regionFilter = $filters['regionFilter'] ?? $this->regionFilter;
+            $this->areaFilter = $filters['areaFilter'] ?? null;
+            $this->distributorFilter = $filters['distributorFilter'] ?? null;
+            $this->monthFilter = $filters['monthFilter'] ?? $this->monthFilter;
+            $this->yearFilter = $filters['yearFilter'] ?? $this->yearFilter;
+            $this->search = $filters['search'] ?? '';
+            $this->hasAppliedFilters = $filters['hasAppliedFilters'] ?? false;
+
+            if ($this->regionFilter) {
+                $areaQuery = MasterArea::where('region_code', $this->regionFilter);
+                $this->applyRegionAccess($areaQuery);
+                $this->areas = $areaQuery->orderBy('area_name')->get();
+            }
+            if ($this->areaFilter) {
+                $distQuery = MasterDistributor::where('area_code', $this->areaFilter);
+                $this->applyRegionAccess($distQuery);
+                $this->distributors = $distQuery->orderBy('is_active', 'desc')->get();
+            }
+        }
     }
 
+    // --- FILTER LOGIC ---
     public function updatedRegionFilter($value)
     {
         $this->reset(['areaFilter', 'distributorFilter']);
-        
         $query = MasterArea::query();
-        if ($value) {
-            $query->where('region_code', $value);
-        }
-        
-        // Amankan dropdown area
+        if ($value) $query->where('region_code', $value);
         $this->applyRegionAccess($query);
-        
         $this->areas = $value ? $query->orderBy('area_name')->get() : collect();
     }
 
     public function updatedAreaFilter($value)
     {
         $this->reset('distributorFilter');
-        
         $query = MasterDistributor::query();
-        if ($value) {
-            $query->where('area_code', $value);
-        }
-        
-        // Amankan dropdown distributor
+        if ($value) $query->where('area_code', $value);
         $this->applyRegionAccess($query);
-        
         $this->distributors = $value ? $query->orderBy('is_active','desc')->get() : collect();
     }
 
@@ -123,6 +134,7 @@ class Index extends Component
         $this->resetPage();
         $this->hasAppliedFilters = true;
         $this->isFilterModalOpen = false;
+        $this->saveFiltersToSession();
     }
 
     public function resetFilters()
@@ -133,17 +145,28 @@ class Index extends Component
         $this->areas = collect();
         $this->distributors = collect();
         $this->hasAppliedFilters = false;
+        session()->forget('unmapped_product_filters');
 
-        // Auto-select ulang setelah reset jika user biasa
         if (!auth()->user()->hasRole('admin') && count($this->regions) === 1) {
             $this->regionFilter = $this->regions->first()->region_code;
             $this->updatedRegionFilter($this->regionFilter);
         }
     }
 
-    /**
-     * Membuat query dasar untuk data produk yang belum terpetakan.
-     */
+    protected function saveFiltersToSession()
+    {
+        session()->put('unmapped_product_filters', [
+            'regionFilter' => $this->regionFilter,
+            'areaFilter' => $this->areaFilter,
+            'distributorFilter' => $this->distributorFilter,
+            'monthFilter' => $this->monthFilter,
+            'yearFilter' => $this->yearFilter,
+            'search' => $this->search,
+            'hasAppliedFilters' => $this->hasAppliedFilters,
+        ]);
+    }
+
+    // --- QUERY BUILDING ---
     private function buildQuery()
     {
         $productMappingsSub = DB::table('product_mappings')
@@ -171,8 +194,6 @@ class Index extends Component
                 'a.product_name'
             );
 
-        // --- PROTEKSI KEAMANAN DATA ---
-        // Karena join ke master_distributors as 'b', gunakan prefix 'b.'
         $this->applyRegionAccess($query, 'b.region_code');
 
         if ($this->regionFilter) $query->where('b.region_code', $this->regionFilter);
@@ -199,7 +220,6 @@ class Index extends Component
     public function render()
     {
         $products = collect();
-
         if ($this->hasAppliedFilters) {
             $query = $this->buildQuery();
             $products = $query->paginate(10);
@@ -210,10 +230,9 @@ class Index extends Component
         ])->layout('layouts.app');
     }
 
-    // Logika untuk Modal Mapping
+    // --- MAPPING LOGIC ---
     public function openMapModal($distributorCode, $productCode, $productName)
     {
-        // Security Check: Pastikan user hanya bisa membuka modal untuk produk di regionnya
         if (!$this->checkDistributorAccess($distributorCode)) {
             session()->flash('error', 'Anda tidak memiliki otoritas pada distributor ini.');
             return;
@@ -234,12 +253,10 @@ class Index extends Component
             $this->principalProducts = collect();
             return;
         }
-        // Produk master principal bersifat global, tidak perlu di-scope
         $this->principalProducts = ProductMaster::where('product_name', 'ILIKE', '%' . $value . '%')
                                     ->orWhere('product_id', 'ILIKE', '%' . $value . '%')
                                     ->orderBy('is_active', 'desc')
-                                    ->orderBy('created_at', 'desc')
-                                    ->limit(50)
+                                    ->limit(10)
                                     ->get();
     }
 
@@ -253,7 +270,6 @@ class Index extends Component
 
     public function saveMapping()
     {
-        // Double Security Check sebelum memanipulasi database
         if (!$this->checkDistributorAccess($this->currentProductToMap['distributor_code'])) {
             session()->flash('error', 'Anda tidak memiliki otoritas pada distributor ini.');
             $this->isMapModalOpen = false;
@@ -276,23 +292,24 @@ class Index extends Component
         );
 
         $this->isMapModalOpen = false;
+        
+        // Refresh sidebar badges
+        \Illuminate\Support\Facades\Cache::forget('unmapped_counts_' . auth()->id());
+        
         session()->flash('message', 'Produk berhasil dipetakan.');
-        // Halaman akan otomatis refresh dan produk akan hilang dari daftar karena buildQuery() merender ulang
     }
 
     public function export()
     {
         if (!$this->hasAppliedFilters) {
-             session()->flash('error', 'Terapkan filter terlebih dahulu sebelum mengekspor data.');
+             session()->flash('error', 'Terapkan filter terlebih dahulu.');
              return;
         }
 
         $finalRegionFilter = $this->regionFilter;
         $user = auth()->user();
 
-        // Validasi ekstra untuk Export (Mencegah manipulasi user biasa)
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            // Jika user iseng menginjeksi region lain yang tidak dia miliki, reset ke kosong
             if (!empty($finalRegionFilter) && !in_array($finalRegionFilter, $user->region_code)) {
                 $finalRegionFilter = ''; 
             }
@@ -305,10 +322,17 @@ class Index extends Component
             'monthFilter' => $this->monthFilter,
             'yearFilter' => $this->yearFilter,
             'search' => $this->search,
-            // Parameter khusus untuk proteksi Array Scope pada Class UnmappedProductsExport
             'allowed_regions' => (!$user->hasRole('admin')) ? $user->region_code : [],
         ];
 
         return Excel::download(new UnmappedProductsExport($filters), 'laporan_produk_belum_terpetakan.xlsx');
+    }
+
+    public function updatedSearch()
+    {
+        if ($this->hasAppliedFilters) {
+            $this->resetPage();
+            $this->saveFiltersToSession();
+        }
     }
 }

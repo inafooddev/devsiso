@@ -345,7 +345,12 @@
                             class="w-full group flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-300 hover:translate-x-1 text-sm {{ $unmappingDataActive ? 'bg-secondary/10 text-secondary font-medium' : 'text-secondary/70 hover:text-secondary hover:bg-base-content/5' }}">
                         <div class="flex items-center">
                             <div class="w-1.5 h-1.5 rounded-full mr-3 transition-transform duration-300 group-hover:scale-150 {{ $unmappingDataActive ? 'scale-150 bg-secondary' : 'bg-secondary/30 group-hover:bg-secondary' }}"></div>
-                            <span class="whitespace-nowrap">Unmapping</span>
+                            <div class="flex items-center gap-2">
+                                <span class="whitespace-nowrap">Unmapping</span>
+                                @if(($unmappedCounts['products'] ?? 0) + ($unmappedCounts['salesmen'] ?? 0) > 0)
+                                    <span class="badge badge-xs badge-error animate-pulse border-none shadow-sm shadow-error/50"></span>
+                                @endif
+                            </div>
                         </div>
                         <svg :class="openUnmapping ? 'rotate-180 text-secondary' : 'text-secondary/60'"
                             class="w-3.5 h-3.5 transition-transform duration-300 ease-in-out group-hover:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -363,15 +368,25 @@
                         class="mt-1 space-y-1 ml-5 relative before:absolute before:inset-y-0 before:left-1 before:w-[1px] before:bg-secondary/20" x-cloak>
                         
                         <li>
-                            <a href="{{ route('mapping.unmapped-products') }}" class="group flex items-center px-4 py-2 rounded-xl transition-all duration-300 hover:bg-base-content/5 hover:translate-x-1 text-sm {{ request()->routeIs('mapping.unmapped-products') ? 'text-secondary/90' : 'text-base-content/60 hover:text-amber-100' }}">
-                                <div class="w-1 h-1 rounded-full mr-3 transition-transform duration-300 group-hover:scale-150 {{ request()->routeIs('mapping.unmapped-products') ? 'scale-150 bg-secondary' : 'bg-base-content/20 group-hover:bg-secondary' }}"></div>
-                                <span class="whitespace-nowrap">Product</span>
+                            <a href="{{ route('mapping.unmapped-products') }}" class="group flex items-center justify-between px-4 py-2 rounded-xl transition-all duration-300 hover:bg-base-content/5 hover:translate-x-1 text-sm {{ request()->routeIs('mapping.unmapped-products') ? 'text-secondary/90' : 'text-base-content/60 hover:text-amber-100' }}">
+                                <div class="flex items-center">
+                                    <div class="w-1 h-1 rounded-full mr-3 transition-transform duration-300 group-hover:scale-150 {{ request()->routeIs('mapping.unmapped-products') ? 'scale-150 bg-secondary' : 'bg-base-content/20 group-hover:bg-secondary' }}"></div>
+                                    <span class="whitespace-nowrap">Product</span>
+                                </div>
+                                @if(($unmappedCounts['products'] ?? 0) > 0)
+                                    <span class="badge badge-sm badge-error text-[10px] h-4 min-h-0 px-1 text-white font-bold">{{ $unmappedCounts['products'] > 99 ? '99+' : $unmappedCounts['products'] }}</span>
+                                @endif
                             </a>
                         </li>
                         <li>
-                            <a href="{{ route('mapping.unmapped-salesmans') }}" class="group flex items-center px-4 py-2 rounded-xl transition-all duration-300 hover:bg-base-content/5 hover:translate-x-1 text-sm {{ request()->routeIs('mapping.unmapped-salesmans') ? 'text-secondary/90' : 'text-base-content/60 hover:text-amber-100' }}">
-                                <div class="w-1 h-1 rounded-full mr-3 transition-transform duration-300 group-hover:scale-150 {{ request()->routeIs('mapping.unmapped-salesmans') ? 'scale-150 bg-secondary' : 'bg-base-content/20 group-hover:bg-secondary' }}"></div>
-                                <span class="whitespace-nowrap">Salesmen</span>
+                            <a href="{{ route('mapping.unmapped-salesmans') }}" class="group flex items-center justify-between px-4 py-2 rounded-xl transition-all duration-300 hover:bg-base-content/5 hover:translate-x-1 text-sm {{ request()->routeIs('mapping.unmapped-salesmans') ? 'text-secondary/90' : 'text-base-content/60 hover:text-amber-100' }}">
+                                <div class="flex items-center">
+                                    <div class="w-1 h-1 rounded-full mr-3 transition-transform duration-300 group-hover:scale-150 {{ request()->routeIs('mapping.unmapped-salesmans') ? 'scale-150 bg-secondary' : 'bg-base-content/20 group-hover:bg-secondary' }}"></div>
+                                    <span class="whitespace-nowrap">Salesmen</span>
+                                </div>
+                                @if(($unmappedCounts['salesmen'] ?? 0) > 0)
+                                    <span class="badge badge-sm badge-error text-[10px] h-4 min-h-0 px-1 text-white font-bold">{{ $unmappedCounts['salesmen'] > 99 ? '99+' : $unmappedCounts['salesmen'] }}</span>
+                                @endif
                             </a>
                         </li>
                     </ul>

@@ -23,14 +23,10 @@ use App\Livewire\Product\CategoriesProduct\Index as CategoryIndex;
 use App\Livewire\Product\MasterProduct\Index as ProductMasterIndex;
 use App\Livewire\Product\ProductCategories\Index as ProductCategoryIndex;
 use App\Livewire\Mapping\Product\Index as ProductMappingIndex; // [DITAMBAHKAN]
-use App\Livewire\Mapping\Product\Create as ProductMappingCreate; // [DITAMBAHKAN]
-use App\Livewire\Mapping\Product\Edit as ProductMappingEdit; // [DITAMBAHKAN]
 use App\Livewire\Salesmans\Index as SalesmanIndex; // [DITAMBAHKAN]
 use App\Livewire\Salesmans\Create as SalesmanCreate; // [DITAMBAHKAN]
 use App\Livewire\Salesmans\Edit as SalesmanEdit; // [DITAMBAHKAN]
 use App\Livewire\Mapping\Salesman\Index as SalesmanMappingIndex; // [DITAMBAHKAN]
-use App\Livewire\Mapping\Salesman\Create as SalesmanMappingCreate; // [DITAMBAHKAN]
-use App\Livewire\Mapping\Salesman\Edit as SalesmanMappingEdit; // [DITAMBAHKAN]
 use App\Livewire\Mapping\UnmappedProduct\Index as UnmappedProductIndex; // [DITAMBAHKAN]
 use App\Livewire\Mapping\UnmappedSalesman\Index as UnmappedSalesmanIndex;
 use App\Livewire\SellOut\Process\Index as SellOutProcessIndex; // [DITAMBAHKAN]
@@ -178,21 +174,13 @@ Route::get('/product-categories', ProductCategoryIndex::class)->name('product-ca
 
 
 // Product Mappings Routes
-Route::prefix('product-mappings')->name('product-mappings.')->group(function () {
-    Route::get('/', ProductMappingIndex::class)->name('index');
-    Route::get('/create', ProductMappingCreate::class)->name('create');
-    Route::get('/{id}/edit', ProductMappingEdit::class)->name('edit'); 
-});
+Route::get('/product-mappings', ProductMappingIndex::class)->name('product-mappings.index');
 
 // Route untuk Salesmans
 Route::get('/salesmans', SalesmanIndex::class)->name('salesmans.index');
 
 //Route untuk Salesman Mappings
-Route::prefix('salesman-mappings')->name('salesman-mappings.')->group(function () {
-    Route::get('/', SalesmanMappingIndex::class)->name('index');
-    Route::get('/create', SalesmanMappingCreate::class)->name('create');
-    Route::get('/{id}/edit', SalesmanMappingEdit::class)->name('edit'); // {id} akan di-hash
-});
+Route::get('/salesman-mappings', SalesmanMappingIndex::class)->name('salesman-mappings.index');
 
 // [DITAMBAHKAN] Route untuk Laporan Produk Belum Terpetakan
 Route::get('/mapping/unmapped-products', UnmappedProductIndex::class)->name('mapping.unmapped-products');

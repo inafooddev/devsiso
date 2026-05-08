@@ -20,7 +20,7 @@ class Index extends Component
 
     protected $paginationTheme = 'tailwind';
 
-    // Filter
+    // Filter properties
     public $regionFilter;
     public $areaFilter;
     public $distributorFilter;
@@ -33,35 +33,32 @@ class Index extends Component
     public $areas = [];
     public $distributors = [];
 
-    // State
+    // Modal states
     public $isFilterModalOpen = false;
     public $hasAppliedFilters = false;
-
-    // Properti untuk Modal Mapping
     public $isMapModalOpen = false;
-    public $currentSalesmanToMap = null; // [dist_code, salesman_code, salesman_name]
+
+    // Mapping Modal Properties
+    public $currentSalesmanToMap = null; 
     public $principalSalesmans = []; 
     public $selectedPrincipalSalesman; 
 
     protected $queryString = ['search'];
 
     /**
-     * Helper untuk memfilter Query berdasarkan hak akses region user.
+     * Helper to filter Query based on user region access.
      */
     private function applyRegionAccess($query, $column = 'region_code')
     {
         $user = auth()->user();
-
-        // Jika bukan admin dan memiliki batasan region_code (array)
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
             $query->whereIn($column, $user->region_code);
         }
-
         return $query;
     }
 
     /**
-     * Helper untuk memastikan distributor terkait berada di dalam wilayah user
+     * Helper to ensure distributor is within user's region
      */
     private function checkDistributorAccess($distributorCode)
     {
@@ -72,47 +69,61 @@ class Index extends Component
 
     public function mount()
     {
-        // 1. Terapkan akses region ke dropdown
-        $regionQuery = MasterRegion::query()->where('region_code', '!=', 'HOINA'); // Pastikan untuk mengecualikan region 'national'
+        // 1. Initial regions with access control
+        $regionQuery = MasterRegion::query()->where('region_code', '!=', 'HOINA');
         $this->applyRegionAccess($regionQuery);
         $this->regions = $regionQuery->orderBy('region_name')->get();
 
-        // 2. Auto-select region jika user hanya memiliki akses ke 1 region
-        if (!auth()->user()->hasRole('admin') && count($this->regions) === 1) {
-            $this->regionFilter = $this->regions->first()->region_code;
-        }
-
+        // 2. Default Month/Year
         $this->monthFilter = now()->month;
         $this->yearFilter = now()->year;
+
+        // 3. Auto-select if only 1 region
+        if (!auth()->user()->hasRole('admin') && count($this->regions) === 1) {
+            $this->regionFilter = $this->regions->first()->region_code;
+            $this->updatedRegionFilter($this->regionFilter);
+        }
+
+        // 4. Restore filters from session
+        if (session()->has('unmapped_salesman_filters')) {
+            $filters = session()->get('unmapped_salesman_filters');
+            $this->regionFilter = $filters['regionFilter'] ?? $this->regionFilter;
+            $this->areaFilter = $filters['areaFilter'] ?? null;
+            $this->distributorFilter = $filters['distributorFilter'] ?? null;
+            $this->monthFilter = $filters['monthFilter'] ?? $this->monthFilter;
+            $this->yearFilter = $filters['yearFilter'] ?? $this->yearFilter;
+            $this->search = $filters['search'] ?? '';
+            $this->hasAppliedFilters = $filters['hasAppliedFilters'] ?? false;
+
+            if ($this->regionFilter) {
+                $areaQuery = MasterArea::where('region_code', $this->regionFilter);
+                $this->applyRegionAccess($areaQuery);
+                $this->areas = $areaQuery->orderBy('area_name')->get();
+            }
+            if ($this->areaFilter) {
+                $distQuery = MasterDistributor::where('area_code', $this->areaFilter);
+                $this->applyRegionAccess($distQuery);
+                $this->distributors = $distQuery->orderBy('is_active', 'desc')->get();
+            }
+        }
     }
 
+    // --- FILTER LOGIC ---
     public function updatedRegionFilter($value)
     {
         $this->reset(['areaFilter', 'distributorFilter']);
-        
         $query = MasterArea::query();
-        if ($value) {
-            $query->where('region_code', $value);
-        }
-        
-        // Amankan dropdown area
+        if ($value) $query->where('region_code', $value);
         $this->applyRegionAccess($query);
-        
         $this->areas = $value ? $query->orderBy('area_name')->get() : collect();
     }
 
     public function updatedAreaFilter($value)
     {
         $this->reset('distributorFilter');
-        
         $query = MasterDistributor::query();
-        if ($value) {
-            $query->where('area_code', $value);
-        }
-        
-        // Amankan dropdown distributor
+        if ($value) $query->where('area_code', $value);
         $this->applyRegionAccess($query);
-        
         $this->distributors = $value ? $query->orderBy('is_active','desc')->get() : collect();
     }
 
@@ -121,6 +132,7 @@ class Index extends Component
         $this->resetPage();
         $this->hasAppliedFilters = true;
         $this->isFilterModalOpen = false;
+        $this->saveFiltersToSession();
     }
 
     public function resetFilters()
@@ -131,25 +143,34 @@ class Index extends Component
         $this->areas = collect();
         $this->distributors = collect();
         $this->hasAppliedFilters = false;
+        session()->forget('unmapped_salesman_filters');
 
-        // Auto-select ulang setelah reset jika user biasa
         if (!auth()->user()->hasRole('admin') && count($this->regions) === 1) {
             $this->regionFilter = $this->regions->first()->region_code;
             $this->updatedRegionFilter($this->regionFilter);
         }
     }
 
-    /**
-     * Membuat query dasar untuk data salesman yang belum terpetakan.
-     */
+    protected function saveFiltersToSession()
+    {
+        session()->put('unmapped_salesman_filters', [
+            'regionFilter' => $this->regionFilter,
+            'areaFilter' => $this->areaFilter,
+            'distributorFilter' => $this->distributorFilter,
+            'monthFilter' => $this->monthFilter,
+            'yearFilter' => $this->yearFilter,
+            'search' => $this->search,
+            'hasAppliedFilters' => $this->hasAppliedFilters,
+        ]);
+    }
+
+    // --- QUERY BUILDING ---
     private function buildQuery()
     {
-        // Subquery untuk salesman_mappings
         $salesmanMappingsSub = DB::table('salesman_mappings')
             ->select('distributor_code', 'salesman_code_dist', DB::raw('MIN(salesman_code_prc) as salesman_code_prc'))
             ->groupBy('distributor_code', 'salesman_code_dist');
 
-        // Query utama
         $query = DB::table('sales_invoice_distributor as a')
             ->join('master_distributors as b', 'a.distributor_code', '=', 'b.distributor_code')
             ->leftJoinSub($salesmanMappingsSub, 'c', function ($join) {
@@ -173,20 +194,11 @@ class Index extends Component
                 'a.salesman_name'
             );
 
-        // --- PROTEKSI KEAMANAN DATA ---
-        // 'b' adalah alias untuk master_distributors
         $this->applyRegionAccess($query, 'b.region_code');
 
-        // Terapkan filter
-        if ($this->regionFilter) {
-            $query->where('b.region_code', $this->regionFilter);
-        }
-        if ($this->areaFilter) {
-            $query->where('b.area_code', $this->areaFilter);
-        }
-        if ($this->distributorFilter) {
-            $query->where('a.distributor_code', $this->distributorFilter);
-        }
+        if ($this->regionFilter) $query->where('b.region_code', $this->regionFilter);
+        if ($this->areaFilter) $query->where('b.area_code', $this->areaFilter);
+        if ($this->distributorFilter) $query->where('a.distributor_code', $this->distributorFilter);
         
         if ($this->monthFilter && $this->yearFilter) {
             $startDate = Carbon::create($this->yearFilter, $this->monthFilter, 1)->startOfDay();
@@ -208,7 +220,6 @@ class Index extends Component
     public function render()
     {
         $salesmans = collect();
-
         if ($this->hasAppliedFilters) {
             $query = $this->buildQuery();
             $salesmans = $query->paginate(15);
@@ -219,10 +230,9 @@ class Index extends Component
         ])->layout('layouts.app');
     }
 
-    // Logika untuk Modal Mapping
+    // --- MAPPING LOGIC ---
     public function openMapModal($distributorCode, $salesmanCode, $salesmanName)
     {
-        // Security Check: Pastikan user hanya bisa membuka modal untuk regionnya
         if (!$this->checkDistributorAccess($distributorCode)) {
             session()->flash('error', 'Anda tidak memiliki otoritas pada distributor ini.');
             return;
@@ -234,10 +244,7 @@ class Index extends Component
             'salesman_name_dist' => $salesmanName,
         ];
         
-        // Reset pilihan sebelumnya
         $this->reset(['selectedPrincipalSalesman']);
-
-        // Langsung isi daftar salesman principal berdasarkan distributor (Tidak butuh scope karena sudah terfilter dari parameter modal)
         $this->principalSalesmans = Salesman::where('distributor_code', $distributorCode)
                                     ->orderBy('salesman_name')
                                     ->get();
@@ -247,7 +254,6 @@ class Index extends Component
 
     public function saveMapping()
     {
-        // Double Security Check sebelum memanipulasi database
         if (!$this->checkDistributorAccess($this->currentSalesmanToMap['distributor_code'])) {
             session()->flash('error', 'Anda tidak memiliki otoritas pada distributor ini.');
             $this->isMapModalOpen = false;
@@ -272,20 +278,23 @@ class Index extends Component
         );
 
         $this->isMapModalOpen = false;
+        
+        // Refresh sidebar badges
+        \Illuminate\Support\Facades\Cache::forget('unmapped_counts_' . auth()->id());
+        
         session()->flash('message', 'Salesman berhasil dipetakan.');
     }
 
     public function export()
     {
         if (!$this->hasAppliedFilters) {
-             session()->flash('error', 'Terapkan filter terlebih dahulu sebelum mengekspor data.');
+             session()->flash('error', 'Terapkan filter terlebih dahulu.');
              return;
         }
 
         $finalRegionFilter = $this->regionFilter;
         $user = auth()->user();
 
-        // Validasi ekstra untuk Export (Mencegah manipulasi user biasa)
         if (!$user->hasRole('admin') && !empty($user->region_code)) {
             if (!empty($finalRegionFilter) && !in_array($finalRegionFilter, $user->region_code)) {
                 $finalRegionFilter = ''; 
@@ -299,10 +308,17 @@ class Index extends Component
             'monthFilter' => $this->monthFilter,
             'yearFilter' => $this->yearFilter,
             'search' => $this->search,
-            // Parameter khusus untuk proteksi Array Scope pada proses Excel Export
             'allowed_regions' => (!$user->hasRole('admin')) ? $user->region_code : [],
         ];
 
         return Excel::download(new UnmappedSalesmansExport($filters), 'laporan_salesman_belum_terpetakan.xlsx');
+    }
+
+    public function updatedSearch()
+    {
+        if ($this->hasAppliedFilters) {
+            $this->resetPage();
+            $this->saveFiltersToSession();
+        }
     }
 }
