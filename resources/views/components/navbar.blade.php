@@ -36,17 +36,35 @@
 
             <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box shadow-lg border border-base-300 w-52 p-2 mt-1 z-[1]">
                 <li>
-                    <a href="#" class="flex items-center gap-3">
+                    <a href="{{ route('profile') }}" class="flex items-center gap-3">
                         <x-heroicon-o-user class="w-4 h-4 text-base-content/60" />
                         Profile
                     </a>
                 </li>
+                @hasrole('admin')
                 <li>
-                    <a href="#" class="flex items-center gap-3">
-                        <x-heroicon-s-cog-6-tooth class="w-4 h-4 text-base-content/60" />
-                        Settings
-                    </a>
+                    <details>
+                        <summary class="flex items-center gap-3">
+                            <x-heroicon-s-cog-6-tooth class="w-4 h-4 text-base-content/60" />
+                            Settings
+                        </summary>
+                        <ul class="p-2 bg-base-200/50 rounded-box mt-1">
+                            <li>
+                                <a href="{{ route('users.index') }}" class="flex items-center gap-3">
+                                    <x-heroicon-s-users class="w-4 h-4 text-base-content/60" />
+                                    Users
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('menus.index') }}" class="flex items-center gap-3">
+                                    <x-heroicon-s-bars-3-bottom-left class="w-4 h-4 text-base-content/60" />
+                                    Menus
+                                </a>
+                            </li>
+                        </ul>
+                    </details>
                 </li>
+                @endhasrole
                 <div class="divider my-1"></div>
                 <li>
                     <form method="POST" action="{{ route('logout') }}">

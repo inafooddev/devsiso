@@ -27,6 +27,7 @@
     'icon'        => null,
     'size'        => 'md',
     'dismissible' => true,
+    'open'        => false,
 ])
 
 @php
@@ -39,7 +40,7 @@
     };
 @endphp
 
-<dialog id="{{ $id }}" class="modal modal-bottom sm:modal-middle">
+<dialog id="{{ $id }}" {{ $attributes->merge(['class' => 'modal modal-bottom sm:modal-middle ' . ($open ? 'modal-open' : '')]) }}>
     <div class="modal-box bg-base-100 border border-base-300 {{ $sizeClass }} p-0">
 
         {{-- Header --}}
@@ -52,12 +53,21 @@
                 @endif
                 <h3 class="font-bold text-lg text-base-content">{{ $title }}</h3>
             </div>
-            <button
-                onclick="document.getElementById('{{ $id }}').close()"
-                class="btn btn-sm btn-circle btn-ghost text-base-content/50 hover:text-base-content"
-            >
-                <x-heroicon-s-x-mark class="w-4 h-4" />
-            </button>
+            @if($attributes->has('wire:close'))
+                <button
+                    wire:click="{{ $attributes->get('wire:close') }}"
+                    class="btn btn-sm btn-circle btn-ghost text-base-content/50 hover:text-base-content"
+                >
+                    <x-heroicon-s-x-mark class="w-4 h-4" />
+                </button>
+            @else
+                <button
+                    onclick="document.getElementById('{{ $id }}').close()"
+                    class="btn btn-sm btn-circle btn-ghost text-base-content/50 hover:text-base-content"
+                >
+                    <x-heroicon-s-x-mark class="w-4 h-4" />
+                </button>
+            @endif
         </div>
 
         {{-- Body --}}

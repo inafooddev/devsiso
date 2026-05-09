@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Exception;
 use Carbon\Carbon;
+use App\Helpers\UnitHelper;
 
 class SalesInvoiceImport implements OnEachRow
 {
@@ -154,7 +155,7 @@ class SalesInvoiceImport implements OnEachRow
             'pack_qty'       => $toFloat($getValue('pack_qty')),
             'pcs_qty'        => $toFloat($getValue('pcs_qty')),
             'quantity'       => $toFloat($getValue('quantity')),
-            'unit'           => trim((string) $getValue('unit')),
+            'unit'           => UnitHelper::normalize($getValue('unit'), $this->distributorCodeFromFilename),
             'bonus'          => $toFloat($finalBonusValue), // Diisi dari hasil logika baru
             'is_bonus'       => $isBonusValue,   // Diisi dari hasil logika terpisah
             'unit_price'     => $toFloat($getValue('unit_price')),

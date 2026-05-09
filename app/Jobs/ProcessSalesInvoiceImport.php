@@ -12,6 +12,7 @@ use App\Models\ConfigSalesInvoiceDistributor;
 use App\Imports\SalesInvoiceImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 use Illuminate\Validation\ValidationException;
 
@@ -56,9 +57,17 @@ class ProcessSalesInvoiceImport implements ShouldQueue
             $batch->addLog('info', "Konfigurasi untuk '{$this->distributorCode}' berhasil dimuat.");
             $config = json_decode($configModel->config, true);
 
-            // Teruskan objek $batch dan distributorCode ke importer
-            $importer = new SalesInvoiceImport($config, $this->distributorCode, $batch);
-            Excel::import($importer, $fullPath);
+            // DB Transaction
+            DB::beginTransaction();
+            try {
+                // Teruskan objek $batch dan distributorCode ke importer
+                $importer = new SalesInvoiceImport($config, $this->distributorCode, $batch);
+                Excel::import($importer, $fullPath);
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
 
             $finalCount = $batch->fresh()->processed_rows;
             $batch->addLog('success', "PROSES SELESAI: Berhasil memproses {$finalCount} dari {$totalRows} baris data.");

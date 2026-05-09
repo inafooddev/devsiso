@@ -52,4 +52,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * The menus that belong to the user.
+     */
+    public function menus()
+    {
+        return $this->belongsToMany(Menu::class, 'menu_user')->withTimestamps();
+    }
 }
