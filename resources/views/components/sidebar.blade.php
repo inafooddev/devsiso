@@ -36,7 +36,7 @@
              x-transition:leave="transition ease-in duration-200"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
-             src="{{ asset('build/assets/logo.png') }}"
+             src="{{ asset('icon/logo.png') }}"
              class="h-10 absolute"
              x-cloak>
 
@@ -48,7 +48,7 @@
              x-transition:leave="transition ease-in duration-200"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
-             src="{{ asset('build/assets/logo-icon.png') }}"
+             src="{{ asset('icon/logo-icon.png') }}"
              class="h-8 absolute"
              x-cloak>
     </div>
