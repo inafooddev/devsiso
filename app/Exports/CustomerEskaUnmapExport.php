@@ -44,6 +44,7 @@ class CustomerEskaUnmapExport implements FromQuery, WithHeadings, WithMapping, S
                 'cme.bln',
                 'md.region_name',
                 'md.area_name',
+                'md.distributor_name',
                 'cme.distid',
                 'cme.branch_dist',
                 'cme.custno_dist',

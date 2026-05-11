@@ -82,37 +82,30 @@
                     <x-slot:head>
                         <tr>
                             <th>Bulan</th>
-                            <th>Region / Area</th>
+                            <th>Region</th>
+                            <th>Area</th>
+                            <th>Branch</th>
                             <th>Distributor</th>
-                            <th class="w-48 bg-base-200/30">Data Distributor (ESKA)</th>
-                            <th class="w-48 bg-primary/5">Data Principal (ESKA)</th>
+                            <th class="bg-base-200/30">Cust No (Dist)</th>
+                            <th class="bg-base-200/30">Cust Name (Dist)</th>
+                            <th class="bg-primary/5">Cust No (Prc)</th>
+                            <th class="bg-primary/5">Cust Name (Prc)</th>
+                            
                         </tr>
                     </x-slot:head>
 
                     @foreach ($customers as $row)
                         <tr class="group text-sm">
                             <td><span class="font-mono text-xs font-bold text-base-content/60">{{ Carbon\Carbon::parse($row->bln)->format('M Y') }}</span></td>
-                            <td>
-                                <div>
-                                    <span class="font-bold text-base-content/80">{{ $row->region_name }}</span>
-                                    <div class="text-[10px] text-base-content/40 font-bold uppercase tracking-widest mt-0.5">{{ $row->area_name }}</div>
-                                </div>
-                            </td>
-                            <td><span class="font-medium text-base-content/80">{{ $row->distributor_name }}</span></td>
-                            <td class="bg-base-200/10">
-                                <div class="flex flex-col gap-0.5">
-                                    <span class="badge badge-xs badge-outline rounded-md font-mono text-[10px]">{{ $row->custno_dist }}</span>
-                                    <span class="font-bold text-base-content/80 text-xs">{{ $row->dist_cust_name }}</span>
-                                    <span class="text-[10px] text-base-content/40 italic">{{ $row->distid }} - {{ $row->branch_dist }}</span>
-                                </div>
-                            </td>
-                            <td class="bg-primary/5">
-                                <div class="flex flex-col gap-0.5">
-                                    <span class="badge badge-xs badge-primary rounded-md font-mono text-[10px]">{{ $row->custno }}</span>
-                                    <span class="font-bold text-primary text-xs">{{ $row->prc_cust_name }}</span>
-                                    <span class="text-[10px] text-base-content/50">Cabang: {{ $row->branch }}</span>
-                                </div>
-                            </td>
+                            <td><span class="font-bold text-base-content/80 text-xs">{{ $row->region_name }}</span></td>
+                            <td><span class="text-[10px] text-base-content/50 font-bold uppercase tracking-widest">{{ $row->area_name }}</span></td>
+                            <td class="text-[10px] text-base-content/50">{{ $row->branch }}</td>
+                            <td><span class="font-medium text-base-content/80 text-xs">{{ $row->distributor_name }}</span></td>
+                            <td class="bg-base-200/5 font-mono text-[10px]">{{ $row->custno_dist }}</td>
+                            <td class="bg-base-200/5 font-bold text-base-content/80 text-xs">{{ $row->dist_cust_name }}</td>
+                            <td class="bg-primary/5 font-mono text-[10px] text-primary">{{ $row->custno }}</td>
+                            <td class="bg-primary/5 font-bold text-primary text-xs">{{ $row->prc_cust_name }}</td>
+                            
                         </tr>
                     @endforeach
                 </x-ui.table>
