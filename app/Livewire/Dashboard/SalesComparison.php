@@ -145,7 +145,7 @@ class SalesComparison extends Component
     public function import()
     {
         $user = auth()->user();
-        if (!$user->hasRole('admin')) {
+        if (!$user->hasRole('admin|user')) {
             session()->flash('error', 'Hanya Administrator yang diizinkan untuk mengimpor data Selling Out.');
             return;
         }

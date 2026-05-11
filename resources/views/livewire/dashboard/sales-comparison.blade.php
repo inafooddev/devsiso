@@ -40,7 +40,7 @@
                     </button>
 
                     {{-- Import Button (Admin Only) --}}
-                    @hasrole('admin')
+                    @hasrole('admin|user')
                     <button wire:click="$set('isImportModalOpen', true)"
                             class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
                         <x-heroicon-s-arrow-up-tray class="w-4 h-4" />
