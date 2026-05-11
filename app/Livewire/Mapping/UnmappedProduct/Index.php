@@ -293,8 +293,10 @@ class Index extends Component
 
         $this->isMapModalOpen = false;
         
-        // Refresh sidebar badges
+        // Refresh sidebar and navbar badges
         \Illuminate\Support\Facades\Cache::forget('unmapped_counts_' . auth()->id());
+        \Illuminate\Support\Facades\Cache::forget('mapping_notification_counts_' . auth()->id());
+        $this->dispatch('refreshNotifications');
         
         session()->flash('message', 'Produk berhasil dipetakan.');
     }

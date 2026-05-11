@@ -10,6 +10,9 @@
     {{-- Right: Theme Toggle + User Dropdown --}}
     <div class="navbar-end gap-1">
 
+        {{-- Mapping Notifications --}}
+        @livewire('mapping-notification')
+
         {{-- Theme Toggle --}}
         <label class="swap swap-rotate btn btn-ghost btn-sm" title="Toggle theme">
             <input type="checkbox" @change="toggleTheme()" :checked="!isDark" />

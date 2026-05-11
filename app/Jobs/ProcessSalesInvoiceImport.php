@@ -73,6 +73,16 @@ class ProcessSalesInvoiceImport implements ShouldQueue
             $batch->addLog('success', "PROSES SELESAI: Berhasil memproses {$finalCount} dari {$totalRows} baris data.");
             $batch->updateStatus('completed');
 
+            // Refresh notification cache for all relevant users (or at least admins/managers)
+            // For simplicity, we can just let it expire in 60s, or clear it if we know which users are affected.
+            // Since we don't easily know which users, we could just let the 60s TTL handle it, 
+            // but for a better UX, we can try to clear it if possible.
+            // Actually, the 60s TTL is small enough, but let's at least clear for current user if it's not a queued job.
+            // Wait, this IS a queued job, so Auth::user() might be null or different.
+            // Instead, we can use a more global way or just rely on the TTL.
+            // However, the user who started the batch is probably interested.
+            // We can store user_id in ImportBatch if not already there.
+
         } catch (ValidationException $e) {
             $errors = $e->validator->errors()->all();
             $batch->addLog('error', "PROSES GAGAL: Terjadi Kesalahan Validasi Header.");

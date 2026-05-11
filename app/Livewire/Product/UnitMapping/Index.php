@@ -83,6 +83,8 @@ class Index extends Component
                 'mapped_unit' => $this->mapped_unit,
             ]);
             \App\Helpers\UnitHelper::clearCache($oldDistributor);
+            \Illuminate\Support\Facades\Cache::forget('mapping_notification_counts_' . auth()->id());
+            $this->dispatch('refreshNotifications');
             session()->flash('message', 'Unit mapping berhasil diupdate.');
         } else {
             UnitMapping::create([
@@ -97,6 +99,8 @@ class Index extends Component
                 ->delete();
 
             \App\Helpers\UnitHelper::clearCache($this->distributor_code);
+            \Illuminate\Support\Facades\Cache::forget('mapping_notification_counts_' . auth()->id());
+            $this->dispatch('refreshNotifications');
             session()->flash('message', 'Unit mapping berhasil ditambahkan.');
         }
 
@@ -110,6 +114,8 @@ class Index extends Component
         $distCode = $mapping->distributor_code;
         $mapping->delete();
         \App\Helpers\UnitHelper::clearCache($distCode);
+        \Illuminate\Support\Facades\Cache::forget('mapping_notification_counts_' . auth()->id());
+        $this->dispatch('refreshNotifications');
         session()->flash('message', 'Unit mapping berhasil dihapus.');
     }
 
