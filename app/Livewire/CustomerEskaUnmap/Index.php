@@ -15,7 +15,7 @@ class Index extends Component
 
     protected $paginationTheme = 'tailwind';
 
-    // Filter properties (Multi-select support)
+    // Filter properties (Multi-select support) apa ya 
     public $monthFilter;
     public $regionFilter = [];
     public $areaFilter = [];

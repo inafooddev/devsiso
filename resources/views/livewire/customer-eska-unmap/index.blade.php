@@ -244,7 +244,7 @@
                         </div>
                     </div>
                 </div>
-
+                <!-- testing -->
                 <div class="flex items-center justify-between gap-3 px-6 py-5 border-t border-base-300 bg-base-200/30 rounded-b-3xl">
                     <button type="button" wire:click="resetFilters" @click="open = false"
                             class="btn btn-ghost rounded-xl normal-case text-error hover:bg-error/10 transition-all duration-200">
