@@ -1,15 +1,14 @@
 <div>
-    <x-slot name="title">Analytics Dashboard</x-slot>
+    <x-slot name="title">National Sell In Dashboard</x-slot>
 
     <div class="p-6 space-y-6 bg-base-200 min-h-screen">
         {{-- Toolbar --}}
         <div class="flex flex-wrap items-center justify-between gap-3 bg-base-100 rounded-2xl shadow-xl px-6 py-4">
             <div class="flex flex-wrap items-center gap-2">
-                <h2 class="font-bold text-lg mr-2">Analytics Dashboard</h2>
+                <h2 class="font-bold text-lg mr-2">National Sell In Dashboard</h2>
                 <span class="badge badge-outline badge-primary">{{ $selectedYear }}</span>
                 <span class="badge badge-outline">{{ date('M', mktime(0,0,0,$selectedMonthFrom,1)) }} – {{ date('M', mktime(0,0,0,$selectedMonthTo,1)) }}</span>
                 @if($selectedRegFest !== 'ALL')<span class="badge badge-secondary badge-outline">{{ $selectedRegFest }}</span>@endif
-                <span class="badge badge-outline">{{ count($selectedRegions) }} Region(s)</span>
             </div>
             <button wire:click="openFilterModal" class="btn btn-primary btn-sm rounded-xl gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,23 +61,6 @@
                                         <option value="{{ $m }}">{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
                                     @endforeach
                                 </select>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="label-text font-semibold">Regions <span class="text-base-content/50 font-normal">({{ count($selectedRegions) }}/{{ count($regionsOption) }})</span></span>
-                                <div class="flex gap-2">
-                                    <button wire:click="selectAllRegions" class="btn btn-xs btn-ghost text-primary">All</button>
-                                    <button wire:click="clearAllRegions" class="btn btn-xs btn-ghost text-error">Clear</button>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-44 overflow-y-auto p-3 bg-base-200 rounded-xl">
-                                @foreach($regionsOption as $code => $name)
-                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-base-100 rounded-lg p-1.5 transition">
-                                        <input type="checkbox" wire:model="selectedRegions" value="{{ $code }}" class="checkbox checkbox-xs checkbox-primary" />
-                                        <span class="text-xs">{{ $name }}</span>
-                                    </label>
-                                @endforeach
                             </div>
                         </div>
                     </div>

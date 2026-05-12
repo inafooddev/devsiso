@@ -7,7 +7,7 @@ use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-class AnalyticsDashboard extends Component
+class NationalSellInDashboard extends Component
 {
     use WithPagination;
 
@@ -19,14 +19,12 @@ class AnalyticsDashboard extends Component
     public int    $selectedYear     = 0;
     public int    $selectedMonthFrom = 1;
     public int    $selectedMonthTo   = 12;
-    public array  $selectedRegions  = [];
     public string $selectedRegFest  = 'ALL'; // ALL | REG | FEST
 
     // ======================
     // OPTIONS
     // ======================
     public array $yearOptions    = [];
-    public array $regionsOption  = [];
     public array $regFestOptions = ['ALL', 'REG', 'FEST'];
 
     // ======================
@@ -81,36 +79,9 @@ class AnalyticsDashboard extends Component
             $this->yearOptions[] = $y;
         }
 
-        // Load region options with access control
-        $query = DB::table('v_sellinvstarget')
-            ->select('region', 'region_code')
-            ->distinct()
-            ->orderBy('region');
-
-        $this->applyRegionAccess($query, 'region_code');
-
-        $this->regionsOption = $query->pluck('region', 'region_code')->toArray();
-
-        // Auto-select all regions by default
-        $this->selectedRegions = array_keys($this->regionsOption);
-
         $this->loadDashboardData();
     }
 
-    // ======================
-    // REGION ACCESS HELPER
-    // ======================
-    private function applyRegionAccess($query, string $column = 'region_code'): void
-    {
-        $user = auth()->user();
-        if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereIn($column, $user->region_code);
-        }
-    }
-
-    // ======================
-    // BASE FILTER HELPER
-    // ======================
     private function applyBaseFilters($query): void
     {
         // Year filter
@@ -120,18 +91,10 @@ class AnalyticsDashboard extends Component
         $query->whereRaw('EXTRACT(MONTH FROM bulan) >= ?', [$this->selectedMonthFrom])
               ->whereRaw('EXTRACT(MONTH FROM bulan) <= ?', [$this->selectedMonthTo]);
 
-        // Region
-        if (!empty($this->selectedRegions)) {
-            $query->whereIn('region_code', $this->selectedRegions);
-        }
-
         // Reg/Fest
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
-
-        // User access control
-        $this->applyRegionAccess($query, 'region_code');
     }
 
     private function applyLastYearFilters($query): void
@@ -141,21 +104,11 @@ class AnalyticsDashboard extends Component
         $query->whereRaw('EXTRACT(MONTH FROM bulan) >= ?', [$this->selectedMonthFrom])
               ->whereRaw('EXTRACT(MONTH FROM bulan) <= ?', [$this->selectedMonthTo]);
 
-        if (!empty($this->selectedRegions)) {
-            $query->whereIn('region_code', $this->selectedRegions);
-        }
-
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
-
-        $this->applyRegionAccess($query, 'region_code');
     }
 
-    /**
-     * Snapshot: year + date-range + type — NO region selection.
-     * Used by: Region Contribution, Region Comparison.
-     */
     private function applySnapshotFilters($query): void
     {
         $query->whereYear('bulan', $this->selectedYear)
@@ -164,38 +117,22 @@ class AnalyticsDashboard extends Component
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
-        $this->applyRegionAccess($query, 'region_code');
     }
 
-    /**
-     * Trend (TY): year + region + type — NO date range (shows full year).
-     * Used by: Sales Trend, Monthly Bar, Growth Area, Combo.
-     */
     private function applyTrendFilters($query): void
     {
         $query->whereYear('bulan', $this->selectedYear);
-        if (!empty($this->selectedRegions)) {
-            $query->whereIn('region_code', $this->selectedRegions);
-        }
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
-        $this->applyRegionAccess($query, 'region_code');
     }
 
-    /**
-     * Trend (LY): previous year + region + type — NO date range.
-     */
     private function applyTrendLastYearFilters($query): void
     {
         $query->whereYear('bulan', $this->selectedYear - 1);
-        if (!empty($this->selectedRegions)) {
-            $query->whereIn('region_code', $this->selectedRegions);
-        }
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
-        $this->applyRegionAccess($query, 'region_code');
     }
 
     // ======================
@@ -203,35 +140,10 @@ class AnalyticsDashboard extends Component
     // ======================
     public function applyFilter(): void
     {
-        // Security: ensure selected regions are valid for user
-        $user = auth()->user();
-        if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            $this->selectedRegions = array_values(
-                array_intersect($this->selectedRegions, $user->region_code)
-            );
-            if (empty($this->selectedRegions)) {
-                $this->selectedRegions = $user->region_code;
-            }
-        }
-
-        if (empty($this->selectedRegions)) {
-            $this->selectedRegions = array_keys($this->regionsOption);
-        }
-
         $this->resetPage();
         $this->loadDashboardData();
         $this->showFilterModal = false;
         $this->dispatch('charts-updated');
-    }
-
-    public function selectAllRegions(): void
-    {
-        $this->selectedRegions = array_keys($this->regionsOption);
-    }
-
-    public function clearAllRegions(): void
-    {
-        $this->selectedRegions = [];
     }
 
     public function openFilterModal(): void
@@ -244,9 +156,6 @@ class AnalyticsDashboard extends Component
         $this->showFilterModal = false;
     }
 
-    // ======================
-    // MAIN DATA LOADER
-    // ======================
     private function loadDashboardData(): void
     {
         $this->loadKpiData();
@@ -255,12 +164,8 @@ class AnalyticsDashboard extends Component
         $this->buildInsights();
     }
 
-    // ======================
-    // KPI DATA
-    // ======================
     private function loadKpiData(): void
     {
-        // Current Year aggregates
         $ty = DB::table('v_sellinvstarget');
         $this->applyBaseFilters($ty);
         $tySums = $ty->selectRaw('
@@ -268,7 +173,6 @@ class AnalyticsDashboard extends Component
             COALESCE(SUM(target), 0) AS total_target
         ')->first();
 
-        // Last Year aggregates
         $ly = DB::table('v_sellinvstarget');
         $this->applyLastYearFilters($ly);
         $lySums = $ly->selectRaw('COALESCE(SUM(actual), 0) AS total_actual')->first();
@@ -277,27 +181,20 @@ class AnalyticsDashboard extends Component
         $totalTarget   = (float) ($tySums->total_target ?? 0);
         $totalActualLY = (float) ($lySums->total_actual ?? 0);
 
-        // Growth %
         $growthPct = $totalActualLY > 0
             ? (($totalActualTY - $totalActualLY) / $totalActualLY) * 100
             : 0;
 
-        // Achievement %
         $achievementPct = $totalTarget > 0
             ? ($totalActualTY / $totalTarget) * 100
             : 0;
 
-        // Gap vs target
         $gapVsTarget = $totalActualTY - $totalTarget;
-
-        // Gap vs LY
         $gapVsLY = $totalActualTY - $totalActualLY;
 
-        // Avg monthly sales (TY)
         $monthCount = $this->selectedMonthTo - $this->selectedMonthFrom + 1;
         $avgMonthlySales = $monthCount > 0 ? $totalActualTY / $monthCount : 0;
 
-        // Avg monthly LY
         $avgMonthlyLY = $monthCount > 0 ? $totalActualLY / $monthCount : 0;
         $avgMonthlyGrowth = $avgMonthlyLY > 0
             ? (($avgMonthlySales - $avgMonthlyLY) / $avgMonthlyLY) * 100
@@ -316,9 +213,6 @@ class AnalyticsDashboard extends Component
         ];
     }
 
-    // ======================
-    // CHART DATA
-    // ======================
     private function loadChartData(): void
     {
         $this->buildRegionContributionChart();
@@ -346,7 +240,6 @@ class AnalyticsDashboard extends Component
 
     private function buildSalesTrendChart(): void
     {
-        // TY
         $qTY = DB::table('v_sellinvstarget');
         $this->applyTrendFilters($qTY);
         $tyRows = $qTY->selectRaw("EXTRACT(MONTH FROM bulan)::int AS month_num, SUM(actual) AS total")
@@ -354,7 +247,6 @@ class AnalyticsDashboard extends Component
                       ->orderBy('month_num')
                       ->pluck('total', 'month_num');
 
-        // LY
         $qLY = DB::table('v_sellinvstarget');
         $this->applyTrendLastYearFilters($qLY);
         $lyRows = $qLY->selectRaw("EXTRACT(MONTH FROM bulan)::int AS month_num, SUM(actual) AS total")
@@ -428,10 +320,10 @@ class AnalyticsDashboard extends Component
 
         $labels     = array_map(fn($m) => $monthNames[$m - 1], $months);
         $growthData = array_map(function ($m) use ($tyRows, $lyRows) {
-            if (!$tyRows->has($m)) return null;          // No TY data yet — gap in chart
+            if (!$tyRows->has($m)) return null;
             $ty = (float)$tyRows[$m];
             $ly = (float)($lyRows[$m] ?? 0);
-            if ($ly === 0.0) return null;                // Cannot compute growth without LY base
+            if ($ly === 0.0) return null;
             return round((($ty - $ly) / $ly) * 100, 2);
         }, $months);
 
@@ -467,7 +359,6 @@ class AnalyticsDashboard extends Component
             return;
         }
 
-        // Sanitize growth: keep null (= gap in chart), replace non-finite with null
         $growth = array_map(
             fn($v) => $v === null ? null : ((is_numeric($v) && is_finite($v)) ? round((float)$v, 2) : null),
             $growthArea['growth'] ?? []
@@ -480,10 +371,6 @@ class AnalyticsDashboard extends Component
             'growth' => $growth,
         ]);
     }
-
-    // ======================
-    // TABLE DATA
-    // ======================
 
     private function loadTableData(): void
     {
@@ -614,21 +501,11 @@ class AnalyticsDashboard extends Component
         }
     }
 
-    // ======================
-    // AUTO INSIGHTS
-    // ======================
     private function buildInsights(): void
     {
-        // Best performing region (highest actual)
         $best = collect($this->topByAch)->sortByDesc('actual')->first();
-
-        // Worst region (lowest achievement %)
         $worst = collect($this->topByAch)->sortBy('ach')->first();
-
-        // Highest growth region
         $highestGrowth = collect($this->topByGrowth)->sortByDesc('growth')->first();
-
-        // Biggest negative gap
         $biggestNegGap = collect($this->gapVsTarget)->sortBy('gap')->first();
 
         $this->insights = [
@@ -659,22 +536,16 @@ class AnalyticsDashboard extends Component
         ];
     }
 
-    // ======================
-    // RENDER
-    // ======================
     public function render()
     {
-        // Paginated main detail table
         $detailQuery = DB::table('v_sellinvstarget');
         $this->applyTrendFilters($detailQuery);
 
-        // Apply search to detail table
         if (!empty($this->searchDetail)) {
             $s = $this->searchDetail;
             $detailQuery->whereRaw("TO_CHAR(bulan, 'Mon YYYY') ilike ?", ["%{$s}%"]);
         }
 
-        // LY actuals keyed by (month_num)
         $lyQuery = DB::table('v_sellinvstarget');
         $this->applyTrendLastYearFilters($lyQuery);
         $lyMap = $lyQuery->selectRaw("
@@ -685,7 +556,6 @@ class AnalyticsDashboard extends Component
             ->get()
             ->keyBy(fn($r) => "{$r->month_num}");
 
-        // Apply search to detail table
         if (!empty($this->searchDetail)) {
             $s = $this->searchDetail;
             $detailQuery->whereRaw("TO_CHAR(bulan, 'Mon YYYY') ilike ?", ["%{$s}%"]);
@@ -702,7 +572,6 @@ class AnalyticsDashboard extends Component
             ->orderBy('month_num')
             ->paginate(20);
 
-        // Attach computed columns
         $details->getCollection()->transform(function ($row) use ($lyMap) {
             $key             = "{$row->month_num}";
             $lyActual        = (float)($lyMap[$key]->ly_actual ?? 0);
@@ -716,12 +585,12 @@ class AnalyticsDashboard extends Component
             return $row;
         });
 
-        return view('livewire.dashboard.analytics-dashboard', [
+        return view('livewire.dashboard.national-sell-in-dashboard', [
             'details'          => $details,
             'topByAchData'     => $this->topByAch,
             'topByGrowthData'  => $this->topByGrowth,
             'gapVsTargetData'  => $this->gapVsTarget,
             'gapYoYData'       => $this->gapYoY,
-        ])->layout('layouts.app', ['title' => 'Analytics Dashboard']);
+        ])->layout('layouts.app', ['title' => 'National Sell In Dashboard']);
     }
 }
