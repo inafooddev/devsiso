@@ -19,7 +19,10 @@ use App\Livewire\CustomerExportComponent;
 use App\Livewire\Customers\CustomerData;
 use App\Livewire\Dashboard;
 use App\Livewire\Dashboard\AnalyticsDashboard;
+use App\Livewire\Dashboard\AreaSellInDashboard;
+use App\Livewire\Dashboard\CabangSellInDashboard;
 use App\Livewire\Dashboard\NationalSellInDashboard;
+use App\Livewire\Dashboard\SupervisorSellInDashboard;
 use App\Livewire\Dashboard\DistributorMap;
 use App\Livewire\Dashboard\MetabaseDashboard;
 use App\Livewire\Dashboard\SalesComparison;
@@ -108,6 +111,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/metabase', MetabaseDashboard::class)->name('dashboard.metabase');
     Route::get('/dashboard/analytics', AnalyticsDashboard::class)->name('dashboard.analytics');
     Route::get('/dashboard/national-sell-in', NationalSellInDashboard::class)->name('dashboard.national-sell-in');
+    Route::get('/dashboard/area-sell-in', AreaSellInDashboard::class)->name('dashboard.area-sell-in');
+    Route::get('/dashboard/cabang-sell-in', CabangSellInDashboard::class)->name('dashboard.cabang-sell-in');
+    Route::get('/dashboard/supervisor-sell-in', SupervisorSellInDashboard::class)->name('dashboard.supervisor-sell-in');
     Route::get('/dashboard/sales-comparison', SalesComparison::class)->name('dashboard.sales-comparison');
 
     // ==========================================

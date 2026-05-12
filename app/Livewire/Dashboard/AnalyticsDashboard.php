@@ -619,8 +619,8 @@ class AnalyticsDashboard extends Component
     // ======================
     private function buildInsights(): void
     {
-        // Best performing region (highest actual)
-        $best = collect($this->topByAch)->sortByDesc('actual')->first();
+        // Best performing region (highest ach)
+        $best = collect($this->topByAch)->sortByDesc('ach')->first();
 
         // Worst region (lowest achievement %)
         $worst = collect($this->topByAch)->sortBy('ach')->first();
@@ -635,7 +635,7 @@ class AnalyticsDashboard extends Component
             'best_region' => $best ? [
                 'title'    => 'Best Performing Region',
                 'value'    => $best['region'],
-                'sub'      => 'Sales: ' . number_format($best['actual'], 0, ',', '.'),
+                'sub'      => 'Achievement: ' . number_format($best['ach'], 2) . '%',
                 'type'     => 'success',
             ] : null,
             'worst_region' => $worst ? [
