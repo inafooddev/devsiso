@@ -27,7 +27,12 @@ class Login extends Component
         if (Auth::attempt(['userid' => $this->userid, 'password' => $this->password], $this->remember)) {
             session()->regenerate();
 
-            // Arahkan ke welcome page setelah sukses
+            $user = Auth::user();
+            if ($user && $user->hasRole(['admin', 'user'])) {
+                return redirect()->intended(route('dashboard.national-sell-in'));
+            }
+
+            // Jika role guest atau lainnya, arahkan ke welcome page
             return redirect()->intended('/welcome');
         }
 
