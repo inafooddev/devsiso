@@ -494,10 +494,25 @@
         document.addEventListener('livewire:initialized', () => {
             let charts = {};
 
+            function getThemeConfig() {
+                const isDark = document.documentElement.getAttribute('data-theme') === 'neon-dark';
+                return {
+                    isDark,
+                    textColor: isDark ? '#94a3b8' : '#64748b',
+                    titleColor: isDark ? '#f1f5f9' : '#0f172a',
+                    gridColor: isDark ? '#334155' : '#f1f5f9',
+                    tooltipTheme: isDark ? 'dark' : 'light',
+                    lastYearColor: isDark ? '#cbd5e1' : '#94a3b8'
+                };
+            }
+
             function initCharts() {
                 const raw = document.getElementById('chart-data');
                 if (!raw) return;
                 const d = JSON.parse(raw.textContent || '{}');
+
+                const { isDark, textColor, titleColor, gridColor, tooltipTheme, lastYearColor } = getThemeConfig();
+
                 const base = {
                     chart: { 
                         fontFamily: 'Inter, sans-serif', 
@@ -513,13 +528,13 @@
                         parentHeightOffset: 0
                     },
                     grid: {
-                        borderColor: '#f1f5f9',
+                        borderColor: gridColor,
                         strokeDashArray: 4,
                         padding: { top: 0, right: 10, bottom: 0, left: 10 }
                     },
                     dataLabels: { enabled: false },
                     tooltip: { 
-                        theme: 'light',
+                        theme: tooltipTheme,
                         style: { fontSize: '12px' },
                         marker: { show: true }
                     }
@@ -579,21 +594,21 @@
                                             show: true,
                                             fontSize: '13px',
                                             fontWeight: 500,
-                                            color: '#94a3b8',
+                                            color: textColor,
                                             offsetY: -8
                                         },
                                         value: {
                                             show: true,
                                             fontSize: '20px',
                                             fontWeight: 700,
-                                            color: '#0f172a',
+                                            color: titleColor,
                                             formatter: (val) => fmt(val)
                                         },
                                         total: {
                                             show: true,
                                             label: 'Total Sales',
                                             fontSize: '12px',
-                                            color: '#64748b',
+                                            color: textColor,
                                             formatter: (w) => {
                                                 const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
                                                 return fmt(total);
@@ -620,14 +635,14 @@
                             position: 'bottom',
                             horizontalAlign: 'center',
                             fontSize: '11px',
-                            labels: { colors: '#64748b' },
+                            labels: { colors: textColor },
                             markers: { radius: 12 },
                             itemMargin: { horizontal: 10, vertical: 6 }
                         },    
 
                         tooltip: {
                             enabled: true,
-                            theme: 'light',
+                            theme: tooltipTheme,
                             y: {
                                 formatter: function(value) {
                                     // Format angka ke ribuan dengan titik (ID)
@@ -724,7 +739,7 @@
             labels: {
                 style: {
                     fontSize: '11px',
-                    colors: '#64748b'
+                    colors: textColor
                 },
                 formatter: fmt
             },
@@ -737,7 +752,7 @@
                 style: {
                     fontSize: '12px',
                     fontWeight: 500,
-                    colors: '#334155'
+                    colors: titleColor
                 }
             }
         },
@@ -764,7 +779,7 @@
         tooltip: {
             shared: true,
             intersect: false,
-            theme: 'light',
+            theme: tooltipTheme,
             style: {
                 fontSize: '12px'
             },
@@ -781,7 +796,7 @@
                         return `
                             <div style="padding:4px 0">
                                 <div><b>${fmt(val)}</b></div>
-                                <div style="color:#64748b;font-size:11px">
+                                <div style="color:${textColor};font-size:11px">
                                     ${ach}% achievement
                                 </div>
                             </div>
@@ -798,7 +813,7 @@
             horizontalAlign: 'right',
             fontSize: '11px',
             labels: {
-                colors: '#64748b'
+                colors: textColor
             },
             markers: {
                 radius: 12
@@ -836,7 +851,7 @@
         xaxis: {
             categories: d.combo.labels || [],
             labels: {
-                style: { fontSize: '11px', colors: '#94a3b8' }
+                style: { fontSize: '11px', colors: textColor }
             },
             axisBorder: { show: false },
             axisTicks: { show: false }
@@ -870,7 +885,7 @@
                 title: { text: '' },
                 labels: {
                     formatter: fmt,
-                    style: { fontSize: '11px', colors: '#64748b' }
+                    style: { fontSize: '11px', colors: textColor }
                 }
             },
             {
@@ -914,14 +929,14 @@
             position: 'top',
             horizontalAlign: 'right',
             fontSize: '11px',
-            labels: { colors: '#64748b' },
+            labels: { colors: textColor },
             markers: { radius: 12, width: 8, height: 8 }
         },
 
         tooltip: {
             shared: true,
             intersect: false,
-            theme: 'light',
+            theme: tooltipTheme,
             y: {
                 formatter: (v, { seriesIndex }) =>
                     seriesIndex < 2
@@ -938,16 +953,26 @@
                 if (d.trend && document.querySelector('#chartSalesTrend')) {
                     charts.trend = new ApexCharts(document.querySelector('#chartSalesTrend'), {
                         ...base,
-                        chart: { ...base.chart, type: 'line' },
+                        chart: { 
+                            ...base.chart, 
+                            type: 'line',
+                            dropShadow: {
+                                enabled: true,
+                                top: 3,
+                                left: 2,
+                                blur: 4,
+                                opacity: isDark ? 0.2 : 0.1
+                            }
+                        },
                         series: [{ name: 'This Year', data: d.trend.ty || [] }, { name: 'Last Year', data: d.trend.ly || [] }],
                         xaxis: { categories: d.trend.labels || [] },
-                        colors: ['#6366f1', '#94a3b8'],
+                        colors: ['#6366f1', lastYearColor],
                         stroke: { curve: 'smooth', width: 3 },
                         fill: {
                             type: 'gradient',
                             gradient: {
                                 shadeIntensity: 1,
-                                opacityFrom: 0.35,
+                                opacityFrom: isDark ? 0.25 : 0.35,
                                 opacityTo: 0.05,
                                 stops: [0, 90, 100]
                             }
@@ -957,14 +982,14 @@
                             strokeWidth: 2, 
                             hover: { size: 6 } 
                         },
-                        yaxis: { labels: { formatter: fmt, style: { colors: '#64748b' } } },
+                        yaxis: { labels: { formatter: fmt, style: { colors: textColor } } },
                         tooltip: { 
                             shared: true, 
                             intersect: false, 
-                            theme: 'light', 
+                            theme: tooltipTheme, 
                             y: { formatter: (v) => `<b>${fmt(v)}</b>` } 
                         },
-                        legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '11px' }
+                        legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '11px', labels: { colors: textColor } }
                     });
                     charts.trend.render();
                 }
@@ -1017,13 +1042,13 @@
                         tooltip: { 
                             shared: true, 
                             intersect: false, 
-                            theme: 'light', 
+                            theme: tooltipTheme, 
                             y: { 
                                 formatter: (v, { seriesIndex }) => 
                                     seriesIndex < 2 ? `<b>${fmt(v)}</b>` : `<b>${v == null ? '-' : v.toFixed(1) + '%'}</b>` 
                             } 
                         },
-                        legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '11px' }
+                        legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '11px', labels: { colors: textColor } }
                     });
                     charts.monthly.render();
                 }
@@ -1045,8 +1070,8 @@
                                 stops: [0, 90, 100] 
                             } 
                         },
-                        yaxis: { labels: { formatter: (val) => val == null ? '-' : val.toFixed(1) + '%', style: { colors: '#64748b' } } },
-                        tooltip: { theme: 'light', y: { formatter: (val) => `<b>${val == null ? '-' : val.toFixed(1) + '%'}</b>` } },
+                        yaxis: { labels: { formatter: (val) => val == null ? '-' : val.toFixed(1) + '%', style: { colors: textColor } } },
+                        tooltip: { theme: tooltipTheme, y: { formatter: (val) => `<b>${val == null ? '-' : val.toFixed(1) + '%'}</b>` } },
                         legend: { show: false }
                     });
                     charts.growth.render();
@@ -1054,6 +1079,19 @@
             }
 
             initCharts();
+
+            // MutationObserver to detect theme changes live
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                        Object.values(charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
+                        charts = {};
+                        setTimeout(initCharts, 150);
+                    }
+                });
+            });
+            observer.observe(document.documentElement, { attributes: true });
+
             Livewire.on('charts-updated', () => {
                 Object.values(charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
                 charts = {};
