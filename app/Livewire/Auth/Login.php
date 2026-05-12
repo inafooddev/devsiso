@@ -27,8 +27,8 @@ class Login extends Component
         if (Auth::attempt(['userid' => $this->userid, 'password' => $this->password], $this->remember)) {
             session()->regenerate();
 
-            // Arahkan ke dashboard setelah sukses
-            return redirect()->intended('/');
+            // Arahkan ke welcome page setelah sukses
+            return redirect()->intended('/welcome');
         }
 
         // Jika gagal

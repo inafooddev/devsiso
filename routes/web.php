@@ -70,6 +70,7 @@ use App\Livewire\SellingIn\Index as SellingInIndex;
 use App\Livewire\SellingIn\Report as SellingInReport;
 use App\Livewire\SellingOutEskalink\Index as SellingOutEskalinkIndex;
 use App\Livewire\UserManagement;
+use App\Livewire\Welcome;
 
 /*
 |--------------------------------------------------------------------------
@@ -107,6 +108,7 @@ Route::middleware(['auth'])->group(function () {
     // DASHBOARD & ANALYTICS
     // ==========================================
     Route::get('/', Dashboard::class)->name('dashboard');
+    Route::get('/welcome', Welcome::class)->name('welcome');
     Route::get('/dashboard/distributor-map', DistributorMap::class)->name('dashboard.distributor-map');
     Route::get('/dashboard/metabase', MetabaseDashboard::class)->name('dashboard.metabase');
     Route::get('/dashboard/analytics', AnalyticsDashboard::class)->name('dashboard.analytics');
