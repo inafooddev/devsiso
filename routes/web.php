@@ -26,6 +26,7 @@ use App\Livewire\Dashboard\SupervisorSellInDashboard;
 use App\Livewire\Dashboard\DistributorMap;
 use App\Livewire\Dashboard\MetabaseDashboard;
 use App\Livewire\Dashboard\SalesComparison;
+use App\Livewire\Dashboard\SellingOverviewNew;
 use App\Livewire\Geotagging\Reverse;
 use App\Livewire\Mapping\Product\Index as ProductMappingIndex;
 use App\Livewire\Mapping\Salesman\Index as SalesmanMappingIndex;
@@ -117,6 +118,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/cabang-sell-in', CabangSellInDashboard::class)->name('dashboard.cabang-sell-in');
     Route::get('/dashboard/supervisor-sell-in', SupervisorSellInDashboard::class)->name('dashboard.supervisor-sell-in');
     Route::get('/dashboard/sales-comparison', SalesComparison::class)->name('dashboard.sales-comparison');
+    Route::get('/dashboard/selling-overview', SellingOverviewNew::class)->name('dashboard.selling-overview');
 
     // ==========================================
     // MASTER DATA: DISTRIBUTION
