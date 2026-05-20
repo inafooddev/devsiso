@@ -163,6 +163,37 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
         ];
     }
 
+    private function createDrawing($name, $path, $coordinates, $row)
+    {
+        if (file_exists($path)) {
+            $drawing = new Drawing();
+            $drawing->setName($name);
+            $drawing->setDescription($name);
+            $drawing->setPath($path);
+            $drawing->setCoordinates($coordinates . $row);
+            $drawing->setOffsetX(10);
+            $drawing->setOffsetY(10);
+            
+            // Proportional resize to fit within a 230x190px box
+            // Max Width = 230, Max Height = 190 (ratio = 1.21)
+            $imageSize = @getimagesize($path);
+            if ($imageSize) {
+                $w = $imageSize[0];
+                $h = $imageSize[1];
+                if ($h > 0 && ($w / $h) > 1.2105) {
+                    $drawing->setWidth(230);
+                } else {
+                    $drawing->setHeight(190);
+                }
+            } else {
+                $drawing->setHeight(190);
+            }
+            $drawing->setResizeProportional(true);
+            return $drawing;
+        }
+        return null;
+    }
+
     public function drawings()
     {
         $drawings = [];
@@ -173,17 +204,8 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
             // Foto KTP
             if ($item->foto_ktp) {
                 $path = storage_path('app/public/' . $item->foto_ktp);
-                if (file_exists($path)) {
-                    $drawing = new Drawing();
-                    $drawing->setName('Foto KTP');
-                    $drawing->setDescription('Foto KTP');
-                    $drawing->setPath($path);
-                    $drawing->setHeight(190);
-                    $drawing->setWidth(230);
-                    $drawing->setResizeProportional(true);
-                    $drawing->setCoordinates('P' . $row);
-                    $drawing->setOffsetX(10);
-                    $drawing->setOffsetY(10);
+                $drawing = $this->createDrawing('Foto KTP', $path, 'P', $row);
+                if ($drawing) {
                     $drawings[] = $drawing;
                 }
             }
@@ -191,17 +213,8 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
             // Foto Toko by GPS (column T)
             if ($item->foto_toko) {
                 $path = storage_path('app/public/' . $item->foto_toko);
-                if (file_exists($path)) {
-                    $drawing = new Drawing();
-                    $drawing->setName('Foto Toko by GPS');
-                    $drawing->setDescription('Foto Toko by GPS');
-                    $drawing->setPath($path);
-                    $drawing->setHeight(190);
-                    $drawing->setWidth(230);
-                    $drawing->setResizeProportional(true);
-                    $drawing->setCoordinates('T' . $row);
-                    $drawing->setOffsetX(10);
-                    $drawing->setOffsetY(10);
+                $drawing = $this->createDrawing('Foto Toko by GPS', $path, 'T', $row);
+                if ($drawing) {
                     $drawings[] = $drawing;
                 }
             }
@@ -209,17 +222,8 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
             // Foto Toko 2 (Tampak Depan - column U)
             if ($item->foto_toko2) {
                 $path = storage_path('app/public/' . $item->foto_toko2);
-                if (file_exists($path)) {
-                    $drawing = new Drawing();
-                    $drawing->setName('Foto Tampak Depan');
-                    $drawing->setDescription('Foto Tampak Depan');
-                    $drawing->setPath($path);
-                    $drawing->setHeight(190);
-                    $drawing->setWidth(230);
-                    $drawing->setResizeProportional(true);
-                    $drawing->setCoordinates('U' . $row);
-                    $drawing->setOffsetX(10);
-                    $drawing->setOffsetY(10);
+                $drawing = $this->createDrawing('Foto Tampak Depan', $path, 'U', $row);
+                if ($drawing) {
                     $drawings[] = $drawing;
                 }
             }
@@ -227,17 +231,8 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
             // Foto Toko 3 (Tampak Dalam - column V)
             if ($item->foto_toko3) {
                 $path = storage_path('app/public/' . $item->foto_toko3);
-                if (file_exists($path)) {
-                    $drawing = new Drawing();
-                    $drawing->setName('Foto Tampak Dalam');
-                    $drawing->setDescription('Foto Tampak Dalam');
-                    $drawing->setPath($path);
-                    $drawing->setHeight(190);
-                    $drawing->setWidth(230);
-                    $drawing->setResizeProportional(true);
-                    $drawing->setCoordinates('V' . $row);
-                    $drawing->setOffsetX(10);
-                    $drawing->setOffsetY(10);
+                $drawing = $this->createDrawing('Foto Tampak Dalam', $path, 'V', $row);
+                if ($drawing) {
                     $drawings[] = $drawing;
                 }
             }
