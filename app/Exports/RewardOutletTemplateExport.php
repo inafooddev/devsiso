@@ -31,6 +31,8 @@ class RewardOutletTemplateExport implements FromArray, WithHeadings, WithEvents,
             'Nama Bank',
             'No Rekening',
             'Nama Pemilik Norek',
+            'Keterangan',
+            'Status Validasi',
         ];
     }
 
@@ -57,6 +59,8 @@ class RewardOutletTemplateExport implements FromArray, WithHeadings, WithEvents,
                 'BCA',
                 "'1234567890",
                 'Budi Santoso',
+                'Toko buka dan ramai',
+                'Valid (Toko Ada)',
             ]
         ];
     }
@@ -81,12 +85,12 @@ class RewardOutletTemplateExport implements FromArray, WithHeadings, WithEvents,
                 $sheet->getRowDimension(2)->setRowHeight(20);
                 
                 // Auto-fit column widths
-                foreach (range('A', 'R') as $col) {
+                foreach (range('A', 'T') as $col) {
                     $sheet->getColumnDimension($col)->setAutoSize(true);
                 }
                 
                 // Alignment
-                $sheet->getStyle('A1:R2')
+                $sheet->getStyle('A1:T2')
                       ->getAlignment()
                       ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
             }

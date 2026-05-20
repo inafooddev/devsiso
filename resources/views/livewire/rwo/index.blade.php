@@ -27,7 +27,7 @@
         </div>
 
         {{-- KPI Cards Summary --}}
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
             {{-- Card 1: Total Toko --}}
             <div wire:click="setFilter('')" 
                  class="relative overflow-hidden cursor-pointer group p-5 bg-base-100 rounded-3xl border transition-all duration-300 hover:-translate-y-1 {{ empty($filter_type) ? 'border-primary shadow-lg shadow-primary/10 ring-1 ring-primary' : 'border-base-300 shadow-sm hover:shadow-md' }}">
@@ -135,6 +135,24 @@
                     <span class="font-bold text-secondary opacity-0 group-hover:opacity-100 transition-opacity">Filter &rarr;</span>
                 </div>
             </div>
+
+            {{-- Card 7: Toko Tidak Valid --}}
+            <div wire:click="setFilter('tidak_valid')" 
+                 class="relative overflow-hidden cursor-pointer group p-5 bg-base-100 rounded-3xl border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tidak_valid' ? 'border-error shadow-lg shadow-error/10 ring-1 ring-error' : 'border-base-300 shadow-sm hover:shadow-md' }}">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40">Toko Tidak Valid</span>
+                        <h3 class="text-2xl font-black mt-1 text-base-content">{{ number_format($kpis['tidak_valid']) }}</h3>
+                    </div>
+                    <div class="p-3 rounded-2xl transition-all duration-300 {{ $filter_type === 'tidak_valid' ? 'bg-error/20 text-error' : 'bg-base-200 text-base-content/40 group-hover:bg-error/10 group-hover:text-error' }}">
+                        <x-heroicon-s-x-circle class="w-6 h-6 shrink-0" />
+                    </div>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-[11px]">
+                    <span class="font-medium text-base-content/50">Tidak Valid</span>
+                    <span class="font-bold text-error opacity-0 group-hover:opacity-100 transition-opacity">Filter &rarr;</span>
+                </div>
+            </div>
         </div>
 
         <x-card flush title="Reward Outlet (RWO)" icon="gift" subtitle="Kelola data program reward outlet (RWO)" class="pb-6">
@@ -159,7 +177,22 @@
                         <option value="tanpa_rekening">Tanpa Rekening</option>
                         <option value="tanpa_foto_toko">Tanpa Foto Toko</option>
                         <option value="tanpa_tikor">Tanpa Tikor (Lat/Long)</option>
+                        <option value="tidak_valid">Outlet Tidak Valid</option>
+                        <option value="valid">Outlet Valid</option>
                     </select>
+
+                    {{-- Chained Wilayah Filter Button --}}
+                    <button wire:click="openFilterModal"
+                            class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200 relative {{ (!empty($filter_region_code) || !empty($filter_area_code) || !empty($filter_branch_name)) ? 'border-primary text-primary hover:bg-primary/5' : '' }}">
+                        <x-heroicon-s-funnel class="w-4 h-4" />
+                        <span>Filter Wilayah</span>
+                        @if (!empty($filter_region_code) || !empty($filter_area_code) || !empty($filter_branch_name))
+                            <span class="absolute -top-1.5 -right-1.5 flex h-3 w-3">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                            </span>
+                        @endif
+                    </button>
 
                     {{-- Export --}}
                     <button wire:click="export" wire:loading.attr="disabled"
@@ -199,7 +232,9 @@
                         <th>Pemilik Toko</th>
                         <th>No HP</th>
                         <th class="text-center">Foto KTP</th>
-                        <th class="text-center">Foto Toko</th>
+                        <th class="text-center">Foto Toko (GPS / Depan / Dalam)</th>
+                        <th class="text-center">Validasi</th>
+                        <th>Keterangan</th>
                         <th class="text-center w-28">Aksi</th>
                     </tr>
                 </x-slot:head>
@@ -257,18 +292,65 @@
                             @endif
                         </td>
                         <td class="text-center">
-                            @if($row->foto_toko)
-                                <div class="avatar justify-center">
-                                    <div class="w-10 h-10 rounded-xl ring ring-base-300 ring-offset-base-100 overflow-hidden cursor-zoom-in" wire:click="openDetailModal({{ $row->id }})">
-                                        <img src="{{ asset('storage/' . $row->foto_toko) }}" alt="Toko" />
+                            <div class="flex items-center justify-center gap-1.5">
+                                {{-- GPS --}}
+                                @if($row->foto_toko)
+                                    <div class="avatar tooltip" data-tip="Foto Toko by GPS">
+                                        <div class="w-7 h-7 rounded-lg ring ring-base-300 ring-offset-base-100 overflow-hidden cursor-zoom-in" wire:click="openDetailModal({{ $row->id }})">
+                                            <img src="{{ asset('storage/' . $row->foto_toko) }}" alt="GPS" />
+                                        </div>
                                     </div>
-                                </div>
-                            @else
-                                <span class="text-xs text-base-content/30 italic">Tidak ada</span>
-                            @endif
-                        </td>
-                        <td>
-                            <div class="flex items-center justify-center gap-1">
+                                @else
+                                    <div class="w-7 h-7 rounded-lg bg-base-200 border border-base-300 flex items-center justify-center text-[9px] text-base-content/30 italic font-mono tooltip cursor-zoom-in" data-tip="Foto Toko by GPS (Belum ada)" wire:click="openDetailModal({{ $row->id }})">G</div>
+                                @endif
+
+                                {{-- Depan --}}
+                                @if($row->foto_toko2)
+                                    <div class="avatar tooltip" data-tip="Foto Tampak Depan">
+                                        <div class="w-7 h-7 rounded-lg ring ring-base-300 ring-offset-base-100 overflow-hidden cursor-zoom-in" wire:click="openDetailModal({{ $row->id }})">
+                                            <img src="{{ asset('storage/' . $row->foto_toko2) }}" alt="Depan" />
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="w-7 h-7 rounded-lg bg-base-200 border border-base-300 flex items-center justify-center text-[9px] text-base-content/30 italic font-mono tooltip cursor-zoom-in" data-tip="Foto Tampak Depan (Belum ada)" wire:click="openDetailModal({{ $row->id }})">D</div>
+                                @endif
+
+                                {{-- Dalam --}}
+                                @if($row->foto_toko3)
+                                    <div class="avatar tooltip" data-tip="Foto Tampak Dalam">
+                                        <div class="w-7 h-7 rounded-lg ring ring-base-300 ring-offset-base-100 overflow-hidden cursor-zoom-in" wire:click="openDetailModal({{ $row->id }})">
+                                            <img src="{{ asset('storage/' . $row->foto_toko3) }}" alt="Dalam" />
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="w-7 h-7 rounded-lg bg-base-200 border border-base-300 flex items-center justify-center text-[9px] text-base-content/30 italic font-mono tooltip cursor-zoom-in" data-tip="Foto Tampak Dalam (Belum ada)" wire:click="openDetailModal({{ $row->id }})">L</div>
+                                @endif
+                            </div>
+                         </td>
+                         <td class="text-center">
+                             @if($row->is_valid)
+                                 <span class="inline-flex items-center gap-1 text-[10px] font-bold text-success bg-success/15 rounded-lg py-1 px-2">
+                                     <x-heroicon-s-check-circle class="w-3.5 h-3.5" />
+                                     <span>Valid</span>
+                                 </span>
+                             @else
+                                 <span class="inline-flex items-center gap-1 text-[10px] font-bold text-error bg-error/15 rounded-lg py-1 px-2">
+                                     <x-heroicon-s-x-circle class="w-3.5 h-3.5" />
+                                     <span>Tidak Valid</span>
+                                 </span>
+                             @endif
+                         </td>
+                         <td>
+                             @if($row->keterangan)
+                                 <div class="max-w-[150px] truncate text-xs text-base-content/60" title="{{ $row->keterangan }}">
+                                     {{ $row->keterangan }}
+                                 </div>
+                             @else
+                                 <span class="text-xs text-base-content/30 italic">-</span>
+                             @endif
+                         </td>
+                         <td>
+                             <div class="flex items-center justify-center gap-1">
                                 <button wire:click="openDetailModal({{ $row->id }})" 
                                         class="btn btn-ghost btn-xs btn-square rounded-lg text-secondary hover:bg-secondary/10 transition-all duration-200" title="Detail">
                                     <x-heroicon-s-eye class="w-4 h-4" />
@@ -600,89 +682,279 @@
                             @error('nama_pemilik_norek') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                         </div>
 
+                        {{-- VALIDASI & KETERANGAN TOKO --}}
+                        <div class="md:col-span-3 border-b border-base-200 pb-3 mt-4">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-primary">Validasi & Keterangan</h4>
+                        </div>
+
+                        <div class="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                            {{-- Validasi Checkbox --}}
+                            <div class="space-y-1.5 md:col-span-1">
+                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Status Toko</label>
+                                <div class="form-control bg-base-200 border border-base-300 rounded-2xl p-3 flex flex-row items-center justify-between gap-3 hover:bg-base-200/80 transition-all duration-200 cursor-pointer">
+                                    <div class="flex flex-col select-none" @click="$refs.isValidCheckbox.click()">
+                                        <span class="text-xs font-bold text-base-content/80">Toko Ada / Valid</span>
+                                        <span class="text-[10px] text-base-content/40">Centang jika toko terverifikasi ada</span>
+                                    </div>
+                                    <input x-ref="isValidCheckbox" type="checkbox" wire:model="is_valid" class="checkbox checkbox-primary rounded-lg">
+                                </div>
+                                @error('is_valid') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
+                            </div>
+
+                            {{-- Keterangan Text --}}
+                            <div class="space-y-1.5 md:col-span-2">
+                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Keterangan</label>
+                                <input wire:model="keterangan" type="text" placeholder="Masukkan keterangan tambahan tentang toko..."
+                                       class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('keterangan') input-error @enderror">
+                                @error('keterangan') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+
                         {{-- FOTO TOKO --}}
                         <div class="md:col-span-3 border-b border-base-200 pb-3 mt-4">
                             <h4 class="text-xs font-bold uppercase tracking-wider text-primary">Media / Foto Toko</h4>
                         </div>
 
-                        <div class="space-y-1.5 md:col-span-3">
-                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Upload Foto Toko / Depan Toko</label>
-                            
-                            <div x-data="{ 
-                                isDragging: false, 
-                                isFocused: false,
-                                uploadProgress: 0,
-                                isUploading: false,
-                                uploadFile(file) {
-                                    if (!file.type.startsWith('image/')) {
-                                        alert('File harus berupa gambar!');
-                                        return;
-                                    }
-                                    this.isUploading = true;
-                                    this.uploadProgress = 0;
-                                    @this.upload('foto_toko', file, 
-                                        (uploadedName) => {
-                                            this.isUploading = false;
-                                            this.uploadProgress = 0;
-                                        }, 
-                                        () => {
-                                            this.isUploading = false;
-                                            this.uploadProgress = 0;
-                                            alert('Gagal mengunggah file.');
-                                        }, 
-                                        (event) => {
-                                            this.uploadProgress = event.detail.progress;
+                        <div class="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {{-- Foto Toko by GPS --}}
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Foto Toko by GPS</label>
+                                <div x-data="{ 
+                                    isDragging: false, 
+                                    isFocused: false,
+                                    uploadProgress: 0,
+                                    isUploading: false,
+                                    uploadFile(file) {
+                                        if (!file.type.startsWith('image/')) {
+                                            alert('File harus berupa gambar!');
+                                            return;
                                         }
-                                    );
-                                }
-                            }" 
-                            class="relative">
-                                <div 
-                                    @dragover.prevent="isDragging = true" 
-                                    @dragleave.prevent="isDragging = false" 
-                                    @drop.prevent="isDragging = false; const files = $event.dataTransfer.files; if (files.length) uploadFile(files[0])"
-                                    @paste.window="if (isFocused) { const items = ($event.clipboardData || $event.originalEvent.clipboardData).items; for (let i = 0; i < items.length; i++) { if (items[i].type.indexOf('image') !== -1) { const file = items[i].getAsFile(); uploadFile(file); } } }"
-                                    @click="$refs.fileInputToko.click()"
-                                    tabindex="0"
-                                    @focus="isFocused = true"
-                                    @blur="isFocused = false"
-                                    :class="{'border-primary bg-primary/5': isDragging || isFocused, 'border-base-300 bg-base-200/50': !isDragging && !isFocused}"
-                                    class="flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-4 cursor-pointer hover:border-primary hover:bg-primary/5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 group text-center min-h-[100px]"
-                                >
-                                    <input x-ref="fileInputToko" type="file" accept="image/*" class="hidden" 
-                                           @change="if ($event.target.files.length) uploadFile($event.target.files[0])">
-                                           
-                                    <x-heroicon-s-camera class="w-6 h-6 text-base-content/40 group-hover:text-primary group-focus:text-primary transition-colors mb-1" />
-                                    <span class="text-xs font-bold text-base-content/70">Klik / Seret Foto Toko ke sini</span>
-                                    <span class="text-[10px] text-base-content/40">Atau klik lalu paste (<kbd class="kbd kbd-xs">Ctrl</kbd> + <kbd class="kbd kbd-xs">V</kbd>)</span>
+                                        this.isUploading = true;
+                                        this.uploadProgress = 0;
+                                        @this.upload('foto_toko', file, 
+                                            (uploadedName) => {
+                                                this.isUploading = false;
+                                                this.uploadProgress = 0;
+                                            }, 
+                                            () => {
+                                                this.isUploading = false;
+                                                this.uploadProgress = 0;
+                                                alert('Gagal mengunggah file.');
+                                            }, 
+                                            (event) => {
+                                                this.uploadProgress = event.detail.progress;
+                                            }
+                                        );
+                                    }
+                                }" 
+                                class="relative">
+                                    <div 
+                                        @dragover.prevent="isDragging = true" 
+                                        @dragleave.prevent="isDragging = false" 
+                                        @drop.prevent="isDragging = false; const files = $event.dataTransfer.files; if (files.length) uploadFile(files[0])"
+                                        @paste.window="if (isFocused) { const items = ($event.clipboardData || $event.originalEvent.clipboardData).items; for (let i = 0; i < items.length; i++) { if (items[i].type.indexOf('image') !== -1) { const file = items[i].getAsFile(); uploadFile(file); } } }"
+                                        @click="$refs.fileInputToko.click()"
+                                        tabindex="0"
+                                        @focus="isFocused = true"
+                                        @blur="isFocused = false"
+                                        :class="{'border-primary bg-primary/5': isDragging || isFocused, 'border-base-300 bg-base-200/50': !isDragging && !isFocused}"
+                                        class="flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-4 cursor-pointer hover:border-primary hover:bg-primary/5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 group text-center min-h-[110px]"
+                                    >
+                                        <input x-ref="fileInputToko" type="file" accept="image/*" class="hidden" 
+                                               @change="if ($event.target.files.length) uploadFile($event.target.files[0])">
+                                               
+                                        <x-heroicon-s-camera class="w-6 h-6 text-base-content/40 group-hover:text-primary group-focus:text-primary transition-colors mb-1" />
+                                        <span class="text-[11px] font-bold text-base-content/70">Seret Foto GPS</span>
+                                        <span class="text-[9px] text-base-content/40">Klik lalu paste (<kbd class="kbd kbd-xs">Ctrl</kbd> + <kbd class="kbd kbd-xs">V</kbd>)</span>
 
-                                    {{-- Progress Bar --}}
-                                    <div x-show="isUploading" class="absolute inset-0 bg-base-100/90 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-2 z-10" @click.stop>
-                                        <div class="radial-progress text-primary" :style="'--value:' + uploadProgress + '; --size:2.5rem; --thickness: 3px;'" role="progressbar">
-                                            <span class="text-[9px] font-bold" x-text="uploadProgress + '%'"></span>
+                                        {{-- Progress Bar --}}
+                                        <div x-show="isUploading" class="absolute inset-0 bg-base-100/90 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-2 z-10" @click.stop>
+                                            <div class="radial-progress text-primary" :style="'--value:' + uploadProgress + '; --size:2.5rem; --thickness: 3px;'" role="progressbar">
+                                                <span class="text-[9px] font-bold" x-text="uploadProgress + '%'"></span>
+                                            </div>
+                                            <span class="text-[9px] font-bold mt-1 text-base-content/75">Mengunggah...</span>
                                         </div>
-                                        <span class="text-[9px] font-bold mt-1 text-base-content/75">Mengunggah...</span>
                                     </div>
                                 </div>
+
+                                <div class="mt-2 flex items-center gap-3">
+                                    @if ($this->getFotoTokoPreview())
+                                        <div class="avatar">
+                                            <div class="w-14 h-14 rounded-xl border border-base-300">
+                                                <img src="{{ $this->getFotoTokoPreview() }}" alt="Preview Toko">
+                                            </div>
+                                        </div>
+                                    @elseif ($existing_foto_toko)
+                                        <div class="avatar">
+                                            <div class="w-14 h-14 rounded-xl border border-base-300">
+                                                <img src="{{ asset('storage/' . $existing_foto_toko) }}" alt="Existing Toko">
+                                            </div>
+                                        </div>
+                                    @endif
+                                    <div class="text-[9px] text-base-content/40 leading-tight">Format: JPG/PNG.<br>Max: 2MB</div>
+                                </div>
+                                @error('foto_toko') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                             </div>
 
-                            <div class="mt-2 flex items-center gap-3">
-                                @if ($this->getFotoTokoPreview())
-                                    <div class="avatar">
-                                        <div class="w-16 h-16 rounded-xl border border-base-300">
-                                            <img src="{{ $this->getFotoTokoPreview() }}" alt="Preview Toko">
+                            {{-- Foto Toko Tampak Depan --}}
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Foto Tampak Depan</label>
+                                <div x-data="{ 
+                                    isDragging: false, 
+                                    isFocused: false,
+                                    uploadProgress: 0,
+                                    isUploading: false,
+                                    uploadFile(file) {
+                                        if (!file.type.startsWith('image/')) {
+                                            alert('File harus berupa gambar!');
+                                            return;
+                                        }
+                                        this.isUploading = true;
+                                        this.uploadProgress = 0;
+                                        @this.upload('foto_toko2', file, 
+                                            (uploadedName) => {
+                                                this.isUploading = false;
+                                                this.uploadProgress = 0;
+                                            }, 
+                                            () => {
+                                                this.isUploading = false;
+                                                this.uploadProgress = 0;
+                                                alert('Gagal mengunggah file.');
+                                            }, 
+                                            (event) => {
+                                                this.uploadProgress = event.detail.progress;
+                                            }
+                                        );
+                                    }
+                                }" 
+                                class="relative">
+                                    <div 
+                                        @dragover.prevent="isDragging = true" 
+                                        @dragleave.prevent="isDragging = false" 
+                                        @drop.prevent="isDragging = false; const files = $event.dataTransfer.files; if (files.length) uploadFile(files[0])"
+                                        @paste.window="if (isFocused) { const items = ($event.clipboardData || $event.originalEvent.clipboardData).items; for (let i = 0; i < items.length; i++) { if (items[i].type.indexOf('image') !== -1) { const file = items[i].getAsFile(); uploadFile(file); } } }"
+                                        @click="$refs.fileInputToko2.click()"
+                                        tabindex="0"
+                                        @focus="isFocused = true"
+                                        @blur="isFocused = false"
+                                        :class="{'border-primary bg-primary/5': isDragging || isFocused, 'border-base-300 bg-base-200/50': !isDragging && !isFocused}"
+                                        class="flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-4 cursor-pointer hover:border-primary hover:bg-primary/5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 group text-center min-h-[110px]"
+                                    >
+                                        <input x-ref="fileInputToko2" type="file" accept="image/*" class="hidden" 
+                                               @change="if ($event.target.files.length) uploadFile($event.target.files[0])">
+                                               
+                                        <x-heroicon-s-camera class="w-6 h-6 text-base-content/40 group-hover:text-primary group-focus:text-primary transition-colors mb-1" />
+                                        <span class="text-[11px] font-bold text-base-content/70">Seret Foto Depan</span>
+                                        <span class="text-[9px] text-base-content/40">Klik lalu paste (<kbd class="kbd kbd-xs">Ctrl</kbd> + <kbd class="kbd kbd-xs">V</kbd>)</span>
+
+                                        {{-- Progress Bar --}}
+                                        <div x-show="isUploading" class="absolute inset-0 bg-base-100/90 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-2 z-10" @click.stop>
+                                            <div class="radial-progress text-primary" :style="'--value:' + uploadProgress + '; --size:2.5rem; --thickness: 3px;'" role="progressbar">
+                                                <span class="text-[9px] font-bold" x-text="uploadProgress + '%'"></span>
+                                            </div>
+                                            <span class="text-[9px] font-bold mt-1 text-base-content/75">Mengunggah...</span>
                                         </div>
                                     </div>
-                                @elseif ($existing_foto_toko)
-                                    <div class="avatar">
-                                        <div class="w-16 h-16 rounded-xl border border-base-300">
-                                            <img src="{{ asset('storage/' . $existing_foto_toko) }}" alt="Existing Toko">
+                                </div>
+
+                                <div class="mt-2 flex items-center gap-3">
+                                    @if ($this->getFotoToko2Preview())
+                                        <div class="avatar">
+                                            <div class="w-14 h-14 rounded-xl border border-base-300">
+                                                <img src="{{ $this->getFotoToko2Preview() }}" alt="Preview Toko 2">
+                                            </div>
                                         </div>
-                                    </div>
-                                @endif
-                                <div class="text-[10px] text-base-content/40 leading-tight">Format: JPG/PNG. Max: 2MB</div>
+                                    @elseif ($existing_foto_toko2)
+                                        <div class="avatar">
+                                            <div class="w-14 h-14 rounded-xl border border-base-300">
+                                                <img src="{{ asset('storage/' . $existing_foto_toko2) }}" alt="Existing Toko 2">
+                                            </div>
+                                        </div>
+                                    @endif
+                                    <div class="text-[9px] text-base-content/40 leading-tight">Format: JPG/PNG.<br>Max: 2MB</div>
+                                </div>
+                                @error('foto_toko2') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                             </div>
-                            @error('foto_toko') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
+
+                            {{-- Foto Toko Tampak Dalam --}}
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Foto Tampak Dalam</label>
+                                <div x-data="{ 
+                                    isDragging: false, 
+                                    isFocused: false,
+                                    uploadProgress: 0,
+                                    isUploading: false,
+                                    uploadFile(file) {
+                                        if (!file.type.startsWith('image/')) {
+                                            alert('File harus berupa gambar!');
+                                            return;
+                                        }
+                                        this.isUploading = true;
+                                        this.uploadProgress = 0;
+                                        @this.upload('foto_toko3', file, 
+                                            (uploadedName) => {
+                                                this.isUploading = false;
+                                                this.uploadProgress = 0;
+                                            }, 
+                                            () => {
+                                                this.isUploading = false;
+                                                this.uploadProgress = 0;
+                                                alert('Gagal mengunggah file.');
+                                            }, 
+                                            (event) => {
+                                                this.uploadProgress = event.detail.progress;
+                                            }
+                                        );
+                                    }
+                                }" 
+                                class="relative">
+                                    <div 
+                                        @dragover.prevent="isDragging = true" 
+                                        @dragleave.prevent="isDragging = false" 
+                                        @drop.prevent="isDragging = false; const files = $event.dataTransfer.files; if (files.length) uploadFile(files[0])"
+                                        @paste.window="if (isFocused) { const items = ($event.clipboardData || $event.originalEvent.clipboardData).items; for (let i = 0; i < items.length; i++) { if (items[i].type.indexOf('image') !== -1) { const file = items[i].getAsFile(); uploadFile(file); } } }"
+                                        @click="$refs.fileInputToko3.click()"
+                                        tabindex="0"
+                                        @focus="isFocused = true"
+                                        @blur="isFocused = false"
+                                        :class="{'border-primary bg-primary/5': isDragging || isFocused, 'border-base-300 bg-base-200/50': !isDragging && !isFocused}"
+                                        class="flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-4 cursor-pointer hover:border-primary hover:bg-primary/5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 group text-center min-h-[110px]"
+                                    >
+                                        <input x-ref="fileInputToko3" type="file" accept="image/*" class="hidden" 
+                                               @change="if ($event.target.files.length) uploadFile($event.target.files[0])">
+                                               
+                                        <x-heroicon-s-camera class="w-6 h-6 text-base-content/40 group-hover:text-primary group-focus:text-primary transition-colors mb-1" />
+                                        <span class="text-[11px] font-bold text-base-content/70">Seret Foto Dalam</span>
+                                        <span class="text-[9px] text-base-content/40">Klik lalu paste (<kbd class="kbd kbd-xs">Ctrl</kbd> + <kbd class="kbd kbd-xs">V</kbd>)</span>
+
+                                        {{-- Progress Bar --}}
+                                        <div x-show="isUploading" class="absolute inset-0 bg-base-100/90 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-2 z-10" @click.stop>
+                                            <div class="radial-progress text-primary" :style="'--value:' + uploadProgress + '; --size:2.5rem; --thickness: 3px;'" role="progressbar">
+                                                <span class="text-[9px] font-bold" x-text="uploadProgress + '%'"></span>
+                                            </div>
+                                            <span class="text-[9px] font-bold mt-1 text-base-content/75">Mengunggah...</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-2 flex items-center gap-3">
+                                    @if ($this->getFotoToko3Preview())
+                                        <div class="avatar">
+                                            <div class="w-14 h-14 rounded-xl border border-base-300">
+                                                <img src="{{ $this->getFotoToko3Preview() }}" alt="Preview Toko 3">
+                                            </div>
+                                        </div>
+                                    @elseif ($existing_foto_toko3)
+                                        <div class="avatar">
+                                            <div class="w-14 h-14 rounded-xl border border-base-300">
+                                                <img src="{{ asset('storage/' . $existing_foto_toko3) }}" alt="Existing Toko 3">
+                                            </div>
+                                        </div>
+                                    @endif
+                                    <div class="text-[9px] text-base-content/40 leading-tight">Format: JPG/PNG.<br>Max: 2MB</div>
+                                </div>
+                                @error('foto_toko3') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
+                            </div>
                         </div>
 
                     </div>
@@ -800,6 +1072,31 @@
                     <p class="text-xs text-base-content mt-1.5 leading-relaxed">{{ $selectedOutlet->alamat }}</p>
                 </div>
 
+                {{-- Validasi & Keterangan --}}
+                <div class="bg-base-200/50 p-4 rounded-2xl border border-base-300">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40">Status Validasi & Keterangan</span>
+                    <div class="mt-2.5 flex flex-col md:flex-row md:items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-base-content/60">Status:</span>
+                            @if($selectedOutlet->is_valid)
+                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-success bg-success/15 rounded-lg py-1 px-2.5">
+                                    <x-heroicon-s-check-circle class="w-4 h-4" />
+                                    <span>Outlet Valid (Toko Ada)</span>
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-error bg-error/15 rounded-lg py-1 px-2.5">
+                                    <x-heroicon-s-x-circle class="w-4 h-4" />
+                                    <span>Outlet Tidak Valid (Toko Tidak Ada)</span>
+                                </span>
+                            @endif
+                        </div>
+                        <div class="flex-1 flex items-start md:items-center gap-2">
+                            <span class="text-xs font-semibold text-base-content/60 whitespace-nowrap">Keterangan:</span>
+                            <span class="text-xs font-semibold text-base-content/85">{{ $selectedOutlet->keterangan ?? 'Tidak ada keterangan tambahan' }}</span>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- KTP & Rekening --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-base-200/50 p-4 rounded-2xl border border-base-300">
@@ -836,35 +1133,71 @@
                 </div>
 
                 {{-- Gambar-gambar --}}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {{-- KTP --}}
                     <div class="space-y-1.5">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40 ml-1">Foto KTP</span>
                         @if ($selectedOutlet->foto_ktp)
                             <a href="{{ asset('storage/' . $selectedOutlet->foto_ktp) }}" target="_blank" class="block group relative rounded-2xl overflow-hidden border border-base-300 bg-base-200">
-                                <img src="{{ asset('storage/' . $selectedOutlet->foto_ktp) }}" alt="Foto KTP" class="w-full max-h-48 object-contain">
-                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity duration-200 gap-1 text-xs font-bold">
-                                    <x-heroicon-s-magnifying-glass-plus class="w-4 h-4" /> Buka Ukuran Penuh
+                                <img src="{{ asset('storage/' . $selectedOutlet->foto_ktp) }}" alt="Foto KTP" class="w-full h-32 object-contain">
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity duration-200 gap-1 text-[10px] font-bold">
+                                    <x-heroicon-s-magnifying-glass-plus class="w-3 h-3" /> Perbesar
                                 </div>
                             </a>
                         @else
-                            <div class="flex items-center justify-center border border-dashed border-base-300 rounded-2xl py-12 text-xs text-base-content/30 italic bg-base-200/20">
+                            <div class="flex items-center justify-center border border-dashed border-base-300 rounded-2xl h-32 text-xs text-base-content/30 italic bg-base-200/20 text-center px-2">
                                 Tidak ada foto KTP
                             </div>
                         @endif
                     </div>
 
+                    {{-- Foto Toko by GPS --}}
                     <div class="space-y-1.5">
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40 ml-1">Foto Toko</span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40 ml-1">Foto Toko by GPS</span>
                         @if ($selectedOutlet->foto_toko)
                             <a href="{{ asset('storage/' . $selectedOutlet->foto_toko) }}" target="_blank" class="block group relative rounded-2xl overflow-hidden border border-base-300 bg-base-200">
-                                <img src="{{ asset('storage/' . $selectedOutlet->foto_toko) }}" alt="Foto Toko" class="w-full max-h-48 object-contain">
-                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity duration-200 gap-1 text-xs font-bold">
-                                    <x-heroicon-s-magnifying-glass-plus class="w-4 h-4" /> Buka Ukuran Penuh
+                                <img src="{{ asset('storage/' . $selectedOutlet->foto_toko) }}" alt="Foto Toko GPS" class="w-full h-32 object-contain">
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity duration-200 gap-1 text-[10px] font-bold">
+                                    <x-heroicon-s-magnifying-glass-plus class="w-3 h-3" /> Perbesar
                                 </div>
                             </a>
                         @else
-                            <div class="flex items-center justify-center border border-dashed border-base-300 rounded-2xl py-12 text-xs text-base-content/30 italic bg-base-200/20">
-                                Tidak ada foto toko
+                            <div class="flex items-center justify-center border border-dashed border-base-300 rounded-2xl h-32 text-xs text-base-content/30 italic bg-base-200/20 text-center px-2">
+                                Tidak ada foto GPS
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Foto Toko by team Elite (Tampak Depan) --}}
+                    <div class="space-y-1.5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40 ml-1">Foto Tampak Depan</span>
+                        @if ($selectedOutlet->foto_toko2)
+                            <a href="{{ asset('storage/' . $selectedOutlet->foto_toko2) }}" target="_blank" class="block group relative rounded-2xl overflow-hidden border border-base-300 bg-base-200">
+                                <img src="{{ asset('storage/' . $selectedOutlet->foto_toko2) }}" alt="Foto Tampak Depan" class="w-full h-32 object-contain">
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity duration-200 gap-1 text-[10px] font-bold">
+                                    <x-heroicon-s-magnifying-glass-plus class="w-3 h-3" /> Perbesar
+                                </div>
+                            </a>
+                        @else
+                            <div class="flex items-center justify-center border border-dashed border-base-300 rounded-2xl h-32 text-xs text-base-content/30 italic bg-base-200/20 text-center px-2">
+                                Tidak ada foto Depan
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Foto Toko by team Elite (Tampak Dalam) --}}
+                    <div class="space-y-1.5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40 ml-1">Foto Tampak Dalam</span>
+                        @if ($selectedOutlet->foto_toko3)
+                            <a href="{{ asset('storage/' . $selectedOutlet->foto_toko3) }}" target="_blank" class="block group relative rounded-2xl overflow-hidden border border-base-300 bg-base-200">
+                                <img src="{{ asset('storage/' . $selectedOutlet->foto_toko3) }}" alt="Foto Tampak Dalam" class="w-full h-32 object-contain">
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity duration-200 gap-1 text-[10px] font-bold">
+                                    <x-heroicon-s-magnifying-glass-plus class="w-3 h-3" /> Perbesar
+                                </div>
+                            </a>
+                        @else
+                            <div class="flex items-center justify-center border border-dashed border-base-300 rounded-2xl h-32 text-xs text-base-content/30 italic bg-base-200/20 text-center px-2">
+                                Tidak ada foto Dalam
                             </div>
                         @endif
                     </div>
@@ -988,6 +1321,80 @@
                     <span wire:loading.remove wire:target="delete">Ya, Hapus</span>
                     <span wire:loading wire:target="delete" class="loading loading-spinner loading-sm"></span>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- ========== MODAL FILTER WILAYAH (CHAINED) ========== --}}
+    <div x-data="{ open: @entangle('isFilterModalOpen') }" 
+         x-show="open" 
+         x-cloak 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
+
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+             class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-md overflow-hidden ring-1 ring-base-content/5 text-base-content">
+            
+            <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30 rounded-t-3xl">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 rounded-2xl bg-primary/10 text-primary">
+                        <x-heroicon-s-funnel class="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg leading-none">Filter Wilayah</h3>
+                        <p class="text-[11px] text-base-content/50 mt-1 uppercase tracking-wider font-semibold">Saring data secara bertingkat</p>
+                    </div>
+                </div>
+                <button @click="open = false" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300">
+                    <x-heroicon-s-x-mark class="w-5 h-5" />
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                {{-- Region Select --}}
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Region</label>
+                    <select wire:model.live="filter_region_code"
+                            class="select select-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 text-sm">
+                        <option value="">Semua Region</option>
+                        @foreach($this->getFilterRegions() as $reg)
+                            <option value="{{ $reg->region_code }}">{{ $reg->region_name }} ({{ $reg->region_code }})</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Area Select --}}
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Area</label>
+                    <select wire:model.live="filter_area_code"
+                            class="select select-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 text-sm">
+                        <option value="">Semua Area</option>
+                        @foreach($this->getFilterAreas() as $ar)
+                            <option value="{{ $ar->area_code }}">{{ $ar->area_name }} ({{ $ar->area_code }})</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Cabang Select --}}
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Cabang</label>
+                    <select wire:model.live="filter_branch_name"
+                            class="select select-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 text-sm">
+                        <option value="">Semua Cabang</option>
+                        @foreach($this->getFilterBranches() as $br)
+                            <option value="{{ $br->branch_name }}">{{ $br->branch_name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between px-6 py-5 border-t border-base-300 bg-base-200/30 rounded-b-3xl">
+                <button type="button" wire:click="resetFilters" class="btn btn-ghost text-error hover:bg-error/10 rounded-xl normal-case font-bold">Reset Filter</button>
+                <button type="button" @click="open = false" class="btn btn-primary rounded-xl px-8 normal-case shadow-sm shadow-primary/20 font-bold">Terapkan</button>
             </div>
         </div>
     </div>

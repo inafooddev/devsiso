@@ -51,6 +51,12 @@ class Index extends Component
     public $nama_pemilik_norek;
     public $foto_toko; // File upload object
     public $existing_foto_toko; // Path string
+    public $foto_toko2; // File upload object
+    public $existing_foto_toko2; // Path string
+    public $foto_toko3; // File upload object
+    public $existing_foto_toko3; // Path string
+    public $keterangan;
+    public $is_valid = false;
     
     public $outletIdToDelete;
     
@@ -61,8 +67,18 @@ class Index extends Component
     public $importFile;
 
     public $filter_type = '';
+    public $filter_region_code = '';
+    public $filter_area_code = '';
+    public $filter_branch_name = '';
+    public $isFilterModalOpen = false;
 
-    protected $queryString = ['search', 'filter_type'];
+    protected $queryString = [
+        'search', 
+        'filter_type', 
+        'filter_region_code', 
+        'filter_area_code', 
+        'filter_branch_name'
+    ];
 
     /**
      * Aturan validasi
@@ -97,6 +113,10 @@ class Index extends Component
             'no_rekening' => 'nullable|string|max:50',
             'nama_pemilik_norek' => 'nullable|string|max:100',
             'foto_toko' => 'nullable|image|max:2048', // 2MB Max
+            'foto_toko2' => 'nullable|image|max:2048', // 2MB Max
+            'foto_toko3' => 'nullable|image|max:2048', // 2MB Max
+            'keterangan' => 'nullable|string',
+            'is_valid' => 'nullable|boolean',
         ];
     }
 
@@ -144,6 +164,98 @@ class Index extends Component
     public function getBranches()
     {
         return \App\Models\MasterBranch::orderBy('branch_name')->get();
+    }
+
+    public function getFilterRegions()
+    {
+        $user = auth()->user();
+        $query = \App\Models\MasterRegion::query();
+        if (!$user->hasRole('admin') && !empty($user->region_code)) {
+            $query->whereIn('region_code', $user->region_code);
+        }
+        return $query->orderBy('region_name')->get();
+    }
+
+    public function getFilterAreas()
+    {
+        $query = \App\Models\MasterArea::query();
+        if (!empty($this->filter_region_code)) {
+            $query->where('region_code', $this->filter_region_code);
+        } else {
+            // Apply region access restrictions if no region is selected
+            $user = auth()->user();
+            if (!$user->hasRole('admin') && !empty($user->region_code)) {
+                $query->whereIn('region_code', $user->region_code);
+            }
+        }
+        return $query->orderBy('area_name')->get();
+    }
+
+    public function getFilterBranches()
+    {
+        $query = \App\Models\MasterBranch::query();
+        
+        if (!empty($this->filter_area_code)) {
+            // Filter by Area: get supervisor codes for the selected area
+            $supervisorCodes = \App\Models\MasterSupervisor::where('area_code', $this->filter_area_code)
+                ->pluck('supervisor_code');
+            $query->whereIn('supervisor_code', $supervisorCodes);
+        } elseif (!empty($this->filter_region_code)) {
+            // Filter by Region: get areas under region, then supervisors, then branches
+            $areaCodes = \App\Models\MasterArea::where('region_code', $this->filter_region_code)
+                ->pluck('area_code');
+            $supervisorCodes = \App\Models\MasterSupervisor::whereIn('area_code', $areaCodes)
+                ->pluck('supervisor_code');
+            $query->whereIn('supervisor_code', $supervisorCodes);
+        } else {
+            // Apply region access restrictions if no region/area is selected
+            $user = auth()->user();
+            if (!$user->hasRole('admin') && !empty($user->region_code)) {
+                $areaCodes = \App\Models\MasterArea::whereIn('region_code', $user->region_code)
+                    ->pluck('area_code');
+                $supervisorCodes = \App\Models\MasterSupervisor::whereIn('area_code', $areaCodes)
+                    ->pluck('supervisor_code');
+                $query->whereIn('supervisor_code', $supervisorCodes);
+            }
+        }
+        
+        return $query->orderBy('branch_name')->get();
+    }
+
+    public function updatedFilterRegionCode($value)
+    {
+        $this->filter_area_code = '';
+        $this->filter_branch_name = '';
+        $this->resetPage();
+    }
+
+    public function updatedFilterAreaCode($value)
+    {
+        $this->filter_branch_name = '';
+        $this->resetPage();
+    }
+
+    public function updatedFilterBranchName($value)
+    {
+        $this->resetPage();
+    }
+
+    public function openFilterModal()
+    {
+        $this->isFilterModalOpen = true;
+    }
+
+    public function closeFilterModal()
+    {
+        $this->isFilterModalOpen = false;
+    }
+
+    public function resetFilters()
+    {
+        $this->filter_region_code = '';
+        $this->filter_area_code = '';
+        $this->filter_branch_name = '';
+        $this->resetPage();
     }
 
     /**
@@ -261,9 +373,15 @@ class Index extends Component
         $this->no_rekening = $outlet->no_rekening;
         $this->nama_pemilik_norek = $outlet->nama_pemilik_norek;
         $this->existing_foto_toko = $outlet->foto_toko;
+        $this->existing_foto_toko2 = $outlet->foto_toko2;
+        $this->existing_foto_toko3 = $outlet->foto_toko3;
+        $this->keterangan = $outlet->keterangan;
+        $this->is_valid = (bool) $outlet->is_valid;
         
         $this->foto_ktp = null;
         $this->foto_toko = null;
+        $this->foto_toko2 = null;
+        $this->foto_toko3 = null;
         
         $this->isEditing = true;
         $this->isFormModalOpen = true;
@@ -303,6 +421,12 @@ class Index extends Component
         $this->nama_pemilik_norek = '';
         $this->foto_toko = null;
         $this->existing_foto_toko = null;
+        $this->foto_toko2 = null;
+        $this->existing_foto_toko2 = null;
+        $this->foto_toko3 = null;
+        $this->existing_foto_toko3 = null;
+        $this->keterangan = '';
+        $this->is_valid = false;
     }
 
     /**
@@ -331,6 +455,8 @@ class Index extends Component
             'nama_bank' => $this->nama_bank,
             'no_rekening' => $this->no_rekening,
             'nama_pemilik_norek' => $this->nama_pemilik_norek,
+            'keterangan' => $this->keterangan,
+            'is_valid' => $this->is_valid,
         ];
 
         // Handle Foto KTP
@@ -342,13 +468,31 @@ class Index extends Component
             $data['foto_ktp'] = $this->foto_ktp->store('rwo/ktp', 'public');
         }
 
-        // Handle Foto Toko
+        // Handle Foto Toko (by GPS)
         if ($this->foto_toko) {
             // Delete old file if exists
             if ($this->isEditing && $this->existing_foto_toko) {
                 Storage::disk('public')->delete($this->existing_foto_toko);
             }
             $data['foto_toko'] = $this->foto_toko->store('rwo/toko', 'public');
+        }
+
+        // Handle Foto Toko 2 (Tampak Depan)
+        if ($this->foto_toko2) {
+            // Delete old file if exists
+            if ($this->isEditing && $this->existing_foto_toko2) {
+                Storage::disk('public')->delete($this->existing_foto_toko2);
+            }
+            $data['foto_toko2'] = $this->foto_toko2->store('rwo/toko', 'public');
+        }
+
+        // Handle Foto Toko 3 (Tampak Dalam)
+        if ($this->foto_toko3) {
+            // Delete old file if exists
+            if ($this->isEditing && $this->existing_foto_toko3) {
+                Storage::disk('public')->delete($this->existing_foto_toko3);
+            }
+            $data['foto_toko3'] = $this->foto_toko3->store('rwo/toko', 'public');
         }
 
         if ($this->isEditing) {
@@ -383,6 +527,12 @@ class Index extends Component
         }
         if ($outlet->foto_toko) {
             Storage::disk('public')->delete($outlet->foto_toko);
+        }
+        if ($outlet->foto_toko2) {
+            Storage::disk('public')->delete($outlet->foto_toko2);
+        }
+        if ($outlet->foto_toko3) {
+            Storage::disk('public')->delete($outlet->foto_toko3);
         }
 
         $outlet->delete();
@@ -425,6 +575,9 @@ class Index extends Component
         $filters = [
             'search' => $this->search,
             'filter_type' => $this->filter_type,
+            'filter_region_code' => $this->filter_region_code,
+            'filter_area_code' => $this->filter_area_code,
+            'filter_branch_name' => $this->filter_branch_name,
         ];
         return Excel::download(new RewardOutletExport($filters), 'reward_outlet_export.xlsx');
     }
@@ -458,12 +611,47 @@ class Index extends Component
         return null;
     }
 
+    public function getFotoToko2Preview()
+    {
+        if ($this->foto_toko2 && method_exists($this->foto_toko2, 'temporaryUrl')) {
+            try {
+                return $this->foto_toko2->temporaryUrl();
+            } catch (\Exception $e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    public function getFotoToko3Preview()
+    {
+        if ($this->foto_toko3 && method_exists($this->foto_toko3, 'temporaryUrl')) {
+            try {
+                return $this->foto_toko3->temporaryUrl();
+            } catch (\Exception $e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
     public function render()
     {
         $query = RewardOutlet::query();
         $this->applyRegionAccess($query);
 
-        // Fetch KPI counts (always based on the region access but before search & filter_type query)
+        // Apply region, area, branch filters
+        if (!empty($this->filter_region_code)) {
+            $query->where('region_code', $this->filter_region_code);
+        }
+        if (!empty($this->filter_area_code)) {
+            $query->where('area_code', $this->filter_area_code);
+        }
+        if (!empty($this->filter_branch_name)) {
+            $query->where('branch_name', $this->filter_branch_name);
+        }
+
+        // Fetch KPI counts (based on region access & active filters, but before search & filter_type query)
         $kpiQuery = clone $query;
         $totalToko = $kpiQuery->count();
         
@@ -480,7 +668,9 @@ class Index extends Component
         })->count();
         
         $tanpaFotoToko = (clone $kpiQuery)->where(function($q) {
-            $q->whereNull('foto_toko')->orWhere('foto_toko', '');
+            $q->whereNull('foto_toko')->orWhere('foto_toko', '')
+              ->orWhereNull('foto_toko2')->orWhere('foto_toko2', '')
+              ->orWhereNull('foto_toko3')->orWhere('foto_toko3', '');
         })->count();
 
         $tanpaTikor = (clone $kpiQuery)->where(function($q) {
@@ -488,7 +678,9 @@ class Index extends Component
               ->orWhereNull('longitude')->orWhere('longitude', '');
         })->count();
 
-        // Apply filters
+        $tidakValid = (clone $kpiQuery)->where('is_valid', false)->count();
+
+        // Apply filter types
         if ($this->filter_type === 'tanpa_ktp') {
             $query->where(function($q) {
                 $q->whereNull('nik_ktp')->orWhere('nik_ktp', '');
@@ -503,13 +695,19 @@ class Index extends Component
             });
         } elseif ($this->filter_type === 'tanpa_foto_toko') {
             $query->where(function($q) {
-                $q->whereNull('foto_toko')->orWhere('foto_toko', '');
+                $q->whereNull('foto_toko')->orWhere('foto_toko', '')
+                  ->orWhereNull('foto_toko2')->orWhere('foto_toko2', '')
+                  ->orWhereNull('foto_toko3')->orWhere('foto_toko3', '');
             });
         } elseif ($this->filter_type === 'tanpa_tikor') {
             $query->where(function($q) {
                 $q->whereNull('latitude')->orWhere('latitude', '')
                   ->orWhereNull('longitude')->orWhere('longitude', '');
             });
+        } elseif ($this->filter_type === 'tidak_valid') {
+            $query->where('is_valid', false);
+        } elseif ($this->filter_type === 'valid') {
+            $query->where('is_valid', true);
         }
 
         if (!empty($this->search)) {
@@ -527,7 +725,7 @@ class Index extends Component
             });
         }
 
-        $outlets = $query->latest()->paginate(10);
+        $outlets = $query->orderBy('id', 'desc')->paginate(10);
 
         return view('livewire.rwo.index', [
             'outlets' => $outlets,
@@ -538,6 +736,7 @@ class Index extends Component
                 'tanpa_rekening' => $tanpaRekening,
                 'tanpa_foto_toko' => $tanpaFotoToko,
                 'tanpa_tikor' => $tanpaTikor,
+                'tidak_valid' => $tidakValid,
             ],
         ])->layout('layouts.app');
     }

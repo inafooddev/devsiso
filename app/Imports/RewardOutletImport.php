@@ -42,16 +42,20 @@ class RewardOutletImport implements OnEachRow, WithStartRow
         $namaPemilikToko = $data[12] ?? null;
         $namaKtp = $data[13] ?? null;
         $nikKtp = $data[14] ?? null;
-        // Skip index 15 (drawing placeholder Foto KTP)
+        // By default, assume export format (with drawings, total 24 columns)
         $namaBank = $data[16] ?? null;
         $noRekening = $data[17] ?? null;
         $namaPemilikNorek = $data[18] ?? null;
+        $keterangan = $data[22] ?? null;
+        $isValidStr = $data[23] ?? null;
 
-        // If sheet is simple (18 columns or less, without photo drawings), shift fields
-        if (count($data) <= 18) {
+        // If sheet is simple (20 columns or less, without photo drawings), shift fields
+        if (count($data) <= 20) {
             $namaBank = $data[15] ?? null;
             $noRekening = $data[16] ?? null;
             $namaPemilikNorek = $data[17] ?? null;
+            $keterangan = $data[18] ?? null;
+            $isValidStr = $data[19] ?? null;
         }
 
         // Clean single quotes that were prepended for Excel formatting
@@ -67,29 +71,44 @@ class RewardOutletImport implements OnEachRow, WithStartRow
             return;
         }
 
+        $updatePayload = [
+            'region_code' => $regionCode,
+            'region_name' => $regionName,
+            'area_code' => $areaCode,
+            'area_name' => $areaName,
+            'branch_name' => $branchName,
+            'eskalink_code' => $eskalinkCode,
+            'customer_name' => $customerName,
+            'alamat' => $alamat,
+            'no_hp' => $noHp,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'nama_pemilik_toko' => $namaPemilikToko,
+            'nama_ktp' => $namaKtp,
+            'nik_ktp' => $nikKtp,
+            'nama_bank' => $namaBank,
+            'no_rekening' => $noRekening,
+            'nama_pemilik_norek' => $namaPemilikNorek,
+        ];
+
+        // Parse Keterangan if column exists (Column W / index 22 in export format, index 18 in simple format)
+        $keteranganIndex = count($data) <= 20 ? 18 : 22;
+        if (array_key_exists($keteranganIndex, $data)) {
+            $updatePayload['keterangan'] = $keterangan;
+        }
+
+        // Parse Validasi if column exists (Column X / index 23 in export format, index 19 in simple format)
+        $isValidIndex = count($data) <= 20 ? 19 : 23;
+        if (array_key_exists($isValidIndex, $data)) {
+            $isValidStrParsed = $isValidStr !== null ? strtolower(trim($isValidStr)) : '';
+            $updatePayload['is_valid'] = in_array($isValidStrParsed, ['valid (toko ada)', '1', 'true', 'valid']);
+        }
+
         RewardOutlet::updateOrCreate(
             [
                 'customer_code' => $customerCode,
             ],
-            [
-                'region_code' => $regionCode,
-                'region_name' => $regionName,
-                'area_code' => $areaCode,
-                'area_name' => $areaName,
-                'branch_name' => $branchName,
-                'eskalink_code' => $eskalinkCode,
-                'customer_name' => $customerName,
-                'alamat' => $alamat,
-                'no_hp' => $noHp,
-                'latitude' => $latitude,
-                'longitude' => $longitude,
-                'nama_pemilik_toko' => $namaPemilikToko,
-                'nama_ktp' => $namaKtp,
-                'nik_ktp' => $nikKtp,
-                'nama_bank' => $namaBank,
-                'no_rekening' => $noRekening,
-                'nama_pemilik_norek' => $namaPemilikNorek,
-            ]
+            $updatePayload
         );
 
         $this->importedCount++;

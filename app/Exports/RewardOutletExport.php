@@ -47,7 +47,9 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
                 });
             } elseif ($filterType === 'tanpa_foto_toko') {
                 $query->where(function($q) {
-                    $q->whereNull('foto_toko')->orWhere('foto_toko', '');
+                    $q->whereNull('foto_toko')->orWhere('foto_toko', '')
+                      ->orWhereNull('foto_toko2')->orWhere('foto_toko2', '')
+                      ->orWhereNull('foto_toko3')->orWhere('foto_toko3', '');
                 });
             } elseif ($filterType === 'tanpa_tikor') {
                 $query->where(function($q) {
@@ -55,6 +57,16 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
                       ->orWhereNull('longitude')->orWhere('longitude', '');
                 });
             }
+        }
+
+        if (!empty($this->filters['filter_region_code'])) {
+            $query->where('region_code', $this->filters['filter_region_code']);
+        }
+        if (!empty($this->filters['filter_area_code'])) {
+            $query->where('area_code', $this->filters['filter_area_code']);
+        }
+        if (!empty($this->filters['filter_branch_name'])) {
+            $query->where('branch_name', $this->filters['filter_branch_name']);
         }
 
         if (!empty($this->filters['search'])) {
@@ -72,7 +84,7 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
             });
         }
 
-        $this->items = $query->latest()->get();
+        $this->items = $query->orderBy('id', 'desc')->get();
     }
 
     public function collection()
@@ -102,7 +114,11 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
             'Nama Bank',
             'No Rekening',
             'Nama Pemilik Norek',
-            'Foto Toko',
+            'Foto Toko by GPS',
+            'Foto Toko by team Elite (Tampak Depan)',
+            'Foto Toko by team Elite tampak dalam',
+            'Keterangan',
+            'Status Validasi',
         ];
     }
 
@@ -129,6 +145,10 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
             $item->no_rekening ? "'" . $item->no_rekening : '',
             $item->nama_pemilik_norek,
             '', // Placeholder untuk Foto Toko (Drawing)
+            '', // Placeholder untuk Foto Toko 2 (Drawing)
+            '', // Placeholder untuk Foto Toko 3 (Drawing)
+            $item->keterangan,
+            $item->is_valid ? 'Valid (Toko Ada)' : 'Tidak Valid (Toko Tidak Ada)',
         ];
     }
 
@@ -160,24 +180,54 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
                     $drawing->setPath($path);
                     $drawing->setHeight(130);
                     $drawing->setCoordinates('P' . $row);
-                    // Tambahkan offset agar gambar berada di tengah sel
                     $drawing->setOffsetX(5);
                     $drawing->setOffsetY(5);
                     $drawings[] = $drawing;
                 }
             }
 
-            // Foto Toko
+            // Foto Toko by GPS (column T)
             if ($item->foto_toko) {
                 $path = storage_path('app/public/' . $item->foto_toko);
                 if (file_exists($path)) {
                     $drawing = new Drawing();
-                    $drawing->setName('Foto Toko');
-                    $drawing->setDescription('Foto Toko');
+                    $drawing->setName('Foto Toko by GPS');
+                    $drawing->setDescription('Foto Toko by GPS');
                     $drawing->setPath($path);
                     $drawing->setHeight(130);
                     $drawing->setCoordinates('T' . $row);
-                    // Tambahkan offset agar gambar berada di tengah sel
+                    $drawing->setOffsetX(5);
+                    $drawing->setOffsetY(5);
+                    $drawings[] = $drawing;
+                }
+            }
+
+            // Foto Toko 2 (Tampak Depan - column U)
+            if ($item->foto_toko2) {
+                $path = storage_path('app/public/' . $item->foto_toko2);
+                if (file_exists($path)) {
+                    $drawing = new Drawing();
+                    $drawing->setName('Foto Tampak Depan');
+                    $drawing->setDescription('Foto Tampak Depan');
+                    $drawing->setPath($path);
+                    $drawing->setHeight(130);
+                    $drawing->setCoordinates('U' . $row);
+                    $drawing->setOffsetX(5);
+                    $drawing->setOffsetY(5);
+                    $drawings[] = $drawing;
+                }
+            }
+
+            // Foto Toko 3 (Tampak Dalam - column V)
+            if ($item->foto_toko3) {
+                $path = storage_path('app/public/' . $item->foto_toko3);
+                if (file_exists($path)) {
+                    $drawing = new Drawing();
+                    $drawing->setName('Foto Tampak Dalam');
+                    $drawing->setDescription('Foto Tampak Dalam');
+                    $drawing->setPath($path);
+                    $drawing->setHeight(130);
+                    $drawing->setCoordinates('V' . $row);
                     $drawing->setOffsetX(5);
                     $drawing->setOffsetY(5);
                     $drawings[] = $drawing;
@@ -203,9 +253,9 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
                     $sheet->getRowDimension($row)->setRowHeight(160);
                 }
                 
-                // Atur lebar kolom otomatis untuk kolom teks, dan lebar tetap 36 untuk kolom foto (P & T)
-                foreach (range('A', 'T') as $col) {
-                    if ($col === 'P' || $col === 'T') {
+                // Atur lebar kolom otomatis untuk kolom teks, dan lebar tetap 36 untuk kolom foto (P, T, U, V)
+                foreach (range('A', 'V') as $col) {
+                    if (in_array($col, ['P', 'T', 'U', 'V'])) {
                         $sheet->getColumnDimension($col)->setWidth(36);
                     } else {
                         $sheet->getColumnDimension($col)->setAutoSize(true);
@@ -213,7 +263,7 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
                 }
                 
                 // Set alignment vertical center untuk semua sel data
-                $sheet->getStyle('A1:T' . $totalRows)
+                $sheet->getStyle('A1:V' . $totalRows)
                       ->getAlignment()
                       ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
             }

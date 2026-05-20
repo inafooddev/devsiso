@@ -32,5 +32,13 @@ class RewardOutlet extends Model
         'no_rekening',
         'nama_pemilik_norek',
         'foto_toko',
+        'foto_toko2',
+        'foto_toko3',
+        'keterangan',
+        'is_valid',
+    ];
+
+    protected $casts = [
+        'is_valid' => 'boolean',
     ];
 }
