@@ -178,10 +178,12 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
                     $drawing->setName('Foto KTP');
                     $drawing->setDescription('Foto KTP');
                     $drawing->setPath($path);
-                    $drawing->setHeight(130);
+                    $drawing->setHeight(190);
+                    $drawing->setWidth(230);
+                    $drawing->setResizeProportional(true);
                     $drawing->setCoordinates('P' . $row);
-                    $drawing->setOffsetX(5);
-                    $drawing->setOffsetY(5);
+                    $drawing->setOffsetX(10);
+                    $drawing->setOffsetY(10);
                     $drawings[] = $drawing;
                 }
             }
@@ -194,10 +196,12 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
                     $drawing->setName('Foto Toko by GPS');
                     $drawing->setDescription('Foto Toko by GPS');
                     $drawing->setPath($path);
-                    $drawing->setHeight(130);
+                    $drawing->setHeight(190);
+                    $drawing->setWidth(230);
+                    $drawing->setResizeProportional(true);
                     $drawing->setCoordinates('T' . $row);
-                    $drawing->setOffsetX(5);
-                    $drawing->setOffsetY(5);
+                    $drawing->setOffsetX(10);
+                    $drawing->setOffsetY(10);
                     $drawings[] = $drawing;
                 }
             }
@@ -210,10 +214,12 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
                     $drawing->setName('Foto Tampak Depan');
                     $drawing->setDescription('Foto Tampak Depan');
                     $drawing->setPath($path);
-                    $drawing->setHeight(130);
+                    $drawing->setHeight(190);
+                    $drawing->setWidth(230);
+                    $drawing->setResizeProportional(true);
                     $drawing->setCoordinates('U' . $row);
-                    $drawing->setOffsetX(5);
-                    $drawing->setOffsetY(5);
+                    $drawing->setOffsetX(10);
+                    $drawing->setOffsetY(10);
                     $drawings[] = $drawing;
                 }
             }
@@ -226,10 +232,12 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
                     $drawing->setName('Foto Tampak Dalam');
                     $drawing->setDescription('Foto Tampak Dalam');
                     $drawing->setPath($path);
-                    $drawing->setHeight(130);
+                    $drawing->setHeight(190);
+                    $drawing->setWidth(230);
+                    $drawing->setResizeProportional(true);
                     $drawing->setCoordinates('V' . $row);
-                    $drawing->setOffsetX(5);
-                    $drawing->setOffsetY(5);
+                    $drawing->setOffsetX(10);
+                    $drawing->setOffsetY(10);
                     $drawings[] = $drawing;
                 }
             }
@@ -248,13 +256,13 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
                 // Set baris header lebih tinggi
                 $sheet->getRowDimension(1)->setRowHeight(25);
                 
-                // Atur tinggi setiap baris data agar pas dengan tinggi gambar (130 + offset = ~160)
+                // Atur tinggi setiap baris data agar pas dengan tinggi gambar (190 + offset = ~210)
                 for ($row = 2; $row <= $totalRows; $row++) {
                     $sheet->getRowDimension($row)->setRowHeight(160);
                 }
                 
                 // Atur lebar kolom otomatis untuk kolom teks, dan lebar tetap 36 untuk kolom foto (P, T, U, V)
-                foreach (range('A', 'V') as $col) {
+                foreach (range('A', 'X') as $col) {
                     if (in_array($col, ['P', 'T', 'U', 'V'])) {
                         $sheet->getColumnDimension($col)->setWidth(36);
                     } else {
@@ -263,7 +271,7 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
                 }
                 
                 // Set alignment vertical center untuk semua sel data
-                $sheet->getStyle('A1:V' . $totalRows)
+                $sheet->getStyle('A1:X' . $totalRows)
                       ->getAlignment()
                       ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
             }
