@@ -89,7 +89,7 @@ class Index extends Component
             'no_hp' => 'nullable|string|max:20',
             'latitude' => 'nullable|string|max:50',
             'longitude' => 'nullable|string|max:50',
-            'nama_pemilik_toko' => 'required|string|max:100',
+            'nama_pemilik_toko' => 'nullable|string|max:100',
             'nama_ktp' => 'nullable|string|max:100',
             'nik_ktp' => 'nullable|string|max:50',
             'foto_ktp' => 'nullable|image|max:2048', // 2MB Max
