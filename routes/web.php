@@ -56,6 +56,7 @@ use App\Livewire\ProdukEska\Index as ProdukEskaIndex;
 use App\Livewire\ProdukEskaMap\Index as ProdukEskaMapIndex;
 use App\Livewire\Profile;
 use App\Livewire\RoleManagement;
+use App\Livewire\Rwo\Index as RwoIndex;
 use App\Livewire\SalesConfig\Create as SalesConfigCreate;
 use App\Livewire\SalesConfig\Edit as SalesConfigEdit;
 use App\Livewire\SalesConfig\Index as SalesConfigIndex;
@@ -204,6 +205,7 @@ Route::middleware(['auth'])->group(function () {
     // MISCELLANEOUS / OTHERS
     // ==========================================
     Route::get('/geotagging-reverse', Reverse::class)->name('geotagging.reverse');
+    Route::get('/rwo', RwoIndex::class)->name('rwo.index');
     Route::get('/under-construction', UnderConstruction::class)->name('under-construction');
     Route::get('/under-bounce', UnderBounce::class)->name('under-bounce');
 
