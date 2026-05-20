@@ -280,24 +280,40 @@
                         <td>
                             <span class="font-mono text-xs text-base-content/70">{{ $row->no_hp ?? '-' }}</span>
                         </td>
-                        <td class="text-center">
-                            @if($row->foto_ktp)
-                                <div class="avatar justify-center">
-                                    <div class="w-10 h-10 rounded-xl ring ring-base-300 ring-offset-base-100 overflow-hidden cursor-zoom-in" wire:click="openDetailModal({{ $row->id }})">
-                                        <img src="{{ asset('storage/' . $row->foto_ktp) }}" alt="KTP" />
-                                    </div>
-                                </div>
-                            @else
-                                <span class="text-xs text-base-content/30 italic">Tidak ada</span>
-                            @endif
-                        </td>
+                         <td class="text-center">
+                             @if($row->foto_ktp)
+                                 <div class="flex justify-center">
+                                     <div class="relative group">
+                                         <div class="w-10 h-10 rounded-xl ring ring-base-300 ring-offset-base-100 overflow-hidden cursor-zoom-in" wire:click="openDetailModal({{ $row->id }})">
+                                             <img src="{{ asset('storage/' . $row->foto_ktp) }}" alt="KTP" class="w-full h-full object-cover" />
+                                         </div>
+                                         <!-- Hover Preview Card -->
+                                         <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 bg-base-100 border border-base-300 rounded-2xl p-2 shadow-2xl pointer-events-none w-44 transition-all duration-300">
+                                             <img src="{{ asset('storage/' . $row->foto_ktp) }}" class="rounded-xl w-full h-auto object-cover max-h-40" />
+                                             <div class="text-[10px] text-center font-bold text-base-content/60 mt-1.5 uppercase tracking-wider">
+                                                 Foto KTP
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+                             @else
+                                 <span class="text-xs text-base-content/30 italic">Tidak ada</span>
+                             @endif
+                         </td>
                         <td class="text-center">
                             <div class="flex items-center justify-center gap-1.5">
                                 {{-- GPS --}}
                                 @if($row->foto_toko)
-                                    <div class="avatar tooltip" data-tip="Foto Toko by GPS">
+                                    <div class="relative group">
                                         <div class="w-7 h-7 rounded-lg ring ring-base-300 ring-offset-base-100 overflow-hidden cursor-zoom-in" wire:click="openDetailModal({{ $row->id }})">
-                                            <img src="{{ asset('storage/' . $row->foto_toko) }}" alt="GPS" />
+                                            <img src="{{ asset('storage/' . $row->foto_toko) }}" alt="GPS" class="w-full h-full object-cover" />
+                                        </div>
+                                        <!-- Hover Preview Card -->
+                                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 bg-base-100 border border-base-300 rounded-2xl p-2 shadow-2xl pointer-events-none w-44 transition-all duration-300">
+                                            <img src="{{ asset('storage/' . $row->foto_toko) }}" class="rounded-xl w-full h-auto object-cover max-h-40" />
+                                            <div class="text-[10px] text-center font-bold text-base-content/60 mt-1.5 uppercase tracking-wider">
+                                                Foto GPS
+                                            </div>
                                         </div>
                                     </div>
                                 @else
@@ -306,9 +322,16 @@
 
                                 {{-- Depan --}}
                                 @if($row->foto_toko2)
-                                    <div class="avatar tooltip" data-tip="Foto Tampak Depan">
+                                    <div class="relative group">
                                         <div class="w-7 h-7 rounded-lg ring ring-base-300 ring-offset-base-100 overflow-hidden cursor-zoom-in" wire:click="openDetailModal({{ $row->id }})">
-                                            <img src="{{ asset('storage/' . $row->foto_toko2) }}" alt="Depan" />
+                                            <img src="{{ asset('storage/' . $row->foto_toko2) }}" alt="Depan" class="w-full h-full object-cover" />
+                                        </div>
+                                        <!-- Hover Preview Card -->
+                                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 bg-base-100 border border-base-300 rounded-2xl p-2 shadow-2xl pointer-events-none w-44 transition-all duration-300">
+                                            <img src="{{ asset('storage/' . $row->foto_toko2) }}" class="rounded-xl w-full h-auto object-cover max-h-40" />
+                                            <div class="text-[10px] text-center font-bold text-base-content/60 mt-1.5 uppercase tracking-wider">
+                                                Tampak Depan
+                                            </div>
                                         </div>
                                     </div>
                                 @else
@@ -317,9 +340,16 @@
 
                                 {{-- Dalam --}}
                                 @if($row->foto_toko3)
-                                    <div class="avatar tooltip" data-tip="Foto Tampak Dalam">
+                                    <div class="relative group">
                                         <div class="w-7 h-7 rounded-lg ring ring-base-300 ring-offset-base-100 overflow-hidden cursor-zoom-in" wire:click="openDetailModal({{ $row->id }})">
-                                            <img src="{{ asset('storage/' . $row->foto_toko3) }}" alt="Dalam" />
+                                            <img src="{{ asset('storage/' . $row->foto_toko3) }}" alt="Dalam" class="w-full h-full object-cover" />
+                                        </div>
+                                        <!-- Hover Preview Card -->
+                                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 bg-base-100 border border-base-300 rounded-2xl p-2 shadow-2xl pointer-events-none w-44 transition-all duration-300">
+                                            <img src="{{ asset('storage/' . $row->foto_toko3) }}" class="rounded-xl w-full h-auto object-cover max-h-40" />
+                                            <div class="text-[10px] text-center font-bold text-base-content/60 mt-1.5 uppercase tracking-wider">
+                                                Tampak Dalam
+                                            </div>
                                         </div>
                                     </div>
                                 @else
