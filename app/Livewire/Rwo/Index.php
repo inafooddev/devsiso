@@ -483,6 +483,11 @@ class Index extends Component
             $q->whereNull('foto_toko')->orWhere('foto_toko', '');
         })->count();
 
+        $tanpaTikor = (clone $kpiQuery)->where(function($q) {
+            $q->whereNull('latitude')->orWhere('latitude', '')
+              ->orWhereNull('longitude')->orWhere('longitude', '');
+        })->count();
+
         // Apply filters
         if ($this->filter_type === 'tanpa_ktp') {
             $query->where(function($q) {
@@ -499,6 +504,11 @@ class Index extends Component
         } elseif ($this->filter_type === 'tanpa_foto_toko') {
             $query->where(function($q) {
                 $q->whereNull('foto_toko')->orWhere('foto_toko', '');
+            });
+        } elseif ($this->filter_type === 'tanpa_tikor') {
+            $query->where(function($q) {
+                $q->whereNull('latitude')->orWhere('latitude', '')
+                  ->orWhereNull('longitude')->orWhere('longitude', '');
             });
         }
 
@@ -527,6 +537,7 @@ class Index extends Component
                 'tanpa_foto_ktp' => $tanpaFotoKtp,
                 'tanpa_rekening' => $tanpaRekening,
                 'tanpa_foto_toko' => $tanpaFotoToko,
+                'tanpa_tikor' => $tanpaTikor,
             ],
         ])->layout('layouts.app');
     }

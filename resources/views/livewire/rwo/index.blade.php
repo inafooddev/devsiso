@@ -27,7 +27,7 @@
         </div>
 
         {{-- KPI Cards Summary --}}
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
             {{-- Card 1: Total Toko --}}
             <div wire:click="setFilter('')" 
                  class="relative overflow-hidden cursor-pointer group p-5 bg-base-100 rounded-3xl border transition-all duration-300 hover:-translate-y-1 {{ empty($filter_type) ? 'border-primary shadow-lg shadow-primary/10 ring-1 ring-primary' : 'border-base-300 shadow-sm hover:shadow-md' }}">
@@ -117,6 +117,24 @@
                     <span class="font-bold text-accent opacity-0 group-hover:opacity-100 transition-opacity">Filter &rarr;</span>
                 </div>
             </div>
+
+            {{-- Card 6: Belum Ada Tikor --}}
+            <div wire:click="setFilter('tanpa_tikor')" 
+                 class="relative overflow-hidden cursor-pointer group p-5 bg-base-100 rounded-3xl border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tanpa_tikor' ? 'border-secondary shadow-lg shadow-secondary/10 ring-1 ring-secondary' : 'border-base-300 shadow-sm hover:shadow-md' }}">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40">Belum Ada Tikor</span>
+                        <h3 class="text-2xl font-black mt-1 text-base-content">{{ number_format($kpis['tanpa_tikor']) }}</h3>
+                    </div>
+                    <div class="p-3 rounded-2xl transition-all duration-300 {{ $filter_type === 'tanpa_tikor' ? 'bg-secondary/20 text-secondary' : 'bg-base-200 text-base-content/40 group-hover:bg-secondary/10 group-hover:text-secondary' }}">
+                        <x-heroicon-s-map-pin class="w-6 h-6 shrink-0" />
+                    </div>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-[11px]">
+                    <span class="font-medium text-base-content/50">Tanpa Lat/Long</span>
+                    <span class="font-bold text-secondary opacity-0 group-hover:opacity-100 transition-opacity">Filter &rarr;</span>
+                </div>
+            </div>
         </div>
 
         <x-card flush title="Reward Outlet (RWO)" icon="gift" subtitle="Kelola data program reward outlet (RWO)" class="pb-6">
@@ -140,6 +158,7 @@
                         <option value="tanpa_foto_ktp">Tanpa Foto KTP</option>
                         <option value="tanpa_rekening">Tanpa Rekening</option>
                         <option value="tanpa_foto_toko">Tanpa Foto Toko</option>
+                        <option value="tanpa_tikor">Tanpa Tikor (Lat/Long)</option>
                     </select>
 
                     {{-- Export --}}

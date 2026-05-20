@@ -49,6 +49,11 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
                 $query->where(function($q) {
                     $q->whereNull('foto_toko')->orWhere('foto_toko', '');
                 });
+            } elseif ($filterType === 'tanpa_tikor') {
+                $query->where(function($q) {
+                    $q->whereNull('latitude')->orWhere('latitude', '')
+                      ->orWhereNull('longitude')->orWhere('longitude', '');
+                });
             }
         }
 
