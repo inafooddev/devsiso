@@ -71,6 +71,8 @@ class RewardOutletImport implements OnEachRow, WithStartRow
             return;
         }
 
+        $existing = RewardOutlet::where('customer_code', $customerCode)->first();
+
         $updatePayload = [
             'region_code' => $regionCode,
             'region_name' => $regionName,
@@ -94,22 +96,32 @@ class RewardOutletImport implements OnEachRow, WithStartRow
         // Parse Keterangan if column exists (Column W / index 22 in export format, index 18 in simple format)
         $keteranganIndex = count($data) <= 20 ? 18 : 22;
         if (array_key_exists($keteranganIndex, $data)) {
-            $updatePayload['keterangan'] = $keterangan;
+            if ($existing && !empty(trim($existing->keterangan))) {
+                // Jangan timpa keterangan yang sudah ada di database
+                $updatePayload['keterangan'] = $existing->keterangan;
+            } else {
+                $updatePayload['keterangan'] = $keterangan;
+            }
         }
 
         // Parse Validasi if column exists (Column X / index 23 in export format, index 19 in simple format)
         $isValidIndex = count($data) <= 20 ? 19 : 23;
         if (array_key_exists($isValidIndex, $data)) {
-            $isValidStrParsed = $isValidStr !== null ? strtolower(trim($isValidStr)) : '';
-            $updatePayload['is_valid'] = in_array($isValidStrParsed, ['valid (toko ada)', '1', 'true', 'valid']);
+            if ($existing && $existing->is_valid) {
+                // Jangan timpa validasi jika sudah valid (true)
+                $updatePayload['is_valid'] = true;
+            } else {
+                $isValidStrParsed = $isValidStr !== null ? strtolower(trim($isValidStr)) : '';
+                $updatePayload['is_valid'] = in_array($isValidStrParsed, ['valid (toko ada)', '1', 'true', 'valid']);
+            }
         }
 
-        RewardOutlet::updateOrCreate(
-            [
-                'customer_code' => $customerCode,
-            ],
-            $updatePayload
-        );
+        if ($existing) {
+            $existing->update($updatePayload);
+        } else {
+            $updatePayload['customer_code'] = $customerCode;
+            RewardOutlet::create($updatePayload);
+        }
 
         $this->importedCount++;
     }
