@@ -235,12 +235,12 @@
                         <th class="text-center">Foto Toko (GPS / Depan / Dalam)</th>
                         <th class="text-center">Validasi</th>
                         <th>Keterangan</th>
-                        <th class="text-center w-28">Aksi</th>
+                <th class="text-center w-28">Aksi</th>
                     </tr>
                 </x-slot:head>
 
                 @foreach ($outlets as $index => $row)
-                    <tr class="group text-sm" wire:key="rwo-{{ $row->id }}">
+                    <tr class="group text-sm hover:relative hover:z-40" wire:key="rwo-{{ $row->id }}">
                         <td class="text-center">
                             <span class="text-xs font-semibold text-base-content/40">{{ $outlets->firstItem() + $index }}</span>
                         </td>
@@ -282,20 +282,20 @@
                         </td>
                          <td class="text-center">
                              @if($row->foto_ktp)
-                                 <div class="flex justify-center">
-                                     <div class="relative group">
-                                         <div class="w-10 h-10 rounded-xl ring ring-base-300 ring-offset-base-100 overflow-hidden cursor-zoom-in" wire:click="openDetailModal({{ $row->id }})">
-                                             <img src="{{ asset('storage/' . $row->foto_ktp) }}" alt="KTP" class="w-full h-full object-cover" />
-                                         </div>
-                                         <!-- Hover Preview Card -->
-                                         <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 bg-base-100 border border-base-300 rounded-2xl p-2 shadow-2xl pointer-events-none w-44 transition-all duration-300">
-                                             <img src="{{ asset('storage/' . $row->foto_ktp) }}" class="rounded-xl w-full h-auto object-cover max-h-40" />
-                                             <div class="text-[10px] text-center font-bold text-base-content/60 mt-1.5 uppercase tracking-wider">
-                                                 Foto KTP
-                                             </div>
-                                         </div>
-                                     </div>
-                                 </div>
+                                  <div class="flex justify-center">
+                                      <div class="relative group">
+                                          <div class="w-10 h-10 rounded-xl ring ring-base-300 ring-offset-base-100 overflow-hidden cursor-zoom-in" wire:click="openDetailModal({{ $row->id }})">
+                                              <img src="{{ asset('storage/' . $row->foto_ktp) }}" alt="KTP" class="w-full h-full object-cover" />
+                                          </div>
+                                          <!-- Hover Preview Card (3x larger, top-most z-index, dynamic vertical position to prevent clipping) -->
+                                          <div class="absolute {{ $index < 2 ? 'top-full mt-2' : 'bottom-full mb-2' }} left-1/2 -translate-x-1/2 hidden group-hover:block z-[9999] bg-base-100 border border-base-300 rounded-3xl p-3 shadow-2xl pointer-events-none w-[90vw] sm:w-[33rem] max-w-[528px] transition-all duration-300">
+                                              <img src="{{ asset('storage/' . $row->foto_ktp) }}" class="rounded-2xl w-full h-auto object-contain max-h-[30rem] bg-base-200/50" />
+                                              <div class="text-xs text-center font-bold text-base-content/70 mt-2 uppercase tracking-wider">
+                                                  Foto KTP
+                                              </div>
+                                          </div>
+                                      </div>
+                                  </div>
                              @else
                                  <span class="text-xs text-base-content/30 italic">Tidak ada</span>
                              @endif
@@ -308,10 +308,10 @@
                                         <div class="w-7 h-7 rounded-lg ring ring-base-300 ring-offset-base-100 overflow-hidden cursor-zoom-in" wire:click="openDetailModal({{ $row->id }})">
                                             <img src="{{ asset('storage/' . $row->foto_toko) }}" alt="GPS" class="w-full h-full object-cover" />
                                         </div>
-                                        <!-- Hover Preview Card -->
-                                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 bg-base-100 border border-base-300 rounded-2xl p-2 shadow-2xl pointer-events-none w-44 transition-all duration-300">
-                                            <img src="{{ asset('storage/' . $row->foto_toko) }}" class="rounded-xl w-full h-auto object-cover max-h-40" />
-                                            <div class="text-[10px] text-center font-bold text-base-content/60 mt-1.5 uppercase tracking-wider">
+                                        <!-- Hover Preview Card (3x larger, top-most z-index, dynamic vertical position to prevent clipping) -->
+                                        <div class="absolute {{ $index < 2 ? 'top-full mt-2' : 'bottom-full mb-2' }} left-1/2 -translate-x-1/2 hidden group-hover:block z-[9999] bg-base-100 border border-base-300 rounded-3xl p-3 shadow-2xl pointer-events-none w-[90vw] sm:w-[33rem] max-w-[528px] transition-all duration-300">
+                                            <img src="{{ asset('storage/' . $row->foto_toko) }}" class="rounded-2xl w-full h-auto object-contain max-h-[30rem] bg-base-200/50" />
+                                            <div class="text-xs text-center font-bold text-base-content/70 mt-2 uppercase tracking-wider">
                                                 Foto GPS
                                             </div>
                                         </div>
@@ -326,10 +326,10 @@
                                         <div class="w-7 h-7 rounded-lg ring ring-base-300 ring-offset-base-100 overflow-hidden cursor-zoom-in" wire:click="openDetailModal({{ $row->id }})">
                                             <img src="{{ asset('storage/' . $row->foto_toko2) }}" alt="Depan" class="w-full h-full object-cover" />
                                         </div>
-                                        <!-- Hover Preview Card -->
-                                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 bg-base-100 border border-base-300 rounded-2xl p-2 shadow-2xl pointer-events-none w-44 transition-all duration-300">
-                                            <img src="{{ asset('storage/' . $row->foto_toko2) }}" class="rounded-xl w-full h-auto object-cover max-h-40" />
-                                            <div class="text-[10px] text-center font-bold text-base-content/60 mt-1.5 uppercase tracking-wider">
+                                        <!-- Hover Preview Card (3x larger, top-most z-index, dynamic vertical position to prevent clipping) -->
+                                        <div class="absolute {{ $index < 2 ? 'top-full mt-2' : 'bottom-full mb-2' }} left-1/2 -translate-x-1/2 hidden group-hover:block z-[9999] bg-base-100 border border-base-300 rounded-3xl p-3 shadow-2xl pointer-events-none w-[90vw] sm:w-[33rem] max-w-[528px] transition-all duration-300">
+                                            <img src="{{ asset('storage/' . $row->foto_toko2) }}" class="rounded-2xl w-full h-auto object-contain max-h-[30rem] bg-base-200/50" />
+                                            <div class="text-xs text-center font-bold text-base-content/70 mt-2 uppercase tracking-wider">
                                                 Tampak Depan
                                             </div>
                                         </div>
@@ -344,10 +344,10 @@
                                         <div class="w-7 h-7 rounded-lg ring ring-base-300 ring-offset-base-100 overflow-hidden cursor-zoom-in" wire:click="openDetailModal({{ $row->id }})">
                                             <img src="{{ asset('storage/' . $row->foto_toko3) }}" alt="Dalam" class="w-full h-full object-cover" />
                                         </div>
-                                        <!-- Hover Preview Card -->
-                                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 bg-base-100 border border-base-300 rounded-2xl p-2 shadow-2xl pointer-events-none w-44 transition-all duration-300">
-                                            <img src="{{ asset('storage/' . $row->foto_toko3) }}" class="rounded-xl w-full h-auto object-cover max-h-40" />
-                                            <div class="text-[10px] text-center font-bold text-base-content/60 mt-1.5 uppercase tracking-wider">
+                                        <!-- Hover Preview Card (3x larger, top-most z-index, dynamic vertical position to prevent clipping) -->
+                                        <div class="absolute {{ $index < 2 ? 'top-full mt-2' : 'bottom-full mb-2' }} left-1/2 -translate-x-1/2 hidden group-hover:block z-[9999] bg-base-100 border border-base-300 rounded-3xl p-3 shadow-2xl pointer-events-none w-[90vw] sm:w-[33rem] max-w-[528px] transition-all duration-300">
+                                            <img src="{{ asset('storage/' . $row->foto_toko3) }}" class="rounded-2xl w-full h-auto object-contain max-h-[30rem] bg-base-200/50" />
+                                            <div class="text-xs text-center font-bold text-base-content/70 mt-2 uppercase tracking-wider">
                                                 Tampak Dalam
                                             </div>
                                         </div>
