@@ -497,32 +497,48 @@
             },
             
             seedMasterData() {
-                if (this.isOffline) return;
                 const scriptEl = document.getElementById('offline-master-data');
                 if (!scriptEl) return;
                 
-                try {
-                    const data = JSON.parse(scriptEl.textContent);
-                    this.getDB().then(db => {
-                        const transaction = db.transaction(['outlets'], 'readwrite');
-                        const store = transaction.objectStore('outlets');
-                        store.clear();
-                        data.outlets.forEach(o => store.add(o));
+                this.getDB().then(db => {
+                    const transaction = db.transaction(['outlets'], 'readonly');
+                    const store = transaction.objectStore('outlets');
+                    const countReq = store.count();
+                    
+                    countReq.onsuccess = () => {
+                        const count = countReq.result;
+                        const hasRegions = localStorage.getItem('rwo_regions') !== null;
                         
-                        transaction.oncomplete = () => {
-                            localStorage.setItem('rwo_regions', JSON.stringify(data.regions));
-                            localStorage.setItem('rwo_areas', JSON.stringify(data.areas));
-                            localStorage.setItem('rwo_supervisors', JSON.stringify(data.supervisors));
-                            localStorage.setItem('rwo_branches', JSON.stringify(data.branches));
-                            localStorage.setItem('rwo_last_seed', Date.now());
-                            this.loadDropdowns();
-                            this.queryOutlets();
-                            console.log('IndexedDB seeded successfully.');
-                        };
-                    });
-                } catch (e) {
-                    console.error('Failed to seed master data:', e);
-                }
+                        // Seed if online OR if the DB is empty OR if localStorage is missing master data
+                        if (!this.isOffline || count === 0 || !hasRegions) {
+                            try {
+                                const data = JSON.parse(scriptEl.textContent);
+                                
+                                // Perform the seeding in a write transaction
+                                const writeTx = db.transaction(['outlets'], 'readwrite');
+                                const writeStore = writeTx.objectStore('outlets');
+                                writeStore.clear();
+                                data.outlets.forEach(o => writeStore.add(o));
+                                
+                                writeTx.oncomplete = () => {
+                                    localStorage.setItem('rwo_regions', JSON.stringify(data.regions));
+                                    localStorage.setItem('rwo_areas', JSON.stringify(data.areas));
+                                    localStorage.setItem('rwo_supervisors', JSON.stringify(data.supervisors));
+                                    localStorage.setItem('rwo_branches', JSON.stringify(data.branches));
+                                    localStorage.setItem('rwo_last_seed', Date.now());
+                                    
+                                    this.loadDropdowns();
+                                    this.queryOutlets();
+                                    console.log('IndexedDB seeded successfully' + (this.isOffline ? ' (Offline Mode Recovery)' : ''));
+                                };
+                            } catch (e) {
+                                console.error('Failed to seed master data:', e);
+                            }
+                        }
+                    };
+                }).catch(err => {
+                    console.error('Failed to check database for seeding:', err);
+                });
             },
             
             loadDropdowns() {
