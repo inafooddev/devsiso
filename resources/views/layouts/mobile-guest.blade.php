@@ -6,13 +6,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'RWO Mobile Update' }}</title>
 
-    {{-- Anti-FOUC: set theme from localStorage before render --}}
+    {{-- Anti-FOUC: set theme to light --}}
     <script>
         (function() {
-            var t = localStorage.getItem('rwo-mobile-theme') || 'light';
-            if (t === 'neon-dark') t = 'dark';
-            if (t === 'neon-light') t = 'light';
-            document.documentElement.setAttribute('data-theme', t);
+            document.documentElement.setAttribute('data-theme', 'light');
         })();
     </script>
     <!-- DaisyUI CDN -->
@@ -32,18 +29,11 @@
     @livewireStyles
     @stack('styles')
 </head>
-<body class="bg-base-200 text-base-content min-h-screen antialiased" x-data="{
-    theme: (function() {
-        var t = localStorage.getItem('rwo-mobile-theme') || 'light';
-        if (t === 'neon-dark') t = 'dark';
-        if (t === 'neon-light') t = 'light';
-        return t;
-    })(),
-    get isDark() { return this.theme === 'dark'; },
+<body class="bg-slate-50 text-slate-800 min-h-screen antialiased" x-data="{
+    theme: 'light',
+    get isDark() { return false; },
     toggleTheme() {
-        this.theme = this.theme === 'dark' ? 'light' : 'dark';
-        localStorage.setItem('rwo-mobile-theme', this.theme);
-        document.documentElement.setAttribute('data-theme', this.theme);
+        // Strictly light theme
     }
 }">
     
@@ -53,5 +43,14 @@
 
     @livewireScripts
     @stack('scripts')
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registered successfully:', reg.scope))
+                    .catch(err => console.error('Service Worker registration failed:', err));
+            });
+        }
+    </script>
 </body>
 </html>

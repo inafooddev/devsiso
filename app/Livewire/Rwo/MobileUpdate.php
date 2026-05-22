@@ -280,6 +280,49 @@ class MobileUpdate extends Component
         return null;
     }
 
+    /**
+     * Save photos for a specific outlet during offline sync
+     */
+    public function savePhotosForOutletOffline($outletId)
+    {
+        $this->validate([
+            'foto_depan' => 'nullable|image|max:10240',
+            'foto_dalam' => 'nullable|image|max:10240',
+        ]);
+
+        $outlet = RewardOutlet::findOrFail($outletId);
+        $data = [];
+        $updated = false;
+
+        // Save Tampak Depan
+        if ($this->foto_depan) {
+            if ($outlet->foto_toko2) {
+                Storage::disk('public')->delete($outlet->foto_toko2);
+            }
+            $this->compressImageGD($this->foto_depan->getRealPath());
+            $data['foto_toko2'] = $this->foto_depan->store('rwo/toko', 'public');
+            $updated = true;
+        }
+
+        // Save Tampak Dalam
+        if ($this->foto_dalam) {
+            if ($outlet->foto_toko3) {
+                Storage::disk('public')->delete($outlet->foto_toko3);
+            }
+            $this->compressImageGD($this->foto_dalam->getRealPath());
+            $data['foto_toko3'] = $this->foto_dalam->store('rwo/toko', 'public');
+            $updated = true;
+        }
+
+        if ($updated) {
+            $outlet->update($data);
+        }
+
+        // Reset the uploads for the next item in the sync queue
+        $this->foto_depan = null;
+        $this->foto_dalam = null;
+    }
+
     public function render()
     {
         $outlets = collect();
@@ -312,11 +355,29 @@ class MobileUpdate extends Component
                 ->get();
         }
 
+        // Get offline master data for local storage caching
+        $offlineRegions = \App\Models\MasterRegion::orderBy('region_name')->get();
+        $offlineAreas = \App\Models\MasterArea::orderBy('area_name')->get();
+        $offlineSupervisors = \App\Models\MasterSupervisor::all();
+        $offlineBranches = \App\Models\MasterBranch::orderBy('branch_name')->get();
+        $allOutlets = RewardOutlet::select('id', 'customer_code', 'customer_name', 'alamat', 'region_code', 'area_code', 'branch_name', 'foto_toko2', 'foto_toko3')
+            ->orderBy('customer_name')
+            ->get();
+
+        $offlineMasterData = [
+            'regions' => $offlineRegions,
+            'areas' => $offlineAreas,
+            'supervisors' => $offlineSupervisors,
+            'branches' => $offlineBranches,
+            'outlets' => $allOutlets,
+        ];
+
         return view('livewire.rwo.mobile-update', [
             'outlets' => $outlets,
             'regions' => $this->getRegions(),
             'areas' => $this->getAreas(),
             'branches' => $this->getBranches(),
+            'offlineMasterDataJson' => json_encode($offlineMasterData),
         ])->layout('layouts.mobile-guest');
     }
 }
