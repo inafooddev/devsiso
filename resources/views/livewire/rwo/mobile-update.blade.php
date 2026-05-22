@@ -27,7 +27,7 @@
                 <x-heroicon-s-camera class="w-6 h-6 animate-pulse" />
             </div>
             <div>
-                <h1 class="text-sm font-black uppercase tracking-wider text-base-content/90">Sales RW1</h1>
+                <h1 class="text-sm font-black uppercase tracking-wider text-base-content/90">Sales RWO</h1>
                 <p class="text-[10px] font-bold text-primary tracking-widest uppercase">Offline Photo Upload</p>
             </div>
         </div>
