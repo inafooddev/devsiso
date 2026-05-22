@@ -170,7 +170,7 @@
                                 <div class="w-full flex flex-col items-center">
                                     <img :src="fotoDepanPreview" class="w-full h-32 object-contain rounded-xl" />
                                     <span class="text-[10px] font-bold text-success mt-2 flex items-center gap-1">
-                                        <x-heroicon-s-check-circle class="w-3.5 h-3.5" /> Siap diunggah (Terkompres)
+                                        <x-heroicon-s-check-circle class="w-3.5 h-3.5" /> Siap diunggah
                                     </span>
                                 </div>
                             </template>
@@ -192,7 +192,7 @@
                             <div x-show="fotoDepanState.isUploading" class="absolute inset-0 bg-base-100/90 flex flex-col items-center justify-center p-4 z-20 transition-all duration-300" x-cloak>
                                 <span class="loading loading-spinner loading-md text-primary"></span>
                                 <span class="text-xs font-bold text-base-content/70 mt-2 flex flex-col items-center gap-1">
-                                    <span>Mengompres &amp; Mengunggah...</span>
+                                    <span>Mengunggah...</span>
                                     <span x-text="fotoDepanState.progress + '%'"></span>
                                 </span>
                                 <progress class="progress progress-primary w-2/3 mt-2" :value="fotoDepanState.progress" max="100"></progress>
@@ -222,7 +222,7 @@
                                 <div class="w-full flex flex-col items-center">
                                     <img :src="fotoDalamPreview" class="w-full h-32 object-contain rounded-xl" />
                                     <span class="text-[10px] font-bold text-success mt-2 flex items-center gap-1">
-                                        <x-heroicon-s-check-circle class="w-3.5 h-3.5" /> Siap diunggah (Terkompres)
+                                        <x-heroicon-s-check-circle class="w-3.5 h-3.5" /> Siap diunggah
                                     </span>
                                 </div>
                             </template>
@@ -244,7 +244,7 @@
                             <div x-show="fotoDalamState.isUploading" class="absolute inset-0 bg-base-100/90 flex flex-col items-center justify-center p-4 z-20 transition-all duration-300" x-cloak>
                                 <span class="loading loading-spinner loading-md text-primary"></span>
                                 <span class="text-xs font-bold text-base-content/70 mt-2 flex flex-col items-center gap-1">
-                                    <span>Mengompres &amp; Mengunggah...</span>
+                                    <span>Mengunggah...</span>
                                     <span x-text="fotoDalamState.progress + '%'"></span>
                                 </span>
                                 <progress class="progress progress-primary w-2/3 mt-2" :value="fotoDalamState.progress" max="100"></progress>
@@ -572,56 +572,6 @@
                 return '/storage/' + path;
             },
             
-            compressImage(file) {
-                return new Promise((resolve, reject) => {
-                    if (!file.type.startsWith('image/')) {
-                        resolve(file);
-                        return;
-                    }
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = (e) => {
-                        const img = new Image();
-                        img.src = e.target.result;
-                        img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            let width = img.width;
-                            let height = img.height;
-                            const maxDimension = 1200;
-                            
-                            if (width > maxDimension || height > maxDimension) {
-                                if (width > height) {
-                                    height = Math.round((height * maxDimension) / width);
-                                    width = maxDimension;
-                                } else {
-                                    width = Math.round((width * maxDimension) / height);
-                                    height = maxDimension;
-                                }
-                            }
-                            
-                            canvas.width = width;
-                            canvas.height = height;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0, width, height);
-                            
-                            canvas.toBlob((blob) => {
-                                if (blob) {
-                                    const compressedFile = new File([blob], file.name, {
-                                        type: 'image/jpeg',
-                                        lastModified: Date.now()
-                                    });
-                                    resolve(compressedFile);
-                                } else {
-                                    resolve(file);
-                                }
-                            }, 'image/jpeg', 0.75);
-                        };
-                        img.onerror = () => resolve(file);
-                    };
-                    reader.onerror = () => resolve(file);
-                });
-            },
-            
             handleFileSelect(event, propertyName) {
                 const file = event.target.files[0];
                 if (!file) return;
@@ -631,27 +581,22 @@
                 localData.progress = 0;
                 localData.errorMessage = '';
                 
-                this.compressImage(file).then(compressedFile => {
-                    if (propertyName === 'foto_depan') {
-                        this.fotoDepanBlob = compressedFile;
-                        this.fotoDepanPreview = URL.createObjectURL(compressedFile);
-                    } else {
-                        this.fotoDalamBlob = compressedFile;
-                        this.fotoDalamPreview = URL.createObjectURL(compressedFile);
-                    }
-                    
-                    if (!this.isOffline) {
-                        // Online: Upload immediately to Livewire temporary storage
-                        this.uploadToLivewire(compressedFile, propertyName, localData);
-                    } else {
-                        // Offline: Ready immediately
-                        localData.isUploading = false;
-                        localData.progress = 100;
-                    }
-                }).catch(err => {
+                if (propertyName === 'foto_depan') {
+                    this.fotoDepanBlob = file;
+                    this.fotoDepanPreview = URL.createObjectURL(file);
+                } else {
+                    this.fotoDalamBlob = file;
+                    this.fotoDalamPreview = URL.createObjectURL(file);
+                }
+                
+                if (!this.isOffline) {
+                    // Online: Upload immediately to Livewire temporary storage
+                    this.uploadToLivewire(file, propertyName, localData);
+                } else {
+                    // Offline: Ready immediately
                     localData.isUploading = false;
-                    localData.errorMessage = 'Gagal memproses gambar.';
-                });
+                    localData.progress = 100;
+                }
             },
             
             uploadToLivewire(file, propertyName, localData) {
@@ -794,15 +739,20 @@
                         if (item.foto_depan_blob) {
                             let fileToUpload = item.foto_depan_blob;
                             if (!(fileToUpload instanceof File) || !fileToUpload.name) {
-                                fileToUpload = new File([item.foto_depan_blob], 'depan_' + item.outlet_id + '_' + Date.now() + '.jpg', { type: 'image/jpeg' });
+                                const mimeType = item.foto_depan_blob.type || 'image/jpeg';
+                                const ext = mimeType === 'image/png' ? 'png' : 'jpg';
+                                fileToUpload = new File([item.foto_depan_blob], 'depan_' + item.outlet_id + '_' + Date.now() + '.' + ext, { type: mimeType });
                             }
                             await this.uploadFilePromise('foto_depan', fileToUpload);
                         }
+                        
                         // Upload foto_dalam if exists
                         if (item.foto_dalam_blob) {
                             let fileToUpload = item.foto_dalam_blob;
                             if (!(fileToUpload instanceof File) || !fileToUpload.name) {
-                                fileToUpload = new File([item.foto_dalam_blob], 'dalam_' + item.outlet_id + '_' + Date.now() + '.jpg', { type: 'image/jpeg' });
+                                const mimeType = item.foto_dalam_blob.type || 'image/jpeg';
+                                const ext = mimeType === 'image/png' ? 'png' : 'jpg';
+                                fileToUpload = new File([item.foto_dalam_blob], 'dalam_' + item.outlet_id + '_' + Date.now() + '.' + ext, { type: mimeType });
                             }
                             await this.uploadFilePromise('foto_dalam', fileToUpload);
                         }
