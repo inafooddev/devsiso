@@ -73,6 +73,9 @@
                 <span class="loading loading-spinner loading-xs" x-show="isSyncing"></span>
                 <span x-text="isSyncing ? 'Menyinkronkan (' + syncCurrent + '/' + syncTotal + ')...' : 'Sinkronisasi Sekarang'"></span>
             </button>
+            <button @click="clearSyncQueue()" :disabled="isSyncing" class="btn btn-ghost btn-xs text-error/80 font-bold hover:bg-rose-50 rounded-xl mt-1">
+                Hapus Antrean Foto Offline
+            </button>
             <template x-if="isSyncing">
                 <div class="w-full mt-1">
                     <progress class="progress progress-info w-full" :value="syncProgress" max="100"></progress>
@@ -775,6 +778,35 @@
                         };
                     });
                 });
+            },
+            
+            clearSyncQueue() {
+                if (confirm('Apakah Anda yakin ingin menghapus antrean foto offline? Foto yang belum disinkronkan akan hilang.')) {
+                    this.getDB().then(db => {
+                        const transaction = db.transaction(['uploadQueue', 'outlets'], 'readwrite');
+                        transaction.objectStore('uploadQueue').clear();
+                        
+                        const outletsStore = transaction.objectStore('outlets');
+                        outletsStore.getAll().onsuccess = (e) => {
+                            const outlets = e.target.result;
+                            outlets.forEach(o => {
+                                if (o.foto_toko2 === 'pending_depan') o.foto_toko2 = null;
+                                if (o.foto_toko3 === 'pending_dalam') o.foto_toko3 = null;
+                                outletsStore.put(o);
+                            });
+                        };
+                        
+                        transaction.oncomplete = () => {
+                            this.showToast('Antrean foto offline berhasil dihapus.');
+                            this.updateQueueCount();
+                            this.queryOutlets();
+                        };
+                    }).catch(err => {
+                        console.error('Failed to clear queue:', err);
+                        indexedDB.deleteDatabase('RWOOfflineDB');
+                        location.reload();
+                    });
+                }
             },
             
             uploadFilePromise(propertyName, blob) {
