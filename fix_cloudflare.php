@@ -46,22 +46,40 @@ if (file_exists($providerPath)) {
         echo "INFO: URL facade already imported in AppServiceProvider\n";
     }
 
-    // Add forceScheme logic if not present
+    // Add forceScheme logic if not present or upgrade to robust version
+    $robustForceScheme = "if ((isset(\$_SERVER['HTTP_X_FORWARDED_PROTO']) && \$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') || 
+            (isset(\$_SERVER['HTTP_HOST']) && \$_SERVER['HTTP_HOST'] === 'master.my.id') ||
+            (isset(\$_SERVER['SERVER_NAME']) && \$_SERVER['SERVER_NAME'] === 'master.my.id')) {
+            URL::forceScheme('https');
+        }";
+
     if (strpos($providerContent, 'forceScheme') === false) {
         $bootPattern = '/public function boot\(\):\s*void\s*\{/';
         if (preg_match($bootPattern, $providerContent)) {
             $providerContent = preg_replace(
                 $bootPattern,
-                "public function boot(): void\n    {\n        if (isset(\$_SERVER['HTTP_X_FORWARDED_PROTO']) && \$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {\n            URL::forceScheme('https');\n        }\n",
+                "public function boot(): void\n    {\n        " . $robustForceScheme . "\n",
                 $providerContent
             );
             $modified = true;
-            echo "SUCCESS: Added forceScheme('https') logic to AppServiceProvider::boot()\n";
+            echo "SUCCESS: Added robust forceScheme('https') logic to AppServiceProvider::boot()\n";
         } else {
             echo "ERROR: Could not find boot() method in AppServiceProvider\n";
         }
     } else {
-        echo "INFO: forceScheme already exists in AppServiceProvider\n";
+        // Upgrade if it's the old version (doesn't contain master.my.id)
+        if (strpos($providerContent, 'master.my.id') === false) {
+            $oldPattern = '/if\s*\(isset\(\$_SERVER\[\'HTTP_X_FORWARDED_PROTO\'\]\)\s*&&\s*\$_SERVER\[\'HTTP_X_FORWARDED_PROTO\'\]\s*===\s*\'https\'\)\s*\{\s*URL::forceScheme\(\'https\'\);\s*\}/';
+            if (preg_match($oldPattern, $providerContent)) {
+                $providerContent = preg_replace($oldPattern, $robustForceScheme, $providerContent);
+                $modified = true;
+                echo "SUCCESS: Upgraded forceScheme logic to robust version in AppServiceProvider\n";
+            } else {
+                echo "WARNING: forceScheme exists but could not auto-upgrade (format mismatch).\n";
+            }
+        } else {
+            echo "INFO: Robust forceScheme already exists in AppServiceProvider\n";
+        }
     }
 
     if ($modified) {
