@@ -9,7 +9,7 @@
     {{-- Anti-FOUC: set theme from localStorage before render --}}
     <script>
         (function() {
-            var t = localStorage.getItem('neon-theme') || 'neon-dark';
+            var t = localStorage.getItem('neon-theme') || 'neon-light';
             document.documentElement.setAttribute('data-theme', t);
         })();
     </script>
@@ -66,7 +66,7 @@
     @stack('styles')
 </head>
 <body class="bg-base-200 text-base-content min-h-screen antialiased" x-data="{
-    theme: localStorage.getItem('neon-theme') || 'neon-dark',
+    theme: localStorage.getItem('neon-theme') || 'neon-light',
     get isDark() { return this.theme === 'neon-dark'; },
     toggleTheme() {
         this.theme = this.theme === 'neon-dark' ? 'neon-light' : 'neon-dark';
