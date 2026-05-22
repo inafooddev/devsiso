@@ -33,23 +33,44 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            // Fetch fresh from network in the background
-            const fetchPromise = fetch(event.request).then((networkResponse) => {
-                if (networkResponse && networkResponse.status === 200) {
-                    const responseToCache = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseToCache);
-                    });
-                }
-                return networkResponse;
-            }).catch(() => {
-                // Ignore network error if we have cached response
-            });
+    const url = new URL(event.request.url);
 
-            // Return cached response if we have it, otherwise wait for network
-            return cachedResponse || fetchPromise;
-        })
-    );
+    // Network-First strategy for the HTML page `/mobile/rwo`
+    if (url.pathname === '/mobile/rwo' || url.pathname === '/mobile/rwo/') {
+        event.respondWith(
+            fetch(event.request)
+                .then((networkResponse) => {
+                    if (networkResponse && networkResponse.status === 200) {
+                        const responseToCache = networkResponse.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, responseToCache);
+                        });
+                    }
+                    return networkResponse;
+                })
+                .catch(() => {
+                    // Offline or network error: return cached page
+                    return caches.match(event.request);
+                })
+        );
+    } else {
+        // Stale-While-Revalidate strategy for other assets (CSS, JS from CDN, etc.)
+        event.respondWith(
+            caches.match(event.request).then((cachedResponse) => {
+                const fetchPromise = fetch(event.request).then((networkResponse) => {
+                    if (networkResponse && networkResponse.status === 200) {
+                        const responseToCache = networkResponse.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, responseToCache);
+                        });
+                    }
+                    return networkResponse;
+                }).catch(() => {
+                    // Ignore network error if we have cached response
+                });
+
+                return cachedResponse || fetchPromise;
+            })
+        );
+    }
 });

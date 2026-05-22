@@ -1,4 +1,4 @@
-<div class="w-full max-w-md mx-auto px-4 py-6 flex-1 flex flex-col gap-6" x-data="mobileRwoApp()" x-init="init()">
+<div class="w-full max-w-md mx-auto px-4 py-6 flex-1 flex flex-col gap-6" x-data="mobileRwoApp($wire)" x-init="init()">
     {{-- Toast Notification --}}
     <div x-show="toast.show" 
          x-transition:enter="transition ease-out duration-300"
@@ -387,7 +387,7 @@
 </script>
 
 <script>
-    function mobileRwoApp() {
+    function mobileRwoApp(wire) {
         return {
             isOffline: !navigator.onLine,
             regionsList: [],
@@ -428,7 +428,14 @@
             
             async init() {
                 // Monitor connection status
-                window.addEventListener('online', () => { this.isOffline = false; this.updateQueueCount(); });
+                window.addEventListener('online', () => { 
+                    this.isOffline = false; 
+                    this.updateQueueCount(); 
+                    this.showToast('Koneksi internet terhubung kembali. Memuat ulang halaman untuk memperbarui token keamanan...', 'success');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                });
                 window.addEventListener('offline', () => { this.isOffline = true; });
                 
                 await this.initIndexedDB();
@@ -776,7 +783,7 @@
                         reject(new Error('Batas waktu unggah (35 detik) terlampaui.'));
                     }, 35000);
                     
-                    @this.upload(
+                    wire.upload(
                         propertyName,
                         blob,
                         () => {
@@ -824,10 +831,6 @@
                         this.syncCurrent++;
                         this.syncProgress = Math.round(((this.syncCurrent - 1) / this.syncTotal) * 100);
                         
-                        // Clear active files first on component
-                        @this.set('foto_depan', null);
-                        @this.set('foto_dalam', null);
-                        
                         // Upload foto_depan if exists
                         if (item.foto_depan_blob) {
                             let fileToUpload = item.foto_depan_blob;
@@ -851,11 +854,7 @@
                         }
                         
                         // Trigger backend save offline photos
-                        await new Promise((resolve, reject) => {
-                            @this.call('savePhotosForOutletOffline', item.outlet_id)
-                                .then(resolve)
-                                .catch(reject);
-                        });
+                        await wire.savePhotosForOutletOffline(item.outlet_id);
                         
                         // Delete from offline queue
                         await new Promise((resolve, reject) => {
@@ -878,7 +877,7 @@
                     this.isSyncing = false;
                     await this.updateQueueCount();
                     this.queryOutlets();
-                    @this.call('$refresh');
+                    await wire.$refresh();
                     
                     // Auto-trigger next sync loop only if sync succeeded
                     if (syncSuccess && !this.isOffline && this.pendingQueueCount > 0) {
