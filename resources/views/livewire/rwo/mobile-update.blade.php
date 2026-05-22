@@ -213,10 +213,10 @@
                             <div x-show="fotoDepanState.isUploading" class="absolute inset-0 bg-base-100/90 flex flex-col items-center justify-center p-4 z-20 transition-all duration-300" x-cloak>
                                 <span class="loading loading-spinner loading-md text-primary"></span>
                                 <span class="text-xs font-bold text-base-content/70 mt-2 flex flex-col items-center gap-1">
-                                    <span>Mengunggah...</span>
-                                    <span x-text="fotoDepanState.progress + '%'"></span>
+                                    <span x-text="fotoDepanState.progress === 0 ? 'Memproses foto...' : 'Mengunggah...'"></span>
+                                    <span x-show="fotoDepanState.progress > 0" x-text="fotoDepanState.progress + '%'"></span>
                                 </span>
-                                <progress class="progress progress-primary w-2/3 mt-2" :value="fotoDepanState.progress" max="100"></progress>
+                                <progress x-show="fotoDepanState.progress > 0" class="progress progress-primary w-2/3 mt-2" :value="fotoDepanState.progress" max="100"></progress>
                             </div>
                         </div>
                         <template x-if="fotoDepanState.errorMessage">
@@ -265,10 +265,10 @@
                             <div x-show="fotoDalamState.isUploading" class="absolute inset-0 bg-base-100/90 flex flex-col items-center justify-center p-4 z-20 transition-all duration-300" x-cloak>
                                 <span class="loading loading-spinner loading-md text-primary"></span>
                                 <span class="text-xs font-bold text-base-content/70 mt-2 flex flex-col items-center gap-1">
-                                    <span>Mengunggah...</span>
-                                    <span x-text="fotoDalamState.progress + '%'"></span>
+                                    <span x-text="fotoDalamState.progress === 0 ? 'Memproses foto...' : 'Mengunggah...'"></span>
+                                    <span x-show="fotoDalamState.progress > 0" x-text="fotoDalamState.progress + '%'"></span>
                                 </span>
-                                <progress class="progress progress-primary w-2/3 mt-2" :value="fotoDalamState.progress" max="100"></progress>
+                                <progress x-show="fotoDalamState.progress > 0" class="progress progress-primary w-2/3 mt-2" :value="fotoDalamState.progress" max="100"></progress>
                             </div>
                         </div>
                         <template x-if="fotoDalamState.errorMessage">
@@ -610,21 +610,96 @@
                 return '/storage/' + path;
             },
             
-            handleFileSelect(event, propertyName) {
+            compressImage(file, maxDimension = 1000, quality = 0.7) {
+                return new Promise((resolve, reject) => {
+                    if (!file || !file.type.startsWith('image/')) {
+                        return resolve(file);
+                    }
+                    
+                    const img = new Image();
+                    const objectUrl = URL.createObjectURL(file);
+                    
+                    img.onload = () => {
+                        URL.revokeObjectURL(objectUrl);
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > maxDimension || height > maxDimension) {
+                            if (width > height) {
+                                height = Math.round((height * maxDimension) / width);
+                                width = maxDimension;
+                            } else {
+                                width = Math.round((width * maxDimension) / height);
+                                height = maxDimension;
+                            }
+                        }
+                        
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        canvas.toBlob((blob) => {
+                            if (blob) {
+                                const filename = file.name ? file.name.replace(/\.[^/.]+$/, "") + ".jpg" : "photo.jpg";
+                                const compressedFile = new File([blob], filename, {
+                                    type: 'image/jpeg',
+                                    lastModified: Date.now()
+                                });
+                                resolve(compressedFile);
+                            } else {
+                                resolve(file);
+                            }
+                        }, 'image/jpeg', quality);
+                    };
+                    
+                    img.onerror = () => {
+                        URL.revokeObjectURL(objectUrl);
+                        reject(new Error('Failed to load image for compression'));
+                    };
+                    
+                    img.src = objectUrl;
+                });
+            },
+
+            async handleFileSelect(event, propertyName) {
                 const file = event.target.files[0];
                 if (!file) return;
                 
                 const localData = propertyName === 'foto_depan' ? this.fotoDepanState : this.fotoDalamState;
-                localData.isUploading = false;
-                localData.progress = 100;
+                localData.isUploading = true;
+                localData.progress = 0;
                 localData.errorMessage = '';
                 
-                if (propertyName === 'foto_depan') {
-                    this.fotoDepanBlob = file;
-                    this.fotoDepanPreview = URL.createObjectURL(file);
-                } else {
-                    this.fotoDalamBlob = file;
-                    this.fotoDalamPreview = URL.createObjectURL(file);
+                try {
+                    const compressed = await this.compressImage(file);
+                    
+                    if (propertyName === 'foto_depan') {
+                        this.fotoDepanBlob = compressed;
+                        if (this.fotoDepanPreview) URL.revokeObjectURL(this.fotoDepanPreview);
+                        this.fotoDepanPreview = URL.createObjectURL(compressed);
+                    } else {
+                        this.fotoDalamBlob = compressed;
+                        if (this.fotoDalamPreview) URL.revokeObjectURL(this.fotoDalamPreview);
+                        this.fotoDalamPreview = URL.createObjectURL(compressed);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    localData.errorMessage = 'Gagal memproses gambar. Menggunakan file asli.';
+                    
+                    if (propertyName === 'foto_depan') {
+                        this.fotoDepanBlob = file;
+                        if (this.fotoDepanPreview) URL.revokeObjectURL(this.fotoDepanPreview);
+                        this.fotoDepanPreview = URL.createObjectURL(file);
+                    } else {
+                        this.fotoDalamBlob = file;
+                        if (this.fotoDalamPreview) URL.revokeObjectURL(this.fotoDalamPreview);
+                        this.fotoDalamPreview = URL.createObjectURL(file);
+                    }
+                } finally {
+                    localData.isUploading = false;
                 }
             },
             
@@ -697,13 +772,24 @@
             
             uploadFilePromise(propertyName, blob) {
                 return new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Batas waktu unggah (35 detik) terlampaui.'));
+                    }, 35000);
+                    
                     @this.upload(
                         propertyName,
                         blob,
-                        () => resolve(),
-                        (err) => reject(err),
+                        () => {
+                            clearTimeout(timeout);
+                            resolve();
+                        },
+                        (err) => {
+                            clearTimeout(timeout);
+                            reject(new Error(err || 'Gagal mengunggah ke server.'));
+                        },
                         (event) => {
-                            // Can update detailed progress if needed
+                            const localState = propertyName === 'foto_depan' ? this.fotoDepanState : this.fotoDalamState;
+                            localState.progress = event.detail.progress;
                         }
                     );
                 });
@@ -713,6 +799,7 @@
                 if (this.isOffline || this.isSyncing) return;
                 
                 this.isSyncing = true;
+                let syncSuccess = false;
                 
                 try {
                     const db = await this.getDB();
@@ -781,6 +868,7 @@
                     }
                     
                     this.syncProgress = 100;
+                    syncSuccess = true;
                     this.showToast('Semua foto offline berhasil disinkronisasi!');
                     
                 } catch (e) {
@@ -792,8 +880,8 @@
                     this.queryOutlets();
                     @this.call('$refresh');
                     
-                    // Auto-trigger next sync loop if new items were added during sync
-                    if (!this.isOffline && this.pendingQueueCount > 0) {
+                    // Auto-trigger next sync loop only if sync succeeded
+                    if (syncSuccess && !this.isOffline && this.pendingQueueCount > 0) {
                         this.startSync();
                     }
                 }
