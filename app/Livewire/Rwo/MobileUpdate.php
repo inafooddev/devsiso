@@ -29,6 +29,10 @@ class MobileUpdate extends Component
     public $existing_foto_depan; // DB path
     public $existing_foto_dalam; // DB path
 
+    // GPS Coordinates
+    public $latitude = null;
+    public $longitude = null;
+
     protected $queryString = [
         'selectedRegion' => ['except' => ''],
         'selectedArea' => ['except' => ''],
@@ -151,6 +155,13 @@ class MobileUpdate extends Component
         $data = [];
         $updated = false;
 
+        // Update GPS coordinates if outlet is not valid and coordinates are present
+        if (!$outlet->is_valid && $this->latitude && $this->longitude) {
+            $data['latitude'] = $this->latitude;
+            $data['longitude'] = $this->longitude;
+            $updated = true;
+        }
+
         // Save Tampak Depan
         if ($this->foto_depan) {
             if ($outlet->foto_toko2) {
@@ -179,10 +190,12 @@ class MobileUpdate extends Component
             return;
         }
 
-        // Close upload panel and reset uploads
+        // Close upload panel and reset uploads and coordinates
         $this->activeOutletId = null;
         $this->foto_depan = null;
         $this->foto_dalam = null;
+        $this->latitude = null;
+        $this->longitude = null;
     }
 
     /**
@@ -283,7 +296,7 @@ class MobileUpdate extends Component
     /**
      * Save photos for a specific outlet during offline sync
      */
-    public function savePhotosForOutletOffline($outletId)
+    public function savePhotosForOutletOffline($outletId, $latitude = null, $longitude = null)
     {
         $this->validate([
             'foto_depan' => 'nullable|image|max:10240',
@@ -293,6 +306,16 @@ class MobileUpdate extends Component
         $outlet = RewardOutlet::findOrFail($outletId);
         $data = [];
         $updated = false;
+
+        $lat = $latitude ?? $this->latitude;
+        $lon = $longitude ?? $this->longitude;
+
+        // Update GPS coordinates if outlet is not valid and coordinates are present
+        if (!$outlet->is_valid && $lat && $lon) {
+            $data['latitude'] = $lat;
+            $data['longitude'] = $lon;
+            $updated = true;
+        }
 
         // Save Tampak Depan
         if ($this->foto_depan) {
@@ -318,9 +341,11 @@ class MobileUpdate extends Component
             $outlet->update($data);
         }
 
-        // Reset the uploads for the next item in the sync queue
+        // Reset the uploads and coordinates for the next item in the sync queue
         $this->foto_depan = null;
         $this->foto_dalam = null;
+        $this->latitude = null;
+        $this->longitude = null;
     }
 
     public function render()
@@ -349,8 +374,8 @@ class MobileUpdate extends Component
                 });
             }
 
-            // Only retrieve essential fields (id, customer_code, customer_name, alamat, foto_toko2, foto_toko3)
-            $outlets = $query->select('id', 'customer_code', 'customer_name', 'alamat', 'foto_toko2', 'foto_toko3')
+            // Only retrieve essential fields (id, customer_code, customer_name, alamat, foto_toko2, foto_toko3, is_valid)
+            $outlets = $query->select('id', 'customer_code', 'customer_name', 'alamat', 'foto_toko2', 'foto_toko3', 'is_valid')
                 ->orderBy('customer_name')
                 ->get();
         }
@@ -360,7 +385,7 @@ class MobileUpdate extends Component
         $offlineAreas = \App\Models\MasterArea::orderBy('area_name')->get();
         $offlineSupervisors = \App\Models\MasterSupervisor::all();
         $offlineBranches = \App\Models\MasterBranch::orderBy('branch_name')->get();
-        $allOutlets = RewardOutlet::select('id', 'customer_code', 'customer_name', 'alamat', 'region_code', 'area_code', 'branch_name', 'foto_toko2', 'foto_toko3')
+        $allOutlets = RewardOutlet::select('id', 'customer_code', 'customer_name', 'alamat', 'region_code', 'area_code', 'branch_name', 'foto_toko2', 'foto_toko3', 'is_valid')
             ->orderBy('customer_name')
             ->get();
 

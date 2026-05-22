@@ -729,12 +729,56 @@
                 }
             },
             
-            savePhotos() {
+            getCurrentLocation() {
+                return new Promise((resolve) => {
+                    if (!navigator.geolocation) {
+                        console.warn('Geolocation is not supported by this browser.');
+                        resolve(null);
+                        return;
+                    }
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            resolve({
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude
+                            });
+                        },
+                        (error) => {
+                            console.warn('Geolocation error:', error);
+                            resolve(null);
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        }
+                    );
+                });
+            },
+
+            async savePhotos() {
                 if (!this.activeOutlet) return;
-                this.saveOfflinePhotos();
+                
+                let lat = null;
+                let lon = null;
+                
+                // Retrieve coordinates only if ONLINE and outlet is NOT valid (not true)
+                if (!this.isOffline && !this.activeOutlet.is_valid) {
+                    this.showToast('Mengambil koordinat GPS lokasi Anda saat ini...', 'success');
+                    const loc = await this.getCurrentLocation();
+                    if (loc) {
+                        lat = loc.latitude;
+                        lon = loc.longitude;
+                        this.showToast('Lokasi GPS berhasil diambil.');
+                    } else {
+                        this.showToast('Gagal mengambil lokasi GPS. Melanjutkan simpan tanpa koordinat...', 'error');
+                    }
+                }
+                
+                this.saveOfflinePhotos(lat, lon);
             },
             
-            saveOfflinePhotos() {
+            saveOfflinePhotos(lat, lon) {
                 if (!this.fotoDepanBlob && !this.fotoDalamBlob) {
                     this.showToast('Silakan pilih/ambil foto terlebih dahulu.', 'error');
                     return;
@@ -751,6 +795,8 @@
                         customer_name: this.activeOutlet.customer_name,
                         foto_depan_blob: this.fotoDepanBlob,
                         foto_dalam_blob: this.fotoDalamBlob,
+                        latitude: lat,
+                        longitude: lon,
                         timestamp: Date.now()
                     };
                     
@@ -900,9 +946,8 @@
                             }
                             await this.uploadFilePromise('foto_dalam', fileToUpload);
                         }
-                        
-                        // Trigger backend save offline photos
-                        await wire.savePhotosForOutletOffline(item.outlet_id);
+                        // Trigger backend save offline photos directly with coordinates as arguments
+                        await wire.savePhotosForOutletOffline(item.outlet_id, item.latitude, item.longitude);
                         
                         // Delete from offline queue
                         await new Promise((resolve, reject) => {
