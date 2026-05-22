@@ -1,4 +1,25 @@
 <div class="w-full max-w-md mx-auto px-4 py-6 flex-1 flex flex-col gap-6" x-data="mobileRwoApp()" x-init="init()">
+    {{-- Toast Notification --}}
+    <div x-show="toast.show" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 translate-y-2"
+         class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-4" 
+         x-cloak>
+        <div :class="toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'" class="shadow-2xl rounded-2xl p-4 text-xs font-bold flex items-center gap-2 text-white border border-black/10">
+            <template x-if="toast.type === 'success'">
+                <x-heroicon-s-check-circle class="w-5 h-5 text-white flex-shrink-0" />
+            </template>
+            <template x-if="toast.type === 'error'">
+                <x-heroicon-s-x-circle class="w-5 h-5 text-white flex-shrink-0" />
+            </template>
+            <span x-text="toast.message" class="flex-1 text-white"></span>
+        </div>
+    </div>
+
     {{-- Header --}}
     <header class="flex items-center justify-between bg-base-100/60 backdrop-blur-md border border-base-300 rounded-3xl p-4 shadow-lg shadow-base-300/10">
         <div class="flex items-center gap-3">
@@ -264,7 +285,7 @@
                     </button>
                     <button @click="savePhotos()" 
                             class="btn btn-primary flex-1 h-12 rounded-2xl text-xs normal-case shadow-lg shadow-primary/20"
-                            :disabled="fotoDepanState.isUploading || fotoDalamState.isUploading || isSyncing">
+                            :disabled="fotoDepanState.isUploading || fotoDalamState.isUploading">
                         Simpan Foto
                     </button>
                 </div>
@@ -393,6 +414,17 @@
             syncProgress: 0,
             syncTotal: 0,
             syncCurrent: 0,
+            
+            toast: { show: false, message: '', type: 'success' },
+            
+            showToast(message, type = 'success') {
+                this.toast.message = message;
+                this.toast.type = type;
+                this.toast.show = true;
+                setTimeout(() => {
+                    this.toast.show = false;
+                }, 3000);
+            },
             
             async init() {
                 // Monitor connection status
@@ -541,6 +573,9 @@
             },
             
             selectOutlet(outlet) {
+                if (this.fotoDepanPreview) URL.revokeObjectURL(this.fotoDepanPreview);
+                if (this.fotoDalamPreview) URL.revokeObjectURL(this.fotoDalamPreview);
+                
                 this.activeOutlet = outlet;
                 this.fotoDepanBlob = null;
                 this.fotoDalamBlob = null;
@@ -557,6 +592,9 @@
             },
             
             cancelUpload() {
+                if (this.fotoDepanPreview) URL.revokeObjectURL(this.fotoDepanPreview);
+                if (this.fotoDalamPreview) URL.revokeObjectURL(this.fotoDalamPreview);
+                
                 this.activeOutlet = null;
                 this.fotoDepanBlob = null;
                 this.fotoDalamBlob = null;
@@ -577,8 +615,8 @@
                 if (!file) return;
                 
                 const localData = propertyName === 'foto_depan' ? this.fotoDepanState : this.fotoDalamState;
-                localData.isUploading = true;
-                localData.progress = 0;
+                localData.isUploading = false;
+                localData.progress = 100;
                 localData.errorMessage = '';
                 
                 if (propertyName === 'foto_depan') {
@@ -588,54 +626,16 @@
                     this.fotoDalamBlob = file;
                     this.fotoDalamPreview = URL.createObjectURL(file);
                 }
-                
-                if (!this.isOffline) {
-                    // Online: Upload immediately to Livewire temporary storage
-                    this.uploadToLivewire(file, propertyName, localData);
-                } else {
-                    // Offline: Ready immediately
-                    localData.isUploading = false;
-                    localData.progress = 100;
-                }
-            },
-            
-            uploadToLivewire(file, propertyName, localData) {
-                @this.upload(
-                    propertyName,
-                    file,
-                    () => {
-                        localData.isUploading = false;
-                        localData.progress = 100;
-                    },
-                    () => {
-                        localData.isUploading = false;
-                        localData.progress = 0;
-                        localData.errorMessage = 'Gagal mengunggah foto. Silakan coba lagi.';
-                    },
-                    (event) => {
-                        localData.progress = event.detail.progress;
-                    }
-                );
             },
             
             savePhotos() {
                 if (!this.activeOutlet) return;
-                
-                if (this.isOffline) {
-                    this.saveOfflinePhotos();
-                } else {
-                    // Online: trigger Livewire savePhotos
-                    @this.set('activeOutletId', this.activeOutlet.id);
-                    @this.call('savePhotos').then(() => {
-                        this.cancelUpload();
-                        this.seedMasterData();
-                    });
-                }
+                this.saveOfflinePhotos();
             },
             
             saveOfflinePhotos() {
                 if (!this.fotoDepanBlob && !this.fotoDalamBlob) {
-                    alert('Silakan pilih/ambil foto terlebih dahulu.');
+                    this.showToast('Silakan pilih/ambil foto terlebih dahulu.', 'error');
                     return;
                 }
                 
@@ -670,7 +670,13 @@
                         this.cancelUpload();
                         this.updateQueueCount();
                         this.queryOutlets();
-                        alert('Foto disimpan secara offline. Jangan lupa sinkronisasi ketika sinyal bagus.');
+                        
+                        if (this.isOffline) {
+                            this.showToast('Foto disimpan secara offline.');
+                        } else {
+                            this.showToast('Foto disimpan. Menyinkronkan...');
+                            this.startSync();
+                        }
                     };
                 });
             },
@@ -775,16 +781,21 @@
                     }
                     
                     this.syncProgress = 100;
-                    alert('Semua foto offline berhasil disinkronisasi ke server!');
+                    this.showToast('Semua foto offline berhasil disinkronisasi!');
                     
                 } catch (e) {
                     console.error('Sync failed:', e);
-                    alert('Gagal melakukan sinkronisasi: ' + e.message);
+                    this.showToast('Gagal sinkronisasi: ' + e.message, 'error');
                 } finally {
                     this.isSyncing = false;
                     await this.updateQueueCount();
                     this.queryOutlets();
                     @this.call('$refresh');
+                    
+                    // Auto-trigger next sync loop if new items were added during sync
+                    if (!this.isOffline && this.pendingQueueCount > 0) {
+                        this.startSync();
+                    }
                 }
             }
         };
