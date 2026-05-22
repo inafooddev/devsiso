@@ -80,6 +80,8 @@ use App\Livewire\Welcome;
 |--------------------------------------------------------------------------
 */
 
+Route::get('/mobile/rwo', \App\Livewire\Rwo\MobileUpdate::class)->name('mobile.rwo.update');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', Login::class)->name('login');
     Route::get('/register', Register::class)->name('register');
