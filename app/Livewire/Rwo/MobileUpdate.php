@@ -156,6 +156,7 @@ class MobileUpdate extends Component
             if ($outlet->foto_toko2) {
                 Storage::disk('public')->delete($outlet->foto_toko2);
             }
+            $this->compressImageGD($this->foto_depan->getRealPath());
             $data['foto_toko2'] = $this->foto_depan->store('rwo/toko', 'public');
             $updated = true;
         }
@@ -165,6 +166,7 @@ class MobileUpdate extends Component
             if ($outlet->foto_toko3) {
                 Storage::disk('public')->delete($outlet->foto_toko3);
             }
+            $this->compressImageGD($this->foto_dalam->getRealPath());
             $data['foto_toko3'] = $this->foto_dalam->store('rwo/toko', 'public');
             $updated = true;
         }
@@ -181,6 +183,77 @@ class MobileUpdate extends Component
         $this->activeOutletId = null;
         $this->foto_depan = null;
         $this->foto_dalam = null;
+    }
+
+    /**
+     * Compress and resize an image on the server side using GD library
+     */
+    private function compressImageGD($filePath)
+    {
+        if (!extension_loaded('gd') || !function_exists('imagecreatefromstring')) {
+            return;
+        }
+
+        $imageInfo = @getimagesize($filePath);
+        if (!$imageInfo) {
+            return;
+        }
+
+        $mime = $imageInfo['mime'];
+        $width = $imageInfo[0];
+        $height = $imageInfo[1];
+
+        if (!in_array($mime, ['image/jpeg', 'image/png', 'image/jpg'])) {
+            return;
+        }
+
+        // Load image
+        $image = null;
+        if ($mime === 'image/jpeg' || $mime === 'image/jpg') {
+            $image = @imagecreatefromjpeg($filePath);
+        } elseif ($mime === 'image/png') {
+            $image = @imagecreatefrompng($filePath);
+        }
+
+        if (!$image) {
+            return;
+        }
+
+        // Max dimension
+        $maxDimension = 1200;
+        $newWidth = $width;
+        $newHeight = $height;
+
+        if ($width > $maxDimension || $height > $maxDimension) {
+            if ($width > $height) {
+                $newHeight = (int) round(($height * $maxDimension) / $width);
+                $newWidth = $maxDimension;
+            } else {
+                $newWidth = (int) round(($width * $maxDimension) / $height);
+                $newHeight = $maxDimension;
+            }
+
+            $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
+
+            if ($mime === 'image/png') {
+                imagealphablending($resizedImage, false);
+                imagesavealpha($resizedImage, true);
+                $transparent = imagecolorallocatealpha($resizedImage, 255, 255, 255, 127);
+                imagefilledrectangle($resizedImage, 0, 0, $newWidth, $newHeight, $transparent);
+            }
+
+            imagecopyresampled($resizedImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+            imagedestroy($image);
+            $image = $resizedImage;
+        }
+
+        // Save back with compression
+        if ($mime === 'image/jpeg' || $mime === 'image/jpg') {
+            @imagejpeg($image, $filePath, 75);
+        } elseif ($mime === 'image/png') {
+            @imagepng($image, $filePath, 7);
+        }
+        imagedestroy($image);
     }
 
     public function getFotoDepanPreview()

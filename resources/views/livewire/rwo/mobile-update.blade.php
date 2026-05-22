@@ -4,6 +4,83 @@
             const el = document.getElementById('active-upload-panel');
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
+    },
+    compressAndUpload(event, propertyName, localData) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        localData.isUploading = true;
+        localData.progress = 0;
+        localData.errorMessage = '';
+
+        if (!file.type.startsWith('image/')) {
+            this.uploadToLivewire(file, propertyName, localData);
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (e) => {
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const maxDimension = 1200;
+
+                if (width > maxDimension || height > maxDimension) {
+                    if (width > height) {
+                        height = Math.round((height * maxDimension) / width);
+                        width = maxDimension;
+                    } else {
+                        width = Math.round((width * maxDimension) / height);
+                        height = maxDimension;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        const compressedFile = new File([blob], file.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        });
+                        this.uploadToLivewire(compressedFile, propertyName, localData);
+                    } else {
+                        this.uploadToLivewire(file, propertyName, localData);
+                    }
+                }, 'image/jpeg', 0.75);
+            };
+            img.onerror = () => {
+                this.uploadToLivewire(file, propertyName, localData);
+            };
+        };
+        reader.onerror = () => {
+            this.uploadToLivewire(file, propertyName, localData);
+        };
+    },
+    uploadToLivewire(file, propertyName, localData) {
+        @this.upload(
+            propertyName,
+            file,
+            () => {
+                localData.isUploading = false;
+                localData.progress = 100;
+            },
+            () => {
+                localData.isUploading = false;
+                localData.progress = 0;
+                localData.errorMessage = 'Gagal mengunggah foto. Silakan coba lagi.';
+            },
+            (event) => {
+                localData.progress = event.detail.progress;
+            }
+        );
     }
 }">
     {{-- Header --}}
@@ -142,79 +219,91 @@
                     
                     {{-- FOTO TAMPAK DEPAN --}}
                     <div class="form-control"
-                         x-data="{ isUploading: false, progress: 0 }"
-                         x-on:livewire-upload-start="isUploading = true"
-                         x-on:livewire-upload-finish="isUploading = false"
-                         x-on:livewire-upload-error="isUploading = false"
-                         x-on:livewire-upload-progress="progress = $event.detail.progress">
+                         x-data="{ isUploading: false, progress: 0, errorMessage: '' }">
                         <label class="label py-1">
                             <span class="label-text text-[11px] font-bold uppercase tracking-wider text-base-content/50">Foto Tampak Depan</span>
                         </label>
                         
                         {{-- Dropzone / Capture Button --}}
                         <div class="relative border-2 border-dashed {{ $foto_depan ? 'border-success/40 bg-success/5' : 'border-base-300 bg-base-200' }} hover:bg-base-200/50 rounded-2xl transition-all duration-200 overflow-hidden min-h-[140px] flex flex-col items-center justify-center p-4">
-                            <input type="file" wire:model="foto_depan" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                            <input type="file" 
+                                   accept="image/*" 
+                                   capture="environment" 
+                                   @change="compressAndUpload($event, 'foto_depan', $data)" 
+                                   class="absolute inset-0 opacity-0 cursor-pointer z-10" />
                             
                             @if ($this->getFotoDepanPreview())
                                 <img src="{{ $this->getFotoDepanPreview() }}" class="w-full h-32 object-contain rounded-xl" />
                                 <span class="text-[10px] font-bold text-success mt-2 flex items-center gap-1">
-                                    <x-heroicon-s-check-circle class="w-3.5 h-3.5" /> Siap diunggah
+                                    <x-heroicon-s-check-circle class="w-3.5 h-3.5" /> Siap diunggah (Terkompres)
                                 </span>
                             @elseif ($existing_foto_depan)
                                 <img src="{{ asset('storage/' . $existing_foto_depan) }}" class="w-full h-32 object-contain rounded-xl opacity-60" />
                                 <span class="text-[10px] font-semibold text-base-content/50 mt-2">Foto Saat Ini (Tampak Depan)</span>
                             @else
                                 <x-heroicon-s-camera class="w-8 h-8 text-base-content/30" />
-                                <span class="text-xs font-bold text-base-content/65 mt-2">Ambil Foto / Pilih Gambar</span>
-                                <span class="text-[9px] text-base-content/40 mt-0.5">Tampak Depan Toko</span>
+                                <span class="text-xs font-bold text-base-content/65 mt-2">Ambil Foto Kamera</span>
+                                <span class="text-[9px] text-base-content/40 mt-0.5">Wajib langsung dari Kamera</span>
                             @endif
 
                             {{-- Upload Progress Indicator --}}
-                            <div x-show="isUploading" class="absolute inset-0 bg-base-100/90 flex flex-col items-center justify-center p-4 z-20 transition-all duration-300">
+                            <div x-show="isUploading" class="absolute inset-0 bg-base-100/90 flex flex-col items-center justify-center p-4 z-20 transition-all duration-300" x-cloak>
                                 <span class="loading loading-spinner loading-md text-primary"></span>
-                                <span class="text-xs font-bold text-base-content/70 mt-2">Mengunggah... <span x-text="progress + '%'"></span></span>
+                                <span class="text-xs font-bold text-base-content/70 mt-2 flex flex-col items-center gap-1">
+                                    <span>Mengompres &amp; Mengunggah...</span>
+                                    <span x-text="progress + '%'"></span>
+                                </span>
                                 <progress class="progress progress-primary w-2/3 mt-2" :value="progress" max="100"></progress>
                             </div>
                         </div>
+                        <template x-if="errorMessage">
+                            <span class="text-error text-[10px] font-semibold mt-1 ml-1" x-text="errorMessage"></span>
+                        </template>
                         @error('foto_depan') <span class="text-error text-[10px] font-semibold mt-1 ml-1">{{ $message }}</span> @enderror
                     </div>
 
                     {{-- FOTO TAMPAK DALAM --}}
                     <div class="form-control"
-                         x-data="{ isUploading: false, progress: 0 }"
-                         x-on:livewire-upload-start="isUploading = true"
-                         x-on:livewire-upload-finish="isUploading = false"
-                         x-on:livewire-upload-error="isUploading = false"
-                         x-on:livewire-upload-progress="progress = $event.detail.progress">
+                         x-data="{ isUploading: false, progress: 0, errorMessage: '' }">
                         <label class="label py-1">
                             <span class="label-text text-[11px] font-bold uppercase tracking-wider text-base-content/50">Foto Tampak Dalam</span>
                         </label>
                         
                         {{-- Dropzone / Capture Button --}}
                         <div class="relative border-2 border-dashed {{ $foto_dalam ? 'border-success/40 bg-success/5' : 'border-base-300 bg-base-200' }} hover:bg-base-200/50 rounded-2xl transition-all duration-200 overflow-hidden min-h-[140px] flex flex-col items-center justify-center p-4">
-                            <input type="file" wire:model="foto_dalam" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                            <input type="file" 
+                                   accept="image/*" 
+                                   capture="environment" 
+                                   @change="compressAndUpload($event, 'foto_dalam', $data)" 
+                                   class="absolute inset-0 opacity-0 cursor-pointer z-10" />
                             
                             @if ($this->getFotoDalamPreview())
                                 <img src="{{ $this->getFotoDalamPreview() }}" class="w-full h-32 object-contain rounded-xl" />
                                 <span class="text-[10px] font-bold text-success mt-2 flex items-center gap-1">
-                                    <x-heroicon-s-check-circle class="w-3.5 h-3.5" /> Siap diunggah
+                                    <x-heroicon-s-check-circle class="w-3.5 h-3.5" /> Siap diunggah (Terkompres)
                                 </span>
                             @elseif ($existing_foto_dalam)
                                 <img src="{{ asset('storage/' . $existing_foto_dalam) }}" class="w-full h-32 object-contain rounded-xl opacity-60" />
                                 <span class="text-[10px] font-semibold text-base-content/50 mt-2">Foto Saat Ini (Tampak Dalam)</span>
                             @else
                                 <x-heroicon-s-camera class="w-8 h-8 text-base-content/30" />
-                                <span class="text-xs font-bold text-base-content/65 mt-2">Ambil Foto / Pilih Gambar</span>
-                                <span class="text-[9px] text-base-content/40 mt-0.5">Tampak Dalam Toko</span>
+                                <span class="text-xs font-bold text-base-content/65 mt-2">Ambil Foto Kamera</span>
+                                <span class="text-[9px] text-base-content/40 mt-0.5">Wajib langsung dari Kamera</span>
                             @endif
 
                             {{-- Upload Progress Indicator --}}
-                            <div x-show="isUploading" class="absolute inset-0 bg-base-100/90 flex flex-col items-center justify-center p-4 z-20 transition-all duration-300">
+                            <div x-show="isUploading" class="absolute inset-0 bg-base-100/90 flex flex-col items-center justify-center p-4 z-20 transition-all duration-300" x-cloak>
                                 <span class="loading loading-spinner loading-md text-primary"></span>
-                                <span class="text-xs font-bold text-base-content/70 mt-2">Mengunggah... <span x-text="progress + '%'"></span></span>
+                                <span class="text-xs font-bold text-base-content/70 mt-2 flex flex-col items-center gap-1">
+                                    <span>Mengompres &amp; Mengunggah...</span>
+                                    <span x-text="progress + '%'"></span>
+                                </span>
                                 <progress class="progress progress-primary w-2/3 mt-2" :value="progress" max="100"></progress>
                             </div>
                         </div>
+                        <template x-if="errorMessage">
+                            <span class="text-error text-[10px] font-semibold mt-1 ml-1" x-text="errorMessage"></span>
+                        </template>
                         @error('foto_dalam') <span class="text-error text-[10px] font-semibold mt-1 ml-1">{{ $message }}</span> @enderror
                     </div>
 
