@@ -406,6 +406,7 @@ class ListTokoPareto extends Component
     public function export()
     {
         // Data yang diekspor mengambil dari getBaseQuery() yang sudah diamankan dengan applyRegionAccess()
+        return Excel::download(new ListTokoParetoExport($this->getBaseQuery()), 'List_Toko_Pareto_Team_Elite.xlsx');
     }
 
     public function addToJks($id)

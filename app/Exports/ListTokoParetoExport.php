@@ -2,11 +2,11 @@
 
 namespace App\Exports;
 
-use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 
-class ListTokoParetoExport implements FromQuery, WithHeadings, WithMapping
+class ListTokoParetoExport implements FromCollection, WithHeadings, WithMapping
 {
     protected $query;
 
@@ -15,9 +15,9 @@ class ListTokoParetoExport implements FromQuery, WithHeadings, WithMapping
         $this->query = $query;
     }
 
-    public function query()
+    public function collection()
     {
-        return $this->query;
+        return $this->query->get();
     }
 
     public function headings(): array
