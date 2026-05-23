@@ -40,6 +40,7 @@ class ListTokoParetoExport implements FromQuery, WithHeadings, WithMapping
             'Longitude',
             'Pilar',
             'Target',
+            'On JKS',
         ];
     }
 
@@ -63,6 +64,7 @@ class ListTokoParetoExport implements FromQuery, WithHeadings, WithMapping
             $row->longitude,
             $row->pilar,
             $row->target,
+            $row->on_jks,
         ];
     }
 }

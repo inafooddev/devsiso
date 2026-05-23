@@ -43,6 +43,7 @@ use App\Livewire\MenuManagement;
 use App\Livewire\Pages\UnderBounce;
 use App\Livewire\Pages\UnderConstruction;
 use App\Livewire\PlanCallTeamElite\Import as PlanCallTeamEliteImportComponent;
+use App\Livewire\JksTeamElite\Index as JksTeamEliteIndex;
 use App\Livewire\PlanCallTeamElite\ListTokoPareto;
 use App\Livewire\Product\BrandProduct\Index as ProductBrandIndex;
 use App\Livewire\Product\CategoriesProduct\Index as CategoryIndex;
@@ -180,6 +181,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/call-plan', CallPlanIndex::class)->name('call-plan.index');
     Route::get('/plan-call-team-elite/import', PlanCallTeamEliteImportComponent::class)->name('plan-call-team-elite.import');
     Route::get('/plan-call-team-elite/toko-pareto', ListTokoPareto::class)->name('plan-call-team-elite.toko-pareto');
+    Route::get('/jks-team-elite', JksTeamEliteIndex::class)->name('jks-team-elite.index');
 
     // ==========================================
     // SELLING IN & OUT

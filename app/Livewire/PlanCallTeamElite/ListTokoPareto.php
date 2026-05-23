@@ -34,6 +34,7 @@ class ListTokoPareto extends Component
     public $isEditModalOpen = false;
     public $isDeleteModalOpen = false;
     public $isCreateModalOpen = false; // Modal Tambah Customer
+    public $isAddToJksModalOpen = false; // Modal Add to JKS
 
     // Properti Import
     public $importFile;
@@ -45,6 +46,9 @@ class ListTokoPareto extends Component
 
     // Properti Hapus
     public $deleteId;
+
+    // Properti Add to JKS
+    public $selectedJksId, $jksTanggal, $jksKodeTeam;
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -122,7 +126,8 @@ class ListTokoPareto extends Component
                 'ms.description as supervisor_name',
                 'l.distributor_code', 'm.distributor_name',
                 'l.customer_code_prc', 'l.customer_name', 'l.customer_address',
-                'l.kecamatan', 'l.desa', 'l.latitude', 'l.longitude', 'l.pilar', 'l.target'
+                'l.kecamatan', 'l.desa', 'l.latitude', 'l.longitude', 'l.pilar', 'l.target',
+                DB::raw("CASE WHEN EXISTS (SELECT 1 FROM jks_team_elite as j WHERE l.distributor_code = j.distributor_code AND l.customer_code_prc = j.custno) THEN 'Y' ELSE 'T' END as on_jks")
             );
 
         // --- PROTEKSI KEAMANAN DATA UTAMA ---
@@ -186,11 +191,18 @@ class ListTokoPareto extends Component
 
         $data = $this->getBaseQuery()->paginate(15);
 
+        $teams = DB::table('fsalesman')
+            ->where('TEAM', 'SPI')
+            ->select('SLSNO as kode_team', 'SLSNAME as nama_team')
+            ->orderBy('SLSNAME')
+            ->get();
+
         return view('livewire.plan-call-team-elite.list-toko-pareto', [
             'data' => $data,
             'regions' => $regions,
             'areas' => $areas,
             'supervisors' => $supervisors,
+            'teams' => $teams,
         ])->layout('layouts.app');
     }
 
@@ -394,6 +406,58 @@ class ListTokoPareto extends Component
     public function export()
     {
         // Data yang diekspor mengambil dari getBaseQuery() yang sudah diamankan dengan applyRegionAccess()
-        return Excel::download(new ListTokoParetoExport($this->getBaseQuery()), 'List_Toko_Pareto_Team_Elite.xlsx');
+    }
+
+    public function addToJks($id)
+    {
+        $this->selectedJksId = $id;
+        $this->jksTanggal = date('Y-m-d');
+        $this->jksKodeTeam = '';
+        $this->isAddToJksModalOpen = true;
+    }
+
+    public function storeToJks()
+    {
+        $this->validate([
+            'jksTanggal' => 'required|date',
+            'jksKodeTeam' => 'required|string',
+        ]);
+
+        $toko = DB::table('list_toko_pareto_team_elite as l')
+            ->leftJoin('master_distributors as m', 'l.distributor_code', '=', 'm.distributor_code')
+            ->leftJoin('mapping_spv_code as msc', 'm.branch_code', '=', 'msc.branch_code')
+            ->leftJoin('master_supervisors as ms', 'm.supervisor_code', '=', 'ms.supervisor_code')
+            ->select(
+                'm.region_code', 'm.region_name',
+                'm.area_code', 'm.area_name',
+                'msc.supervisor_code',
+                'l.distributor_code', 'm.distributor_name',
+                'l.customer_code_prc', 'l.customer_name', 'l.customer_address'
+            )
+            ->where('l.id', $this->selectedJksId)
+            ->first();
+
+        if ($toko) {
+            $team = DB::table('fsalesman')->where('SLSNO', $this->jksKodeTeam)->first();
+            $namaTeam = $team ? $team->SLSNAME : '-';
+
+            \App\Models\JksTeamElite::create([
+                'distributor_code' => $toko->distributor_code,
+                'custno' => $toko->customer_code_prc,
+                'tanggal' => $this->jksTanggal,
+                'kode_team' => $this->jksKodeTeam,
+                'nama_team' => $namaTeam,
+                'kode_region' => $toko->region_code ?? '-',
+                'nama_region' => $toko->region_name ?? '-',
+                'kode_area' => $toko->area_code ?? '-',
+                'nama_area' => $toko->area_name ?? '-',
+                'distributor_name' => $toko->distributor_name ?? '-',
+                'custname' => $toko->customer_name ?? '-',
+                'addres' => $toko->customer_address ?? '-',
+            ]);
+
+            $this->isAddToJksModalOpen = false;
+            session()->flash('message', 'Toko berhasil ditambahkan ke JKS Team Elite.');
+        }
     }
 }

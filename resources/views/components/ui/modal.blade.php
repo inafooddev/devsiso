@@ -28,6 +28,7 @@
     'size'        => 'md',
     'dismissible' => true,
     'open'        => false,
+    'boxClass'    => '',
 ])
 
 @php
@@ -41,7 +42,7 @@
 @endphp
 
 <dialog id="{{ $id }}" {{ $attributes->merge(['class' => 'modal modal-bottom sm:modal-middle ' . ($open ? 'modal-open' : '')]) }}>
-    <div class="modal-box bg-base-100 border border-base-300 {{ $sizeClass }} p-0">
+    <div class="modal-box bg-base-100 border border-base-300 {{ $sizeClass }} p-0 {{ $boxClass }}">
 
         {{-- Header --}}
         <div class="flex items-center justify-between px-6 py-4 border-b border-base-300">

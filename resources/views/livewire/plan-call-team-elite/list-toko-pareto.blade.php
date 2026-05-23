@@ -1,402 +1,425 @@
 <div>
     <x-slot name="title">List Toko Pareto (Team Elite)</x-slot>
 
+    @php
+        $getSortIcon = function($column) use ($sortColumn, $sortDirection) {
+            if ($sortColumn !== $column) return 'chevron-up-down';
+            return $sortDirection === 'asc' ? 'chevron-up' : 'chevron-down';
+        };
+        $getSortClass = function($column) use ($sortColumn) {
+            return $sortColumn === $column ? 'w-4 h-4 text-primary' : 'w-4 h-4 text-base-content/30';
+        };
+    @endphp
+
     <div class="mx-auto p-4 sm:p-6 lg:p-8">
         
         <!-- Notifikasi -->
         @if (session()->has('message'))
-            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow-sm">
+            <x-ui.notif type="success" dismissible class="mb-6">
                 {{ session('message') }}
-            </div>
+            </x-ui.notif>
         @endif
         @if (session()->has('error'))
-            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow-sm">
+            <x-ui.notif type="error" dismissible class="mb-6">
                 {{ session('error') }}
-            </div>
+            </x-ui.notif>
         @endif
 
-        <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-200">
+        <div class="bg-base-100 shadow-xl rounded-2xl overflow-hidden border border-base-200">
             <!-- Header Panel -->
-            <div class="px-6 py-4 border-b bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="px-6 py-4 border-b border-base-200 bg-base-200/30 flex flex-col md:flex-row justify-between items-center gap-4">
                 
                 <!-- Kiri: Search -->
                 <div class="w-full md:w-1/3 relative">
-                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    <x-heroicon-s-magnifying-glass class="w-4 h-4 absolute left-3 top-2.5 text-base-content/50" />
                     <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari Kode/Nama/Alamat/Pilar..." 
-                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm">
+                           class="input input-sm input-bordered w-full pl-9 focus:input-primary">
                 </div>
 
                 <!-- Kanan: Aksi (Tambah, Filter, Import, Export) -->
                 <div class="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
-                    <!-- TOMBOL TAMBAH CUSTOMER BARU -->
-                    <button wire:click="openFilterModal" class="inline-flex items-center px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-semibold rounded-lg transition shadow-sm whitespace-nowrap">
-                        <i class="fas fa-filter mr-2"></i> Filter
+                    <!-- TOMBOL FILTER -->
+                    <x-ui.button variant="neutral" size="sm" outline wire:click="openFilterModal">
+                        <x-heroicon-s-funnel class="w-4 h-4 mr-1" /> Filter
                         @if($filterRegion || $filterArea || $filterSupervisor)
-                            <span class="ml-2 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">!</span>
+                            <div class="badge badge-primary badge-sm ml-2">!</div>
                         @endif
-                    </button>                    
-                    <button wire:click="openCreateModal" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition shadow-sm whitespace-nowrap">
-                        <i class="fas fa-plus mr-2"></i> Tambah Customer
-                    </button>
+                    </x-ui.button>                    
                     
+                    <!-- TOMBOL TAMBAH CUSTOMER BARU -->
+                    <x-ui.button variant="primary" size="sm" wire:click="openCreateModal" icon="plus">
+                        Tambah Customer
+                    </x-ui.button>
+                    
+                    <x-ui.button variant="success" size="sm" wire:click="openImportModal">
+                        <x-heroicon-s-arrow-down-on-square class="w-4 h-4 mr-1" /> Import
+                    </x-ui.button>
 
-                    <button wire:click="openImportModal" class="inline-flex items-center px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-lg transition shadow-sm whitespace-nowrap">
-                        <i class="fas fa-file-import mr-2"></i> Import
-                    </button>
-                    <button wire:click="export" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition shadow-sm whitespace-nowrap" wire:loading.attr="disabled" wire:target="export">
-                        <span wire:loading.remove wire:target="export"><i class="fas fa-file-export mr-2"></i> Export</span>
-                        <span wire:loading wire:target="export"><i class="fas fa-spinner fa-spin mr-2"></i> Proses...</span>
-                    </button>
+                    <x-ui.button variant="info" size="sm" wire:click="export" wire:loading.attr="disabled" wire:target="export">
+                        <span wire:loading.remove wire:target="export" class="flex items-center gap-1">
+                            <x-heroicon-s-arrow-up-on-square class="w-4 h-4" /> Export
+                        </span>
+                        <span wire:loading wire:target="export" class="flex items-center gap-1">
+                            <span class="loading loading-spinner loading-xs"></span> Proses...
+                        </span>
+                    </x-ui.button>
                 </div>
             </div>
 
             <!-- Tabel -->
-            <div class="overflow-x-auto custom-scroll max-h-[65vh]">
-                <table class="min-w-full divide-y divide-gray-200">
-                   <thead class="bg-gray-100 sticky top-0 z-10 shadow-sm">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-20">Aksi</th>
-                            
-                            <th wire:click="sortBy('m.region_name')" class="cursor-pointer hover:bg-gray-200 px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider select-none transition-colors">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span>Region</span>
-                                    <i class="fas fa-sort{{ $sortColumn === 'm.region_name' ? ($sortDirection === 'asc' ? '-up text-blue-600' : '-down text-blue-600') : ' text-gray-300' }}"></i>
-                                </div>
-                            </th>
-                            
-                            <th wire:click="sortBy('m.area_name')" class="cursor-pointer hover:bg-gray-200 px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider select-none transition-colors">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span>Area</span>
-                                    <i class="fas fa-sort{{ $sortColumn === 'm.area_name' ? ($sortDirection === 'asc' ? '-up text-blue-600' : '-down text-blue-600') : ' text-gray-300' }}"></i>
-                                </div>
-                            </th>
-                            
-                            <th wire:click="sortBy('m.distributor_name')" class="cursor-pointer hover:bg-gray-200 px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider select-none transition-colors">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span>Distributor</span>
-                                    <i class="fas fa-sort{{ $sortColumn === 'm.distributor_name' ? ($sortDirection === 'asc' ? '-up text-blue-600' : '-down text-blue-600') : ' text-gray-300' }}"></i>
-                                </div>
-                            </th>
-                            
-                            <th wire:click="sortBy('ms.description')" class="cursor-pointer hover:bg-gray-200 px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider select-none transition-colors">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span>Supervisor</span>
-                                    <i class="fas fa-sort{{ $sortColumn === 'ms.description' ? ($sortDirection === 'asc' ? '-up text-blue-600' : '-down text-blue-600') : ' text-gray-300' }}"></i>
-                                </div>
-                            </th>
-                            
-                            <th wire:click="sortBy('l.customer_code_prc')" class="cursor-pointer hover:bg-gray-200 px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider select-none transition-colors">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span>Kode PRC</span>
-                                    <i class="fas fa-sort{{ $sortColumn === 'l.customer_code_prc' ? ($sortDirection === 'asc' ? '-up text-blue-600' : '-down text-blue-600') : ' text-gray-300' }}"></i>
-                                </div>
-                            </th>
-                            
-                            <th wire:click="sortBy('l.customer_name')" class="cursor-pointer hover:bg-gray-200 px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider select-none transition-colors">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span>Toko</span>
-                                    <i class="fas fa-sort{{ $sortColumn === 'l.customer_name' ? ($sortDirection === 'asc' ? '-up text-blue-600' : '-down text-blue-600') : ' text-gray-300' }}"></i>
-                                </div>
-                            </th>
-                            
-                            <th wire:click="sortBy('l.customer_address')" class="cursor-pointer hover:bg-gray-200 px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider select-none transition-colors">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span>Alamat</span>
-                                    <i class="fas fa-sort{{ $sortColumn === 'l.customer_address' ? ($sortDirection === 'asc' ? '-up text-blue-600' : '-down text-blue-600') : ' text-gray-300' }}"></i>
-                                </div>
-                            </th>
-                            
-                            <th wire:click="sortBy('l.kecamatan')" class="cursor-pointer hover:bg-gray-200 px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider select-none transition-colors">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span>Kecamatan</span>
-                                    <i class="fas fa-sort{{ $sortColumn === 'l.kecamatan' ? ($sortDirection === 'asc' ? '-up text-blue-600' : '-down text-blue-600') : ' text-gray-300' }}"></i>
-                                </div>
-                            </th>
-                            
-                            <th wire:click="sortBy('l.desa')" class="cursor-pointer hover:bg-gray-200 px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider select-none transition-colors">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span>Desa</span>
-                                    <i class="fas fa-sort{{ $sortColumn === 'l.desa' ? ($sortDirection === 'asc' ? '-up text-blue-600' : '-down text-blue-600') : ' text-gray-300' }}"></i>
-                                </div>
-                            </th>
-                            
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Lat, Lng</th>
-                            
-                            <th wire:click="sortBy('l.pilar')" class="cursor-pointer hover:bg-gray-200 px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider select-none transition-colors">
-                                <div class="flex items-center justify-center gap-2">
-                                    <span>Pilar</span>
-                                    <i class="fas fa-sort{{ $sortColumn === 'l.pilar' ? ($sortDirection === 'asc' ? '-up text-blue-600' : '-down text-blue-600') : ' text-gray-300' }}"></i>
-                                </div>
-                            </th>
-                            
-                            <th wire:click="sortBy('l.target')" class="cursor-pointer hover:bg-gray-200 px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider select-none transition-colors">
-                                <div class="flex items-center justify-end gap-2">
-                                    <i class="fas fa-sort{{ $sortColumn === 'l.target' ? ($sortDirection === 'asc' ? '-up text-blue-600' : '-down text-blue-600') : ' text-gray-300' }}"></i>
-                                    <span>Target</span>
-                                </div>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200 text-sm">
-                        @forelse($data as $item)
-                        <tr class="hover:bg-blue-50/50">
-                            <td class="px-4 py-3 whitespace-nowrap flex gap-2">
-                                <button wire:click="edit({{ $item->id }})" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded" title="Edit"><i class="fas fa-edit"></i></button>
-                                <button wire:click="confirmDelete({{ $item->id }})" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded" title="Hapus"><i class="fas fa-trash"></i></button>
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-gray-600">{{ $item->region_name }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-gray-600">{{ $item->area_name }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-gray-600">
-                                <b>{{ $item->distributor_name }}</b><br><span class="text-[10px] text-gray-400">{{ $item->distributor_code }}</span>
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-gray-600">{{ $item->supervisor_name }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap font-mono text-gray-600">{{ $item->customer_code_prc }}</td>
-                            <td class="px-4 py-3 min-w-[200px] text-gray-800 font-bold">{{ $item->customer_name }}</td>
-                            <td class="px-4 py-3 min-w-[250px] text-gray-500 text-xs">{{ $item->customer_address }}</td>
-                            <td class="px-4 py-3 text-gray-600">{{ $item->kecamatan }}</td>
-                            <td class="px-4 py-3 text-gray-600">{{ $item->desa }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-gray-500 text-xs">
-                                {{ $item->latitude ?? '-' }}, <br> {{ $item->longitude ?? '-' }}
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-center">
-                                <span class="px-2 py-1 rounded bg-gray-100 text-xs font-bold">{{ $item->pilar }}</span>
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-right font-mono font-bold">{{ number_format($item->target, 0, ',', '.') }}</td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="13" class="px-6 py-12 text-center text-gray-500">
-                                <i class="fas fa-folder-open text-4xl mb-3 text-gray-300 block"></i>
-                                Tidak ada data ditemukan.
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+            <x-ui.table hover striped sticky loading="{{ false }}" empty="Tidak ada data ditemukan." class="border-x-0 border-b-0 rounded-none shadow-none">
+                <x-slot:head>
+                    <tr>
+                        <th class="w-20">Aksi</th>
+                        
+                        <th wire:click="sortBy('m.region_name')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Region</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('m.region_name')" class="{{ $getSortClass('m.region_name') }}" />
+                            </div>
+                        </th>
+                        
+                        <th wire:click="sortBy('m.area_name')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Area</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('m.area_name')" class="{{ $getSortClass('m.area_name') }}" />
+                            </div>
+                        </th>
+                        
+                        <th wire:click="sortBy('m.distributor_name')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Distributor</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('m.distributor_name')" class="{{ $getSortClass('m.distributor_name') }}" />
+                            </div>
+                        </th>
+                        
+                        <th wire:click="sortBy('ms.description')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Supervisor</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('ms.description')" class="{{ $getSortClass('ms.description') }}" />
+                            </div>
+                        </th>
+                        
+                        <th wire:click="sortBy('l.customer_code_prc')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Kode PRC</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.customer_code_prc')" class="{{ $getSortClass('l.customer_code_prc') }}" />
+                            </div>
+                        </th>
+                        
+                        <th wire:click="sortBy('l.customer_name')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Toko</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.customer_name')" class="{{ $getSortClass('l.customer_name') }}" />
+                            </div>
+                        </th>
+                        
+                        <th wire:click="sortBy('l.customer_address')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Alamat</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.customer_address')" class="{{ $getSortClass('l.customer_address') }}" />
+                            </div>
+                        </th>
+                        
+                        <th wire:click="sortBy('l.kecamatan')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Kecamatan</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.kecamatan')" class="{{ $getSortClass('l.kecamatan') }}" />
+                            </div>
+                        </th>
+                        
+                        <th wire:click="sortBy('l.desa')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Desa</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.desa')" class="{{ $getSortClass('l.desa') }}" />
+                            </div>
+                        </th>
+                        
+                        <th>Lat, Lng</th>
+                        
+                        <th wire:click="sortBy('l.pilar')" class="cursor-pointer hover:bg-base-200 text-center select-none transition-colors">
+                            <div class="flex items-center justify-center gap-2">
+                                <span>Pilar</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.pilar')" class="{{ $getSortClass('l.pilar') }}" />
+                            </div>
+                        </th>
+                        
+                        <th wire:click="sortBy('l.target')" class="cursor-pointer hover:bg-base-200 text-right select-none transition-colors">
+                            <div class="flex items-center justify-end gap-2">
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.target')" class="{{ $getSortClass('l.target') }}" />
+                                <span>Target</span>
+                            </div>
+                        </th>
+                        
+                        <th wire:click="sortBy('on_jks')" class="cursor-pointer hover:bg-base-200 text-center select-none transition-colors">
+                            <div class="flex items-center justify-center gap-2">
+                                <span>on JKS</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('on_jks')" class="{{ $getSortClass('on_jks') }}" />
+                            </div>
+                        </th>
+                    </tr>
+                </x-slot:head>
+
+                @foreach($data as $item)
+                <tr>
+                    <td class="whitespace-nowrap flex gap-1">
+                        <x-ui.button size="xs" variant="info" outline wire:click="edit({{ $item->id }})" title="Edit" icon="pencil-square"></x-ui.button>
+                        <x-ui.button size="xs" variant="error" outline wire:click="confirmDelete({{ $item->id }})" title="Hapus" icon="trash"></x-ui.button>
+                        <x-ui.button size="xs" variant="success" outline wire:click="addToJks({{ $item->id }})" title="Add to JKS" icon="plus-circle"></x-ui.button>
+                    </td>
+                    <td class="whitespace-nowrap">{{ $item->region_name }}</td>
+                    <td class="whitespace-nowrap">{{ $item->area_name }}</td>
+                    <td class="whitespace-nowrap">
+                        <span class="font-bold">{{ $item->distributor_name }}</span><br>
+                        <span class="text-[10px] text-base-content/50">{{ $item->distributor_code }}</span>
+                    </td>
+                    <td class="whitespace-nowrap">{{ $item->supervisor_name }}</td>
+                    <td class="whitespace-nowrap font-mono">{{ $item->customer_code_prc }}</td>
+                    <td class="min-w-[200px] font-bold">{{ $item->customer_name }}</td>
+                    <td class="min-w-[250px] text-xs opacity-70">{{ $item->customer_address }}</td>
+                    <td>{{ $item->kecamatan }}</td>
+                    <td>{{ $item->desa }}</td>
+                    <td class="whitespace-nowrap text-xs opacity-70">
+                        {{ $item->latitude ?? '-' }}, <br> {{ $item->longitude ?? '-' }}
+                    </td>
+                    <td class="whitespace-nowrap text-center">
+                        <x-ui.badge variant="neutral">{{ $item->pilar }}</x-ui.badge>
+                    </td>
+                    <td class="whitespace-nowrap text-right font-mono font-bold">{{ number_format($item->target, 0, ',', '.') }}</td>
+                    <td class="whitespace-nowrap text-center">
+                        @if($item->on_jks === 'Y')
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-slate-100 text-emerald-600 font-bold border border-slate-300">Y</span>
+                        @else
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-slate-100 text-rose-600 font-bold border border-slate-300">T</span>
+                        @endif
+                    </td>
+                </tr>
+                @endforeach
+            </x-ui.table>
             
-            <div class="px-6 py-4 border-t bg-gray-50">
-                {{ $data->links() }}
-            </div>
+            @if($data->hasPages())
+                <div class="px-6 py-4 border-t border-base-200 bg-base-200/30">
+                    {{ $data->links() }}
+                </div>
+            @endif
         </div>
     </div>
 
     <!-- MODAL FILTER -->
-    @if($isFilterModalOpen)
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden transform transition-all">
-            <div class="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
-                <h3 class="font-bold text-gray-800">Filter Data</h3>
-                <button wire:click="closeFilterModal" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+    <x-ui.modal id="modal-filter" title="Filter Data" icon="funnel" :open="$isFilterModalOpen" wire:close="closeFilterModal">
+        <div class="space-y-4">
+            <div class="form-control w-full">
+                <label class="label"><span class="label-text font-semibold">Region</span></label>
+                <select wire:model.live="filterRegion" class="select select-sm select-bordered w-full">
+                    <option value="">-- Semua Region --</option>
+                    @foreach($regions as $r) <option value="{{ $r->region_code }}">{{ $r->region_name }}</option> @endforeach
+                </select>
             </div>
-            <div class="p-6 space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Region</label>
-                    <select wire:model.live="filterRegion" class="w-full border-gray-300 rounded-lg focus:ring-blue-500 text-sm">
-                        <option value="">-- Semua Region --</option>
-                        @foreach($regions as $r) <option value="{{ $r->region_code }}">{{ $r->region_name }}</option> @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Area</label>
-                    <select wire:model.live="filterArea" class="w-full border-gray-300 rounded-lg focus:ring-blue-500 text-sm" @if(!$filterRegion) disabled @endif>
-                        <option value="">-- Semua Area --</option>
-                        @foreach($areas as $a) <option value="{{ $a->area_code }}">{{ $a->area_name }}</option> @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Supervisor</label>
-                    <select wire:model.live="filterSupervisor" class="w-full border-gray-300 rounded-lg focus:ring-blue-500 text-sm" @if(!$filterArea) disabled @endif>
-                        <option value="">-- Semua Supervisor --</option>
-                        @foreach($supervisors as $s) <option value="{{ $s->supervisor_code }}">{{ $s->supervisor_name }}</option> @endforeach
-                    </select>
-                </div>
+            <div class="form-control w-full">
+                <label class="label"><span class="label-text font-semibold">Area</span></label>
+                <select wire:model.live="filterArea" class="select select-sm select-bordered w-full" @if(!$filterRegion) disabled @endif>
+                    <option value="">-- Semua Area --</option>
+                    @foreach($areas as $a) <option value="{{ $a->area_code }}">{{ $a->area_name }}</option> @endforeach
+                </select>
             </div>
-            <div class="px-6 py-4 bg-gray-50 flex justify-end gap-2">
-                <button wire:click="resetFilter" class="px-4 py-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg font-semibold text-sm">Reset</button>
-                <button wire:click="applyFilter" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm">Terapkan</button>
+            <div class="form-control w-full">
+                <label class="label"><span class="label-text font-semibold">Supervisor</span></label>
+                <select wire:model.live="filterSupervisor" class="select select-sm select-bordered w-full" @if(!$filterArea) disabled @endif>
+                    <option value="">-- Semua Supervisor --</option>
+                    @foreach($supervisors as $s) <option value="{{ $s->supervisor_code }}">{{ $s->supervisor_name }}</option> @endforeach
+                </select>
             </div>
         </div>
-    </div>
-    @endif
+        <x-slot:footer>
+            <x-ui.button variant="error" outline wire:click="resetFilter">Reset</x-ui.button>
+            <x-ui.button variant="primary" wire:click="applyFilter">Terapkan</x-ui.button>
+        </x-slot:footer>
+    </x-ui.modal>
 
     <!-- MODAL IMPORT -->
-    @if($isImportModalOpen)
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden transform transition-all">
-            <form wire:submit.prevent="import">
-                <div class="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-800">Import Excel (Full Sync)</h3>
-                    <button type="button" wire:click="$set('isImportModalOpen', false)" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-                </div>
-                <div class="p-6">
-                    <div class="bg-blue-50 text-blue-800 text-xs p-3 rounded mb-4 border border-blue-200">
-                        <b>Info Full Sync:</b><br>Jika "Kode PRC + Distributor" sudah ada, data akan di-Update. Jika belum ada, akan di-Insert.
-                    </div>
+    <x-ui.modal id="modal-import" title="Import Excel (Full Sync)" icon="arrow-down-on-square" :open="$isImportModalOpen" wire:close="$set('isImportModalOpen', false)">
+        <form wire:submit.prevent="import">
+            <x-ui.notif type="info" class="mb-4 text-xs">
+                <b>Info Full Sync:</b><br>Jika "Kode PRC + Distributor" sudah ada, data akan di-Update. Jika belum ada, akan di-Insert.
+            </x-ui.notif>
 
-                    <!-- TOMBOL DOWNLOAD TEMPLATE -->
-                    <button type="button" wire:click="downloadTemplate" class="mb-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 text-sm font-bold rounded-lg border border-green-300 transition">
-                        <i class="fas fa-file-excel"></i> Download Template Format
-                    </button>
+            <x-ui.button type="button" variant="success" outline block wire:click="downloadTemplate" class="mb-4">
+                <x-heroicon-s-document-arrow-down class="w-4 h-4 mr-2" /> Download Template Format
+            </x-ui.button>
 
-                    <input type="file" wire:model="importFile" class="w-full border border-gray-300 rounded p-2 text-sm" accept=".xlsx,.xls,.csv" required>
-                    @error('importFile') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-                </div>
-                <div class="px-6 py-4 bg-gray-50 flex justify-end gap-2">
-                    <button type="button" wire:click="$set('isImportModalOpen', false)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold text-sm">Batal</button>
-                    <button type="submit" wire:loading.attr="disabled" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-semibold text-sm flex items-center">
-                        <span wire:loading.remove wire:target="import">Upload & Sync</span>
-                        <span wire:loading wire:target="import"><i class="fas fa-spinner fa-spin mr-2"></i> Proses...</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-    @endif
+            <div class="form-control w-full">
+                <input type="file" wire:model="importFile" class="file-input file-input-bordered file-input-sm w-full" accept=".xlsx,.xls,.csv" required>
+                @error('importFile') <span class="text-error text-xs mt-1">{{ $message }}</span> @enderror
+            </div>
+            
+            <div class="flex justify-end gap-2 mt-6">
+                <x-ui.button type="button" variant="neutral" outline wire:click="$set('isImportModalOpen', false)">Batal</x-ui.button>
+                <x-ui.button type="submit" variant="primary" icon="cloud-arrow-up" wire:loading.attr="disabled" wire:target="import">
+                    <span wire:loading.remove wire:target="import">Upload & Sync</span>
+                    <span wire:loading wire:target="import">Proses...</span>
+                </x-ui.button>
+            </div>
+        </form>
+    </x-ui.modal>
 
     <!-- MODAL TAMBAH CUSTOMER BARU -->
-    @if($isCreateModalOpen)
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all">
-            <form wire:submit.prevent="store">
-                <div class="px-6 py-4 border-b bg-gray-50 sticky top-0 z-10 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-800">Tambah Customer Baru</h3>
-                    <button type="button" wire:click="$set('isCreateModalOpen', false)" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+    <x-ui.modal id="modal-create" title="Tambah Customer Baru" icon="plus-circle" size="lg" :open="$isCreateModalOpen" wire:close="$set('isCreateModalOpen', false)">
+        <form wire:submit.prevent="store">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
+                <x-input-text label="Distributor Code *" wire:model="distributor_code" placeholder="Contoh: SBY01" />
+                <x-input-text label="Customer Code PRC *" wire:model="customer_code_prc" placeholder="Contoh: CUST-991" />
+                
+                <div class="md:col-span-2">
+                    <x-input-text label="Nama Toko" wire:model="customer_name" />
                 </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Distributor Code <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="distributor_code" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500" placeholder="Contoh: SBY01">
-                        @error('distributor_code') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Customer Code PRC <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="customer_code_prc" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500" placeholder="Contoh: CUST-991">
-                        @error('customer_code_prc') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Nama Toko</label>
-                        <input type="text" wire:model="customer_name" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Alamat</label>
-                        <textarea wire:model="customer_address" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500" rows="2"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Kecamatan</label>
-                        <input type="text" wire:model="kecamatan" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Desa</label>
-                        <input type="text" wire:model="desa" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Latitude</label>
-                        <input type="text" wire:model="latitude" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500">
-                        @error('latitude') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Longitude</label>
-                        <input type="text" wire:model="longitude" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500">
-                        @error('longitude') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Pilar</label>
-                        <input type="text" wire:model="pilar" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Target</label>
-                        <input type="number" step="0.01" wire:model="target" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500">
-                    </div>
+                <div class="md:col-span-2 form-control mb-4">
+                    <label class="label pb-1"><span class="label-text text-xs font-medium">Alamat</span></label>
+                    <textarea wire:model="customer_address" class="textarea textarea-bordered focus:textarea-primary w-full" rows="2"></textarea>
                 </div>
-                <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-2 sticky bottom-0">
-                    <button type="button" wire:click="$set('isCreateModalOpen', false)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold text-sm">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-sm flex items-center gap-2">
-                        <i class="fas fa-save"></i> Simpan Customer
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-    @endif
+                
+                <x-input-text label="Kecamatan" wire:model="kecamatan" />
+                <x-input-text label="Desa" wire:model="desa" />
+                <x-input-text label="Latitude" wire:model="latitude" />
+                <x-input-text label="Longitude" wire:model="longitude" />
+                <x-input-text label="Pilar" wire:model="pilar" />
+                <x-input-text label="Target" wire:model="target" type="number" step="0.01" />
+            </div>
+            <div class="flex justify-end gap-2 mt-4">
+                <x-ui.button type="button" variant="neutral" outline wire:click="$set('isCreateModalOpen', false)">Batal</x-ui.button>
+                <x-ui.button type="submit" variant="primary" icon="check-circle">Simpan Customer</x-ui.button>
+            </div>
+        </form>
+    </x-ui.modal>
 
     <!-- MODAL EDIT -->
-    @if($isEditModalOpen)
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all">
-            <form wire:submit.prevent="update">
-                <div class="px-6 py-4 border-b bg-gray-50 sticky top-0 z-10 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-800">Edit Toko Pareto</h3>
-                    <button type="button" wire:click="$set('isEditModalOpen', false)" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+    <x-ui.modal id="modal-edit" title="Edit Toko Pareto" icon="pencil-square" size="lg" :open="$isEditModalOpen" wire:close="$set('isEditModalOpen', false)">
+        <form wire:submit.prevent="update">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
+                <div class="form-control mb-4">
+                    <label class="label pb-1"><span class="label-text text-xs font-medium">Distributor Code *</span></label>
+                    <input type="text" wire:model="distributor_code" class="input input-sm input-bordered w-full bg-base-200" readonly>
                 </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Distributor Code <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="distributor_code" class="w-full border-gray-300 rounded text-sm bg-gray-100" readonly>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Customer Code PRC <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="customer_code_prc" class="w-full border-gray-300 rounded text-sm bg-gray-100" readonly>
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Nama Toko</label>
-                        <input type="text" wire:model="customer_name" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Alamat</label>
-                        <textarea wire:model="customer_address" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500" rows="2"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Kecamatan</label>
-                        <input type="text" wire:model="kecamatan" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Desa</label>
-                        <input type="text" wire:model="desa" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Latitude</label>
-                        <input type="text" wire:model="latitude" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500">
-                        @error('latitude') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Longitude</label>
-                        <input type="text" wire:model="longitude" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500">
-                        @error('longitude') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Pilar</label>
-                        <input type="text" wire:model="pilar" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Target</label>
-                        <input type="number" step="0.01" wire:model="target" class="w-full border-gray-300 rounded text-sm focus:ring-blue-500">
-                    </div>
+                <div class="form-control mb-4">
+                    <label class="label pb-1"><span class="label-text text-xs font-medium">Customer Code PRC *</span></label>
+                    <input type="text" wire:model="customer_code_prc" class="input input-sm input-bordered w-full bg-base-200" readonly>
                 </div>
-                <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-2 sticky bottom-0">
-                    <button type="button" wire:click="$set('isEditModalOpen', false)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold text-sm">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm">Simpan Perubahan</button>
+                
+                <div class="md:col-span-2">
+                    <x-input-text label="Nama Toko" wire:model="customer_name" />
                 </div>
-            </form>
-        </div>
-    </div>
-    @endif
+                <div class="md:col-span-2 form-control mb-4">
+                    <label class="label pb-1"><span class="label-text text-xs font-medium">Alamat</span></label>
+                    <textarea wire:model="customer_address" class="textarea textarea-bordered focus:textarea-primary w-full" rows="2"></textarea>
+                </div>
+                
+                <x-input-text label="Kecamatan" wire:model="kecamatan" />
+                <x-input-text label="Desa" wire:model="desa" />
+                <x-input-text label="Latitude" wire:model="latitude" />
+                <x-input-text label="Longitude" wire:model="longitude" />
+                <x-input-text label="Pilar" wire:model="pilar" />
+                <x-input-text label="Target" wire:model="target" type="number" step="0.01" />
+            </div>
+            <div class="flex justify-end gap-2 mt-4">
+                <x-ui.button type="button" variant="neutral" outline wire:click="$set('isEditModalOpen', false)">Batal</x-ui.button>
+                <x-ui.button type="submit" variant="primary" icon="check">Simpan Perubahan</x-ui.button>
+            </div>
+        </form>
+    </x-ui.modal>
 
     <!-- MODAL DELETE -->
-    @if($isDeleteModalOpen)
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden transform transition-all text-center">
-            <div class="p-6">
-                <i class="fas fa-exclamation-triangle text-red-500 text-5xl mb-4 block"></i>
-                <h3 class="font-bold text-gray-800 text-lg mb-2">Hapus Data</h3>
-                <p class="text-sm text-gray-600">Apakah Anda yakin ingin menghapus data toko ini? Tindakan ini tidak dapat dibatalkan.</p>
-            </div>
-            <div class="px-6 py-4 bg-gray-50 flex justify-center gap-3">
-                <button wire:click="$set('isDeleteModalOpen', false)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold text-sm">Batal</button>
-                <button wire:click="delete" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-sm">Ya, Hapus</button>
-            </div>
+    <x-ui.modal id="modal-delete" title="Hapus Data" icon="exclamation-triangle" :open="$isDeleteModalOpen" wire:close="$set('isDeleteModalOpen', false)">
+        <div class="text-center py-4">
+            <x-heroicon-o-exclamation-triangle class="w-16 h-16 text-error mx-auto mb-4" />
+            <p class="text-base-content/70">Apakah Anda yakin ingin menghapus data toko ini? Tindakan ini tidak dapat dibatalkan.</p>
         </div>
-    </div>
-    @endif
+        <x-slot:footer>
+            <div class="w-full flex justify-center gap-3">
+                <x-ui.button type="button" variant="neutral" outline wire:click="$set('isDeleteModalOpen', false)">Batal</x-ui.button>
+                <x-ui.button type="button" variant="error" wire:click="delete">Ya, Hapus</x-ui.button>
+            </div>
+        </x-slot:footer>
+    </x-ui.modal>
+
+    <!-- MODAL ADD TO JKS -->
+    <x-ui.modal id="modal-add-jks" title="Add to JKS Team Elite" icon="plus-circle" :open="$isAddToJksModalOpen" wire:close="$set('isAddToJksModalOpen', false)" boxClass="overflow-visible">
+        <form wire:submit.prevent="storeToJks">
+            <div class="space-y-4">
+                <x-input-text label="Tanggal *" wire:model="jksTanggal" type="date" required />
+                
+                <div class="form-control w-full">
+                    <label class="label pb-1"><span class="label-text text-xs font-medium">Nama Team *</span></label>
+                    <div wire:ignore>
+                        <div x-data="{
+                                search: '',
+                                open: false,
+                                kodeTeam: @entangle('jksKodeTeam'),
+                                options: [
+                                    @foreach($teams as $team)
+                                    { id: String(@js($team->kode_team ?? '')), name: String(@js($team->nama_team ?? '')) },
+                                    @endforeach
+                                ],
+                                get selectedName() {
+                                    let selected = this.options.find(o => o.id === String(this.kodeTeam || ''));
+                                    return selected ? selected.name : '';
+                                },
+                                get filteredOptions() {
+                                    if (this.search === '') return this.options;
+                                    let s = this.search.toLowerCase();
+                                    return this.options.filter(o => o.name.toLowerCase().includes(s) || o.id.toLowerCase().includes(s));
+                                },
+                                selectOption(option) {
+                                    this.kodeTeam = option.id;
+                                    this.open = false;
+                                    this.search = '';
+                                }
+                            }" 
+                            class="relative w-full">
+                            
+                            <!-- Select Trigger -->
+                            <div @click="open = !open" @click.away="open = false" 
+                                 class="input input-sm input-bordered w-full flex items-center justify-between cursor-pointer bg-base-100"
+                                 :class="open ? 'border-primary ring-1 ring-primary' : ''">
+                                <span x-text="selectedName || '-- Pilih Team --'" :class="selectedName ? '' : 'text-base-content/50'"></span>
+                                <x-heroicon-s-chevron-down class="w-4 h-4 text-base-content/50 transition-transform" x-bind:class="open ? 'rotate-180' : ''" />
+                            </div>
+
+                            <!-- Dropdown Options -->
+                            <div x-show="open" x-transition.opacity.duration.200ms
+                                 class="absolute z-[60] w-full mt-1 bg-base-100 border border-base-300 rounded-lg shadow-xl max-h-60 flex flex-col"
+                                 style="display: none;">
+                                <div class="p-2 border-b border-base-200">
+                                    <input type="text" x-model="search" placeholder="Cari nama/kode team..." 
+                                           class="input input-sm input-bordered w-full focus:input-primary" 
+                                           @click.stop>
+                                </div>
+                                <ul class="overflow-y-auto flex-1 p-1">
+                                    <template x-for="option in filteredOptions" :key="option.id">
+                                        <li @click="selectOption(option)" 
+                                            class="px-3 py-2 text-sm cursor-pointer rounded transition-colors"
+                                            :class="String(kodeTeam) === option.id ? 'bg-primary text-primary-content font-bold' : 'hover:bg-base-200 text-base-content'">
+                                            <div class="flex justify-between items-center">
+                                                <span x-text="option.name"></span>
+                                                <span x-text="option.id" class="text-[10px] opacity-60 font-mono"></span>
+                                            </div>
+                                        </li>
+                                    </template>
+                                    <li x-show="filteredOptions.length === 0" class="px-3 py-4 text-sm text-base-content/50 text-center">
+                                        Tidak ada team yang cocok
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    @error('jksKodeTeam')
+                        <label class="label pt-1"><span class="label-text-alt text-error">{{ $message }}</span></label>
+                    @enderror
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <x-ui.button type="button" variant="neutral" outline wire:click="$set('isAddToJksModalOpen', false)">Batal</x-ui.button>
+                <x-ui.button type="submit" variant="primary" icon="check">Simpan ke JKS</x-ui.button>
+            </div>
+        </form>
+    </x-ui.modal>
 
 </div>
