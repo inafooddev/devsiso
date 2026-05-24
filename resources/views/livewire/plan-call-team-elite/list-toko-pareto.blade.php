@@ -25,6 +25,60 @@
             </x-ui.notif>
         @endif
 
+        <!-- KPI CARDS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <!-- Total Toko -->
+            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-building-storefront class="w-24 h-24" /></div>
+                <div class="text-sm text-base-content/70 font-medium z-10">Total Toko</div>
+                <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_toko ?? 0, 0, ',', '.') }}</div>
+                <div class="text-sm text-success mt-2 font-bold z-10 flex items-center gap-1">
+                    <x-heroicon-s-check-circle class="w-4 h-4"/>
+                    On JKS: {{ number_format($kpi->total_toko_jks_y ?? 0, 0, ',', '.') }}
+                </div>
+            </div>
+            <!-- Total Target -->
+            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-currency-dollar class="w-24 h-24" /></div>
+                <div class="text-sm text-base-content/70 font-medium z-10">Total Target</div>
+                <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_target ?? 0, 0, ',', '.') }}</div>
+                <div class="text-sm text-success mt-2 font-bold z-10 flex items-center gap-1">
+                    <x-heroicon-s-check-circle class="w-4 h-4"/>
+                    On JKS: {{ number_format($kpi->total_target_jks_y ?? 0, 0, ',', '.') }}
+                </div>
+            </div>
+            <!-- Toko RWO -->
+            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-tag class="w-24 h-24" /></div>
+                <div class="text-sm text-base-content/70 font-medium z-10">Toko RWO</div>
+                <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_rwo ?? 0, 0, ',', '.') }}</div>
+                <div class="text-sm text-success mt-2 font-bold z-10 flex items-center gap-1">
+                    <x-heroicon-s-check-circle class="w-4 h-4"/>
+                    On JKS: {{ number_format($kpi->total_rwo_jks_y ?? 0, 0, ',', '.') }}
+                </div>
+            </div>
+            <!-- Toko PNR -->
+            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-tag class="w-24 h-24" /></div>
+                <div class="text-sm text-base-content/70 font-medium z-10">Toko PNR</div>
+                <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_pnr ?? 0, 0, ',', '.') }}</div>
+                <div class="text-sm text-success mt-2 font-bold z-10 flex items-center gap-1">
+                    <x-heroicon-s-check-circle class="w-4 h-4"/>
+                    On JKS: {{ number_format($kpi->total_pnr_jks_y ?? 0, 0, ',', '.') }}
+                </div>
+            </div>
+            <!-- Toko NGVO -->
+            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-tag class="w-24 h-24" /></div>
+                <div class="text-sm text-base-content/70 font-medium z-10">Toko NGVO</div>
+                <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_ngvo ?? 0, 0, ',', '.') }}</div>
+                <div class="text-sm text-success mt-2 font-bold z-10 flex items-center gap-1">
+                    <x-heroicon-s-check-circle class="w-4 h-4"/>
+                    On JKS: {{ number_format($kpi->total_ngvo_jks_y ?? 0, 0, ',', '.') }}
+                </div>
+            </div>
+        </div>
+
         <div class="bg-base-100 shadow-xl rounded-2xl overflow-hidden border border-base-200">
             <!-- Header Panel -->
             <div class="px-6 py-4 border-b border-base-200 bg-base-200/30 flex flex-col md:flex-row justify-between items-center gap-4">

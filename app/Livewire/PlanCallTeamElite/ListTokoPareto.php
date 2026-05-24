@@ -191,6 +191,25 @@ class ListTokoPareto extends Component
 
         $data = $this->getBaseQuery()->paginate(15);
 
+        // --- KPI Calculation ---
+        $kpiQuery = clone $this->getBaseQuery();
+        $kpiQuery->orders = null;
+        
+        $kpi = DB::table(DB::raw("({$kpiQuery->toSql()}) as sub"))
+            ->mergeBindings($kpiQuery)
+            ->selectRaw("
+                COUNT(id) as total_toko,
+                SUM(CASE WHEN on_jks = 'Y' THEN 1 ELSE 0 END) as total_toko_jks_y,
+                SUM(COALESCE(CAST(NULLIF(CAST(target AS TEXT), '') AS NUMERIC), 0)) as total_target,
+                SUM(CASE WHEN on_jks = 'Y' THEN COALESCE(CAST(NULLIF(CAST(target AS TEXT), '') AS NUMERIC), 0) ELSE 0 END) as total_target_jks_y,
+                SUM(CASE WHEN pilar = '1. RWO' THEN 1 ELSE 0 END) as total_rwo,
+                SUM(CASE WHEN pilar = '1. RWO' AND on_jks = 'Y' THEN 1 ELSE 0 END) as total_rwo_jks_y,
+                SUM(CASE WHEN pilar = '2. PNR' THEN 1 ELSE 0 END) as total_pnr,
+                SUM(CASE WHEN pilar = '2. PNR' AND on_jks = 'Y' THEN 1 ELSE 0 END) as total_pnr_jks_y,
+                SUM(CASE WHEN pilar = '3. NGVO' THEN 1 ELSE 0 END) as total_ngvo,
+                SUM(CASE WHEN pilar = '3. NGVO' AND on_jks = 'Y' THEN 1 ELSE 0 END) as total_ngvo_jks_y
+            ")->first();
+
         $teams = DB::table('fsalesman')
             ->where('TEAM', 'SPI')
             ->select('SLSNO as kode_team', 'SLSNAME as nama_team')
@@ -203,6 +222,7 @@ class ListTokoPareto extends Component
             'areas' => $areas,
             'supervisors' => $supervisors,
             'teams' => $teams,
+            'kpi' => $kpi,
         ])->layout('layouts.app');
     }
 
