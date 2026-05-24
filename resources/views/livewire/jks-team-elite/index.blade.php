@@ -118,10 +118,17 @@
                     </div>
 
                     {{-- Tombol Export --}}
-                    <button wire:click="export" class="btn btn-sm btn-success rounded-xl normal-case gap-2 shadow-sm text-white">
-                        <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
-                        Export
-                    </button>
+                    @php
+                        $canExport = !empty($filterTeam) && !empty($filterStartDate) && !empty($filterEndDate);
+                    @endphp
+                    <div class="tooltip tooltip-bottom" data-tip="{{ !$canExport ? 'Pilih Team dan tanggal terlebih dahulu' : 'Export data ke Excel' }}">
+                        <button wire:click="export"
+                            {{ !$canExport ? 'disabled' : '' }}
+                            class="btn btn-sm btn-success rounded-xl normal-case gap-2 shadow-sm text-white {{ !$canExport ? 'btn-disabled opacity-40 cursor-not-allowed' : '' }}">
+                            <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
+                            Export
+                        </button>
+                    </div>
 
                     {{-- Tombol Import --}}
                     @unless(auth()->user()->hasRole('guest'))

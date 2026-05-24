@@ -44,4 +44,22 @@ class Menu extends Model
     {
         return $this->belongsToMany(User::class, 'menu_user')->withTimestamps();
     }
+
+    /**
+     * The roles that belong to the menu.
+     */
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(\Spatie\Permission\Models\Role::class, 'menu_role')
+                    ->withPivot('can_edit', 'can_import', 'can_export')
+                    ->withTimestamps();
+    }
+
+    /**
+     * The access groups that belong to the menu.
+     */
+    public function accessGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(AccessGroup::class, 'access_group_menu')->withTimestamps();
+    }
 }

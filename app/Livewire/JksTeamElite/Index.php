@@ -434,6 +434,11 @@ class Index extends Component
      */
     public function export()
     {
+        if (empty($this->filterTeam) || empty($this->filterStartDate) || empty($this->filterEndDate)) {
+            session()->flash('error', 'Pilih Team dan rentang tanggal terlebih dahulu sebelum export.');
+            return;
+        }
+
         return Excel::download(
             new JksTeamEliteExport($this->filterTeam, $this->filterStartDate, $this->filterEndDate), 
             'jks_team_elite.xlsx'

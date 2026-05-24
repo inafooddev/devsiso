@@ -31,14 +31,8 @@ class CheckMenuAccess
             return $next($request);
         }
 
-        // Get all allowed routes for the user
-        $allowedRoutes = $user->menus()->whereNotNull('route')->pluck('route')->toArray();
-
-        // For dashboard/home, usually we want to bypass, but let's strictly check if requested.
-        // Wait, if we enforce this strictly, any route not in the database will 403.
-        // The user said: "Jika user akses URL tanpa izin → 403", and "Jangan ubah route lama, hanya beri contoh penggunaan middleware di beberapa route"
-        // So they will only apply it to specific routes anyway.
-        if (in_array($currentRouteName, $allowedRoutes)) {
+        // Check access using the new matrix method
+        if ($user->hasMenuAccess($currentRouteName, 'can_view')) {
             return $next($request);
         }
 

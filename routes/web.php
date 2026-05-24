@@ -57,6 +57,7 @@ use App\Livewire\ProdukEska\Index as ProdukEskaIndex;
 use App\Livewire\ProdukEskaMap\Index as ProdukEskaMapIndex;
 use App\Livewire\Profile;
 use App\Livewire\RoleManagement;
+use App\Livewire\AccessGroupManagement;
 use App\Livewire\Rwo\Index as RwoIndex;
 use App\Livewire\SalesConfig\Create as SalesConfigCreate;
 use App\Livewire\SalesConfig\Edit as SalesConfigEdit;
@@ -108,6 +109,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/roles', RoleManagement::class)->name('roles.index');
     Route::get('/users', UserManagement::class)->name('users.index');
     Route::get('/menus', MenuManagement::class)->name('menus.index')->middleware(['role:admin']);
+    Route::get('/access-groups', AccessGroupManagement::class)->name('access-groups.index')->middleware(['role:admin']);
 
     // ==========================================
     // DASHBOARD & ANALYTICS

@@ -49,11 +49,14 @@
                     @else 
                         Nasional (Semua) 
                     @endif
+                    @if($user->access_group_id)
+                        <br><span class="badge badge-sm badge-outline badge-success mt-1">Grup: {{ $user->accessGroup?->name ?? 'ID:'.$user->access_group_id }}</span>
+                    @else
+                        <br><span class="badge badge-sm badge-outline badge-warning mt-1">Belum ada grup</span>
+                    @endif
                 </td>
                 <td class="text-right space-x-1">
-                    <x-ui.button variant="primary" size="sm" outline="true" icon="key" wire:click="openMenuModal({{ $user->id }})">
-                        Akses Menu
-                    </x-ui.button>
+
                     <x-ui.button variant="primary" size="sm" outline="true" icon="pencil" wire:click="edit({{ $user->id }})">
                         Edit
                     </x-ui.button>
@@ -112,13 +115,30 @@
                             <x-heroicon-s-plus class="w-3 h-3 mr-1" /> Buat Role Baru
                         </button>
                     </div>
-                    <select wire:model="role" class="select select-bordered w-full">
-                        <option value="">-- Pilih Role --</option>
-                        @foreach($roles as $r)
-                            <option value="{{ $r->name }}">{{ strtoupper($r->name) }}</option>
-                        @endforeach
-                    </select>
-                    @error('role') <span class="text-error text-xs mt-1 block">{{ $message }}</span> @enderror
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <select wire:model="role" class="select select-bordered w-full">
+                                <option value="">-- Pilih Role --</option>
+                                @foreach($roles as $r)
+                                    <option value="{{ $r->name }}">{{ strtoupper($r->name) }}</option>
+                                @endforeach
+                            </select>
+                            @error('role') <span class="text-error text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="label p-0 mb-1"><span class="label-text text-xs text-base-content/60">Grup Akses (View Sidebar)</span></label>
+                            <select wire:model.live="access_group_id" class="select select-bordered w-full">
+                                <option value="">-- Pilih Akses Group (View) --</option>
+                                @foreach($accessGroups as $group)
+                                    <option value="{{ $group->id }}">{{ $group->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('access_group_id') <span class="text-error text-xs mt-1 block">{{ $message }}</span> @enderror
+                            @if($access_group_id)
+                                <p class="text-xs text-success mt-1">✓ Grup dipilih (ID: {{ $access_group_id }})</p>
+                            @endif
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mb-2">
@@ -173,80 +193,5 @@
         </x-slot:footer>
     </x-ui.modal>
 
-    <!-- Modal Akses Menu -->
-    <x-ui.modal id="modal-akses-menu" title="Atur Akses Menu: {{ $name }}" icon="key" size="lg" :dismissible="false" :open="$isMenuModalOpen" wire:close="$set('isMenuModalOpen', false)">
-        <p class="text-sm text-base-content/70 mb-4 border-b border-base-200 pb-2">Centang menu yang boleh diakses oleh pengguna ini.</p>
-        
-        <form wire:submit.prevent="storeMenuAccess" id="form-akses-menu">
-            <div class="max-h-[60vh] overflow-y-auto pr-2">
-                @if(count($allMenus) > 0)
-                    <div class="space-y-4">
-                        @foreach($allMenus as $menu)
-                            <div class="bg-base-200/50 rounded-lg p-3 border border-base-300">
-                                <!-- Level 1 -->
-                                <label class="flex items-center cursor-pointer font-bold text-base-content">
-                                    <input type="checkbox" wire:model="selectedUserMenus" value="{{ $menu['id'] }}" class="checkbox checkbox-primary checkbox-sm mr-3">
-                                    {!! $menu['icon'] ?? '' !!} <span class="ml-2">{{ $menu['name'] }}</span>
-                                </label>
-                                
-                                @if(count($menu['children'] ?? []) > 0)
-                                    <div class="ml-7 mt-2 space-y-2 border-l-2 border-base-300 pl-3">
-                                        @foreach($menu['children'] as $child1)
-                                            <!-- Level 2 -->
-                                            <div>
-                                                <label class="flex items-center cursor-pointer font-medium text-base-content/90">
-                                                    <input type="checkbox" wire:model="selectedUserMenus" value="{{ $child1['id'] }}" class="checkbox checkbox-secondary checkbox-sm mr-3">
-                                                    {{ $child1['name'] }}
-                                                </label>
-                                                
-                                                @if(count($child1['children'] ?? []) > 0)
-                                                    <div class="ml-6 mt-2 space-y-2 border-l border-base-300 pl-3">
-                                                        @foreach($child1['children'] as $child2)
-                                                            <!-- Level 3 -->
-                                                            <div>
-                                                                <label class="flex items-center cursor-pointer text-sm text-base-content/80">
-                                                                    <input type="checkbox" wire:model="selectedUserMenus" value="{{ $child2['id'] }}" class="checkbox checkbox-accent checkbox-xs mr-3">
-                                                                    {{ $child2['name'] }}
-                                                                </label>
 
-                                                                @if(count($child2['children'] ?? []) > 0)
-                                                                    <div class="ml-6 mt-1 space-y-1 pl-3 grid grid-cols-1 sm:grid-cols-2 gap-1">
-                                                                        @foreach($child2['children'] as $child3)
-                                                                            <!-- Level 4 -->
-                                                                            <label class="flex items-center cursor-pointer text-xs text-base-content/70">
-                                                                                <input type="checkbox" wire:model="selectedUserMenus" value="{{ $child3['id'] }}" class="checkbox checkbox-xs mr-2">
-                                                                                {{ $child3['name'] }}
-                                                                            </label>
-                                                                        @endforeach
-                                                                    </div>
-                                                                @endif
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                @endif
-                            </div>
-                        @endforeach
-                    </div>
-                @else
-                    <div class="text-center py-8 text-base-content/50">
-                        <x-heroicon-o-document-text class="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>Belum ada data menu di sistem.</p>
-                    </div>
-                @endif
-            </div>
-        </form>
-
-        <x-slot:footer>
-            <x-ui.button variant="ghost" type="button" wire:click="$set('isMenuModalOpen', false)">
-                Batal
-            </x-ui.button>
-            <x-ui.button variant="primary" type="button" onclick="document.getElementById('form-akses-menu').requestSubmit()">
-                Simpan Akses
-            </x-ui.button>
-        </x-slot:footer>
-    </x-ui.modal>
 </div>

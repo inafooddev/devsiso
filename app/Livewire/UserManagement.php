@@ -4,8 +4,9 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\User;
-use App\Models\MasterDistributor; // <-- Import model MasterDistributor
+use App\Models\MasterDistributor;
 use App\Models\Menu;
+use App\Models\AccessGroup;
 use Spatie\Permission\Models\Role;
 use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
@@ -25,12 +26,7 @@ class UserManagement extends Component
     // State untuk Modal Alpine
     public $isModalOpen = false;
     public $isRoleModalOpen = false;
-    public $isMenuModalOpen = false;
-    
-    // Properti untuk Menu Management
-    public $selectedUserId = null;
-    public $selectedUserMenus = [];
-    public $allMenus = [];
+    public $access_group_id;
     
     // Properti untuk Tambah Role Baru
     public $newRoleName;
@@ -45,8 +41,9 @@ class UserManagement extends Component
             ->get();
 
         return view('livewire.user-management', [
-            'users' => User::with('roles')->latest()->paginate(10),
+            'users' => User::with(['roles', 'accessGroup'])->latest()->paginate(10),
             'roles' => Role::all(),
+            'accessGroups' => AccessGroup::all(),
             'availableRegions' => $availableRegions, // Kirim ke view
         ]);
     }
@@ -67,6 +64,7 @@ class UserManagement extends Component
         $this->name = $user->name;
         $this->email = $user->email;
         $this->role = $user->roles->first()->name ?? '';
+        $this->access_group_id = $user->access_group_id;
         
         // Ensure region_code is always an array for the checkboxes
         if (is_string($user->region_code)) {
@@ -93,6 +91,7 @@ class UserManagement extends Component
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($this->userId)],
             'role' => 'required|string',
+            'access_group_id' => 'nullable|exists:access_groups,id',
         ];
 
         // Password is required when creating, but optional when editing
@@ -108,6 +107,7 @@ class UserManagement extends Component
             'userid' => $this->userid,
             'name' => $this->name,
             'email' => $this->email,
+            'access_group_id' => empty($this->access_group_id) ? null : $this->access_group_id,
             'region_code' => empty($this->region_code) ? null : $this->region_code,
         ];
 
@@ -166,39 +166,7 @@ class UserManagement extends Component
         session()->flash('message', 'Role sistem berhasil ditambahkan.');
     }
 
-    public function openMenuModal($id)
-    {
-        $user = User::findOrFail($id);
-        $this->selectedUserId = $user->id;
-        $this->name = $user->name; // untuk ditampilkan di judul modal
-        
-        // Ambil semua menu dengan hierarki
-        $this->allMenus = Menu::whereNull('parent_id')
-            ->with(['children' => function($q) {
-                $q->orderBy('order_number')->with(['children' => function($q2) {
-                    $q2->orderBy('order_number')->with(['children' => function($q3) {
-                        $q3->orderBy('order_number');
-                    }]);
-                }]);
-            }])->orderBy('order_number')->get()->toArray();
-            
-        // Ambil ID menu yang saat ini dimiliki user
-        $this->selectedUserMenus = $user->menus()->pluck('menus.id')->toArray();
-        
-        $this->isMenuModalOpen = true;
-    }
 
-    public function storeMenuAccess()
-    {
-        if ($this->selectedUserId) {
-            $user = User::findOrFail($this->selectedUserId);
-            // Sync menu_user table
-            $user->menus()->sync($this->selectedUserMenus);
-            
-            $this->isMenuModalOpen = false;
-            session()->flash('message', 'Akses menu untuk ' . $user->name . ' berhasil diperbarui.');
-        }
-    }
 
     private function resetFields()
     {
@@ -208,6 +176,7 @@ class UserManagement extends Component
         $this->email = '';
         $this->password = '';
         $this->role = '';
+        $this->access_group_id = null;
         $this->region_code = []; // Reset kembali jadi array kosong
     }
 }

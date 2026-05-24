@@ -59,6 +59,18 @@
                                 </a>
                             </li>
                             <li>
+                                <a href="{{ route('roles.index') }}" class="flex items-center gap-3">
+                                    <x-heroicon-o-shield-check class="w-5 h-5 text-base-content/70" />
+                                    <span>Roles (Aksi)</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('access-groups.index') }}" class="flex items-center gap-3">
+                                    <x-heroicon-o-eye class="w-5 h-5 text-base-content/70" />
+                                    <span>Grup (View)</span>
+                                </a>
+                            </li>
+                            <li>
                                 <a href="{{ route('menus.index') }}" class="flex items-center gap-3">
                                     <x-heroicon-s-bars-3-bottom-left class="w-4 h-4 text-base-content/60" />
                                     Menus

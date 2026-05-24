@@ -58,19 +58,58 @@
         
         @php
             if (auth()->check()) {
-                $userId = auth()->id();
-                $userMenus = auth()->user()->menus()->whereNull('parent_id')->with(['children' => function($q) use ($userId) {
-                    $q->whereHas('users', function($qU) use ($userId) { $qU->where('users.id', $userId); })
-                      ->orderBy('order_number')
-                      ->with(['children' => function($q2) use ($userId) {
-                          $q2->whereHas('users', function($qU) use ($userId) { $qU->where('users.id', $userId); })
-                             ->orderBy('order_number')
-                             ->with(['children' => function($q3) use ($userId) {
-                                 $q3->whereHas('users', function($qU) use ($userId) { $qU->where('users.id', $userId); })
-                                    ->orderBy('order_number');
-                             }]);
-                      }]);
-                }])->orderBy('order_number')->get();
+                $user = auth()->user();
+                $accessGroupId = $user->access_group_id;
+                
+                if ($accessGroupId) {
+                    // Get all menu IDs that are in the user's access group
+                    $allowedMenuIds = \Illuminate\Support\Facades\DB::table('access_group_menu')
+                        ->where('access_group_id', $accessGroupId)
+                        ->pluck('menu_id')
+                        ->toArray();
+                    
+                    if (count($allowedMenuIds) > 0) {
+                        // Get all ancestors (parent menus) so hierarchy can be built
+                        // We need all menus and filter in PHP to show parents that have visible children
+                        $allMenus = \App\Models\Menu::orderBy('order_number')
+                            ->get()
+                            ->keyBy('id');
+                        
+                        // Add parent IDs recursively
+                        $visibleIds = collect($allowedMenuIds);
+                        foreach ($allowedMenuIds as $mid) {
+                            $menu = $allMenus->get($mid);
+                            while ($menu && $menu->parent_id) {
+                                $visibleIds->push($menu->parent_id);
+                                $menu = $allMenus->get($menu->parent_id);
+                            }
+                        }
+                        $visibleIds = $visibleIds->unique()->toArray();
+                        
+                        // Build tree with only visible menus
+                        $userMenus = \App\Models\Menu::whereNull('parent_id')
+                            ->whereIn('id', $visibleIds)
+                            ->with(['children' => function($q) use ($visibleIds) {
+                                $q->whereIn('id', $visibleIds)
+                                  ->orderBy('order_number')
+                                  ->with(['children' => function($q2) use ($visibleIds) {
+                                      $q2->whereIn('id', $visibleIds)
+                                         ->orderBy('order_number')
+                                         ->with(['children' => function($q3) use ($visibleIds) {
+                                             $q3->whereIn('id', $visibleIds)
+                                                ->orderBy('order_number');
+                                         }]);
+                                  }]);
+                            }])
+                            ->orderBy('order_number')
+                            ->get();
+                    } else {
+                        $userMenus = collect();
+                    }
+                } else {
+                    // No group = no menus
+                    $userMenus = collect();
+                }
             } else {
                 $userMenus = collect();
             }
