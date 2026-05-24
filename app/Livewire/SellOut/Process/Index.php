@@ -10,9 +10,13 @@ use App\Models\ImportBatch;
 use App\Jobs\ValidateSellOutJob; 
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
+    use EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'sell-out.process';
     // Filter
     public $regionFilter;
     public $areaFilter;
@@ -136,6 +140,8 @@ class Index extends Component
      */
     public function startProcess()
     {
+        $this->authorizeAction('can_edit');
+
         if (!$this->hasAppliedFilters) {
             session()->flash('error', 'Silakan terapkan filter terlebih dahulu.');
             return;

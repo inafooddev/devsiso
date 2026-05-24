@@ -11,9 +11,14 @@ use App\Models\ConfigSalesInvoiceDistributor;
 use App\Exports\SalesInvoiceExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
+    use EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'sales-invoice-report.index';
+
     // Properti untuk filter
     public $regionFilter = [];
     public $areaFilter = [];
@@ -237,6 +242,8 @@ class Index extends Component
 
     public function export()
     {
+        $this->authorizeAction('can_export');
+
         $this->isExportModalOpen = false;
 
         // Untuk Ekspor, kita pastikan region yang dilempar ke Excel juga tervalidasi hak aksesnya

@@ -13,6 +13,7 @@
                         Filter Periode
                     </button>
                     
+                    @canEdit('sell-out.process-v2')
                     <button wire:click="startProcess" wire:loading.attr="disabled" wire:target="startProcess"
                         @if(!$hasAppliedFilters) disabled @endif
                         class="btn btn-sm btn-primary rounded-xl normal-case shadow-sm shadow-primary/20 {{ !$hasAppliedFilters ? 'btn-disabled opacity-50' : '' }}">
@@ -25,6 +26,12 @@
                             Memproses...
                         </span>
                     </button>
+                    @else
+                    <button disabled class="btn btn-sm btn-primary rounded-xl normal-case opacity-50 cursor-not-allowed gap-2">
+                        <x-heroicon-s-lock-closed class="w-4 h-4" />
+                        Mulai Proses
+                    </button>
+                    @endcanEdit
                 </div>
 
                 @if (session()->has('error'))

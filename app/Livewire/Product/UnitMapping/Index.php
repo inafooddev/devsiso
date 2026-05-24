@@ -7,11 +7,14 @@ use Livewire\WithPagination;
 use App\Models\UnitMapping;
 use App\Models\UnmappedUnit;
 use Livewire\Attributes\Layout;
+use App\Traits\EnforcesMenuPermissions;
 
 #[Layout('layouts.app')]
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'product-unit-mappings.index';
 
     public $search = '';
     public $filterUnit = '';
@@ -55,6 +58,8 @@ class Index extends Component
 
     public function store()
     {
+        $this->authorizeAction('can_edit');
+
         $this->distributor_code = strtoupper(trim($this->distributor_code));
         $this->raw_unit = strtoupper(trim($this->raw_unit));
         $this->mapped_unit = strtoupper(trim($this->mapped_unit));
@@ -110,6 +115,8 @@ class Index extends Component
 
     public function delete($id)
     {
+        $this->authorizeAction('can_edit');
+
         $mapping = UnitMapping::findOrFail($id);
         $distCode = $mapping->distributor_code;
         $mapping->delete();
@@ -121,6 +128,8 @@ class Index extends Component
 
     public function mapUnmapped($distCode, $rawUnit)
     {
+        $this->authorizeAction('can_edit');
+
         $this->resetFields();
         $this->distributor_code = $distCode;
         $this->raw_unit = $rawUnit;

@@ -195,28 +195,32 @@
                     </button>
 
                     {{-- Export --}}
+                    @canExport('rwo.index')
                     <button wire:click="export" wire:loading.attr="disabled"
                             class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
                         <span wire:loading.remove wire:target="export"><x-heroicon-s-arrow-down-tray class="w-4 h-4" /></span>
                         <span wire:loading wire:target="export" class="loading loading-spinner loading-xs"></span>
                         Export Excel
                     </button>
+                    @endcanExport
 
                     {{-- Import --}}
-                    @unless(auth()->user()->hasRole('guest'))
+                    @canImport('rwo.index')
                     <button wire:click="openImportModal"
                             class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
                         <x-heroicon-s-arrow-up-tray class="w-4 h-4" />
                         Import Excel
                     </button>
+                    @endcanImport
 
                     {{-- Tambah --}}
+                    @canEdit('rwo.index')
                     <button wire:click="openCreateModal"
                             class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
                         <x-heroicon-s-plus class="w-4 h-4" />
                         Tambah RWO
                     </button>
-                    @endunless
+                    @endcanEdit
                 </div>
             </x-slot:actions>
 
@@ -391,7 +395,7 @@
                                     <x-heroicon-s-map-pin class="w-4 h-4" />
                                 </a>
                                 @endif
-                                @unless(auth()->user()->hasRole('guest'))
+                                @canEdit('rwo.index')
                                 <button wire:click="openEditModal({{ $row->id }})" 
                                         class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit">
                                     <x-heroicon-s-pencil-square class="w-4 h-4" />
@@ -400,7 +404,7 @@
                                         class="btn btn-ghost btn-xs btn-square rounded-lg text-error hover:bg-error/10 transition-all duration-200" title="Hapus">
                                     <x-heroicon-s-trash class="w-4 h-4" />
                                 </button>
-                                @endunless
+                                @endcanEdit
                             </div>
                         </td>
                     </tr>

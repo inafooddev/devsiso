@@ -32,9 +32,13 @@
                                     <td class="font-bold text-xs">{{ $unmapped->distributor_code }}</td>
                                     <td class="font-medium font-mono text-sm">{{ $unmapped->raw_unit }}</td>
                                     <td class="text-center">
+                                        @canEdit('product-unit-mappings.index')
                                         <button wire:click="mapUnmapped('{{ $unmapped->distributor_code }}', '{{ $unmapped->raw_unit }}')" class="btn btn-error btn-xs text-white uppercase font-bold text-[10px]">
                                             Map Sekarang
                                         </button>
+                                        @else
+                                        <span class="text-xs text-base-content/50 italic">View Only</span>
+                                        @endcanEdit
                                     </td>
                                 </tr>
                             @endforeach
@@ -101,6 +105,7 @@
                                     </span>
                                 </td>
                                 <td>
+                                    @canEdit('product-unit-mappings.index')
                                     <div class="flex justify-center gap-2">
                                         <button wire:click="edit({{ $mapping->id }})" class="btn btn-ghost btn-xs text-primary" title="Edit">
                                             <x-heroicon-s-pencil class="w-4 h-4" />
@@ -109,6 +114,11 @@
                                             <x-heroicon-s-trash class="w-4 h-4" />
                                         </button>
                                     </div>
+                                    @else
+                                    <div class="text-center">
+                                        <span class="text-xs text-base-content/50 italic">View Only</span>
+                                    </div>
+                                    @endcanEdit
                                 </td>
                             </tr>
                         @empty

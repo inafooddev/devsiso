@@ -27,6 +27,8 @@ class Login extends Component
         if (Auth::attempt(['userid' => $this->userid, 'password' => $this->password], $this->remember)) {
             session()->regenerate();
 
+            \App\Helpers\ActivityLogger::log('Login', 'User berhasil login ke dalam sistem.');
+
             $user = Auth::user();
             if ($user && $user->hasRole(['admin', 'user'])) {
                 return redirect()->intended(route('dashboard.national-sell-in'));

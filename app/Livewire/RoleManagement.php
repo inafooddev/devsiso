@@ -53,7 +53,7 @@ class RoleManagement extends Component
 
         // Tutup modal dan reset input
         $this->isModalOpen = false;
-        $this->resetFields();
+        \App\Helpers\ActivityLogger::log('Create Role', "Membuat role baru: " . strtolower(trim($this->name)));
         
         session()->flash('message', 'Role sistem berhasil ditambahkan.');
     }
@@ -68,7 +68,10 @@ class RoleManagement extends Component
             return;
         }
 
+        $roleName = $role->name;
         $role->delete();
+        
+        \App\Helpers\ActivityLogger::log('Delete Role', "Menghapus role: {$roleName}");
         session()->flash('message', 'Role sistem berhasil dihapus.');
     }
 
@@ -148,6 +151,8 @@ class RoleManagement extends Component
             }
             
             $this->isMenuModalOpen = false;
+            
+            \App\Helpers\ActivityLogger::log('Update Role Access', "Memperbarui akses menu untuk role: " . strtoupper($role->name));
             session()->flash('message', 'Akses menu untuk role ' . strtoupper($role->name) . ' berhasil diperbarui.');
         }
     }

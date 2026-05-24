@@ -35,22 +35,23 @@
                             Sync
                         </button>
                     @endif
-                    
+                    @canExport('master-distributors.index')
                     <button wire:click="export" wire:loading.attr="disabled" class="btn btn-sm btn-ghost rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200">
                         <x-heroicon-s-document-arrow-down wire:loading.remove wire:target="export" class="w-4 h-4 text-success" />
                         <span wire:loading wire:target="export" class="loading loading-spinner loading-xs"></span>
                         Export
                     </button>
+                    @endcanExport
 
                     <div class="divider divider-horizontal mx-0 h-8"></div>
 
                     {{-- Tombol Tambah --}}
-                    @unless(auth()->user()->hasRole('guest'))
+                    @canEdit('master-distributors.index')
                     <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
                         <x-heroicon-s-plus class="w-4 h-4" />
                         Tambah
                     </button>
-                    @endunless
+                    @endcanEdit
                 </div>
             </x-slot:actions>
 
@@ -147,7 +148,7 @@
                                         class="btn btn-ghost btn-xs btn-square rounded-lg text-info hover:bg-info/10 transition-all duration-200" title="Peta">
                                     <x-heroicon-s-map class="w-4 h-4" />
                                 </button>
-                                @unless(auth()->user()->hasRole('guest'))
+                                @canEdit('master-distributors.index')
                                 <button wire:click="openEditModal('{{ $distributor->distributor_code }}')" 
                                         class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit">
                                     <x-heroicon-s-pencil-square class="w-4 h-4" />
@@ -156,7 +157,7 @@
                                         class="btn btn-ghost btn-xs btn-square rounded-lg text-error hover:bg-error/10 transition-all duration-200" title="Hapus">
                                     <x-heroicon-s-trash class="w-4 h-4" />
                                 </button>
-                                @endunless
+                                @endcanEdit
                             </div>
                         </td>
                     </tr>

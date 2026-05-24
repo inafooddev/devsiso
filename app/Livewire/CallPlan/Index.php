@@ -6,10 +6,13 @@ use Livewire\Component;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Computed;
 use Illuminate\Support\Facades\DB;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
+    use EnforcesMenuPermissions;
     #[Title('Call Plan Maps')]
+    protected string $menuRoute = 'call-plan.index';
 
     // ============================================================
     // PROPERTI / STATE
@@ -278,6 +281,8 @@ class Index extends Component
     /** Menjalankan proses download Excel */
     public function exportExcel()
     {
+        $this->authorizeAction('can_export');
+
         $this->validate([
             'selectedExpRegion' => 'required',
             'selectedExpEntity' => 'required',
@@ -342,6 +347,8 @@ class Index extends Component
     /** Menyimpan pembaruan rute (Hari, Minggu, Salesman) */
     public function saveStore($fruteId, $weeks, $day, $newSlsNo = null)
     {
+        $this->authorizeAction('can_edit');
+
         // Security Check Update Data
         if (!$this->checkFruteAccess($fruteId)) {
             $this->dispatch('alert', message: 'Akses Ditolak: Anda tidak memiliki otoritas di distributor ini.');
@@ -369,6 +376,8 @@ class Index extends Component
     /** Menghapus data rute toko */
     public function deleteStore($id)
     {
+        $this->authorizeAction('can_edit');
+
         // Security Check Hapus Data
         if (!$this->checkFruteAccess($id)) {
             $this->dispatch('alert', message: 'Akses Ditolak: Anda tidak dapat menghapus rute di distributor ini.');
@@ -470,6 +479,8 @@ class Index extends Component
     /** Simpan rute-rute baru yang telah dipilih di modal */
     public function storeCustomRoute()
     {
+        $this->authorizeAction('can_edit');
+
         $this->validate([
             'newRouteDistributor' => 'required',
             'newRouteSalesman' => 'required',

@@ -38,12 +38,12 @@
                     </div>
 
                     {{-- Tombol Tambah --}}
-                    @unless(auth()->user()->hasRole('guest'))
+                    @canEdit('master-supervisors.index')
                     <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
                         <x-heroicon-s-plus class="w-4 h-4" />
                         Tambah
                     </button>
-                    @endunless
+                    @endcanEdit
                 </div>
             </x-slot:actions>
 
@@ -86,7 +86,7 @@
                             <span class="text-base-content/50 italic line-clamp-1" title="{{ $supervisor->description }}">{{ $supervisor->description ?: '-' }}</span>
                         </td>
                         <td>
-                            @unless(auth()->user()->hasRole('guest'))
+                            @canEdit('master-supervisors.index')
                             <div class="flex items-center justify-center gap-1">
                                 <button wire:click="openEditModal('{{ $supervisor->supervisor_code }}')" 
                                         class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit">
@@ -97,7 +97,9 @@
                                     <x-heroicon-s-trash class="w-4 h-4" />
                                 </button>
                             </div>
-                            @endunless
+                            @else
+                            <span class="text-xs text-base-content/50 italic">View Only</span>
+                            @endcanEdit
                         </td>
                     </tr>
                 @endforeach

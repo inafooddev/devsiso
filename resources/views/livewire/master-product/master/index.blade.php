@@ -42,19 +42,21 @@
                     </select>
 
                     {{-- Export --}}
+                    @canExport('product-masters.index')
                     <button wire:click="export" wire:loading.attr="disabled" class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
                         <span wire:loading.remove wire:target="export"><x-heroicon-s-arrow-down-tray class="w-4 h-4" /></span>
                         <span wire:loading wire:target="export" class="loading loading-spinner loading-xs"></span>
                         Export
                     </button>
+                    @endcanExport
 
                     {{-- Add Button --}}
-                    @unless(auth()->user()->hasRole('guest'))
+                    @canEdit('product-masters.index')
                     <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
                         <x-heroicon-s-plus class="w-4 h-4" />
                         Tambah Produk
                     </button>
-                    @endunless
+                    @endcanEdit
                 </div>
             </x-slot:actions>
 
@@ -118,7 +120,7 @@
                         <td class="text-right font-mono text-xs">{{ $product->price_zone3 ? number_format($product->price_zone3, 0, ',', '.') : '-' }}</td>
                         <td>
                             <div class="flex items-center justify-center gap-1">
-                                @unless(auth()->user()->hasRole('guest'))
+                                @canEdit('product-masters.index')
                                 <button wire:click="openEditModal('{{ $product->product_id }}')"
                                         class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit">
                                     <x-heroicon-s-pencil-square class="w-4 h-4" />
@@ -127,7 +129,9 @@
                                         class="btn btn-ghost btn-xs btn-square rounded-lg text-error hover:bg-error/10 transition-all duration-200" title="Hapus">
                                     <x-heroicon-s-trash class="w-4 h-4" />
                                 </button>
-                                @endunless
+                                @else
+                                <span class="text-xs text-base-content/50 italic">View Only</span>
+                                @endcanEdit
                             </div>
                         </td>
                     </tr>

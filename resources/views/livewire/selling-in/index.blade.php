@@ -16,6 +16,7 @@
             <!-- Kolom Kiri: Form Upload -->
             <div class="lg:col-span-1 flex flex-col">
                 <x-card title="Data Selling In" icon="document-arrow-up" class="h-full flex flex-col">
+                    @canImport('selling-in.index')
                     <form wire:submit.prevent="import" class="space-y-5 flex-1 flex flex-col">
                         <div class="flex-1">
                             <label class="block text-sm font-medium text-base-content/70 mb-2">Pilih File Excel (.xlsx)</label>
@@ -30,6 +31,12 @@
                             </span>
                         </x-ui.button>
                     </form>
+                    @else
+                    <div class="flex-1 flex flex-col items-center justify-center text-sm text-base-content/50 italic border-2 border-dashed border-base-300 rounded-xl p-6">
+                        <x-heroicon-o-lock-closed class="w-8 h-8 mb-2 opacity-30" />
+                        Anda tidak memiliki akses untuk import data.
+                    </div>
+                    @endcanImport
 
                     <!-- Progress Bar Dinamis -->
                     @if($totalRows > 0)

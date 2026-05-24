@@ -11,11 +11,13 @@ use App\Models\ListTokoParetoTeamElite;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\ListTokoParetoImport;
 use App\Exports\ListTokoParetoExport;
+use App\Traits\EnforcesMenuPermissions;
 
 class ListTokoPareto extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
 
+    protected string $menuRoute = 'plan-call-team-elite.toko-pareto';
     protected $paginationTheme = 'tailwind';
 
     // Pencarian & Filter
@@ -248,6 +250,8 @@ class ListTokoPareto extends Component
 
     public function store()
     {
+        $this->authorizeAction('can_edit');
+
         $this->validate([
             'distributor_code' => 'required|string|max:15',
             'customer_code_prc' => 'required|string|max:50',
@@ -312,6 +316,8 @@ class ListTokoPareto extends Component
 
     public function update()
     {
+        $this->authorizeAction('can_edit');
+
         $this->validate([
             'distributor_code' => 'required|string|max:15',
             'customer_code_prc' => 'required|string|max:50',
@@ -352,6 +358,8 @@ class ListTokoPareto extends Component
     
     public function delete()
     {
+        $this->authorizeAction('can_edit');
+
         $toko = ListTokoParetoTeamElite::find($this->deleteId);
         
         if ($toko) {
@@ -385,6 +393,8 @@ class ListTokoPareto extends Component
     
     public function import()
     {
+        $this->authorizeAction('can_import');
+
         // Security Check: Proses Import Massal + Python Geotag sangat rentan jika tidak dibatasi. 
         // Sebaiknya hanya admin yang bisa melakukan import.
         if (!auth()->user()->hasRole('admin')) {
@@ -425,6 +435,8 @@ class ListTokoPareto extends Component
     // --- FITUR EXPORT ---
     public function export()
     {
+        $this->authorizeAction('can_export');
+
         // Data yang diekspor mengambil dari getBaseQuery() yang sudah diamankan dengan applyRegionAccess()
         return Excel::download(new ListTokoParetoExport($this->getBaseQuery()), 'List_Toko_Pareto_Team_Elite.xlsx');
     }
@@ -439,6 +451,8 @@ class ListTokoPareto extends Component
 
     public function storeToJks()
     {
+        $this->authorizeAction('can_edit');
+
         $this->validate([
             'jksTanggal' => 'required|date',
             'jksKodeTeam' => 'required|string',

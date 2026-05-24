@@ -13,12 +13,15 @@ use App\Imports\JksTeamEliteImport;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
     use WithPagination;
     use WithFileUploads;
+    use EnforcesMenuPermissions;
 
+    protected string $menuRoute = 'jks-team-elite.index';
     protected $paginationTheme = 'tailwind';
 
     // Filters
@@ -344,6 +347,8 @@ class Index extends Component
      */
     public function save()
     {
+        $this->authorizeAction('can_edit');
+
         $this->validate([
             'tanggal' => 'required|date',
             'selectedTeamCode' => 'required|string',
@@ -414,6 +419,8 @@ class Index extends Component
      */
     public function delete()
     {
+        $this->authorizeAction('can_edit');
+
         if (!empty($this->dataIdToDelete)) {
             JksTeamElite::whereDate('tanggal', $this->dataIdToDelete['tanggal'])
                 ->where('kode_team', $this->dataIdToDelete['kode_team'])
@@ -434,6 +441,8 @@ class Index extends Component
      */
     public function export()
     {
+        $this->authorizeAction('can_export');
+
         if (empty($this->filterTeam) || empty($this->filterStartDate) || empty($this->filterEndDate)) {
             session()->flash('error', 'Pilih Team dan rentang tanggal terlebih dahulu sebelum export.');
             return;
@@ -470,6 +479,8 @@ class Index extends Component
      */
     public function previewImport()
     {
+        $this->authorizeAction('can_import');
+
         $this->validate([
             'excel_file' => 'required|mimes:xls,xlsx,csv|max:10240', // Maks 10MB
             'importStartDate' => 'required|date',
@@ -506,6 +517,8 @@ class Index extends Component
      */
     public function executeImport()
     {
+        $this->authorizeAction('can_import');
+
         $this->validate([
             'excel_file' => 'required|mimes:xls,xlsx,csv|max:10240',
         ]);

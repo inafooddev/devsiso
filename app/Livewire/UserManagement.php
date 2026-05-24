@@ -86,12 +86,13 @@ class UserManagement extends Component
 
     public function store()
     {
+
         $rules = [
             'userid' => ['required', 'string', Rule::unique('users', 'userid')->ignore($this->userId)],
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($this->userId)],
             'role' => 'required|string',
-            'access_group_id' => 'nullable|exists:access_groups,id',
+            'access_group_id' => 'required|exists:access_groups,id',
         ];
 
         // Password is required when creating, but optional when editing
@@ -122,10 +123,14 @@ class UserManagement extends Component
             // Sync roles Spatie (remove old, attach new)
             $user->syncRoles([$this->role]);
             
+            \App\Helpers\ActivityLogger::log('Update User', "Memperbarui data user: {$user->userid} ({$user->name})");
+            
             session()->flash('message', 'User berhasil diperbarui.');
         } else {
             $user = User::create($data);
             $user->assignRole($this->role);
+            
+            \App\Helpers\ActivityLogger::log('Create User', "Membuat user baru: {$user->userid} ({$user->name})");
             
             session()->flash('message', 'User berhasil ditambahkan.');
         }
@@ -136,7 +141,11 @@ class UserManagement extends Component
 
     public function delete($id)
     {
-        User::find($id)->delete();
+        $user = User::find($id);
+        if ($user) {
+            \App\Helpers\ActivityLogger::log('Delete User', "Menghapus user: {$user->userid} ({$user->name})");
+            $user->delete();
+        }
         session()->flash('message', 'User berhasil dihapus.');
     }
 

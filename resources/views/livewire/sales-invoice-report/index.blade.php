@@ -20,9 +20,8 @@
                         Filter
                     </x-ui.button>
 
-                    @unless(auth()->user()->hasRole('guest'))
-
                         {{-- IMPORT --}}
+                        @canImport('sales-invoice-report.index')
                         <x-ui.button
                             tag="a"
                             href="{{ route('sales-invoices.import') }}"
@@ -32,8 +31,10 @@
                         >
                             Import
                         </x-ui.button>
+                        @endcanImport
 
                         {{-- EXPORT --}}
+                        @canExport('sales-invoice-report.index')
                         <x-ui.button
                             variant="success"
                             size="sm"
@@ -42,8 +43,10 @@
                         >
                             Export
                         </x-ui.button>
+                        @endcanExport
 
                         {{-- CONFIG --}}
+                        @canEdit('sales-configs.index')
                         <x-ui.button
                             tag="a"
                             href="{{ route('sales-configs.index') }}"
@@ -53,8 +56,7 @@
                         >
                             Config
                         </x-ui.button>
-
-                    @endunless
+                        @endcanEdit
 
                 </div>
 

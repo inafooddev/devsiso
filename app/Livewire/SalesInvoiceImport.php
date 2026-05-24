@@ -12,10 +12,13 @@ use App\Models\ConfigSalesInvoiceDistributor;
 use App\Models\UnitMapping;
 use App\Models\UnmappedUnit;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Traits\EnforcesMenuPermissions;
 
 class SalesInvoiceImport extends Component
 {
-    use WithFileUploads;
+    use WithFileUploads, EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'sales-invoice-report.index';
 
     public $excel_file;
     public $batchId;
@@ -26,6 +29,8 @@ class SalesInvoiceImport extends Component
 
     public function import()
     {
+        $this->authorizeAction('can_import');
+
         $this->validate([
             'excel_file' => 'required|mimes:xls,xlsx|max:10240', // Maks 10MB
         ]);

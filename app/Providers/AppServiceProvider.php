@@ -30,5 +30,18 @@ class AppServiceProvider extends ServiceProvider
             'components.sidebar', 
             \App\Http\View\Composers\SidebarComposer::class
         );
+
+        // Custom Blade Directives for Menu Action Permissions
+        \Illuminate\Support\Facades\Blade::if('canEdit', function ($routeName) {
+            return auth()->check() && auth()->user()->hasMenuAccess($routeName, 'can_edit');
+        });
+
+        \Illuminate\Support\Facades\Blade::if('canImport', function ($routeName) {
+            return auth()->check() && auth()->user()->hasMenuAccess($routeName, 'can_import');
+        });
+
+        \Illuminate\Support\Facades\Blade::if('canExport', function ($routeName) {
+            return auth()->check() && auth()->user()->hasMenuAccess($routeName, 'can_export');
+        });
     }
 }

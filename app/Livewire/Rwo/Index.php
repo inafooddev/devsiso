@@ -11,12 +11,14 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\RewardOutletExport;
 use App\Imports\RewardOutletImport;
 use Illuminate\Support\Facades\Storage;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
+    protected string $menuRoute = 'rwo.index';
 
     public $search = '';
     
@@ -434,6 +436,8 @@ class Index extends Component
      */
     public function save()
     {
+        $this->authorizeAction('can_edit');
+        
         $this->validate();
 
         $data = [
@@ -519,6 +523,8 @@ class Index extends Component
      */
     public function delete()
     {
+        $this->authorizeAction('can_edit');
+        
         $outlet = RewardOutlet::findOrFail($this->outletIdToDelete);
         
         // Delete files
@@ -551,6 +557,8 @@ class Index extends Component
      */
     public function import()
     {
+        $this->authorizeAction('can_import');
+
         $this->validate([
             'importFile' => 'required|mimes:xlsx,xls,csv|max:10240', // 10MB Max
         ]);
@@ -572,6 +580,8 @@ class Index extends Component
      */
     public function export()
     {
+        $this->authorizeAction('can_export');
+
         $filters = [
             'search' => $this->search,
             'filter_type' => $this->filter_type,

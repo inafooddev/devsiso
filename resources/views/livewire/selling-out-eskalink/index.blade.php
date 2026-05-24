@@ -22,12 +22,15 @@
                         Filter
                     </button>
 
+                    @canImport('selling-out-eskalink.index')
                     <button wire:click="$set('showImportModal', true)"
                         class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm font-medium">
                         Import
                     </button>
+                    @endcanImport
 
                     @if ($isFiltered)
+                        @canExport('selling-out-eskalink.index')
                         <button wire:click="export" wire:loading.attr="disabled"
                             class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center text-sm font-medium">
                             <svg wire:loading wire:target="export" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
@@ -40,6 +43,7 @@
                             </svg>
                             Export Summary
                         </button>
+                        @endcanExport
                     @endif
                 </div>
 

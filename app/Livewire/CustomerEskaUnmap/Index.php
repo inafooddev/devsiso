@@ -8,12 +8,14 @@ use Illuminate\Support\Facades\DB;
 use App\Exports\CustomerEskaUnmapExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
+    protected string $menuRoute = 'customer-eska-unmap.index';
 
     // Filter properties (Multi-select support) apa ya 
     public $monthFilter;
@@ -212,6 +214,8 @@ class Index extends Component
 
     public function export()
     {
+        $this->authorizeAction('can_export');
+
         $this->validate([
             'monthFilter' => 'required',
             'regionFilter' => 'required|array|min:1',

@@ -8,12 +8,14 @@ use Illuminate\Support\Facades\DB;
 use App\Exports\CustomerEskaDistExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
+    protected string $menuRoute = 'customer-eska-dist.index';
 
     // Filter properties
     public $regionFilter = '';
@@ -169,6 +171,8 @@ class Index extends Component
 
     public function export()
     {
+        $this->authorizeAction('can_export');
+
         $this->validate([
             'regionFilter' => 'required',
             'areaFilter' => 'required',

@@ -6,10 +6,13 @@ use Livewire\Component;
 use App\Models\ConfigSalesInvoiceDistributor;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'sales-configs.index';
 
     public $search = '';
     public $isDeleteModalOpen = false;
@@ -98,6 +101,8 @@ class Index extends Component
      */
     public function delete()
     {
+        $this->authorizeAction('can_edit');
+
         if ($this->configToDeleteId) {
             $tableName = (new ConfigSalesInvoiceDistributor())->getTable();
             

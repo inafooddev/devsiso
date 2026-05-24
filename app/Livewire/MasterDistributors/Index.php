@@ -13,12 +13,14 @@ use App\Exports\MasterDistributorsExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Livewire\Attributes\Computed;
 use Illuminate\Validation\Rule;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
+    protected string $menuRoute = 'master-distributors.index';
 
     public $search = '';
     public $statusFilter = '';
@@ -203,6 +205,8 @@ class Index extends Component
 
     public function save()
     {
+        $this->authorizeAction('can_edit');
+        
         $this->validate();
 
         $branch = MasterBranch::with(['supervisor.area.region'])->find($this->branch_code);
@@ -321,6 +325,8 @@ class Index extends Component
 
     public function delete()
     {
+        $this->authorizeAction('can_edit');
+
         $query = MasterDistributor::query();
         $this->applyRegionAccess($query);
 
@@ -361,6 +367,8 @@ class Index extends Component
 
     public function export()
     {
+        $this->authorizeAction('can_export');
+
         $finalRegionFilter = $this->regionFilter;
         $user = auth()->user();
 

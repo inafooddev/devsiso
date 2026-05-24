@@ -13,12 +13,14 @@ use Maatwebsite\Excel\Facades\Excel;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
+    protected string $menuRoute = 'mapping.unmapped-products';
 
     // Filter properties
     public $regionFilter;
@@ -270,6 +272,8 @@ class Index extends Component
 
     public function saveMapping()
     {
+        $this->authorizeAction('can_edit');
+
         if (!$this->checkDistributorAccess($this->currentProductToMap['distributor_code'])) {
             session()->flash('error', 'Anda tidak memiliki otoritas pada distributor ini.');
             $this->isMapModalOpen = false;
@@ -303,6 +307,8 @@ class Index extends Component
 
     public function export()
     {
+        $this->authorizeAction('can_export');
+
         if (!$this->hasAppliedFilters) {
              session()->flash('error', 'Terapkan filter terlebih dahulu.');
              return;

@@ -37,12 +37,12 @@
                     </div>
 
                     {{-- Tombol Tambah --}}
-                    @unless(auth()->user()->hasRole('guest'))
+                    @canEdit('product-groups.index')
                     <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
                         <x-heroicon-s-plus class="w-4 h-4" />
                         Tambah Group
                     </button>
-                    @endunless
+                    @endcanEdit
                 </div>
             </x-slot:actions>
 
@@ -83,8 +83,8 @@
                             </div>
                         </td>
                         <td>
-                            <div class="flex items-center justify-center gap-1">
-                                @unless(auth()->user()->hasRole('guest'))
+                            @canEdit('product-groups.index')
+                            <div class="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                 <button wire:click="openEditModal('{{ $group->product_group_id }}')" 
                                         class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit">
                                     <x-heroicon-s-pencil-square class="w-4 h-4" />
@@ -93,8 +93,10 @@
                                         class="btn btn-ghost btn-xs btn-square rounded-lg text-error hover:bg-error/10 transition-all duration-200" title="Hapus">
                                     <x-heroicon-s-trash class="w-4 h-4" />
                                 </button>
-                                @endunless
                             </div>
+                            @else
+                            <span class="text-xs text-base-content/50 italic">View Only</span>
+                            @endcanEdit
                         </td>
                     </tr>
                 @endforeach

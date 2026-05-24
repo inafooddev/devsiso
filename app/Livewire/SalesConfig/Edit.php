@@ -7,9 +7,14 @@ use App\Models\ConfigSalesInvoiceDistributor;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Contracts\Encryption\DecryptException;
+use App\Traits\EnforcesMenuPermissions;
 
 class Edit extends Component
 {
+    use EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'sales-configs.index';
+
     public ConfigSalesInvoiceDistributor $config_sale;
     public $distributor_code, $config_name;
     public $config = [];
@@ -150,6 +155,8 @@ class Edit extends Component
      */
     public function update()
     {
+        $this->authorizeAction('can_edit');
+
         // Menjalankan semua aturan validasi, termasuk untuk field yang wajib diisi
         $this->validate();
 

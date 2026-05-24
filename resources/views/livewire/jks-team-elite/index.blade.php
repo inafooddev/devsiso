@@ -119,32 +119,34 @@
 
                     {{-- Tombol Export --}}
                     @php
-                        $canExport = !empty($filterTeam) && !empty($filterStartDate) && !empty($filterEndDate);
+                        $canExportBtn = !empty($filterTeam) && !empty($filterStartDate) && !empty($filterEndDate);
                     @endphp
-                    <div class="tooltip tooltip-bottom" data-tip="{{ !$canExport ? 'Pilih Team dan tanggal terlebih dahulu' : 'Export data ke Excel' }}">
+                    @canExport('jks-team-elite.index')
+                    <div class="tooltip tooltip-bottom" data-tip="{{ !$canExportBtn ? 'Pilih Team dan tanggal terlebih dahulu' : 'Export data ke Excel' }}">
                         <button wire:click="export"
-                            {{ !$canExport ? 'disabled' : '' }}
-                            class="btn btn-sm btn-success rounded-xl normal-case gap-2 shadow-sm text-white {{ !$canExport ? 'btn-disabled opacity-40 cursor-not-allowed' : '' }}">
+                            {{ !$canExportBtn ? 'disabled' : '' }}
+                            class="btn btn-sm btn-success rounded-xl normal-case gap-2 shadow-sm text-white {{ !$canExportBtn ? 'btn-disabled opacity-40 cursor-not-allowed' : '' }}">
                             <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
                             Export
                         </button>
                     </div>
+                    @endcanExport
 
                     {{-- Tombol Import --}}
-                    @unless(auth()->user()->hasRole('guest'))
+                    @canImport('jks-team-elite.index')
                     <button wire:click="openImportModal" class="btn btn-sm btn-warning rounded-xl normal-case gap-2 shadow-sm text-white">
                         <x-heroicon-s-arrow-up-tray class="w-4 h-4" />
                         Import
                     </button>
-                    @endunless
+                    @endcanImport
 
                     {{-- Tombol Tambah --}}
-                    @unless(auth()->user()->hasRole('guest'))
+                    @canEdit('jks-team-elite.index')
                     <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
                         <x-heroicon-s-plus class="w-4 h-4" />
                         Tambah
                     </button>
-                    @endunless
+                    @endcanEdit
                 </div>
             </x-slot:actions>
 
@@ -184,7 +186,7 @@
                                         </button>
                                     </td>
                                     <td>
-                                        @unless(auth()->user()->hasRole('guest'))
+                                        @canEdit('jks-team-elite.index')
                                         <div class="flex items-center justify-center gap-1">
                                             <button wire:click="openEditModal('{{ $record->tanggal }}', '{{ $record->kode_team }}', '{{ $record->kode_region }}')" 
                                                     class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit Grup">
@@ -195,7 +197,7 @@
                                                 <x-heroicon-s-trash class="w-4 h-4" />
                                             </button>
                                         </div>
-                                        @endunless
+                                        @endcanEdit
                                     </td>
                                 </tr>
                             @empty

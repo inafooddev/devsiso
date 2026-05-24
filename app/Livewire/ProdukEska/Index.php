@@ -8,12 +8,14 @@ use Illuminate\Support\Facades\DB;
 use App\Exports\ProdukEskaExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
+    protected string $menuRoute = 'produk-eska.index';
 
     // Main Filters
     public $regionFilter = '';
@@ -221,6 +223,8 @@ class Index extends Component
 
     public function export()
     {
+        $this->authorizeAction('can_export');
+
         $this->validate([
             'regionFilter' => 'required',
             'areaFilter' => 'required',

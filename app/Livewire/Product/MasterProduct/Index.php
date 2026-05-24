@@ -13,12 +13,14 @@ use App\Exports\ProductMastersExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Livewire\WithPagination;
 use Illuminate\Validation\Rule;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
+    protected string $menuRoute = 'product-masters.index';
 
     // Filter & Pagination
     public $search = '';
@@ -162,6 +164,8 @@ class Index extends Component
 
     public function save()
     {
+        $this->authorizeAction('can_edit');
+        
         $validatedData = $this->validate();
         $validatedData['is_active'] = (bool) $validatedData['is_active'];
 
@@ -232,6 +236,8 @@ class Index extends Component
 
     public function delete()
     {
+        $this->authorizeAction('can_edit');
+
         $product = ProductMaster::find($this->productIdToDelete);
         if ($product) {
             $product->delete();
@@ -242,6 +248,8 @@ class Index extends Component
 
     public function export()
     {
+        $this->authorizeAction('can_export');
+
         return Excel::download(new ProductMastersExport(), 'master_products_all.xlsx');
     }
 }

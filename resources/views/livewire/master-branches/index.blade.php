@@ -38,12 +38,12 @@
                     </div>
 
                     {{-- Tombol Tambah --}}
-                    @unless(auth()->user()->hasRole('guest'))
+                    @canEdit('master-branches.index')
                     <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
                         <x-heroicon-s-plus class="w-4 h-4" />
                         Tambah
                     </button>
-                    @endunless
+                    @endcanEdit
                 </div>
             </x-slot:actions>
 
@@ -89,7 +89,7 @@
                             </div>
                         </td>
                         <td>
-                            @unless(auth()->user()->hasRole('guest'))
+                            @canEdit('master-branches.index')
                             <div class="flex items-center justify-center gap-1">
                                 <button wire:click="openEditModal('{{ $branch->branch_code }}')" 
                                         class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit">
@@ -100,7 +100,9 @@
                                     <x-heroicon-s-trash class="w-4 h-4" />
                                 </button>
                             </div>
-                            @endunless
+                            @else
+                            <span class="text-xs text-base-content/50 italic">View Only</span>
+                            @endcanEdit
                         </td>
                     </tr>
                 @endforeach

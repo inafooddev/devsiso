@@ -14,12 +14,14 @@ use Maatwebsite\Excel\Facades\Excel;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
 use Illuminate\Validation\Rule;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
+    protected string $menuRoute = 'product-mappings.index';
 
     // Properti untuk filter (List)
     public $regionFilter;
@@ -315,6 +317,8 @@ class Index extends Component
 
     public function save()
     {
+        $this->authorizeAction('can_edit');
+
         $validatedData = $this->validate();
 
         // Security Check
@@ -392,6 +396,8 @@ class Index extends Component
 
     public function export()
     {
+        $this->authorizeAction('can_export');
+
         if (!$this->hasAppliedFilters) {
              session()->flash('error', 'Terapkan filter terlebih dahulu sebelum mengekspor data.');
              return;
@@ -419,6 +425,8 @@ class Index extends Component
 
     public function import()
     {
+        $this->authorizeAction('can_import');
+
         $this->validate([
             'file' => 'required|mimes:xls,xlsx'
         ]);
@@ -450,6 +458,8 @@ class Index extends Component
 
     public function delete()
     {
+        $this->authorizeAction('can_edit');
+
         $mapping = ProductMapping::find($this->mappingIdToDelete);
 
         if ($mapping) {

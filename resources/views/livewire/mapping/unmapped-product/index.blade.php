@@ -50,12 +50,14 @@
                     </button>
 
                     {{-- Export --}}
+                    @canExport('mapping.unmapped-products')
                     <button wire:click="export" wire:loading.attr="disabled"
                             class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
                         <span wire:loading.remove wire:target="export"><x-heroicon-s-arrow-down-tray class="w-4 h-4" /></span>
                         <span wire:loading wire:target="export" class="loading loading-spinner loading-xs"></span>
                         Export Excel
                     </button>
+                    @endcanExport
                 </div>
             </x-slot:actions>
 
@@ -100,11 +102,15 @@
                             <td><span class="font-medium text-base-content/80">{{ $product->product_name }}</span></td>
                             <td>
                                 <div class="flex justify-center">
+                                    @canEdit('mapping.unmapped-products')
                                     <button wire:click="openMapModal('{{ $product->distributor_code }}', '{{ $product->product_code }}', '{{ addslashes($product->product_name) }}')"
                                             class="btn btn-primary btn-xs rounded-lg normal-case gap-1 shadow-sm shadow-primary/20 transition-all duration-200">
                                         <x-heroicon-s-link class="w-3.5 h-3.5" />
                                         Petakan
                                     </button>
+                                    @else
+                                    <span class="text-xs text-base-content/50 italic">View Only</span>
+                                    @endcanEdit
                                 </div>
                             </td>
                         </tr>

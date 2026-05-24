@@ -10,12 +10,14 @@ use Livewire\WithPagination;
 use Livewire\WithFileUploads;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
+    protected string $menuRoute = 'selling-in.index';
 
     // Properti Filter
     public $search = '';
@@ -58,6 +60,8 @@ class Index extends Component
 
     public function import()
     {
+        $this->authorizeAction('can_import');
+
         $this->validate(['excel_file' => 'required|mimes:xls,xlsx|max:20480']);
 
         $batch = ImportBatch::create([

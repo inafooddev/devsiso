@@ -76,6 +76,12 @@
                                     Menus
                                 </a>
                             </li>
+                            <li>
+                                <a href="{{ route('activity-logs.index') }}" class="flex items-center gap-3">
+                                    <x-heroicon-o-clipboard-document-list class="w-5 h-5 text-base-content/70" />
+                                    <span>Log Aktivitas</span>
+                                </a>
+                            </li>
                         </ul>
                     </details>
                 </li>

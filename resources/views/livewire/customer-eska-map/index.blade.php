@@ -53,12 +53,14 @@
 
                     {{-- Export --}}
                     @if ($isFiltered)
+                    @canExport('customer-eska-map.index')
                     <button wire:click="export" wire:loading.attr="disabled"
                             class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
                         <span wire:loading.remove wire:target="export"><x-heroicon-s-arrow-down-tray class="w-4 h-4" /></span>
                         <span wire:loading wire:target="export" class="loading loading-spinner loading-xs"></span>
                         Export Excel
                     </button>
+                    @endcanExport
                     @endif
                 </div>
             </x-slot:actions>

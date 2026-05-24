@@ -64,10 +64,13 @@ class AccessGroupManagement extends Component
         ];
 
         if ($this->groupId) {
-            AccessGroup::findOrFail($this->groupId)->update($data);
+            $group = AccessGroup::findOrFail($this->groupId);
+            $group->update($data);
+            \App\Helpers\ActivityLogger::log('Update Access Group', "Memperbarui grup akses: {$group->name}");
             session()->flash('message', 'Access Group berhasil diperbarui.');
         } else {
-            AccessGroup::create($data);
+            $group = AccessGroup::create($data);
+            \App\Helpers\ActivityLogger::log('Create Access Group', "Membuat grup akses baru: {$group->name}");
             session()->flash('message', 'Access Group berhasil ditambahkan.');
         }
 
@@ -77,7 +80,11 @@ class AccessGroupManagement extends Component
 
     public function delete($id)
     {
-        AccessGroup::find($id)->delete();
+        $group = AccessGroup::find($id);
+        if ($group) {
+            \App\Helpers\ActivityLogger::log('Delete Access Group', "Menghapus grup akses: {$group->name}");
+            $group->delete();
+        }
         session()->flash('message', 'Access Group berhasil dihapus.');
     }
 
@@ -107,6 +114,8 @@ class AccessGroupManagement extends Component
         if ($this->selectedGroupId) {
             $group = AccessGroup::findOrFail($this->selectedGroupId);
             $group->menus()->sync($this->selectedMenus);
+            
+            \App\Helpers\ActivityLogger::log('Update Access Group Menu', "Memperbarui akses menu sidebar untuk grup: {$group->name}");
             
             $this->isMenuModalOpen = false;
             session()->flash('message', 'Akses View untuk Group ' . $group->name . ' berhasil diperbarui.');

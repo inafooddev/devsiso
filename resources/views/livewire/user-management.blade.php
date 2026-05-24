@@ -5,9 +5,13 @@
                 <h2 class="text-2xl font-bold text-base-content">Manajemen Pengguna</h2>
                 <p class="text-sm text-base-content/70 mt-1">Kelola data pengguna, role, dan cakupan wilayah.</p>
             </div>
-            <x-ui.button variant="primary" icon="plus" wire:click="create">  
-                Tambah User
-            </x-ui.button>
+            <div>
+                @if(auth()->user()->hasMenuAccess('users.index', 'can_edit'))
+                <x-ui.button variant="primary" icon="plus" wire:click="create">  
+                    Tambah User
+                </x-ui.button>
+                @endif
+            </div>
         </div>
 
         <!-- Alert Sukses -->
@@ -56,7 +60,6 @@
                     @endif
                 </td>
                 <td class="text-right space-x-1">
-
                     <x-ui.button variant="primary" size="sm" outline="true" icon="pencil" wire:click="edit({{ $user->id }})">
                         Edit
                     </x-ui.button>
@@ -126,7 +129,7 @@
                             @error('role') <span class="text-error text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
-                            <label class="label p-0 mb-1"><span class="label-text text-xs text-base-content/60">Grup Akses (View Sidebar)</span></label>
+                            <label class="label p-0 mb-1"><span class="label-text text-xs text-base-content/60">Grup Akses (View Sidebar) <span class="text-error">*</span></span></label>
                             <select wire:model.live="access_group_id" class="select select-bordered w-full">
                                 <option value="">-- Pilih Akses Group (View) --</option>
                                 @foreach($accessGroups as $group)

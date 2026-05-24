@@ -9,9 +9,13 @@ use App\Models\MasterDistributor;
 use App\Exports\DetailSellOutExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
+    use EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'sell-out.export';
     // Filter
     public $regionFilter;
     public $areaFilter;
@@ -81,6 +85,8 @@ class Index extends Component
      */
     public function export()
     {
+        $this->authorizeAction('can_export');
+
         $validatedData = $this->validate();
 
         $filters = [

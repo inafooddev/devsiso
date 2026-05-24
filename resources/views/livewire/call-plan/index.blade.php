@@ -134,12 +134,16 @@
                         <input wire:model.live.debounce.300ms="searchStore" type="text" placeholder="Cari toko atau alamat..." 
                             class="w-full text-xs pl-9 pr-3 py-2 bg-gray-100 border-transparent rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none border">
                     </div>
+                    @canExport('call-plan.index')
                     <button @click="$wire.set('showExportModal', true)" title="Export Excel" class="h-9 w-9 flex items-center justify-center bg-green-50 text-green-600 hover:bg-green-600 hover:text-white rounded-xl transition-all duration-200 border border-green-100 shadow-sm active:scale-95">
                         <i class="fas fa-file-excel text-sm"></i>
                     </button>
+                    @endcanExport
+                    @canEdit('call-plan.index')
                     <button @click="$wire.set('showAddModal', true)" title="Tambah Customer" class="h-9 w-9 flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-200 shadow-md shadow-blue-200 active:scale-95">
                         <i class="fas fa-user-plus text-sm"></i>
                     </button>
+                    @endcanEdit
                 </div>
 
                 @if(!$isFilterApplied)
@@ -171,12 +175,14 @@
                                         </div>
                                     </div>
                                     <div class="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        @canEdit('call-plan.index')
                                         <button @click="handleEdit(@js($store))" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-1.5 rounded transition">
                                             <i class="fas fa-pen text-xs"></i>
                                         </button>
                                         <button wire:click="deleteStore({{ $store['frute_id'] }})" wire:confirm="Hapus rute ini?" class="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded transition">
                                             <i class="fas fa-trash text-xs"></i>
                                         </button>
+                                        @endcanEdit
                                     </div>
                                 </div>
                             </div>

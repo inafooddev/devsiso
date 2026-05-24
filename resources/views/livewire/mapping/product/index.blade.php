@@ -50,21 +50,23 @@
                     </button>
                     
                     {{-- Import Button --}}
-                    @unless(auth()->user()->hasRole('guest'))
+                    @canImport('product-mappings.index')
                     <button wire:click="$set('isImportModalOpen', true)"
                             class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
                         <x-heroicon-s-arrow-up-tray class="w-4 h-4" />
                         Import
                     </button>
-                    @endunless
+                    @endcanImport
 
                     {{-- Export --}}
+                    @canExport('product-mappings.index')
                     <button wire:click="export" wire:loading.attr="disabled"
                             class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
                         <span wire:loading.remove wire:target="export"><x-heroicon-s-arrow-down-tray class="w-4 h-4" /></span>
                         <span wire:loading wire:target="export" class="loading loading-spinner loading-xs"></span>
                         Export
                     </button>
+                    @endcanExport
                     
                     <a href="{{ asset('templates/product_mapping_template.xlsx') }}" download 
                        class="btn btn-sm btn-outline btn-warning rounded-xl normal-case gap-2 transition-all duration-200">
@@ -73,13 +75,13 @@
                     </a>
 
                     {{-- Add Button --}}
-                    @unless(auth()->user()->hasRole('guest'))
+                    @canEdit('product-mappings.index')
                     <button wire:click="openCreateModal"
                        class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
                         <x-heroicon-s-plus class="w-4 h-4" />
                         Tambah Manual
                     </button>
-                    @endunless
+                    @endcanEdit
                 </div>
             </x-slot:actions>
 
@@ -141,7 +143,7 @@
                             </td>
                             <td>
                                 <div class="flex items-center justify-center gap-1">
-                                    @unless(auth()->user()->hasRole('guest'))
+                                    @canEdit('product-mappings.index')
                                     <button wire:click="openEditModal('{{ $mapping->id }}')"
                                             class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit">
                                         <x-heroicon-s-pencil-square class="w-4 h-4" />
@@ -150,7 +152,9 @@
                                             class="btn btn-ghost btn-xs btn-square rounded-lg text-error hover:bg-error/10 transition-all duration-200" title="Hapus">
                                         <x-heroicon-s-trash class="w-4 h-4" />
                                     </button>
-                                    @endunless
+                                    @else
+                                    <span class="text-xs text-base-content/50 italic">View Only</span>
+                                    @endcanEdit
                                 </div>
                             </td>
                         </tr>

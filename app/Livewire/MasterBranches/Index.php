@@ -10,12 +10,14 @@ use App\Models\MasterArea;
 use Livewire\WithPagination;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
+    protected string $menuRoute = 'master-branches.index';
 
     public $search = '';
     
@@ -196,6 +198,8 @@ class Index extends Component
      */
     public function save()
     {
+        $this->authorizeAction('can_edit');
+        
         $this->validate();
 
         if ($this->isEditing) {
@@ -272,6 +276,8 @@ class Index extends Component
      */
     public function delete()
     {
+        $this->authorizeAction('can_edit');
+
         $query = MasterBranch::query();
         $this->applyRegionAccess($query, 'branch');
         

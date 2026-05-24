@@ -101,14 +101,19 @@
                     </x-ui.button>                    
                     
                     <!-- TOMBOL TAMBAH CUSTOMER BARU -->
+                    @canEdit('plan-call-team-elite.toko-pareto')
                     <x-ui.button variant="primary" size="sm" wire:click="openCreateModal" icon="plus">
                         Tambah Customer
                     </x-ui.button>
+                    @endcanEdit
                     
+                    @canImport('plan-call-team-elite.toko-pareto')
                     <x-ui.button variant="success" size="sm" wire:click="openImportModal">
                         <x-heroicon-s-arrow-down-on-square class="w-4 h-4 mr-1" /> Import
                     </x-ui.button>
+                    @endcanImport
 
+                    @canExport('plan-call-team-elite.toko-pareto')
                     <x-ui.button variant="info" size="sm" wire:click="export" wire:loading.attr="disabled" wire:target="export">
                         <span wire:loading.remove wire:target="export" class="flex items-center gap-1">
                             <x-heroicon-s-arrow-up-on-square class="w-4 h-4" /> Export
@@ -117,6 +122,7 @@
                             <span class="loading loading-spinner loading-xs"></span> Proses...
                         </span>
                     </x-ui.button>
+                    @endcanExport
                 </div>
             </div>
 
@@ -217,9 +223,11 @@
                 @foreach($data as $item)
                 <tr>
                     <td class="whitespace-nowrap flex gap-1">
+                        @canEdit('plan-call-team-elite.toko-pareto')
                         <x-ui.button size="xs" variant="info" outline wire:click="edit({{ $item->id }})" title="Edit" icon="pencil-square"></x-ui.button>
                         <x-ui.button size="xs" variant="error" outline wire:click="confirmDelete({{ $item->id }})" title="Hapus" icon="trash"></x-ui.button>
                         <x-ui.button size="xs" variant="success" outline wire:click="addToJks({{ $item->id }})" title="Add to JKS" icon="plus-circle"></x-ui.button>
+                        @endcanEdit
                     </td>
                     <td class="whitespace-nowrap">{{ $item->region_name }}</td>
                     <td class="whitespace-nowrap">{{ $item->area_name }}</td>

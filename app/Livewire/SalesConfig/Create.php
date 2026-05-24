@@ -6,9 +6,14 @@ use Livewire\Component;
 use App\Models\ConfigSalesInvoiceDistributor;
 use App\Models\MasterDistributor; // [DITAMBAHKAN]
 use Illuminate\Support\Facades\Validator;
+use App\Traits\EnforcesMenuPermissions;
 
 class Create extends Component
 {
+    use EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'sales-configs.index';
+
     // [DIUBAH] Hanya properti distributor_code yang diperlukan untuk input
     public $distributor_code = '';
     public $config = [];
@@ -138,6 +143,8 @@ class Create extends Component
      */
     public function save()
     {
+        $this->authorizeAction('can_edit');
+
         // Menjalankan semua aturan validasi dari metode rules()
         $this->validate();
         

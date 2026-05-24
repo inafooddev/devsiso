@@ -13,12 +13,14 @@ use Livewire\WithPagination;
 use Livewire\WithFileUploads;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
+    protected string $menuRoute = 'salesmans.index';
 
     // Properti Filter
     public $regionFilter;
@@ -276,6 +278,8 @@ class Index extends Component
 
     public function save()
     {
+        $this->authorizeAction('can_edit');
+
         $validatedData = $this->validate();
 
         // Security Check: Pastikan kode distributor yang disubmit ada dalam wilayah otoritas user
@@ -420,6 +424,8 @@ class Index extends Component
 
     public function delete()
     {
+        $this->authorizeAction('can_edit');
+
         // Security Check: Pastikan hanya bisa hapus di distributor miliknya
         if (!$this->checkDistributorAccess($this->distributorCodeToDelete)) {
             session()->flash('error', 'Anda tidak memiliki otoritas untuk menghapus data ini.');
@@ -437,6 +443,8 @@ class Index extends Component
 
     public function export()
     {
+        $this->authorizeAction('can_export');
+
         if (!$this->hasAppliedFilters) {
              session()->flash('error', 'Terapkan filter terlebih dahulu sebelum mengekspor data.');
              return;

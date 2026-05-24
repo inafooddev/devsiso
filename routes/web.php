@@ -58,6 +58,7 @@ use App\Livewire\ProdukEskaMap\Index as ProdukEskaMapIndex;
 use App\Livewire\Profile;
 use App\Livewire\RoleManagement;
 use App\Livewire\AccessGroupManagement;
+use App\Livewire\ActivityLogManagement;
 use App\Livewire\Rwo\Index as RwoIndex;
 use App\Livewire\SalesConfig\Create as SalesConfigCreate;
 use App\Livewire\SalesConfig\Edit as SalesConfigEdit;
@@ -95,6 +96,7 @@ Route::middleware(['auth'])->group(function () {
     // AUTHENTICATION & PROFILE
     // ==========================================
     Route::post('/logout', function () {
+        \App\Helpers\ActivityLogger::log('Logout', 'User berhasil logout dari sistem.');
         Auth::logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
@@ -110,6 +112,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/users', UserManagement::class)->name('users.index');
     Route::get('/menus', MenuManagement::class)->name('menus.index')->middleware(['role:admin']);
     Route::get('/access-groups', AccessGroupManagement::class)->name('access-groups.index')->middleware(['role:admin']);
+    Route::get('/activity-logs', ActivityLogManagement::class)->name('activity-logs.index')->middleware(['role:admin']);
 
     // ==========================================
     // DASHBOARD & ANALYTICS

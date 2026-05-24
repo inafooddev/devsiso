@@ -6,12 +6,14 @@ use Livewire\Component;
 use App\Models\ProductLine;
 use Livewire\WithPagination;
 use Illuminate\Validation\Rule;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
+    protected string $menuRoute = 'product-lines.index';
 
     public $search = '';
     
@@ -82,6 +84,8 @@ class Index extends Component
 
     public function save()
     {
+        $this->authorizeAction('can_edit');
+        
         $this->validate();
 
         if ($this->isEditing) {
@@ -129,6 +133,8 @@ class Index extends Component
      */
     public function delete()
     {
+        $this->authorizeAction('can_edit');
+
         $line = ProductLine::where('line_id', $this->lineIdToDelete)->first();
         if ($line) {
             $line->delete();

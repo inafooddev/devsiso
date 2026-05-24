@@ -11,11 +11,15 @@ use App\Imports\SellingOutEskalinkImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
     use WithPagination;
     use WithFileUploads;
+    use EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'selling-out-eskalink.index';
 
     // Filter Variables
     public $selectedMonth;
@@ -131,6 +135,8 @@ class Index extends Component
 
     public function export()
     {
+        $this->authorizeAction('can_export');
+
         $this->validate([
             'selectedMonth' => 'required',
             'selectedRegions' => 'required|array|min:1',
@@ -159,6 +165,8 @@ class Index extends Component
 
     public function import()
     {
+        $this->authorizeAction('can_import');
+
         $this->validate([
             'importFile' => 'file|max:102400|mimes:xlsx,xls',
         ]);
