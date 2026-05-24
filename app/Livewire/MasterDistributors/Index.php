@@ -230,10 +230,12 @@ class Index extends Component
 
         if ($this->isEditing) {
             MasterDistributor::where('distributor_code', $this->distributor_code)->update($data);
+            \App\Helpers\ActivityLogger::log('Update Distributor', "Memperbarui distributor: {$this->distributor_code} - {$this->distributor_name}");
             session()->flash('message', 'Data distributor berhasil diperbarui.');
         } else {
             $data['distributor_code'] = $this->distributor_code;
             MasterDistributor::create($data);
+            \App\Helpers\ActivityLogger::log('Create Distributor', "Menambahkan distributor baru: {$this->distributor_code} - {$this->distributor_name}");
             session()->flash('message', 'Distributor baru berhasil ditambahkan.');
         }
 
@@ -333,6 +335,7 @@ class Index extends Component
         $distributor = $query->where('distributor_code', $this->distributorIdToDelete)->first();
 
         if ($distributor) {
+            \App\Helpers\ActivityLogger::log('Delete Distributor', "Menghapus distributor: {$distributor->distributor_code} - {$distributor->distributor_name}");
             $distributor->delete();
             session()->flash('message', 'Distributor berhasil dihapus.');
         } else {

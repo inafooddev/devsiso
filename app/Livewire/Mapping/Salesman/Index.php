@@ -314,9 +314,11 @@ class Index extends Component
         if ($this->isEditing) {
             $mapping = SalesmanMapping::findOrFail($this->editingId);
             $mapping->update($validatedData);
+            \App\Helpers\ActivityLogger::log('Update Salesman Mapping', "Memperbarui mapping salesman: {$validatedData['distributor_code']} - {$validatedData['salesman_code_dist']}");
             session()->flash('message', 'Pemetaan Salesman berhasil diperbarui.');
         } else {
             SalesmanMapping::create($validatedData);
+            \App\Helpers\ActivityLogger::log('Create Salesman Mapping', "Menambahkan mapping salesman baru: {$validatedData['distributor_code']} - {$validatedData['salesman_code_dist']}");
             session()->flash('message', 'Pemetaan Salesman berhasil ditambahkan.');
         }
 
@@ -406,6 +408,7 @@ class Index extends Component
         try {
             $importer = new SalesmanMappingsImport;
             Excel::import($importer, $this->file);
+            \App\Helpers\ActivityLogger::log('Import Salesman Mapping', "Mengimpor data pemetaan salesman. Berhasil: {$importer->importedCount}, Dilewati: {$importer->skippedCount}");
             session()->flash('message', "Impor berhasil: {$importer->importedCount} data diproses, {$importer->skippedCount} data dilewati.");
         } catch (\Exception $e) {
             session()->flash('error', 'Terjadi kesalahan saat impor: ' . $e->getMessage());
@@ -434,6 +437,7 @@ class Index extends Component
                 $this->isDeleteModalOpen = false;
                 return;
             }
+            \App\Helpers\ActivityLogger::log('Delete Salesman Mapping', "Menghapus mapping salesman: {$mapping->distributor_code} - {$mapping->salesman_code_dist}");
             $mapping->delete();
             session()->flash('message', 'Pemetaan Salesman berhasil dihapus.');
         }

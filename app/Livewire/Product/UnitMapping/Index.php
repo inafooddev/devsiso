@@ -87,6 +87,7 @@ class Index extends Component
             $mapping->update([
                 'mapped_unit' => $this->mapped_unit,
             ]);
+            \App\Helpers\ActivityLogger::log('Update Unit Mapping', "Memperbarui unit mapping untuk distributor: {$this->distributor_code}. Raw: {$this->raw_unit} -> {$this->mapped_unit}");
             \App\Helpers\UnitHelper::clearCache($oldDistributor);
             \Illuminate\Support\Facades\Cache::forget('mapping_notification_counts_' . auth()->id());
             $this->dispatch('refreshNotifications');
@@ -106,6 +107,7 @@ class Index extends Component
             \App\Helpers\UnitHelper::clearCache($this->distributor_code);
             \Illuminate\Support\Facades\Cache::forget('mapping_notification_counts_' . auth()->id());
             $this->dispatch('refreshNotifications');
+            \App\Helpers\ActivityLogger::log('Create Unit Mapping', "Menambahkan unit mapping baru untuk distributor: {$this->distributor_code}. Raw: {$this->raw_unit} -> {$this->mapped_unit}");
             session()->flash('message', 'Unit mapping berhasil ditambahkan.');
         }
 
@@ -119,6 +121,7 @@ class Index extends Component
 
         $mapping = UnitMapping::findOrFail($id);
         $distCode = $mapping->distributor_code;
+        \App\Helpers\ActivityLogger::log('Delete Unit Mapping', "Menghapus unit mapping untuk distributor: {$distCode}. Raw: {$mapping->raw_unit} -> {$mapping->mapped_unit}");
         $mapping->delete();
         \App\Helpers\UnitHelper::clearCache($distCode);
         \Illuminate\Support\Facades\Cache::forget('mapping_notification_counts_' . auth()->id());

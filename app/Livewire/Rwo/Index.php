@@ -502,9 +502,11 @@ class Index extends Component
         if ($this->isEditing) {
             $outlet = RewardOutlet::findOrFail($this->outletId);
             $outlet->update($data);
+            \App\Helpers\ActivityLogger::log('Update RWO', "Memperbarui data RWO: {$this->customer_code}");
             session()->flash('message', 'Data RWO berhasil diperbarui.');
         } else {
             RewardOutlet::create($data);
+            \App\Helpers\ActivityLogger::log('Create RWO', "Menambahkan data RWO baru: {$this->customer_code}");
             session()->flash('message', 'Data RWO baru berhasil ditambahkan.');
         }
 
@@ -541,7 +543,9 @@ class Index extends Component
             Storage::disk('public')->delete($outlet->foto_toko3);
         }
 
+        $outletCode = $outlet->customer_code;
         $outlet->delete();
+        \App\Helpers\ActivityLogger::log('Delete RWO', "Menghapus data RWO: {$outletCode}");
         session()->flash('message', 'Data RWO berhasil dihapus.');
         $this->isDeleteModalOpen = false;
     }
@@ -567,6 +571,8 @@ class Index extends Component
             $importer = new RewardOutletImport();
             Excel::import($importer, $this->importFile->getRealPath());
 
+            \App\Helpers\ActivityLogger::log('Import RWO', "Mengimpor {$importer->importedCount} data RWO secara massal.");
+
             session()->flash('message', "Berhasil mengimpor {$importer->importedCount} data RWO. (Lewat: {$importer->skippedCount} baris).");
         } catch (\Exception $e) {
             session()->flash('error', 'Gagal mengimpor file: ' . $e->getMessage());
@@ -589,6 +595,7 @@ class Index extends Component
             'filter_area_code' => $this->filter_area_code,
             'filter_branch_name' => $this->filter_branch_name,
         ];
+        \App\Helpers\ActivityLogger::log('Export RWO', "Mengekspor data RWO.");
         return Excel::download(new RewardOutletExport($filters), 'reward_outlet_export.xlsx');
     }
 

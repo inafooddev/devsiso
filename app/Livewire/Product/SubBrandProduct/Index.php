@@ -94,12 +94,14 @@ class Index extends Component
                 'sub_brand_id' => $this->sub_brand_id,
                 'sub_brand_name' => $this->sub_brand_name,
             ]);
+            \App\Helpers\ActivityLogger::log('Update Product Sub-Brand', "Memperbarui sub-brand produk: {$this->old_sub_brand_id} menjadi {$this->sub_brand_id} - {$this->sub_brand_name}");
             session()->flash('message', 'Product Sub-Brand berhasil diperbarui.');
         } else {
             ProductSubBrand::create([
                 'sub_brand_id' => $this->sub_brand_id,
                 'sub_brand_name' => $this->sub_brand_name,
             ]);
+            \App\Helpers\ActivityLogger::log('Create Product Sub-Brand', "Menambahkan sub-brand produk baru: {$this->sub_brand_id} - {$this->sub_brand_name}");
             session()->flash('message', 'Product Sub-Brand berhasil ditambahkan.');
         }
 
@@ -131,6 +133,7 @@ class Index extends Component
 
         $subBrand = ProductSubBrand::where('sub_brand_id', $this->subBrandIdToDelete)->first();
         if ($subBrand) {
+            \App\Helpers\ActivityLogger::log('Delete Product Sub-Brand', "Menghapus sub-brand produk: {$subBrand->sub_brand_id} - {$subBrand->sub_brand_name}");
             $subBrand->delete();
             session()->flash('message', 'Product Sub-Brand berhasil dihapus.');
         }

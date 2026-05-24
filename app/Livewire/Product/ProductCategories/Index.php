@@ -110,12 +110,14 @@ class Index extends Component
                 'product_id' => $this->product_id,
                 'category_id' => $this->category_id,
             ]);
+            \App\Helpers\ActivityLogger::log('Update Product Category Mapping', "Memperbarui mapping kategori produk: {$this->product_id} - {$this->category_id}");
             session()->flash('message', 'Pemetaan Kategori Produk berhasil diperbarui.');
         } else {
             ProductCategory::create([
                 'product_id' => $this->product_id,
                 'category_id' => $this->category_id,
             ]);
+            \App\Helpers\ActivityLogger::log('Create Product Category Mapping', "Menambahkan mapping kategori produk baru: {$this->product_id} - {$this->category_id}");
             session()->flash('message', 'Pemetaan Kategori Produk berhasil ditambahkan.');
         }
 
@@ -154,6 +156,7 @@ class Index extends Component
 
         $mapping = ProductCategory::find($this->mappingIdToDelete);
         if ($mapping) {
+            \App\Helpers\ActivityLogger::log('Delete Product Category Mapping', "Menghapus mapping kategori produk: {$mapping->product_id} - {$mapping->category_id}");
             $mapping->delete();
             session()->flash('message', 'Pemetaan Kategori Produk berhasil dihapus.');
         }

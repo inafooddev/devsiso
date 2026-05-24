@@ -94,12 +94,14 @@ class Index extends Component
                 'product_group_id' => $this->product_group_id,
                 'brand_unit_name' => $this->brand_unit_name,
             ]);
+            \App\Helpers\ActivityLogger::log('Update Product Group', "Memperbarui group produk: {$this->old_group_id} menjadi {$this->product_group_id} - {$this->brand_unit_name}");
             session()->flash('message', 'Product Group berhasil diperbarui.');
         } else {
             ProductGroup::create([
                 'product_group_id' => $this->product_group_id,
                 'brand_unit_name' => $this->brand_unit_name,
             ]);
+            \App\Helpers\ActivityLogger::log('Create Product Group', "Menambahkan group produk baru: {$this->product_group_id} - {$this->brand_unit_name}");
             session()->flash('message', 'Product Group berhasil ditambahkan.');
         }
 
@@ -131,6 +133,7 @@ class Index extends Component
 
         $group = ProductGroup::where('product_group_id', $this->groupIdToDelete)->first();
         if ($group) {
+            \App\Helpers\ActivityLogger::log('Delete Product Group', "Menghapus group produk: {$group->product_group_id} - {$group->brand_unit_name}");
             $group->delete();
             session()->flash('message', 'Product Group berhasil dihapus.');
         }

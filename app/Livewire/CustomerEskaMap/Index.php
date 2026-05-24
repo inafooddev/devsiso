@@ -182,6 +182,8 @@ class Index extends Component
         $timestamp = Carbon::now()->format('Ymd_His');
         $filename = 'Customer_Eska_Map_' . $timestamp . '.xlsx';
 
+        \App\Helpers\ActivityLogger::log('Export Customer Eska Map', "Mengekspor data pemetaan Customer Eska untuk distributor: {$this->distributorFilter}");
+
         return Excel::download(
             new CustomerEskaMapExport(
                 $this->regionFilter, 

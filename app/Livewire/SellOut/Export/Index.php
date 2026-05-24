@@ -99,6 +99,8 @@ class Index extends Component
         
         $fileName = 'detail_sell_out_' . Carbon::create($this->yearFilter, $this->monthFilter)->format('M_Y') . '.xlsx';
 
+        \App\Helpers\ActivityLogger::log('Export Sell Out', "Mengekspor data Detail Sell Out (Bulan: {$this->monthFilter}, Tahun: {$this->yearFilter})");
+
         session()->flash('message', 'Ekspor sedang diproses. Harap tunggu...');
 
         return Excel::download(new DetailSellOutExport($filters), $fileName);

@@ -94,12 +94,14 @@ class Index extends Component
                 'brand_id' => $this->brand_id,
                 'brand_name' => $this->brand_name,
             ]);
+            \App\Helpers\ActivityLogger::log('Update Product Brand', "Memperbarui brand produk: {$this->old_brand_id} menjadi {$this->brand_id} - {$this->brand_name}");
             session()->flash('message', 'Product Brand berhasil diperbarui.');
         } else {
             ProductBrand::create([
                 'brand_id' => $this->brand_id,
                 'brand_name' => $this->brand_name,
             ]);
+            \App\Helpers\ActivityLogger::log('Create Product Brand', "Menambahkan brand produk baru: {$this->brand_id} - {$this->brand_name}");
             session()->flash('message', 'Product Brand berhasil ditambahkan.');
         }
 
@@ -131,6 +133,7 @@ class Index extends Component
 
         $brand = ProductBrand::where('brand_id', $this->brandIdToDelete)->first();
         if ($brand) {
+            \App\Helpers\ActivityLogger::log('Delete Product Brand', "Menghapus brand produk: {$brand->brand_id} - {$brand->brand_name}");
             $brand->delete();
             session()->flash('message', 'Product Brand berhasil dihapus.');
         }

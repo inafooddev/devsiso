@@ -145,6 +145,9 @@ class Index extends Component
         ]);
 
         $timestamp = Carbon::now()->format('Ymd_His');
+
+        \App\Helpers\ActivityLogger::log('Export Selling Out Eskalink', "Mengekspor data Selling Out Eskalink untuk bulan {$this->selectedMonth}.");
+
         return Excel::download(
             new SellingOutEskalinkExport(
                 $this->selectedRegions, 
@@ -173,6 +176,9 @@ class Index extends Component
 
         try {
             Excel::import(new SellingOutEskalinkImport, $this->importFile);
+            
+            \App\Helpers\ActivityLogger::log('Import Selling Out Eskalink', "Mengimpor data Selling Out Eskalink dari file.");
+
             session()->flash('success', 'Import berhasil!');
             $this->showImportModal = false;
             $this->importFile = null;

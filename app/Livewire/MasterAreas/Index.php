@@ -135,6 +135,7 @@ class Index extends Component
                 'area_name'   => $this->area_name,
                 'region_code' => $this->region_code,
             ]);
+            \App\Helpers\ActivityLogger::log('Update Area', "Memperbarui area: {$this->area_code} - {$this->area_name}");
             session()->flash('message', 'Data area berhasil diperbarui.');
         } else {
             MasterArea::create([
@@ -142,6 +143,7 @@ class Index extends Component
                 'area_name'   => $this->area_name,
                 'region_code' => $this->region_code,
             ]);
+            \App\Helpers\ActivityLogger::log('Create Area', "Menambahkan area baru: {$this->area_code} - {$this->area_name}");
             session()->flash('message', 'Area baru berhasil ditambahkan.');
         }
 
@@ -202,6 +204,7 @@ class Index extends Component
         $area = $query->where('area_code', $this->areaIdToDelete)->first();
 
         if ($area) {
+            \App\Helpers\ActivityLogger::log('Delete Area', "Menghapus area: {$area->area_code} - {$area->area_name}");
             $area->delete();
             session()->flash('message', 'Area berhasil dihapus.');
         } else {

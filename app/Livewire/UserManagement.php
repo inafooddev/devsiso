@@ -169,6 +169,8 @@ class UserManagement extends Component
             'guard_name' => 'web'
         ]);
 
+        \App\Helpers\ActivityLogger::log('Create Role', "Menambahkan role baru: {$this->newRoleName}");
+
         $this->isRoleModalOpen = false;
         $this->newRoleName = '';
         

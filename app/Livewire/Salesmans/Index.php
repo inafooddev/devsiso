@@ -306,10 +306,12 @@ class Index extends Component
                         'is_active'        => $this->is_active,
                         'updated_at'       => now(),
                     ]);
+                \App\Helpers\ActivityLogger::log('Update Salesman', "Memperbarui salesman: {$this->originalDistributorCode} - {$this->salesman_code}");
                 $message = 'Salesman berhasil diperbarui.';
             } else {
                 $dataToSave = collect($validatedData)->except(['manual_number'])->toArray();
                 Salesman::create($dataToSave);
+                \App\Helpers\ActivityLogger::log('Create Salesman', "Menambahkan salesman baru: {$this->distributor_code} - {$this->salesman_code}");
                 $message = 'Salesman berhasil ditambahkan.';
             }
 
@@ -436,6 +438,8 @@ class Index extends Component
         Salesman::where('salesman_code', $this->salesmanCodeToDelete)
             ->where('distributor_code', $this->distributorCodeToDelete)
             ->delete();
+
+        \App\Helpers\ActivityLogger::log('Delete Salesman', "Menghapus salesman: {$this->distributorCodeToDelete} - {$this->salesmanCodeToDelete}");
 
         $this->reset(['salesmanCodeToDelete', 'distributorCodeToDelete', 'isDeleteModalOpen']);
         session()->flash('message', 'Salesman berhasil dihapus.');

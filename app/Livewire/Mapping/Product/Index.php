@@ -330,9 +330,11 @@ class Index extends Component
         if ($this->isEditing) {
             $mapping = ProductMapping::findOrFail($this->editingId);
             $mapping->update($validatedData);
+            \App\Helpers\ActivityLogger::log('Update Product Mapping', "Memperbarui mapping produk: {$validatedData['distributor_code']} - {$validatedData['product_code_dist']}");
             session()->flash('message', 'Pemetaan Produk berhasil diperbarui.');
         } else {
             ProductMapping::create($validatedData);
+            \App\Helpers\ActivityLogger::log('Create Product Mapping', "Menambahkan mapping produk baru: {$validatedData['distributor_code']} - {$validatedData['product_code_dist']}");
             session()->flash('message', 'Pemetaan Produk berhasil ditambahkan.');
         }
 
@@ -434,6 +436,7 @@ class Index extends Component
         try {
             $importer = new ProductMappingsImport;
             Excel::import($importer, $this->file);
+            \App\Helpers\ActivityLogger::log('Import Product Mapping', "Mengimpor data pemetaan produk. Berhasil: {$importer->importedCount}, Dilewati: {$importer->skippedCount}");
             session()->flash('message', "Impor berhasil: {$importer->importedCount} data diproses, {$importer->skippedCount} data dilewati.");
         } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
             $failures = $e->failures();
@@ -469,6 +472,7 @@ class Index extends Component
                 return;
             }
 
+            \App\Helpers\ActivityLogger::log('Delete Product Mapping', "Menghapus mapping produk: {$mapping->distributor_code} - {$mapping->product_code_dist}");
             $mapping->delete();
             session()->flash('message', 'Pemetaan Produk berhasil dihapus.');
         }

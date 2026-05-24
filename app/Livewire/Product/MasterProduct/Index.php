@@ -186,12 +186,14 @@ class Index extends Component
             $product = ProductMaster::findOrFail($this->product_id);
             $product->update($validatedData);
             $product->categories()->sync($categoryIds);
+            \App\Helpers\ActivityLogger::log('Update Product', "Memperbarui produk master: {$this->product_id} - {$validatedData['product_name']}");
             session()->flash('message', 'Master Product berhasil diperbarui.');
         } else {
             $product = ProductMaster::create($validatedData);
             if (!empty($categoryIds)) {
                 $product->categories()->attach($categoryIds);
             }
+            \App\Helpers\ActivityLogger::log('Create Product', "Menambahkan produk master baru: {$validatedData['product_id']} - {$validatedData['product_name']}");
             session()->flash('message', 'Master Product berhasil ditambahkan.');
         }
 
@@ -240,6 +242,7 @@ class Index extends Component
 
         $product = ProductMaster::find($this->productIdToDelete);
         if ($product) {
+            \App\Helpers\ActivityLogger::log('Delete Product', "Menghapus produk master: {$product->product_id} - {$product->product_name}");
             $product->delete();
             session()->flash('message', 'Master Product berhasil dihapus.');
         }

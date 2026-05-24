@@ -204,6 +204,8 @@ class Edit extends Component
             'config' => json_encode($filteredConfig, JSON_PRETTY_PRINT),
         ]);
 
+        \App\Helpers\ActivityLogger::log('Update Sales Config', "Memperbarui konfigurasi sales invoice untuk distributor: {$this->distributor_code} - {$this->config_name}");
+
         session()->flash('message', 'Konfigurasi berhasil diperbarui!');
 
         // Redirect ke halaman index setelah berhasil memperbarui

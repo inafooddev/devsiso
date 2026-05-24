@@ -94,12 +94,14 @@ class Index extends Component
                 'line_id' => $this->line_id,
                 'line_name' => $this->line_name,
             ]);
+            \App\Helpers\ActivityLogger::log('Update Product Line', "Memperbarui line produk: {$this->old_line_id} menjadi {$this->line_id} - {$this->line_name}");
             session()->flash('message', 'Product Line berhasil diperbarui.');
         } else {
             ProductLine::create([
                 'line_id' => $this->line_id,
                 'line_name' => $this->line_name,
             ]);
+            \App\Helpers\ActivityLogger::log('Create Product Line', "Menambahkan line produk baru: {$this->line_id} - {$this->line_name}");
             session()->flash('message', 'Product Line berhasil ditambahkan.');
         }
 
@@ -137,6 +139,7 @@ class Index extends Component
 
         $line = ProductLine::where('line_id', $this->lineIdToDelete)->first();
         if ($line) {
+            \App\Helpers\ActivityLogger::log('Delete Product Line', "Menghapus line produk: {$line->line_id} - {$line->line_name}");
             $line->delete();
             session()->flash('message', 'Product Line berhasil dihapus.');
         }

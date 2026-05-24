@@ -37,6 +37,8 @@ class Profile extends Component
         $user->email = $this->email;
         $user->save();
 
+        \App\Helpers\ActivityLogger::log('Update Profile', "Memperbarui informasi profil pengguna");
+
         session()->flash('message', 'Profil berhasil diperbarui.');
     }
 
@@ -50,6 +52,8 @@ class Profile extends Component
         $user = Auth::user();
         $user->password = Hash::make($this->new_password);
         $user->save();
+
+        \App\Helpers\ActivityLogger::log('Update Password', "Mengganti password pengguna");
 
         $this->reset(['current_password', 'new_password', 'new_password_confirmation']);
         session()->flash('message_password', 'Password berhasil diperbarui.');

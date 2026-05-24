@@ -183,6 +183,8 @@ class Index extends Component
 
         // 3. Kirim job validasi pertama
         ValidateSellOutJob::dispatch($batch->id, $filters);
+
+        \App\Helpers\ActivityLogger::log('Process Sell Out', "Memulai proses kalkulasi Sell Out (Bulan: {$this->monthFilter}, Tahun: {$this->yearFilter}) untuk region: " . ($this->regionFilter ?: 'Semua') . ", area: " . ($this->areaFilter ?: 'Semua'));
     }
 
     /**

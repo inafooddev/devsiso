@@ -80,8 +80,10 @@ class Index extends Component
             $batch->update(['total_rows' => $this->totalRows]);
 
             Excel::import(new SellingInImport($batch), $path);
-            
             $batch->updateStatus('completed', 'Import selesai dengan sukses.');
+
+            \App\Helpers\ActivityLogger::log('Import Selling In', "Mengimpor data Selling In secara massal dari file: " . $this->excel_file->getClientOriginalName());
+
             session()->flash('message', 'Data Selling In berhasil diimport.');
             $this->reset('excel_file');
         } catch (\Exception $e) {

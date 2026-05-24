@@ -155,6 +155,8 @@ class Index extends Component
 
         // Kirim job validasi V2
         ValidateSellOutJobV2::dispatch($batch->id, $filters);
+
+        \App\Helpers\ActivityLogger::log('Process Sell Out V2', "Memulai proses kalkulasi Sell Out V2 (Bulan: {$this->monthFilter}, Tahun: {$this->yearFilter}) untuk region: " . ($this->regionFilter ?: 'Semua') . ", area: " . ($this->areaFilter ?: 'Semua'));
     }
 
     /**

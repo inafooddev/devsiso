@@ -235,6 +235,8 @@ class Index extends Component
         $filename = 'Produk_Eska_' . $timestamp . '.xlsx';
         $this->isExportModalOpen = false;
 
+        \App\Helpers\ActivityLogger::log('Export Product Eska', "Mengekspor data Product Eska untuk distributor: {$this->distributorFilter}");
+
         return Excel::download(
             new ProdukEskaExport(
                 $this->regionFilter, 

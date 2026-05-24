@@ -285,6 +285,7 @@ class ListTokoPareto extends Component
         );
 
         $this->isCreateModalOpen = false;
+        \App\Helpers\ActivityLogger::log('Create Toko Pareto', "Menambahkan Toko Pareto baru: {$this->customer_code_prc} - {$this->customer_name}");
         session()->flash('message', 'Customer berhasil ditambahkan.');
     }
 
@@ -347,6 +348,7 @@ class ListTokoPareto extends Component
         ]);
 
         $this->isEditModalOpen = false;
+        \App\Helpers\ActivityLogger::log('Update Toko Pareto', "Memperbarui Toko Pareto: {$this->customer_code_prc} - {$this->customer_name}");
         session()->flash('message', 'Data berhasil diperbarui.');
     }
 
@@ -369,6 +371,7 @@ class ListTokoPareto extends Component
                 $this->isDeleteModalOpen = false;
                 return;
             }
+            \App\Helpers\ActivityLogger::log('Delete Toko Pareto', "Menghapus Toko Pareto: {$toko->customer_code_prc} - {$toko->customer_name}");
             $toko->delete();
             session()->flash('message', 'Data berhasil dihapus.');
         }
@@ -424,6 +427,7 @@ class ListTokoPareto extends Component
             if (file_exists($fullPath)) unlink($fullPath);
 
             $this->isImportModalOpen = false;
+            \App\Helpers\ActivityLogger::log('Import Toko Pareto', "Mengimpor data List Toko Pareto secara massal.");
             session()->flash('message', 'Proses Import Selesai (Geotag Polygon & Full Sync berhasil).');
             $this->resetPage(); 
             
@@ -437,7 +441,7 @@ class ListTokoPareto extends Component
     {
         $this->authorizeAction('can_export');
 
-        // Data yang diekspor mengambil dari getBaseQuery() yang sudah diamankan dengan applyRegionAccess()
+        \App\Helpers\ActivityLogger::log('Export Toko Pareto', "Mengekspor data List Toko Pareto.");
         return Excel::download(new ListTokoParetoExport($this->getBaseQuery()), 'List_Toko_Pareto_Team_Elite.xlsx');
     }
 
@@ -492,6 +496,7 @@ class ListTokoPareto extends Component
             ]);
 
             $this->isAddToJksModalOpen = false;
+            \App\Helpers\ActivityLogger::log('Add Toko to JKS', "Menambahkan Toko Pareto {$toko->customer_code_prc} ke JKS Team {$this->jksKodeTeam} ({$this->jksTanggal})");
             session()->flash('message', 'Toko berhasil ditambahkan ke JKS Team Elite.');
         }
     }

@@ -281,6 +281,8 @@ class Index extends Component
             ]
         );
 
+        \App\Helpers\ActivityLogger::log('Map Unmapped Salesman', "Memetakan salesman dari unmapped: {$this->currentSalesmanToMap['distributor_code']} - {$this->currentSalesmanToMap['salesman_code_dist']} ke {$this->selectedPrincipalSalesman}");
+
         $this->isMapModalOpen = false;
         
         // Refresh sidebar and navbar badges

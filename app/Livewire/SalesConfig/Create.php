@@ -194,6 +194,8 @@ class Create extends Component
             'config' => json_encode($filteredConfig, JSON_PRETTY_PRINT),
         ]);
 
+        \App\Helpers\ActivityLogger::log('Create Sales Config', "Membuat konfigurasi sales invoice untuk distributor: {$selectedDistributor->distributor_code} - {$selectedDistributor->distributor_name}");
+
         session()->flash('message', 'Konfigurasi berhasil disimpan!');
         return redirect()->route('sales-configs.index');
     }

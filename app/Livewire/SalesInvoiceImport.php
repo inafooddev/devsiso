@@ -120,6 +120,8 @@ class SalesInvoiceImport extends Component
         $this->batchId = $batch->id;
         $this->syncLog(); // Lakukan sinkronisasi awal untuk menampilkan pesan "pending"
         
+        \App\Helpers\ActivityLogger::log('Import Sales Invoice', "Memulai proses import file: {$originalFilename}");
+        
         ProcessSalesInvoiceImport::dispatch($filePath, $this->batchId, $distributorCodeCode);
         
         $this->reset('excel_file');

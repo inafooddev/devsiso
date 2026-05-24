@@ -146,6 +146,7 @@ class Index extends Component
                 'description'     => $this->description,
                 'area_code'       => $this->area_code,
             ]);
+            \App\Helpers\ActivityLogger::log('Update Supervisor', "Memperbarui supervisor: {$this->supervisor_code} - {$this->supervisor_name}");
             session()->flash('message', 'Data supervisor berhasil diperbarui.');
         } else {
             MasterSupervisor::create([
@@ -154,6 +155,7 @@ class Index extends Component
                 'description'     => $this->description,
                 'area_code'       => $this->area_code,
             ]);
+            \App\Helpers\ActivityLogger::log('Create Supervisor', "Menambahkan supervisor baru: {$this->supervisor_code} - {$this->supervisor_name}");
             session()->flash('message', 'Supervisor baru berhasil ditambahkan.');
         }
 
@@ -221,6 +223,7 @@ class Index extends Component
         $supervisor = $query->where('supervisor_code', $this->supervisorIdToDelete)->first();
 
         if ($supervisor) {
+            \App\Helpers\ActivityLogger::log('Delete Supervisor', "Menghapus supervisor: {$supervisor->supervisor_code} - {$supervisor->supervisor_name}");
             $supervisor->delete();
             session()->flash('message', 'Supervisor berhasil dihapus.');
         } else {

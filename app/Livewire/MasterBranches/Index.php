@@ -209,6 +209,7 @@ class Index extends Component
                 'branch_name'     => $this->branch_name,
                 'supervisor_code' => $this->supervisor_code,
             ]);
+            \App\Helpers\ActivityLogger::log('Update Branch', "Memperbarui cabang: {$this->branch_code} - {$this->branch_name}");
             session()->flash('message', 'Data cabang berhasil diperbarui.');
         } else {
             MasterBranch::create([
@@ -216,6 +217,7 @@ class Index extends Component
                 'branch_name'     => $this->branch_name,
                 'supervisor_code' => $this->supervisor_code,
             ]);
+            \App\Helpers\ActivityLogger::log('Create Branch', "Menambahkan cabang baru: {$this->branch_code} - {$this->branch_name}");
             session()->flash('message', 'Cabang baru berhasil ditambahkan.');
         }
 
@@ -284,6 +286,7 @@ class Index extends Component
         $branch = $query->where('branch_code', $this->branchIdToDelete)->first();
 
         if ($branch) {
+            \App\Helpers\ActivityLogger::log('Delete Branch', "Menghapus cabang: {$branch->branch_code} - {$branch->branch_name}");
             $branch->delete();
             session()->flash('message', 'Cabang berhasil dihapus.');
         } else {

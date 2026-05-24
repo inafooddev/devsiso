@@ -113,6 +113,7 @@ class Index extends Component
             $data = $query->where("$tableName.id", $this->configToDeleteId)->first();
 
             if ($data) {
+                \App\Helpers\ActivityLogger::log('Delete Sales Config', "Menghapus konfigurasi sales invoice untuk distributor: {$data->distributor_code} - {$data->config_name}");
                 $data->delete();
                 session()->flash('message', 'Konfigurasi berhasil dihapus!');
             } else {

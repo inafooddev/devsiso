@@ -94,12 +94,14 @@ class Index extends Component
                 'category_id' => $this->category_id,
                 'category_name' => $this->category_name,
             ]);
+            \App\Helpers\ActivityLogger::log('Update Category', "Memperbarui kategori: {$this->old_category_id} menjadi {$this->category_id} - {$this->category_name}");
             session()->flash('message', 'Category berhasil diperbarui.');
         } else {
             Category::create([
                 'category_id' => $this->category_id,
                 'category_name' => $this->category_name,
             ]);
+            \App\Helpers\ActivityLogger::log('Create Category', "Menambahkan kategori baru: {$this->category_id} - {$this->category_name}");
             session()->flash('message', 'Category berhasil ditambahkan.');
         }
 
@@ -131,6 +133,7 @@ class Index extends Component
 
         $category = Category::where('category_id', $this->categoryIdToDelete)->first();
         if ($category) {
+            \App\Helpers\ActivityLogger::log('Delete Category', "Menghapus kategori: {$category->category_id} - {$category->category_name}");
             $category->delete();
             session()->flash('message', 'Category berhasil dihapus.');
         }

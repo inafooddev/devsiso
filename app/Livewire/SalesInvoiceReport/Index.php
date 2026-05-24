@@ -274,6 +274,8 @@ class Index extends Component
             'yearFilter' => $this->exportYearFilter,
         ];
 
+        \App\Helpers\ActivityLogger::log('Export Sales Invoice', "Mengekspor laporan sales invoice. Filter Region: " . json_encode($finalRegionFilter));
+
         return Excel::download(new SalesInvoiceExport($filters), 'laporan_sales_invoice_detail.xlsx');
     }
 }

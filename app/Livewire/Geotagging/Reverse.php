@@ -87,6 +87,8 @@ class Reverse extends Component
             'status' => 'pending'
         ]);
 
+        \App\Helpers\ActivityLogger::log('Upload Geotagging Job', "Mengunggah file untuk proses reverse geotagging: {$originalName}");
+
         $this->reset('file');
         session()->flash('message', 'File berhasil diunggah dan masuk antrean proses background.');
         $this->loadJobs();

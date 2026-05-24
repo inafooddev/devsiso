@@ -392,8 +392,10 @@ class Index extends Component
         JksTeamElite::insert($inserts);
         
         if ($this->isEditing) {
+            \App\Helpers\ActivityLogger::log('Update JKS Team Elite', "Memperbarui grup customer JKS untuk team: {$this->selectedTeamName} ({$this->tanggal})");
             session()->flash('message', 'Grup customer berhasil diperbarui.');
         } else {
+            \App\Helpers\ActivityLogger::log('Create JKS Team Elite', "Membuat grup customer JKS baru untuk team: {$this->selectedTeamName} ({$this->tanggal}) sejumlah " . count($inserts) . " data");
             session()->flash('message', count($inserts) . ' Data customer berhasil disimpan.');
         }
 
@@ -427,6 +429,7 @@ class Index extends Component
                 ->where('kode_region', $this->dataIdToDelete['kode_region'])
                 ->delete();
                 
+            \App\Helpers\ActivityLogger::log('Delete JKS Team Elite', "Menghapus grup customer JKS untuk team: {$this->dataIdToDelete['kode_team']} pada {$this->dataIdToDelete['tanggal']}");
             session()->flash('message', 'Grup data berhasil dihapus.');
         } else {
             session()->flash('error', 'Grup data tidak ditemukan.');
@@ -447,6 +450,8 @@ class Index extends Component
             session()->flash('error', 'Pilih Team dan rentang tanggal terlebih dahulu sebelum export.');
             return;
         }
+
+        \App\Helpers\ActivityLogger::log('Export JKS Team Elite', "Mengekspor data JKS Team Elite. Team: {$this->filterTeam}");
 
         return Excel::download(
             new JksTeamEliteExport($this->filterTeam, $this->filterStartDate, $this->filterEndDate), 
@@ -551,6 +556,8 @@ class Index extends Component
                     );
                 }
             }
+
+            \App\Helpers\ActivityLogger::log('Import JKS Team Elite', "Mengimpor " . $import->successCount . " data JKS. Metode: {$this->importMethod}");
 
             session()->flash('message', $import->successCount . ' Data berhasil diimport (Metode: ' . strtoupper(str_replace('_', ' ', $this->importMethod)) . ').');
             $this->isImportModalOpen = false;

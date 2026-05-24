@@ -235,6 +235,8 @@ class Index extends Component
         $filename = 'Produk_Eska_Map_' . $timestamp . '.xlsx';
         $this->isExportModalOpen = false;
 
+        \App\Helpers\ActivityLogger::log('Export Product Eska Map', "Mengekspor data pemetaan Product Eska untuk distributor: {$this->distributorFilter}");
+
         return Excel::download(
             new ProdukEskaMapExport(
                 $this->regionFilter, 

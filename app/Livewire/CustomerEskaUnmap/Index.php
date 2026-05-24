@@ -225,6 +225,8 @@ class Index extends Component
         $timestamp = Carbon::now()->format('Ymd_His');
         $filename = 'Unmapped_Customer_' . $timestamp . '.xlsx';
 
+        \App\Helpers\ActivityLogger::log('Export Customer Eska Unmapped', "Mengekspor data Unmapped Customer Eska. Filter bulan: {$this->monthFilter}");
+
         return Excel::download(
             new CustomerEskaUnmapExport(
                 $dateParam,

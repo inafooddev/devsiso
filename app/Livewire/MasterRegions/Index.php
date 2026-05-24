@@ -131,12 +131,14 @@ class Index extends Component
                 'region_code' => $this->region_code,
                 'region_name' => $this->region_name,
             ]);
+            \App\Helpers\ActivityLogger::log('Update Region', "Memperbarui region: {$this->region_code} - {$this->region_name}");
             session()->flash('message', 'Region berhasil diperbarui.');
         } else {
             MasterRegion::create([
                 'region_code' => $this->region_code,
                 'region_name' => $this->region_name,
             ]);
+            \App\Helpers\ActivityLogger::log('Create Region', "Menambahkan region baru: {$this->region_code} - {$this->region_name}");
             session()->flash('message', 'Region baru berhasil ditambahkan.');
         }
 

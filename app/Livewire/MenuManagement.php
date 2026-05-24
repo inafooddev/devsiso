@@ -89,9 +89,11 @@ class MenuManagement extends Component
             }
             
             $menu->update($data);
+            \App\Helpers\ActivityLogger::log('Update Menu', "Memperbarui konfigurasi menu sistem: {$this->name}");
             session()->flash('message', 'Menu berhasil diperbarui.');
         } else {
             Menu::create($data);
+            \App\Helpers\ActivityLogger::log('Create Menu', "Menambahkan menu sistem baru: {$this->name}");
             session()->flash('message', 'Menu berhasil ditambahkan.');
         }
 
@@ -101,7 +103,11 @@ class MenuManagement extends Component
 
     public function delete($id)
     {
-        Menu::find($id)->delete();
+        $menu = Menu::find($id);
+        if ($menu) {
+            \App\Helpers\ActivityLogger::log('Delete Menu', "Menghapus menu sistem: {$menu->name}");
+            $menu->delete();
+        }
         session()->flash('message', 'Menu berhasil dihapus.');
     }
 

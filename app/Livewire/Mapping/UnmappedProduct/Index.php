@@ -295,6 +295,8 @@ class Index extends Component
             ]
         );
 
+        \App\Helpers\ActivityLogger::log('Map Unmapped Product', "Memetakan produk dari unmapped: {$this->currentProductToMap['distributor_code']} - {$this->currentProductToMap['product_code_dist']} ke {$this->selectedPrincipalProduct}");
+
         $this->isMapModalOpen = false;
         
         // Refresh sidebar and navbar badges
