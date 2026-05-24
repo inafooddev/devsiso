@@ -6,11 +6,9 @@
                 <p class="text-sm text-base-content/70 mt-1">Kelola data pengguna, role, dan cakupan wilayah.</p>
             </div>
             <div>
-                @if(auth()->user()->hasMenuAccess('users.index', 'can_edit'))
                 <x-ui.button variant="primary" icon="plus" wire:click="create">  
                     Tambah User
                 </x-ui.button>
-                @endif
             </div>
         </div>
 
