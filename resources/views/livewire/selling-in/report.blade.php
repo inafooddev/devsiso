@@ -68,12 +68,12 @@
                         {{ $hasSearched ? 'Ubah Filter' : 'Filter' }}
                     </x-ui.button>
                     
-                    @unless(auth()->user()->hasRole('guest'))
+                    @canImport('selling-in.index')
                     <x-ui.button tag="a" href="{{ route('selling-in.index') }}" size="sm" variant="primary">
                         <x-heroicon-o-arrow-up-tray class="w-4 h-4 mr-2" />
                         Import
                     </x-ui.button>
-                    @endunless
+                    @endcanImport
                 </div>
             </div>
 
