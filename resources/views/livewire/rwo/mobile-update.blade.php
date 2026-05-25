@@ -147,8 +147,20 @@
                         
                         <div class="flex items-start justify-between gap-3">
                             <div class="flex-1 min-w-0">
-                                <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-bold font-mono tracking-wider w-fit" x-text="outlet.customer_code"></span>
-                                <h4 class="text-xs font-black text-slate-800 mt-1.5 tracking-tight truncate" x-text="outlet.customer_name"></h4>
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <span class="text-[9px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-bold font-mono tracking-wider w-fit" x-text="outlet.customer_code"></span>
+                                    
+                                    <!-- Status Kelengkapan -->
+                                    <span class="text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border transition-colors duration-200"
+                                          :class="outlet.status === 'Complete' ? 'bg-emerald-50 text-emerald-600 border-emerald-100/80' : 'bg-rose-50 text-rose-600 border-rose-100/80'"
+                                          x-text="outlet.status === 'Complete' ? 'Complete' : 'Not Complete'"></span>
+                                    
+                                    <!-- Status Validasi -->
+                                    <span class="text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border transition-colors duration-200"
+                                          :class="outlet.is_valid ? 'bg-blue-50 text-blue-600 border-blue-100/80' : 'bg-slate-50 text-slate-500 border-slate-200/80'"
+                                          x-text="outlet.is_valid ? 'Terverifikasi' : 'Belum Verifikasi'"></span>
+                                </div>
+                                <h4 class="text-xs font-black text-slate-800 mt-2 tracking-tight truncate" x-text="outlet.customer_name"></h4>
                                 <p class="text-[10px] text-slate-400 font-semibold leading-normal mt-0.5 line-clamp-2" x-text="outlet.alamat"></p>
                             </div>
                         </div>
