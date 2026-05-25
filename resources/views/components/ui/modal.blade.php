@@ -41,7 +41,11 @@
     };
 @endphp
 
-<dialog id="{{ $id }}" {{ $attributes->merge(['class' => 'modal modal-bottom sm:modal-middle ' . ($open ? 'modal-open' : '')]) }}>
+<dialog id="{{ $id }}" 
+    @if($attributes->has('wire:close'))
+        onclose="const btn = this.querySelector('[wire\\:click=\'{{ $attributes->get('wire:close') }}\']'); if(btn) btn.click();"
+    @endif
+    {{ $attributes->merge(['class' => 'modal modal-bottom sm:modal-middle ' . ($open ? 'modal-open' : '')]) }}>
     <div class="modal-box bg-base-100 border border-base-300 {{ $sizeClass }} p-0 {{ $boxClass }}">
 
         {{-- Header --}}

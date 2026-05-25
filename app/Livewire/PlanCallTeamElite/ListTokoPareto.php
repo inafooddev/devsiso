@@ -354,6 +354,18 @@ class ListTokoPareto extends Component
 
     // --- FITUR HAPUS ---
     public function confirmDelete($id) { 
+        $toko = ListTokoParetoTeamElite::find($id);
+        if ($toko) {
+            $existsOnJks = DB::table('jks_team_elite')
+                ->where('distributor_code', $toko->distributor_code)
+                ->where('custno', $toko->customer_code_prc)
+                ->exists();
+            if ($existsOnJks) {
+                session()->flash('error', 'Tidak dapat menghapus toko ini karena statusnya terdaftar di JKS.');
+                return;
+            }
+        }
+        
         $this->deleteId = $id; 
         $this->isDeleteModalOpen = true; 
     }
@@ -371,6 +383,18 @@ class ListTokoPareto extends Component
                 $this->isDeleteModalOpen = false;
                 return;
             }
+
+            // Pastikan toko tidak terdaftar di JKS sebelum dihapus
+            $existsOnJks = DB::table('jks_team_elite')
+                ->where('distributor_code', $toko->distributor_code)
+                ->where('custno', $toko->customer_code_prc)
+                ->exists();
+            if ($existsOnJks) {
+                session()->flash('error', 'Gagal menghapus: Toko ini terdaftar di JKS.');
+                $this->isDeleteModalOpen = false;
+                return;
+            }
+
             \App\Helpers\ActivityLogger::log('Delete Toko Pareto', "Menghapus Toko Pareto: {$toko->customer_code_prc} - {$toko->customer_name}");
             $toko->delete();
             session()->flash('message', 'Data berhasil dihapus.');

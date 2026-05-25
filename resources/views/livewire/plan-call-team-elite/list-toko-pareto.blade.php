@@ -127,7 +127,8 @@
             </div>
 
             <!-- Tabel -->
-            <x-ui.table hover striped sticky loading="{{ false }}" empty="Tidak ada data ditemukan." class="border-x-0 border-b-0 rounded-none shadow-none">
+            <div wire:key="table-wrapper-{{ md5($search . $filterRegion . $filterArea . $filterSupervisor . $data->currentPage()) }}">
+                <x-ui.table hover striped sticky loading="{{ false }}" empty="Tidak ada data ditemukan." class="border-x-0 border-b-0 rounded-none shadow-none">
                 <x-slot:head>
                     <tr>
                         <th class="w-20">Aksi</th>
@@ -221,12 +222,26 @@
                 </x-slot:head>
 
                 @foreach($data as $item)
-                <tr>
+                <tr wire:key="toko-row-{{ $item->id }}">
                     <td class="whitespace-nowrap flex gap-1">
                         @canEdit('plan-call-team-elite.toko-pareto')
-                        <x-ui.button size="xs" variant="info" outline wire:click="edit({{ $item->id }})" title="Edit" icon="pencil-square"></x-ui.button>
-                        <x-ui.button size="xs" variant="error" outline wire:click="confirmDelete({{ $item->id }})" title="Hapus" icon="trash"></x-ui.button>
-                        <x-ui.button size="xs" variant="success" outline wire:click="addToJks({{ $item->id }})" title="Add to JKS" icon="plus-circle"></x-ui.button>
+                        <button type="button" class="btn btn-xs btn-info btn-outline" @click="$wire.edit({{ $item->id }})" title="Edit">
+                            <x-heroicon-s-pencil-square class="w-3.5 h-3.5" />
+                        </button>
+                        
+                        @if ($item->on_jks === 'Y')
+                        <button type="button" class="btn btn-xs btn-error btn-outline opacity-50 cursor-not-allowed" disabled title="Toko sudah terdaftar di JKS (tidak dapat dihapus)">
+                            <x-heroicon-s-trash class="w-3.5 h-3.5" />
+                        </button>
+                        @else
+                        <button type="button" class="btn btn-xs btn-error btn-outline" @click="$wire.confirmDelete({{ $item->id }})" title="Hapus">
+                            <x-heroicon-s-trash class="w-3.5 h-3.5" />
+                        </button>
+                        @endif
+                        
+                        <button type="button" class="btn btn-xs btn-success btn-outline" @click="$wire.addToJks({{ $item->id }})" title="Add to JKS">
+                            <x-heroicon-s-plus-circle class="w-3.5 h-3.5" />
+                        </button>
                         @endcanEdit
                     </td>
                     <td class="whitespace-nowrap">{{ $item->region_name }}</td>
@@ -258,6 +273,7 @@
                 </tr>
                 @endforeach
             </x-ui.table>
+            </div>
             
             @if($data->hasPages())
                 <div class="px-6 py-4 border-t border-base-200 bg-base-200/30">
@@ -268,7 +284,7 @@
     </div>
 
     <!-- MODAL FILTER -->
-    <x-ui.modal id="modal-filter" title="Filter Data" icon="funnel" :open="$isFilterModalOpen" wire:close="closeFilterModal">
+    <x-ui.modal wire:key="modal-filter-key" id="modal-filter" title="Filter Data" icon="funnel" :open="$isFilterModalOpen" wire:close="closeFilterModal">
         <div class="space-y-4">
             <div class="form-control w-full">
                 <label class="label"><span class="label-text font-semibold">Region</span></label>
@@ -299,7 +315,7 @@
     </x-ui.modal>
 
     <!-- MODAL IMPORT -->
-    <x-ui.modal id="modal-import" title="Import Excel (Full Sync)" icon="arrow-down-on-square" :open="$isImportModalOpen" wire:close="$set('isImportModalOpen', false)">
+    <x-ui.modal wire:key="modal-import-key" id="modal-import" title="Import Excel (Full Sync)" icon="arrow-down-on-square" :open="$isImportModalOpen" wire:close="$set('isImportModalOpen', false)">
         <form wire:submit.prevent="import">
             <x-ui.notif type="info" class="mb-4 text-xs">
                 <b>Info Full Sync:</b><br>Jika "Kode PRC + Distributor" sudah ada, data akan di-Update. Jika belum ada, akan di-Insert.
@@ -325,7 +341,7 @@
     </x-ui.modal>
 
     <!-- MODAL TAMBAH CUSTOMER BARU -->
-    <x-ui.modal id="modal-create" title="Tambah Customer Baru" icon="plus-circle" size="lg" :open="$isCreateModalOpen" wire:close="$set('isCreateModalOpen', false)">
+    <x-ui.modal wire:key="modal-create-key" id="modal-create" title="Tambah Customer Baru" icon="plus-circle" size="lg" :open="$isCreateModalOpen" wire:close="$set('isCreateModalOpen', false)">
         <form wire:submit.prevent="store">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
                 <x-input-text label="Distributor Code *" wire:model="distributor_code" placeholder="Contoh: SBY01" />
@@ -354,7 +370,7 @@
     </x-ui.modal>
 
     <!-- MODAL EDIT -->
-    <x-ui.modal id="modal-edit" title="Edit Toko Pareto" icon="pencil-square" size="lg" :open="$isEditModalOpen" wire:close="$set('isEditModalOpen', false)">
+    <x-ui.modal wire:key="modal-edit-key" id="modal-edit" title="Edit Toko Pareto" icon="pencil-square" size="lg" :open="$isEditModalOpen" wire:close="$set('isEditModalOpen', false)">
         <form wire:submit.prevent="update">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
                 <div class="form-control mb-4">
@@ -389,7 +405,7 @@
     </x-ui.modal>
 
     <!-- MODAL DELETE -->
-    <x-ui.modal id="modal-delete" title="Hapus Data" icon="exclamation-triangle" :open="$isDeleteModalOpen" wire:close="$set('isDeleteModalOpen', false)">
+    <x-ui.modal wire:key="modal-delete-key" id="modal-delete" title="Hapus Data" icon="exclamation-triangle" :open="$isDeleteModalOpen" wire:close="$set('isDeleteModalOpen', false)">
         <div class="text-center py-4">
             <x-heroicon-o-exclamation-triangle class="w-16 h-16 text-error mx-auto mb-4" />
             <p class="text-base-content/70">Apakah Anda yakin ingin menghapus data toko ini? Tindakan ini tidak dapat dibatalkan.</p>
@@ -403,16 +419,16 @@
     </x-ui.modal>
 
     <!-- MODAL ADD TO JKS -->
-    <x-ui.modal id="modal-add-jks" title="Add to JKS Team Elite" icon="plus-circle" :open="$isAddToJksModalOpen" wire:close="$set('isAddToJksModalOpen', false)" boxClass="overflow-visible">
+    <x-ui.modal wire:key="modal-add-jks-key" id="modal-add-jks" title="Add to JKS Team Elite" icon="plus-circle" :open="$isAddToJksModalOpen" wire:close="$set('isAddToJksModalOpen', false)" boxClass="overflow-visible">
         <form wire:submit.prevent="storeToJks">
             <div class="space-y-4">
                 <x-input-text label="Tanggal *" wire:model="jksTanggal" type="date" required />
                 
                 <div class="form-control w-full">
                     <label class="label pb-1"><span class="label-text text-xs font-medium">Nama Team *</span></label>
-                    <div wire:ignore>
+                    <div wire:ignore wire:key="jks-team-select-wrapper">
                         <div x-data="{
-                                search: '',
+                                searchTeam: '',
                                 open: false,
                                 kodeTeam: @entangle('jksKodeTeam'),
                                 options: [
@@ -425,14 +441,14 @@
                                     return selected ? selected.name : '';
                                 },
                                 get filteredOptions() {
-                                    if (this.search === '') return this.options;
-                                    let s = this.search.toLowerCase();
+                                    if (this.searchTeam === '') return this.options;
+                                    let s = this.searchTeam.toLowerCase();
                                     return this.options.filter(o => o.name.toLowerCase().includes(s) || o.id.toLowerCase().includes(s));
                                 },
                                 selectOption(option) {
                                     this.kodeTeam = option.id;
                                     this.open = false;
-                                    this.search = '';
+                                    this.searchTeam = '';
                                 }
                             }" 
                             class="relative w-full">
@@ -450,7 +466,7 @@
                                  class="absolute z-[60] w-full mt-1 bg-base-100 border border-base-300 rounded-lg shadow-xl max-h-60 flex flex-col"
                                  style="display: none;">
                                 <div class="p-2 border-b border-base-200">
-                                    <input type="text" x-model="search" placeholder="Cari nama/kode team..." 
+                                    <input type="text" x-model="searchTeam" placeholder="Cari nama/kode team..." 
                                            class="input input-sm input-bordered w-full focus:input-primary" 
                                            @click.stop>
                                 </div>
