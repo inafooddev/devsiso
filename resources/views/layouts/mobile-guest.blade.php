@@ -29,7 +29,7 @@
     @livewireStyles
     @stack('styles')
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen antialiased" x-data="{
+<body class="bg-slate-100 text-slate-800 min-h-screen antialiased" x-data="{
     theme: 'light',
     get isDark() { return false; },
     toggleTheme() {

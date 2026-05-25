@@ -235,8 +235,6 @@
                         <th>Cabang</th>
                         <th>Kode Customer / Eskalink</th>
                         <th>Nama Customer</th>
-                        <th>Pemilik Toko</th>
-                        <th>No HP</th>
                         <th class="text-center">Foto KTP</th>
                         <th class="text-center">Foto Toko (GPS / Depan / Dalam)</th>
                         <th class="text-center">Status</th>
@@ -281,12 +279,7 @@
                                 <p class="text-xs text-base-content/40 truncate">{{ $row->alamat }}</p>
                             </div>
                         </td>
-                        <td>
-                            <span class="font-medium text-base-content/80">{{ $row->nama_pemilik_toko }}</span>
-                        </td>
-                        <td>
-                            <span class="font-mono text-xs text-base-content/70">{{ $row->no_hp ?? '-' }}</span>
-                        </td>
+
                           <td class="text-center">
                              @if($row->foto_ktp)
                                   <div class="flex justify-center">
