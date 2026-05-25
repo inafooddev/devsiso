@@ -7,19 +7,15 @@
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
 
             <div class="flex items-center w-full sm:w-auto gap-3">
-                @canEdit('sales-configs.index')
                 <a href="{{ route('sales-configs.create') }}" class="btn btn-primary rounded-xl shadow-lg shadow-primary/20 normal-case">
                     <x-heroicon-o-plus class="w-5 h-5" />
                     Tambah Data
                 </a>
-                @endcanEdit
 
-                @canImport('sales-configs.index')
                 <a href="{{ route('sales-invoices.import') }}" class="btn btn-ghost border border-base-300 text-base-content hover:bg-base-200 hover:text-base-content hover:border-base-300 rounded-xl normal-case transition-colors">
                     <x-heroicon-o-arrow-down-tray class="w-5 h-5 text-base-content/60" />
                     Import
                 </a>
-                @endcanImport
             </div>
 
             <!-- Global Search -->
@@ -50,9 +46,7 @@
                         <th>Nama Cabang</th>
                         <th>Tanggal Buat</th>
                         <th>Tanggal Update</th>
-                        @canEdit('sales-configs.index')
                         <th class="text-center w-24">Aksi</th>
-                        @endcanEdit
                     </tr>
                 </x-slot:head>
 
@@ -73,7 +67,6 @@
                         <td class="text-xs text-base-content/60 font-mono">
                             {{ $config->updated_at->format('d M Y H:i') }}
                         </td>
-                        @canEdit('sales-configs.index')
                         <td>
                             <div class="flex items-center justify-center gap-1">
                                 <a href="{{ route('sales-configs.edit', base64_encode($config->id)) }}"
@@ -89,7 +82,6 @@
                                 </button>
                             </div>
                         </td>
-                        @endcanEdit
                     </tr>
                 @endforeach
             </x-ui.table>
@@ -103,7 +95,6 @@
     </div>
 
     <!-- Delete Confirmation Modal (Admin/Non-Guest only) -->
-    @canEdit('sales-configs.index')
     @if($isDeleteModalOpen)
     <div class="fixed inset-0 z-50 flex items-center justify-center">
         <div class="fixed inset-0 bg-base-100/80 backdrop-blur-sm" wire:click="closeDeleteModal"></div>
@@ -134,5 +125,4 @@
         </div>
     </div>
     @endif
-    @endcanEdit
 </div>

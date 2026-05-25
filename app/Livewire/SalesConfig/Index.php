@@ -101,8 +101,6 @@ class Index extends Component
      */
     public function delete()
     {
-        $this->authorizeAction('can_edit');
-
         if ($this->configToDeleteId) {
             $tableName = (new ConfigSalesInvoiceDistributor())->getTable();
             

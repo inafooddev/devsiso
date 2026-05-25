@@ -155,8 +155,6 @@ class Edit extends Component
      */
     public function update()
     {
-        $this->authorizeAction('can_edit');
-
         // Menjalankan semua aturan validasi, termasuk untuk field yang wajib diisi
         $this->validate();
 

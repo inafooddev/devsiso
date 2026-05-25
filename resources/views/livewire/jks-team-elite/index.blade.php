@@ -130,6 +130,14 @@
                             Export
                         </button>
                     </div>
+                    <div class="tooltip tooltip-bottom" data-tip="{{ !$canExportBtn ? 'Pilih Team dan tanggal terlebih dahulu' : 'Export data ke Excel format ESKA' }}">
+                        <button wire:click="openExportEskaModal"
+                            {{ !$canExportBtn ? 'disabled' : '' }}
+                            class="btn btn-sm btn-info rounded-xl normal-case gap-2 shadow-sm text-white {{ !$canExportBtn ? 'btn-disabled opacity-40 cursor-not-allowed' : '' }}">
+                            <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
+                            Export ESKA
+                        </button>
+                    </div>
                     @endcanExport
 
                     {{-- Tombol Import --}}
@@ -614,6 +622,49 @@
 
             <div class="flex items-center justify-end px-6 py-4 border-t border-base-300 bg-base-200/50">
                 <button type="button" @click="open = false" class="btn btn-ghost rounded-xl normal-case">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal Export ESKA Options --}}
+    <div x-data="{ open: @entangle('isExportEskaModalOpen') }" 
+         x-show="open" 
+         x-cloak 
+         class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        
+        <div x-show="open" class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
+
+        <div x-show="open" class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-sm overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30">
+                <h3 class="font-bold text-lg text-base-content">Export ESKA Options</h3>
+                <button @click="open = false" class="btn btn-sm btn-circle btn-ghost">
+                    <x-heroicon-s-x-mark class="w-5 h-5" />
+                </button>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text font-bold text-xs uppercase tracking-wider text-base-content/50">Flag Delete</span>
+                    </label>
+                    <div class="flex gap-4 mt-2">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" wire:model="selectedFlagDelete" value="Y" class="radio radio-primary" />
+                            <span class="text-sm font-semibold">Y (Yes)</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" wire:model="selectedFlagDelete" value="N" class="radio radio-primary" />
+                            <span class="text-sm font-semibold">N (No)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 px-6 py-5 border-t border-base-300 bg-base-200/50">
+                <button type="button" @click="open = false" class="btn btn-ghost rounded-xl normal-case">Batal</button>
+                <button wire:click="exportEska" type="button" class="btn btn-primary rounded-xl px-8 normal-case text-white shadow-sm shadow-primary/20">
+                    Export
+                </button>
             </div>
         </div>
     </div>

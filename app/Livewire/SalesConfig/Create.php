@@ -143,8 +143,6 @@ class Create extends Component
      */
     public function save()
     {
-        $this->authorizeAction('can_edit');
-
         // Menjalankan semua aturan validasi dari metode rules()
         $this->validate();
         

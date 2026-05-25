@@ -8,6 +8,7 @@ use Livewire\WithFileUploads;
 use App\Models\JksTeamElite;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\JksTeamEliteExport;
+use App\Exports\JksTeamEliteEskaExport;
 use App\Exports\JksTeamEliteTemplateExport;
 use App\Imports\JksTeamEliteImport;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,8 @@ class Index extends Component
     public $isEditing = false;
     public $isDeleteModalOpen = false;
     public $isImportModalOpen = false;
+    public $isExportEskaModalOpen = false;
+    public $selectedFlagDelete = 'Y';
     
     // Common Fields
     public $tanggal;
@@ -451,11 +454,52 @@ class Index extends Component
             return;
         }
 
-        \App\Helpers\ActivityLogger::log('Export JKS Team Elite', "Mengekspor data JKS Team Elite. Team: {$this->filterTeam}");
+        $teamsLog = is_array($this->filterTeam) ? implode(', ', $this->filterTeam) : $this->filterTeam;
+        \App\Helpers\ActivityLogger::log('Export JKS Team Elite', "Mengekspor data JKS Team Elite. Team: {$teamsLog}");
 
         return Excel::download(
             new JksTeamEliteExport($this->filterTeam, $this->filterStartDate, $this->filterEndDate), 
             'jks_team_elite.xlsx'
+        );
+    }
+
+    /**
+     * Membuka modal export eska
+     */
+    public function openExportEskaModal()
+    {
+        $this->authorizeAction('can_export');
+
+        if (empty($this->filterTeam) || empty($this->filterStartDate) || empty($this->filterEndDate)) {
+            session()->flash('error', 'Pilih Team dan rentang tanggal terlebih dahulu sebelum export.');
+            return;
+        }
+
+        $this->selectedFlagDelete = 'Y';
+        $this->isExportEskaModalOpen = true;
+    }
+
+    /**
+     * Ekspor ke Excel format ESKA
+     */
+    public function exportEska()
+    {
+        $this->authorizeAction('can_export');
+
+        if (empty($this->filterTeam) || empty($this->filterStartDate) || empty($this->filterEndDate)) {
+            session()->flash('error', 'Pilih Team dan rentang tanggal terlebih dahulu sebelum export.');
+            return;
+        }
+
+        $flagDelete = in_array($this->selectedFlagDelete, ['Y', 'N']) ? $this->selectedFlagDelete : 'Y';
+        $this->isExportEskaModalOpen = false;
+
+        $teamsLog = is_array($this->filterTeam) ? implode(', ', $this->filterTeam) : $this->filterTeam;
+        \App\Helpers\ActivityLogger::log('Export ESKA JKS Team Elite', "Mengekspor data ESKA JKS Team Elite dengan Flag Delete {$flagDelete}. Team: {$teamsLog}");
+
+        return Excel::download(
+            new JksTeamEliteEskaExport($this->filterTeam, $this->filterStartDate, $this->filterEndDate, $flagDelete), 
+            'jks_team_elite_eska.xlsx'
         );
     }
 

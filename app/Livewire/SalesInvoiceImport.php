@@ -29,8 +29,6 @@ class SalesInvoiceImport extends Component
 
     public function import()
     {
-        $this->authorizeAction('can_import');
-
         $this->validate([
             'excel_file' => 'required|mimes:xls,xlsx|max:10240', // Maks 10MB
         ]);
