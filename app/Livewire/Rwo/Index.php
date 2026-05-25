@@ -725,6 +725,22 @@ class Index extends Component
             $query->where('is_valid', false);
         } elseif ($this->filter_type === 'valid') {
             $query->where('is_valid', true);
+        } elseif ($this->filter_type === 'complete') {
+            $query->whereNotNull('nama_pemilik_toko')->where('nama_pemilik_toko', '!=', '')
+                  ->whereNotNull('nama_ktp')->where('nama_ktp', '!=', '')
+                  ->whereNotNull('nik_ktp')->where('nik_ktp', '!=', '')
+                  ->whereNotNull('nama_bank')->where('nama_bank', '!=', '')
+                  ->whereNotNull('no_rekening')->where('no_rekening', '!=', '')
+                  ->whereNotNull('nama_pemilik_norek')->where('nama_pemilik_norek', '!=', '');
+        } elseif ($this->filter_type === 'not_complete') {
+            $query->where(function($q) {
+                $q->whereNull('nama_pemilik_toko')->orWhere('nama_pemilik_toko', '')
+                  ->orWhereNull('nama_ktp')->orWhere('nama_ktp', '')
+                  ->orWhereNull('nik_ktp')->orWhere('nik_ktp', '')
+                  ->orWhereNull('nama_bank')->orWhere('nama_bank', '')
+                  ->orWhereNull('no_rekening')->orWhere('no_rekening', '')
+                  ->orWhereNull('nama_pemilik_norek')->orWhere('nama_pemilik_norek', '');
+            });
         }
 
         if (!empty($this->search)) {

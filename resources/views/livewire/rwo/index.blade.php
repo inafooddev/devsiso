@@ -179,6 +179,8 @@
                         <option value="tanpa_tikor">Tanpa Tikor (Lat/Long)</option>
                         <option value="tidak_valid">Outlet Tidak Valid</option>
                         <option value="valid">Outlet Valid</option>
+                        <option value="complete">Status Complete</option>
+                        <option value="not_complete">Status Not Complete</option>
                     </select>
 
                     {{-- Chained Wilayah Filter Button --}}
@@ -237,6 +239,7 @@
                         <th>No HP</th>
                         <th class="text-center">Foto KTP</th>
                         <th class="text-center">Foto Toko (GPS / Depan / Dalam)</th>
+                        <th class="text-center">Status</th>
                         <th class="text-center">Validasi</th>
                         <th>Keterangan</th>
                 <th class="text-center w-28">Aksi</th>
@@ -362,18 +365,31 @@
                             </div>
                          </td>
                          <td class="text-center">
-                             @if($row->is_valid)
-                                 <span class="inline-flex items-center gap-1 text-[10px] font-bold text-success bg-success/15 rounded-lg py-1 px-2">
-                                     <x-heroicon-s-check-circle class="w-3.5 h-3.5" />
-                                     <span>Valid</span>
-                                 </span>
-                             @else
-                                 <span class="inline-flex items-center gap-1 text-[10px] font-bold text-error bg-error/15 rounded-lg py-1 px-2">
-                                     <x-heroicon-s-x-circle class="w-3.5 h-3.5" />
-                                     <span>Tidak Valid</span>
-                                 </span>
-                             @endif
-                         </td>
+                              @if($row->status === 'Complete')
+                                   <span class="inline-flex items-center gap-1 text-[10px] font-bold text-success bg-success/15 rounded-lg py-1 px-2">
+                                       <x-heroicon-s-check-circle class="w-3.5 h-3.5" />
+                                       <span>Complete</span>
+                                   </span>
+                              @else
+                                   <span class="inline-flex items-center gap-1 text-[10px] font-bold text-warning bg-warning/15 rounded-lg py-1 px-2">
+                                       <x-heroicon-s-exclamation-circle class="w-3.5 h-3.5" />
+                                       <span>Not Complete</span>
+                                   </span>
+                              @endif
+                          </td>
+                          <td class="text-center">
+                              @if($row->is_valid)
+                                  <span class="inline-flex items-center gap-1 text-[10px] font-bold text-success bg-success/15 rounded-lg py-1 px-2">
+                                      <x-heroicon-s-check-circle class="w-3.5 h-3.5" />
+                                      <span>Valid</span>
+                                  </span>
+                              @else
+                                  <span class="inline-flex items-center gap-1 text-[10px] font-bold text-error bg-error/15 rounded-lg py-1 px-2">
+                                      <x-heroicon-s-x-circle class="w-3.5 h-3.5" />
+                                      <span>Tidak Valid</span>
+                                  </span>
+                              @endif
+                          </td>
                          <td>
                              @if($row->keterangan)
                                  <div class="max-w-[150px] truncate text-xs text-base-content/60" title="{{ $row->keterangan }}">
@@ -1124,7 +1140,21 @@
                                 </span>
                             @endif
                         </div>
-                        <div class="flex-1 flex items-start md:items-center gap-2">
+                        <div class="flex items-center gap-2 md:border-l md:border-base-300 md:pl-4">
+                            <span class="text-xs font-semibold text-base-content/60">Kelengkapan Data:</span>
+                            @if($selectedOutlet->status === 'Complete')
+                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-success bg-success/15 rounded-lg py-1 px-2.5">
+                                    <x-heroicon-s-check-circle class="w-4 h-4" />
+                                    <span>Complete</span>
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-warning bg-warning/15 rounded-lg py-1 px-2.5">
+                                    <x-heroicon-s-exclamation-circle class="w-4 h-4" />
+                                    <span>Not Complete</span>
+                                </span>
+                            @endif
+                        </div>
+                        <div class="flex-1 flex items-start md:items-center gap-2 md:border-l md:border-base-300 md:pl-4">
                             <span class="text-xs font-semibold text-base-content/60 whitespace-nowrap">Keterangan:</span>
                             <span class="text-xs font-semibold text-base-content/85">{{ $selectedOutlet->keterangan ?? 'Tidak ada keterangan tambahan' }}</span>
                         </div>

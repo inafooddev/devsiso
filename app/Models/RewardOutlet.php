@@ -41,4 +41,32 @@ class RewardOutlet extends Model
     protected $casts = [
         'is_valid' => 'boolean',
     ];
+
+    protected $appends = [
+        'status',
+    ];
+
+    /**
+     * Get dynamic status based on completeness of required identity/bank fields.
+     */
+    public function getStatusAttribute()
+    {
+        $fields = [
+            $this->nama_pemilik_toko,
+            $this->nama_ktp,
+            $this->nik_ktp,
+            $this->nama_bank,
+            $this->no_rekening,
+            $this->nama_pemilik_norek,
+        ];
+
+        foreach ($fields as $field) {
+            if (empty(trim($field ?? ''))) {
+                return 'Not Complete';
+            }
+        }
+
+        return 'Complete';
+    }
 }
+
