@@ -72,7 +72,7 @@ use App\Livewire\SellOut\Export\Index as SellOutExportIndex;
 use App\Livewire\SellOut\Process\Index as SellOutProcessIndex;
 use App\Livewire\SellOut\ProcessV2\Index as SellOutProcessIndexV2;
 use App\Livewire\SellingIn\Index as SellingInIndex;
-use App\Livewire\SellingIn\Report as SellingInReport;
+use App\Livewire\SellingIn\Import as SellingInImport;
 use App\Livewire\SellingOutEskalink\Index as SellingOutEskalinkIndex;
 use App\Livewire\UserManagement;
 use App\Livewire\Welcome;
@@ -192,7 +192,7 @@ Route::middleware(['auth'])->group(function () {
     // SELLING IN & OUT
     // ==========================================
     Route::get('/selling-in', SellingInIndex::class)->name('selling-in.index');
-    Route::get('/selling-in/report', SellingInReport::class)->name('selling-in.report');
+    Route::get('/selling-in/import', SellingInImport::class)->name('selling-in.import');
     Route::get('/selling-out-eskalink', SellingOutEskalinkIndex::class)->name('selling-out-eskalink.index');
     Route::get('/sell-out/process', SellOutProcessIndex::class)->name('sell-out.process');
     Route::get('/sell-out/process-v2', SellOutProcessIndexV2::class)->name('sell-out.process-v2');
