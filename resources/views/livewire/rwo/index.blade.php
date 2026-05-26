@@ -1,5 +1,5 @@
 <div>
-    <x-slot name="title">RWO (Reward Outlet)</x-slot>
+    <x-slot name="title">Master Customer RWO</x-slot>
 
     <div class="mx-auto px-4 sm:px-6 py-8 text-base-content">
         {{-- Notifikasi --}}
@@ -155,7 +155,7 @@
             </div>
         </div>
 
-        <x-card flush title="Reward Outlet (RWO)" icon="gift" subtitle="Kelola data program reward outlet (RWO)" class="pb-6">
+        <x-card flush title="Master Outlet RWO" icon="gift" subtitle="Kelola Master Outlet RWO" class="pb-6">
             <x-slot:actions>
                 <div class="flex flex-wrap items-center gap-2">
                     {{-- Search --}}
