@@ -34,6 +34,7 @@ use App\Livewire\Mapping\UnmappedProduct\Index as UnmappedProductIndex;
 use App\Livewire\Mapping\UnmappedSalesman\Index as UnmappedSalesmanIndex;
 use App\Livewire\MasterAreas\Index as MasterAreaIndex;
 use App\Livewire\MasterBranches\Index as MasterBranchIndex;
+use App\Livewire\MasterData\MappingDistributorImplementasiEskalink\Index as MappingDistributorImplementasiEskalinkIndex;
 use App\Livewire\MasterDistributors\Index as MasterDistributorsIndex;
 use App\Livewire\MasterRegions\Create as MasterRegionsCreate;
 use App\Livewire\MasterRegions\Edit as MasterRegionsEdit;
@@ -137,6 +138,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/master-supervisors', MasterSupervisorIndex::class)->name('master-supervisors.index');
     Route::get('/master-branches', MasterBranchIndex::class)->name('master-branches.index');
     Route::get('/master-distributors', MasterDistributorsIndex::class)->name('master-distributors.index');
+    Route::get('/mapping-distributor-implementasi-eskalink', MappingDistributorImplementasiEskalinkIndex::class)->name('mapping-distributor-implementasi-eskalink.index');
 
     // ==========================================
     // MASTER DATA: PRODUCT
