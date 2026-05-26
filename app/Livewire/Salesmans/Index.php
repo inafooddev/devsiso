@@ -306,6 +306,14 @@ class Index extends Component
         }
 
         $this->resetValidation();
+        
+        // Bersihkan state form (terutama file upload) agar tidak nyangkut dari aksi sebelumnya
+        $this->foto_ktp = null;
+        $this->foto_npwp = null;
+        $this->foto_bank = null;
+        $this->foto_skb = null;
+        $this->iteration++;
+
         $this->isEditing = true;
 
         // Simpan kunci asli untuk query update nanti
@@ -380,6 +388,14 @@ class Index extends Component
             }
 
             DB::commit();
+            
+            // Bersihkan file state setelah simpan berhasil
+            $this->foto_ktp = null;
+            $this->foto_npwp = null;
+            $this->foto_bank = null;
+            $this->foto_skb = null;
+            $this->iteration++;
+            
             $this->isFormModalOpen = false;
             session()->flash('message', $message);
         } catch (\Exception $e) {
