@@ -123,7 +123,7 @@
                  class="relative overflow-hidden cursor-pointer group p-5 bg-base-100 rounded-3xl border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tanpa_tikor' ? 'border-secondary shadow-lg shadow-secondary/10 ring-1 ring-secondary' : 'border-base-300 shadow-sm hover:shadow-md' }}">
                 <div class="flex items-center justify-between">
                     <div>
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40">Belum Ada Tikor</span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40">Belum Ada Geotag</span>
                         <h3 class="text-2xl font-black mt-1 text-base-content">{{ number_format($kpis['tanpa_tikor']) }}</h3>
                     </div>
                     <div class="p-3 rounded-2xl transition-all duration-300 {{ $filter_type === 'tanpa_tikor' ? 'bg-secondary/20 text-secondary' : 'bg-base-200 text-base-content/40 group-hover:bg-secondary/10 group-hover:text-secondary' }}">
