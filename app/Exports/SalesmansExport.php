@@ -34,6 +34,9 @@ class SalesmansExport implements FromQuery, WithHeadings, WithMapping, ShouldAut
             ->join('master_areas', 'master_distributors.area_code', '=', 'master_areas.area_code')
             ->join('master_regions', 'master_distributors.region_code', '=', 'master_regions.region_code');
 
+        // Jangan sertakan salesman_code yang berakhiran OFI
+        $query->where('salesmans.salesman_code', 'NOT ILIKE', '%OFI');
+
         // Terapkan filter
         if (!empty($this->filters['regionFilter'])) {
             $query->where('master_distributors.region_code', $this->filters['regionFilter']);
@@ -77,7 +80,7 @@ class SalesmansExport implements FromQuery, WithHeadings, WithMapping, ShouldAut
             'Nomor Rekening',
             'Foto KTP',
             'Foto NPWP',
-            'Foto Bank',
+            'Foto Rekening',
             'Foto SKB',
         ];
     }
@@ -173,7 +176,7 @@ class SalesmansExport implements FromQuery, WithHeadings, WithMapping, ShouldAut
 
                 // Set tinggi baris
                 for ($row = 2; $row <= $salesmansCount + 1; $row++) {
-                    $sheet->getRowDimension($row)->setRowHeight(65);
+                    $sheet->getRowDimension($row)->setRowHeight(70);
                 }
 
                 // Middle & Center Align untuk seluruh data
