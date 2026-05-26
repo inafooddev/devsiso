@@ -443,30 +443,50 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="space-y-1.5">
                             <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Foto KTP</label>
-                            <input type="file" wire:model="foto_ktp" accept=".jpg,.jpeg,.png,.pdf"
+                            <input type="file" wire:model="foto_ktp" accept=".jpg,.jpeg,.png,.pdf" id="foto_ktp_{{ $iteration }}"
                                    class="file-input file-input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                            @if($existing_foto_ktp) <a href="{{ Storage::url($existing_foto_ktp) }}" target="_blank" class="text-[11px] text-primary underline mt-1 block font-semibold">Lihat KTP Saat Ini</a> @endif
+                            @if($existing_foto_ktp) 
+                            <div class="flex items-center gap-3 mt-1">
+                                <a href="{{ Storage::url($existing_foto_ktp) }}" target="_blank" class="text-[11px] text-primary underline font-semibold">Lihat KTP Saat Ini</a>
+                                <button type="button" wire:click="deleteExistingPhoto('foto_ktp')" onclick="confirm('Yakin ingin menghapus foto KTP ini?') || event.stopImmediatePropagation()" class="text-[11px] text-error hover:underline font-semibold">Hapus</button>
+                            </div>
+                            @endif
                             @error('foto_ktp') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
                         </div>
                         <div class="space-y-1.5">
                             <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Foto NPWP</label>
-                            <input type="file" wire:model="foto_npwp" accept=".jpg,.jpeg,.png,.pdf"
+                            <input type="file" wire:model="foto_npwp" accept=".jpg,.jpeg,.png,.pdf" id="foto_npwp_{{ $iteration }}"
                                    class="file-input file-input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                            @if($existing_foto_npwp) <a href="{{ Storage::url($existing_foto_npwp) }}" target="_blank" class="text-[11px] text-primary underline mt-1 block font-semibold">Lihat NPWP Saat Ini</a> @endif
+                            @if($existing_foto_npwp) 
+                            <div class="flex items-center gap-3 mt-1">
+                                <a href="{{ Storage::url($existing_foto_npwp) }}" target="_blank" class="text-[11px] text-primary underline font-semibold">Lihat NPWP Saat Ini</a>
+                                <button type="button" wire:click="deleteExistingPhoto('foto_npwp')" onclick="confirm('Yakin ingin menghapus foto NPWP ini?') || event.stopImmediatePropagation()" class="text-[11px] text-error hover:underline font-semibold">Hapus</button>
+                            </div>
+                            @endif
                             @error('foto_npwp') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
                         </div>
                         <div class="space-y-1.5">
                             <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Foto Rekening Bank</label>
-                            <input type="file" wire:model="foto_bank" accept=".jpg,.jpeg,.png,.pdf"
+                            <input type="file" wire:model="foto_bank" accept=".jpg,.jpeg,.png,.pdf" id="foto_bank_{{ $iteration }}"
                                    class="file-input file-input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                            @if($existing_foto_bank) <a href="{{ Storage::url($existing_foto_bank) }}" target="_blank" class="text-[11px] text-primary underline mt-1 block font-semibold">Lihat Rekening Saat Ini</a> @endif
+                            @if($existing_foto_bank) 
+                            <div class="flex items-center gap-3 mt-1">
+                                <a href="{{ Storage::url($existing_foto_bank) }}" target="_blank" class="text-[11px] text-primary underline font-semibold">Lihat Rekening Saat Ini</a>
+                                <button type="button" wire:click="deleteExistingPhoto('foto_bank')" onclick="confirm('Yakin ingin menghapus foto Rekening Bank ini?') || event.stopImmediatePropagation()" class="text-[11px] text-error hover:underline font-semibold">Hapus</button>
+                            </div>
+                            @endif
                             @error('foto_bank') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
                         </div>
                         <div class="space-y-1.5">
                             <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Foto SKB</label>
-                            <input type="file" wire:model="foto_skb" accept=".jpg,.jpeg,.png,.pdf"
+                            <input type="file" wire:model="foto_skb" accept=".jpg,.jpeg,.png,.pdf" id="foto_skb_{{ $iteration }}"
                                    class="file-input file-input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                            @if($existing_foto_skb) <a href="{{ Storage::url($existing_foto_skb) }}" target="_blank" class="text-[11px] text-primary underline mt-1 block font-semibold">Lihat SKB Saat Ini</a> @endif
+                            @if($existing_foto_skb) 
+                            <div class="flex items-center gap-3 mt-1">
+                                <a href="{{ Storage::url($existing_foto_skb) }}" target="_blank" class="text-[11px] text-primary underline font-semibold">Lihat SKB Saat Ini</a>
+                                <button type="button" wire:click="deleteExistingPhoto('foto_skb')" onclick="confirm('Yakin ingin menghapus dokumen SKB ini?') || event.stopImmediatePropagation()" class="text-[11px] text-error hover:underline font-semibold">Hapus</button>
+                            </div>
+                            @endif
                             @error('foto_skb') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
                         </div>
                     </div>

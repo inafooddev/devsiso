@@ -69,6 +69,8 @@ class Index extends Component
     public $existing_foto_bank;
     public $existing_foto_skb;
     
+    public $iteration = 0;
+    
     // Properti filter untuk di form create
     public $formRegionFilter;
     public $formAreaFilter;
@@ -266,6 +268,8 @@ class Index extends Component
         $this->existing_foto_bank = null;
         $this->existing_foto_skb = null;
         
+        $this->iteration++;
+        
         if (!auth()->user()->hasRole('admin') && count($this->regions) === 1) {
             // keep formRegionFilter and formAreas
         } else {
@@ -381,6 +385,29 @@ class Index extends Component
         } catch (\Exception $e) {
             DB::rollBack();
             session()->flash('error', 'Gagal menyimpan: ' . $e->getMessage());
+        }
+    }
+
+    public function deleteExistingPhoto($field)
+    {
+        if (!$this->isEditing || !$this->originalDistributorCode || !$this->originalSalesmanCode) return;
+
+        $allowedFields = ['foto_ktp', 'foto_npwp', 'foto_bank', 'foto_skb'];
+        if (!in_array($field, $allowedFields)) return;
+
+        $existingProp = 'existing_' . $field;
+        $path = $this->$existingProp;
+
+        if ($path) {
+            Storage::disk('public')->delete($path);
+            
+            Salesman::where('distributor_code', $this->originalDistributorCode)
+                ->where('salesman_code', $this->originalSalesmanCode)
+                ->update([$field => null, 'updated_at' => now()]);
+            
+            $this->$existingProp = null;
+            
+            \App\Helpers\ActivityLogger::log('Delete Foto Salesman', "Menghapus {$field} salesman: {$this->originalDistributorCode} - {$this->originalSalesmanCode}");
         }
     }
 
