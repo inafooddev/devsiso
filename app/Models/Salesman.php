@@ -10,19 +10,27 @@ class Salesman extends Model
     use HasFactory;
 
     protected $table = 'salesmans';
-    protected $primaryKey = 'salesman_code';
-    protected $keyType = 'string';
-    public $incrementing = false;
 
     protected $fillable = [
         'salesman_code',
         'distributor_code',
         'salesman_name',
         'is_active',
+        'join_date',
+        'foto_ktp',
+        'foto_npwp',
+        'bank',
+        'bank_name',
+        'bank_no',
+        'foto_bank',
+        'foto_skb',
+        'is_principle',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_principle' => 'boolean',
+        'join_date' => 'date',
     ];
 
     /**

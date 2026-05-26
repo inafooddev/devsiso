@@ -85,11 +85,18 @@
                     <x-slot:head>
                         <tr>
                             <th class="w-12">No</th>
-                            <th>Distributor</th>
+                            <th>Region</th>
+                            <th>Area</th>
+                            <th>Dist. Code</th>
+                            <th>Dist. Name</th>
                             <th>Salesman Code</th>
                             <th>Nama Salesman</th>
+                            <th class="text-center">Tipe</th>
                             <th class="text-center">Status</th>
-                            <th>Tgl. Dibuat</th>
+                            <th class="text-center">Foto KTP</th>
+                            <th class="text-center">Foto NPWP</th>
+                            <th class="text-center">Foto Bank</th>
+                            <th class="text-center">Foto SKB</th>
                             <th class="text-center w-24">Aksi</th>
                         </tr>
                     </x-slot:head>
@@ -97,19 +104,22 @@
                     @foreach ($salesmans as $index => $salesman)
                         <tr wire:key="salesman-{{ $salesman->salesman_code }}-{{ $salesman->distributor_code }}" class="group text-sm">
                             <td><span class="text-xs font-semibold text-base-content/40">{{ $salesmans->firstItem() + $index }}</span></td>
-                            <td>
-                                <div>
-                                    <span class="font-bold text-base-content/80 group-hover:text-primary transition-colors">
-                                        {{ $salesman->masterDistributor->distributor_name ?? 'N/A' }}
-                                    </span>
-                                    <div class="text-xs text-base-content/40 font-mono mt-0.5">{{ $salesman->distributor_code }}</div>
-                                </div>
-                            </td>
+                            <td>{{ optional(optional($salesman->masterDistributor)->area)->region->region_name ?? '-' }}</td>
+                            <td>{{ optional($salesman->masterDistributor)->area->area_name ?? '-' }}</td>
+                            <td class="font-mono text-xs">{{ $salesman->distributor_code }}</td>
+                            <td class="font-bold text-base-content/80">{{ optional($salesman->masterDistributor)->distributor_name ?? '-' }}</td>
                             <td>
                                 <span class="badge badge-sm badge-outline border-base-300 text-primary font-mono px-2 py-3 rounded-lg">{{ $salesman->salesman_code }}</span>
                             </td>
                             <td>
                                 <span class="text-base-content/70">{{ $salesman->salesman_name }}</span>
+                            </td>
+                            <td class="text-center">
+                                @if ($salesman->is_principle)
+                                    <span class="badge badge-sm badge-info/20 text-info border-info/30 px-3 rounded-full">Principal</span>
+                                @else
+                                    <span class="badge badge-sm badge-secondary/20 text-secondary border-secondary/30 px-3 rounded-full">Distributor</span>
+                                @endif
                             </td>
                             <td class="text-center">
                                 @if ($salesman->is_active)
@@ -118,11 +128,17 @@
                                     <span class="badge badge-sm badge-error/20 text-error border-error/30 px-3 rounded-full">Nonaktif</span>
                                 @endif
                             </td>
-                            <td>
-                                <div class="flex items-center gap-2 text-base-content/50 text-xs">
-                                    <x-heroicon-s-calendar class="w-3.5 h-3.5 shrink-0" />
-                                    <span>{{ $salesman->created_at->format('d M Y') }}</span>
-                                </div>
+                            <td class="text-center">
+                                @if($salesman->foto_ktp) <a href="{{ Storage::url($salesman->foto_ktp) }}" target="_blank" class="text-primary hover:text-primary-focus" title="Lihat Foto KTP"><x-heroicon-s-photo class="w-5 h-5 mx-auto" /></a> @else - @endif
+                            </td>
+                            <td class="text-center">
+                                @if($salesman->foto_npwp) <a href="{{ Storage::url($salesman->foto_npwp) }}" target="_blank" class="text-primary hover:text-primary-focus" title="Lihat Foto NPWP"><x-heroicon-s-photo class="w-5 h-5 mx-auto" /></a> @else - @endif
+                            </td>
+                            <td class="text-center">
+                                @if($salesman->foto_bank) <a href="{{ Storage::url($salesman->foto_bank) }}" target="_blank" class="text-primary hover:text-primary-focus" title="Lihat Foto Bank"><x-heroicon-s-photo class="w-5 h-5 mx-auto" /></a> @else - @endif
+                            </td>
+                            <td class="text-center">
+                                @if($salesman->foto_skb) <a href="{{ Storage::url($salesman->foto_skb) }}" target="_blank" class="text-primary hover:text-primary-focus" title="Lihat Foto SKB"><x-heroicon-s-document-text class="w-5 h-5 mx-auto" /></a> @else - @endif
                             </td>
                             <td>
                                 <div class="flex items-center justify-center gap-1">
@@ -252,7 +268,7 @@
         <div x-show="open"
              x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
              x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-             class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-lg ring-1 ring-base-content/5 text-base-content">
+             class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-3xl ring-1 ring-base-content/5 text-base-content">
 
             <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30 rounded-t-3xl">
                 <div class="flex items-center gap-3">
@@ -353,6 +369,106 @@
                             <option value="1">Aktif</option>
                             <option value="0">Tidak Aktif</option>
                         </select>
+                    </div>
+                    
+                    <hr class="border-base-300 my-2">
+
+                    {{-- Join Date & Is Principle --}}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Join Date</label>
+                            <input type="date" wire:model="join_date"
+                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('join_date') input-error @enderror">
+                            @error('join_date') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Tipe Sales</label>
+                            <select wire:model="is_principle"
+                                    class="select select-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                                <option value="0">Distributor</option>
+                                <option value="1">Principal</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Bank Info --}}
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Nama Bank</label>
+                            <input type="text" wire:model="bank" list="indonesian-banks" placeholder="Cari / Ketik Nama Bank..."
+                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('bank') input-error @enderror">
+                            <datalist id="indonesian-banks">
+                                <option value="BCA (Bank Central Asia)"></option>
+                                <option value="BNI (Bank Negara Indonesia)"></option>
+                                <option value="BRI (Bank Rakyat Indonesia)"></option>
+                                <option value="Bank Mandiri"></option>
+                                <option value="BSI (Bank Syariah Indonesia)"></option>
+                                <option value="BTN (Bank Tabungan Negara)"></option>
+                                <option value="CIMB Niaga"></option>
+                                <option value="Bank Permata"></option>
+                                <option value="Bank Danamon"></option>
+                                <option value="Bank Mega"></option>
+                                <option value="Panin Bank"></option>
+                                <option value="OCBC NISP"></option>
+                                <option value="Maybank Indonesia"></option>
+                                <option value="Bank BJB"></option>
+                                <option value="Bank DKI"></option>
+                                <option value="Bank Muamalat"></option>
+                                <option value="Bank Sinarmas"></option>
+                                <option value="Bank Bukopin"></option>
+                                <option value="Bank Jago"></option>
+                                <option value="Seabank"></option>
+                                <option value="Blu by BCA Digital"></option>
+                                <option value="Bank Neo Commerce"></option>
+                                <option value="Allo Bank"></option>
+                                <option value="Bank BTPN"></option>
+                            </datalist>
+                            @error('bank') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Atas Nama Rekening</label>
+                            <input type="text" wire:model="bank_name"
+                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('bank_name') input-error @enderror">
+                            @error('bank_name') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">No Rekening</label>
+                            <input type="text" wire:model="bank_no"
+                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('bank_no') input-error @enderror">
+                            @error('bank_no') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    {{-- Upload Files --}}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Foto KTP</label>
+                            <input type="file" wire:model="foto_ktp" accept=".jpg,.jpeg,.png,.pdf"
+                                   class="file-input file-input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                            @if($existing_foto_ktp) <a href="{{ Storage::url($existing_foto_ktp) }}" target="_blank" class="text-[11px] text-primary underline mt-1 block font-semibold">Lihat KTP Saat Ini</a> @endif
+                            @error('foto_ktp') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Foto NPWP</label>
+                            <input type="file" wire:model="foto_npwp" accept=".jpg,.jpeg,.png,.pdf"
+                                   class="file-input file-input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                            @if($existing_foto_npwp) <a href="{{ Storage::url($existing_foto_npwp) }}" target="_blank" class="text-[11px] text-primary underline mt-1 block font-semibold">Lihat NPWP Saat Ini</a> @endif
+                            @error('foto_npwp') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Foto Rekening Bank</label>
+                            <input type="file" wire:model="foto_bank" accept=".jpg,.jpeg,.png,.pdf"
+                                   class="file-input file-input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                            @if($existing_foto_bank) <a href="{{ Storage::url($existing_foto_bank) }}" target="_blank" class="text-[11px] text-primary underline mt-1 block font-semibold">Lihat Rekening Saat Ini</a> @endif
+                            @error('foto_bank') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Foto SKB</label>
+                            <input type="file" wire:model="foto_skb" accept=".jpg,.jpeg,.png,.pdf"
+                                   class="file-input file-input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                            @if($existing_foto_skb) <a href="{{ Storage::url($existing_foto_skb) }}" target="_blank" class="text-[11px] text-primary underline mt-1 block font-semibold">Lihat SKB Saat Ini</a> @endif
+                            @error('foto_skb') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
+                        </div>
                     </div>
                 </div>
 

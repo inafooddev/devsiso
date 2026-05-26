@@ -13,6 +13,7 @@ use Livewire\WithPagination;
 use Livewire\WithFileUploads;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
@@ -51,6 +52,22 @@ class Index extends Component
     public $salesman_name;
     public $is_active = 1;
     public $manual_number;
+    
+    public $join_date;
+    public $bank;
+    public $bank_name;
+    public $bank_no;
+    public $is_principle = 0;
+    
+    public $foto_ktp;
+    public $foto_npwp;
+    public $foto_bank;
+    public $foto_skb;
+
+    public $existing_foto_ktp;
+    public $existing_foto_npwp;
+    public $existing_foto_bank;
+    public $existing_foto_skb;
     
     // Properti filter untuk di form create
     public $formRegionFilter;
@@ -135,6 +152,15 @@ class Index extends Component
             'distributor_code' => 'required|string|exists:master_distributors,distributor_code',
             'salesman_name' => 'required|string|max:150',
             'is_active' => 'required|boolean',
+            'join_date' => 'nullable|date',
+            'bank' => 'nullable|string|max:50',
+            'bank_name' => 'nullable|string|max:255',
+            'bank_no' => 'nullable|string|max:50',
+            'is_principle' => 'nullable|boolean',
+            'foto_ktp' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'foto_npwp' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'foto_bank' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'foto_skb' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ];
 
         if ($this->isEditing) {
@@ -225,6 +251,21 @@ class Index extends Component
         $this->originalDistributorCode = null;
         $this->originalSalesmanCode = null;
         
+        $this->join_date = null;
+        $this->bank = null;
+        $this->bank_name = null;
+        $this->bank_no = null;
+        $this->is_principle = 0;
+        
+        $this->foto_ktp = null;
+        $this->foto_npwp = null;
+        $this->foto_bank = null;
+        $this->foto_skb = null;
+        $this->existing_foto_ktp = null;
+        $this->existing_foto_npwp = null;
+        $this->existing_foto_bank = null;
+        $this->existing_foto_skb = null;
+        
         if (!auth()->user()->hasRole('admin') && count($this->regions) === 1) {
             // keep formRegionFilter and formAreas
         } else {
@@ -272,6 +313,16 @@ class Index extends Component
         $this->salesman_code = $salesman->salesman_code;
         $this->salesman_name = $salesman->salesman_name;
         $this->is_active = $salesman->is_active ? 1 : 0;
+        $this->join_date = $salesman->join_date ? $salesman->join_date->format('Y-m-d') : null;
+        $this->bank = $salesman->bank;
+        $this->bank_name = $salesman->bank_name;
+        $this->bank_no = $salesman->bank_no;
+        $this->is_principle = $salesman->is_principle ? 1 : 0;
+
+        $this->existing_foto_ktp = $salesman->foto_ktp;
+        $this->existing_foto_npwp = $salesman->foto_npwp;
+        $this->existing_foto_bank = $salesman->foto_bank;
+        $this->existing_foto_skb = $salesman->foto_skb;
 
         $this->isFormModalOpen = true;
     }
@@ -290,6 +341,22 @@ class Index extends Component
 
         DB::beginTransaction();
         try {
+            $dataToSave = collect($validatedData)->except(['manual_number', 'foto_ktp', 'foto_npwp', 'foto_bank', 'foto_skb'])->toArray();
+
+            $files = ['foto_ktp', 'foto_npwp', 'foto_bank', 'foto_skb'];
+            foreach ($files as $file) {
+                if ($this->$file) {
+                    $dataToSave[$file] = $this->$file->store('salesmans', 'public');
+                    
+                    if ($this->isEditing) {
+                        $existingProp = 'existing_' . $file;
+                        if ($this->$existingProp) {
+                            Storage::disk('public')->delete($this->$existingProp);
+                        }
+                    }
+                }
+            }
+
             if ($this->isEditing) {
                 // Pastikan user tidak merubah kode distributor ke wilayah lain dari data aslinya
                 if (!$this->checkDistributorAccess($this->originalDistributorCode)) {
@@ -299,17 +366,10 @@ class Index extends Component
 
                 Salesman::where('distributor_code', $this->originalDistributorCode)
                     ->where('salesman_code', $this->originalSalesmanCode)
-                    ->update([
-                        'distributor_code' => $this->distributor_code,
-                        'salesman_code'    => $this->salesman_code,
-                        'salesman_name'    => $this->salesman_name,
-                        'is_active'        => $this->is_active,
-                        'updated_at'       => now(),
-                    ]);
+                    ->update($dataToSave + ['updated_at' => now()]);
                 \App\Helpers\ActivityLogger::log('Update Salesman', "Memperbarui salesman: {$this->originalDistributorCode} - {$this->salesman_code}");
                 $message = 'Salesman berhasil diperbarui.';
             } else {
-                $dataToSave = collect($validatedData)->except(['manual_number'])->toArray();
                 Salesman::create($dataToSave);
                 \App\Helpers\ActivityLogger::log('Create Salesman', "Menambahkan salesman baru: {$this->distributor_code} - {$this->salesman_code}");
                 $message = 'Salesman berhasil ditambahkan.';
@@ -391,7 +451,7 @@ class Index extends Component
 
         if ($this->hasAppliedFilters) {
             $query = Salesman::query()
-                ->with('masterDistributor')
+                ->with(['masterDistributor.area.region'])
                 ->join('master_distributors', 'salesmans.distributor_code', '=', 'master_distributors.distributor_code');
             
             // Terapkan keamanan scope wilayah
@@ -435,9 +495,19 @@ class Index extends Component
             return;
         }
 
-        Salesman::where('salesman_code', $this->salesmanCodeToDelete)
+        $salesman = Salesman::where('salesman_code', $this->salesmanCodeToDelete)
             ->where('distributor_code', $this->distributorCodeToDelete)
-            ->delete();
+            ->first();
+            
+        if ($salesman) {
+            $files = ['foto_ktp', 'foto_npwp', 'foto_bank', 'foto_skb'];
+            foreach ($files as $file) {
+                if ($salesman->$file) {
+                    Storage::disk('public')->delete($salesman->$file);
+                }
+            }
+            $salesman->delete();
+        }
 
         \App\Helpers\ActivityLogger::log('Delete Salesman', "Menghapus salesman: {$this->distributorCodeToDelete} - {$this->salesmanCodeToDelete}");
 
