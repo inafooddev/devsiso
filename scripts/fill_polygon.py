@@ -6,7 +6,7 @@ import os
 
 def process_excel(excel_path):
     # Pastikan path ini sudah mengarah ke folder sisodev
-    shp_path = "/var/www/sisodev/storage/app/private/spatial_data/Batas_Wilayah_KelurahanDesa_10K_AR.shp"
+    shp_path = "/var/www/dev/sisodev/storage/app/private/spatial_data/Batas_Wilayah_KelurahanDesa_10K_AR.shp"
     
     if not os.path.exists(shp_path):
         print(f"Error: File Shapefile tidak ditemukan di: {shp_path}")
