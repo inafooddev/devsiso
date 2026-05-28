@@ -5,8 +5,9 @@ from shapely.geometry import Point
 import os
 
 def process_excel(excel_path):
-    # Pastikan path ini sudah mengarah ke folder sisodev
-    shp_path = "/var/www/dev/sisodev/storage/app/private/spatial_data/Batas_Wilayah_KelurahanDesa_10K_AR.shp"
+    # Dapatkan path dinamis agar bisa berjalan di Windows maupun Linux
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    shp_path = os.path.join(base_dir, "storage", "app", "private", "spatial_data", "Batas_Wilayah_KelurahanDesa_10K_AR.shp")
     
     if not os.path.exists(shp_path):
         print(f"Error: File Shapefile tidak ditemukan di: {shp_path}")
