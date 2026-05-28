@@ -435,28 +435,123 @@ class ListTokoPareto extends Component
             $filePath = $this->importFile->store('temp-imports');
             $fullPath = \Illuminate\Support\Facades\Storage::path($filePath);
 
-            $pythonScript = base_path('scripts/fill_polygon.py');
+            $import = new ListTokoParetoImport;
+            Excel::import($import, $fullPath);
             
-            $command = escapeshellcmd("python3") . " " . escapeshellarg($pythonScript) . " " . escapeshellarg($fullPath) . " 2>&1";
+            if (file_exists($fullPath)) unlink($fullPath);
+
+            // Jika ada data duplikat, buat file TXT dan download
+            if (count($import->duplicates) > 0) {
+                $fileName = 'Duplikat_Import_Toko_' . time() . '.txt';
+                $txtPath = storage_path('app/private/' . $fileName);
+                
+                $content = "Daftar Data Ganda yang Dilewati Saat Import:\n";
+                $content .= "Total Data Dilewati: " . count($import->duplicates) . " toko\n\n";
+                $content .= implode("\n", $import->duplicates);
+                
+                file_put_contents($txtPath, $content);
+
+                $this->isImportModalOpen = false;
+                $this->resetPage();
+                session()->flash('error', 'Import selesai, namun terdapat ' . count($import->duplicates) . ' data ganda yang gagal diunggah. Silakan cek file teks (TXT) yang ter-download otomatis.');
+                
+                \App\Helpers\ActivityLogger::log('Import Toko Pareto', "Mengimpor data dengan " . count($import->duplicates) . " duplikat yang terdeteksi.");
+                return response()->download($txtPath)->deleteFileAfterSend(true);
+            }
+
+            $this->isImportModalOpen = false;
+            \App\Helpers\ActivityLogger::log('Import Toko Pareto', "Mengimpor data List Toko Pareto secara massal dengan sukses seluruhnya.");
+            session()->flash('message', 'Proses Import Selesai. Seluruh data berhasil disinkronkan ke database tanpa ada duplikat.');
+            $this->resetPage(); 
+            
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == '23505') { // 23505 adalah kode unik PostgreSQL untuk Duplicate Key
+                session()->flash('error', 'Gagal Import: Terdapat data ganda yang tertangkap di level database.');
+            } else {
+                session()->flash('error', 'Gagal Import Database: ' . $e->getMessage());
+            }
+        } catch (\Exception $e) {
+            session()->flash('error', 'Gagal Import: ' . $e->getMessage());
+        }
+    }
+
+    public function syncGeotag()
+    {
+        $this->authorizeAction('can_edit');
+
+        try {
+            $tokos = ListTokoParetoTeamElite::whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->get(['id', 'latitude', 'longitude', 'kecamatan', 'desa']);
+
+            if ($tokos->isEmpty()) {
+                session()->flash('message', 'Tidak ada data toko yang memiliki koordinat latitude & longitude untuk disinkronisasi.');
+                return;
+            }
+
+            // Simpan ke CSV
+            $fileName = 'temp_geotag_' . time() . '.csv';
+            $filePath = storage_path('app/private/' . $fileName);
+            
+            $file = fopen($filePath, 'w');
+            fputcsv($file, ['id', 'latitude', 'longitude', 'kecamatan', 'desa']);
+            foreach ($tokos as $toko) {
+                fputcsv($file, [
+                    $toko->id,
+                    $toko->latitude,
+                    $toko->longitude,
+                    $toko->kecamatan,
+                    $toko->desa
+                ]);
+            }
+            fclose($file);
+
+            // Eksekusi Python
+            $pythonScript = base_path('scripts/fill_polygon.py');
+            $command = escapeshellcmd("python3") . " " . escapeshellarg($pythonScript) . " " . escapeshellarg($filePath) . " 2>&1";
             exec($command, $outputArray, $resultCode);
             $output = implode("\n", $outputArray);
 
             if ($resultCode !== 0) {
-                if (file_exists($fullPath)) unlink($fullPath);
-                throw new \Exception("Pre-proses Polygon gagal: " . $output);
+                if (file_exists($filePath)) unlink($filePath);
+                throw new \Exception("Eksekusi Python gagal: " . $output);
             }
 
-            Excel::import(new ListTokoParetoImport, $fullPath);
-            
-            if (file_exists($fullPath)) unlink($fullPath);
+            // Baca hasil CSV dan Update DB
+            $updatedFile = fopen($filePath, 'r');
+            $header = fgetcsv($updatedFile); // Skip header
 
-            $this->isImportModalOpen = false;
-            \App\Helpers\ActivityLogger::log('Import Toko Pareto', "Mengimpor data List Toko Pareto secara massal.");
-            session()->flash('message', 'Proses Import Selesai (Geotag Polygon & Full Sync berhasil).');
-            $this->resetPage(); 
-            
+            DB::beginTransaction();
+            try {
+                while (($row = fgetcsv($updatedFile)) !== false) {
+                    if (count($row) >= 5) {
+                        $id = $row[0];
+                        $kec = $row[3];
+                        $desa = $row[4];
+                        
+                        ListTokoParetoTeamElite::where('id', $id)->update([
+                            'kecamatan' => $kec,
+                            'desa' => $desa,
+                        ]);
+                    }
+                }
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                fclose($updatedFile);
+                if (file_exists($filePath)) unlink($filePath);
+                throw $e;
+            }
+
+            fclose($updatedFile);
+            if (file_exists($filePath)) unlink($filePath);
+
+            \App\Helpers\ActivityLogger::log('Sync Geotag', "Mensinkronisasi Geotag Toko Pareto secara massal.");
+            session()->flash('message', 'Sinkronisasi Geotag (Kecamatan & Desa) berhasil diselesaikan.');
+            $this->resetPage();
+
         } catch (\Exception $e) {
-            session()->flash('error', 'Gagal Import: ' . $e->getMessage());
+            session()->flash('error', 'Gagal Sync Geotag: ' . $e->getMessage());
         }
     }
 

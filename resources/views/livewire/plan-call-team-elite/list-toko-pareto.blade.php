@@ -113,6 +113,17 @@
                     </x-ui.button>
                     @endcanImport
 
+                    @canEdit('plan-call-team-elite.toko-pareto')
+                    <x-ui.button variant="secondary" size="sm" wire:click="syncGeotag" wire:loading.attr="disabled" wire:target="syncGeotag">
+                        <span wire:loading.remove wire:target="syncGeotag" class="flex items-center gap-1">
+                            <x-heroicon-s-map-pin class="w-4 h-4" /> Sync Geotag
+                        </span>
+                        <span wire:loading wire:target="syncGeotag" class="flex items-center gap-1">
+                            <span class="loading loading-spinner loading-xs"></span> Sinkronisasi...
+                        </span>
+                    </x-ui.button>
+                    @endcanEdit
+
                     @canExport('plan-call-team-elite.toko-pareto')
                     <x-ui.button variant="info" size="sm" wire:click="export" wire:loading.attr="disabled" wire:target="export">
                         <span wire:loading.remove wire:target="export" class="flex items-center gap-1">
@@ -327,12 +338,15 @@
 
             <div class="form-control w-full">
                 <input type="file" wire:model="importFile" class="file-input file-input-bordered file-input-sm w-full" accept=".xlsx,.xls,.csv" required>
+                <span wire:loading wire:target="importFile" class="text-xs text-info mt-1 font-medium flex items-center gap-1">
+                    <span class="loading loading-spinner loading-xs"></span> Mengunggah file ke server...
+                </span>
                 @error('importFile') <span class="text-error text-xs mt-1">{{ $message }}</span> @enderror
             </div>
             
             <div class="flex justify-end gap-2 mt-6">
                 <x-ui.button type="button" variant="neutral" outline wire:click="$set('isImportModalOpen', false)">Batal</x-ui.button>
-                <x-ui.button type="submit" variant="primary" icon="cloud-arrow-up" wire:loading.attr="disabled" wire:target="import">
+                <x-ui.button type="submit" variant="primary" icon="cloud-arrow-up" wire:loading.attr="disabled" wire:target="import, importFile">
                     <span wire:loading.remove wire:target="import">Upload & Sync</span>
                     <span wire:loading wire:target="import">Proses...</span>
                 </x-ui.button>

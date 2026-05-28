@@ -17,8 +17,11 @@ def process_excel(excel_path):
         # Load Polygon Map (Sangat Cepat)
         gdf = gpd.read_file(shp_path)
         
-        # Load Excel File
-        df = pd.read_excel(excel_path)
+        # Load Input File
+        if excel_path.lower().endswith('.csv'):
+            df = pd.read_csv(excel_path)
+        else:
+            df = pd.read_excel(excel_path)
         
         # Standarisasi nama kolom (cari kolom latitude dan longitude)
         cols = {str(c).strip().lower(): c for c in df.columns}
@@ -55,8 +58,11 @@ def process_excel(excel_path):
         # Bersihkan kolom sementara
         df = df.drop(columns=['temp_lat', 'temp_lng'])
         
-        # Simpan kembali ke file Excel yang sama
-        df.to_excel(excel_path, index=False)
+        # Simpan kembali ke file yang sama
+        if excel_path.lower().endswith('.csv'):
+            df.to_csv(excel_path, index=False)
+        else:
+            df.to_excel(excel_path, index=False)
         
         print("Success: Polygon data merged.")
         sys.exit(0)
