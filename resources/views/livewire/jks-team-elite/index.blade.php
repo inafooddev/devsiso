@@ -27,25 +27,154 @@
 
         @if(!empty($filterTeam) && !empty($filterStartDate) && !empty($filterEndDate))
             <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                <div class="bg-base-100 rounded-2xl p-4 border border-base-200 shadow-sm flex flex-col items-center justify-center text-center">
-                    <span class="text-xs font-bold text-base-content/60 uppercase tracking-wider mb-1">Total Toko</span>
-                    <span class="text-2xl font-black text-primary">{{ number_format($kpi['total_toko']) }}</span>
+                {{-- Card Total Toko --}}
+                @php
+                    $gapToko = max(0, $paretoKpi['total_toko'] - $kpi['total_toko']);
+                    $pctToko = $paretoKpi['total_toko'] > 0 ? round(($kpi['total_toko'] / $paretoKpi['total_toko']) * 100) : 0;
+                @endphp
+                <div class="bg-base-100 rounded-2xl p-5 border border-base-200 shadow-sm relative overflow-hidden group hover:border-primary/30 hover:shadow-md transition-all duration-300">
+                    <div class="absolute -right-4 -top-4 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none">
+                        <x-heroicon-s-building-storefront class="w-24 h-24 text-primary" />
+                    </div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                <x-heroicon-s-building-storefront class="w-4 h-4" />
+                            </div>
+                            <h3 class="text-[11px] font-extrabold text-base-content/60 uppercase tracking-widest">Total Toko</h3>
+                        </div>
+                        <div class="flex items-baseline gap-1.5 mb-3">
+                            <span class="text-3xl font-black text-primary leading-none">{{ number_format($kpi['total_toko']) }}</span>
+                            <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_toko']) }}</span>
+                        </div>
+                        <div class="w-full bg-base-200 rounded-full h-1.5 mb-2 overflow-hidden">
+                            <div class="bg-primary h-1.5 rounded-full transition-all duration-500" style="width: {{ min(100, $pctToko) }}%"></div>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                            <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapToko) }}</span></span>
+                            <span class="text-primary">{{ $pctToko }}%</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="bg-base-100 rounded-2xl p-4 border border-base-200 shadow-sm flex flex-col items-center justify-center text-center">
-                    <span class="text-xs font-bold text-base-content/60 uppercase tracking-wider mb-1">Total Target</span>
-                    <span class="text-2xl font-black text-success">{{ number_format($kpi['total_target']) }}</span>
+
+                {{-- Card Total Target --}}
+                @php
+                    $gapTarget = max(0, $paretoKpi['total_target'] - $kpi['total_target']);
+                    $pctTarget = $paretoKpi['total_target'] > 0 ? round(($kpi['total_target'] / $paretoKpi['total_target']) * 100) : 0;
+                @endphp
+                <div class="bg-base-100 rounded-2xl p-5 border border-base-200 shadow-sm relative overflow-hidden group hover:border-success/30 hover:shadow-md transition-all duration-300">
+                    <div class="absolute -right-4 -top-4 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none">
+                        <x-heroicon-s-banknotes class="w-24 h-24 text-success" />
+                    </div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-7 h-7 rounded-lg bg-success/10 flex items-center justify-center text-success">
+                                <x-heroicon-s-banknotes class="w-4 h-4" />
+                            </div>
+                            <h3 class="text-[11px] font-extrabold text-base-content/60 uppercase tracking-widest">Total Target</h3>
+                        </div>
+                        <div class="flex items-baseline gap-1.5 mb-3">
+                            <span class="text-3xl font-black text-success leading-none">{{ number_format($kpi['total_target']) }}</span>
+                            <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_target']) }}</span>
+                        </div>
+                        <div class="w-full bg-base-200 rounded-full h-1.5 mb-2 overflow-hidden">
+                            <div class="bg-success h-1.5 rounded-full transition-all duration-500" style="width: {{ min(100, $pctTarget) }}%"></div>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                            <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapTarget) }}</span></span>
+                            <span class="text-success">{{ $pctTarget }}%</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="bg-base-100 rounded-2xl p-4 border border-base-200 shadow-sm flex flex-col items-center justify-center text-center">
-                    <span class="text-xs font-bold text-base-content/60 uppercase tracking-wider mb-1">Total RWO</span>
-                    <span class="text-2xl font-black text-info">{{ number_format($kpi['total_rwo']) }}</span>
+
+                {{-- Card Total RWO --}}
+                @php
+                    $gapRwo = max(0, $paretoKpi['total_rwo'] - $kpi['total_rwo']);
+                    $pctRwo = $paretoKpi['total_rwo'] > 0 ? round(($kpi['total_rwo'] / $paretoKpi['total_rwo']) * 100) : 0;
+                @endphp
+                <div class="bg-base-100 rounded-2xl p-5 border border-base-200 shadow-sm relative overflow-hidden group hover:border-info/30 hover:shadow-md transition-all duration-300">
+                    <div class="absolute -right-4 -top-4 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none">
+                        <x-heroicon-s-shopping-bag class="w-24 h-24 text-info" />
+                    </div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-7 h-7 rounded-lg bg-info/10 flex items-center justify-center text-info">
+                                <x-heroicon-s-shopping-bag class="w-4 h-4" />
+                            </div>
+                            <h3 class="text-[11px] font-extrabold text-base-content/60 uppercase tracking-widest">Total RWO</h3>
+                        </div>
+                        <div class="flex items-baseline gap-1.5 mb-3">
+                            <span class="text-3xl font-black text-info leading-none">{{ number_format($kpi['total_rwo']) }}</span>
+                            <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_rwo']) }}</span>
+                        </div>
+                        <div class="w-full bg-base-200 rounded-full h-1.5 mb-2 overflow-hidden">
+                            <div class="bg-info h-1.5 rounded-full transition-all duration-500" style="width: {{ min(100, $pctRwo) }}%"></div>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                            <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapRwo) }}</span></span>
+                            <span class="text-info">{{ $pctRwo }}%</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="bg-base-100 rounded-2xl p-4 border border-base-200 shadow-sm flex flex-col items-center justify-center text-center">
-                    <span class="text-xs font-bold text-base-content/60 uppercase tracking-wider mb-1">Total PNR</span>
-                    <span class="text-2xl font-black text-secondary">{{ number_format($kpi['total_pnr']) }}</span>
+
+                {{-- Card Total PNR --}}
+                @php
+                    $gapPnr = max(0, $paretoKpi['total_pnr'] - $kpi['total_pnr']);
+                    $pctPnr = $paretoKpi['total_pnr'] > 0 ? round(($kpi['total_pnr'] / $paretoKpi['total_pnr']) * 100) : 0;
+                @endphp
+                <div class="bg-base-100 rounded-2xl p-5 border border-base-200 shadow-sm relative overflow-hidden group hover:border-secondary/30 hover:shadow-md transition-all duration-300">
+                    <div class="absolute -right-4 -top-4 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none">
+                        <x-heroicon-s-archive-box class="w-24 h-24 text-secondary" />
+                    </div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-7 h-7 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary">
+                                <x-heroicon-s-archive-box class="w-4 h-4" />
+                            </div>
+                            <h3 class="text-[11px] font-extrabold text-base-content/60 uppercase tracking-widest">Total PNR</h3>
+                        </div>
+                        <div class="flex items-baseline gap-1.5 mb-3">
+                            <span class="text-3xl font-black text-secondary leading-none">{{ number_format($kpi['total_pnr']) }}</span>
+                            <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_pnr']) }}</span>
+                        </div>
+                        <div class="w-full bg-base-200 rounded-full h-1.5 mb-2 overflow-hidden">
+                            <div class="bg-secondary h-1.5 rounded-full transition-all duration-500" style="width: {{ min(100, $pctPnr) }}%"></div>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                            <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapPnr) }}</span></span>
+                            <span class="text-secondary">{{ $pctPnr }}%</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="bg-base-100 rounded-2xl p-4 border border-base-200 shadow-sm flex flex-col items-center justify-center text-center">
-                    <span class="text-xs font-bold text-base-content/60 uppercase tracking-wider mb-1">Total NGVO</span>
-                    <span class="text-2xl font-black text-warning">{{ number_format($kpi['total_ngvo']) }}</span>
+
+                {{-- Card Total NGVO --}}
+                @php
+                    $gapNgvo = max(0, $paretoKpi['total_ngvo'] - $kpi['total_ngvo']);
+                    $pctNgvo = $paretoKpi['total_ngvo'] > 0 ? round(($kpi['total_ngvo'] / $paretoKpi['total_ngvo']) * 100) : 0;
+                @endphp
+                <div class="bg-base-100 rounded-2xl p-5 border border-base-200 shadow-sm relative overflow-hidden group hover:border-warning/30 hover:shadow-md transition-all duration-300">
+                    <div class="absolute -right-4 -top-4 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none">
+                        <x-heroicon-s-sparkles class="w-24 h-24 text-warning" />
+                    </div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-7 h-7 rounded-lg bg-warning/10 flex items-center justify-center text-warning">
+                                <x-heroicon-s-sparkles class="w-4 h-4" />
+                            </div>
+                            <h3 class="text-[11px] font-extrabold text-base-content/60 uppercase tracking-widest">Total NGVO</h3>
+                        </div>
+                        <div class="flex items-baseline gap-1.5 mb-3">
+                            <span class="text-3xl font-black text-warning leading-none">{{ number_format($kpi['total_ngvo']) }}</span>
+                            <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_ngvo']) }}</span>
+                        </div>
+                        <div class="w-full bg-base-200 rounded-full h-1.5 mb-2 overflow-hidden">
+                            <div class="bg-warning h-1.5 rounded-full transition-all duration-500" style="width: {{ min(100, $pctNgvo) }}%"></div>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                            <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapNgvo) }}</span></span>
+                            <span class="text-warning">{{ $pctNgvo }}%</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         @endif
@@ -155,6 +284,12 @@
                         Tambah
                     </button>
                     @endcanEdit
+
+                    {{-- Tombol Maps --}}
+                    <button wire:click="showGlobalMap" class="btn btn-sm btn-info rounded-xl normal-case gap-2 shadow-sm text-white">
+                        <x-heroicon-s-map class="w-4 h-4" />
+                        Maps
+                    </button>
                 </div>
             </x-slot:actions>
 
@@ -164,18 +299,86 @@
                     <thead>
                         <tr>
                             <th>No</th>
-                            <th>Tanggal</th>
-                            <th>Region</th>
-                            <th>Kode Team</th>
-                            <th>Nama Team</th>
-                            <th class="text-center">Total Toko</th>
+                            <th class="cursor-pointer hover:bg-base-200 transition-colors select-none" wire:click="sortBy('tanggal')">
+                                <div class="flex items-center gap-1">
+                                    Tanggal
+                                    @if($sortField === 'tanggal')
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="cursor-pointer hover:bg-base-200 transition-colors select-none" wire:click="sortBy('nama_region')">
+                                <div class="flex items-center gap-1">
+                                    Region
+                                    @if($sortField === 'nama_region')
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="cursor-pointer hover:bg-base-200 transition-colors select-none" wire:click="sortBy('kode_team')">
+                                <div class="flex items-center gap-1">
+                                    Kode Team
+                                    @if($sortField === 'kode_team')
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="cursor-pointer hover:bg-base-200 transition-colors select-none" wire:click="sortBy('nama_team')">
+                                <div class="flex items-center gap-1">
+                                    Nama Team
+                                    @if($sortField === 'nama_team')
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                    @endif
+                                </div>
+                            </th>
+                            <th>Hari</th>
+                            <th class="text-center cursor-pointer hover:bg-base-200 transition-colors select-none" wire:click="sortBy('week_month')">
+                                <div class="flex items-center justify-center gap-1">
+                                    Week
+                                    @if($sortField === 'week_month')
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="text-center cursor-pointer hover:bg-base-200 transition-colors select-none" wire:click="sortBy('total_toko')">
+                                <div class="flex items-center justify-center gap-1">
+                                    Total Toko
+                                    @if($sortField === 'total_toko')
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="text-center cursor-pointer hover:bg-base-200 transition-colors select-none" wire:click="sortBy('total_rwo')">
+                                <div class="flex items-center justify-center gap-1">
+                                    Total RWO
+                                    @if($sortField === 'total_rwo')
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="text-center cursor-pointer hover:bg-base-200 transition-colors select-none" wire:click="sortBy('total_pnr')">
+                                <div class="flex items-center justify-center gap-1">
+                                    Total PNR
+                                    @if($sortField === 'total_pnr')
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="text-center cursor-pointer hover:bg-base-200 transition-colors select-none" wire:click="sortBy('total_ngvo')">
+                                <div class="flex items-center justify-center gap-1">
+                                    Total NGVO
+                                    @if($sortField === 'total_ngvo')
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                    @endif
+                                </div>
+                            </th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @if(empty($filterTeam) || empty($filterStartDate) || empty($filterEndDate))
                             <tr>
-                                <td colspan="8" class="text-center py-8 text-base-content/50">
+                                <td colspan="13" class="text-center py-8 text-base-content/50">
                                     <x-heroicon-o-funnel class="w-12 h-12 mx-auto mb-3 opacity-30" />
                                     Silakan pilih **Team** dan **Range Tanggal** terlebih dahulu untuk menampilkan data.
                                 </td>
@@ -188,14 +391,35 @@
                                     <td>{{ $record->nama_region }} ({{ $record->kode_region }})</td>
                                     <td>{{ $record->kode_team }}</td>
                                     <td><div class="font-bold">{{ $record->nama_team }}</div></td>
+                                    <td>{{ \Carbon\Carbon::parse($record->tanggal)->locale('id')->isoFormat('dddd') }}</td>
+                                    <td class="text-center font-bold">W-{{ $record->week_month ?? '-' }}</td>
                                     <td class="text-center">
                                         <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}')" class="badge badge-primary badge-outline font-bold cursor-pointer hover:bg-primary hover:text-white transition-colors">
                                             {{ $record->total_toko }}
                                         </button>
                                     </td>
+                                    <td class="text-center">
+                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}', 'RWO')" class="badge badge-info badge-outline font-bold cursor-pointer hover:bg-info hover:text-white transition-colors">
+                                            {{ $record->total_rwo ?? 0 }}
+                                        </button>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}', 'PNR')" class="badge badge-secondary badge-outline font-bold cursor-pointer hover:bg-secondary hover:text-white transition-colors">
+                                            {{ $record->total_pnr ?? 0 }}
+                                        </button>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}', 'NGVO')" class="badge badge-warning badge-outline font-bold cursor-pointer hover:bg-warning hover:text-white transition-colors">
+                                            {{ $record->total_ngvo ?? 0 }}
+                                        </button>
+                                    </td>
                                     <td>
-                                        @canEdit('jks-team-elite.index')
                                         <div class="flex items-center justify-center gap-1">
+                                            <button wire:click="showMap('{{ $record->tanggal }}', '{{ $record->kode_team }}')" 
+                                                    class="btn btn-ghost btn-xs btn-square rounded-lg text-info hover:bg-info/10 transition-all duration-200" title="Lihat Peta">
+                                                <x-heroicon-s-map class="w-4 h-4" />
+                                            </button>
+                                            @canEdit('jks-team-elite.index')
                                             <button wire:click="openEditModal('{{ $record->tanggal }}', '{{ $record->kode_team }}', '{{ $record->kode_region }}')" 
                                                     class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit Grup">
                                                 <x-heroicon-s-pencil-square class="w-4 h-4" />
@@ -204,13 +428,13 @@
                                                     class="btn btn-ghost btn-xs btn-square rounded-lg text-error hover:bg-error/10 transition-all duration-200" title="Hapus Grup">
                                                 <x-heroicon-s-trash class="w-4 h-4" />
                                             </button>
+                                            @endcanEdit
                                         </div>
-                                        @endcanEdit
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="text-center py-4 text-base-content/50">Tidak ada data ditemukan untuk kriteria tersebut.</td>
+                                    <td colspan="13" class="text-center py-4 text-base-content/50">Tidak ada data ditemukan untuk kriteria tersebut.</td>
                                 </tr>
                             @endforelse
                         @endif
@@ -616,6 +840,16 @@
                                 </tr>
                             @endforelse
                         </tbody>
+                        @if(count($storeModalData) > 0)
+                        <tfoot>
+                            <tr class="bg-base-300 font-bold text-base-content border-t-2 border-base-content/10">
+                                <td colspan="4" class="text-right px-4 py-3 uppercase tracking-wider text-xs">Total Subtotal Target:</td>
+                                <td class="text-right px-4 py-3 text-success whitespace-nowrap">
+                                    {{ number_format(collect($storeModalData)->sum('target')) }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                        @endif
                     </table>
                 </div>
             </div>
@@ -668,4 +902,217 @@
             </div>
         </div>
     </div>
+
+    <!-- Map Modal -->
+    <div x-data="{
+            map: null,
+            markers: [],
+            initMap() {
+                if (this.map) {
+                    this.map.remove();
+                }
+                this.map = L.map('store-map').setView([-6.200000, 106.816666], 10);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(this.map);
+            },
+            updateMarkers(data) {
+                if (window.renderMapMarkers) {
+                    window.renderMapMarkers(this.map, this.markers, data);
+                }
+            }
+        }"
+        @init-map.window="setTimeout(() => { initMap(); updateMarkers($wire.mapModalData); }, 300)"
+        @update-map-markers.window="updateMarkers($wire.mapModalData)"
+        @map-add-store.window="$wire.addStoreFromMap($event.detail.custno, $event.detail.dist)"
+        @global-map-add-store.window="$wire.addStoreFromGlobalMap($event.detail.custno, $event.detail.dist, $event.detail.date, $event.detail.team)"
+        @global-map-update-store.window="$wire.updateStoreFromGlobalMap($event.detail.custno, $event.detail.dist, $event.detail.oldDate, $event.detail.oldTeam, $event.detail.newDate, $event.detail.newTeam)"
+        @global-map-delete-store.window="$wire.deleteStoreFromGlobalMap($event.detail.custno, $event.detail.dist, $event.detail.date, $event.detail.team)"
+    >
+        <div class="modal" :class="{ 'modal-open': $wire.isMapModalOpen }">
+            <div class="modal-box max-w-5xl p-0 overflow-hidden bg-base-100 rounded-2xl shadow-xl flex flex-col h-[80vh]">
+                <!-- Header -->
+                <div class="flex items-center justify-between px-6 py-4 border-b border-base-200 bg-base-100/50 backdrop-blur z-10 shrink-0">
+                    <h3 class="text-lg font-black text-base-content tracking-tight flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center text-info shadow-inner">
+                            <x-heroicon-s-map class="w-5 h-5" />
+                        </div>
+                        {{ $mapModalTitle }}
+                    </h3>
+                    <button wire:click="$set('isMapModalOpen', false)" class="btn btn-ghost btn-sm btn-square rounded-xl hover:bg-error/10 hover:text-error transition-colors">
+                        <x-heroicon-s-x-mark class="w-5 h-5" />
+                    </button>
+                </div>
+                <!-- Content -->
+                <div class="flex-1 w-full bg-base-200 relative">
+                    <div id="store-map" wire:ignore style="height: 100%; width: 100%; z-index: 1;"></div>
+                </div>
+            </div>
+            <div class="modal-backdrop bg-base-300/80 backdrop-blur-sm" wire:click="$set('isMapModalOpen', false)"></div>
+        </div>
+    </div>
+
+    @push('scripts')
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+            window.renderMapMarkers = function(map, markers, data) {
+                // clear old markers
+                markers.forEach(m => map.removeLayer(m));
+                markers.length = 0; // empty array safely
+                
+                if (!data) return;
+
+                let bounds = L.latLngBounds();
+                let hasValidMarker = false;
+
+                let iconBaseUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-';
+                let iconShadowUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png';
+                
+                function getIcon(color) {
+                    return new L.Icon({
+                        iconUrl: iconBaseUrl + color + '.png',
+                        shadowUrl: iconShadowUrl,
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    });
+                }
+
+                let icons = {
+                    '1': getIcon('blue'),
+                    '2': getIcon('green'),
+                    '3': getIcon('orange'),
+                    '4': getIcon('red'),
+                    '5': getIcon('violet'),
+                    'grey': getIcon('grey')
+                };
+                
+                // Add Legend once
+                if (!map.customLegend) {
+                    let legend = L.control({position: 'bottomleft'});
+                    legend.onAdd = function (map) {
+                        let div = L.DomUtil.create('div', 'info legend bg-white p-3 rounded-xl shadow-lg border border-gray-200 text-xs z-[1000] relative');
+                        div.innerHTML = `
+                            <div class="font-bold mb-2 pb-1 border-b border-gray-200 text-gray-800 tracking-wide">Keterangan Warna</div>
+                            <div class="flex flex-col gap-1.5">
+                                <div class="flex items-center gap-2"><img src="${iconBaseUrl}blue.png" class="h-4"> <span class="text-gray-700 font-medium">Minggu 1</span></div>
+                                <div class="flex items-center gap-2"><img src="${iconBaseUrl}green.png" class="h-4"> <span class="text-gray-700 font-medium">Minggu 2</span></div>
+                                <div class="flex items-center gap-2"><img src="${iconBaseUrl}orange.png" class="h-4"> <span class="text-gray-700 font-medium">Minggu 3</span></div>
+                                <div class="flex items-center gap-2"><img src="${iconBaseUrl}red.png" class="h-4"> <span class="text-gray-700 font-medium">Minggu 4</span></div>
+                                <div class="flex items-center gap-2"><img src="${iconBaseUrl}violet.png" class="h-4"> <span class="text-gray-700 font-medium">Minggu 5</span></div>
+                                <div class="flex items-center gap-2 mt-1 pt-1.5 border-t border-gray-100"><img src="${iconBaseUrl}grey.png" class="h-4 opacity-70"> <span class="text-gray-500 font-semibold italic">Pareto (Belum Terjadwal)</span></div>
+                            </div>
+                        `;
+                        return div;
+                    };
+                    legend.addTo(map);
+                    map.customLegend = legend;
+                }
+                
+                if (data.scheduled) {
+                    data.scheduled.forEach(store => {
+                        if(store.latitude && store.longitude) {
+                            let lat = parseFloat(store.latitude);
+                            let lng = parseFloat(store.longitude);
+                            
+                            let popupHtml = `<b>${store.custname}</b><br>${store.customer_address || ''}<div class="mt-2 flex flex-col gap-1">`;
+                            if (store.tgl_format) {
+                                popupHtml += `<span class="text-[11px] font-bold text-gray-700 flex items-center gap-1">🕒 ${store.tgl_format} (${store.hari}) - W${store.minggu}</span>`;
+                                popupHtml += `<span class="text-[11px] font-bold text-gray-700 flex items-center gap-1">👤 ${store.nama_team}</span>`;
+                            }
+                            popupHtml += `<span class="badge badge-primary badge-sm font-bold border-none text-white shadow-sm mt-1 w-max">Dijadwalkan JKS</span>`;
+                            
+                            if (data.isGlobal) {
+                                let teamOptions = (data.availableTeams || []).map(t => `<option value="${t.kode_team}" ${t.kode_team == store.kode_team ? 'selected' : ''}>${t.nama_team}</option>`).join('');
+                                popupHtml += `
+                                    <div class="mt-2 border-t border-gray-200 pt-2">
+                                        <div class="form-control w-full">
+                                            <label class="label p-0 pb-1"><span class="label-text text-[10px]">Pindah Tanggal</span></label>
+                                            <input type="date" id="edit_date_${store.custno}" value="${store.tanggal_ymd}" class="input input-xs input-bordered w-full bg-white text-gray-900 border-gray-300" />
+                                        </div>
+                                        <div class="form-control w-full mt-1">
+                                            <label class="label p-0 pb-1"><span class="label-text text-[10px]">Pindah Team</span></label>
+                                            <select id="edit_team_${store.custno}" class="select select-xs select-bordered w-full bg-white text-gray-900 border-gray-300">
+                                                ${teamOptions}
+                                            </select>
+                                        </div>
+                                        <div class="flex gap-1 mt-2">
+                                            <button type="button" onclick="
+                                                let d = document.getElementById('edit_date_${store.custno}').value;
+                                                let t = document.getElementById('edit_team_${store.custno}').value;
+                                                if(!d || !t) { alert('Tanggal dan Team harus diisi!'); return; }
+                                                window.dispatchEvent(new CustomEvent('global-map-update-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}', oldDate: '${store.tanggal_ymd}', oldTeam: '${store.kode_team}', newDate: d, newTeam: t } }))
+                                            " class="btn btn-warning btn-xs flex-1">Update</button>
+                                            
+                                            <button type="button" onclick="
+                                                if(confirm('Yakin ingin menghapus jadwal ini?')) {
+                                                    window.dispatchEvent(new CustomEvent('global-map-delete-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}', date: '${store.tanggal_ymd}', team: '${store.kode_team}' } }))
+                                                }
+                                            " class="btn btn-error btn-xs text-white px-2" title="Hapus Jadwal">
+                                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                            popupHtml += `</div>`;
+                            
+                            let markerIcon = icons[store.minggu] || icons['1'];
+                            let m = L.marker([lat, lng], {icon: markerIcon}).addTo(map).bindPopup(popupHtml);
+                            markers.push(m);
+                            bounds.extend([lat, lng]);
+                            hasValidMarker = true;
+                        }
+                    });
+                }
+
+                if (data.pareto) {
+                    data.pareto.forEach(store => {
+                        if(store.latitude && store.longitude) {
+                            let lat = parseFloat(store.latitude);
+                            let lng = parseFloat(store.longitude);
+                            
+                            let popupContent = `<b>${store.custname}</b><br>${store.customer_address || ''}<div class="mt-2 flex flex-col gap-2"><span class="badge badge-ghost badge-sm border-none bg-base-300 text-base-content font-semibold shadow-sm w-max">Belum Dijadwalkan</span>`;
+                            
+                            if (!data.isGlobal) {
+                                popupContent += `<button type="button" onclick="window.dispatchEvent(new CustomEvent('map-add-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}' } }))" class="btn btn-primary btn-xs text-white">Tambahkan Jadwal</button>`;
+                            } else {
+                                let teamOptions = data.availableTeams.map(t => `<option value="${t.kode_team}">${t.nama_team}</option>`).join('');
+                                popupContent += `
+                                    <div class="form-control w-full">
+                                        <label class="label p-0 pb-1"><span class="label-text text-[10px]">Tanggal</span></label>
+                                        <input type="date" id="date_${store.custno}" class="input input-xs input-bordered w-full bg-white text-gray-900 border-gray-300" />
+                                    </div>
+                                    <div class="form-control w-full mt-1">
+                                        <label class="label p-0 pb-1"><span class="label-text text-[10px]">Team</span></label>
+                                        <select id="team_${store.custno}" class="select select-xs select-bordered w-full bg-white text-gray-900 border-gray-300">
+                                            ${teamOptions}
+                                        </select>
+                                    </div>
+                                    <button type="button" onclick="
+                                        let d = document.getElementById('date_${store.custno}').value;
+                                        let t = document.getElementById('team_${store.custno}').value;
+                                        if(!d || !t) { alert('Tanggal dan Team harus diisi!'); return; }
+                                        window.dispatchEvent(new CustomEvent('global-map-add-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}', date: d, team: t } }))
+                                    " class="btn btn-primary btn-xs text-white mt-1">Simpan Jadwal</button>
+                                `;
+                            }
+                            
+                            popupContent += `</div>`;
+                            
+                            let m = L.marker([lat, lng], {icon: icons['grey']}).addTo(map).bindPopup(popupContent);
+                            markers.push(m);
+                            bounds.extend([lat, lng]);
+                            hasValidMarker = true;
+                        }
+                    });
+                }
+
+                if (hasValidMarker) {
+                    map.fitBounds(bounds, {padding: [50, 50]});
+                }
+            }
+        </script>
+    @endpush
 </div>
