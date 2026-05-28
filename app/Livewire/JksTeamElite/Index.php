@@ -725,7 +725,7 @@ class Index extends Component
                 $c = 2 * asin(sqrt($a));
                 $distance = $earthRadius * $c;
                 
-                if ($distance <= 10) { // 10 KM Radius
+                if ($distance <= 8) { // 8 KM Radius
                     return true;
                 }
             }
