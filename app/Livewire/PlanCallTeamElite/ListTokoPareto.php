@@ -44,7 +44,7 @@ class ListTokoPareto extends Component
     // Properti Form Edit & Create
     public $editId;
     public $distributor_code, $customer_code_prc, $customer_name, $customer_address;
-    public $kecamatan, $desa, $latitude, $longitude, $pilar, $target;
+    public $kecamatan, $desa, $latitude, $longitude, $pilar, $target, $keterangan, $uniq_kd;
 
     // Properti Hapus
     public $deleteId;
@@ -127,8 +127,8 @@ class ListTokoPareto extends Component
                 'msc.supervisor_code',
                 'ms.description as supervisor_name',
                 'l.distributor_code', 'm.distributor_name',
-                'l.customer_code_prc', 'l.customer_name', 'l.customer_address',
-                'l.kecamatan', 'l.desa', 'l.latitude', 'l.longitude', 'l.pilar', 'l.target',
+                'l.customer_code_prc', 'l.customer_name', 'l.uniq_kd', 'l.customer_address',
+                'l.kecamatan', 'l.desa', 'l.latitude', 'l.longitude', 'l.pilar', 'l.target', 'l.keterangan',
                 DB::raw("CASE WHEN EXISTS (SELECT 1 FROM jks_team_elite as j WHERE l.distributor_code = j.distributor_code AND l.customer_code_prc = j.custno) THEN 'Y' ELSE 'T' END as on_jks")
             );
 
@@ -244,7 +244,7 @@ class ListTokoPareto extends Component
     // --- FITUR TAMBAH CUSTOMER BARU ---
     public function openCreateModal()
     {
-        $this->reset(['distributor_code', 'customer_code_prc', 'customer_name', 'customer_address', 'kecamatan', 'desa', 'latitude', 'longitude', 'pilar', 'target']);
+        $this->reset(['distributor_code', 'customer_code_prc', 'customer_name', 'uniq_kd', 'customer_address', 'kecamatan', 'desa', 'latitude', 'longitude', 'pilar', 'target', 'keterangan']);
         $this->isCreateModalOpen = true;
     }
 
@@ -256,9 +256,11 @@ class ListTokoPareto extends Component
             'distributor_code' => 'required|string|max:15',
             'customer_code_prc' => 'required|string|max:50',
             'customer_name' => 'nullable|string|max:255',
+            'uniq_kd' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'target' => 'nullable|numeric',
+            'keterangan' => 'nullable|string',
         ]);
 
         // Security Check: Pastikan user berhak menambah data di distributor ini
@@ -274,6 +276,7 @@ class ListTokoPareto extends Component
             ],
             [
                 'customer_name' => $this->customer_name,
+                'uniq_kd' => $this->uniq_kd,
                 'customer_address' => $this->customer_address,
                 'kecamatan' => $this->kecamatan,
                 'desa' => $this->desa,
@@ -281,6 +284,7 @@ class ListTokoPareto extends Component
                 'longitude' => $this->longitude,
                 'pilar' => $this->pilar,
                 'target' => $this->target ?? 0,
+                'keterangan' => $this->keterangan,
             ]
         );
 
@@ -304,6 +308,7 @@ class ListTokoPareto extends Component
         $this->distributor_code = $toko->distributor_code;
         $this->customer_code_prc = $toko->customer_code_prc;
         $this->customer_name = $toko->customer_name;
+        $this->uniq_kd = $toko->uniq_kd;
         $this->customer_address = $toko->customer_address;
         $this->kecamatan = $toko->kecamatan;
         $this->desa = $toko->desa;
@@ -311,6 +316,7 @@ class ListTokoPareto extends Component
         $this->longitude = $toko->longitude;
         $this->pilar = $toko->pilar;
         $this->target = $toko->target;
+        $this->keterangan = $toko->keterangan;
 
         $this->isEditModalOpen = true;
     }
@@ -323,9 +329,11 @@ class ListTokoPareto extends Component
             'distributor_code' => 'required|string|max:15',
             'customer_code_prc' => 'required|string|max:50',
             'customer_name' => 'nullable|string|max:255',
+            'uniq_kd' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'target' => 'nullable|numeric',
+            'keterangan' => 'nullable|string',
         ]);
 
         // Security Check: Pastikan user tidak mengubah kode distributor ke wilayah orang lain
@@ -338,6 +346,7 @@ class ListTokoPareto extends Component
             'distributor_code' => $this->distributor_code,
             'customer_code_prc' => $this->customer_code_prc,
             'customer_name' => $this->customer_name,
+            'uniq_kd' => $this->uniq_kd,
             'customer_address' => $this->customer_address,
             'kecamatan' => $this->kecamatan,
             'desa' => $this->desa,
@@ -345,6 +354,7 @@ class ListTokoPareto extends Component
             'longitude' => $this->longitude,
             'pilar' => $this->pilar,
             'target' => $this->target,
+            'keterangan' => $this->keterangan,
         ]);
 
         $this->isEditModalOpen = false;

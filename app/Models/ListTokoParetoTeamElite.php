@@ -32,6 +32,8 @@ class ListTokoParetoTeamElite extends Model
         'longitude',
         'pilar',
         'target',
+        'keterangan',
+        'uniq_kd',
     ];
 
     /**

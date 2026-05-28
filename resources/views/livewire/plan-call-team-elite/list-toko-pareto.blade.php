@@ -179,6 +179,13 @@
                             </div>
                         </th>
                         
+                        <th wire:click="sortBy('l.uniq_kd')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Uniq Kd</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.uniq_kd')" class="{{ $getSortClass('l.uniq_kd') }}" />
+                            </div>
+                        </th>
+                        
                         <th wire:click="sortBy('l.customer_name')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
                             <div class="flex items-center justify-between gap-2">
                                 <span>Toko</span>
@@ -223,6 +230,13 @@
                             </div>
                         </th>
                         
+                        <th wire:click="sortBy('l.keterangan')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Keterangan</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.keterangan')" class="{{ $getSortClass('l.keterangan') }}" />
+                            </div>
+                        </th>
+                        
                         <th wire:click="sortBy('on_jks')" class="cursor-pointer hover:bg-base-200 text-center select-none transition-colors">
                             <div class="flex items-center justify-center gap-2">
                                 <span>on JKS</span>
@@ -263,6 +277,7 @@
                     </td>
                     <td class="whitespace-nowrap">{{ $item->supervisor_name }}</td>
                     <td class="whitespace-nowrap font-mono">{{ $item->customer_code_prc }}</td>
+                    <td class="whitespace-nowrap">{{ $item->uniq_kd }}</td>
                     <td class="min-w-[200px] font-bold">{{ $item->customer_name }}</td>
                     <td class="min-w-[250px] text-xs opacity-70">{{ $item->customer_address }}</td>
                     <td>{{ $item->kecamatan }}</td>
@@ -274,6 +289,7 @@
                         <x-ui.badge variant="neutral">{{ $item->pilar }}</x-ui.badge>
                     </td>
                     <td class="whitespace-nowrap text-right font-mono font-bold">{{ number_format($item->target, 0, ',', '.') }}</td>
+                    <td class="whitespace-nowrap text-xs opacity-70">{{ $item->keterangan }}</td>
                     <td class="whitespace-nowrap text-center">
                         @if($item->on_jks === 'Y')
                             <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-slate-100 text-emerald-600 font-bold border border-slate-300">Y</span>
@@ -364,6 +380,9 @@
                 <div class="md:col-span-2">
                     <x-input-text label="Nama Toko" wire:model="customer_name" />
                 </div>
+                <div class="md:col-span-2">
+                    <x-input-text label="Uniq Kd" wire:model="uniq_kd" />
+                </div>
                 <div class="md:col-span-2 form-control mb-4">
                     <label class="label pb-1"><span class="label-text text-xs font-medium">Alamat</span></label>
                     <textarea wire:model="customer_address" class="textarea textarea-bordered focus:textarea-primary w-full" rows="2"></textarea>
@@ -375,6 +394,7 @@
                 <x-input-text label="Longitude" wire:model="longitude" />
                 <x-input-text label="Pilar" wire:model="pilar" />
                 <x-input-text label="Target" wire:model="target" type="number" step="0.01" />
+                <x-input-text label="Keterangan" wire:model="keterangan" />
             </div>
             <div class="flex justify-end gap-2 mt-4">
                 <x-ui.button type="button" variant="neutral" outline wire:click="$set('isCreateModalOpen', false)">Batal</x-ui.button>
@@ -399,6 +419,9 @@
                 <div class="md:col-span-2">
                     <x-input-text label="Nama Toko" wire:model="customer_name" />
                 </div>
+                <div class="md:col-span-2">
+                    <x-input-text label="Uniq Kd" wire:model="uniq_kd" />
+                </div>
                 <div class="md:col-span-2 form-control mb-4">
                     <label class="label pb-1"><span class="label-text text-xs font-medium">Alamat</span></label>
                     <textarea wire:model="customer_address" class="textarea textarea-bordered focus:textarea-primary w-full" rows="2"></textarea>
@@ -410,6 +433,7 @@
                 <x-input-text label="Longitude" wire:model="longitude" />
                 <x-input-text label="Pilar" wire:model="pilar" />
                 <x-input-text label="Target" wire:model="target" type="number" step="0.01" />
+                <x-input-text label="Keterangan" wire:model="keterangan" />
             </div>
             <div class="flex justify-end gap-2 mt-4">
                 <x-ui.button type="button" variant="neutral" outline wire:click="$set('isEditModalOpen', false)">Batal</x-ui.button>

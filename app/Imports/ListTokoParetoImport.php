@@ -79,6 +79,7 @@ class ListTokoParetoImport implements ToCollection, WithHeadingRow, WithChunkRea
                 'customer_code_prc' => $custCode,
                 'distributor_code'  => $distCode,
                 'customer_name'     => $name,
+                'uniq_kd'           => isset($row['uniq_kd']) ? trim($row['uniq_kd']) : null,
                 'customer_address'  => isset($row['customer_address']) ? trim($row['customer_address']) : null,
                 'kecamatan'         => isset($row['kecamatan']) ? trim($row['kecamatan']) : null,
                 'desa'              => isset($row['desa']) ? trim($row['desa']) : null,
@@ -86,6 +87,7 @@ class ListTokoParetoImport implements ToCollection, WithHeadingRow, WithChunkRea
                 'longitude'         => $lng,
                 'pilar'             => isset($row['pilar']) ? trim($row['pilar']) : null,
                 'target'            => isset($row['target']) ? (float) str_replace(',', '.', trim($row['target'])) : 0,
+                'keterangan'        => isset($row['keterangan']) ? trim($row['keterangan']) : null,
                 'created_at'        => $now,
                 'updated_at'        => $now,
             ];

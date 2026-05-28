@@ -32,6 +32,7 @@ class ListTokoParetoExport implements FromCollection, WithHeadings, WithMapping
             'Distributor Code',
             'Distributor Name',
             'Customer Code PRC',
+            'Uniq Kd',
             'Customer Name',
             'Customer Address',
             'Kecamatan',
@@ -40,6 +41,7 @@ class ListTokoParetoExport implements FromCollection, WithHeadings, WithMapping
             'Longitude',
             'Pilar',
             'Target',
+            'Keterangan',
             'On JKS',
         ];
     }
@@ -56,6 +58,7 @@ class ListTokoParetoExport implements FromCollection, WithHeadings, WithMapping
             $row->distributor_code,
             $row->distributor_name,
             $row->customer_code_prc,
+            $row->uniq_kd,
             $row->customer_name,
             $row->customer_address,
             $row->kecamatan,
@@ -64,6 +67,7 @@ class ListTokoParetoExport implements FromCollection, WithHeadings, WithMapping
             $row->longitude,
             $row->pilar,
             $row->target,
+            $row->keterangan,
             $row->on_jks,
         ];
     }
