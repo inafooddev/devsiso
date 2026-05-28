@@ -26,7 +26,7 @@
         </div>
 
         @if(!empty($filterTeam) && !empty($filterStartDate) && !empty($filterEndDate))
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
                 {{-- Card Total Toko --}}
                 @php
                     $gapToko = max(0, $paretoKpi['total_toko'] - $kpi['total_toko']);
@@ -180,118 +180,127 @@
         @endif
 
         <x-card flush title="JKS Team Elite" icon="users" subtitle="Kelola data JKS Team Elite" class="pb-6">
-            <x-slot:actions>
-                <div class="flex items-center gap-3 flex-wrap">
-
-                    {{-- Filter Team --}}
-                    <div class="relative w-72" x-data="{ open: false }" @click.outside="open = false">
-                        <button type="button" @click="open = !open" class="select select-sm select-bordered w-full rounded-xl bg-base-200 border-base-300 flex items-center justify-between px-3 text-left">
-                            <span class="truncate text-base-content/70">
-                                @if(count($filterTeam) === 0)
-                                    Pilih Team...
-                                @elseif(count($filterTeam) === 1)
-                                    {{ collect($teams)->firstWhere('kode_team', $filterTeam[0])->nama_team ?? '1 Team' }}
-                                @else
-                                    {{ count($filterTeam) }} Team Terpilih
-                                @endif
-                            </span>
-                            <x-heroicon-s-chevron-down class="w-4 h-4 text-base-content/50" />
-                        </button>
-                        
-                        <div x-show="open" 
-                             x-transition
-                             x-cloak
-                             class="absolute z-50 w-80 mt-1 bg-base-100 border border-base-300 rounded-xl shadow-xl left-0 flex flex-col overflow-hidden">
-                             
-                            <div class="px-3 py-2 border-b border-base-300 bg-base-100 z-10 flex flex-col gap-2 shrink-0">
-                                <div class="flex items-center justify-between gap-2">
-                                    <button type="button" wire:click="selectAllTeams" class="btn btn-xs btn-ghost text-primary hover:bg-primary/10">Pilih Semua</button>
-                                    <button type="button" wire:click="resetTeams" class="btn btn-xs btn-ghost text-error hover:bg-error/10">Reset</button>
+            <div class="px-6 py-4 border-b border-base-200 bg-base-100/50">
+                <div class="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 flex-wrap w-full justify-between">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
+                        {{-- Filter Team --}}
+                        <div class="relative w-full sm:w-64 md:w-72" x-data="{ open: false }" @click.outside="open = false">
+                            <button type="button" @click="open = !open" class="select select-sm select-bordered w-full rounded-xl bg-base-200 border-base-300 flex items-center justify-between px-3 text-left">
+                                <span class="truncate text-base-content/70">
+                                    @if(count($filterTeam) === 0)
+                                        Pilih Team...
+                                    @elseif(count($filterTeam) === 1)
+                                        {{ collect($teams)->firstWhere('kode_team', $filterTeam[0])->nama_team ?? '1 Team' }}
+                                    @else
+                                        {{ count($filterTeam) }} Team Terpilih
+                                    @endif
+                                </span>
+                                <x-heroicon-s-chevron-down class="w-4 h-4 text-base-content/50" />
+                            </button>
+                            
+                            <div x-show="open" 
+                                 x-transition
+                                 x-cloak
+                                 class="absolute z-50 w-80 mt-1 bg-base-100 border border-base-300 rounded-xl shadow-xl left-0 flex flex-col overflow-hidden">
+                                 
+                                <div class="px-3 py-2 border-b border-base-300 bg-base-100 z-10 flex flex-col gap-2 shrink-0">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <button type="button" wire:click="selectAllTeams" class="btn btn-xs btn-ghost text-primary hover:bg-primary/10">Pilih Semua</button>
+                                        <button type="button" wire:click="resetTeams" class="btn btn-xs btn-ghost text-error hover:bg-error/10">Reset</button>
+                                    </div>
+                                    <div class="relative">
+                                        <input type="text" wire:model.live.debounce.300ms="searchTeamFilter" placeholder="Cari nama/kode team..." class="input input-sm input-bordered w-full rounded-lg pl-8 bg-base-200" />
+                                        <x-heroicon-s-magnifying-glass class="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/50" />
+                                    </div>
                                 </div>
-                                <div class="relative">
-                                    <input type="text" wire:model.live.debounce.300ms="searchTeamFilter" placeholder="Cari nama/kode team..." class="input input-sm input-bordered w-full rounded-lg pl-8 bg-base-200" />
-                                    <x-heroicon-s-magnifying-glass class="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/50" />
-                                </div>
-                            </div>
-                             
-                            <div class="p-2 space-y-1 overflow-y-auto overflow-x-auto max-h-60">
-                                @php
-                                    $filteredTeams = empty($searchTeamFilter) 
-                                        ? collect($teams) 
-                                        : collect($teams)->filter(fn($t) => stripos($t->nama_team, $searchTeamFilter) !== false || stripos($t->kode_team, $searchTeamFilter) !== false);
-                                @endphp
+                                 
+                                <div class="p-2 space-y-1 overflow-y-auto overflow-x-auto max-h-60">
+                                    @php
+                                        $filteredTeams = empty($searchTeamFilter) 
+                                            ? collect($teams) 
+                                            : collect($teams)->filter(fn($t) => stripos($t->nama_team, $searchTeamFilter) !== false || stripos($t->kode_team, $searchTeamFilter) !== false);
+                                    @endphp
 
-                                @forelse($filteredTeams as $team)
-                                    <label class="flex items-center gap-3 p-2 hover:bg-base-200 rounded-lg cursor-pointer transition-colors w-max pr-4">
-                                        <input type="checkbox" wire:model.live="filterTeam" value="{{ $team->kode_team }}" class="checkbox checkbox-sm checkbox-primary rounded-md shrink-0" />
-                                        <span class="text-sm select-none whitespace-nowrap">{{ $team->nama_team }}</span>
-                                    </label>
-                                @empty
-                                    <div class="text-center py-4 text-sm text-base-content/50">Team tidak ditemukan</div>
-                                @endforelse
+                                    @forelse($filteredTeams as $team)
+                                        <label class="flex items-center gap-3 p-2 hover:bg-base-200 rounded-lg cursor-pointer transition-colors w-max pr-4">
+                                            <input type="checkbox" wire:model.live="filterTeam" value="{{ $team->kode_team }}" class="checkbox checkbox-sm checkbox-primary rounded-md shrink-0" />
+                                            <span class="text-sm select-none whitespace-nowrap">{{ $team->nama_team }}</span>
+                                        </label>
+                                    @empty
+                                        <div class="text-center py-4 text-sm text-base-content/50">Team tidak ditemukan</div>
+                                    @endforelse
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {{-- Filter Date Range --}}
-                    <div class="flex items-center gap-2">
-                        <input wire:model.live.debounce.300ms="filterStartDate" type="date" class="input input-sm input-bordered w-36 rounded-xl bg-base-200 border-base-300">
-                        <span class="text-base-content/50 text-sm">s/d</span>
-                        <input wire:model.live.debounce.300ms="filterEndDate" type="date" class="input input-sm input-bordered w-36 rounded-xl bg-base-200 border-base-300">
-                    </div>
+                        {{-- Filter Date Range --}}
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <input wire:model.live.debounce.300ms="filterStartDate" type="date" class="input input-sm input-bordered w-full sm:w-36 rounded-xl bg-base-200 border-base-300">
+                            <span class="text-base-content/50 text-sm hidden sm:inline">s/d</span>
+                            <input wire:model.live.debounce.300ms="filterEndDate" type="date" class="input input-sm input-bordered w-full sm:w-36 rounded-xl bg-base-200 border-base-300">
+                        </div>
 
-                    {{-- Global Search --}}
-                    <div class="relative w-48">
-                        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari data..." class="input input-sm input-bordered w-full rounded-xl pl-8 bg-base-200 border-base-300" />
-                        <x-heroicon-s-magnifying-glass class="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/50" />
+                        {{-- Global Search --}}
+                        <div class="relative w-full sm:w-48">
+                            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari data..." class="input input-sm input-bordered w-full rounded-xl pl-8 bg-base-200 border-base-300" />
+                            <x-heroicon-s-magnifying-glass class="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/50" />
+                        </div>
                     </div>
 
                     {{-- Tombol Export --}}
                     @php
                         $canExportBtn = !empty($filterTeam) && !empty($filterStartDate) && !empty($filterEndDate);
                     @endphp
-                    @canExport('jks-team-elite.index')
-                    <div class="tooltip tooltip-bottom" data-tip="{{ !$canExportBtn ? 'Pilih Team dan tanggal terlebih dahulu' : 'Export data ke Excel' }}">
-                        <button wire:click="export"
-                            {{ !$canExportBtn ? 'disabled' : '' }}
-                            class="btn btn-sm btn-success rounded-xl normal-case gap-2 shadow-sm text-white {{ !$canExportBtn ? 'btn-disabled opacity-40 cursor-not-allowed' : '' }}">
-                            <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
-                            Export
-                        </button>
+                    <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto mt-2 lg:mt-0 justify-end">
+                        @canExport('jks-team-elite.index')
+                        <div class="tooltip tooltip-bottom" data-tip="{{ !$canExportBtn ? 'Pilih Team dan tanggal terlebih dahulu' : 'Export data ke Excel' }}">
+                            <button wire:click="export"
+                                {{ !$canExportBtn ? 'disabled' : '' }}
+                                class="btn btn-sm btn-success rounded-xl normal-case gap-2 shadow-sm text-white {{ !$canExportBtn ? 'btn-disabled opacity-40 cursor-not-allowed' : '' }}">
+                                <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
+                                <span class="hidden lg:inline">Export</span>
+                            </button>
+                        </div>
+                        <div class="tooltip tooltip-bottom" data-tip="{{ !$canExportBtn ? 'Pilih Team dan tanggal terlebih dahulu' : 'Export data ke Excel format ESKA' }}">
+                            <button wire:click="openExportEskaModal"
+                                {{ !$canExportBtn ? 'disabled' : '' }}
+                                class="btn btn-sm btn-info rounded-xl normal-case gap-2 shadow-sm text-white {{ !$canExportBtn ? 'btn-disabled opacity-40 cursor-not-allowed' : '' }}">
+                                <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
+                                <span class="hidden lg:inline">Export ESKA</span>
+                            </button>
+                        </div>
+                        @endcanExport
+
+                        {{-- Tombol Import --}}
+                        @canImport('jks-team-elite.index')
+                        <div class="tooltip tooltip-bottom" data-tip="Import data Excel">
+                            <button wire:click="openImportModal" class="btn btn-sm btn-warning rounded-xl normal-case gap-2 shadow-sm text-white">
+                                <x-heroicon-s-arrow-up-tray class="w-4 h-4" />
+                                <span class="hidden lg:inline">Import</span>
+                            </button>
+                        </div>
+                        @endcanImport
+
+                        {{-- Tombol Tambah --}}
+                        @canEdit('jks-team-elite.index')
+                        <div class="tooltip tooltip-bottom" data-tip="Tambah Jadwal JKS">
+                            <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
+                                <x-heroicon-s-plus class="w-4 h-4" />
+                                <span class="hidden lg:inline">Tambah</span>
+                            </button>
+                        </div>
+                        @endcanEdit
+
+                        {{-- Tombol Maps --}}
+                        <div class="tooltip tooltip-bottom" data-tip="Lihat Maps Global">
+                            <button wire:click="showGlobalMap" class="btn btn-sm btn-info rounded-xl normal-case gap-2 shadow-sm text-white">
+                                <x-heroicon-s-map class="w-4 h-4" />
+                                <span class="hidden lg:inline">Maps</span>
+                            </button>
+                        </div>
                     </div>
-                    <div class="tooltip tooltip-bottom" data-tip="{{ !$canExportBtn ? 'Pilih Team dan tanggal terlebih dahulu' : 'Export data ke Excel format ESKA' }}">
-                        <button wire:click="openExportEskaModal"
-                            {{ !$canExportBtn ? 'disabled' : '' }}
-                            class="btn btn-sm btn-info rounded-xl normal-case gap-2 shadow-sm text-white {{ !$canExportBtn ? 'btn-disabled opacity-40 cursor-not-allowed' : '' }}">
-                            <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
-                            Export ESKA
-                        </button>
-                    </div>
-                    @endcanExport
-
-                    {{-- Tombol Import --}}
-                    @canImport('jks-team-elite.index')
-                    <button wire:click="openImportModal" class="btn btn-sm btn-warning rounded-xl normal-case gap-2 shadow-sm text-white">
-                        <x-heroicon-s-arrow-up-tray class="w-4 h-4" />
-                        Import
-                    </button>
-                    @endcanImport
-
-                    {{-- Tombol Tambah --}}
-                    @canEdit('jks-team-elite.index')
-                    <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
-                        <x-heroicon-s-plus class="w-4 h-4" />
-                        Tambah
-                    </button>
-                    @endcanEdit
-
-                    {{-- Tombol Maps --}}
-                    <button wire:click="showGlobalMap" class="btn btn-sm btn-info rounded-xl normal-case gap-2 shadow-sm text-white">
-                        <x-heroicon-s-map class="w-4 h-4" />
-                        Maps
-                    </button>
                 </div>
-            </x-slot:actions>
+            </div>
 
             <div class="px-6 py-4">
                 <div class="overflow-x-auto rounded-xl border border-base-200 shadow-sm">
@@ -805,7 +814,7 @@
         
         <div x-show="open" class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
 
-        <div x-show="open" class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-4xl overflow-hidden flex flex-col">
+        <div x-show="open" class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-[95%] sm:w-full max-w-4xl overflow-hidden flex flex-col">
             <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30">
                 <h3 class="font-bold text-lg text-base-content">{{ $storeModalTitle }}</h3>
                 <button @click="open = false" class="btn btn-sm btn-circle btn-ghost">
@@ -930,7 +939,7 @@
         @global-map-delete-store.window="$wire.deleteStoreFromGlobalMap($event.detail.custno, $event.detail.dist, $event.detail.date, $event.detail.team)"
     >
         <div class="modal" :class="{ 'modal-open': $wire.isMapModalOpen }">
-            <div class="modal-box max-w-5xl p-0 overflow-hidden bg-base-100 rounded-2xl shadow-xl flex flex-col h-[80vh]">
+            <div class="modal-box max-w-5xl p-0 overflow-hidden bg-base-100 rounded-2xl shadow-xl flex flex-col h-[90vh] md:h-[80vh] w-[95%] md:w-full">
                 <!-- Header -->
                 <div class="flex items-center justify-between px-6 py-4 border-b border-base-200 bg-base-100/50 backdrop-blur z-10 shrink-0">
                     <h3 class="text-lg font-black text-base-content tracking-tight flex items-center gap-3">
@@ -953,6 +962,7 @@
     </div>
 
     @push('scripts')
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script>
             window.renderMapMarkers = function(map, markers, data) {

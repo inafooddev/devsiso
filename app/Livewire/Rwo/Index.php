@@ -28,6 +28,13 @@ class Index extends Component
     public $isDeleteModalOpen = false;
     public $isDetailModalOpen = false;
     public $isImportModalOpen = false;
+    public $isExportModalOpen = false;
+    
+    // Export Options
+    public $export_foto_ktp = false;
+    public $export_foto_toko = false;
+    public $export_foto_toko2 = false;
+    public $export_foto_toko3 = false;
     
     // Form Fields
     public $outletId;
@@ -582,6 +589,18 @@ class Index extends Component
     }
 
     /**
+     * Open Export Modal
+     */
+    public function openExportModal()
+    {
+        $this->export_foto_ktp = false;
+        $this->export_foto_toko = false;
+        $this->export_foto_toko2 = false;
+        $this->export_foto_toko3 = false;
+        $this->isExportModalOpen = true;
+    }
+
+    /**
      * Export Excel
      */
     public function export()
@@ -594,7 +613,14 @@ class Index extends Component
             'filter_region_code' => $this->filter_region_code,
             'filter_area_code' => $this->filter_area_code,
             'filter_branch_name' => $this->filter_branch_name,
+            'export_foto_ktp' => $this->export_foto_ktp,
+            'export_foto_toko' => $this->export_foto_toko,
+            'export_foto_toko2' => $this->export_foto_toko2,
+            'export_foto_toko3' => $this->export_foto_toko3,
         ];
+        
+        $this->isExportModalOpen = false;
+        
         \App\Helpers\ActivityLogger::log('Export RWO', "Mengekspor data RWO.");
         return Excel::download(new RewardOutletExport($filters), 'reward_outlet_export.xlsx');
     }

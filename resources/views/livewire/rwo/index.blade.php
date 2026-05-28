@@ -27,7 +27,7 @@
         </div>
 
         {{-- KPI Cards Summary --}}
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4 mb-6">
             {{-- Card 1: Total Toko --}}
             <div wire:click="setFilter('')" 
                  class="relative overflow-hidden cursor-pointer group p-5 bg-base-100 rounded-3xl border transition-all duration-300 hover:-translate-y-1 {{ empty($filter_type) ? 'border-primary shadow-lg shadow-primary/10 ring-1 ring-primary' : 'border-base-300 shadow-sm hover:shadow-md' }}">
@@ -155,11 +155,10 @@
             </div>
         </div>
 
-        <x-card flush title="Master Outlet RWO" icon="gift" subtitle="Kelola Master Outlet RWO" class="pb-6">
-            <x-slot:actions>
-                <div class="flex flex-wrap items-center gap-2">
+        <x-card flush class="pb-6">
+            <div class="px-6 pt-6 pb-4 flex flex-col md:flex-row flex-wrap items-stretch md:items-center gap-2 justify-start md:justify-end border-b border-base-200 mb-4">
                     {{-- Search --}}
-                    <div class="relative group">
+                    <div class="relative group w-full sm:w-auto">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/30 group-focus-within:text-primary transition-colors">
                             <x-heroicon-s-magnifying-glass class="w-4 h-4" />
                         </div>
@@ -170,7 +169,7 @@
 
                     {{-- Filter Dropdown --}}
                     <select wire:model.live="filter_type"
-                            class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 text-xs font-semibold focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                            class="select select-sm select-bordered w-full sm:w-auto rounded-xl bg-base-100 border-base-300 text-xs font-semibold focus:ring-2 focus:ring-primary/50 transition-all duration-300">
                         <option value="">Semua Data</option>
                         <option value="tanpa_ktp">Tanpa NIK KTP</option>
                         <option value="tanpa_foto_ktp">Tanpa Foto KTP</option>
@@ -183,48 +182,84 @@
                         <option value="not_complete">Status Not Complete</option>
                     </select>
 
-                    {{-- Chained Wilayah Filter Button --}}
-                    <button wire:click="openFilterModal"
-                            class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200 relative {{ (!empty($filter_region_code) || !empty($filter_area_code) || !empty($filter_branch_name)) ? 'border-primary text-primary hover:bg-primary/5' : '' }}">
-                        <x-heroicon-s-funnel class="w-4 h-4" />
-                        <span>Filter Wilayah</span>
-                        @if (!empty($filter_region_code) || !empty($filter_area_code) || !empty($filter_branch_name))
-                            <span class="absolute -top-1.5 -right-1.5 flex h-3 w-3">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-                            </span>
-                        @endif
-                    </button>
+                    {{-- Desktop Actions (Hidden on mobile) --}}
+                    <div class="hidden md:flex items-center gap-2">
+                        {{-- Chained Wilayah Filter Button --}}
+                        <button wire:click="openFilterModal"
+                                class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200 relative {{ (!empty($filter_region_code) || !empty($filter_area_code) || !empty($filter_branch_name)) ? 'border-primary text-primary hover:bg-primary/5' : '' }}">
+                            <x-heroicon-s-funnel class="w-4 h-4" />
+                            <span>Filter Wilayah</span>
+                            @if (!empty($filter_region_code) || !empty($filter_area_code) || !empty($filter_branch_name))
+                                <span class="absolute -top-1.5 -right-1.5 flex h-3 w-3">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                                </span>
+                            @endif
+                        </button>
 
-                    {{-- Export --}}
-                    @canExport('rwo.index')
-                    <button wire:click="export" wire:loading.attr="disabled"
-                            class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
-                        <span wire:loading.remove wire:target="export"><x-heroicon-s-arrow-down-tray class="w-4 h-4" /></span>
-                        <span wire:loading wire:target="export" class="loading loading-spinner loading-xs"></span>
-                        Export Excel
-                    </button>
-                    @endcanExport
+                        {{-- Export --}}
+                        @canExport('rwo.index')
+                        <button wire:click="openExportModal"
+                                class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
+                            <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
+                            Export Excel
+                        </button>
+                        @endcanExport
 
-                    {{-- Import --}}
-                    @canImport('rwo.index')
-                    <button wire:click="openImportModal"
-                            class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
-                        <x-heroicon-s-arrow-up-tray class="w-4 h-4" />
-                        Import Excel
-                    </button>
-                    @endcanImport
+                        {{-- Import --}}
+                        @canImport('rwo.index')
+                        <button wire:click="openImportModal"
+                                class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
+                            <x-heroicon-s-arrow-up-tray class="w-4 h-4" />
+                            Import Excel
+                        </button>
+                        @endcanImport
+                    </div>
+
+                    {{-- Mobile Actions Menu (Hidden on Desktop) --}}
+                    <div class="dropdown dropdown-bottom dropdown-end w-full sm:w-auto md:hidden">
+                        <label tabindex="0" class="btn btn-sm btn-outline rounded-xl w-full normal-case gap-2 border-base-300 hover:bg-base-200">
+                            <x-heroicon-s-ellipsis-horizontal class="w-4 h-4" />
+                            Opsi Lainnya
+                        </label>
+                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-full sm:w-52 mt-1 border border-base-200">
+                            <li>
+                                <button wire:click="openFilterModal" class="gap-3">
+                                    <x-heroicon-s-funnel class="w-4 h-4 text-base-content/70" />
+                                    Filter Wilayah
+                                    @if (!empty($filter_region_code) || !empty($filter_area_code) || !empty($filter_branch_name))
+                                        <span class="badge badge-primary badge-xs ml-auto"></span>
+                                    @endif
+                                </button>
+                            </li>
+                            @canExport('rwo.index')
+                            <li>
+                                <button wire:click="openExportModal" class="gap-3">
+                                    <x-heroicon-s-arrow-down-tray class="w-4 h-4 text-base-content/70" />
+                                    Export Excel
+                                </button>
+                            </li>
+                            @endcanExport
+                            @canImport('rwo.index')
+                            <li>
+                                <button wire:click="openImportModal" class="gap-3">
+                                    <x-heroicon-s-arrow-up-tray class="w-4 h-4 text-base-content/70" />
+                                    Import Excel
+                                </button>
+                            </li>
+                            @endcanImport
+                        </ul>
+                    </div>
 
                     {{-- Tambah --}}
                     @canEdit('rwo.index')
                     <button wire:click="openCreateModal"
-                            class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
+                            class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20 w-full sm:w-auto">
                         <x-heroicon-s-plus class="w-4 h-4" />
                         Tambah RWO
                     </button>
                     @endcanEdit
                 </div>
-            </x-slot:actions>
 
             {{-- Table --}}
             <x-ui.table empty="Tidak ada data RWO ditemukan.">
@@ -1452,6 +1487,79 @@
             <div class="flex items-center justify-between px-6 py-5 border-t border-base-300 bg-base-200/30 rounded-b-3xl">
                 <button type="button" wire:click="resetFilters" class="btn btn-ghost text-error hover:bg-error/10 rounded-xl normal-case font-bold">Reset Filter</button>
                 <button type="button" @click="open = false" class="btn btn-primary rounded-xl px-8 normal-case shadow-sm shadow-primary/20 font-bold">Terapkan</button>
+            </div>
+        </div>
+    </div>
+
+    {{-- ========== MODAL EXPORT OPTIONS ========== --}}
+    <div x-data="{ open: @entangle('isExportModalOpen') }" 
+         x-show="open" 
+         x-cloak 
+         class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+        
+        <!-- Backdrop -->
+        <div x-show="open" 
+             x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-base-100/80 backdrop-blur-sm" @click="open = false"></div>
+
+        <!-- Modal Panel -->
+        <div x-show="open" 
+             x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-8 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-8 sm:translate-y-0 sm:scale-95"
+             class="relative w-full max-w-md bg-base-100 rounded-[2rem] shadow-2xl border border-base-200/50 overflow-hidden ring-1 ring-black/5">
+            
+            <div class="p-6 sm:p-8">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-success/10 flex items-center justify-center text-success">
+                            <x-heroicon-s-arrow-down-tray class="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-base-content">Export Excel</h3>
+                            <p class="text-sm text-base-content/60 mt-1">Pilih foto yang ingin disertakan</p>
+                        </div>
+                    </div>
+                    <button @click="open = false" class="btn btn-circle btn-ghost btn-sm text-base-content/40 hover:text-base-content hover:bg-base-200 transition-colors">
+                        <x-heroicon-s-x-mark class="w-5 h-5" />
+                    </button>
+                </div>
+
+                <!-- Content -->
+                <div class="space-y-3 mb-8">
+                    <label class="flex items-center gap-3 p-3 rounded-xl border border-base-300 hover:bg-base-200/50 cursor-pointer transition-colors">
+                        <input type="checkbox" wire:model="export_foto_ktp" class="checkbox checkbox-primary checkbox-sm rounded-lg" />
+                        <span class="text-sm font-medium text-base-content">Sertakan Foto KTP</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 rounded-xl border border-base-300 hover:bg-base-200/50 cursor-pointer transition-colors">
+                        <input type="checkbox" wire:model="export_foto_toko" class="checkbox checkbox-primary checkbox-sm rounded-lg" />
+                        <span class="text-sm font-medium text-base-content">Sertakan Foto Toko (GPS)</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 rounded-xl border border-base-300 hover:bg-base-200/50 cursor-pointer transition-colors">
+                        <input type="checkbox" wire:model="export_foto_toko2" class="checkbox checkbox-primary checkbox-sm rounded-lg" />
+                        <span class="text-sm font-medium text-base-content">Sertakan Foto Toko (Tampak Depan)</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 rounded-xl border border-base-300 hover:bg-base-200/50 cursor-pointer transition-colors">
+                        <input type="checkbox" wire:model="export_foto_toko3" class="checkbox checkbox-primary checkbox-sm rounded-lg" />
+                        <span class="text-sm font-medium text-base-content">Sertakan Foto Toko (Tampak Dalam)</span>
+                    </label>
+                    <p class="text-xs text-warning/80 italic mt-2">
+                        <x-heroicon-s-information-circle class="w-3.5 h-3.5 inline mr-1" />
+                        Semakin banyak foto yang dipilih, ukuran file export akan semakin besar.
+                    </p>
+                </div>
+
+                <!-- Footer -->
+                <div class="flex gap-3">
+                    <button @click="open = false" class="btn btn-ghost rounded-xl flex-1 border-base-300 border hover:bg-base-200 normal-case font-semibold">
+                        Batal
+                    </button>
+                    <button wire:click="export" wire:loading.attr="disabled" wire:target="export" class="btn btn-success rounded-xl flex-1 text-white shadow-lg shadow-success/20 normal-case font-semibold gap-2">
+                        <span wire:loading.remove wire:target="export"><x-heroicon-s-arrow-down-tray class="w-5 h-5" /> Export Sekarang</span>
+                        <span wire:loading wire:target="export" class="flex items-center gap-2"><span class="loading loading-spinner loading-sm"></span> Memproses...</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
