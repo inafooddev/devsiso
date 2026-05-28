@@ -711,9 +711,7 @@ class Index extends Component
         })->count();
         
         $tanpaFotoToko = (clone $kpiQuery)->where(function($q) {
-            $q->whereNull('foto_toko')->orWhere('foto_toko', '')
-              ->orWhereNull('foto_toko2')->orWhere('foto_toko2', '')
-              ->orWhereNull('foto_toko3')->orWhere('foto_toko3', '');
+            $q->whereNull('foto_toko')->orWhere('foto_toko', '');
         })->count();
 
         $tanpaTikor = (clone $kpiQuery)->where(function($q) {
@@ -738,9 +736,7 @@ class Index extends Component
             });
         } elseif ($this->filter_type === 'tanpa_foto_toko') {
             $query->where(function($q) {
-                $q->whereNull('foto_toko')->orWhere('foto_toko', '')
-                  ->orWhereNull('foto_toko2')->orWhere('foto_toko2', '')
-                  ->orWhereNull('foto_toko3')->orWhere('foto_toko3', '');
+                $q->whereNull('foto_toko')->orWhere('foto_toko', '');
             });
         } elseif ($this->filter_type === 'tanpa_tikor') {
             $query->where(function($q) {
