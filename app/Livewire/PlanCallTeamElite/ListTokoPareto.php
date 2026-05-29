@@ -25,6 +25,7 @@ class ListTokoPareto extends Component
     public $filterRegion = '';
     public $filterArea = '';
     public $filterSupervisor = '';
+    public $filterKpi = '';
 
     // Sorting
     public $sortColumn = 'm.region_name';
@@ -57,6 +58,7 @@ class ListTokoPareto extends Component
         'filterRegion' => ['except' => ''],
         'filterArea' => ['except' => ''],
         'filterSupervisor' => ['except' => ''],
+        'filterKpi' => ['except' => ''],
         'sortColumn' => ['except' => 'm.region_name'],
         'sortDirection' => ['except' => 'asc'],
     ];
@@ -102,6 +104,16 @@ class ListTokoPareto extends Component
     public function updatingFilterRegion() { $this->reset(['filterArea', 'filterSupervisor']); $this->resetPage(); }
     public function updatingFilterArea() { $this->reset('filterSupervisor'); $this->resetPage(); }
     public function updatingFilterSupervisor() { $this->resetPage(); }
+
+    public function setFilterKpi($kpi)
+    {
+        if ($this->filterKpi === $kpi) {
+            $this->filterKpi = ''; // Toggle off
+        } else {
+            $this->filterKpi = $kpi;
+        }
+        $this->resetPage();
+    }
 
     public function sortBy($column)
     {
@@ -150,6 +162,28 @@ class ListTokoPareto extends Component
         if ($this->filterRegion) $query->where('m.region_code', $this->filterRegion);
         if ($this->filterArea) $query->where('m.area_code', $this->filterArea);
         if ($this->filterSupervisor) $query->where('m.supervisor_code', $this->filterSupervisor);
+
+        if ($this->filterKpi) {
+            switch ($this->filterKpi) {
+                case 'rwo':
+                    $query->where('l.pilar', '1. RWO');
+                    break;
+                case 'pnr':
+                    $query->where('l.pilar', '2. PNR');
+                    break;
+                case 'ngvo':
+                    $query->where('l.pilar', '3. NGVO');
+                    break;
+                case 'no_geotag':
+                    $query->where(function($q) {
+                        $q->whereNull('l.latitude')
+                          ->orWhere('l.latitude', 0)
+                          ->orWhere(DB::raw("CAST(l.latitude AS TEXT)"), '0')
+                          ->orWhere(DB::raw("CAST(l.latitude AS TEXT)"), '');
+                    });
+                    break;
+            }
+        }
 
         if ($this->sortColumn) {
             $query->orderBy($this->sortColumn, $this->sortDirection);
@@ -209,7 +243,9 @@ class ListTokoPareto extends Component
                 SUM(CASE WHEN pilar = '2. PNR' THEN 1 ELSE 0 END) as total_pnr,
                 SUM(CASE WHEN pilar = '2. PNR' AND on_jks = 'Y' THEN 1 ELSE 0 END) as total_pnr_jks_y,
                 SUM(CASE WHEN pilar = '3. NGVO' THEN 1 ELSE 0 END) as total_ngvo,
-                SUM(CASE WHEN pilar = '3. NGVO' AND on_jks = 'Y' THEN 1 ELSE 0 END) as total_ngvo_jks_y
+                SUM(CASE WHEN pilar = '3. NGVO' AND on_jks = 'Y' THEN 1 ELSE 0 END) as total_ngvo_jks_y,
+                SUM(CASE WHEN latitude IS NULL OR latitude = 0 THEN 1 ELSE 0 END) as total_no_geotag,
+                SUM(CASE WHEN (latitude IS NULL OR latitude = 0) AND on_jks = 'Y' THEN 1 ELSE 0 END) as total_no_geotag_jks_y
             ")->first();
 
         $teams = DB::table('fsalesman')
@@ -233,7 +269,7 @@ class ListTokoPareto extends Component
     public function closeFilterModal() { $this->isFilterModalOpen = false; }
     public function applyFilter() { $this->isFilterModalOpen = false; $this->resetPage(); }
     public function resetFilter() { 
-        $this->reset(['filterRegion', 'filterArea', 'filterSupervisor']); 
+        $this->reset(['filterRegion', 'filterArea', 'filterSupervisor', 'filterKpi']); 
         $this->isFilterModalOpen = false; 
         
         // Kembalikan auto-select region setelah reset jika user non-admin hanya 1 region

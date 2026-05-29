@@ -26,9 +26,9 @@
         @endif
 
         <!-- KPI CARDS -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
             <!-- Total Toko -->
-            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden">
+            <div wire:click="setFilterKpi('')" class="rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden cursor-pointer transition-all {{ $filterKpi === '' ? 'ring-2 ring-primary bg-primary/5' : 'bg-base-100 hover:bg-base-200/50' }}">
                 <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-building-storefront class="w-24 h-24" /></div>
                 <div class="text-sm text-base-content/70 font-medium z-10">Total Toko</div>
                 <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_toko ?? 0, 0, ',', '.') }}</div>
@@ -38,7 +38,7 @@
                 </div>
             </div>
             <!-- Total Target -->
-            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden">
+            <div wire:click="setFilterKpi('')" class="rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden cursor-pointer transition-all {{ $filterKpi === '' ? 'ring-2 ring-primary bg-primary/5' : 'bg-base-100 hover:bg-base-200/50' }}">
                 <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-currency-dollar class="w-24 h-24" /></div>
                 <div class="text-sm text-base-content/70 font-medium z-10">Total Target</div>
                 <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_target ?? 0, 0, ',', '.') }}</div>
@@ -48,7 +48,7 @@
                 </div>
             </div>
             <!-- Toko RWO -->
-            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden">
+            <div wire:click="setFilterKpi('rwo')" class="rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden cursor-pointer transition-all {{ $filterKpi === 'rwo' ? 'ring-2 ring-primary bg-primary/5' : 'bg-base-100 hover:bg-base-200/50' }}">
                 <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-tag class="w-24 h-24" /></div>
                 <div class="text-sm text-base-content/70 font-medium z-10">Toko RWO</div>
                 <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_rwo ?? 0, 0, ',', '.') }}</div>
@@ -58,7 +58,7 @@
                 </div>
             </div>
             <!-- Toko PNR -->
-            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden">
+            <div wire:click="setFilterKpi('pnr')" class="rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden cursor-pointer transition-all {{ $filterKpi === 'pnr' ? 'ring-2 ring-primary bg-primary/5' : 'bg-base-100 hover:bg-base-200/50' }}">
                 <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-tag class="w-24 h-24" /></div>
                 <div class="text-sm text-base-content/70 font-medium z-10">Toko PNR</div>
                 <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_pnr ?? 0, 0, ',', '.') }}</div>
@@ -68,13 +68,23 @@
                 </div>
             </div>
             <!-- Toko NGVO -->
-            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden">
+            <div wire:click="setFilterKpi('ngvo')" class="rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden cursor-pointer transition-all {{ $filterKpi === 'ngvo' ? 'ring-2 ring-primary bg-primary/5' : 'bg-base-100 hover:bg-base-200/50' }}">
                 <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-tag class="w-24 h-24" /></div>
                 <div class="text-sm text-base-content/70 font-medium z-10">Toko NGVO</div>
                 <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_ngvo ?? 0, 0, ',', '.') }}</div>
                 <div class="text-sm text-success mt-2 font-bold z-10 flex items-center gap-1">
                     <x-heroicon-s-check-circle class="w-4 h-4"/>
                     On JKS: {{ number_format($kpi->total_ngvo_jks_y ?? 0, 0, ',', '.') }}
+                </div>
+            </div>
+            <!-- Total No Geotag -->
+            <div wire:click="setFilterKpi('no_geotag')" class="rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden cursor-pointer transition-all {{ $filterKpi === 'no_geotag' ? 'ring-2 ring-primary bg-primary/5' : 'bg-base-100 hover:bg-base-200/50' }}">
+                <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-map-pin class="w-24 h-24" /></div>
+                <div class="text-sm text-base-content/70 font-medium z-10">Total No Geotag</div>
+                <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_no_geotag ?? 0, 0, ',', '.') }}</div>
+                <div class="text-sm text-success mt-2 font-bold z-10 flex items-center gap-1">
+                    <x-heroicon-s-check-circle class="w-4 h-4"/>
+                    On JKS: {{ number_format($kpi->total_no_geotag_jks_y ?? 0, 0, ',', '.') }}
                 </div>
             </div>
         </div>
