@@ -11,10 +11,10 @@ use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\CallPlan\Index as CallPlanIndex;
 use App\Livewire\CustomerCsvExportComponent;
-use App\Livewire\CustomerEska\Index as CustomerEskaIndex;
-use App\Livewire\CustomerEskaDist\Index as CustomerEskaDistIndex;
-use App\Livewire\CustomerEskaMap\Index as CustomerEskaMapIndex;
-use App\Livewire\CustomerEskaUnmap\Index as CustomerEskaUnmapIndex;
+use App\Livewire\Eskalink\CustomerEska\Index as CustomerEskaIndex;
+use App\Livewire\Eskalink\CustomerEskaDist\Index as CustomerEskaDistIndex;
+use App\Livewire\Eskalink\CustomerEskaMap\Index as CustomerEskaMapIndex;
+use App\Livewire\Eskalink\CustomerEskaUnmap\Index as CustomerEskaUnmapIndex;
 use App\Livewire\CustomerExportComponent;
 use App\Livewire\Customers\CustomerData;
 use App\Livewire\Dashboard;
@@ -27,57 +27,52 @@ use App\Livewire\Dashboard\DistributorMap;
 use App\Livewire\Dashboard\MetabaseDashboard;
 use App\Livewire\Dashboard\SalesComparison;
 use App\Livewire\Dashboard\SellingOverviewNew;
-use App\Livewire\Geotagging\Reverse;
+
 use App\Livewire\Mapping\Product\Index as ProductMappingIndex;
 use App\Livewire\Mapping\Salesman\Index as SalesmanMappingIndex;
-use App\Livewire\Mapping\UnmappedProduct\Index as UnmappedProductIndex;
-use App\Livewire\Mapping\UnmappedSalesman\Index as UnmappedSalesmanIndex;
-use App\Livewire\MasterAreas\Index as MasterAreaIndex;
-use App\Livewire\MasterBranches\Index as MasterBranchIndex;
+use App\Livewire\UnMapping\UnmappedProduct\Index as UnmappedProductIndex;
+use App\Livewire\UnMapping\UnmappedSalesman\Index as UnmappedSalesmanIndex;
+use App\Livewire\MasterData\MasterAreas\Index as MasterAreaIndex;
+use App\Livewire\MasterData\MasterBranches\Index as MasterBranchIndex;
 use App\Livewire\MasterData\MappingDistributorImplementasiEskalink\Index as MappingDistributorImplementasiEskalinkIndex;
-use App\Livewire\MasterDistributors\Index as MasterDistributorsIndex;
-use App\Livewire\MasterRegions\Create as MasterRegionsCreate;
-use App\Livewire\MasterRegions\Edit as MasterRegionsEdit;
-use App\Livewire\MasterRegions\Index as MasterRegionsIndex;
-use App\Livewire\MasterSupervisors\Index as MasterSupervisorIndex;
-use App\Livewire\MenuManagement;
+use App\Livewire\MasterData\MasterDistributors\Index as MasterDistributorsIndex;
+use App\Livewire\MasterData\MasterRegions\Index as MasterRegionsIndex;
+use App\Livewire\MasterData\MasterSupervisors\Index as MasterSupervisorIndex;
+use App\Livewire\Settings\MenuManagement;
 use App\Livewire\Pages\UnderBounce;
 use App\Livewire\Pages\UnderConstruction;
-use App\Livewire\PlanCallTeamElite\Import as PlanCallTeamEliteImportComponent;
 use App\Livewire\JksTeamElite\Index as JksTeamEliteIndex;
-use App\Livewire\PlanCallTeamElite\ListTokoPareto;
+use App\Livewire\CallPlan\JksTeamElite\ListTokoPareto\Index as ListTokoPareto;
 use App\Livewire\CallPlan\JksTeamElite\SummaryKunjungan\Index as SummaryKunjunganIndex;
 use App\Livewire\CallPlan\JksTeamElite\MonitoringJKSTeamElite\Index as MonitoringJKSTeamEliteIndex;
-use App\Livewire\Product\BrandProduct\Index as ProductBrandIndex;
-use App\Livewire\Product\CategoriesProduct\Index as CategoryIndex;
-use App\Livewire\Product\GroupProduct\Index as ProductGroupIndex;
-use App\Livewire\Product\LineProduct\Index as ProductLineIndex;
-use App\Livewire\Product\MasterProduct\Index as ProductMasterIndex;
-use App\Livewire\Product\ProductCategories\Index as ProductCategoryIndex;
-use App\Livewire\Product\SubBrandProduct\Index as ProductSubBrandIndex;
-use App\Livewire\Product\UnitMapping\Index as UnitMappingIndex;
-use App\Livewire\ProdukEska\Index as ProdukEskaIndex;
-use App\Livewire\ProdukEskaMap\Index as ProdukEskaMapIndex;
-use App\Livewire\Profile;
-use App\Livewire\RoleManagement;
-use App\Livewire\AccessGroupManagement;
-use App\Livewire\ActivityLogManagement;
+use App\Livewire\MasterData\Product\BrandProduct\Index as ProductBrandIndex;
+use App\Livewire\MasterData\Product\CategoriesProduct\Index as CategoryIndex;
+use App\Livewire\MasterData\Product\GroupProduct\Index as ProductGroupIndex;
+use App\Livewire\MasterData\Product\LineProduct\Index as ProductLineIndex;
+use App\Livewire\MasterData\Product\MasterProduct\Index as ProductMasterIndex;
+use App\Livewire\MasterData\Product\ProductCategories\Index as ProductCategoryIndex;
+use App\Livewire\MasterData\Product\SubBrandProduct\Index as ProductSubBrandIndex;
+use App\Livewire\Mapping\UnitMapping\Index as UnitMappingIndex;
+use App\Livewire\Eskalink\ProdukEska\Index as ProdukEskaIndex;
+use App\Livewire\Eskalink\ProdukEskaMap\Index as ProdukEskaMapIndex;
+use App\Livewire\Settings\Profile;
+use App\Livewire\Settings\RoleManagement;
+use App\Livewire\Settings\AccessGroupManagement;
+use App\Livewire\Settings\ActivityLogManagement;
 use App\Livewire\Rwo\Index as RwoIndex;
 use App\Livewire\SalesConfig\Create as SalesConfigCreate;
 use App\Livewire\SalesConfig\Edit as SalesConfigEdit;
 use App\Livewire\SalesConfig\Index as SalesConfigIndex;
 use App\Livewire\SalesInvoiceImport;
 use App\Livewire\SalesInvoiceReport\Index as SalesInvoiceReportIndex;
-use App\Livewire\Salesmans\Create as SalesmanCreate;
-use App\Livewire\Salesmans\Edit as SalesmanEdit;
-use App\Livewire\Salesmans\Index as SalesmanIndex;
+use App\Livewire\MasterData\Salesmans\Index as SalesmanIndex;
 use App\Livewire\SellOut\Export\Index as SellOutExportIndex;
 use App\Livewire\SellOut\Process\Index as SellOutProcessIndex;
 use App\Livewire\SellOut\ProcessV2\Index as SellOutProcessIndexV2;
 use App\Livewire\SellingIn\Index as SellingInIndex;
 use App\Livewire\SellingIn\Import as SellingInImport;
-use App\Livewire\SellingOutEskalink\Index as SellingOutEskalinkIndex;
-use App\Livewire\UserManagement;
+use App\Livewire\Eskalink\SellingOutEskalink\Index as SellingOutEskalinkIndex;
+use App\Livewire\Settings\UserManagement;
 use App\Livewire\Welcome;
 
 /*
@@ -188,7 +183,6 @@ Route::middleware(['auth'])->group(function () {
     // CALL PLAN
     // ==========================================
     Route::get('/call-plan', CallPlanIndex::class)->name('call-plan.index');
-    Route::get('/plan-call-team-elite/import', PlanCallTeamEliteImportComponent::class)->name('plan-call-team-elite.import');
     Route::get('/plan-call-team-elite/toko-pareto', ListTokoPareto::class)->name('plan-call-team-elite.toko-pareto');
     Route::get('/jks-team-elite', JksTeamEliteIndex::class)->name('jks-team-elite.index');
     Route::get('/call-plan/jks-team-elite/summary-kunjungan', SummaryKunjunganIndex::class)->name('call-plan.jks-team-elite.summary-kunjungan');
@@ -219,7 +213,7 @@ Route::middleware(['auth'])->group(function () {
     // ==========================================
     // MISCELLANEOUS / OTHERS
     // ==========================================
-    Route::get('/geotagging-reverse', Reverse::class)->name('geotagging.reverse');
+
     Route::get('/rwo', RwoIndex::class)->name('rwo.index');
     Route::get('/under-construction', UnderConstruction::class)->name('under-construction');
     Route::get('/under-bounce', UnderBounce::class)->name('under-bounce');
