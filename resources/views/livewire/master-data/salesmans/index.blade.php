@@ -323,7 +323,7 @@
                                     <option value="{{ $distributor->distributor_code }}" class="{{ $distributor->is_active ? '' : 'opacity-50 text-error' }}">
                                         {{ $distributor->distributor_code }} - {{ $distributor->distributor_name }}
                                     </option>
-                                </foreach>
+                                @endforeach
                             </select>
                             @error('distributor_code') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
                         </div>
