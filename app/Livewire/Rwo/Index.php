@@ -130,14 +130,48 @@ class Index extends Component
     }
 
     /**
-     * Filter data region access
+     * Terapkan pembatasan akses wilayah berdasarkan level user.
+     *
+     * Karena reward_outlet tidak punya supervisor_code / area_code langsung,
+     * kita JOIN ke master_distributors via branch_name untuk mendapatkan
+     * supervisor_code, area_code, dan region_code.
+     *
+     * Prioritas: supervisor > area > region > nasional (tanpa filter)
      */
-    private function applyRegionAccess($query)
+    private function applyHierarchyAccess($query)
     {
         $user = auth()->user();
-        if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereIn('region_code', $user->region_code);
+
+        // Admin atau tidak ada batasan → tampil semua
+        if ($user->hasRole('admin')) {
+            return $query;
         }
+
+        // Level Supervisor — filter via JOIN ke master_distributors by branch_name
+        if (!empty($user->supervisor_code)) {
+            return $query->whereExists(function ($sub) use ($user) {
+                $sub->selectRaw('1')
+                    ->from('master_distributors as md')
+                    ->whereColumn('md.branch_name', 'reward_outlet.branch_name')
+                    ->where('md.supervisor_code', $user->supervisor_code);
+            });
+        }
+
+        // Level Area
+        if (!empty($user->area_code) && count((array) $user->area_code) > 0) {
+            return $query->whereExists(function ($sub) use ($user) {
+                $sub->selectRaw('1')
+                    ->from('master_distributors as md')
+                    ->whereColumn('md.branch_name', 'reward_outlet.branch_name')
+                    ->whereIn('md.area_code', (array) $user->area_code);
+            });
+        }
+
+        // Level Region
+        if (!empty($user->region_code) && count((array) $user->region_code) > 0) {
+            return $query->whereIn('region_code', (array) $user->region_code);
+        }
+
         return $query;
     }
 
@@ -178,56 +212,104 @@ class Index extends Component
     public function getFilterRegions()
     {
         $user = auth()->user();
+
+        // Level Supervisor: cari region dari distributor di bawah SPV-nya
+        if (!$user->hasRole('admin') && !empty($user->supervisor_code)) {
+            $regionCodes = \App\Models\MasterDistributor::where('supervisor_code', $user->supervisor_code)
+                ->whereNotNull('region_code')
+                ->pluck('region_code')
+                ->unique();
+            return \App\Models\MasterRegion::whereIn('region_code', $regionCodes)->orderBy('region_name')->get();
+        }
+
+        // Level Area: cari region dari distributor di area user
+        if (!$user->hasRole('admin') && !empty($user->area_code) && count((array) $user->area_code) > 0) {
+            $regionCodes = \App\Models\MasterDistributor::whereIn('area_code', (array) $user->area_code)
+                ->whereNotNull('region_code')
+                ->pluck('region_code')
+                ->unique();
+            return \App\Models\MasterRegion::whereIn('region_code', $regionCodes)->orderBy('region_name')->get();
+        }
+
+        // Level Region
         $query = \App\Models\MasterRegion::query();
-        if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereIn('region_code', $user->region_code);
+        if (!$user->hasRole('admin') && !empty($user->region_code) && count((array) $user->region_code) > 0) {
+            $query->whereIn('region_code', (array) $user->region_code);
         }
         return $query->orderBy('region_name')->get();
     }
 
     public function getFilterAreas()
     {
+        $user = auth()->user();
         $query = \App\Models\MasterArea::query();
+
         if (!empty($this->filter_region_code)) {
             $query->where('region_code', $this->filter_region_code);
-        } else {
-            // Apply region access restrictions if no region is selected
-            $user = auth()->user();
-            if (!$user->hasRole('admin') && !empty($user->region_code)) {
-                $query->whereIn('region_code', $user->region_code);
+        } elseif (!$user->hasRole('admin')) {
+            // Level Supervisor: hanya area dari distributor di bawah SPV-nya
+            if (!empty($user->supervisor_code)) {
+                $areaCodes = \App\Models\MasterDistributor::where('supervisor_code', $user->supervisor_code)
+                    ->whereNotNull('area_code')
+                    ->pluck('area_code')
+                    ->unique();
+                $query->whereIn('area_code', $areaCodes);
+            }
+            // Level Area
+            elseif (!empty($user->area_code) && count((array) $user->area_code) > 0) {
+                $query->whereIn('area_code', (array) $user->area_code);
+            }
+            // Level Region
+            elseif (!empty($user->region_code) && count((array) $user->region_code) > 0) {
+                $query->whereIn('region_code', (array) $user->region_code);
             }
         }
+
         return $query->orderBy('area_name')->get();
     }
 
     public function getFilterBranches()
     {
+        $user  = auth()->user();
         $query = \App\Models\MasterBranch::query();
-        
-        if (!empty($this->filter_area_code)) {
-            // Filter by Area: get supervisor codes for the selected area
-            $supervisorCodes = \App\Models\MasterSupervisor::where('area_code', $this->filter_area_code)
-                ->pluck('supervisor_code');
-            $query->whereIn('supervisor_code', $supervisorCodes);
-        } elseif (!empty($this->filter_region_code)) {
-            // Filter by Region: get areas under region, then supervisors, then branches
-            $areaCodes = \App\Models\MasterArea::where('region_code', $this->filter_region_code)
-                ->pluck('area_code');
-            $supervisorCodes = \App\Models\MasterSupervisor::whereIn('area_code', $areaCodes)
-                ->pluck('supervisor_code');
-            $query->whereIn('supervisor_code', $supervisorCodes);
-        } else {
-            // Apply region access restrictions if no region/area is selected
-            $user = auth()->user();
-            if (!$user->hasRole('admin') && !empty($user->region_code)) {
-                $areaCodes = \App\Models\MasterArea::whereIn('region_code', $user->region_code)
+
+        // ── Batasan akses user (scope paling spesifik dulu) ────────
+        if (!$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                // Level Supervisor: ambil branch_name dari distributor di bawah SPV ini
+                $branchNames = \App\Models\MasterDistributor::where('supervisor_code', $user->supervisor_code)
+                    ->whereNotNull('branch_name')
+                    ->pluck('branch_name')
+                    ->unique();
+                $query->whereIn('branch_name', $branchNames);
+            } elseif (!empty($user->area_code) && count((array) $user->area_code) > 0) {
+                // Level Area
+                $supervisorCodes = \App\Models\MasterSupervisor::whereIn('area_code', (array) $user->area_code)
+                    ->pluck('supervisor_code');
+                $query->whereIn('supervisor_code', $supervisorCodes);
+            } elseif (!empty($user->region_code) && count((array) $user->region_code) > 0) {
+                // Level Region
+                $areaCodes = \App\Models\MasterArea::whereIn('region_code', (array) $user->region_code)
                     ->pluck('area_code');
                 $supervisorCodes = \App\Models\MasterSupervisor::whereIn('area_code', $areaCodes)
                     ->pluck('supervisor_code');
                 $query->whereIn('supervisor_code', $supervisorCodes);
             }
         }
-        
+
+        // ── Filter tambahan dari UI ────────────────────────────────
+        if (!empty($this->filter_area_code)) {
+            $supervisorCodes = \App\Models\MasterSupervisor::where('area_code', $this->filter_area_code)
+                ->pluck('supervisor_code');
+            $query->whereIn('supervisor_code', $supervisorCodes);
+        } elseif (!empty($this->filter_region_code)) {
+            $areaCodes = \App\Models\MasterArea::where('region_code', $this->filter_region_code)
+                ->pluck('area_code');
+            $supervisorCodes = \App\Models\MasterSupervisor::whereIn('area_code', $areaCodes)
+                ->pluck('supervisor_code');
+            $query->whereIn('supervisor_code', $supervisorCodes);
+        }
+
         return $query->orderBy('branch_name')->get();
     }
 
@@ -681,7 +763,7 @@ class Index extends Component
     public function render()
     {
         $query = RewardOutlet::query();
-        $this->applyRegionAccess($query);
+        $this->applyHierarchyAccess($query);
 
         // Apply region, area, branch filters
         if (!empty($this->filter_region_code)) {

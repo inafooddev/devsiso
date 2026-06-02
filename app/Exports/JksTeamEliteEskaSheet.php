@@ -47,7 +47,7 @@ class JksTeamEliteEskaSheet implements FromCollection, WithTitle, WithStyles, Sh
         $rows[] = ['FLAG DELETE:', $this->flagDelete];
         $rows[] = ['NORUTE', 'CUSTNO', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7', 'M1', 'M2', 'M3', 'M4'];
 
-        $dbData = DB::table('jks_team_elite as j')
+        $dbDataQuery = DB::table('jks_team_elite as j')
             ->leftJoin('master_calender as mc', 'j.tanggal', '=', 'mc.date')
             ->select([
                 DB::raw('ROW_NUMBER() OVER (PARTITION BY j.custno ORDER BY j.custno) AS nourut'),
@@ -65,8 +65,33 @@ class JksTeamEliteEskaSheet implements FromCollection, WithTitle, WithStyles, Sh
                 DB::raw("case when mc.week_month = 4 then 'Y' else 'T' end  as w4"),
             ])
             ->where('j.kode_team', $this->slsno)
-            ->whereBetween('j.tanggal', [$this->startDate, $this->endDate])
-            ->orderBy('j.custno')
+            ->whereBetween('j.tanggal', [$this->startDate, $this->endDate]);
+
+        // Apply hierarchy access
+        $user = auth()->user();
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $dbDataQuery->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('master_distributors as md')
+                        ->whereColumn('md.distributor_code', 'j.distributor_code')
+                        ->where('md.supervisor_code', $user->supervisor_code);
+                });
+            }
+            if (!empty($user->area_code) && count((array) $user->area_code) > 0) {
+                $dbDataQuery->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('master_distributors as md')
+                        ->whereColumn('md.distributor_code', 'j.distributor_code')
+                        ->whereIn('md.area_code', (array) $user->area_code);
+                });
+            }
+            if (!empty($user->region_code) && count((array) $user->region_code) > 0) {
+                $dbDataQuery->whereIn('j.kode_region', (array) $user->region_code);
+            }
+        }
+
+        $dbData = $dbDataQuery->orderBy('j.custno')
             ->get();
 
         foreach ($dbData as $row) {

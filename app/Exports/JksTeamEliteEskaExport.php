@@ -37,6 +37,30 @@ class JksTeamEliteEskaExport implements WithMultipleSheets
             $query->whereBetween('tanggal', [$this->filterStartDate, $this->filterEndDate]);
         }
 
+        // Apply hierarchy access
+        $user = auth()->user();
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $query->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('master_distributors as md')
+                        ->whereColumn('md.distributor_code', 'jks_team_elite.distributor_code')
+                        ->where('md.supervisor_code', $user->supervisor_code);
+                });
+            }
+            if (!empty($user->area_code) && count((array) $user->area_code) > 0) {
+                $query->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('master_distributors as md')
+                        ->whereColumn('md.distributor_code', 'jks_team_elite.distributor_code')
+                        ->whereIn('md.area_code', (array) $user->area_code);
+                });
+            }
+            if (!empty($user->region_code) && count((array) $user->region_code) > 0) {
+                $query->whereIn('jks_team_elite.kode_region', (array) $user->region_code);
+            }
+        }
+
         $teams = $query->orderBy('kode_team')->pluck('kode_team')->toArray();
 
         $sheets = [];

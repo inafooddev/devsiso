@@ -14,8 +14,8 @@
             /* 2-Axis Sticky Base */
             .matrix-th-top-1 { position: sticky; top: 0; z-index: 40; }
             .matrix-th-top-2 { position: sticky; top: 34px; z-index: 40; }
-            .matrix-col-1 { position: sticky; left: 0; z-index: 30; min-width: 140px; max-width: 140px; }
-            .matrix-col-2 { position: sticky; left: 140px; z-index: 30; min-width: 220px; max-width: 220px; }
+            .matrix-col-1 { position: sticky; left: 0; z-index: 30; min-width: 84px; max-width: 84px; }
+            .matrix-col-2 { position: sticky; left: 84px; z-index: 30; min-width: 132px; max-width: 132px; }
             
             /* Top-Left Intersections */
             .matrix-th-top-1.matrix-col-1, .matrix-th-top-1.matrix-col-2,
@@ -38,7 +38,7 @@
             <p class="text-sm mt-1">Silakan pilih bulan pada kalender di atas untuk menampilkan data matriks.</p>
         </div>
         @else
-        <div class="overflow-auto border border-base-300 bg-base-100 rounded-xl mt-4 relative shadow-sm" style="height: 550px;">
+        <div class="overflow-auto border border-base-300 bg-base-100 rounded-xl mt-4 mb-4 relative shadow-sm" style="height: 550px;">
             <table class="matrix-table text-xs">
                 <thead>
                     <tr>
@@ -69,7 +69,7 @@
                         <td class="text-center p-0 border-b border-r border-base-200 last:border-r-0 {{ $dayData['is_sunday'] ? 'bg-error/5' : '' }} {{ $dayData['is_end_of_week'] && !$loop->last ? 'matrix-week-border' : '' }}">
                             <div class="flex items-center justify-center h-full w-full min-h-[32px]">
                                 @if(isset($jksData[$team->kode_team][$date]))
-                                    <x-heroicon-m-check class="w-4 h-4 text-success stroke-[3]" />
+                                    <span class="text-[11px] font-bold text-success">{{ $jksData[$team->kode_team][$date] }}</span>
                                 @else
                                     <span class="text-base-content/20 text-[10px] font-bold">&middot;</span>
                                 @endif

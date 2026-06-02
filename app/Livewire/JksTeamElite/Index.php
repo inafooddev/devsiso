@@ -96,6 +96,49 @@ class Index extends Component
 
     protected $queryString = ['filterTeam', 'filterStartDate', 'filterEndDate'];
 
+    private function applyHierarchyAccess($query, $distributorCodeColumn = 'jks_team_elite.distributor_code')
+    {
+        $user = auth()->user();
+
+        // Admin atau tidak ada batasan → tampil semua
+        if (!$user || $user->hasRole('admin')) {
+            return $query;
+        }
+
+        // Level Supervisor
+        if (!empty($user->supervisor_code)) {
+            return $query->whereExists(function ($sub) use ($user, $distributorCodeColumn) {
+                $sub->selectRaw('1')
+                    ->from('master_distributors as md')
+                    ->whereColumn('md.distributor_code', $distributorCodeColumn)
+                    ->where('md.supervisor_code', $user->supervisor_code);
+            });
+        }
+
+        // Level Area (Array)
+        if (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+            return $query->whereExists(function ($sub) use ($user, $distributorCodeColumn) {
+                $sub->selectRaw('1')
+                    ->from('master_distributors as md')
+                    ->whereColumn('md.distributor_code', $distributorCodeColumn)
+                    ->whereIn('md.area_code', $user->area_code);
+            });
+        }
+
+        // Level Region (Array)
+        if (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+            return $query->whereExists(function ($sub) use ($user, $distributorCodeColumn) {
+                $sub->selectRaw('1')
+                    ->from('master_distributors as md')
+                    ->whereColumn('md.distributor_code', $distributorCodeColumn)
+                    ->whereIn('md.region_code', $user->region_code);
+            });
+        }
+
+        // Jika user bukan admin tapi tidak punya akses apa-apa (sup/area/region kosong)
+        return $query->whereRaw('1 = 0');
+    }
+
     public function mount()
     {
         try {
@@ -229,13 +272,16 @@ class Index extends Component
     public function updatedSearchDistributor()
     {
         if (strlen($this->searchDistributor) >= 2) {
-            $this->distributorOptions = DB::table('master_distributors')
+            $query = DB::table('master_distributors')
                 ->where('is_active', true)
                 ->where(function($q) {
                     $q->where('distributor_code', 'ilike', '%' . $this->searchDistributor . '%')
                       ->orWhere('distributor_name', 'ilike', '%' . $this->searchDistributor . '%');
-                })
-                ->select('distributor_code', 'distributor_name')
+                });
+            
+            $this->applyHierarchyAccess($query, 'distributor_code');
+
+            $this->distributorOptions = $query->select('distributor_code', 'distributor_name')
                 ->limit(20)
                 ->get()
                 ->toArray();
@@ -280,6 +326,8 @@ class Index extends Component
                 ->leftJoin('master_distributors as md', 'l.distributor_code', '=', 'md.distributor_code')
                 ->where('md.is_active', true);
             
+            $this->applyHierarchyAccess($query, 'l.distributor_code');
+
             // Jika ada distributor yang dipilih, batasi pencarian
             if (!empty($this->selectedDistributorCode)) {
                 $query->where('md.distributor_code', $this->selectedDistributorCode);
@@ -648,6 +696,8 @@ class Index extends Component
             })
             ->where('jks_team_elite.tanggal', $tanggal)
             ->where('jks_team_elite.kode_team', $kodeTeam);
+            
+        $this->applyHierarchyAccess($query, 'jks_team_elite.distributor_code');
 
         if ($pilar === 'RWO') {
             $query->where('l.pilar', '1. RWO');
@@ -670,7 +720,7 @@ class Index extends Component
         $this->mapKodeTeam = $kodeTeam;
         $this->mapModalTitle = "Peta Persebaran Toko - " . \Carbon\Carbon::parse($tanggal)->format('d M Y') . " ($kodeTeam)";
         
-        $jksStores = JksTeamElite::query()
+        $query = JksTeamElite::query()
             ->select('jks_team_elite.custno', 'jks_team_elite.custname', 'jks_team_elite.distributor_code', 'jks_team_elite.tanggal', 'jks_team_elite.kode_team', 'jks_team_elite.nama_team', 'l.latitude', 'l.longitude', 'l.customer_address', 'mc.week_month as minggu', 'mc.day as hari')
             ->leftJoin('list_toko_pareto_team_elite as l', function($join) {
                 $join->on('jks_team_elite.custno', '=', 'l.customer_code_prc')
@@ -680,8 +730,11 @@ class Index extends Component
             ->where('jks_team_elite.tanggal', $tanggal)
             ->where('jks_team_elite.kode_team', $kodeTeam)
             ->whereNotNull('l.latitude')
-            ->whereNotNull('l.longitude')
-            ->get()
+            ->whereNotNull('l.longitude');
+            
+        $this->applyHierarchyAccess($query, 'jks_team_elite.distributor_code');
+            
+        $jksStores = $query->get()
             ->map(function ($store) {
                 $c = \Carbon\Carbon::parse($store->tanggal);
                 $store->tgl_format = $c->format('d M Y');
@@ -766,6 +819,8 @@ class Index extends Component
                   ->orWhere('nama_team', 'ilike', '%' . $this->search . '%');
             });
         }
+        
+        $this->applyHierarchyAccess($jksQuery, 'jks_team_elite.distributor_code');
         
         $jksStores = $jksQuery
             ->select('jks_team_elite.custno', 'jks_team_elite.custname', 'jks_team_elite.distributor_code', 'jks_team_elite.tanggal', 'jks_team_elite.kode_team', 'jks_team_elite.nama_team', 'l.latitude', 'l.longitude', 'l.customer_address', 'mc.week_month as minggu', 'mc.day as hari')
@@ -1025,6 +1080,8 @@ class Index extends Component
                 ->whereIn('jks_team_elite.kode_team', $this->filterTeam)
                 ->whereBetween('jks_team_elite.tanggal', [$this->filterStartDate, $this->filterEndDate]);
 
+            $this->applyHierarchyAccess($query, 'jks_team_elite.distributor_code');
+
             if (!empty($this->search)) {
                 $query->where(function($q) {
                     $q->where('jks_team_elite.nama_region', 'ilike', '%' . $this->search . '%')
@@ -1071,8 +1128,9 @@ class Index extends Component
                              ->on('jks_team_elite.distributor_code', '=', 'l.distributor_code');
                     })
                     ->whereIn('jks_team_elite.kode_team', $filterTeam)
-                    ->whereBetween('jks_team_elite.tanggal', [$filterStartDate, $filterEndDate])
-                    ->distinct();
+                    ->whereBetween('jks_team_elite.tanggal', [$filterStartDate, $filterEndDate]);
+
+                $this->applyHierarchyAccess($query, 'jks_team_elite.distributor_code');
 
                 if (!empty($search)) {
                     $query->where(function($q) use ($search) {
@@ -1082,6 +1140,8 @@ class Index extends Component
                           ->orWhere('jks_team_elite.kode_team', 'ilike', '%' . $search . '%');
                     });
                 }
+                
+                $query->distinct();
             }, 'unique_stores')
             ->selectRaw('
                 COUNT(*) as total_toko,
@@ -1103,7 +1163,7 @@ class Index extends Component
             }
 
             // Pareto KPI Base Calculation (For Distributors in current filter)
-            $distributorsInFilter = DB::table('jks_team_elite')
+            $distributorsInFilterQuery = DB::table('jks_team_elite')
                 ->whereIn('kode_team', $filterTeam)
                 ->whereBetween('tanggal', [$filterStartDate, $filterEndDate])
                 ->when(!empty($search), function($q) use ($search) {
@@ -1113,9 +1173,11 @@ class Index extends Component
                           ->orWhere('nama_team', 'ilike', '%' . $search . '%')
                           ->orWhere('kode_team', 'ilike', '%' . $search . '%');
                     });
-                })
-                ->pluck('distributor_code')
-                ->unique();
+                });
+                
+            $this->applyHierarchyAccess($distributorsInFilterQuery, 'jks_team_elite.distributor_code');
+            
+            $distributorsInFilter = $distributorsInFilterQuery->pluck('distributor_code')->unique();
 
             $paretoBaseData = DB::table('list_toko_pareto_team_elite as l')
                 ->whereIn('distributor_code', $distributorsInFilter)

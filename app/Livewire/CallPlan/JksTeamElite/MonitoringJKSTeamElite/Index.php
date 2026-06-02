@@ -30,14 +30,15 @@ class Index extends Component
             $month = substr($this->filterMonth, 5, 2);
 
             $jksRaw = DB::table('jks_team_elite')
-                ->select('kode_team', 'tanggal')
+                ->select('kode_team', 'tanggal', DB::raw('count(*) as total_toko'))
                 ->whereYear('tanggal', $year)
                 ->whereMonth('tanggal', $month)
                 ->whereIn('kode_team', $teams->pluck('kode_team'))
+                ->groupBy('kode_team', 'tanggal')
                 ->get();
 
             foreach ($jksRaw as $data) {
-                $jksData[$data->kode_team][$data->tanggal] = true;
+                $jksData[$data->kode_team][$data->tanggal] = $data->total_toko;
             }
 
             $datesRaw = DB::table('master_calender')

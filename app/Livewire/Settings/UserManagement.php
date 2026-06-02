@@ -5,6 +5,8 @@ namespace App\Livewire\Settings;
 use Livewire\Component;
 use App\Models\User;
 use App\Models\MasterDistributor;
+use App\Models\MasterArea;
+use App\Models\MasterSupervisor;
 use App\Models\Menu;
 use App\Models\AccessGroup;
 use Spatie\Permission\Models\Role;
@@ -12,104 +14,248 @@ use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
 use Illuminate\Validation\Rule;
 
-#[Layout('layouts.app')] 
+#[Layout('layouts.app')]
 class UserManagement extends Component
 {
     use WithPagination;
 
-    // Properti Form
+    // ─── Properti Form Dasar ──────────────────────────────────────────────────
     public $userId, $userid, $name, $email, $password, $role;
-    
-    // region_code sekarang berbentuk Array karena akan diikat ke Checkbox
-    public $region_code = []; 
-    
-    // State untuk Modal Alpine
-    public $isModalOpen = false;
+
+    // ─── Level Akses Wilayah ─────────────────────────────────────────────────
+    // 'nasional' | 'region' | 'area' | 'supervisor'
+    public string $accessLevel = 'nasional';
+
+    // Level Region (multi) — sudah ada sebelumnya
+    public array $region_code = [];
+
+    // Level Area (multi)
+    public array $area_code = [];
+
+    // Level Supervisor (single string — 1 akun = 1 supervisor)
+    public string $supervisor_code = '';
+
+    // ─── Filter Cascading untuk UI ────────────────────────────────────────────
+    // Dipakai saat memilih area: filter region dulu untuk mempersempit daftar area
+    public string $filterRegionForArea = '';
+
+    // Dipakai saat memilih supervisor: filter region → area dulu
+    public string $filterRegionForSpv = '';
+    public string $filterAreaForSpv   = '';
+
+    // ─── State Modal ─────────────────────────────────────────────────────────
+    public $isModalOpen     = false;
     public $isRoleModalOpen = false;
     public $access_group_id;
-    
+
     // Properti untuk Tambah Role Baru
     public $newRoleName;
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // RENDER
+    // ─────────────────────────────────────────────────────────────────────────
+
     public function render()
     {
-        // Mengambil daftar region unik dari master_distributors
+        // Daftar region unik dari master_distributors
         $availableRegions = MasterDistributor::select('region_code', 'region_name')
             ->whereNotNull('region_code')
             ->distinct()
             ->orderBy('region_name')
             ->get();
 
+        // Daftar area (cascading dari filter region jika ada)
+        $availableAreas = $this->loadAvailableAreas();
+
+        // Daftar supervisor (cascading dari filter area jika ada)
+        $availableSupervisors = $this->loadAvailableSupervisors();
+
+        // Daftar region untuk filter dropdown di section Area & Supervisor
+        $regionsForFilter = MasterDistributor::select('region_code', 'region_name')
+            ->whereNotNull('region_code')
+            ->distinct()
+            ->orderBy('region_name')
+            ->get();
+
         return view('livewire.settings.user-management', [
-            'users' => User::with(['roles', 'accessGroup'])->latest()->paginate(10),
-            'roles' => Role::all(),
-            'accessGroups' => AccessGroup::all(),
-            'availableRegions' => $availableRegions, // Kirim ke view
+            'users'                => User::with(['roles', 'accessGroup'])->latest()->paginate(10),
+            'roles'                => Role::all(),
+            'accessGroups'         => AccessGroup::all(),
+            'availableRegions'     => $availableRegions,
+            'availableAreas'       => $availableAreas,
+            'availableSupervisors' => $availableSupervisors,
+            'regionsForFilter'     => $regionsForFilter,
         ]);
     }
 
-    public function create()
+    // ─────────────────────────────────────────────────────────────────────────
+    // CASCADING LOADERS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Load daftar area.
+     * Jika user sedang di level 'area', filter berdasarkan filterRegionForArea.
+     * Jika user sedang di level 'supervisor', filter berdasarkan filterRegionForSpv.
+     */
+    private function loadAvailableAreas()
+    {
+        $query = MasterArea::orderBy('area_name');
+
+        if ($this->accessLevel === 'area' && !empty($this->filterRegionForArea)) {
+            $query->where('region_code', $this->filterRegionForArea);
+        } elseif ($this->accessLevel === 'supervisor' && !empty($this->filterRegionForSpv)) {
+            $query->where('region_code', $this->filterRegionForSpv);
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * Load daftar supervisor berdasarkan area yang dipilih di filterAreaForSpv.
+     */
+    private function loadAvailableSupervisors()
+    {
+        $query = MasterSupervisor::orderBy('supervisor_name')
+            ->where('supervisor_code', '!=', 'HOINA');
+
+        if (!empty($this->filterAreaForSpv)) {
+            $query->where('area_code', $this->filterAreaForSpv);
+        }
+
+        return $query->get();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // WATCHERS — Cascading Reset
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Saat level berubah, reset semua pilihan wilayah */
+    public function updatedAccessLevel(): void
+    {
+        $this->region_code         = [];
+        $this->area_code           = [];
+        $this->supervisor_code     = '';
+        $this->filterRegionForArea = '';
+        $this->filterRegionForSpv  = '';
+        $this->filterAreaForSpv    = '';
+    }
+
+    /** Saat filter region untuk area berubah, reset pilihan area */
+    public function updatedFilterRegionForArea(): void
+    {
+        $this->area_code = [];
+    }
+
+    /** Saat filter region untuk supervisor berubah, reset pilihan area & supervisor */
+    public function updatedFilterRegionForSpv(): void
+    {
+        $this->filterAreaForSpv = '';
+        $this->supervisor_code  = '';
+    }
+
+    /** Saat filter area untuk supervisor berubah, reset pilihan supervisor */
+    public function updatedFilterAreaForSpv(): void
+    {
+        $this->supervisor_code = '';
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CRUD MODAL
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function create(): void
     {
         $this->resetFields();
         $this->isModalOpen = true;
     }
 
-    public function edit($id)
+    public function edit($id): void
     {
         $this->resetFields();
         $user = User::findOrFail($id);
-        
-        $this->userId = $user->id;
-        $this->userid = $user->userid;
-        $this->name = $user->name;
-        $this->email = $user->email;
-        $this->role = $user->roles->first()->name ?? '';
+
+        $this->userId         = $user->id;
+        $this->userid         = $user->userid;
+        $this->name           = $user->name;
+        $this->email          = $user->email;
+        $this->role           = $user->roles->first()?->name ?? '';
         $this->access_group_id = $user->access_group_id;
-        
-        // Ensure region_code is always an array for the checkboxes
+
+        // ── Load region_code ──────────────────────────────────────
         if (is_string($user->region_code)) {
-            // Check if it's a JSON array string, else put it in an array
             $decoded = json_decode($user->region_code, true);
-            if (is_array($decoded)) {
-                $this->region_code = $decoded;
-            } else {
-                $this->region_code = [$user->region_code];
-            }
+            $this->region_code = is_array($decoded) ? $decoded : [$user->region_code];
         } elseif (is_array($user->region_code)) {
             $this->region_code = $user->region_code;
-        } else {
-            $this->region_code = [];
         }
+
+        // ── Load area_code ────────────────────────────────────────
+        if (is_string($user->area_code)) {
+            $decoded = json_decode($user->area_code, true);
+            $this->area_code = is_array($decoded) ? $decoded : [$user->area_code];
+        } elseif (is_array($user->area_code)) {
+            $this->area_code = $user->area_code;
+        }
+
+        // ── Load supervisor_code ──────────────────────────────────
+        $this->supervisor_code = $user->supervisor_code ?? '';
+
+        // ── Deteksi accessLevel otomatis ──────────────────────────
+        $this->accessLevel = $user->getAccessLevel();
 
         $this->isModalOpen = true;
     }
 
-    public function store()
+    public function store(): void
     {
-
         $rules = [
-            'userid' => ['required', 'string', Rule::unique('users', 'userid')->ignore($this->userId)],
-            'name' => 'required|string|max:255',
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($this->userId)],
-            'role' => 'required|string',
+            'userid'          => ['required', 'string', Rule::unique('users', 'userid')->ignore($this->userId)],
+            'name'            => 'required|string|max:255',
+            'email'           => ['required', 'email', Rule::unique('users', 'email')->ignore($this->userId)],
+            'role'            => 'required|string',
             'access_group_id' => 'required|exists:access_groups,id',
         ];
 
-        // Password is required when creating, but optional when editing
+        // Password wajib saat buat baru
         if (!$this->userId) {
             $rules['password'] = 'required|min:6';
         } elseif (!empty($this->password)) {
             $rules['password'] = 'min:6';
         }
 
+        // Validasi tambahan per level
+        if ($this->accessLevel === 'supervisor') {
+            $rules['supervisor_code'] = 'required|exists:master_supervisors,supervisor_code';
+        }
+
         $this->validate($rules);
 
+        // ── Tentukan nilai yang disimpan berdasarkan level ────────
+        $savedRegion     = null;
+        $savedArea       = null;
+        $savedSupervisor = null;
+
+        switch ($this->accessLevel) {
+            case 'region':
+                $savedRegion = !empty($this->region_code) ? $this->region_code : null;
+                break;
+            case 'area':
+                $savedArea = !empty($this->area_code) ? $this->area_code : null;
+                break;
+            case 'supervisor':
+                $savedSupervisor = !empty($this->supervisor_code) ? $this->supervisor_code : null;
+                break;
+            // 'nasional': semua null (tidak ada batasan)
+        }
+
         $data = [
-            'userid' => $this->userid,
-            'name' => $this->name,
-            'email' => $this->email,
+            'userid'          => $this->userid,
+            'name'            => $this->name,
+            'email'           => $this->email,
             'access_group_id' => empty($this->access_group_id) ? null : $this->access_group_id,
-            'region_code' => empty($this->region_code) ? null : $this->region_code,
+            'region_code'     => $savedRegion,
+            'area_code'       => $savedArea,
+            'supervisor_code' => $savedSupervisor,
         ];
 
         if (!empty($this->password)) {
@@ -119,19 +265,15 @@ class UserManagement extends Component
         if ($this->userId) {
             $user = User::findOrFail($this->userId);
             $user->update($data);
-            
-            // Sync roles Spatie (remove old, attach new)
             $user->syncRoles([$this->role]);
-            
-            \App\Helpers\ActivityLogger::log('Update User', "Memperbarui data user: {$user->userid} ({$user->name})");
-            
+
+            \App\Helpers\ActivityLogger::log('Update User', "Memperbarui data user: {$user->userid} ({$user->name}) — Level: {$this->accessLevel}");
             session()->flash('message', 'User berhasil diperbarui.');
         } else {
             $user = User::create($data);
             $user->assignRole($this->role);
-            
-            \App\Helpers\ActivityLogger::log('Create User', "Membuat user baru: {$user->userid} ({$user->name})");
-            
+
+            \App\Helpers\ActivityLogger::log('Create User', "Membuat user baru: {$user->userid} ({$user->name}) — Level: {$this->accessLevel}");
             session()->flash('message', 'User berhasil ditambahkan.');
         }
 
@@ -139,7 +281,7 @@ class UserManagement extends Component
         $this->resetFields();
     }
 
-    public function delete($id)
+    public function delete($id): void
     {
         $user = User::find($id);
         if ($user) {
@@ -149,45 +291,58 @@ class UserManagement extends Component
         session()->flash('message', 'User berhasil dihapus.');
     }
 
-    public function openRoleModal()
+    // ─────────────────────────────────────────────────────────────────────────
+    // ROLE MODAL
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function openRoleModal(): void
     {
-        $this->newRoleName = '';
+        $this->newRoleName    = '';
         $this->isRoleModalOpen = true;
     }
 
-    public function storeRole()
+    public function storeRole(): void
     {
         $this->validate([
             'newRoleName' => 'required|string|max:255|unique:roles,name',
         ], [
             'newRoleName.required' => 'Nama role tidak boleh kosong.',
-            'newRoleName.unique' => 'Nama role sudah digunakan.',
+            'newRoleName.unique'   => 'Nama role sudah digunakan.',
         ]);
 
         Role::create([
-            'name' => strtolower(trim($this->newRoleName)),
-            'guard_name' => 'web'
+            'name'       => strtolower(trim($this->newRoleName)),
+            'guard_name' => 'web',
         ]);
 
         \App\Helpers\ActivityLogger::log('Create Role', "Menambahkan role baru: {$this->newRoleName}");
 
         $this->isRoleModalOpen = false;
-        $this->newRoleName = '';
-        
+        $this->newRoleName     = '';
+
         session()->flash('message', 'Role sistem berhasil ditambahkan.');
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // HELPERS
+    // ─────────────────────────────────────────────────────────────────────────
 
-
-    private function resetFields()
+    private function resetFields(): void
     {
-        $this->userId = null;
-        $this->userid = '';
-        $this->name = '';
-        $this->email = '';
-        $this->password = '';
-        $this->role = '';
+        $this->userId          = null;
+        $this->userid          = '';
+        $this->name            = '';
+        $this->email           = '';
+        $this->password        = '';
+        $this->role            = '';
         $this->access_group_id = null;
-        $this->region_code = []; // Reset kembali jadi array kosong
+
+        $this->accessLevel         = 'nasional';
+        $this->region_code         = [];
+        $this->area_code           = [];
+        $this->supervisor_code     = '';
+        $this->filterRegionForArea = '';
+        $this->filterRegionForSpv  = '';
+        $this->filterAreaForSpv    = '';
     }
 }

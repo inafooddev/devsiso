@@ -64,15 +64,45 @@ class Index extends Component
     ];
 
     /**
-     * Helper untuk memfilter Query berdasarkan hak akses region user.
+     * Helper untuk memfilter Query berdasarkan hak akses region, area, dan supervisor user.
      */
-    private function applyRegionAccess($query, $column = 'region_code')
+    private function applyHierarchyAccess($query, $distributorCodeColumn = 'l.distributor_code')
     {
         $user = auth()->user();
 
-        // Jika bukan admin dan memiliki batasan region_code (array)
-        if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereIn($column, $user->region_code);
+        // Admin atau tidak ada batasan → tampil semua
+        if ($user->hasRole('admin')) {
+            return $query;
+        }
+
+        // Level Supervisor
+        if (!empty($user->supervisor_code)) {
+            return $query->whereExists(function ($sub) use ($user, $distributorCodeColumn) {
+                $sub->selectRaw('1')
+                    ->from('master_distributors as md')
+                    ->whereColumn('md.distributor_code', $distributorCodeColumn)
+                    ->where('md.supervisor_code', $user->supervisor_code);
+            });
+        }
+
+        // Level Area
+        if (!empty($user->area_code) && count((array) $user->area_code) > 0) {
+            return $query->whereExists(function ($sub) use ($user, $distributorCodeColumn) {
+                $sub->selectRaw('1')
+                    ->from('master_distributors as md')
+                    ->whereColumn('md.distributor_code', $distributorCodeColumn)
+                    ->whereIn('md.area_code', (array) $user->area_code);
+            });
+        }
+
+        // Level Region
+        if (!empty($user->region_code) && count((array) $user->region_code) > 0) {
+            return $query->whereExists(function ($sub) use ($user, $distributorCodeColumn) {
+                $sub->selectRaw('1')
+                    ->from('master_distributors as md')
+                    ->whereColumn('md.distributor_code', $distributorCodeColumn)
+                    ->whereIn('md.region_code', (array) $user->region_code);
+            });
         }
 
         return $query;
@@ -84,15 +114,15 @@ class Index extends Component
     private function checkDistributorAccess($distributorCode)
     {
         $query = DB::table('master_distributors')->where('distributor_code', $distributorCode);
-        $this->applyRegionAccess($query);
+        $query = $this->applyHierarchyAccess($query, 'distributor_code');
         return $query->exists();
     }
 
     public function mount()
     {
-        // Auto-select region jika user hanya memiliki akses ke 1 region
         $query = DB::table('master_distributors')->select('region_code')->whereNotNull('region_code')->distinct();
-        $this->applyRegionAccess($query);
+        $query = $this->applyHierarchyAccess($query, 'distributor_code');
+        
         $regions = $query->get();
 
         if (!auth()->user()->hasRole('admin') && $regions->count() === 1) {
@@ -145,7 +175,7 @@ class Index extends Component
             );
 
         // --- PROTEKSI KEAMANAN DATA UTAMA ---
-        $this->applyRegionAccess($query, 'm.region_code');
+        $query = $this->applyHierarchyAccess($query, 'l.distributor_code');
 
         if ($this->search) {
             $query->where(function($q) {
@@ -200,28 +230,25 @@ class Index extends Component
 
     public function render()
     {
-        // Amankan List Dropdown Region
         $regionQuery = DB::table('master_distributors')->select('region_code', 'region_name')->whereNotNull('region_code')->distinct();
-        $this->applyRegionAccess($regionQuery);
+        $regionQuery = $this->applyHierarchyAccess($regionQuery, 'distributor_code');
         $regions = $regionQuery->orderBy('region_name')->get();
         
         $areas = [];
         if ($this->filterRegion) {
-            // Amankan List Dropdown Area
             $areaQuery = DB::table('master_distributors')->select('area_code', 'area_name')->where('region_code', $this->filterRegion)->whereNotNull('area_code')->distinct();
-            $this->applyRegionAccess($areaQuery);
+            $areaQuery = $this->applyHierarchyAccess($areaQuery, 'distributor_code');
             $areas = $areaQuery->orderBy('area_name')->get();
         }
 
         $supervisors = [];
         if ($this->filterArea) {
-            // Amankan List Dropdown Supervisor
             $spvQuery = DB::table('master_distributors as m')
                 ->join('master_supervisors as ms', 'm.supervisor_code', '=', 'ms.supervisor_code')
                 ->select('ms.supervisor_code', 'ms.description as supervisor_name')
                 ->where('m.area_code', $this->filterArea)
                 ->distinct();
-            $this->applyRegionAccess($spvQuery, 'm.region_code');
+            $spvQuery = $this->applyHierarchyAccess($spvQuery, 'm.distributor_code');
             $supervisors = $spvQuery->orderBy('supervisor_name')->get();
         }
 
@@ -230,6 +257,9 @@ class Index extends Component
         // --- KPI Calculation ---
         $kpiQuery = clone $this->getBaseQuery();
         $kpiQuery->orders = null;
+        $kpiQuery->where(function($q) {
+            $q->whereNull('l.keterangan')->orWhere('l.keterangan', '');
+        });
         
         $kpi = DB::table(DB::raw("({$kpiQuery->toSql()}) as sub"))
             ->mergeBindings($kpiQuery)
@@ -248,11 +278,12 @@ class Index extends Component
                 SUM(CASE WHEN (latitude IS NULL OR latitude = 0) AND on_jks = 'Y' THEN 1 ELSE 0 END) as total_no_geotag_jks_y
             ")->first();
 
-        $teams = DB::table('fsalesman')
+        // Ambil semua Team SPI (tanpa difilter hierarchy karena beda struktur tabel)
+        $teamsQuery = DB::table('fsalesman')
             ->where('TEAM', 'SPI')
-            ->select('SLSNO as kode_team', 'SLSNAME as nama_team')
-            ->orderBy('SLSNAME')
-            ->get();
+            ->select('SLSNO as kode_team', 'SLSNAME as nama_team');
+
+        $teams = $teamsQuery->orderBy('SLSNAME')->get();
 
         return view('livewire.call-plan.jks-team-elite.list-toko-pareto.index', [
             'data' => $data,
@@ -627,7 +658,7 @@ class Index extends Component
             'jksKodeTeam' => 'required|string',
         ]);
 
-        $toko = DB::table('list_toko_pareto_team_elite as l')
+        $tokoQuery = DB::table('list_toko_pareto_team_elite as l')
             ->leftJoin('master_distributors as m', 'l.distributor_code', '=', 'm.distributor_code')
             ->leftJoin('mapping_spv_code as msc', 'm.branch_code', '=', 'msc.branch_code')
             ->leftJoin('master_supervisors as ms', 'm.supervisor_code', '=', 'ms.supervisor_code')
@@ -638,8 +669,10 @@ class Index extends Component
                 'l.distributor_code', 'm.distributor_name',
                 'l.customer_code_prc', 'l.customer_name', 'l.customer_address'
             )
-            ->where('l.id', $this->selectedJksId)
-            ->first();
+            ->where('l.id', $this->selectedJksId);
+
+        $tokoQuery = $this->applyHierarchyAccess($tokoQuery, 'l.distributor_code');
+        $toko = $tokoQuery->first();
 
         if ($toko) {
             $team = DB::table('fsalesman')->where('SLSNO', $this->jksKodeTeam)->first();
@@ -660,6 +693,7 @@ class Index extends Component
                 'addres' => $toko->customer_address ?? '-',
             ]);
 
+            $this->isAddToJksOpen = false; // Note: original state property was reset to open
             $this->isAddToJksModalOpen = false;
             \App\Helpers\ActivityLogger::log('Add Toko to JKS', "Menambahkan Toko Pareto {$toko->customer_code_prc} ke JKS Team {$this->jksKodeTeam} ({$this->jksTanggal})");
             session()->flash('message', 'Toko berhasil ditambahkan ke JKS Team Elite.');

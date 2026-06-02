@@ -73,6 +73,26 @@ class JksTeamEliteImport implements ToCollection, WithHeadingRow
                 continue;
             }
 
+            // Security / Hierarchy Check for Distributor
+            $user = auth()->user();
+            if ($user && !$user->hasRole('admin')) {
+                $allowed = false;
+                $md = $this->distributorCache[$distCode];
+                if (!empty($user->supervisor_code) && $md->supervisor_code === $user->supervisor_code) {
+                    $allowed = true;
+                }
+                if (!empty($user->area_code) && in_array($md->area_code, (array) $user->area_code)) {
+                    $allowed = true;
+                }
+                if (!empty($user->region_code) && in_array($md->region_code, (array) $user->region_code)) {
+                    $allowed = true;
+                }
+                if (!$allowed) {
+                    $this->errors[] = "Baris {$rowNumber}: Distributor Code '{$distCode}' di luar wilayah otoritas Anda.";
+                    continue;
+                }
+            }
+
             // Validasi & Lookup Customer
             if (!array_key_exists($custNo, $this->customerCache)) {
                 $this->customerCache[$custNo] = DB::table('list_toko_pareto_team_elite')->where('customer_code_prc', $custNo)->first();

@@ -24,11 +24,15 @@ class User extends Authenticatable
         'email',
         'password',
         'region_code',
+        'area_code',
+        'supervisor_code',
         'access_group_id',
     ];
 
     protected $casts = [
         'region_code' => 'array',
+        'area_code'   => 'array',
+        // supervisor_code adalah string biasa (bukan array) — 1 akun = 1 supervisor
     ];
 
     /**
@@ -60,6 +64,29 @@ class User extends Authenticatable
     public function accessGroup(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(AccessGroup::class);
+    }
+
+    /**
+     * Deteksi level akses wilayah user secara otomatis.
+     * Prioritas: supervisor > area > region > nasional
+     *
+     * @return string 'supervisor' | 'area' | 'region' | 'nasional'
+     */
+    public function getAccessLevel(): string
+    {
+        if ($this->hasRole('admin')) {
+            return 'nasional';
+        }
+        if (!empty($this->supervisor_code)) {
+            return 'supervisor';
+        }
+        if (!empty($this->area_code) && count((array) $this->area_code) > 0) {
+            return 'area';
+        }
+        if (!empty($this->region_code) && count((array) $this->region_code) > 0) {
+            return 'region';
+        }
+        return 'nasional';
     }
 
     /**
