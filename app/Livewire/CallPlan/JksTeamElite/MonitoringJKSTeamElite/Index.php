@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 class Index extends Component
 {
     public $filterMonth;
+    public $search = '';
 
     public function mount()
     {
@@ -16,11 +17,19 @@ class Index extends Component
 
     public function render()
     {
-        $teams = DB::table('fsalesman')
+        $query = DB::table('fsalesman')
             ->select('SLSNO as kode_team', 'SLSNAME as nama_team')
             ->where('TEAM', 'SPI')
-            ->where('KODEREGION', 'HOINA')
-            ->get();
+            ->where('KODEREGION', 'HOINA');
+            
+        if ($this->search) {
+            $query->where(function($q) {
+                $q->where('SLSNO', 'ilike', '%' . $this->search . '%')
+                  ->orWhere('SLSNAME', 'ilike', '%' . $this->search . '%');
+            });
+        }
+
+        $teams = $query->get();
 
         $jksData = [];
         $monthDates = [];
@@ -57,6 +66,7 @@ class Index extends Component
                 $monthDates[$dt->date] = [
                     'label' => $parsedDate->format('d'),
                     'is_sunday' => $parsedDate->isSunday(),
+                    'is_weekday' => $parsedDate->isWeekday(),
                     'week_month' => $dt->week_month,
                     'is_end_of_week' => false,
                 ];

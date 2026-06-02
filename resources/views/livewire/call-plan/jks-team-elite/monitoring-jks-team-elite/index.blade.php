@@ -2,7 +2,8 @@
     <x-card title="Monitoring JKS Team Elite" icon="clipboard-document-check" class="mb-4" flush="true">
         <x-slot:actions>
             <div class="flex items-center gap-2">
-                <label class="text-sm font-medium">Bulan:</label>
+                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari Tim (Kode/Nama)..." class="input input-bordered input-sm w-48 lg:w-64" />
+                <label class="text-sm font-medium ml-2">Bulan:</label>
                 <input type="month" wire:model.live="filterMonth" class="input input-bordered input-sm" />
             </div>
         </x-slot:actions>
@@ -69,7 +70,11 @@
                         <td class="text-center p-0 border-b border-r border-base-200 last:border-r-0 {{ $dayData['is_sunday'] ? 'bg-error/5' : '' }} {{ $dayData['is_end_of_week'] && !$loop->last ? 'matrix-week-border' : '' }}">
                             <div class="flex items-center justify-center h-full w-full min-h-[32px]">
                                 @if(isset($jksData[$team->kode_team][$date]))
-                                    <span class="text-[11px] font-bold text-success">{{ $jksData[$team->kode_team][$date] }}</span>
+                                    @php
+                                        $tokoCount = $jksData[$team->kode_team][$date];
+                                        $isRed = $dayData['is_weekday'] && $tokoCount < 10;
+                                    @endphp
+                                    <span class="text-[11px] font-bold {{ $isRed ? 'text-error' : 'text-success' }}">{{ $tokoCount }}</span>
                                 @else
                                     <span class="text-base-content/20 text-[10px] font-bold">&middot;</span>
                                 @endif
