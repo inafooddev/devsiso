@@ -74,6 +74,7 @@ use App\Livewire\SellingIn\Import as SellingInImport;
 use App\Livewire\Eskalink\SellingOutEskalink\Index as SellingOutEskalinkIndex;
 use App\Livewire\Settings\UserManagement;
 use App\Livewire\Welcome;
+use App\Livewire\Others\MappingSupervisorCode\Index as MappingSupervisorCodeIndex;
 
 /*
 |--------------------------------------------------------------------------
@@ -214,6 +215,7 @@ Route::middleware(['auth'])->group(function () {
     // MISCELLANEOUS / OTHERS
     // ==========================================
 
+    Route::get('/mapping-supervisor-code', MappingSupervisorCodeIndex::class)->name('mapping-supervisor-code.index');
     Route::get('/rwo', RwoIndex::class)->name('rwo.index');
     Route::get('/under-construction', UnderConstruction::class)->name('under-construction');
     Route::get('/under-bounce', UnderBounce::class)->name('under-bounce');
