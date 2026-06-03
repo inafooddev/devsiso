@@ -44,6 +44,7 @@ use App\Livewire\Pages\UnderConstruction;
 use App\Livewire\JksTeamElite\Index as JksTeamEliteIndex;
 use App\Livewire\CallPlan\JksTeamElite\ListTokoPareto\Index as ListTokoPareto;
 use App\Livewire\CallPlan\JksTeamElite\SummaryKunjungan\Index as SummaryKunjunganIndex;
+use App\Livewire\CallPlan\JksTeamElite\SummaryVisitTeamElite\Index as SummaryVisitTeamEliteIndex;
 use App\Livewire\CallPlan\JksTeamElite\MonitoringJKSTeamElite\Index as MonitoringJKSTeamEliteIndex;
 use App\Livewire\MasterData\Product\BrandProduct\Index as ProductBrandIndex;
 use App\Livewire\MasterData\Product\CategoriesProduct\Index as CategoryIndex;
@@ -187,6 +188,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/plan-call-team-elite/toko-pareto', ListTokoPareto::class)->name('plan-call-team-elite.toko-pareto');
     Route::get('/jks-team-elite', JksTeamEliteIndex::class)->name('jks-team-elite.index');
     Route::get('/call-plan/jks-team-elite/summary-kunjungan', SummaryKunjunganIndex::class)->name('call-plan.jks-team-elite.summary-kunjungan');
+    Route::get('/call-plan/jks-team-elite/summary-visit-team-elite', SummaryVisitTeamEliteIndex::class)->name('call-plan.jks-team-elite.summary-visit-team-elite');
     Route::get('/call-plan/jks-team-elite/monitoring', MonitoringJKSTeamEliteIndex::class)->name('call-plan.jks-team-elite.monitoring');
 
     // ==========================================
