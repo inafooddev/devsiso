@@ -7,6 +7,8 @@ use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use App\Models\MasterRegion;
 use App\Models\MasterArea;
+use App\Exports\MappingSupervisorCodeExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class Index extends Component
 {
@@ -22,6 +24,24 @@ class Index extends Component
     public $regions = [];
     public $areas = [];
     public $levels = ['region', 'area', 'supervisor'];
+
+    // Form Properties
+    public $isCreateModalOpen = false;
+    public $isEditMode = false;
+    public $mappingId = null;
+    public $formRegionCode = '';
+    public $formAreaCode = '';
+    public $formTeamEliteCode = '';
+    public $formSisoCode = '';
+    public $formLevel = '';
+
+    public $searchTeamElite = '';
+    public $selectedTeamEliteName = '';
+
+    public $formRegions = [];
+    public $formAreas = [];
+    public $formTeamElites = [];
+    public $formSupervisors = [];
 
     protected $queryString = ['search', 'regionFilter', 'areaFilter', 'levelFilter'];
 
@@ -59,6 +79,188 @@ class Index extends Component
         $this->resetPage();
     }
 
+    protected function rules()
+    {
+        return [
+            'formRegionCode' => 'required|string',
+            'formAreaCode' => 'required|string',
+            'formTeamEliteCode' => 'required|string',
+            'formSisoCode' => 'required|string',
+            'formLevel' => 'required|string|in:region,area,supervisor',
+        ];
+    }
+
+    public function openCreateModal()
+    {
+        $this->resetValidation();
+        $this->reset(['formRegionCode', 'formAreaCode', 'formTeamEliteCode', 'formSisoCode', 'formLevel', 'searchTeamElite', 'selectedTeamEliteName']);
+        
+        $this->isEditMode = false;
+        $this->mappingId = null;
+
+        $this->formRegions = MasterRegion::orderBy('region_name')->get();
+
+        $this->loadTeamElites();
+        
+        $this->formAreas = collect();
+        $this->formSupervisors = collect();
+        
+        $this->isCreateModalOpen = true;
+    }
+
+    public function updatedSearchTeamElite()
+    {
+        $this->loadTeamElites($this->isEditMode ? $this->formTeamEliteCode : null);
+    }
+
+    public function openEditModal($id)
+    {
+        $this->resetValidation();
+        $this->isEditMode = true;
+        $this->mappingId = $id;
+        
+        $mapping = \App\Models\TeamEliteCodeMapping::find($id);
+        if (!$mapping) return;
+        
+        $this->formRegionCode = $mapping->region_code;
+        $this->formAreaCode = $mapping->area_code;
+        $this->formLevel = $mapping->level;
+        
+        $this->formRegions = MasterRegion::orderBy('region_name')->get();
+        $this->formAreas = MasterArea::where('region_code', $this->formRegionCode)->orderBy('area_name')->get();
+        
+        $this->loadTeamElites($mapping->team_elite_code);
+        
+        $this->formTeamEliteCode = $mapping->team_elite_code;
+        $te = DB::table('fsalesman')->where('SLSNO', $mapping->team_elite_code)->first();
+        $this->selectedTeamEliteName = $te ? $te->SLSNAME : '';
+        
+        $this->loadSupervisors($this->formAreaCode, $mapping->siso_code);
+        $this->formSisoCode = $mapping->siso_code;
+        
+        $this->isCreateModalOpen = true;
+    }
+
+    public function loadTeamElites($ignoreCode = null)
+    {
+        // Ambil list kode eska yang sudah termapping
+        $mappedTeamElites = \App\Models\TeamEliteCodeMapping::pluck('team_elite_code')->filter()->toArray();
+        if ($ignoreCode) {
+            $mappedTeamElites = array_diff($mappedTeamElites, [$ignoreCode]);
+        }
+
+        $query = DB::table('fsalesman as f')
+            ->where('TEAM', 'SPI')
+            ->select(DB::raw('f."SLSNO" as team_elite_code'), DB::raw('f."SLSNAME" as team_elite_name'));
+
+        if (!empty($mappedTeamElites)) {
+            $query->whereNotIn(DB::raw('f."SLSNO"'), $mappedTeamElites);
+        }
+
+        if (!empty($this->searchTeamElite)) {
+            $query->where(function($q) {
+                $q->where(DB::raw('f."SLSNO"'), 'ilike', '%' . $this->searchTeamElite . '%')
+                  ->orWhere(DB::raw('f."SLSNAME"'), 'ilike', '%' . $this->searchTeamElite . '%');
+            });
+        }
+
+        $this->formTeamElites = $query->orderBy(DB::raw('f."SLSNAME"'))->take(50)->get();
+    }
+
+    public function selectTeamElite($code, $name)
+    {
+        $this->formTeamEliteCode = $code;
+        $this->selectedTeamEliteName = $name;
+        $this->searchTeamElite = ''; // reset search
+        $this->loadTeamElites(); // reload list
+    }
+
+    public function clearTeamElite()
+    {
+        $this->formTeamEliteCode = '';
+        $this->selectedTeamEliteName = '';
+        $this->searchTeamElite = '';
+        $this->loadTeamElites();
+    }
+
+    public function updatedFormRegionCode($value)
+    {
+        $this->formAreaCode = '';
+        $this->formSisoCode = '';
+        $this->formSupervisors = collect();
+        
+        if ($value) {
+            $this->formAreas = MasterArea::where('region_code', $value)->orderBy('area_name')->get();
+        } else {
+            $this->formAreas = collect();
+        }
+    }
+
+    public function loadSupervisors($areaCode, $ignoreCode = null)
+    {
+        $this->formSupervisors = collect();
+        if ($areaCode) {
+            $mappedSiso = \App\Models\TeamEliteCodeMapping::pluck('siso_code')->filter()->toArray();
+            if ($ignoreCode) {
+                $mappedSiso = array_diff($mappedSiso, [$ignoreCode]);
+            }
+            $query = DB::table('master_supervisors')->where('area_code', $areaCode);
+            
+            if (!empty($mappedSiso)) {
+                $query->whereNotIn('supervisor_code', $mappedSiso);
+            }
+            
+            $this->formSupervisors = $query->orderBy('description')->get();
+        }
+    }
+
+    public function updatedFormAreaCode($value)
+    {
+        $this->formSisoCode = '';
+        $this->loadSupervisors($value);
+    }
+
+    public function save()
+    {
+        $this->validate();
+
+        $data = [
+            'region_code' => $this->formRegionCode,
+            'area_code' => $this->formAreaCode,
+            'team_elite_code' => $this->formTeamEliteCode,
+            'siso_code' => $this->formSisoCode,
+            'level' => $this->formLevel,
+        ];
+
+        if ($this->isEditMode && $this->mappingId) {
+            \App\Models\TeamEliteCodeMapping::find($this->mappingId)?->update($data);
+            session()->flash('message', 'Mapping berhasil diubah.');
+        } else {
+            \App\Models\TeamEliteCodeMapping::create($data);
+            session()->flash('message', 'Mapping berhasil ditambahkan.');
+        }
+
+        $this->isCreateModalOpen = false;
+        
+        if ($this->regionFilter || $this->areaFilter || $this->levelFilter || $this->search) {
+            $this->resetPage();
+        }
+    }
+
+    public function deleteMapping($id)
+    {
+        \App\Models\TeamEliteCodeMapping::find($id)?->delete();
+        session()->flash('message', 'Mapping berhasil dihapus.');
+    }
+
+    public function export()
+    {
+        return Excel::download(
+            new MappingSupervisorCodeExport($this->regionFilter, $this->areaFilter, $this->levelFilter, $this->search),
+            'Mapping_Supervisor_Code.xlsx'
+        );
+    }
+
     public function render()
     {
         $query = DB::table('team_elite_code_mappings as tecm')
@@ -73,7 +275,8 @@ class Index extends Component
                 DB::raw('f."SLSNAME" as nama_eska'),
                 'tecm.siso_code as kode_siso',
                 'ms.description as nama_siso',
-                'tecm.level'
+                'tecm.level',
+                'tecm.id'
             );
 
         if ($this->regionFilter) {
