@@ -86,7 +86,7 @@
                                         $tokoCount = $jksData[$team->kode_team][$date];
                                         $isRed = $dayData['is_weekday'] && $tokoCount < 10;
                                     @endphp
-                                    <span class="text-[11px] font-bold {{ $isRed ? 'text-error' : 'text-success' }}">{{ $tokoCount }}</span>
+                                    <span wire:click="showStoreDetails('{{ $team->kode_team }}', '{{ $date }}')" class="text-[11px] font-bold cursor-pointer hover:underline {{ $isRed ? 'text-error' : 'text-success' }}">{{ $tokoCount }}</span>
                                 @else
                                     <span class="text-base-content/20 text-[10px] font-bold">&middot;</span>
                                 @endif
@@ -107,4 +107,83 @@
         </div>
         @endif
     </x-card>
+
+    <!-- DETAIL MODAL TOKO (Standalone DaisyUI) -->
+    <dialog id="modal-detail" class="modal modal-bottom sm:modal-middle {{ $isDetailModalOpen ? 'modal-open' : '' }}">
+        <div class="modal-box bg-base-100 border border-base-300 !w-11/12 !max-w-6xl p-0">
+            {{-- Header --}}
+            <div class="flex items-center justify-between px-6 py-4 border-b border-base-300">
+                <div class="flex items-center gap-3">
+                    <div class="flex-shrink-0 p-2 rounded-xl bg-primary/10">
+                        <x-heroicon-s-building-storefront class="w-5 h-5 text-primary" />
+                    </div>
+                    <h3 class="font-bold text-lg text-base-content">Detail Toko Kunjungan</h3>
+                </div>
+                <button wire:click="closeDetailModal" class="btn btn-sm btn-circle btn-ghost text-base-content/50 hover:text-base-content">
+                    <x-heroicon-s-x-mark class="w-4 h-4" />
+                </button>
+            </div>
+
+            {{-- Body --}}
+            <div class="px-6 py-5 text-base-content space-y-4">
+                <div class="flex flex-col md:flex-row justify-between bg-base-200/50 p-4 rounded-xl text-xs gap-2">
+                    <div>
+                        <span class="font-semibold text-base-content/50 uppercase tracking-wider block">Tim Sales</span>
+                        <span class="font-bold text-sm text-base-content">{{ $selectedTeamCode }} - {{ $selectedTeamName }}</span>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-base-content/50 uppercase tracking-wider block">Tanggal Kunjungan</span>
+                        <span class="font-bold text-sm text-base-content">{{ $selectedDate ? \Carbon\Carbon::parse($selectedDate)->translatedFormat('d F Y') : '-' }}</span>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-base-content/50 uppercase tracking-wider block">Total Toko</span>
+                        <span class="font-bold text-sm text-success">{{ count($storeDetails) }} Toko</span>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto border border-base-200 rounded-xl">
+                    <table class="table table-xs table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Distributor</th>
+                                <th>Kode Toko</th>
+                                <th>Nama Toko</th>
+                                <th>Alamat</th>
+                                <th>Pilar</th>
+                                <th class="text-right">Target</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($storeDetails as $index => $store)
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td class="max-w-[200px] truncate" title="{{ $store->distributor_name }}">{{ $store->distributor_name }}</td>
+                                    <td class="font-mono font-bold whitespace-nowrap">{{ $store->custno }}</td>
+                                    <td class="font-semibold max-w-[250px] truncate" title="{{ $store->custname }}">{{ $store->custname }}</td>
+                                    <td class="max-w-[400px] truncate" title="{{ $store->addres }}">{{ $store->addres }}</td>
+                                    <td class="whitespace-nowrap"><x-ui.badge variant="neutral">{{ $store->pilar ?? '-' }}</x-ui.badge></td>
+                                    <td class="font-mono font-bold text-right whitespace-nowrap">{{ $store->target ? number_format($store->target, 0, ',', '.') : '0' }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="text-center py-8 text-base-content/50">Tidak ada data toko ditemukan.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {{-- Footer --}}
+            <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-base-300 bg-base-200/50">
+                <x-ui.button type="button" variant="neutral" outline wire:click="closeDetailModal">Tutup</x-ui.button>
+            </div>
+        </div>
+
+        {{-- Backdrop click to close --}}
+        <form method="dialog" class="modal-backdrop">
+            <button wire:click="closeDetailModal">close</button>
+        </form>
+    </dialog>
 </div>

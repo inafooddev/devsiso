@@ -11,6 +11,13 @@ class Index extends Component
     public $search = '';
     public $filterRegion = '';
 
+    // Detail Modal State
+    public $selectedTeamCode;
+    public $selectedTeamName;
+    public $selectedDate;
+    public $storeDetails = [];
+    public $isDetailModalOpen = false;
+
     public function mount()
     {
         $this->filterMonth = date('Y-m');
@@ -142,5 +149,43 @@ class Index extends Component
             'monthDates' => $monthDates,
             'weekSpans' => $weekSpans
         ])->layout('layouts.app');
+    }
+
+    public function showStoreDetails($kodeTeam, $date)
+    {
+        $this->selectedTeamCode = $kodeTeam;
+        $this->selectedDate = $date;
+
+        $team = DB::table('fsalesman')->where('SLSNO', $kodeTeam)->first();
+        $this->selectedTeamName = $team ? $team->SLSNAME : $kodeTeam;
+
+        $this->storeDetails = DB::table('jks_team_elite as j')
+            ->leftJoin('list_toko_pareto_team_elite as l', function($join) {
+                $join->on('j.distributor_code', '=', 'l.distributor_code')
+                     ->on('j.custno', '=', 'l.customer_code_prc');
+            })
+            ->select(
+                'j.custno', 
+                'j.custname', 
+                'j.distributor_name', 
+                'j.addres', 
+                'j.nama_area', 
+                'j.nama_region',
+                'l.pilar',
+                'l.target'
+            )
+            ->where('j.kode_team', $kodeTeam)
+            ->where('j.tanggal', $date)
+            ->orderBy('j.custname', 'asc')
+            ->get()
+            ->toArray();
+
+        $this->isDetailModalOpen = true;
+    }
+
+    public function closeDetailModal()
+    {
+        $this->isDetailModalOpen = false;
+        $this->reset(['selectedTeamCode', 'selectedTeamName', 'selectedDate', 'storeDetails']);
     }
 }
