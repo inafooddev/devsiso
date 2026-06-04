@@ -1144,7 +1144,8 @@ class Index extends Component
                 $query->distinct();
             }, 'unique_stores')
             ->selectRaw('
-                COUNT(*) as total_toko,
+                COUNT(*) as total_toko_all,
+                SUM(CASE WHEN pilar IN (\'1. RWO\', \'2. PNR\', \'3. NGVO\') THEN 1 ELSE 0 END) as total_toko_3pilar,
                 SUM(target) as total_target,
                 SUM(CASE WHEN pilar = \'1. RWO\' THEN 1 ELSE 0 END) as total_rwo,
                 SUM(CASE WHEN pilar = \'2. PNR\' THEN 1 ELSE 0 END) as total_pnr,
@@ -1154,7 +1155,8 @@ class Index extends Component
             $kpiResult = $kpiData->first();
             if ($kpiResult) {
                 $kpi = [
-                    'total_toko' => $kpiResult->total_toko ?? 0,
+                    'total_toko_all' => $kpiResult->total_toko_all ?? 0,
+                    'total_toko' => $kpiResult->total_toko_3pilar ?? 0,
                     'total_target' => $kpiResult->total_target ?? 0,
                     'total_rwo' => $kpiResult->total_rwo ?? 0,
                     'total_pnr' => $kpiResult->total_pnr ?? 0,
@@ -1182,7 +1184,8 @@ class Index extends Component
             $paretoBaseData = DB::table('list_toko_pareto_team_elite as l')
                 ->whereIn('distributor_code', $distributorsInFilter)
                 ->selectRaw('
-                    COUNT(l.customer_code_prc) as total_toko,
+                    COUNT(l.customer_code_prc) as total_toko_all,
+                    SUM(CASE WHEN l.pilar IN (\'1. RWO\', \'2. PNR\', \'3. NGVO\') THEN 1 ELSE 0 END) as total_toko_3pilar,
                     SUM(l.target) as total_target,
                     SUM(CASE WHEN l.pilar = \'1. RWO\' THEN 1 ELSE 0 END) as total_rwo,
                     SUM(CASE WHEN l.pilar = \'2. PNR\' THEN 1 ELSE 0 END) as total_pnr,
@@ -1192,7 +1195,8 @@ class Index extends Component
 
             if ($paretoBaseData) {
                 $paretoKpi = [
-                    'total_toko' => $paretoBaseData->total_toko ?? 0,
+                    'total_toko_all' => $paretoBaseData->total_toko_all ?? 0,
+                    'total_toko' => $paretoBaseData->total_toko_3pilar ?? 0,
                     'total_target' => $paretoBaseData->total_target ?? 0,
                     'total_rwo' => $paretoBaseData->total_rwo ?? 0,
                     'total_pnr' => $paretoBaseData->total_pnr ?? 0,

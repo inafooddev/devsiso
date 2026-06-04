@@ -43,8 +43,9 @@
                             </div>
                             <h3 class="text-[11px] font-extrabold text-base-content/60 uppercase tracking-widest">Total Toko</h3>
                         </div>
-                        <div class="flex items-baseline gap-1.5 mb-3">
-                            <span class="text-3xl font-black text-primary leading-none">{{ number_format($kpi['total_toko']) }}</span>
+                        <div class="flex items-baseline gap-1 flex-wrap mb-3 cursor-help" title="Format: Terjadwal (Semua Pilar) / Terjadwal (3 Pilar) / Target Pareto (3 Pilar)">
+                            <span class="text-3xl font-black text-primary leading-none">{{ number_format($kpi['total_toko_all'] ?? 0) }}</span>
+                            <span class="text-lg font-bold text-primary/70 leading-none">/ {{ number_format($kpi['total_toko']) }}</span>
                             <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_toko']) }}</span>
                         </div>
                         <div class="w-full bg-base-200 rounded-full h-1.5 mb-2 overflow-hidden">
