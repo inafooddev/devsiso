@@ -913,7 +913,6 @@
                           :class="(fotoKtpPreview || (editingOutlet && editingOutlet.foto_ktp)) ? 'border-emerald-300 bg-emerald-50/10' : 'border-slate-200 bg-slate-50 hover:bg-slate-100/50'">
                          <input type="file" 
                                 accept="image/*" 
-                                capture="environment" 
                                 @change="handleFileSelect($event, 'foto_ktp')" 
                                 class="absolute inset-0 opacity-0 cursor-pointer z-10" />
                          
@@ -939,8 +938,8 @@
                                  <div class="w-9 h-9 rounded-full bg-slate-200/50 flex items-center justify-center text-slate-500">
                                      <x-heroicon-s-camera class="w-5 h-5" />
                                  </div>
-                                 <span class="text-[11px] font-bold text-slate-700 mt-1.5">Ambil Foto KTP</span>
-                                 <span class="text-[8px] text-slate-400 mt-0.5">Wajib langsung dari Kamera</span>
+                                 <span class="text-[11px] font-bold text-slate-700 mt-1.5">Unggah Foto KTP</span>
+                                 <span class="text-[8px] text-slate-400 mt-0.5">Ambil dari Kamera atau pilih dari Galeri HP</span>
                              </div>
                          </template>
 
