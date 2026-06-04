@@ -99,17 +99,17 @@
         </template>
 
         {{-- Sync Status Bar --}}
-        <template x-if="!isOffline && pendingQueueCount > 0">
+        <template x-if="!isOffline && (pendingQueueCount > 0 || pendingEditQueueCount > 0)">
             <div class="bg-gradient-to-tr from-info/15 via-primary/5 to-white border border-info/20 rounded-2xl p-4 shadow-sm flex flex-col gap-2.5">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <x-heroicon-s-arrow-path class="w-4 h-4 text-info animate-spin" x-show="isSyncing" />
                         <x-heroicon-s-cloud-arrow-up class="w-4 h-4 text-info" x-show="!isSyncing" />
-                        <h3 class="text-xs font-bold text-slate-800" x-text="pendingQueueCount + ' Foto Menunggu Sinkronisasi'"></h3>
+                        <h3 class="text-xs font-bold text-slate-800" x-text="getPendingSyncMessage()"></h3>
                     </div>
                 </div>
                 <p class="text-[10px] text-slate-500 font-medium">
-                    Terdapat foto yang diambil saat offline. Silakan klik tombol di bawah untuk sinkronisasi.
+                    Terdapat data atau foto yang diambil saat offline. Silakan klik tombol di bawah untuk sinkronisasi.
                 </p>
                 <div class="flex flex-col gap-2 mt-1">
                     <button @click="startSync()" :disabled="isSyncing" class="btn btn-info btn-sm h-9 rounded-xl text-[10px] uppercase font-black text-white tracking-wider w-full shadow-xs">
@@ -117,7 +117,7 @@
                         <span x-text="isSyncing ? 'Menyinkronkan (' + syncCurrent + '/' + syncTotal + ')...' : 'Sinkronisasi Sekarang'"></span>
                     </button>
                     <button @click="clearSyncQueue()" :disabled="isSyncing" class="text-[9px] text-error/80 font-black hover:underline py-1 text-center">
-                        Hapus Antrean Foto Offline
+                        Hapus Antrean Data Offline
                     </button>
                 </div>
                 <template x-if="isSyncing">
@@ -206,6 +206,11 @@
                                         class="btn btn-xs btn-outline border-slate-200 hover:bg-slate-100 h-8 rounded-lg text-[9px] uppercase font-black text-slate-700 tracking-wider flex items-center gap-1 py-1 px-2.5 shadow-xs">
                                     <x-heroicon-s-information-circle class="w-3.5 h-3.5 text-slate-400" />
                                     <span>Detail</span>
+                                </button>
+                                <button @click="startEdit(outlet)" 
+                                        class="btn btn-xs btn-outline border-slate-200 hover:bg-slate-100 h-8 rounded-lg text-[9px] uppercase font-black text-slate-700 tracking-wider flex items-center gap-1 py-1 px-2.5 shadow-xs">
+                                    <x-heroicon-s-pencil-square class="w-3.5 h-3.5 text-slate-400" />
+                                    <span>Edit</span>
                                 </button>
                                 <button @click="selectOutlet(outlet)" 
                                         class="btn btn-xs btn-primary h-8 rounded-lg text-[9px] uppercase font-black text-white tracking-wider flex items-center gap-1 py-1 px-2.5 shadow-xs">
@@ -744,6 +749,232 @@
         </div>
     </div>
 
+    {{-- Bottom Sheet: Edit Outlet Data --}}
+    <div x-show="editingOutlet" 
+         class="fixed inset-0 z-40" 
+         x-cloak>
+        <!-- Backdrop overlay -->
+        <div x-show="editingOutlet"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @click="cancelEdit()"
+             class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs"></div>
+        
+        <!-- Sheet Body -->
+        <div x-show="editingOutlet"
+             x-transition:enter="transition cubic-bezier(0.16, 1, 0.3, 1) duration-500"
+             x-transition:enter-start="translate-y-full"
+             x-transition:enter-end="translate-y-0"
+             x-transition:leave="transition ease-in duration-300"
+             x-transition:leave-start="translate-y-0"
+             x-transition:leave-end="translate-y-full"
+             class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white rounded-t-[32px] shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.15)] max-h-[85%] flex flex-col z-50 overflow-hidden">
+             
+             <!-- Handle -->
+             <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto my-3 shrink-0"></div>
+             
+             <!-- Header -->
+             <div class="px-5 pb-3 pt-2 flex items-start justify-between border-b border-slate-100 shrink-0">
+                 <div class="min-w-0 pr-4">
+                     <span class="badge badge-primary badge-xs font-mono font-bold rounded-lg px-2 text-[9px]" x-text="editingOutlet ? editingOutlet.customer_code : ''"></span>
+                     <h4 class="text-xs font-black text-slate-900 mt-1 truncate" x-text="editingOutlet ? 'Edit Data: ' + editingOutlet.customer_name : ''"></h4>
+                 </div>
+                 <button @click="cancelEdit()" class="btn btn-ghost btn-circle btn-xs text-slate-400 hover:text-slate-600 flex-shrink-0">
+                     <x-heroicon-s-x-mark class="w-5 h-5" />
+                 </button>
+             </div>
+             
+             <!-- Scrollable Content Form -->
+             <div class="flex-1 overflow-y-auto p-5 space-y-5">
+                 
+                 <!-- Section 1: Identitas Pemilik -->
+                 <div class="space-y-3">
+                     <h5 class="text-[10px] font-extrabold uppercase tracking-widest text-primary pl-1 flex items-center gap-1.5">
+                         <x-heroicon-s-user-circle class="w-3.5 h-3.5" />
+                         Identitas Pemilik
+                     </h5>
+                     <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100/50 space-y-3">
+                         <!-- Nama Pemilik Toko -->
+                         <div class="form-control w-full">
+                             <label class="label py-0.5"><span class="label-text text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Nama Pemilik Toko</span></label>
+                             <input type="text" x-model="editNamaPemilikToko" class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                         </div>
+                         
+                         <!-- Nama KTP -->
+                         <div class="form-control w-full">
+                             <label class="label py-0.5"><span class="label-text text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Nama KTP</span></label>
+                             <input type="text" x-model="editNamaKtp" class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                         </div>
+
+                         <!-- NIK KTP -->
+                         <div class="form-control w-full">
+                             <label class="label py-0.5"><span class="label-text text-[9px] font-extrabold uppercase tracking-wider text-slate-400">NIK KTP</span></label>
+                             <input type="text" 
+                                    inputmode="numeric" 
+                                    maxlength="16" 
+                                    x-model="editNikKtp" 
+                                    @input="editNikKtp = editNikKtp.replace(/[^\dxX]/g, '')"
+                                    class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                         </div>
+
+                         <!-- No HP -->
+                         <div class="form-control w-full">
+                             <label class="label py-0.5"><span class="label-text text-[9px] font-extrabold uppercase tracking-wider text-slate-400">No. HP</span></label>
+                             <input type="text" 
+                                    inputmode="tel" 
+                                    x-model="editNoHp" 
+                                    @input="editNoHp = editNoHp.replace(/[^\dxX]/g, '')"
+                                    class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                         </div>
+                     </div>
+                 </div>
+
+                 <!-- Section 2: Rekening & Bank -->
+                 <div class="space-y-3">
+                     <h5 class="text-[10px] font-extrabold uppercase tracking-widest text-primary pl-1 flex items-center gap-1.5">
+                         <x-heroicon-s-credit-card class="w-3.5 h-3.5" />
+                         Rekening Bank
+                     </h5>
+                     <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100/50 space-y-3">
+                         <!-- Nama Bank -->
+                         <div class="form-control w-full relative" x-data="{ 
+                              open: false, 
+                              searchQuery: '',
+                              banks: [
+                                  'BANK BCA', 'BANK MANDIRI', 'BANK BNI', 'BANK BRI', 'BANK SYARIAH INDONESIA (BSI)',
+                                  'BANK DANAMON', 'BANK CIMB NIAGA', 'BANK PERMATA', 'BANK BTN', 'BANK BUKOPIN',
+                                  'BANK MEGA', 'BANK OCBC NISP', 'BANK MAYBANK', 'BANK BTPN / JENIUS', 'BANK JAGO', 
+                                  'BANK ALLOBANK', 'BANK NEO COMMERCE', 'SEABANK', 'BANK SINARMAS', 
+                                  'BPD JAWA TIMUR (BANK JATIM)', 'BPD JAWA TENGAH (BANK JATENG)', 'BPD JAWA BARAT BANTEN (BJB)', 
+                                  'BPD DKI (BANK DKI)', 'BPD BALI', 'BPD D.I. YOGYAKARTA (BPD DIY)'
+                              ],
+                              get filteredBanks() {
+                                  if (!this.searchQuery) return this.banks;
+                                  return this.banks.filter(b => b.toLowerCase().includes(this.searchQuery.toLowerCase()));
+                              }
+                          }" @click.away="open = false">
+                              <label class="label py-0.5"><span class="label-text text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Nama Bank</span></label>
+                              <div class="relative">
+                                  <input type="text" 
+                                         placeholder="Pilih atau cari bank..."
+                                         x-model="editNamaBank" 
+                                         @focus="open = true; searchQuery = editNamaBank"
+                                         @input="open = true; searchQuery = editNamaBank"
+                                         class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 pr-8" />
+                                  <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                                      <x-heroicon-s-chevron-down class="w-4 h-4" />
+                                  </span>
+                              </div>
+                              <div x-show="open" 
+                                   x-transition 
+                                   class="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-slate-100 rounded-xl shadow-lg"
+                                   style="top: 100%;"
+                                   x-cloak>
+                                  <template x-for="bank in filteredBanks" :key="bank">
+                                      <button type="button"
+                                              @click="editNamaBank = bank; open = false" 
+                                              class="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                                              x-text="bank"></button>
+                                  </template>
+                                  <template x-if="filteredBanks.length === 0">
+                                      <div class="px-4 py-2.5 text-xs text-slate-400 italic">
+                                          Bank tidak ditemukan. Tekan luar untuk menggunakan teks khusus.
+                                      </div>
+                                  </template>
+                              </div>
+                          </div>
+
+                         <!-- No Rekening -->
+                         <div class="form-control w-full">
+                             <label class="label py-0.5"><span class="label-text text-[9px] font-extrabold uppercase tracking-wider text-slate-400">No. Rekening</span></label>
+                             <input type="text" x-model="editNoRekening" class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                         </div>
+
+                         <!-- Nama Pemilik Rekening -->
+                         <div class="form-control w-full">
+                             <label class="label py-0.5"><span class="label-text text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Nama Pemilik Rekening</span></label>
+                             <input type="text" x-model="editNamaPemilikNorek" class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                         </div>
+                     </div>
+                 </div>
+
+                 <!-- Section 3: Foto KTP -->
+                 <div class="space-y-3">
+                     <h5 class="text-[10px] font-extrabold uppercase tracking-widest text-primary pl-1 flex items-center gap-1.5">
+                         <x-heroicon-s-camera class="w-3.5 h-3.5" />
+                         Foto KTP
+                     </h5>
+                     
+                     <div class="relative border border-dashed rounded-2xl transition-all duration-200 overflow-hidden min-h-[120px] flex flex-col items-center justify-center p-3"
+                          :class="(fotoKtpPreview || (editingOutlet && editingOutlet.foto_ktp)) ? 'border-emerald-300 bg-emerald-50/10' : 'border-slate-200 bg-slate-50 hover:bg-slate-100/50'">
+                         <input type="file" 
+                                accept="image/*" 
+                                capture="environment" 
+                                @change="handleFileSelect($event, 'foto_ktp')" 
+                                class="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                         
+                         <template x-if="fotoKtpPreview">
+                             <div class="w-full flex flex-col items-center">
+                                 <img :src="fotoKtpPreview" class="w-full h-24 object-contain rounded-lg" />
+                                 <span class="text-[9px] font-bold text-emerald-600 mt-1.5 flex items-center gap-1">
+                                     <x-heroicon-s-check-circle class="w-3.5 h-3.5" /> Foto KTP siap disimpan
+                                 </span>
+                             </div>
+                         </template>
+                         <template x-if="!fotoKtpPreview && editingOutlet && editingOutlet.foto_ktp">
+                             <div class="w-full flex flex-col items-center">
+                                 <div class="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                     <x-heroicon-s-shield-check class="w-5 h-5" />
+                                 </div>
+                                 <span class="text-[10px] font-bold text-emerald-600 mt-1.5">Foto KTP Sudah Terunggah</span>
+                                 <span class="text-[8px] text-slate-400 mt-0.5">Ketuk untuk mengambil ulang / mengganti foto KTP</span>
+                             </div>
+                         </template>
+                         <template x-if="!fotoKtpPreview && editingOutlet && !editingOutlet.foto_ktp">
+                             <div class="w-full flex flex-col items-center py-2">
+                                 <div class="w-9 h-9 rounded-full bg-slate-200/50 flex items-center justify-center text-slate-500">
+                                     <x-heroicon-s-camera class="w-5 h-5" />
+                                 </div>
+                                 <span class="text-[11px] font-bold text-slate-700 mt-1.5">Ambil Foto KTP</span>
+                                 <span class="text-[8px] text-slate-400 mt-0.5">Wajib langsung dari Kamera</span>
+                             </div>
+                         </template>
+
+                         <!-- Upload Progress Indicator -->
+                         <div x-show="fotoKtpState.isUploading" class="absolute inset-0 bg-white/95 flex flex-col items-center justify-center p-3 z-20 transition-all duration-300" x-cloak>
+                             <span class="loading loading-spinner loading-sm text-primary"></span>
+                             <span class="text-[10px] font-bold text-slate-600 mt-2 flex flex-col items-center gap-0.5">
+                                 <span x-text="fotoKtpState.progress === 0 ? 'Memproses foto...' : 'Mengunggah...'"></span>
+                                 <span x-show="fotoKtpState.progress > 0" x-text="fotoKtpState.progress + '%'"></span>
+                             </span>
+                             <progress x-show="fotoKtpState.progress > 0" class="progress progress-primary w-2/3 mt-2 h-1" :value="fotoKtpState.progress" max="100"></progress>
+                         </div>
+                     </div>
+                     <template x-if="fotoKtpState.errorMessage">
+                         <span class="text-error text-[9px] font-semibold mt-1 ml-1" x-text="fotoKtpState.errorMessage"></span>
+                     </template>
+                 </div>
+
+             </div>
+             
+             <!-- Footer Actions -->
+             <div class="p-5 border-t border-slate-100 shrink-0 bg-slate-50 flex items-center gap-3" style="padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));">
+                 <button @click="cancelEdit()" class="btn btn-outline border-slate-200 hover:bg-slate-200 flex-1 h-11 rounded-xl text-xs font-bold normal-case">
+                     Batal
+                 </button>
+                 <button @click="saveEdits()" 
+                         class="btn btn-primary flex-1 h-11 rounded-xl text-xs font-bold text-white normal-case shadow-md shadow-primary/20"
+                         :disabled="fotoKtpState.isUploading">
+                     Simpan Edit
+                 </button>
+             </div>
+        </div>
+    </div>
+
     {{-- Bottom Sheet: Panduan Penggunaan --}}
     <div x-show="showGuideSheet" 
          class="fixed inset-0 z-40" 
@@ -904,6 +1135,20 @@
             
             toast: { show: false, message: '', type: 'success' },
             
+            // Edit Outlet state variables
+            editingOutlet: null,
+            editNamaPemilikToko: '',
+            editNamaKtp: '',
+            editNikKtp: '',
+            editNoHp: '',
+            editNamaBank: '',
+            editNoRekening: '',
+            editNamaPemilikNorek: '',
+            fotoKtpBlob: null,
+            fotoKtpPreview: null,
+            fotoKtpState: { isUploading: false, progress: 0, errorMessage: '' },
+            pendingEditQueueCount: 0,
+            
             // UI helper states
             showFiltersSheet: false,
             detailOutlet: null,
@@ -916,6 +1161,18 @@
                 setTimeout(() => {
                     this.toast.show = false;
                 }, 3000);
+            },
+            
+            getPendingSyncMessage() {
+                let msg = '';
+                if (this.pendingQueueCount > 0) {
+                    msg += this.pendingQueueCount + ' Foto';
+                }
+                if (this.pendingEditQueueCount > 0) {
+                    if (msg) msg += ' & ';
+                    msg += this.pendingEditQueueCount + ' Perubahan Data';
+                }
+                return msg + ' Menunggu Sinkronisasi';
             },
             
             resetAllFilters() {
@@ -971,7 +1228,7 @@
             // IndexedDB init
             initIndexedDB() {
                 return new Promise((resolve, reject) => {
-                    const request = indexedDB.open('RWOOfflineDB', 2);
+                    const request = indexedDB.open('RWOOfflineDB', 3);
                     request.onupgradeneeded = (e) => {
                         const db = e.target.result;
                         if (!db.objectStoreNames.contains('outlets')) {
@@ -979,6 +1236,9 @@
                         }
                         if (!db.objectStoreNames.contains('uploadQueue')) {
                             db.createObjectStore('uploadQueue', { keyPath: 'id', autoIncrement: true });
+                        }
+                        if (!db.objectStoreNames.contains('editQueue')) {
+                            db.createObjectStore('editQueue', { keyPath: 'id', autoIncrement: true });
                         }
                     };
                     request.onsuccess = (e) => {
@@ -1121,6 +1381,136 @@
                 this.fotoDalamPreview = null;
             },
             
+            startEdit(outlet) {
+                if (this.fotoKtpPreview) URL.revokeObjectURL(this.fotoKtpPreview);
+                
+                this.editingOutlet = outlet;
+                this.editNamaPemilikToko = outlet.nama_pemilik_toko || '';
+                this.editNamaKtp = outlet.nama_ktp || '';
+                this.editNikKtp = outlet.nik_ktp || '';
+                this.editNoHp = outlet.no_hp || '';
+                this.editNamaBank = outlet.nama_bank || '';
+                this.editNoRekening = outlet.no_rekening || '';
+                this.editNamaPemilikNorek = outlet.nama_pemilik_norek || '';
+                
+                this.fotoKtpBlob = null;
+                this.fotoKtpPreview = null;
+                this.fotoKtpState = { isUploading: false, progress: 0, errorMessage: '' };
+            },
+            
+            cancelEdit() {
+                if (this.fotoKtpPreview) URL.revokeObjectURL(this.fotoKtpPreview);
+                
+                this.editingOutlet = null;
+                this.fotoKtpBlob = null;
+                this.fotoKtpPreview = null;
+            },
+            
+            saveEdits() {
+                if (!this.editingOutlet) return;
+                
+                // Form validation
+                if (!this.editNamaPemilikToko.trim() || !this.editNamaKtp.trim() || 
+                    !this.editNikKtp.trim() || !this.editNoHp.trim() || 
+                    !this.editNamaBank.trim() || !this.editNoRekening.trim() || 
+                    !this.editNamaPemilikNorek.trim()) {
+                    this.showToast('Semua field identitas dan rekening harus diisi!', 'error');
+                    return;
+                }
+                
+                // NIK KTP validation: exactly 16 characters
+                const nik = this.editNikKtp.trim();
+                if (nik.length !== 16) {
+                    this.showToast('NIK KTP harus tepat 16 digit!', 'error');
+                    return;
+                }
+                const isMaskedNik = /^\d{12}xxxx$/i.test(nik);
+                const isNumericNik = /^\d{16}$/.test(nik);
+                if (!isMaskedNik && !isNumericNik) {
+                    this.showToast('NIK KTP harus berupa 16 digit angka!', 'error');
+                    return;
+                }
+                
+                // Phone number validation: only digits (or masked)
+                const noHp = this.editNoHp.trim();
+                const isMaskedHp = /^\d+x+$/i.test(noHp);
+                const isNumericHp = /^\d+$/.test(noHp);
+                if (!isMaskedHp && !isNumericHp) {
+                    this.showToast('Nomor HP hanya boleh berisi angka!', 'error');
+                    return;
+                }
+                
+                this.saveOfflineEdits();
+            },
+            
+            saveOfflineEdits() {
+                this.getDB().then(db => {
+                    const transaction = db.transaction(['editQueue', 'outlets'], 'readwrite');
+                    const queueStore = transaction.objectStore('editQueue');
+                    const outletsStore = transaction.objectStore('outlets');
+                    
+                    const item = {
+                        outlet_id: this.editingOutlet.id,
+                        customer_code: this.editingOutlet.customer_code,
+                        customer_name: this.editingOutlet.customer_name,
+                        nama_pemilik_toko: this.editNamaPemilikToko,
+                        nama_ktp: this.editNamaKtp,
+                        nik_ktp: this.editNikKtp,
+                        no_hp: this.editNoHp,
+                        nama_bank: this.editNamaBank,
+                        no_rekening: this.editNoRekening,
+                        nama_pemilik_norek: this.editNamaPemilikNorek,
+                        foto_ktp_blob: this.fotoKtpBlob,
+                        timestamp: Date.now()
+                    };
+                    
+                    queueStore.add(item);
+                    
+                    // Update local outlets representation in database so it reflects changes immediately
+                    const getReq = outletsStore.get(this.editingOutlet.id);
+                    getReq.onsuccess = (e) => {
+                        const o = e.target.result;
+                        if (o) {
+                            o.nama_pemilik_toko = this.editNamaPemilikToko;
+                            o.nama_ktp = this.editNamaKtp;
+                            o.nik_ktp = this.editNikKtp;
+                            o.no_hp = this.editNoHp;
+                            o.nama_bank = this.editNamaBank;
+                            o.no_rekening = this.editNoRekening;
+                            o.nama_pemilik_norek = this.editNamaPemilikNorek;
+                            
+                            // Recalculate status completeness locally
+                            const isComplete = this.editNamaPemilikToko.trim() && 
+                                               this.editNamaKtp.trim() && 
+                                               this.editNikKtp.trim() && 
+                                               this.editNamaBank.trim() && 
+                                               this.editNoRekening.trim() && 
+                                               this.editNamaPemilikNorek.trim();
+                            o.status = isComplete ? 'Complete' : 'Not Complete';
+                            
+                            if (this.fotoKtpBlob) {
+                                o.foto_ktp = 'pending_ktp';
+                            }
+                            
+                            outletsStore.put(o);
+                        }
+                    };
+                    
+                    transaction.oncomplete = () => {
+                        this.cancelEdit();
+                        this.updateQueueCount();
+                        this.queryOutlets();
+                        
+                        if (this.isOffline) {
+                            this.showToast('Perubahan data disimpan secara offline.');
+                        } else {
+                            this.showToast('Perubahan data disimpan. Menyinkronkan...');
+                            this.startSync();
+                        }
+                    };
+                });
+            },
+            
             getExistingPhotoUrl(path) {
                 if (!path) return '';
                 if (path.startsWith('pending')) {
@@ -1187,7 +1577,15 @@
                 const file = event.target.files[0];
                 if (!file) return;
                 
-                const localData = propertyName === 'foto_depan' ? this.fotoDepanState : this.fotoDalamState;
+                let localData;
+                if (propertyName === 'foto_depan') {
+                    localData = this.fotoDepanState;
+                } else if (propertyName === 'foto_dalam') {
+                    localData = this.fotoDalamState;
+                } else {
+                    localData = this.fotoKtpState;
+                }
+                
                 localData.isUploading = true;
                 localData.progress = 0;
                 localData.errorMessage = '';
@@ -1199,10 +1597,14 @@
                         this.fotoDepanBlob = compressed;
                         if (this.fotoDepanPreview) URL.revokeObjectURL(this.fotoDepanPreview);
                         this.fotoDepanPreview = URL.createObjectURL(compressed);
-                    } else {
+                    } else if (propertyName === 'foto_dalam') {
                         this.fotoDalamBlob = compressed;
                         if (this.fotoDalamPreview) URL.revokeObjectURL(this.fotoDalamPreview);
                         this.fotoDalamPreview = URL.createObjectURL(compressed);
+                    } else if (propertyName === 'foto_ktp') {
+                        this.fotoKtpBlob = compressed;
+                        if (this.fotoKtpPreview) URL.revokeObjectURL(this.fotoKtpPreview);
+                        this.fotoKtpPreview = URL.createObjectURL(compressed);
                     }
                 } catch (err) {
                     console.error(err);
@@ -1212,10 +1614,14 @@
                         this.fotoDepanBlob = file;
                         if (this.fotoDepanPreview) URL.revokeObjectURL(this.fotoDepanPreview);
                         this.fotoDepanPreview = URL.createObjectURL(file);
-                    } else {
+                    } else if (propertyName === 'foto_dalam') {
                         this.fotoDalamBlob = file;
                         if (this.fotoDalamPreview) URL.revokeObjectURL(this.fotoDalamPreview);
                         this.fotoDalamPreview = URL.createObjectURL(file);
+                    } else if (propertyName === 'foto_ktp') {
+                        this.fotoKtpBlob = file;
+                        if (this.fotoKtpPreview) URL.revokeObjectURL(this.fotoKtpPreview);
+                        this.fotoKtpPreview = URL.createObjectURL(file);
                     }
                 } finally {
                     localData.isUploading = false;
@@ -1323,23 +1729,35 @@
             
             updateQueueCount() {
                 return this.getDB().then(db => {
-                    return new Promise((resolve) => {
-                        const transaction = db.transaction(['uploadQueue'], 'readonly');
-                        const store = transaction.objectStore('uploadQueue');
-                        const countReq = store.count();
-                        countReq.onsuccess = () => {
-                            this.pendingQueueCount = countReq.result;
-                            resolve();
-                        };
-                    });
+                    return Promise.all([
+                        new Promise((resolve) => {
+                            const transaction = db.transaction(['uploadQueue'], 'readonly');
+                            const store = transaction.objectStore('uploadQueue');
+                            const countReq = store.count();
+                            countReq.onsuccess = () => {
+                                this.pendingQueueCount = countReq.result;
+                                resolve();
+                            };
+                        }),
+                        new Promise((resolve) => {
+                            const transaction = db.transaction(['editQueue'], 'readonly');
+                            const store = transaction.objectStore('editQueue');
+                            const countReq = store.count();
+                            countReq.onsuccess = () => {
+                                this.pendingEditQueueCount = countReq.result;
+                                resolve();
+                            };
+                        })
+                    ]);
                 });
             },
             
             clearSyncQueue() {
-                if (confirm('Apakah Anda yakin ingin menghapus antrean foto offline? Foto yang belum disinkronkan akan hilang.')) {
+                if (confirm('Apakah Anda yakin ingin menghapus antrean data offline? Semua foto dan perubahan data yang belum disinkronkan akan hilang.')) {
                     this.getDB().then(db => {
-                        const transaction = db.transaction(['uploadQueue', 'outlets'], 'readwrite');
+                        const transaction = db.transaction(['uploadQueue', 'editQueue', 'outlets'], 'readwrite');
                         transaction.objectStore('uploadQueue').clear();
+                        transaction.objectStore('editQueue').clear();
                         
                         const outletsStore = transaction.objectStore('outlets');
                         outletsStore.getAll().onsuccess = (e) => {
@@ -1347,12 +1765,13 @@
                             outlets.forEach(o => {
                                 if (o.foto_toko2 === 'pending_depan') o.foto_toko2 = null;
                                 if (o.foto_toko3 === 'pending_dalam') o.foto_toko3 = null;
+                                if (o.foto_ktp === 'pending_ktp') o.foto_ktp = null;
                                 outletsStore.put(o);
                             });
                         };
                         
                         transaction.oncomplete = () => {
-                            this.showToast('Antrean foto offline berhasil dihapus.');
+                            this.showToast('Antrean data offline berhasil dihapus.');
                             this.updateQueueCount();
                             this.queryOutlets();
                         };
@@ -1382,7 +1801,14 @@
                             reject(new Error(err || 'Gagal mengunggah ke server.'));
                         },
                         (event) => {
-                            const localState = propertyName === 'foto_depan' ? this.fotoDepanState : this.fotoDalamState;
+                            let localState;
+                            if (propertyName === 'foto_depan') {
+                                localState = this.fotoDepanState;
+                            } else if (propertyName === 'foto_dalam') {
+                                localState = this.fotoDalamState;
+                            } else {
+                                localState = this.fotoKtpState;
+                            }
                             localState.progress = event.detail.progress;
                         }
                     );
@@ -1397,24 +1823,36 @@
                 
                 try {
                     const db = await this.getDB();
-                    const transaction = db.transaction(['uploadQueue'], 'readonly');
-                    const store = transaction.objectStore('uploadQueue');
-                    const queue = await new Promise((resolve, reject) => {
-                        const req = store.getAll();
+                    
+                    // 1. Process uploadQueue (photos)
+                    const uploadTx = db.transaction(['uploadQueue'], 'readonly');
+                    const uploadStore = uploadTx.objectStore('uploadQueue');
+                    const uploadQueueList = await new Promise((resolve, reject) => {
+                        const req = uploadStore.getAll();
                         req.onsuccess = () => resolve(req.result);
                         req.onerror = () => reject(req.error);
                     });
                     
-                    if (queue.length === 0) {
+                    // 2. Process editQueue (owner/bank details and KTP photos)
+                    const editTx = db.transaction(['editQueue'], 'readonly');
+                    const editStore = editTx.objectStore('editQueue');
+                    const editQueueList = await new Promise((resolve, reject) => {
+                        const req = editStore.getAll();
+                        req.onsuccess = () => resolve(req.result);
+                        req.onerror = () => reject(req.error);
+                    });
+                    
+                    if (uploadQueueList.length === 0 && editQueueList.length === 0) {
                         this.isSyncing = false;
                         return;
                     }
                     
-                    this.syncTotal = queue.length;
+                    this.syncTotal = uploadQueueList.length + editQueueList.length;
                     this.syncCurrent = 0;
                     this.syncProgress = 0;
                     
-                    for (const item of queue) {
+                    // Process photos first
+                    for (const item of uploadQueueList) {
                         this.syncCurrent++;
                         this.syncProgress = Math.round(((this.syncCurrent - 1) / this.syncTotal) * 100);
                         
@@ -1452,9 +1890,47 @@
                         });
                     }
                     
+                    // Process text edits & KTP photos next
+                    for (const item of editQueueList) {
+                        this.syncCurrent++;
+                        this.syncProgress = Math.round(((this.syncCurrent - 1) / this.syncTotal) * 100);
+                        
+                        // Upload KTP if exists
+                        if (item.foto_ktp_blob) {
+                            let fileToUpload = item.foto_ktp_blob;
+                            if (!(fileToUpload instanceof File) || !fileToUpload.name) {
+                                const mimeType = item.foto_ktp_blob.type || 'image/jpeg';
+                                const ext = mimeType === 'image/png' ? 'png' : 'jpg';
+                                fileToUpload = new File([item.foto_ktp_blob], 'ktp_' + item.outlet_id + '_' + Date.now() + '.' + ext, { type: mimeType });
+                            }
+                            await this.uploadFilePromise('foto_ktp', fileToUpload);
+                        }
+                        
+                        // Save edits offline backend call
+                        await wire.saveEditsForOutletOffline(
+                            item.outlet_id,
+                            item.nama_pemilik_toko,
+                            item.nama_ktp,
+                            item.nik_ktp,
+                            item.no_hp,
+                            item.nama_bank,
+                            item.no_rekening,
+                            item.nama_pemilik_norek
+                        );
+                        
+                        // Delete from offline edits queue
+                        await new Promise((resolve, reject) => {
+                            const delTx = db.transaction(['editQueue'], 'readwrite');
+                            const delStore = delTx.objectStore('editQueue');
+                            const delReq = delStore.delete(item.id);
+                            delReq.onsuccess = () => resolve();
+                            delReq.onerror = () => reject(delReq.error);
+                        });
+                    }
+                    
                     this.syncProgress = 100;
                     syncSuccess = true;
-                    this.showToast('Semua foto offline berhasil disinkronisasi!');
+                    this.showToast('Semua data offline berhasil disinkronisasi!');
                     
                 } catch (e) {
                     console.error('Sync failed:', e);
@@ -1466,7 +1942,7 @@
                     await wire.$refresh();
                     
                     // Auto-trigger next sync loop only if sync succeeded
-                    if (syncSuccess && !this.isOffline && this.pendingQueueCount > 0) {
+                    if (syncSuccess && !this.isOffline && (this.pendingQueueCount > 0 || this.pendingEditQueueCount > 0)) {
                         this.startSync();
                     }
                 }

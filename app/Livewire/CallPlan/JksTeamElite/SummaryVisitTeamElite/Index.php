@@ -63,7 +63,7 @@ class Index extends Component
     #[Computed]
     public function dataKunjungan()
     {
-        if (!$this->isFiltered || !$this->selectedMonth) {
+        if (!$this->isFiltered || !$this->selectedMonth || empty($this->selectedTeam)) {
             return [];
         }
 
@@ -72,22 +72,24 @@ class Index extends Component
         $endDatePlus1 = Carbon::parse($endDate)->addDay()->format('Y-m-d');
 
         $visitConditions = "WHERE s.tanggal >= ? AND s.tanggal < ?";
-        $bindings = [$startDate, $endDatePlus1];
+        $dynamicBindings = [];
 
         if ($this->selectedLevel) {
             $visitConditions .= " AND s.\"level\" = ?";
-            $bindings[] = $this->selectedLevel;
+            $dynamicBindings[] = $this->selectedLevel;
         }
 
         if ($this->selectedTeam) {
             $visitConditions .= " AND s.team_code = ?";
-            $bindings[] = $this->selectedTeam;
+            $dynamicBindings[] = $this->selectedTeam;
         }
 
         if ($this->selectedKeterangan) {
             $visitConditions .= " AND UPPER(s.keterangan) LIKE ?";
-            $bindings[] = '%' . strtoupper($this->selectedKeterangan) . '%';
+            $dynamicBindings[] = '%' . strtoupper($this->selectedKeterangan) . '%';
         }
+
+        $visitBindings = array_merge([$startDate, $endDatePlus1], $dynamicBindings);
 
         $query = "
             WITH visit AS (
@@ -109,6 +111,14 @@ class Index extends Component
                     v.bulan,
                     v.uniq_kd
             ),
+            ket_visit as(
+                SELECT
+                    DATE_TRUNC('month', s.tanggal)::date AS bulan,
+                    s.*
+                FROM zv_summary_visit_team_elite s
+                $visitConditions
+                  AND s.status_visit = 'Y'
+            ),
             list_pareto as(
                 select * from list_toko_pareto_team_elite ltpte 
             )
@@ -125,7 +135,7 @@ class Index extends Component
                 v.custname,
                 v.address,
                 v.keterangan,
-                v.status_visit,
+                case when k.status_visit is null then 'N' else k.status_visit end as status_visit,
                 l.pilar,
                 l.target,
                 SUM(v.order_val) AS order_val,
@@ -136,6 +146,8 @@ class Index extends Component
                AND v.uniq_id = i.uniq_kd
             left join list_pareto l
                 on v.custno = l.customer_code_prc 
+            left join ket_visit k
+                on v.custno = k.custno 
             GROUP BY
                 v.region_code,
                 v.region_name,
@@ -149,14 +161,13 @@ class Index extends Component
                 v.custname,
                 v.address,
                 v.keterangan,
-                v.status_visit,
+                k.status_visit,
                 l.pilar,
                 l.target
-            ORDER BY v.region_name, v.area_name, v.team_name, v.custname
+            ORDER BY v.custno
         ";
 
-        $bindings[] = $startDate;
-        $bindings[] = $endDatePlus1;
+        $bindings = array_merge($visitBindings, [$startDate, $endDatePlus1], $visitBindings);
 
         return DB::select($query, $bindings);
     }
@@ -176,6 +187,14 @@ class Index extends Component
         $total_pnr = $data->filter(fn($item) => str_contains(strtoupper($item->pilar ?? ''), '2. PNR'))->count();
         $total_ngvo = $data->filter(fn($item) => str_contains(strtoupper($item->pilar ?? ''), '3. NGVO'))->count();
         
+        $total_order_rwo = $data->filter(fn($item) => str_contains(strtoupper($item->pilar ?? ''), '1. RWO'))->sum('order_val');
+        $total_order_pnr = $data->filter(fn($item) => str_contains(strtoupper($item->pilar ?? ''), '2. PNR'))->sum('order_val');
+        $total_order_ngvo = $data->filter(fn($item) => str_contains(strtoupper($item->pilar ?? ''), '3. NGVO'))->sum('order_val');
+        
+        $toko_order_rwo = $data->filter(fn($item) => str_contains(strtoupper($item->pilar ?? ''), '1. RWO') && (float)($item->order_val ?? 0) > 0)->count();
+        $toko_order_pnr = $data->filter(fn($item) => str_contains(strtoupper($item->pilar ?? ''), '2. PNR') && (float)($item->order_val ?? 0) > 0)->count();
+        $toko_order_ngvo = $data->filter(fn($item) => str_contains(strtoupper($item->pilar ?? ''), '3. NGVO') && (float)($item->order_val ?? 0) > 0)->count();
+        
         $total_noo = $data->filter(fn($item) => str_contains(strtoupper($item->keterangan ?? ''), 'NOO'))->count();
         $total_toko_order = $data->filter(fn($item) => (float)($item->order_val ?? 0) > 0)->count();
 
@@ -189,6 +208,12 @@ class Index extends Component
             'total_rwo' => $total_rwo,
             'total_pnr' => $total_pnr,
             'total_ngvo' => $total_ngvo,
+            'total_order_rwo' => $total_order_rwo,
+            'total_order_pnr' => $total_order_pnr,
+            'total_order_ngvo' => $total_order_ngvo,
+            'toko_order_rwo' => $toko_order_rwo,
+            'toko_order_pnr' => $toko_order_pnr,
+            'toko_order_ngvo' => $toko_order_ngvo,
             'total_noo' => $total_noo,
         ];
     }

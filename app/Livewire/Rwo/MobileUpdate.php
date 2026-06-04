@@ -29,6 +29,18 @@ class MobileUpdate extends Component
     public $existing_foto_depan; // DB path
     public $existing_foto_dalam; // DB path
 
+    // Edit Form fields
+    public $editOutletId = null;
+    public $edit_nama_pemilik_toko = '';
+    public $edit_nama_ktp = '';
+    public $edit_nik_ktp = '';
+    public $edit_no_hp = '';
+    public $edit_nama_bank = '';
+    public $edit_no_rekening = '';
+    public $edit_nama_pemilik_norek = '';
+    public $foto_ktp; // Uploaded KTP file
+    public $existing_foto_ktp; // DB KTP path
+
     // GPS Coordinates
     public $latitude = null;
     public $longitude = null;
@@ -346,6 +358,74 @@ class MobileUpdate extends Component
         $this->foto_dalam = null;
         $this->latitude = null;
         $this->longitude = null;
+    }
+
+    /**
+     * Save edited data (Identitas, Rekening, Foto KTP) for an outlet during offline sync
+     */
+    public function saveEditsForOutletOffline(
+        $outletId,
+        $nama_pemilik_toko,
+        $nama_ktp,
+        $nik_ktp,
+        $no_hp,
+        $nama_bank,
+        $no_rekening,
+        $nama_pemilik_norek
+    ) {
+        $outlet = RewardOutlet::findOrFail($outletId);
+        $data = [
+            'nama_pemilik_toko' => $nama_pemilik_toko,
+            'nama_ktp' => $nama_ktp,
+            'nama_bank' => $nama_bank,
+            'nama_pemilik_norek' => $nama_pemilik_norek,
+        ];
+
+        // Masking Safety: Only update sensitive values if they do not contain 'xxxx'
+        if ($nik_ktp && !str_contains($nik_ktp, 'xxxx')) {
+            $cleanNik = trim($nik_ktp);
+            if (strlen($cleanNik) === 16 && ctype_digit($cleanNik)) {
+                $data['nik_ktp'] = $cleanNik;
+            }
+        }
+        if ($no_hp && !str_contains($no_hp, 'xxxx')) {
+            $cleanHp = trim($no_hp);
+            if (ctype_digit($cleanHp)) {
+                $data['no_hp'] = $cleanHp;
+            }
+        }
+        if ($no_rekening && !str_contains($no_rekening, 'xxxx')) {
+            $data['no_rekening'] = $no_rekening;
+        }
+
+        // Save Foto KTP if uploaded
+        if ($this->foto_ktp) {
+            if ($outlet->foto_ktp) {
+                Storage::disk('public')->delete($outlet->foto_ktp);
+            }
+            $this->compressImageGD($this->foto_ktp->getRealPath());
+            $data['foto_ktp'] = $this->foto_ktp->store('rwo/ktp', 'public');
+        }
+
+        $outlet->update($data);
+
+        // Reset state for next item in sync queue
+        $this->foto_ktp = null;
+    }
+
+    /**
+     * Get temporary URL preview for KTP upload
+     */
+    public function getFotoKtpPreview()
+    {
+        if ($this->foto_ktp && method_exists($this->foto_ktp, 'temporaryUrl')) {
+            try {
+                return $this->foto_ktp->temporaryUrl();
+            } catch (\Exception $e) {
+                return null;
+            }
+        }
+        return null;
     }
 
     public function render()
