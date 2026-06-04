@@ -578,7 +578,7 @@
                          </div>
                          <div>
                              <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">No. HP</span>
-                             <span class="text-slate-800 font-bold" x-text="(detailOutlet && detailOutlet.no_hp) ? detailOutlet.no_hp : '-'"></span>
+                             <span class="text-slate-800 font-bold" x-text="(detailOutlet && detailOutlet.no_hp) ? maskValue(detailOutlet.no_hp) : '-'"></span>
                          </div>
                          <div class="col-span-2 grid grid-cols-3 gap-2 border-t border-slate-100/50 pt-2.5 mt-1">
                              <div>
@@ -614,7 +614,7 @@
                          </div>
                          <div>
                              <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">NIK KTP</span>
-                             <span class="font-mono text-slate-800 font-bold" x-text="(detailOutlet && detailOutlet.nik_ktp) ? detailOutlet.nik_ktp : '-'"></span>
+                             <span class="font-mono text-slate-800 font-bold" x-text="(detailOutlet && detailOutlet.nik_ktp) ? maskValue(detailOutlet.nik_ktp) : '-'"></span>
                          </div>
                      </div>
                  </div>
@@ -632,7 +632,7 @@
                          </div>
                          <div>
                              <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">No. Rekening</span>
-                             <span class="font-mono text-slate-800 font-bold" x-text="(detailOutlet && detailOutlet.no_rekening) ? detailOutlet.no_rekening : '-'"></span>
+                             <span class="font-mono text-slate-800 font-bold" x-text="(detailOutlet && detailOutlet.no_rekening) ? maskValue(detailOutlet.no_rekening) : '-'"></span>
                          </div>
                          <div class="col-span-2">
                              <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Nama Pemilik Rekening</span>
@@ -1161,6 +1161,14 @@
                 setTimeout(() => {
                     this.toast.show = false;
                 }, 3000);
+            },
+            
+            maskValue(value) {
+                if (!value) return '';
+                const valStr = String(value);
+                const len = valStr.length;
+                if (len <= 4) return 'xxxx';
+                return valStr.substring(0, len - 4) + 'xxxx';
             },
             
             getPendingSyncMessage() {

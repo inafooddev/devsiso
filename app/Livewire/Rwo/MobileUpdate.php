@@ -455,21 +455,6 @@ class MobileUpdate extends Component
             }
 
             $outlets = $query->orderBy('customer_name')->get();
-
-            $maskLastFour = function ($value) {
-                if (!$value) return '';
-                $len = strlen($value);
-                if ($len <= 4) {
-                    return 'xxxx';
-                }
-                return substr($value, 0, $len - 4) . 'xxxx';
-            };
-
-            $outlets->each(function ($outlet) use ($maskLastFour) {
-                $outlet->nik_ktp = $maskLastFour($outlet->nik_ktp);
-                $outlet->no_rekening = $maskLastFour($outlet->no_rekening);
-                $outlet->no_hp = $maskLastFour($outlet->no_hp);
-            });
         }
 
         // Get offline master data for local storage caching
@@ -479,21 +464,6 @@ class MobileUpdate extends Component
         $offlineBranches = \App\Models\MasterBranch::orderBy('branch_name')->get();
         
         $allOutlets = RewardOutlet::orderBy('customer_name')->get();
-
-        $maskLastFour = function ($value) {
-            if (!$value) return '';
-            $len = strlen($value);
-            if ($len <= 4) {
-                return 'xxxx';
-            }
-            return substr($value, 0, $len - 4) . 'xxxx';
-        };
-
-        $allOutlets->each(function ($outlet) use ($maskLastFour) {
-            $outlet->nik_ktp = $maskLastFour($outlet->nik_ktp);
-            $outlet->no_rekening = $maskLastFour($outlet->no_rekening);
-            $outlet->no_hp = $maskLastFour($outlet->no_hp);
-        });
 
         $offlineMasterData = [
             'regions' => $offlineRegions,
