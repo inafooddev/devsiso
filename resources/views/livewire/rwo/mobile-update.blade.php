@@ -1409,35 +1409,30 @@
             saveEdits() {
                 if (!this.editingOutlet) return;
                 
-                // Form validation
-                if (!this.editNamaPemilikToko.trim() || !this.editNamaKtp.trim() || 
-                    !this.editNikKtp.trim() || !this.editNoHp.trim() || 
-                    !this.editNamaBank.trim() || !this.editNoRekening.trim() || 
-                    !this.editNamaPemilikNorek.trim()) {
-                    this.showToast('Semua field identitas dan rekening harus diisi!', 'error');
-                    return;
-                }
-                
-                // NIK KTP validation: exactly 16 characters
+                // NIK KTP validation: exactly 16 characters (only if filled)
                 const nik = this.editNikKtp.trim();
-                if (nik.length !== 16) {
-                    this.showToast('NIK KTP harus tepat 16 digit!', 'error');
-                    return;
-                }
-                const isMaskedNik = /^\d{12}xxxx$/i.test(nik);
-                const isNumericNik = /^\d{16}$/.test(nik);
-                if (!isMaskedNik && !isNumericNik) {
-                    this.showToast('NIK KTP harus berupa 16 digit angka!', 'error');
-                    return;
+                if (nik.length > 0) {
+                    if (nik.length !== 16) {
+                        this.showToast('NIK KTP harus tepat 16 digit!', 'error');
+                        return;
+                    }
+                    const isMaskedNik = /^\d{12}xxxx$/i.test(nik);
+                    const isNumericNik = /^\d{16}$/.test(nik);
+                    if (!isMaskedNik && !isNumericNik) {
+                        this.showToast('NIK KTP harus berupa 16 digit angka!', 'error');
+                        return;
+                    }
                 }
                 
-                // Phone number validation: only digits (or masked)
+                // Phone number validation: only digits (or masked, only if filled)
                 const noHp = this.editNoHp.trim();
-                const isMaskedHp = /^\d+x+$/i.test(noHp);
-                const isNumericHp = /^\d+$/.test(noHp);
-                if (!isMaskedHp && !isNumericHp) {
-                    this.showToast('Nomor HP hanya boleh berisi angka!', 'error');
-                    return;
+                if (noHp.length > 0) {
+                    const isMaskedHp = /^\d+x+$/i.test(noHp);
+                    const isNumericHp = /^\d+$/.test(noHp);
+                    if (!isMaskedHp && !isNumericHp) {
+                        this.showToast('Nomor HP hanya boleh berisi angka!', 'error');
+                        return;
+                    }
                 }
                 
                 this.saveOfflineEdits();
