@@ -77,7 +77,7 @@
                         <td class="matrix-col-1 text-base-content/80 border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] truncate px-2 py-1 {{ $index % 2 === 0 ? 'bg-base-100' : 'bg-base-200' }}" title="{{ $team->region_name ?? '-' }}">{{ $team->region_name ?? '-' }}</td>
                         <td class="matrix-col-2 text-base-content/80 border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] truncate px-2 py-1 {{ $index % 2 === 0 ? 'bg-base-100' : 'bg-base-200' }}" title="{{ $team->area_name ?? '-' }}">{{ $team->area_name ?? '-' }}</td>
                         <td class="matrix-col-3 font-medium border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] truncate px-2 py-1 {{ $index % 2 === 0 ? 'bg-base-100' : 'bg-base-200' }}" title="{{ $team->kode_team }}">{{ $team->kode_team }}</td>
-                        <td class="matrix-col-4 text-base-content/80 border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] truncate px-2 py-1 {{ $index % 2 === 0 ? 'bg-base-100' : 'bg-base-200' }}" title="{{ $team->nama_team }}">{{ $team->nama_team }}</td>
+                        <td class="matrix-col-4 text-base-content/80 border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] truncate px-2 py-1 {{ $index % 2 === 0 ? 'bg-base-100' : 'bg-base-200' }} uppercase" title="{{ $team->nama_team }}">{{ $team->nama_team }}</td>
                         @foreach($monthDates as $date => $dayData)
                         <td class="text-center p-0 border-b border-r border-base-200 last:border-r-0 {{ $dayData['is_sunday'] ? 'bg-error/5' : '' }} {{ $dayData['is_end_of_week'] && !$loop->last ? 'matrix-week-border' : '' }}">
                             <div class="flex items-center justify-center h-full w-full min-h-[32px]">
@@ -129,7 +129,7 @@
                 <div class="flex flex-col md:flex-row justify-between bg-base-200/50 p-4 rounded-xl text-xs gap-2">
                     <div>
                         <span class="font-semibold text-base-content/50 uppercase tracking-wider block">Tim Sales</span>
-                        <span class="font-bold text-sm text-base-content">{{ $selectedTeamCode }} - {{ $selectedTeamName }}</span>
+                        <span class="font-bold text-sm text-base-content uppercase">{{ $selectedTeamCode }} - {{ $selectedTeamName }}</span>
                     </div>
                     <div>
                         <span class="font-semibold text-base-content/50 uppercase tracking-wider block">Tanggal Kunjungan</span>
