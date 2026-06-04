@@ -18,6 +18,19 @@ use Illuminate\Validation\Rule;
 class UserManagement extends Component
 {
     use WithPagination;
+    
+    // ─── Properti Filter & Search ─────────────────────────────────────────────
+    public $search = '';
+    public $roleFilter = '';
+    public $accessLevelFilter = '';
+    public $regionFilter = '';
+
+    protected $queryString = [
+        'search'            => ['except' => ''],
+        'roleFilter'        => ['except' => ''],
+        'accessLevelFilter' => ['except' => ''],
+        'regionFilter'      => ['except' => ''],
+    ];
 
     // ─── Properti Form Dasar ──────────────────────────────────────────────────
     public $userId, $userid, $name, $email, $password, $role;
@@ -77,8 +90,83 @@ class UserManagement extends Component
             ->orderBy('region_name')
             ->get();
 
+        $usersQuery = User::with(['roles', 'accessGroup'])
+            ->when($this->search, function ($query) {
+                $query->where(function ($sub) {
+                    $sub->where('userid', 'ilike', '%' . $this->search . '%')
+                        ->orWhere('name', 'ilike', '%' . $this->search . '%')
+                        ->orWhere('email', 'ilike', '%' . $this->search . '%');
+                });
+            })
+            ->when($this->roleFilter, function ($query) {
+                $query->whereHas('roles', function ($q) {
+                    $q->where('name', $this->roleFilter);
+                });
+            })
+            ->when($this->accessLevelFilter, function ($query) {
+                if ($this->accessLevelFilter === 'nasional') {
+                    $query->where(function ($q) {
+                        $q->whereNull('supervisor_code')
+                          ->where(function ($sub) {
+                              $sub->whereNull('area_code')
+                                  ->orWhere('area_code', '[]')
+                                  ->orWhere('area_code', '');
+                          })
+                          ->where(function ($sub) {
+                              $sub->whereNull('region_code')
+                                  ->orWhere('region_code', '[]')
+                                  ->orWhere('region_code', '');
+                          });
+                    })->orWhereHas('roles', function($q) {
+                        $q->where('name', 'admin');
+                    });
+                } elseif ($this->accessLevelFilter === 'supervisor') {
+                    $query->whereNotNull('supervisor_code')
+                          ->where('supervisor_code', '!=', '');
+                } elseif ($this->accessLevelFilter === 'area') {
+                    $query->whereNull('supervisor_code')
+                          ->whereNotNull('area_code')
+                          ->where('area_code', '!=', '[]')
+                          ->where('area_code', '!=', '');
+                } elseif ($this->accessLevelFilter === 'region') {
+                    $query->whereNull('supervisor_code')
+                          ->where(function ($sub) {
+                              $sub->whereNull('area_code')
+                                  ->orWhere('area_code', '[]')
+                                  ->orWhere('area_code', '');
+                          })
+                          ->whereNotNull('region_code')
+                          ->where('region_code', '!=', '[]')
+                          ->where('region_code', '!=', '');
+                }
+            })
+            ->when($this->regionFilter, function ($query) {
+                $query->where(function ($q) {
+                    // 1. Region level
+                    $q->whereJsonContains('region_code', $this->regionFilter);
+                    
+                    // 2. Area level
+                    $areaCodesInRegion = MasterArea::where('region_code', $this->regionFilter)->pluck('area_code')->toArray();
+                    if (!empty($areaCodesInRegion)) {
+                        $q->orWhere(function ($sub) use ($areaCodesInRegion) {
+                            foreach ($areaCodesInRegion as $area) {
+                                $sub->orWhereJsonContains('area_code', $area);
+                            }
+                        });
+                        
+                        // 3. Supervisor level
+                        $spvCodesInRegion = MasterSupervisor::whereIn('area_code', $areaCodesInRegion)->pluck('supervisor_code')->toArray();
+                        if (!empty($spvCodesInRegion)) {
+                            $q->orWhereIn('supervisor_code', $spvCodesInRegion);
+                        }
+                    }
+                });
+            });
+
+        $users = $usersQuery->latest()->paginate(10);
+
         return view('livewire.settings.user-management', [
-            'users'                => User::with(['roles', 'accessGroup'])->latest()->paginate(10),
+            'users'                => $users,
             'roles'                => Role::all(),
             'accessGroups'         => AccessGroup::all(),
             'availableRegions'     => $availableRegions,
@@ -138,6 +226,33 @@ class UserManagement extends Component
         $this->filterRegionForArea = '';
         $this->filterRegionForSpv  = '';
         $this->filterAreaForSpv    = '';
+    }
+
+    // ─── Filter Watchers ─────────────────────────────────────────────────────
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingRoleFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingAccessLevelFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingRegionFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function resetFilters(): void
+    {
+        $this->reset(['search', 'roleFilter', 'accessLevelFilter', 'regionFilter']);
+        $this->resetPage();
     }
 
     /** Saat filter region untuk area berubah, reset pilihan area */

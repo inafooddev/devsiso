@@ -21,13 +21,93 @@
             </div>
         @endif
 
+        <!-- Filter Card -->
+        <div class="bg-base-100 p-5 rounded-xl border border-base-200 shadow-sm mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-base-content/80 flex items-center gap-2">
+                    <x-heroicon-o-funnel class="w-4 h-4 text-primary" />
+                    Filter & Pencarian
+                </h3>
+                @if($search || $roleFilter || $accessLevelFilter || $regionFilter)
+                    <span class="badge badge-sm badge-primary font-medium animate-pulse">Filter Aktif</span>
+                @endif
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
+                <!-- Search -->
+                <div class="form-control w-full sm:col-span-2">
+                    <label class="label py-1"><span class="label-text text-xs font-semibold text-base-content/70">Keyword</span></label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-base-content/40">
+                            <x-heroicon-s-magnifying-glass class="w-4 h-4" />
+                        </span>
+                        <input 
+                            type="text" 
+                            wire:model.live.debounce.300ms="search" 
+                            placeholder="Cari userid, nama, email..." 
+                            class="input input-bordered w-full pl-10 text-sm focus:input-primary" 
+                        />
+                    </div>
+                </div>
+
+                <!-- Role Filter -->
+                <div class="form-control w-full">
+                    <label class="label py-1"><span class="label-text text-xs font-semibold text-base-content/70">Role</span></label>
+                    <select wire:model.live="roleFilter" class="select select-bordered w-full text-sm focus:select-primary">
+                        <option value="">Semua Role</option>
+                        @foreach($roles as $r)
+                            <option value="{{ $r->name }}">{{ strtoupper($r->name) }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Access Level Filter -->
+                <div class="form-control w-full">
+                    <label class="label py-1"><span class="label-text text-xs font-semibold text-base-content/70">Level Akses</span></label>
+                    <select wire:model.live="accessLevelFilter" class="select select-bordered w-full text-sm focus:select-primary">
+                        <option value="">Semua Level</option>
+                        <option value="nasional">NASIONAL</option>
+                        <option value="region">PER-REGION</option>
+                        <option value="area">PER-AREA</option>
+                        <option value="supervisor">PER-SUPERVISOR</option>
+                    </select>
+                </div>
+
+                <!-- Region Filter -->
+                <div class="form-control w-full">
+                    <label class="label py-1"><span class="label-text text-xs font-semibold text-base-content/70">Region / Wilayah</span></label>
+                    <select wire:model.live="regionFilter" class="select select-bordered w-full text-sm focus:select-primary">
+                        <option value="">Semua Region</option>
+                        @foreach($regionsForFilter as $region)
+                            <option value="{{ $region->region_code }}">{{ $region->region_code }} — {{ $region->region_name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Reset Button -->
+                <div class="form-control w-full">
+                    <x-ui.button 
+                        variant="ghost" 
+                        outline 
+                        class="w-full text-sm border-base-300 hover:border-error hover:text-error" 
+                        wire:click="resetFilters" 
+                        icon="arrow-path"
+                    >
+                        Reset Filter
+                    </x-ui.button>
+                </div>
+            </div>
+        </div>
+
         {{-- Tabel User --}}
         <x-ui.table empty="Belum ada data user" emptyIcon="users">
             <x-slot:head>
                 <tr>
-                    <th>User ID / Nama</th>
+                    <th>User ID</th>
+                    <th>Nama / Email</th>
                     <th>Role</th>
                     <th>Cakupan Wilayah</th>
+                    <th>Grup Akses</th>
                     <th class="text-right">Aksi</th>
                 </tr>
             </x-slot:head>
@@ -35,49 +115,95 @@
             @foreach($users as $user)
             <tr>
                 <td>
-                    <p class="font-bold text-base-content">{{ $user->userid }}</p>
-                    <p class="text-sm text-base-content/70">{{ $user->name }}</p>
+                    <div class="font-extrabold text-base text-base-content tracking-wide">{{ $user->userid }}</div>
                 </td>
                 <td>
-                    <x-ui.badge variant="primary" outline="true">
-                        {{ $user->getRoleNames()->first() ?? 'Belum ada role' }}
-                    </x-ui.badge>
+                    <div class="font-semibold text-sm text-base-content/85">{{ $user->name }}</div>
+                    <div class="text-xs text-base-content/40 mt-0.5">{{ $user->email }}</div>
                 </td>
-                <td class="text-base-content/70 text-sm">
+                <td>
+                    <span class="badge badge-sm badge-ghost text-base-content/85 font-semibold tracking-wide uppercase text-[10px] px-2.5 py-3 border border-base-200 shadow-sm">
+                        {{ $user->getRoleNames()->first() ?? 'Belum ada role' }}
+                    </span>
+                </td>
+                <td>
                     {{-- Badge Level --}}
-                    @php $lvl = $user->getAccessLevel(); @endphp
+                    @php 
+                        $lvl = $user->getAccessLevel(); 
+                        $regions = is_array($user->region_code) ? $user->region_code : ($user->region_code ? [$user->region_code] : []);
+                        $areas = is_array($user->area_code) ? $user->area_code : ($user->area_code ? [$user->area_code] : []);
+                    @endphp
 
-                    @if($lvl === 'supervisor')
-                        <span class="badge badge-sm badge-error font-bold mr-1">👤 SUPERVISOR</span>
-                        <span class="text-base-content">{{ $user->supervisor_code }}</span>
-                    @elseif($lvl === 'area')
-                        <span class="badge badge-sm badge-warning font-bold mr-1">📍 AREA</span>
-                        <span class="text-base-content">
-                            {{ is_array($user->area_code) ? implode(', ', $user->area_code) : $user->area_code }}
-                        </span>
-                    @elseif($lvl === 'region')
-                        <span class="badge badge-sm badge-info font-bold mr-1">🗺️ REGION</span>
-                        <span class="text-base-content">
-                            {{ is_array($user->region_code) ? implode(', ', $user->region_code) : $user->region_code }}
-                        </span>
-                    @else
-                        <span class="badge badge-sm badge-success font-bold">🌐 NASIONAL</span>
-                    @endif
-
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        @if($lvl === 'supervisor')
+                            <span class="badge badge-xs bg-base-200 text-base-content/70 border-0 font-bold tracking-wide text-[9px] uppercase px-1.5 py-2">SPV</span>
+                            <span class="font-mono text-xs text-base-content/75 font-semibold bg-base-200/50 px-1.5 py-0.5 rounded">{{ $user->supervisor_code }}</span>
+                        @elseif($lvl === 'area')
+                            <span class="badge badge-xs bg-base-200 text-base-content/70 border-0 font-bold tracking-wide text-[9px] uppercase px-1.5 py-2">AREA</span>
+                            <span class="font-mono text-xs text-base-content/75 flex items-center gap-1 bg-base-200/50 px-1.5 py-0.5 rounded">
+                                @php
+                                    $displayedAreas = array_slice($areas, 0, 2);
+                                    $remainingAreasCount = count($areas) - 2;
+                                @endphp
+                                <span class="font-semibold">{{ implode(', ', $displayedAreas) }}</span>
+                                @if($remainingAreasCount > 0)
+                                    <span class="badge badge-xs badge-ghost text-[9px] font-extrabold text-base-content/40 px-1.5 py-0 bg-base-300/30 border-0">+{{ $remainingAreasCount }}</span>
+                                @endif
+                            </span>
+                        @elseif($lvl === 'region')
+                            <span class="badge badge-xs bg-base-200 text-base-content/70 border-0 font-bold tracking-wide text-[9px] uppercase px-1.5 py-2">REG</span>
+                            <span class="font-mono text-xs text-base-content/75 flex items-center gap-1 bg-base-200/50 px-1.5 py-0.5 rounded">
+                                @php
+                                    $displayedRegions = array_slice($regions, 0, 2);
+                                    $remainingRegionsCount = count($regions) - 2;
+                                @endphp
+                                <span class="font-semibold">{{ implode(', ', $displayedRegions) }}</span>
+                                @if($remainingRegionsCount > 0)
+                                    <span class="badge badge-xs badge-ghost text-[9px] font-extrabold text-base-content/40 px-1.5 py-0 bg-base-300/30 border-0">+{{ $remainingRegionsCount }}</span>
+                                @endif
+                            </span>
+                        @else
+                            <span class="badge badge-xs bg-base-200 text-base-content/70 border-0 font-bold tracking-wide text-[9px] uppercase px-1.5 py-2">NASIONAL</span>
+                        @endif
+                    </div>
+                </td>
+                <td>
                     {{-- Grup Akses --}}
                     @if($user->access_group_id)
-                        <br><span class="badge badge-sm badge-outline badge-success mt-1">Grup: {{ $user->accessGroup?->name ?? 'ID:'.$user->access_group_id }}</span>
+                        <div class="text-xs text-base-content/70 flex items-center gap-1.5">
+                            <x-heroicon-o-folder class="w-4 h-4 text-primary/70" />
+                            <span class="font-semibold">{{ $user->accessGroup?->name ?? 'ID:'.$user->access_group_id }}</span>
+                        </div>
                     @else
-                        <br><span class="badge badge-sm badge-outline badge-warning mt-1">Belum ada grup</span>
+                        <div class="text-xs text-base-content/35 italic flex items-center gap-1.5">
+                            <x-heroicon-o-folder-minus class="w-4 h-4 text-base-content/25" />
+                            <span>Tanpa grup</span>
+                        </div>
                     @endif
                 </td>
-                <td class="text-right space-x-1">
-                    <x-ui.button variant="primary" size="sm" outline="true" icon="pencil" wire:click="edit({{ $user->id }})">
-                        Edit
-                    </x-ui.button>
-                    <x-ui.button variant="error" size="sm" outline="true" icon="trash" wire:click="delete({{ $user->id }})" onclick="return confirm('Yakin ingin menghapus user ini?')">
-                        Hapus
-                    </x-ui.button>
+                <td class="text-right">
+                    <div class="flex items-center justify-end gap-1">
+                        <!-- Edit Button -->
+                        <button 
+                            type="button"
+                            wire:click="edit({{ $user->id }})"
+                            class="p-2 rounded-lg text-primary hover:bg-primary/10 hover:text-primary-focus transition-all duration-200"
+                            title="Edit User"
+                        >
+                            <x-heroicon-s-pencil class="w-4 h-4" />
+                        </button>
+                        
+                        <!-- Delete Button -->
+                        <button 
+                            type="button"
+                            wire:click="delete({{ $user->id }})"
+                            onclick="return confirm('Yakin ingin menghapus user ini?')"
+                            class="p-2 rounded-lg text-error hover:bg-error/10 hover:text-error-focus transition-all duration-200"
+                            title="Hapus User"
+                        >
+                            <x-heroicon-s-trash class="w-4 h-4" />
+                        </button>
+                    </div>
                 </td>
             </tr>
             @endforeach
