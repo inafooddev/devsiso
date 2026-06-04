@@ -891,7 +891,11 @@
                          <!-- No Rekening -->
                          <div class="form-control w-full">
                              <label class="label py-0.5"><span class="label-text text-[9px] font-extrabold uppercase tracking-wider text-slate-400">No. Rekening</span></label>
-                             <input type="text" x-model="editNoRekening" class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                             <input type="text" 
+                                    inputmode="numeric" 
+                                    x-model="editNoRekening" 
+                                    @input="editNoRekening = editNoRekening.replace(/[^\dxX]/g, '')"
+                                    class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" />
                          </div>
 
                          <!-- Nama Pemilik Rekening -->
@@ -1438,6 +1442,17 @@
                     const isNumericHp = /^\d+$/.test(noHp);
                     if (!isMaskedHp && !isNumericHp) {
                         this.showToast('Nomor HP hanya boleh berisi angka!', 'error');
+                        return;
+                    }
+                }
+                
+                // Bank account number validation: only digits (or masked, only if filled)
+                const noRek = this.editNoRekening.trim();
+                if (noRek.length > 0) {
+                    const isMaskedRek = /^\d+x+$/i.test(noRek);
+                    const isNumericRek = /^\d+$/.test(noRek);
+                    if (!isMaskedRek && !isNumericRek) {
+                        this.showToast('Nomor Rekening hanya boleh berisi angka!', 'error');
                         return;
                     }
                 }

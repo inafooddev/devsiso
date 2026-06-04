@@ -395,7 +395,10 @@ class MobileUpdate extends Component
             }
         }
         if ($no_rekening && !str_contains($no_rekening, 'xxxx')) {
-            $data['no_rekening'] = $no_rekening;
+            $cleanRek = trim($no_rekening);
+            if (ctype_digit($cleanRek)) {
+                $data['no_rekening'] = $cleanRek;
+            }
         }
 
         // Save Foto KTP if uploaded
