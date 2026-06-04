@@ -37,7 +37,7 @@
                 <x-heroicon-s-chevron-down class="w-4 h-4 text-base-content/50" />
             </div>
 
-            <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box shadow-lg border border-base-300 w-52 p-2 mt-1 z-[1]">
+            <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box shadow-lg border border-base-300 w-52 p-2 mt-1 z-[9999]">
                 <li>
                     <a href="{{ route('profile') }}" class="flex items-center gap-3">
                         <x-heroicon-o-user class="w-4 h-4 text-base-content/60" />

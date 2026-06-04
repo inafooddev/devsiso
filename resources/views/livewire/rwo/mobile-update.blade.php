@@ -801,13 +801,13 @@
                          <!-- Nama Pemilik Toko -->
                          <div class="form-control w-full">
                              <label class="label py-0.5"><span class="label-text text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Nama Pemilik Toko</span></label>
-                             <input type="text" x-model="editNamaPemilikToko" class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                             <input type="text" x-model="editNamaPemilikToko" :disabled="lockedFields.nama_pemilik_toko" class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100 disabled:text-slate-500 disabled:border-slate-200" />
                          </div>
                          
                          <!-- Nama KTP -->
                          <div class="form-control w-full">
                              <label class="label py-0.5"><span class="label-text text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Nama KTP</span></label>
-                             <input type="text" x-model="editNamaKtp" class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                             <input type="text" x-model="editNamaKtp" :disabled="lockedFields.nama_ktp" class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100 disabled:text-slate-500 disabled:border-slate-200" />
                          </div>
 
                          <!-- NIK KTP -->
@@ -818,7 +818,8 @@
                                     maxlength="16" 
                                     x-model="editNikKtp" 
                                     @input="editNikKtp = editNikKtp.replace(/[^\dxX]/g, '')"
-                                    class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                                    :disabled="lockedFields.nik_ktp"
+                                    class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100 disabled:text-slate-500 disabled:border-slate-200" />
                          </div>
 
                          <!-- No HP -->
@@ -828,7 +829,8 @@
                                     inputmode="tel" 
                                     x-model="editNoHp" 
                                     @input="editNoHp = editNoHp.replace(/[^\dxX]/g, '')"
-                                    class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                                    :disabled="lockedFields.no_hp"
+                                    class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100 disabled:text-slate-500 disabled:border-slate-200" />
                          </div>
                      </div>
                  </div>
@@ -862,9 +864,10 @@
                                   <input type="text" 
                                          placeholder="Pilih atau cari bank..."
                                          x-model="editNamaBank" 
-                                         @focus="open = true; searchQuery = editNamaBank"
-                                         @input="open = true; searchQuery = editNamaBank"
-                                         class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 pr-8" />
+                                         @focus="if (!lockedFields.nama_bank) { open = true; searchQuery = editNamaBank; }"
+                                         @input="if (!lockedFields.nama_bank) { open = true; searchQuery = editNamaBank; }"
+                                         :disabled="lockedFields.nama_bank"
+                                         class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 pr-8 disabled:bg-slate-100 disabled:text-slate-500 disabled:border-slate-200" />
                                   <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
                                       <x-heroicon-s-chevron-down class="w-4 h-4" />
                                   </span>
@@ -895,13 +898,14 @@
                                     inputmode="numeric" 
                                     x-model="editNoRekening" 
                                     @input="editNoRekening = editNoRekening.replace(/[^\dxX]/g, '')"
-                                    class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                                    :disabled="lockedFields.no_rekening"
+                                    class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100 disabled:text-slate-500 disabled:border-slate-200" />
                          </div>
 
                          <!-- Nama Pemilik Rekening -->
                          <div class="form-control w-full">
                              <label class="label py-0.5"><span class="label-text text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Nama Pemilik Rekening</span></label>
-                             <input type="text" x-model="editNamaPemilikNorek" class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                             <input type="text" x-model="editNamaPemilikNorek" :disabled="lockedFields.nama_pemilik_norek" class="input input-bordered input-sm h-10 w-full rounded-xl text-base bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100 disabled:text-slate-500 disabled:border-slate-200" />
                          </div>
                      </div>
                  </div>
@@ -918,7 +922,8 @@
                          <input type="file" 
                                 accept="image/*" 
                                 @change="handleFileSelect($event, 'foto_ktp')" 
-                                class="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                :disabled="lockedFields.foto_ktp"
+                                class="absolute inset-0 opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed" />
                          
                          <template x-if="fotoKtpPreview">
                              <div class="w-full flex flex-col items-center">
@@ -934,7 +939,7 @@
                                      <x-heroicon-s-shield-check class="w-5 h-5" />
                                  </div>
                                  <span class="text-[10px] font-bold text-emerald-600 mt-1.5">Foto KTP Sudah Terunggah</span>
-                                 <span class="text-[8px] text-slate-400 mt-0.5">Ketuk untuk mengambil ulang / mengganti foto KTP</span>
+                                 <span class="text-[8px] text-slate-400 mt-0.5" x-text="lockedFields.foto_ktp ? 'Sudah tersimpan di server & tidak dapat diubah' : 'Ketuk untuk mengambil ulang / mengganti foto KTP'"></span>
                              </div>
                          </template>
                          <template x-if="!fotoKtpPreview && editingOutlet && !editingOutlet.foto_ktp">
@@ -1140,6 +1145,16 @@
             
             // Edit Outlet state variables
             editingOutlet: null,
+            lockedFields: {
+                nama_pemilik_toko: false,
+                nama_ktp: false,
+                nik_ktp: false,
+                no_hp: false,
+                nama_bank: false,
+                no_rekening: false,
+                nama_pemilik_norek: false,
+                foto_ktp: false
+            },
             editNamaPemilikToko: '',
             editNamaKtp: '',
             editNikKtp: '',
@@ -1407,6 +1422,18 @@
                 this.fotoKtpBlob = null;
                 this.fotoKtpPreview = null;
                 this.fotoKtpState = { isUploading: false, progress: 0, errorMessage: '' };
+                
+                // Track which fields were already filled in database
+                this.lockedFields = {
+                    nama_pemilik_toko: !!(outlet.nama_pemilik_toko && outlet.nama_pemilik_toko.trim() && !outlet.nama_pemilik_toko.startsWith('pending')),
+                    nama_ktp: !!(outlet.nama_ktp && outlet.nama_ktp.trim() && !outlet.nama_ktp.startsWith('pending')),
+                    nik_ktp: !!(outlet.nik_ktp && outlet.nik_ktp.trim() && !outlet.nik_ktp.startsWith('pending')),
+                    no_hp: !!(outlet.no_hp && outlet.no_hp.trim() && !outlet.no_hp.startsWith('pending')),
+                    nama_bank: !!(outlet.nama_bank && outlet.nama_bank.trim() && !outlet.nama_bank.startsWith('pending')),
+                    no_rekening: !!(outlet.no_rekening && outlet.no_rekening.trim() && !outlet.no_rekening.startsWith('pending')),
+                    nama_pemilik_norek: !!(outlet.nama_pemilik_norek && outlet.nama_pemilik_norek.trim() && !outlet.nama_pemilik_norek.startsWith('pending')),
+                    foto_ktp: !!(outlet.foto_ktp && outlet.foto_ktp.trim() && !outlet.foto_ktp.startsWith('pending'))
+                };
             },
             
             cancelEdit() {
@@ -1415,6 +1442,16 @@
                 this.editingOutlet = null;
                 this.fotoKtpBlob = null;
                 this.fotoKtpPreview = null;
+                this.lockedFields = {
+                    nama_pemilik_toko: false,
+                    nama_ktp: false,
+                    nik_ktp: false,
+                    no_hp: false,
+                    nama_bank: false,
+                    no_rekening: false,
+                    nama_pemilik_norek: false,
+                    foto_ktp: false
+                };
             },
             
             saveEdits() {

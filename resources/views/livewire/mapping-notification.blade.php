@@ -7,7 +7,7 @@
             @endif
         </div>
     </div>
-    <div tabindex="0" class="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 w-80 p-2 mt-4 z-[30]">
+    <div tabindex="0" class="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 w-80 p-2 mt-4 z-[9999]">
         <div class="px-4 py-3 border-b border-base-200">
             <h3 class="font-bold text-sm flex items-center gap-2">
                 <x-heroicon-s-bell-alert class="w-4 h-4 text-primary" />

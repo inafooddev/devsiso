@@ -30,9 +30,15 @@ class Index extends Component
     {
         $this->selectedMonth = date('Y-m');
 
-        $this->levels = DB::table('zv_summary_visit_team_elite')
-            ->whereNotNull('level')
-            ->distinct()
+        $query = DB::table('zv_summary_visit_team_elite')
+            ->whereNotNull('level');
+            
+        $user = auth()->user();
+        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
+            $query->whereIn('region_code', (array) $user->region_code);
+        }
+
+        $this->levels = $query->distinct()
             ->orderBy('level')
             ->pluck('level')
             ->toArray();
@@ -44,11 +50,17 @@ class Index extends Component
         $this->teams = [];
         
         if ($value) {
-            $this->teams = DB::table('zv_summary_visit_team_elite')
+            $query = DB::table('zv_summary_visit_team_elite')
                 ->select('team_code', 'team_name')
                 ->where('level', $value)
-                ->whereNotNull('team_code')
-                ->distinct()
+                ->whereNotNull('team_code');
+                
+            $user = auth()->user();
+            if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
+                $query->whereIn('region_code', (array) $user->region_code);
+            }
+
+            $this->teams = $query->distinct()
                 ->orderBy('team_name')
                 ->get()
                 ->toArray();
@@ -73,6 +85,16 @@ class Index extends Component
 
         $visitConditions = "WHERE s.tanggal >= ? AND s.tanggal < ?";
         $dynamicBindings = [];
+
+        $user = auth()->user();
+        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
+            $regionCodes = (array) $user->region_code;
+            $placeholders = implode(',', array_fill(0, count($regionCodes), '?'));
+            $visitConditions .= " AND s.region_code IN ($placeholders)";
+            foreach ($regionCodes as $code) {
+                $dynamicBindings[] = $code;
+            }
+        }
 
         if ($this->selectedLevel) {
             $visitConditions .= " AND s.\"level\" = ?";
