@@ -721,6 +721,17 @@ class MenuSeeder extends Seeder
                 'created_at' => '2026-05-29 15:53:49',
                 'updated_at' => '2026-05-29 15:53:49',
             ],
+            [
+                'id' => 69,
+                'name' => 'Master Customer JKS',
+                'route' => 'call-plan.jks-team-elite.master-customer',
+                'icon' => null,
+                'parent_id' => 50,
+                'order_number' => 7,
+                'is_active' => true,
+                'created_at' => '2026-06-05 15:10:00',
+                'updated_at' => '2026-06-05 15:10:00',
+            ],
         ];
 
         DB::table('menus')->insert($menus);

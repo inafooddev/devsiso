@@ -46,6 +46,7 @@ use App\Livewire\CallPlan\JksTeamElite\ListTokoPareto\Index as ListTokoPareto;
 use App\Livewire\CallPlan\JksTeamElite\SummaryKunjungan\Index as SummaryKunjunganIndex;
 use App\Livewire\CallPlan\JksTeamElite\SummaryVisitTeamElite\Index as SummaryVisitTeamEliteIndex;
 use App\Livewire\CallPlan\JksTeamElite\MonitoringJKSTeamElite\Index as MonitoringJKSTeamEliteIndex;
+use App\Livewire\CallPlan\JksTeamElite\MasterCustomer\Index as JksMasterCustomerIndex;
 use App\Livewire\MasterData\Product\BrandProduct\Index as ProductBrandIndex;
 use App\Livewire\MasterData\Product\CategoriesProduct\Index as CategoryIndex;
 use App\Livewire\MasterData\Product\GroupProduct\Index as ProductGroupIndex;
@@ -190,6 +191,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/call-plan/jks-team-elite/summary-kunjungan', SummaryKunjunganIndex::class)->name('call-plan.jks-team-elite.summary-kunjungan');
     Route::get('/call-plan/jks-team-elite/summary-visit-team-elite', SummaryVisitTeamEliteIndex::class)->name('call-plan.jks-team-elite.summary-visit-team-elite');
     Route::get('/call-plan/jks-team-elite/monitoring', MonitoringJKSTeamEliteIndex::class)->name('call-plan.jks-team-elite.monitoring');
+    Route::get('/call-plan/jks-team-elite/master-customer', JksMasterCustomerIndex::class)->name('call-plan.jks-team-elite.master-customer');
 
     // ==========================================
     // SELLING IN & OUT
