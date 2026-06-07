@@ -397,7 +397,8 @@
                                 accept="image/*" 
                                 capture="environment" 
                                 @change="handleFileSelect($event, 'foto_depan')" 
-                                class="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                :disabled="activeOutlet && activeOutlet.foto_toko2 && !activeOutlet.foto_toko2.startsWith('pending')"
+                                class="absolute inset-0 opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed" />
                          
                          <template x-if="fotoDepanPreview">
                              <div class="w-full flex flex-col items-center">
@@ -410,7 +411,8 @@
                          <template x-if="!fotoDepanPreview && activeOutlet && activeOutlet.foto_toko2">
                              <div class="w-full flex flex-col items-center">
                                  <img :src="getExistingPhotoUrl(activeOutlet.foto_toko2)" class="w-full h-24 object-contain rounded-lg opacity-80" />
-                                 <span class="text-[9px] font-semibold text-slate-500 mt-1.5" x-text="activeOutlet.foto_toko2.startsWith('pending') ? 'Foto Tersimpan Offline (Siap Sinkron)' : 'Foto Saat Ini (Tampak Depan)'"></span>
+                                 <span class="text-[9px] font-semibold text-emerald-600 mt-1.5" x-text="activeOutlet.foto_toko2.startsWith('pending') ? 'Foto Tersimpan Offline (Ketuk untuk ganti)' : 'Foto Sudah Terunggah'"></span>
+                                 <span class="text-[8px] text-slate-400 mt-0.5" x-show="!activeOutlet.foto_toko2.startsWith('pending')">Sudah tersimpan di server & tidak dapat diubah</span>
                              </div>
                          </template>
                          <template x-if="!fotoDepanPreview && activeOutlet && !activeOutlet.foto_toko2">
@@ -451,7 +453,8 @@
                                 accept="image/*" 
                                 capture="environment" 
                                 @change="handleFileSelect($event, 'foto_dalam')" 
-                                class="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                :disabled="activeOutlet && activeOutlet.foto_toko3 && !activeOutlet.foto_toko3.startsWith('pending')"
+                                class="absolute inset-0 opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed" />
                          
                          <template x-if="fotoDalamPreview">
                              <div class="w-full flex flex-col items-center">
@@ -464,7 +467,8 @@
                          <template x-if="!fotoDalamPreview && activeOutlet && activeOutlet.foto_toko3">
                              <div class="w-full flex flex-col items-center">
                                  <img :src="getExistingPhotoUrl(activeOutlet.foto_toko3)" class="w-full h-24 object-contain rounded-lg opacity-80" />
-                                 <span class="text-[9px] font-semibold text-slate-500 mt-1.5" x-text="activeOutlet.foto_toko3.startsWith('pending') ? 'Foto Tersimpan Offline (Siap Sinkron)' : 'Foto Saat Ini (Tampak Dalam)'"></span>
+                                 <span class="text-[9px] font-semibold text-emerald-600 mt-1.5" x-text="activeOutlet.foto_toko3.startsWith('pending') ? 'Foto Tersimpan Offline (Ketuk untuk ganti)' : 'Foto Sudah Terunggah'"></span>
+                                 <span class="text-[8px] text-slate-400 mt-0.5" x-show="!activeOutlet.foto_toko3.startsWith('pending')">Sudah tersimpan di server & tidak dapat diubah</span>
                              </div>
                          </template>
                          <template x-if="!fotoDalamPreview && activeOutlet && !activeOutlet.foto_toko3">
@@ -1171,6 +1175,8 @@
             showFiltersSheet: false,
             detailOutlet: null,
             showGuideSheet: false,
+            queryTimeout: null,
+            cachedOutlets: null,
             
             showToast(message, type = 'success') {
                 this.toast.message = message;
@@ -1312,7 +1318,7 @@
                                     localStorage.setItem('rwo_last_seed', Date.now());
                                     
                                     this.loadDropdowns();
-                                    this.queryOutlets();
+                                    this.queryOutlets(true);
                                     console.log('IndexedDB seeded successfully' + (this.isOffline ? ' (Offline Mode Recovery)' : ''));
                                 };
                             } catch (e) {
@@ -1346,10 +1352,42 @@
                 return this.branchesList.filter(b => activeSpvCodes.includes(b.supervisor_code));
             },
             
-            queryOutlets() {
-                // If nothing is selected, empty the list
-                if (!this.selectedRegion && !this.selectedArea && !this.selectedBranch && !this.search) {
-                    this.outletsList = [];
+            queryOutlets(forceRefresh = false) {
+                if (forceRefresh) this.cachedOutlets = null;
+                
+                if (this.queryTimeout) clearTimeout(this.queryTimeout);
+                this.queryTimeout = setTimeout(() => {
+                    this.executeOutletQuery();
+                }, 150);
+            },
+            
+            executeOutletQuery() {
+                const applyFilters = (outletsData) => {
+                    let outlets = outletsData;
+                    if (this.selectedRegion) {
+                        outlets = outlets.filter(o => o.region_code === this.selectedRegion);
+                    }
+                    if (this.selectedArea) {
+                        outlets = outlets.filter(o => o.area_code === this.selectedArea);
+                    }
+                    if (this.selectedBranch) {
+                        outlets = outlets.filter(o => o.branch_name === this.selectedBranch);
+                    }
+                    if (this.search) {
+                        const q = this.search.toLowerCase();
+                        outlets = outlets.filter(o => 
+                            (o.customer_code && o.customer_code.toLowerCase().includes(q)) || 
+                            (o.customer_name && o.customer_name.toLowerCase().includes(q))
+                        );
+                    }
+                    
+                    // Limit items to prevent DOM freezing (browser lag).
+                    const isFiltered = this.selectedRegion || this.selectedArea || this.selectedBranch || this.search;
+                    this.outletsList = isFiltered ? outlets.slice(0, 100) : outlets.slice(0, 30);
+                };
+
+                if (this.cachedOutlets) {
+                    applyFilters(this.cachedOutlets);
                     return;
                 }
                 
@@ -1359,25 +1397,8 @@
                     const request = store.getAll();
                     
                     request.onsuccess = (e) => {
-                        let outlets = e.target.result;
-                        
-                        if (this.selectedRegion) {
-                            outlets = outlets.filter(o => o.region_code === this.selectedRegion);
-                        }
-                        if (this.selectedArea) {
-                            outlets = outlets.filter(o => o.area_code === this.selectedArea);
-                        }
-                        if (this.selectedBranch) {
-                            outlets = outlets.filter(o => o.branch_name === this.selectedBranch);
-                        }
-                        if (this.search) {
-                            const q = this.search.toLowerCase();
-                            outlets = outlets.filter(o => 
-                                (o.customer_code && o.customer_code.toLowerCase().includes(q)) || 
-                                (o.customer_name && o.customer_name.toLowerCase().includes(q))
-                            );
-                        }
-                        this.outletsList = outlets;
+                        this.cachedOutlets = e.target.result;
+                        applyFilters(this.cachedOutlets);
                     };
                 });
             },
@@ -1434,6 +1455,10 @@
                     nama_pemilik_norek: !!(outlet.nama_pemilik_norek && outlet.nama_pemilik_norek.trim() && !outlet.nama_pemilik_norek.startsWith('pending')),
                     foto_ktp: !!(outlet.foto_ktp && outlet.foto_ktp.trim() && !outlet.foto_ktp.startsWith('pending'))
                 };
+
+                if (this.lockedFields.nik_ktp) this.editNikKtp = this.maskValue(outlet.nik_ktp);
+                if (this.lockedFields.no_hp) this.editNoHp = this.maskValue(outlet.no_hp);
+                if (this.lockedFields.no_rekening) this.editNoRekening = this.maskValue(outlet.no_rekening);
             },
             
             cancelEdit() {
@@ -1509,10 +1534,10 @@
                         customer_name: this.editingOutlet.customer_name,
                         nama_pemilik_toko: this.editNamaPemilikToko,
                         nama_ktp: this.editNamaKtp,
-                        nik_ktp: this.editNikKtp,
-                        no_hp: this.editNoHp,
+                        nik_ktp: this.lockedFields.nik_ktp ? this.editingOutlet.nik_ktp : this.editNikKtp,
+                        no_hp: this.lockedFields.no_hp ? this.editingOutlet.no_hp : this.editNoHp,
                         nama_bank: this.editNamaBank,
-                        no_rekening: this.editNoRekening,
+                        no_rekening: this.lockedFields.no_rekening ? this.editingOutlet.no_rekening : this.editNoRekening,
                         nama_pemilik_norek: this.editNamaPemilikNorek,
                         foto_ktp_blob: this.fotoKtpBlob,
                         timestamp: Date.now()
@@ -1527,10 +1552,10 @@
                         if (o) {
                             o.nama_pemilik_toko = this.editNamaPemilikToko;
                             o.nama_ktp = this.editNamaKtp;
-                            o.nik_ktp = this.editNikKtp;
-                            o.no_hp = this.editNoHp;
+                            o.nik_ktp = this.lockedFields.nik_ktp ? this.editingOutlet.nik_ktp : this.editNikKtp;
+                            o.no_hp = this.lockedFields.no_hp ? this.editingOutlet.no_hp : this.editNoHp;
                             o.nama_bank = this.editNamaBank;
-                            o.no_rekening = this.editNoRekening;
+                            o.no_rekening = this.lockedFields.no_rekening ? this.editingOutlet.no_rekening : this.editNoRekening;
                             o.nama_pemilik_norek = this.editNamaPemilikNorek;
                             
                             // Recalculate status completeness locally
@@ -1553,7 +1578,7 @@
                     transaction.oncomplete = () => {
                         this.cancelEdit();
                         this.updateQueueCount();
-                        this.queryOutlets();
+                        this.queryOutlets(true);
                         
                         if (this.isOffline) {
                             this.showToast('Perubahan data disimpan secara offline.');
@@ -1769,7 +1794,7 @@
                     transaction.oncomplete = () => {
                         this.cancelUpload();
                         this.updateQueueCount();
-                        this.queryOutlets();
+                        this.queryOutlets(true);
                         
                         if (this.isOffline) {
                             this.showToast('Foto disimpan secara offline.');
@@ -1827,7 +1852,7 @@
                         transaction.oncomplete = () => {
                             this.showToast('Antrean data offline berhasil dihapus.');
                             this.updateQueueCount();
-                            this.queryOutlets();
+                            this.queryOutlets(true);
                         };
                     }).catch(err => {
                         console.error('Failed to clear queue:', err);
@@ -1992,8 +2017,15 @@
                 } finally {
                     this.isSyncing = false;
                     await this.updateQueueCount();
-                    this.queryOutlets();
+                    this.queryOutlets(true);
+                    
+                    // Re-render the Livewire component to get fresh data from server
                     await wire.$refresh();
+                    
+                    // After component re-renders, if sync was successful, re-seed the local DB with the fresh server data
+                    if (syncSuccess && !this.isOffline) {
+                        this.seedMasterData();
+                    }
                     
                     // Auto-trigger next sync loop only if sync succeeded
                     if (syncSuccess && !this.isOffline && (this.pendingQueueCount > 0 || this.pendingEditQueueCount > 0)) {

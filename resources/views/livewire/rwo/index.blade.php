@@ -1,156 +1,158 @@
 <div>
     <x-slot name="title">Master Customer RWO</x-slot>
 
-    <div class="mx-auto px-4 sm:px-6 py-8 text-base-content">
+    <div class="mx-auto px-4 sm:px-6 pt-3 pb-8 text-base-content">
         {{-- Notifikasi --}}
-        <div class="mb-6 space-y-3">
-            @if (session()->has('message'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
-                     class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
-                    <x-heroicon-s-check-circle class="w-6 h-6 shrink-0" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
-                        <div class="text-sm">{{ session('message') }}</div>
+        @if (session()->has('message') || session()->has('error'))
+            <div class="mb-4 space-y-3">
+                @if (session()->has('message'))
+                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
+                         class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
+                        <x-heroicon-s-check-circle class="w-6 h-6 shrink-0" />
+                        <div>
+                            <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
+                            <div class="text-sm">{{ session('message') }}</div>
+                        </div>
                     </div>
-                </div>
-            @endif
-            @if (session()->has('error'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
-                     class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
-                    <x-heroicon-s-x-circle class="w-6 h-6 shrink-0" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
-                        <div class="text-sm">{{ session('error') }}</div>
+                @endif
+                @if (session()->has('error'))
+                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
+                         class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
+                        <x-heroicon-s-x-circle class="w-6 h-6 shrink-0" />
+                        <div>
+                            <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
+                            <div class="text-sm">{{ session('error') }}</div>
+                        </div>
                     </div>
-                </div>
-            @endif
-        </div>
+                @endif
+            </div>
+        @endif
 
         {{-- KPI Cards Summary --}}
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4 mb-6">
             {{-- Card 1: Total Toko --}}
             <div wire:click="setFilter('')" 
-                 class="relative overflow-hidden cursor-pointer group p-5 bg-base-100 rounded-3xl border transition-all duration-300 hover:-translate-y-1 {{ empty($filter_type) ? 'border-primary shadow-lg shadow-primary/10 ring-1 ring-primary' : 'border-base-300 shadow-sm hover:shadow-md' }}">
-                <div class="flex items-center justify-between">
+                 class="relative overflow-hidden cursor-pointer group p-3.5 bg-base-100 rounded-2xl border transition-all duration-300 hover:-translate-y-1 {{ empty($filter_type) ? 'border-primary shadow-lg shadow-primary/10 ring-1 ring-primary' : 'border-base-300 shadow-sm hover:shadow-md' }}">
+                <div class="flex items-start justify-between gap-2">
                     <div>
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40">Total Toko</span>
-                        <h3 class="text-2xl font-black mt-1 text-base-content">{{ number_format($kpis['total_toko']) }}</h3>
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-base-content/50 line-clamp-2 leading-tight">Total Toko</span>
+                        <h3 class="text-xl font-black mt-1.5 text-base-content">{{ number_format($kpis['total_toko']) }}</h3>
                     </div>
-                    <div class="p-3 rounded-2xl transition-all duration-300 {{ empty($filter_type) ? 'bg-primary/20 text-primary' : 'bg-base-200 text-base-content/40 group-hover:bg-primary/10 group-hover:text-primary' }}">
-                        <x-heroicon-s-building-storefront class="w-6 h-6 shrink-0" />
+                    <div class="p-2 rounded-xl transition-all duration-300 {{ empty($filter_type) ? 'bg-primary/20 text-primary' : 'bg-base-200 text-base-content/40 group-hover:bg-primary/10 group-hover:text-primary' }}">
+                        <x-heroicon-s-building-storefront class="w-5 h-5 shrink-0" />
                     </div>
                 </div>
-                <div class="mt-3 flex items-center justify-between text-[11px]">
-                    <span class="font-medium text-base-content/50">Semua Data</span>
-                    <span class="font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">Tampilkan &rarr;</span>
+                <div class="mt-2.5 flex items-center justify-between text-[10px]">
+                    <span class="font-medium text-base-content/50 truncate">Semua Data</span>
+                    <span class="font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap ml-1">&rarr;</span>
                 </div>
             </div>
 
             {{-- Card 2: Belum Ada NIK KTP --}}
             <div wire:click="setFilter('tanpa_ktp')" 
-                 class="relative overflow-hidden cursor-pointer group p-5 bg-base-100 rounded-3xl border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tanpa_ktp' ? 'border-warning shadow-lg shadow-warning/10 ring-1 ring-warning' : 'border-base-300 shadow-sm hover:shadow-md' }}">
-                <div class="flex items-center justify-between">
+                 class="relative overflow-hidden cursor-pointer group p-3.5 bg-base-100 rounded-2xl border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tanpa_ktp' ? 'border-warning shadow-lg shadow-warning/10 ring-1 ring-warning' : 'border-base-300 shadow-sm hover:shadow-md' }}">
+                <div class="flex items-start justify-between gap-2">
                     <div>
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40">Belum Ada NIK KTP</span>
-                        <h3 class="text-2xl font-black mt-1 text-base-content">{{ number_format($kpis['tanpa_ktp']) }}</h3>
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-base-content/50 line-clamp-2 leading-tight">Belum Ada NIK KTP</span>
+                        <h3 class="text-xl font-black mt-1.5 text-base-content">{{ number_format($kpis['tanpa_ktp']) }}</h3>
                     </div>
-                    <div class="p-3 rounded-2xl transition-all duration-300 {{ $filter_type === 'tanpa_ktp' ? 'bg-warning/20 text-warning' : 'bg-base-200 text-base-content/40 group-hover:bg-warning/10 group-hover:text-warning' }}">
-                        <x-heroicon-s-identification class="w-6 h-6 shrink-0" />
+                    <div class="p-2 rounded-xl transition-all duration-300 {{ $filter_type === 'tanpa_ktp' ? 'bg-warning/20 text-warning' : 'bg-base-200 text-base-content/40 group-hover:bg-warning/10 group-hover:text-warning' }}">
+                        <x-heroicon-s-identification class="w-5 h-5 shrink-0" />
                     </div>
                 </div>
-                <div class="mt-3 flex items-center justify-between text-[11px]">
-                    <span class="font-medium text-base-content/50">Tanpa NIK</span>
-                    <span class="font-bold text-warning opacity-0 group-hover:opacity-100 transition-opacity">Filter &rarr;</span>
+                <div class="mt-2.5 flex items-center justify-between text-[10px]">
+                    <span class="font-medium text-base-content/50 truncate">Tanpa NIK</span>
+                    <span class="font-bold text-warning opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap ml-1">&rarr;</span>
                 </div>
             </div>
 
             {{-- Card 3: Belum Ada Foto KTP --}}
             <div wire:click="setFilter('tanpa_foto_ktp')" 
-                 class="relative overflow-hidden cursor-pointer group p-5 bg-base-100 rounded-3xl border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tanpa_foto_ktp' ? 'border-error shadow-lg shadow-error/10 ring-1 ring-error' : 'border-base-300 shadow-sm hover:shadow-md' }}">
-                <div class="flex items-center justify-between">
+                 class="relative overflow-hidden cursor-pointer group p-3.5 bg-base-100 rounded-2xl border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tanpa_foto_ktp' ? 'border-error shadow-lg shadow-error/10 ring-1 ring-error' : 'border-base-300 shadow-sm hover:shadow-md' }}">
+                <div class="flex items-start justify-between gap-2">
                     <div>
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40">Belum Ada Foto KTP</span>
-                        <h3 class="text-2xl font-black mt-1 text-base-content">{{ number_format($kpis['tanpa_foto_ktp']) }}</h3>
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-base-content/50 line-clamp-2 leading-tight">Belum Ada Foto KTP</span>
+                        <h3 class="text-xl font-black mt-1.5 text-base-content">{{ number_format($kpis['tanpa_foto_ktp']) }}</h3>
                     </div>
-                    <div class="p-3 rounded-2xl transition-all duration-300 {{ $filter_type === 'tanpa_foto_ktp' ? 'bg-error/20 text-error' : 'bg-base-200 text-base-content/40 group-hover:bg-error/10 group-hover:text-error' }}">
-                        <x-heroicon-s-camera class="w-6 h-6 shrink-0" />
+                    <div class="p-2 rounded-xl transition-all duration-300 {{ $filter_type === 'tanpa_foto_ktp' ? 'bg-error/20 text-error' : 'bg-base-200 text-base-content/40 group-hover:bg-error/10 group-hover:text-error' }}">
+                        <x-heroicon-s-camera class="w-5 h-5 shrink-0" />
                     </div>
                 </div>
-                <div class="mt-3 flex items-center justify-between text-[11px]">
-                    <span class="font-medium text-base-content/50">Tanpa Foto KTP</span>
-                    <span class="font-bold text-error opacity-0 group-hover:opacity-100 transition-opacity">Filter &rarr;</span>
+                <div class="mt-2.5 flex items-center justify-between text-[10px]">
+                    <span class="font-medium text-base-content/50 truncate">Tanpa Foto KTP</span>
+                    <span class="font-bold text-error opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap ml-1">&rarr;</span>
                 </div>
             </div>
 
             {{-- Card 4: Belum Ada Rekening --}}
             <div wire:click="setFilter('tanpa_rekening')" 
-                 class="relative overflow-hidden cursor-pointer group p-5 bg-base-100 rounded-3xl border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tanpa_rekening' ? 'border-info shadow-lg shadow-info/10 ring-1 ring-info' : 'border-base-300 shadow-sm hover:shadow-md' }}">
-                <div class="flex items-center justify-between">
+                 class="relative overflow-hidden cursor-pointer group p-3.5 bg-base-100 rounded-2xl border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tanpa_rekening' ? 'border-info shadow-lg shadow-info/10 ring-1 ring-info' : 'border-base-300 shadow-sm hover:shadow-md' }}">
+                <div class="flex items-start justify-between gap-2">
                     <div>
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40">Belum Ada Rekening</span>
-                        <h3 class="text-2xl font-black mt-1 text-base-content">{{ number_format($kpis['tanpa_rekening']) }}</h3>
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-base-content/50 line-clamp-2 leading-tight">Belum Ada Rekening</span>
+                        <h3 class="text-xl font-black mt-1.5 text-base-content">{{ number_format($kpis['tanpa_rekening']) }}</h3>
                     </div>
-                    <div class="p-3 rounded-2xl transition-all duration-300 {{ $filter_type === 'tanpa_rekening' ? 'bg-info/20 text-info' : 'bg-base-200 text-base-content/40 group-hover:bg-info/10 group-hover:text-info' }}">
-                        <x-heroicon-s-credit-card class="w-6 h-6 shrink-0" />
+                    <div class="p-2 rounded-xl transition-all duration-300 {{ $filter_type === 'tanpa_rekening' ? 'bg-info/20 text-info' : 'bg-base-200 text-base-content/40 group-hover:bg-info/10 group-hover:text-info' }}">
+                        <x-heroicon-s-credit-card class="w-5 h-5 shrink-0" />
                     </div>
                 </div>
-                <div class="mt-3 flex items-center justify-between text-[11px]">
-                    <span class="font-medium text-base-content/50">Tanpa Rekening</span>
-                    <span class="font-bold text-info opacity-0 group-hover:opacity-100 transition-opacity">Filter &rarr;</span>
+                <div class="mt-2.5 flex items-center justify-between text-[10px]">
+                    <span class="font-medium text-base-content/50 truncate">Tanpa Rekening</span>
+                    <span class="font-bold text-info opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap ml-1">&rarr;</span>
                 </div>
             </div>
 
             {{-- Card 5: Belum Ada Foto Toko --}}
             <div wire:click="setFilter('tanpa_foto_toko')" 
-                 class="relative overflow-hidden cursor-pointer group p-5 bg-base-100 rounded-3xl border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tanpa_foto_toko' ? 'border-accent shadow-lg shadow-accent/10 ring-1 ring-accent' : 'border-base-300 shadow-sm hover:shadow-md' }}">
-                <div class="flex items-center justify-between">
+                 class="relative overflow-hidden cursor-pointer group p-3.5 bg-base-100 rounded-2xl border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tanpa_foto_toko' ? 'border-accent shadow-lg shadow-accent/10 ring-1 ring-accent' : 'border-base-300 shadow-sm hover:shadow-md' }}">
+                <div class="flex items-start justify-between gap-2">
                     <div>
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40">Belum Ada Foto Toko</span>
-                        <h3 class="text-2xl font-black mt-1 text-base-content">{{ number_format($kpis['tanpa_foto_toko']) }}</h3>
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-base-content/50 line-clamp-2 leading-tight">Belum Ada Foto Toko</span>
+                        <h3 class="text-xl font-black mt-1.5 text-base-content">{{ number_format($kpis['tanpa_foto_toko']) }}</h3>
                     </div>
-                    <div class="p-3 rounded-2xl transition-all duration-300 {{ $filter_type === 'tanpa_foto_toko' ? 'bg-accent/20 text-accent' : 'bg-base-200 text-base-content/40 group-hover:bg-accent/10 group-hover:text-accent' }}">
-                        <x-heroicon-s-photo class="w-6 h-6 shrink-0" />
+                    <div class="p-2 rounded-xl transition-all duration-300 {{ $filter_type === 'tanpa_foto_toko' ? 'bg-accent/20 text-accent' : 'bg-base-200 text-base-content/40 group-hover:bg-accent/10 group-hover:text-accent' }}">
+                        <x-heroicon-s-photo class="w-5 h-5 shrink-0" />
                     </div>
                 </div>
-                <div class="mt-3 flex items-center justify-between text-[11px]">
-                    <span class="font-medium text-base-content/50">Tanpa Foto Toko</span>
-                    <span class="font-bold text-accent opacity-0 group-hover:opacity-100 transition-opacity">Filter &rarr;</span>
+                <div class="mt-2.5 flex items-center justify-between text-[10px]">
+                    <span class="font-medium text-base-content/50 truncate">Tanpa Foto Toko</span>
+                    <span class="font-bold text-accent opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap ml-1">&rarr;</span>
                 </div>
             </div>
 
             {{-- Card 6: Belum Ada Tikor --}}
             <div wire:click="setFilter('tanpa_tikor')" 
-                 class="relative overflow-hidden cursor-pointer group p-5 bg-base-100 rounded-3xl border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tanpa_tikor' ? 'border-secondary shadow-lg shadow-secondary/10 ring-1 ring-secondary' : 'border-base-300 shadow-sm hover:shadow-md' }}">
-                <div class="flex items-center justify-between">
+                 class="relative overflow-hidden cursor-pointer group p-3.5 bg-base-100 rounded-2xl border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tanpa_tikor' ? 'border-secondary shadow-lg shadow-secondary/10 ring-1 ring-secondary' : 'border-base-300 shadow-sm hover:shadow-md' }}">
+                <div class="flex items-start justify-between gap-2">
                     <div>
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40">Belum Ada Geotag</span>
-                        <h3 class="text-2xl font-black mt-1 text-base-content">{{ number_format($kpis['tanpa_tikor']) }}</h3>
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-base-content/50 line-clamp-2 leading-tight">Belum Ada Geotag</span>
+                        <h3 class="text-xl font-black mt-1.5 text-base-content">{{ number_format($kpis['tanpa_tikor']) }}</h3>
                     </div>
-                    <div class="p-3 rounded-2xl transition-all duration-300 {{ $filter_type === 'tanpa_tikor' ? 'bg-secondary/20 text-secondary' : 'bg-base-200 text-base-content/40 group-hover:bg-secondary/10 group-hover:text-secondary' }}">
-                        <x-heroicon-s-map-pin class="w-6 h-6 shrink-0" />
+                    <div class="p-2 rounded-xl transition-all duration-300 {{ $filter_type === 'tanpa_tikor' ? 'bg-secondary/20 text-secondary' : 'bg-base-200 text-base-content/40 group-hover:bg-secondary/10 group-hover:text-secondary' }}">
+                        <x-heroicon-s-map-pin class="w-5 h-5 shrink-0" />
                     </div>
                 </div>
-                <div class="mt-3 flex items-center justify-between text-[11px]">
-                    <span class="font-medium text-base-content/50">Tanpa Lat/Long</span>
-                    <span class="font-bold text-secondary opacity-0 group-hover:opacity-100 transition-opacity">Filter &rarr;</span>
+                <div class="mt-2.5 flex items-center justify-between text-[10px]">
+                    <span class="font-medium text-base-content/50 truncate">Tanpa Lat/Long</span>
+                    <span class="font-bold text-secondary opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap ml-1">&rarr;</span>
                 </div>
             </div>
 
             {{-- Card 7: Toko Tidak Valid --}}
             <div wire:click="setFilter('tidak_valid')" 
-                 class="relative overflow-hidden cursor-pointer group p-5 bg-base-100 rounded-3xl border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tidak_valid' ? 'border-error shadow-lg shadow-error/10 ring-1 ring-error' : 'border-base-300 shadow-sm hover:shadow-md' }}">
-                <div class="flex items-center justify-between">
+                 class="relative overflow-hidden cursor-pointer group p-3.5 bg-base-100 rounded-2xl border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tidak_valid' ? 'border-error shadow-lg shadow-error/10 ring-1 ring-error' : 'border-base-300 shadow-sm hover:shadow-md' }}">
+                <div class="flex items-start justify-between gap-2">
                     <div>
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40">Toko Tidak Valid</span>
-                        <h3 class="text-2xl font-black mt-1 text-base-content">{{ number_format($kpis['tidak_valid']) }}</h3>
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-base-content/50 line-clamp-2 leading-tight">Toko Tidak Valid</span>
+                        <h3 class="text-xl font-black mt-1.5 text-base-content">{{ number_format($kpis['tidak_valid']) }}</h3>
                     </div>
-                    <div class="p-3 rounded-2xl transition-all duration-300 {{ $filter_type === 'tidak_valid' ? 'bg-error/20 text-error' : 'bg-base-200 text-base-content/40 group-hover:bg-error/10 group-hover:text-error' }}">
-                        <x-heroicon-s-x-circle class="w-6 h-6 shrink-0" />
+                    <div class="p-2 rounded-xl transition-all duration-300 {{ $filter_type === 'tidak_valid' ? 'bg-error/20 text-error' : 'bg-base-200 text-base-content/40 group-hover:bg-error/10 group-hover:text-error' }}">
+                        <x-heroicon-s-x-circle class="w-5 h-5 shrink-0" />
                     </div>
                 </div>
-                <div class="mt-3 flex items-center justify-between text-[11px]">
-                    <span class="font-medium text-base-content/50">Tidak Valid</span>
-                    <span class="font-bold text-error opacity-0 group-hover:opacity-100 transition-opacity">Filter &rarr;</span>
+                <div class="mt-2.5 flex items-center justify-between text-[10px]">
+                    <span class="font-medium text-base-content/50 truncate">Tidak Valid</span>
+                    <span class="font-bold text-error opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap ml-1">&rarr;</span>
                 </div>
             </div>
         </div>
@@ -188,7 +190,7 @@
                         <button wire:click="openFilterModal"
                                 class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200 relative {{ (!empty($filter_region_code) || !empty($filter_area_code) || !empty($filter_branch_name)) ? 'border-primary text-primary hover:bg-primary/5' : '' }}">
                             <x-heroicon-s-funnel class="w-4 h-4" />
-                            <span>Filter Wilayah</span>
+                            <span>Filter</span>
                             @if (!empty($filter_region_code) || !empty($filter_area_code) || !empty($filter_branch_name))
                                 <span class="absolute -top-1.5 -right-1.5 flex h-3 w-3">
                                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
@@ -202,7 +204,7 @@
                         <button wire:click="openExportModal"
                                 class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
                             <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
-                            Export Excel
+                            Export
                         </button>
                         @endcanExport
 
@@ -211,7 +213,7 @@
                         <button wire:click="openImportModal"
                                 class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
                             <x-heroicon-s-arrow-up-tray class="w-4 h-4" />
-                            Import Excel
+                            Import
                         </button>
                         @endcanImport
                     </div>
@@ -226,7 +228,7 @@
                             <li>
                                 <button wire:click="openFilterModal" class="gap-3">
                                     <x-heroicon-s-funnel class="w-4 h-4 text-base-content/70" />
-                                    Filter Wilayah
+                                    Filter
                                     @if (!empty($filter_region_code) || !empty($filter_area_code) || !empty($filter_branch_name))
                                         <span class="badge badge-primary badge-xs ml-auto"></span>
                                     @endif
@@ -236,7 +238,7 @@
                             <li>
                                 <button wire:click="openExportModal" class="gap-3">
                                     <x-heroicon-s-arrow-down-tray class="w-4 h-4 text-base-content/70" />
-                                    Export Excel
+                                    Export
                                 </button>
                             </li>
                             @endcanExport
@@ -244,7 +246,7 @@
                             <li>
                                 <button wire:click="openImportModal" class="gap-3">
                                     <x-heroicon-s-arrow-up-tray class="w-4 h-4 text-base-content/70" />
-                                    Import Excel
+                                    Import
                                 </button>
                             </li>
                             @endcanImport
@@ -256,7 +258,7 @@
                     <button wire:click="openCreateModal"
                             class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20 w-full sm:w-auto">
                         <x-heroicon-s-plus class="w-4 h-4" />
-                        Tambah RWO
+                        Tambah
                     </button>
                     @endcanEdit
                 </div>
@@ -264,14 +266,14 @@
             {{-- Table --}}
             <x-ui.table empty="Tidak ada data RWO ditemukan.">
                 <x-slot:head>
-                    <tr>
+                    <tr class="text-[11px]">
                         <th class="w-12 text-center">No</th>
-                        <th>Region / Area</th>
+                        <th>Region</th>
                         <th>Cabang</th>
-                        <th>Kode Customer / Eskalink</th>
-                        <th>Nama Customer</th>
+                        <th class="text-center">Custno</th>
+                        <th>Customer</th>
                         <th class="text-center">Foto KTP</th>
-                        <th class="text-center">Foto Toko (GPS / Depan / Dalam)</th>
+                        <th class="text-center">Foto Toko</th>
                         <th class="text-center">Status</th>
                         <th class="text-center">Validasi</th>
                         <th>Keterangan</th>
@@ -280,38 +282,37 @@
                 </x-slot:head>
 
                 @foreach ($outlets as $index => $row)
-                    <tr class="group text-sm hover:relative hover:z-40" wire:key="rwo-{{ $row->id }}">
+                    <tr class="group text-[11px] hover:relative hover:z-40" wire:key="rwo-{{ $row->id }}">
                         <td class="text-center">
-                            <span class="text-xs font-semibold text-base-content/40">{{ $outlets->firstItem() + $index }}</span>
+                            <span class="font-semibold text-base-content/40">{{ $outlets->firstItem() + $index }}</span>
                         </td>
                         <td>
-                            <div>
-                                <span class="font-bold text-base-content/85 group-hover:text-primary transition-colors">
+                            <div class="max-w-[120px]">
+                                <span class="font-bold text-base-content/85 group-hover:text-primary transition-colors block truncate" title="{{ $row->region_name }}">
                                     {{ $row->region_name }}
                                 </span>
-                                <span class="text-xs text-base-content/50 font-mono">({{ $row->region_code }})</span>
-                                <div class="text-[11px] text-base-content/40 font-semibold uppercase tracking-wider mt-0.5">
-                                    {{ $row->area_name }} <span class="text-[10px] font-mono">({{ $row->area_code }})</span>
+                                <div class="text-[10px] text-base-content/40 font-semibold uppercase tracking-wider mt-0.5 truncate" title="{{ $row->area_name }}">
+                                    {{ $row->area_name }}
                                 </div>
                             </div>
                         </td>
                         <td>
                             <span class="font-medium text-base-content/70">{{ $row->branch_name }}</span>
                         </td>
-                        <td>
-                            <div class="flex flex-col gap-0.5">
-                                <span class="badge badge-sm badge-outline border-base-300 text-secondary font-mono font-bold rounded-lg px-2">
+                        <td class="text-center">
+                            <div class="flex flex-col items-center gap-0.5">
+                                <span class="badge badge-sm badge-outline border-base-300 text-secondary font-mono font-bold rounded-lg px-2 text-[11px]">
                                     {{ $row->customer_code }}
                                 </span>
                                 @if($row->eskalink_code)
-                                    <span class="text-[10px] text-base-content/50 font-mono mt-0.5">Eska: {{ $row->eskalink_code }}</span>
+                                    <span class="text-[9px] text-base-content/50 font-mono mt-0.5">{{ $row->eskalink_code }}</span>
                                 @endif
                             </div>
                         </td>
                         <td>
-                            <div class="max-w-xs overflow-hidden text-ellipsis whitespace-nowrap">
-                                <span class="font-bold text-base-content/80">{{ $row->customer_name }}</span>
-                                <p class="text-xs text-base-content/40 truncate">{{ $row->alamat }}</p>
+                            <div class="max-w-[200px]">
+                                <span class="font-bold text-base-content/80 block truncate uppercase" title="{{ $row->customer_name }}">{{ $row->customer_name }}</span>
+                                <p class="text-[10px] text-base-content/40 truncate" title="{{ $row->alamat }}">{{ $row->alamat }}</p>
                             </div>
                         </td>
 
@@ -332,7 +333,7 @@
                                       </div>
                                   </div>
                              @else
-                                 <span class="text-xs text-base-content/30 italic">Tidak ada</span>
+                                 <span class="text-[11px] text-base-content/30 italic">Tidak ada</span>
                              @endif
                           </td>
                         <td class="text-center">
@@ -420,11 +421,11 @@
                           </td>
                          <td>
                              @if($row->keterangan)
-                                 <div class="max-w-[150px] truncate text-xs text-base-content/60" title="{{ $row->keterangan }}">
+                                 <div class="max-w-[120px] truncate text-[11px] text-base-content/60" title="{{ $row->keterangan }}">
                                      {{ $row->keterangan }}
                                  </div>
                              @else
-                                 <span class="text-xs text-base-content/30 italic">-</span>
+                                 <span class="text-[11px] text-base-content/30 italic">-</span>
                              @endif
                          </td>
                          <td>

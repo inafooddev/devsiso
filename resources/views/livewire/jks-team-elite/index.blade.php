@@ -1,29 +1,31 @@
 <div>
     <x-slot name="title">JKS Team Elite</x-slot>
 
-    <div class="mx-auto px-4 sm:px-6 py-8">
+    <div class="mx-auto px-4 sm:px-6 pb-8">
         {{-- Notifikasi --}}
-        <div class="mb-6">
-            @if (session()->has('message'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
-                    <x-heroicon-s-check-circle class="w-6 h-6" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
-                        <div class="text-sm">{{ session('message') }}</div>
+        @if (session()->has('message') || session()->has('error'))
+            <div class="mb-6 mt-4">
+                @if (session()->has('message'))
+                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success mb-4">
+                        <x-heroicon-s-check-circle class="w-6 h-6" />
+                        <div>
+                            <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
+                            <div class="text-sm">{{ session('message') }}</div>
+                        </div>
                     </div>
-                </div>
-            @endif
+                @endif
 
-            @if (session()->has('error'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
-                    <x-heroicon-s-x-circle class="w-6 h-6" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
-                        <div class="text-sm">{{ session('error') }}</div>
+                @if (session()->has('error'))
+                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
+                        <x-heroicon-s-x-circle class="w-6 h-6" />
+                        <div>
+                            <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
+                            <div class="text-sm">{{ session('error') }}</div>
+                        </div>
                     </div>
-                </div>
-            @endif
-        </div>
+                @endif
+            </div>
+        @endif
 
         @if(!empty($filterTeam) && !empty($filterStartDate) && !empty($filterEndDate))
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
@@ -305,7 +307,7 @@
 
             <div class="px-6 py-4">
                 <div class="overflow-x-auto rounded-xl border border-base-200 shadow-sm">
-                <table class="table table-sm table-zebra w-full">
+                <table class="table table-sm table-zebra w-full text-[11px] [&_th]:text-[11px] [&_td]:text-[11px]">
                     <thead>
                         <tr>
                             <th>No</th>

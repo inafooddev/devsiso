@@ -36,7 +36,7 @@
         <input id="sidebar-drawer" type="checkbox" class="drawer-toggle" />
 
         {{-- Main Content Area --}}
-        <div class="drawer-content flex flex-col min-h-screen">
+        <div class="drawer-content flex flex-col h-screen overflow-hidden">
             {{-- Navbar --}}
             <x-navbar :title="$title ?? 'Dashboard'" />
 

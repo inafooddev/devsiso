@@ -4,15 +4,19 @@ namespace App\Livewire\CallPlan\JksTeamElite\MasterCustomer;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
 use App\Traits\EnforcesMenuPermissions;
 use App\Exports\JksMasterCustomerExport;
+use App\Exports\JksMasterCustomerTemplateExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Models\ListTokoParetoTeamElite;
+use App\Imports\JksMasterCustomerImport;
+use Illuminate\Support\Facades\Storage;
 
 class Index extends Component
 {
-    use WithPagination, EnforcesMenuPermissions;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
 
     protected string $menuRoute = 'call-plan.jks-team-elite.master-customer';
     protected $paginationTheme = 'tailwind';
@@ -36,12 +40,26 @@ class Index extends Component
     // State Modal Tambah Customer
     public $isCreateModalOpen = false;
 
+    // State Import Customer
+    public $isImportModalOpen = false;
+    public $importFile;
+    public $importErrorLogUrl = null;
+    public $importLogCount = 0;
+
     // Pencarian Distributor di Form Tambah Toko
     public $searchDistributor = '';
 
-    // Properti Form Create
+    // Properti Form Create/Edit
     public $distributor_code, $customer_code_prc, $customer_name, $uniq_kd, $customer_address;
     public $kecamatan, $desa, $latitude, $longitude, $pilar, $target, $keterangan;
+    
+    // Properti Edit & Delete
+    public $isEditModalOpen = false;
+    public $isDeleteModalOpen = false;
+    public $original_distributor_code;
+    public $original_uniq_kd;
+    public $delete_distributor_code;
+    public $delete_uniq_kd;
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -131,7 +149,7 @@ class Index extends Component
         $this->resetPage();
     }
 
-    protected function getBaseQuery($excludePilarAndPareto = false)
+    protected function getBaseQuery($excludePilarAndPareto = false, $excludeSearch = false)
     {
         $query = DB::table('list_toko_pareto_team_elite as l')
             ->leftJoin('master_distributors as md', 'md.distributor_code', '=', 'l.distributor_code')
@@ -182,7 +200,7 @@ class Index extends Component
         $query = $this->applyHierarchyAccess($query, 'l.distributor_code');
 
         // Search Filter
-        if ($this->search) {
+        if ($this->search && !$excludeSearch) {
             $query->where(function($q) {
                 $q->where('l.customer_code_prc', 'ilike', "%{$this->search}%")
                   ->orWhere('l.customer_name', 'ilike', "%{$this->search}%")
@@ -292,7 +310,7 @@ class Index extends Component
         $data = $this->getBaseQuery()->paginate(15);
 
         // --- KPI Cards Calculation ---
-        $kpiQuery = $this->getBaseQuery(true);
+        $kpiQuery = $this->getBaseQuery(true, true);
         $kpiQuery->orders = null; // Reset ordering for subquery execution
         
         $kpi = DB::table(DB::raw("({$kpiQuery->toSql()}) as sub"))
@@ -369,9 +387,9 @@ class Index extends Component
         $this->validate([
             'distributor_code' => 'required|string|max:15',
             'customer_code_prc' => 'required|string|max:50',
-            'customer_name' => 'nullable|string|max:255',
-            'uniq_kd' => 'nullable|string|max:255',
-            'pilar' => 'nullable|string|in:1. RWO,2. PNR,3. NGVO,4. GRO',
+            'customer_name' => 'required|string|max:255',
+            'uniq_kd' => 'required|string|max:255',
+            'pilar' => 'required|string|in:1. RWO,2. PNR,3. NGVO,4. GRO',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'target' => 'nullable|numeric',
@@ -384,14 +402,27 @@ class Index extends Component
             return;
         }
 
+        // Validasi Duplikasi uniq_kd per distributor
+        if (!empty($this->uniq_kd)) {
+            $exists = DB::table('list_toko_pareto_team_elite')
+                ->where('distributor_code', $this->distributor_code)
+                ->where('uniq_kd', $this->uniq_kd)
+                ->exists();
+                
+            if ($exists) {
+                $this->addError('uniq_kd', "Customer dengan Uniq KD '{$this->uniq_kd}' sudah ada.");
+                return;
+            }
+        }
+
         ListTokoParetoTeamElite::updateOrCreate(
             [
                 'distributor_code' => $this->distributor_code,
-                'customer_code_prc' => $this->customer_code_prc,
+                'uniq_kd' => $this->uniq_kd,
             ],
             [
+                'customer_code_prc' => $this->customer_code_prc,
                 'customer_name' => $this->customer_name,
-                'uniq_kd' => $this->uniq_kd,
                 'customer_address' => $this->customer_address,
                 'kecamatan' => $this->kecamatan,
                 'desa' => $this->desa,
@@ -415,6 +446,231 @@ class Index extends Component
         $this->authorizeAction('can_export');
         
         \App\Helpers\ActivityLogger::log('Export Master Customer JKS', "Mengekspor data Master Customer JKS Team Elite.");
-        return Excel::download(new JksMasterCustomerExport($this->getBaseQuery()), 'Master_Customer_JKS_Team_Elite.xlsx');
+        $filename = 'Master_Customer_JKS_Team_Elite_' . date('Ymd_His') . '.xlsx';
+        return Excel::download(new JksMasterCustomerExport($this->getBaseQuery()), $filename);
+    }
+
+    public function openEditModal($distributorCode, $uniqKd)
+    {
+        $this->authorizeAction('can_edit');
+        $this->resetValidation();
+        
+        $record = ListTokoParetoTeamElite::where('distributor_code', $distributorCode)
+            ->where('uniq_kd', $uniqKd)
+            ->first();
+
+        if ($record) {
+            $this->original_distributor_code = $distributorCode;
+            $this->original_uniq_kd = $uniqKd;
+            
+            $this->distributor_code = $record->distributor_code;
+            $this->customer_code_prc = $record->customer_code_prc;
+            $this->customer_name = $record->customer_name;
+            $this->uniq_kd = $record->uniq_kd;
+            $this->customer_address = $record->customer_address;
+            $this->kecamatan = $record->kecamatan;
+            $this->desa = $record->desa;
+            $this->latitude = $record->latitude;
+            $this->longitude = $record->longitude;
+            $this->pilar = $record->pilar;
+            $this->target = $record->target;
+            $this->keterangan = $record->keterangan;
+            
+            $this->searchDistributor = $record->distributor_code;
+            $this->isEditModalOpen = true;
+        }
+    }
+
+    public function update()
+    {
+        $this->authorizeAction('can_edit');
+
+        $this->validate([
+            'distributor_code' => 'required|string|max:15|exists:master_distributors,distributor_code',
+            'customer_code_prc' => 'required|string|max:50',
+            'customer_name' => 'required|string|max:255',
+            'uniq_kd' => 'required|string|max:255',
+            'pilar' => 'required|string|in:1. RWO,2. PNR,3. NGVO,4. GRO',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'target' => 'nullable|numeric',
+        ], [
+            'distributor_code.required' => 'Distributor Code wajib diisi',
+            'distributor_code.exists' => 'Distributor Code tidak valid',
+            'customer_code_prc.required' => 'Customer Code wajib diisi',
+            'customer_name.required' => 'Nama Customer wajib diisi',
+            'uniq_kd.required' => 'Uniq KD wajib diisi',
+            'pilar.required' => 'Pilar wajib diisi',
+        ]);
+
+        // Cek duplikasi uniq_kd jika diubah
+        if ($this->distributor_code !== $this->original_distributor_code || $this->uniq_kd !== $this->original_uniq_kd) {
+            $exists = ListTokoParetoTeamElite::where('distributor_code', $this->distributor_code)
+                ->where('uniq_kd', $this->uniq_kd)
+                ->exists();
+            
+            if ($exists) {
+                $this->addError('uniq_kd', "Uniq KD '{$this->uniq_kd}' sudah digunakan di distributor tersebut.");
+                return;
+            }
+        }
+
+        $record = ListTokoParetoTeamElite::where('distributor_code', $this->original_distributor_code)
+            ->where('uniq_kd', $this->original_uniq_kd)
+            ->first();
+
+        if ($record) {
+            $record->update([
+                'distributor_code' => $this->distributor_code,
+                'customer_code_prc' => $this->customer_code_prc,
+                'customer_name' => $this->customer_name,
+                'uniq_kd' => $this->uniq_kd,
+                'customer_address' => $this->customer_address,
+                'kecamatan' => $this->kecamatan,
+                'desa' => $this->desa,
+                'latitude' => $this->latitude,
+                'longitude' => $this->longitude,
+                'pilar' => $this->pilar,
+                'target' => $this->target ?? 0,
+                'keterangan' => $this->keterangan,
+            ]);
+
+            \App\Helpers\ActivityLogger::log('Edit Master Customer JKS', "Mengedit Customer: {$this->customer_name} ({$this->uniq_kd})");
+            session()->flash('message', 'Data customer berhasil diperbarui.');
+            $this->isEditModalOpen = false;
+        }
+    }
+
+    public function confirmDelete($distributorCode, $uniqKd)
+    {
+        $this->authorizeAction('can_edit');
+        $this->delete_distributor_code = $distributorCode;
+        $this->delete_uniq_kd = $uniqKd;
+        $this->isDeleteModalOpen = true;
+    }
+
+    public function delete()
+    {
+        $this->authorizeAction('can_edit');
+        
+        $record = ListTokoParetoTeamElite::where('distributor_code', $this->delete_distributor_code)
+            ->where('uniq_kd', $this->delete_uniq_kd)
+            ->first();
+
+        if ($record) {
+            $name = $record->customer_name;
+            $record->delete();
+            \App\Helpers\ActivityLogger::log('Delete Master Customer JKS', "Menghapus Customer: {$name} ({$this->delete_uniq_kd})");
+            session()->flash('message', 'Data customer berhasil dihapus.');
+        }
+
+        $this->isDeleteModalOpen = false;
+        $this->resetPage();
+    }
+
+    // --- IMPORT DARI EXCEL ---
+    public function downloadTemplate()
+    {
+        $filename = 'Template_Import_Master_Customer_JKS_' . date('Ymd_His') . '.xlsx';
+        return Excel::download(new \App\Exports\JksMasterCustomerTemplateExport(), $filename);
+    }
+
+    public function openImportModal()
+    {
+        $this->authorizeAction('can_edit');
+        $this->reset(['importFile', 'importErrorLogUrl', 'importLogCount']);
+        $this->isImportModalOpen = true;
+    }
+
+    public function closeImportModal()
+    {
+        $this->reset(['importFile', 'importErrorLogUrl', 'importLogCount']);
+        $this->isImportModalOpen = false;
+    }
+
+    public function import()
+    {
+        \Illuminate\Support\Facades\Log::info("Import method triggered");
+        $this->authorizeAction('can_edit');
+        
+        $this->validate([
+            'importFile' => 'required|file|max:5120', // Maksimal 5MB, dihapus mimes karena Livewire upload sering gagal membaca mime xlsx
+        ]);
+
+        \Illuminate\Support\Facades\Log::info("File validated successfully");
+
+        $user = auth()->user();
+        $isAdmin = $user->hasRole('admin');
+        $allowedDistributors = [];
+
+        if (!$isAdmin) {
+            $q = DB::table('master_distributors')->select('distributor_code');
+            $q = $this->applyHierarchyAccess($q, 'distributor_code');
+            $allowedDistributors = $q->pluck('distributor_code')->toArray();
+        }
+
+        try {
+            $import = new JksMasterCustomerImport($isAdmin, $allowedDistributors);
+            \Illuminate\Support\Facades\Log::info("Starting Excel::import with file " . $this->importFile->getRealPath());
+            Excel::import($import, $this->importFile);
+            \Illuminate\Support\Facades\Log::info("Excel::import finished. Errors: " . count($import->errorLogs));
+
+            $this->importLogCount = count($import->errorLogs);
+            
+            // Generate Error Log File ALWAYS
+            $logContent = "Log Hasil Import Master Customer JKS Team Elite\n";
+            $logContent .= "Tanggal: " . now()->format('Y-m-d H:i:s') . "\n";
+            $logContent .= "Total Sukses: {$import->successCount} (Insert: {$import->insertCount}, Update: {$import->updateCount})\n";
+            $logContent .= "Total Gagal: {$this->importLogCount}\n";
+            $logContent .= "---------------------------------------------------\n\n";
+
+            if ($this->importLogCount > 0) {
+                $logContent .= "Rincian Gagal:\n";
+                foreach ($import->errorLogs as $error) {
+                    $logContent .= $error . "\n";
+                }
+                $logContent .= "\n---------------------------------------------------\n\n";
+            }
+
+            if ($import->insertCount > 0) {
+                $logContent .= "Rincian Insert (Data Baru):\n";
+                foreach ($import->insertLogs as $log) {
+                    $logContent .= $log . "\n";
+                }
+                $logContent .= "\n---------------------------------------------------\n\n";
+            }
+
+            if ($import->updateCount > 0) {
+                $logContent .= "Rincian Update (Perubahan Data):\n";
+                foreach ($import->updateLogs as $log) {
+                    $logContent .= $log . "\n";
+                }
+                $logContent .= "\n---------------------------------------------------\n\n";
+            }
+
+            if ($this->importLogCount == 0) {
+                $logContent .= "Semua data berhasil di-import tanpa ada error.\n";
+            }
+
+            $fileName = 'log_' . date('Ymd_His') . '.txt';
+
+            \App\Helpers\ActivityLogger::log('Import Master Customer JKS', "Melakukan import data Master Customer JKS Team Elite. Sukses: {$import->successCount} (Insert: {$import->insertCount}, Update: {$import->updateCount}), Error: {$this->importLogCount}");
+            
+            $this->isImportModalOpen = false;
+            $this->reset('importFile');
+
+            $msgType = $this->importLogCount > 0 ? 'warning' : 'message';
+            session()->flash($msgType, "Proses import selesai. Berhasil: {$import->successCount} (Insert: {$import->insertCount}, Update: {$import->updateCount}), Gagal: {$this->importLogCount}.");
+            
+            return response()->streamDownload(function () use ($logContent) {
+                echo $logContent;
+            }, $fileName);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Import error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+            session()->flash('error', "Terjadi kesalahan sistem saat membaca file Excel: " . $e->getMessage());
+        }
+
+        $this->resetPage();
     }
 }

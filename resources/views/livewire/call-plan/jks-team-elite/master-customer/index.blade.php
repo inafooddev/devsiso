@@ -11,7 +11,16 @@
         };
     @endphp
 
-    <div class="mx-auto p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-4 sm:pt-2 sm:pb-6 lg:pt-2 lg:pb-8">
+        <style>
+            .custom-master-table th, 
+            .custom-master-table td {
+                font-size: 11px !important;
+            }
+            .custom-master-table .text-\[9px\] {
+                font-size: 9px !important;
+            }
+        </style>
         
         <!-- Notifikasi -->
         @if (session()->has('message'))
@@ -25,10 +34,12 @@
             </x-ui.notif>
         @endif
 
+
+
         <!-- KPI CARDS -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
             <!-- Total Customer -->
-            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-between h-24 relative transition-all hover:shadow-md hover:bg-base-200/20">
+            <div class="bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200 flex flex-col justify-between h-[86px] relative transition-all hover:shadow-md hover:bg-base-200/20">
                 <div class="flex items-center justify-between">
                     <span class="text-[10px] text-base-content/60 font-bold uppercase tracking-wider">Total Customer</span>
                     <div class="p-1.5 rounded-lg bg-primary/10 text-primary">
@@ -39,7 +50,7 @@
             </div>
             
             <!-- Total Pareto -->
-            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-between h-24 relative transition-all hover:shadow-md hover:bg-base-200/20">
+            <div class="bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200 flex flex-col justify-between h-[86px] relative transition-all hover:shadow-md hover:bg-base-200/20">
                 <div class="flex items-center justify-between">
                     <span class="text-[10px] text-base-content/60 font-bold uppercase tracking-wider">Total Pareto</span>
                     <div class="p-1.5 rounded-lg bg-secondary/10 text-secondary">
@@ -50,7 +61,7 @@
             </div>
 
             <!-- Total RWO -->
-            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-between h-24 relative transition-all hover:shadow-md hover:bg-base-200/20">
+            <div class="bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200 flex flex-col justify-between h-[86px] relative transition-all hover:shadow-md hover:bg-base-200/20">
                 <div class="flex items-center justify-between">
                     <span class="text-[10px] text-base-content/60 font-bold uppercase tracking-wider">Total RWO</span>
                     <div class="p-1.5 rounded-lg bg-error/10 text-error">
@@ -61,7 +72,7 @@
             </div>
 
             <!-- Total PNR -->
-            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-between h-24 relative transition-all hover:shadow-md hover:bg-base-200/20">
+            <div class="bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200 flex flex-col justify-between h-[86px] relative transition-all hover:shadow-md hover:bg-base-200/20">
                 <div class="flex items-center justify-between">
                     <span class="text-[10px] text-base-content/60 font-bold uppercase tracking-wider">Total PNR</span>
                     <div class="p-1.5 rounded-lg bg-warning/10 text-warning">
@@ -72,7 +83,7 @@
             </div>
 
             <!-- Total NGVO -->
-            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-between h-24 relative transition-all hover:shadow-md hover:bg-base-200/20">
+            <div class="bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200 flex flex-col justify-between h-[86px] relative transition-all hover:shadow-md hover:bg-base-200/20">
                 <div class="flex items-center justify-between">
                     <span class="text-[10px] text-base-content/60 font-bold uppercase tracking-wider">Total NGVO</span>
                     <div class="p-1.5 rounded-lg bg-success/10 text-success">
@@ -83,7 +94,7 @@
             </div>
 
             <!-- Total GRO -->
-            <div class="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-between h-24 relative transition-all hover:shadow-md hover:bg-base-200/20">
+            <div class="bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200 flex flex-col justify-between h-[86px] relative transition-all hover:shadow-md hover:bg-base-200/20">
                 <div class="flex items-center justify-between">
                     <span class="text-[10px] text-base-content/60 font-bold uppercase tracking-wider">Total GRO</span>
                     <div class="p-1.5 rounded-lg bg-info/10 text-info">
@@ -135,15 +146,22 @@
                     <!-- TOMBOL TAMBAH TOKO -->
                     @canEdit('call-plan.jks-team-elite.master-customer')
                     <x-ui.button variant="primary" size="sm" wire:click="openCreateModal">
-                        <x-heroicon-s-plus class="w-4 h-4 mr-1" /> Tambah Toko
+                        <x-heroicon-s-plus class="w-4 h-4 mr-1" /> Tambah
+                    </x-ui.button>
+                    @endcanEdit
+
+                    <!-- TOMBOL IMPORT -->
+                    @canEdit('call-plan.jks-team-elite.master-customer')
+                    <x-ui.button variant="info" size="sm" outline wire:click="openImportModal">
+                        <x-heroicon-s-arrow-down-on-square class="w-4 h-4 mr-1" /> Import
                     </x-ui.button>
                     @endcanEdit
                     
                     <!-- TOMBOL EXPORT -->
                     @canExport('call-plan.jks-team-elite.master-customer')
-                    <x-ui.button variant="info" size="sm" wire:click="export" wire:loading.attr="disabled" wire:target="export">
+                    <x-ui.button variant="success" size="sm" class="bg-[#217346] hover:bg-[#1e663e] border-[#217346] hover:border-[#1e663e] text-white" wire:click="export" wire:loading.attr="disabled" wire:target="export">
                         <span wire:loading.remove wire:target="export" class="flex items-center gap-1">
-                            <x-heroicon-s-arrow-up-on-square class="w-4 h-4" /> Export Excel
+                            <x-heroicon-s-arrow-up-on-square class="w-4 h-4" /> Export
                         </span>
                         <span wire:loading wire:target="export" class="flex items-center gap-1">
                             <span class="loading loading-spinner loading-xs"></span> Proses...
@@ -155,7 +173,7 @@
 
             <!-- Tabel -->
             <div wire:key="table-wrapper-{{ md5($search . $filterRegion . $filterArea . $filterSupervisor . $filterDistributor . $filterPareto . $data->currentPage()) }}">
-                <x-ui.table hover striped sticky loading="{{ false }}" empty="Tidak ada data ditemukan." class="max-h-[60vh] overflow-y-auto border-x-0 border-b-0 rounded-none shadow-none">
+                <x-ui.table hover striped sticky loading="{{ false }}" empty="Tidak ada data ditemukan." class="custom-master-table max-h-[54vh] overflow-y-auto border-x-0 border-b-0 rounded-none shadow-none">
                 <x-slot:head>
                     <tr>
                         <th wire:click="sortBy('md.region_name')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
@@ -241,7 +259,8 @@
                                 <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.target')" class="{{ $getSortClass('l.target') }}" />
                             </div>
                         </th>
-
+                        
+                        <th class="text-center">Aksi</th>
                     </tr>
                 </x-slot:head>
 
@@ -261,9 +280,22 @@
                     <td>{{ $item->kecamatan }}</td>
                     <td>{{ $item->desa }}</td>
                     <td class="whitespace-nowrap text-center">
-                        <x-ui.badge variant="neutral">{{ $item->pilar ?? '-' }}</x-ui.badge>
+                        <x-ui.badge variant="{{ match($item->pilar) { '1. RWO' => 'error', '2. PNR' => 'warning', '3. NGVO' => 'success', '4. GRO' => 'info', default => 'neutral' } }}">{{ $item->pilar ?? '-' }}</x-ui.badge>
                     </td>
-                    <td class="whitespace-nowrap text-right font-mono font-bold">{{ number_format($item->target, 0, ',', '.') }}</td>
+                    <td class="text-right whitespace-nowrap">{{ number_format((float)($item->target ?? 0), 0, ',', '.') }}</td>
+                    <td class="text-center whitespace-nowrap">
+                        @canEdit('call-plan.jks-team-elite.master-customer')
+                        <button wire:click="openEditModal('{{ $item->distributor_code }}', '{{ $item->uniq_kd }}')" class="btn btn-xs btn-ghost text-info hover:bg-info hover:text-white" title="Edit">
+                            <x-heroicon-s-pencil-square class="w-4 h-4" />
+                        </button>
+                        @endcanEdit
+                        
+                        @canEdit('call-plan.jks-team-elite.master-customer')
+                        <button wire:click="confirmDelete('{{ $item->distributor_code }}', '{{ $item->uniq_kd }}')" class="btn btn-xs btn-ghost text-error hover:bg-error hover:text-white" title="Hapus">
+                            <x-heroicon-s-trash class="w-4 h-4" />
+                        </button>
+                        @endcanEdit
+                    </td>
                 </tr>
                 @endforeach
             </x-ui.table>
@@ -329,6 +361,15 @@
 
     <!-- MODAL TAMBAH CUSTOMER BARU -->
     <x-ui.modal wire:key="modal-create-key" id="modal-create" title="Tambah Customer Baru" icon="plus-circle" size="lg" :open="$isCreateModalOpen" wire:close="$set('isCreateModalOpen', false)">
+        <style>
+            #modal-create .form-control, #modal-edit .form-control {
+                margin-bottom: 0.25rem !important;
+            }
+            #modal-create .label, #modal-edit .label {
+                padding-top: 0.125rem !important;
+                padding-bottom: 0.125rem !important;
+            }
+        </style>
         <form wire:submit.prevent="store">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
                 <div class="md:col-span-2 form-control relative mb-2" x-data="{ open: false, search: @entangle('searchDistributor'), selectedCode: @entangle('distributor_code') }">
@@ -403,10 +444,10 @@
                 </div>
                 
                 <x-input-text label="Customer Code PRC *" wire:model="customer_code_prc" placeholder="Contoh: CILMG00001" />
-                <x-input-text label="Uniq Kd" wire:model="uniq_kd" placeholder="Contoh: LMG-0001" />
+                <x-input-text label="Uniq Kd *" wire:model="uniq_kd" placeholder="Contoh: LMG-0001" />
                 
                 <div class="md:col-span-2">
-                    <x-input-text label="Nama Toko" wire:model="customer_name" />
+                    <x-input-text label="Nama Toko *" wire:model="customer_name" />
                 </div>
                 <div class="md:col-span-2 form-control mb-4">
                     <label class="label pb-1"><span class="label-text text-xs font-medium text-base-content/85">Alamat</span></label>
@@ -419,7 +460,7 @@
                 <x-input-text label="Longitude" wire:model="longitude" />
                 <div class="form-control">
                     <label class="label pb-1">
-                        <span class="label-text text-xs font-medium text-base-content/85">Pilar</span>
+                        <span class="label-text text-xs font-medium text-base-content/85">Pilar *</span>
                     </label>
                     <select wire:model="pilar" class="select select-sm select-bordered w-full focus:select-primary text-xs">
                         <option value="">-- Pilih Pilar --</option>
@@ -437,6 +478,110 @@
                 <x-ui.button type="submit" variant="primary" icon="check-circle">Simpan Customer</x-ui.button>
             </div>
         </form>
+    </x-ui.modal>
+
+    <!-- MODAL EDIT CUSTOMER -->
+    <x-ui.modal wire:key="modal-edit-key" id="modal-edit" title="Edit Customer" icon="pencil-square" size="lg" :open="$isEditModalOpen" wire:close="$set('isEditModalOpen', false)">
+        <form wire:submit.prevent="update">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
+                <div class="md:col-span-2 form-control relative mb-2">
+                    <label class="label pb-1">
+                        <span class="label-text text-xs font-medium text-base-content/85">Distributor (Terkunci)</span>
+                    </label>
+                    <select wire:model="distributor_code" class="select select-sm select-bordered w-full" disabled>
+                        @foreach($createDistributors as $dist)
+                            <option value="{{ $dist->distributor_code }}">{{ $dist->distributor_name }} ({{ $dist->distributor_code }})</option>
+                        @endforeach
+                    </select>
+                    @error('distributor_code') <span class="text-xs text-error mt-1">{{ $message }}</span> @enderror
+                </div>
+                
+                <x-input-text label="Customer Code PRC *" wire:model="customer_code_prc" placeholder="Contoh: CILMG00001" />
+                <x-input-text label="Uniq Kd *" wire:model="uniq_kd" placeholder="Contoh: LMG-0001" />
+                
+                <div class="md:col-span-2">
+                    <x-input-text label="Nama Toko *" wire:model="customer_name" />
+                </div>
+                <div class="md:col-span-2 form-control mb-4">
+                    <label class="label pb-1"><span class="label-text text-xs font-medium text-base-content/85">Alamat</span></label>
+                    <textarea wire:model="customer_address" class="textarea textarea-bordered focus:textarea-primary w-full" rows="2"></textarea>
+                </div>
+                
+                <x-input-text label="Kecamatan" wire:model="kecamatan" />
+                <x-input-text label="Desa" wire:model="desa" />
+                <x-input-text label="Latitude" wire:model="latitude" />
+                <x-input-text label="Longitude" wire:model="longitude" />
+                <div class="form-control">
+                    <label class="label pb-1">
+                        <span class="label-text text-xs font-medium text-base-content/85">Pilar *</span>
+                    </label>
+                    <select wire:model="pilar" class="select select-sm select-bordered w-full focus:select-primary text-xs">
+                        <option value="">-- Pilih Pilar --</option>
+                        <option value="1. RWO">1. RWO</option>
+                        <option value="2. PNR">2. PNR</option>
+                        <option value="3. NGVO">3. NGVO</option>
+                        <option value="4. GRO">4. GRO</option>
+                    </select>
+                </div>
+                <x-input-text label="Target" wire:model="target" type="number" step="0.01" />
+                <x-input-text label="Keterangan" wire:model="keterangan" />
+            </div>
+            <div class="flex justify-end gap-2 mt-4">
+                <x-ui.button type="button" variant="neutral" outline wire:click="$set('isEditModalOpen', false)">Batal</x-ui.button>
+                <x-ui.button type="submit" variant="primary" icon="check-circle">Simpan Perubahan</x-ui.button>
+            </div>
+        </form>
+    </x-ui.modal>
+
+    <!-- MODAL KONFIRMASI HAPUS -->
+    <x-ui.modal wire:key="modal-delete-key" id="modal-delete" title="Konfirmasi Hapus" icon="trash" :open="$isDeleteModalOpen" wire:close="$set('isDeleteModalOpen', false)">
+        <p class="text-base-content/80 text-sm">Apakah Anda yakin ingin menghapus data customer ini? Data yang sudah dihapus tidak dapat dikembalikan.</p>
+        <x-slot:footer>
+            <x-ui.button type="button" variant="neutral" outline wire:click="$set('isDeleteModalOpen', false)">Batal</x-ui.button>
+            <x-ui.button type="button" variant="error" icon="trash" wire:click="delete" wire:loading.attr="disabled" wire:target="delete">
+                <span wire:loading.remove wire:target="delete">Ya, Hapus Data</span>
+                <span wire:loading wire:target="delete" class="flex items-center gap-1">
+                    <span class="loading loading-spinner loading-xs"></span> Menghapus...
+                </span>
+            </x-ui.button>
+        </x-slot:footer>
+    </x-ui.modal>
+
+    <!-- MODAL IMPORT CUSTOMER -->
+    <x-ui.modal wire:key="modal-import-key" id="modal-import" title="Import Master Customer" icon="arrow-down-on-square" :open="$isImportModalOpen" wire:close="closeImportModal">
+        <div class="form-control w-full mb-4">
+            <label class="label">
+                <span class="label-text font-semibold">Pilih File Excel (.xlsx, .xls)</span>
+            </label>
+            <input type="file" wire:model="importFile" accept=".xlsx,.xls" class="file-input file-input-bordered file-input-sm w-full focus:file-input-primary" required />
+            <div wire:loading wire:target="importFile" class="text-xs text-info mt-1">Mengunggah file...</div>
+            @error('importFile') <span class="text-xs text-error mt-1">{{ $message }}</span> @enderror
+        </div>
+        
+        <div class="alert alert-info shadow-sm text-sm p-3 border border-info/20 flex flex-col items-start gap-2 mb-2">
+            <div class="flex items-start gap-2">
+                <x-heroicon-o-information-circle class="w-5 h-5 shrink-0" />
+                <span>Format file import harus persis sesuai dengan format template. Baris yang memiliki error akan otomatis dilewati dan Anda dapat mengunduh log errornya nanti.</span>
+            </div>
+            <button type="button" wire:click="downloadTemplate" wire:loading.attr="disabled" wire:target="downloadTemplate" class="btn btn-sm btn-info btn-outline mt-1 bg-white">
+                <span wire:loading.remove wire:target="downloadTemplate" class="flex items-center gap-1">
+                    <x-heroicon-s-document-arrow-down class="w-4 h-4" /> Download Format Import
+                </span>
+                <span wire:loading wire:target="downloadTemplate" class="flex items-center gap-1">
+                    <span class="loading loading-spinner loading-xs"></span> Mengunduh...
+                </span>
+            </button>
+        </div>
+
+        <x-slot:footer>
+            <x-ui.button type="button" variant="neutral" outline wire:click="closeImportModal">Batal</x-ui.button>
+            <x-ui.button type="button" variant="primary" icon="arrow-up-tray" wire:click="import" wire:loading.attr="disabled" wire:target="import">
+                <span wire:loading.remove wire:target="import">Mulai Import</span>
+                <span wire:loading wire:target="import" class="flex items-center gap-1">
+                    <span class="loading loading-spinner loading-xs"></span> Memproses...
+                </span>
+            </x-ui.button>
+        </x-slot:footer>
     </x-ui.modal>
 
 </div>

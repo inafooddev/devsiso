@@ -527,7 +527,7 @@ class Index extends Component
 
         return Excel::download(
             new JksTeamEliteExport($this->filterTeam, $this->filterStartDate, $this->filterEndDate), 
-            'jks_team_elite.xlsx'
+            'jks_team_elite_' . date('Ymd_His') . '.xlsx'
         );
     }
 
@@ -567,7 +567,7 @@ class Index extends Component
 
         return Excel::download(
             new JksTeamEliteEskaExport($this->filterTeam, $this->filterStartDate, $this->filterEndDate, $flagDelete), 
-            'jks_team_elite_eska.xlsx'
+            'jks_team_elite_eska_' . date('Ymd_His') . '.xlsx'
         );
     }
 
@@ -576,7 +576,7 @@ class Index extends Component
      */
     public function downloadTemplate()
     {
-        return Excel::download(new JksTeamEliteTemplateExport, 'template_import_jks_team_elite.xlsx');
+        return Excel::download(new JksTeamEliteTemplateExport, 'template_import_jks_team_elite_' . date('Ymd_His') . '.xlsx');
     }
 
     /**

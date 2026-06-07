@@ -704,12 +704,14 @@ class Index extends Component
         $this->isExportModalOpen = false;
         
         \App\Helpers\ActivityLogger::log('Export RWO', "Mengekspor data RWO.");
-        return Excel::download(new RewardOutletExport($filters), 'reward_outlet_export.xlsx');
+        $filename = 'reward_outlet_export_' . now()->format('Ymd_His') . '.xlsx';
+        return Excel::download(new RewardOutletExport($filters), $filename);
     }
 
     public function downloadTemplate()
     {
-        return Excel::download(new \App\Exports\RewardOutletTemplateExport, 'template_import_rwo.xlsx');
+        $filename = 'template_import_rwo_' . now()->format('Ymd_His') . '.xlsx';
+        return Excel::download(new \App\Exports\RewardOutletTemplateExport, $filename);
     }
 
     public function getFotoKtpPreview()
