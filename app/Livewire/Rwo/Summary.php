@@ -1,0 +1,158 @@
+<?php
+
+namespace App\Livewire\Rwo;
+
+use Livewire\Component;
+use App\Models\RewardOutlet;
+use Illuminate\Support\Facades\DB;
+use App\Traits\EnforcesMenuPermissions;
+
+class Summary extends Component
+{
+    use EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'rwo.index'; 
+
+    public $search = '';
+    public $filter_region_code = '';
+    public $filter_area_code = '';
+
+    public function getFilterRegions()
+    {
+        $user = auth()->user();
+
+        // Level Supervisor
+        if (!$user->hasRole('admin') && !empty($user->supervisor_code)) {
+            $regionCodes = \App\Models\MasterDistributor::where('supervisor_code', $user->supervisor_code)
+                ->whereNotNull('region_code')
+                ->pluck('region_code')
+                ->unique();
+            return \App\Models\MasterRegion::whereIn('region_code', $regionCodes)->orderBy('region_name')->get();
+        }
+
+        // Level Area
+        if (!$user->hasRole('admin') && !empty($user->area_code) && count((array) $user->area_code) > 0) {
+            $regionCodes = \App\Models\MasterDistributor::whereIn('area_code', (array) $user->area_code)
+                ->whereNotNull('region_code')
+                ->pluck('region_code')
+                ->unique();
+            return \App\Models\MasterRegion::whereIn('region_code', $regionCodes)->orderBy('region_name')->get();
+        }
+
+        // Level Region
+        $query = \App\Models\MasterRegion::query();
+        if (!$user->hasRole('admin') && !empty($user->region_code) && count((array) $user->region_code) > 0) {
+            $query->whereIn('region_code', (array) $user->region_code);
+        }
+        return $query->orderBy('region_name')->get();
+    }
+
+    public function getFilterAreas()
+    {
+        $user = auth()->user();
+        $query = \App\Models\MasterArea::query();
+
+        if (!empty($this->filter_region_code)) {
+            $query->where('region_code', $this->filter_region_code);
+        } elseif (!$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $areaCodes = \App\Models\MasterDistributor::where('supervisor_code', $user->supervisor_code)
+                    ->whereNotNull('area_code')
+                    ->pluck('area_code')
+                    ->unique();
+                $query->whereIn('area_code', $areaCodes);
+            } elseif (!empty($user->area_code) && count((array) $user->area_code) > 0) {
+                $query->whereIn('area_code', (array) $user->area_code);
+            } elseif (!empty($user->region_code) && count((array) $user->region_code) > 0) {
+                $query->whereIn('region_code', (array) $user->region_code);
+            }
+        }
+        return $query->orderBy('area_name')->get();
+    }
+
+    public function applyHierarchyAccess($query)
+    {
+        $user = auth()->user();
+
+        if ($user->hasRole('admin')) {
+            return $query;
+        }
+
+        if (!empty($user->supervisor_code)) {
+            return $query->where('t.team_elite_code', $user->supervisor_code);
+        }
+
+        if (!empty($user->area_code) && count((array) $user->area_code) > 0) {
+            return $query->whereIn('ma.area_code', (array) $user->area_code);
+        }
+
+        if (!empty($user->region_code) && count((array) $user->region_code) > 0) {
+            return $query->whereIn('ma.region_code', (array) $user->region_code);
+        }
+
+        return $query;
+    }
+
+    public function getSummaryDataProperty()
+    {
+        $query = DB::table('reward_outlet as r')
+            ->leftJoin('master_branches as mb', 'r.branch_name', '=', 'mb.branch_name')
+            ->leftJoin('master_supervisors as ms', 'mb.supervisor_code', '=', 'ms.supervisor_code')
+            ->leftJoin('master_areas as ma', 'ma.area_code', '=', 'ms.area_code')
+            ->leftJoin('team_elite_code_mappings as t', 't.siso_code', '=', 'ms.supervisor_code')
+            ->leftJoin('fsalesman as f', 'f.SLSNO', '=', 't.team_elite_code');
+
+        $this->applyHierarchyAccess($query);
+
+        if ($this->search) {
+            $query->where(function($q) {
+                $q->where('r.region_name', 'like', '%' . $this->search . '%')
+                  ->orWhere('r.area_name', 'like', '%' . $this->search . '%')
+                  ->orWhere('r.branch_name', 'like', '%' . $this->search . '%');
+            });
+        }
+
+        if ($this->filter_region_code) {
+            $query->where('ma.region_code', $this->filter_region_code);
+        }
+
+        if ($this->filter_area_code) {
+            $query->where('ma.area_code', $this->filter_area_code);
+        }
+
+        $query->select(
+            'ma.region_code',
+            'r.region_name',
+            'ma.area_code',
+            'r.area_name',
+            't.team_elite_code as supervisor_code',
+            'f.SLSNAME as supervisor_name',
+            'r.branch_name',
+            DB::raw('COUNT(r.customer_code) as total_customer'),
+            DB::raw("SUM(CASE WHEN r.no_hp IS NULL OR r.no_hp = '' THEN 1 ELSE 0 END) as missing_no_hp"),
+            DB::raw("SUM(CASE WHEN r.nama_pemilik_toko IS NULL OR r.nama_pemilik_toko = '' THEN 1 ELSE 0 END) as missing_nama_pemilik_toko"),
+            DB::raw("SUM(CASE WHEN r.nama_ktp IS NULL OR r.nama_ktp = '' THEN 1 ELSE 0 END) as missing_nama_ktp"),
+            DB::raw("SUM(CASE WHEN r.nik_ktp IS NULL OR r.nik_ktp = '' THEN 1 ELSE 0 END) as missing_nik_ktp"),
+            DB::raw("SUM(CASE WHEN r.foto_ktp IS NULL OR r.foto_ktp = '' THEN 1 ELSE 0 END) as missing_foto_ktp"),
+            DB::raw("SUM(CASE WHEN r.no_rekening IS NULL OR r.no_rekening = '' THEN 1 ELSE 0 END) as missing_no_rekening"),
+            DB::raw("SUM(CASE WHEN r.nama_bank IS NULL OR r.nama_bank = '' THEN 1 ELSE 0 END) as missing_nama_bank"),
+            DB::raw("SUM(CASE WHEN r.nama_pemilik_norek IS NULL OR r.nama_pemilik_norek = '' THEN 1 ELSE 0 END) as missing_nama_pemilik_norek"),
+            DB::raw("SUM(CASE WHEN r.foto_toko IS NULL OR r.foto_toko = '' THEN 1 ELSE 0 END) as missing_foto_toko"),
+            DB::raw("SUM(CASE WHEN r.is_valid = false OR r.is_valid IS NULL THEN 1 ELSE 0 END) as missing_is_valid")
+        )
+        ->groupBy('ma.region_code', 'r.region_name', 'ma.area_code', 'r.area_name', 't.team_elite_code', 'f.SLSNAME', 'r.branch_name')
+        ->orderBy('ma.region_code')
+        ->orderBy('ma.area_code')
+        ->orderBy('t.team_elite_code')
+        ->orderBy('r.branch_name');
+
+        return $query->get();
+    }
+
+    public function render()
+    {
+        return view('livewire.rwo.summary', [
+            'records' => $this->summaryData
+        ])->layout('layouts.app');
+    }
+}

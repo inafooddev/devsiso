@@ -223,6 +223,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/mapping-supervisor-code', MappingSupervisorCodeIndex::class)->name('mapping-supervisor-code.index');
     Route::get('/rwo', RwoIndex::class)->name('rwo.index');
+    Route::get('/rwo/summary', \App\Livewire\Rwo\Summary::class)->name('rwo.summary');
     Route::get('/under-construction', UnderConstruction::class)->name('under-construction');
     Route::get('/under-bounce', UnderBounce::class)->name('under-bounce');
 

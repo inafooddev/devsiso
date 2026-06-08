@@ -1,7 +1,15 @@
 <div>
     <x-slot name="title">Master Customer RWO</x-slot>
 
-    <div class="mx-auto px-4 sm:px-6 pt-3 pb-8 text-base-content">
+    <div class="mx-auto px-4 sm:px-6 pt-4">
+        <!-- TABS -->
+        <div class="tabs tabs-boxed mb-4 w-fit bg-base-100 shadow-sm border border-base-200 p-1">
+            <a href="{{ route('rwo.summary') }}" class="tab px-8 text-base-content/70 hover:text-base-content" wire:navigate>Summary</a>
+            <a href="{{ route('rwo.index') }}" class="tab px-8 tab-active font-bold" wire:navigate>Detail</a>
+        </div>
+    </div>
+
+    <div class="mx-auto px-4 sm:px-6 pb-8 text-base-content">
         {{-- Notifikasi --}}
         @if (session()->has('message') || session()->has('error'))
             <div class="mb-4 space-y-3">
