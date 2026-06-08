@@ -9,8 +9,12 @@
     {{-- Anti-FOUC: set theme from localStorage before render --}}
     <script>
         (function() {
-            var t = localStorage.getItem('neon-theme') || 'neon-dark';
-            document.documentElement.setAttribute('data-theme', t);
+            var applyTheme = function() {
+                var t = localStorage.getItem('neon-theme') || 'neon-dark';
+                document.documentElement.setAttribute('data-theme', t);
+            };
+            applyTheme();
+            document.addEventListener('livewire:navigated', applyTheme);
         })();
     </script>
 

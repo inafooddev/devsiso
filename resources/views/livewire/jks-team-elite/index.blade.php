@@ -1,6 +1,14 @@
 <div>
     <x-slot name="title">JKS Team Elite</x-slot>
 
+    <!-- TABS -->
+    <div class="mx-auto px-4 sm:px-6 pt-4">
+        <div class="tabs tabs-boxed mb-4 w-fit bg-base-100 shadow-sm border border-base-200 p-1">
+            <a href="{{ route('call-plan.jks-team-elite.monitoring') }}" class="tab px-8 text-base-content/70 hover:text-base-content" wire:navigate>Summary</a>
+            <a href="{{ route('jks-team-elite.index') }}" class="tab px-8 tab-active font-bold" wire:navigate>Detail</a>
+        </div>
+    </div>
+
     <div class="mx-auto px-4 sm:px-6 pb-8">
         {{-- Notifikasi --}}
         @if (session()->has('message') || session()->has('error'))

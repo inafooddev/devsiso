@@ -1,4 +1,9 @@
 <div>
+    <!-- TABS -->
+    <div class="tabs tabs-boxed mb-4 w-fit bg-base-100 shadow-sm border border-base-200 p-1">
+        <a href="{{ route('call-plan.jks-team-elite.monitoring') }}" class="tab px-8 tab-active font-bold" wire:navigate>Summary</a>
+        <a href="{{ route('jks-team-elite.index') }}" class="tab px-8 text-base-content/70 hover:text-base-content" wire:navigate>Detail</a>
+    </div>
     <x-card title="Monitoring JKS Team Elite" icon="clipboard-document-check" class="mb-4" flush="true">
         <x-slot:actions>
             <div class="flex items-center gap-2">
