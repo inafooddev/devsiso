@@ -48,13 +48,24 @@ class Index extends Component
 
     public function loadRegions()
     {
-        $this->regions = DB::table('jks_team_elite')
+        $user = auth()->user();
+        $query = DB::table('jks_team_elite')
             ->select('kode_region', 'nama_region')
-            ->whereNotNull('kode_region')
-            ->distinct()
+            ->whereNotNull('kode_region');
+            
+        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
+            $query->whereIn('kode_region', (array) $user->region_code);
+        }
+            
+        $this->regions = $query->distinct()
             ->orderBy('nama_region')
             ->get()
             ->toArray();
+            
+        if (count($this->regions) > 0 && empty($this->selectedRegion)) {
+            $this->selectedRegion = $this->regions[0]->kode_region;
+            $this->updatedSelectedRegion($this->selectedRegion);
+        }
     }
 
     public function updatedSelectedRegion($value)
@@ -157,6 +168,11 @@ class Index extends Component
                      ->on('jks.tanggal', '=', 'visit.tanggal');
             });
 
+        $user = auth()->user();
+        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
+            $query->whereIn('jks.kode_region', (array) $user->region_code);
+        }
+
         if ($this->appliedRegion) {
             $query->where('jks.kode_region', $this->appliedRegion);
         }
@@ -246,6 +262,11 @@ class Index extends Component
             ->whereNotNull('sub_jks.kode_team')
             ->distinct();
 
+        $user = auth()->user();
+        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
+            $uniqueTargets->whereIn('sub_jks.kode_region', (array) $user->region_code);
+        }
+
         if ($this->appliedStartDate && $this->appliedEndDate) {
             $uniqueTargets->whereBetween('sub_jks.tanggal', [$this->appliedStartDate, $this->appliedEndDate]);
         } elseif ($this->appliedStartDate) {
@@ -303,6 +324,10 @@ class Index extends Component
             ->orderBy('jks.nama_region')
             ->orderBy('jks.nama_area')
             ->orderBy('jks.nama_team');
+
+        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
+            $query->whereIn('jks.kode_region', (array) $user->region_code);
+        }
 
         if ($this->appliedStartDate && $this->appliedEndDate) {
             $query->whereBetween('jks.tanggal', [$this->appliedStartDate, $this->appliedEndDate]);
