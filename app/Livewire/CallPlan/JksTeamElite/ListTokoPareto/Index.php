@@ -53,6 +53,10 @@ class Index extends Component
     // Properti Add to JKS
     public $selectedJksId, $jksTanggal, $jksKodeTeam;
 
+    // ✅ FIX #4: Data statis disimpan sebagai properti Livewire — hanya dimuat sekali di mount()
+    public array $regions = [];
+    public array $teams   = [];
+
     protected $queryString = [
         'search' => ['except' => ''],
         'filterRegion' => ['except' => ''],
@@ -120,14 +124,37 @@ class Index extends Component
 
     public function mount()
     {
-        $query = DB::table('master_distributors')->select('region_code')->whereNotNull('region_code')->distinct();
-        $query = $this->applyHierarchyAccess($query, 'distributor_code');
-        
-        $regions = $query->get();
+        $this->loadStaticData();
+    }
 
-        if (!auth()->user()->hasRole('admin') && $regions->count() === 1) {
-            $this->filterRegion = $regions->first()->region_code;
+    /**
+     * ✅ FIX #4: Load data statis (regions, teams) sekali saja.
+     * Dipanggil di mount() dan resetFilter() agar tetap sinkron setelah reset.
+     */
+    private function loadStaticData(): void
+    {
+        // Query regions
+        $regionQuery = DB::table('master_distributors')
+            ->select('region_code', 'region_name')
+            ->whereNotNull('region_code')
+            ->distinct();
+        $regionQuery = $this->applyHierarchyAccess($regionQuery, 'distributor_code');
+        $fetchedRegions = $regionQuery->orderBy('region_name')->get();
+
+        // Auto-select jika user non-admin hanya punya 1 region
+        if (!auth()->user()->hasRole('admin') && $fetchedRegions->count() === 1) {
+            $this->filterRegion = $fetchedRegions->first()->region_code;
         }
+
+        $this->regions = $fetchedRegions->toArray();
+
+        // Query teams (tidak bergantung hierarchy)
+        $this->teams = DB::table('fsalesman')
+            ->where('TEAM', 'SPI')
+            ->select('SLSNO as kode_team', 'SLSNAME as nama_team')
+            ->orderBy('SLSNAME')
+            ->get()
+            ->toArray();
     }
 
     public function updatingSearch() { $this->resetPage(); }
@@ -162,6 +189,11 @@ class Index extends Component
             ->leftJoin('master_distributors as m', 'l.distributor_code', '=', 'm.distributor_code')
             ->leftJoin('mapping_spv_code as msc', 'm.branch_code', '=', 'msc.branch_code')
             ->leftJoin('master_supervisors as ms', 'm.supervisor_code', '=', 'ms.supervisor_code')
+            // ✅ FIX #1: Ganti correlated subquery (N kali per baris) → LEFT JOIN (1x scan)
+            ->leftJoin('jks_team_elite as j', function ($join) {
+                $join->on('l.distributor_code', '=', 'j.distributor_code')
+                     ->on('l.customer_code_prc', '=', 'j.custno');
+            })
             ->select(
                 'l.id',
                 'm.region_code', 'm.region_name',
@@ -171,7 +203,14 @@ class Index extends Component
                 'l.distributor_code', 'm.distributor_name',
                 'l.customer_code_prc', 'l.customer_name', 'l.uniq_kd', 'l.customer_address',
                 'l.kecamatan', 'l.desa', 'l.latitude', 'l.longitude', 'l.pilar', 'l.target', 'l.keterangan',
-                DB::raw("CASE WHEN EXISTS (SELECT 1 FROM jks_team_elite as j WHERE l.distributor_code = j.distributor_code AND l.customer_code_prc = j.custno) THEN 'Y' ELSE 'T' END as on_jks")
+                DB::raw("CASE WHEN j.distributor_code IS NOT NULL THEN 'Y' ELSE 'T' END as on_jks")
+            )
+            ->groupBy(
+                'l.id', 'm.region_code', 'm.region_name', 'm.area_code', 'm.area_name',
+                'msc.supervisor_code', 'ms.description', 'l.distributor_code', 'm.distributor_name',
+                'l.customer_code_prc', 'l.customer_name', 'l.uniq_kd', 'l.customer_address',
+                'l.kecamatan', 'l.desa', 'l.latitude', 'l.longitude', 'l.pilar', 'l.target', 'l.keterangan',
+                'j.distributor_code'
             );
 
         // --- PROTEKSI KEAMANAN DATA UTAMA ---
@@ -230,13 +269,15 @@ class Index extends Component
 
     public function render()
     {
-        $regionQuery = DB::table('master_distributors')->select('region_code', 'region_name')->whereNotNull('region_code')->distinct();
-        $regionQuery = $this->applyHierarchyAccess($regionQuery, 'distributor_code');
-        $regions = $regionQuery->orderBy('region_name')->get();
-        
+        // ✅ FIX #4: $regions & $teams sudah ada di properti Livewire (dimuat di mount())
+        // Hanya query $areas & $supervisors yang bergantung pada pilihan filter
         $areas = [];
         if ($this->filterRegion) {
-            $areaQuery = DB::table('master_distributors')->select('area_code', 'area_name')->where('region_code', $this->filterRegion)->whereNotNull('area_code')->distinct();
+            $areaQuery = DB::table('master_distributors')
+                ->select('area_code', 'area_name')
+                ->where('region_code', $this->filterRegion)
+                ->whereNotNull('area_code')
+                ->distinct();
             $areaQuery = $this->applyHierarchyAccess($areaQuery, 'distributor_code');
             $areas = $areaQuery->orderBy('area_name')->get();
         }
@@ -252,46 +293,48 @@ class Index extends Component
             $supervisors = $spvQuery->orderBy('supervisor_name')->get();
         }
 
-        $data = $this->getBaseQuery()->paginate(15);
+        // ✅ FIX #3: getBaseQuery() hanya dipanggil SEKALI, di-clone untuk tiap kebutuhan
+        $baseQuery = $this->getBaseQuery();
+
+        $data = (clone $baseQuery)->paginate(15);
 
         // --- KPI Calculation ---
-        $kpiQuery = clone $this->getBaseQuery();
-        $kpiQuery->orders = null;
-        $kpiQuery->where(function($q) {
+        // Gunakan clone dari $baseQuery — tidak memanggil getBaseQuery() lagi
+        $kpiQuery = (clone $baseQuery);
+
+        // Bersihkan ORDER BY, GROUP BY, dan SELECT yang ada dari base query
+        // SEBELUM set SELECT baru agar tidak mix kolom individual + aggregate (PostgreSQL error 42803)
+        $kpiQuery->orders  = null; // hapus ORDER BY
+        $kpiQuery->groups  = null; // hapus GROUP BY (penting! aggregate tidak butuh GROUP BY per-baris)
+        $kpiQuery->columns = null; // hapus SELECT lama — selectRaw() hanya menambah, bukan mengganti
+
+        $kpiQuery->where(function ($q) {
             $q->whereNull('l.keterangan')->orWhere('l.keterangan', '');
         });
-        
-        $kpi = DB::table(DB::raw("({$kpiQuery->toSql()}) as sub"))
-            ->mergeBindings($kpiQuery)
-            ->selectRaw("
-                COUNT(id) as total_toko,
-                SUM(CASE WHEN on_jks = 'Y' THEN 1 ELSE 0 END) as total_toko_jks_y,
-                SUM(COALESCE(CAST(NULLIF(CAST(target AS TEXT), '') AS NUMERIC), 0)) as total_target,
-                SUM(CASE WHEN on_jks = 'Y' THEN COALESCE(CAST(NULLIF(CAST(target AS TEXT), '') AS NUMERIC), 0) ELSE 0 END) as total_target_jks_y,
-                SUM(CASE WHEN pilar = '1. RWO' THEN 1 ELSE 0 END) as total_rwo,
-                SUM(CASE WHEN pilar = '1. RWO' AND on_jks = 'Y' THEN 1 ELSE 0 END) as total_rwo_jks_y,
-                SUM(CASE WHEN pilar = '2. PNR' THEN 1 ELSE 0 END) as total_pnr,
-                SUM(CASE WHEN pilar = '2. PNR' AND on_jks = 'Y' THEN 1 ELSE 0 END) as total_pnr_jks_y,
-                SUM(CASE WHEN pilar = '3. NGVO' THEN 1 ELSE 0 END) as total_ngvo,
-                SUM(CASE WHEN pilar = '3. NGVO' AND on_jks = 'Y' THEN 1 ELSE 0 END) as total_ngvo_jks_y,
-                SUM(CASE WHEN latitude IS NULL OR latitude = 0 THEN 1 ELSE 0 END) as total_no_geotag,
-                SUM(CASE WHEN (latitude IS NULL OR latitude = 0) AND on_jks = 'Y' THEN 1 ELSE 0 END) as total_no_geotag_jks_y
+
+        // Set SELECT agregasi langsung (tidak wrap subquery)
+        $kpi = $kpiQuery->selectRaw("
+                COUNT(l.id) as total_toko,
+                SUM(CASE WHEN j.distributor_code IS NOT NULL THEN 1 ELSE 0 END) as total_toko_jks_y,
+                SUM(COALESCE(l.target, 0)) as total_target,
+                SUM(CASE WHEN j.distributor_code IS NOT NULL THEN COALESCE(l.target, 0) ELSE 0 END) as total_target_jks_y,
+                SUM(CASE WHEN l.pilar = '1. RWO' THEN 1 ELSE 0 END) as total_rwo,
+                SUM(CASE WHEN l.pilar = '1. RWO' AND j.distributor_code IS NOT NULL THEN 1 ELSE 0 END) as total_rwo_jks_y,
+                SUM(CASE WHEN l.pilar = '2. PNR' THEN 1 ELSE 0 END) as total_pnr,
+                SUM(CASE WHEN l.pilar = '2. PNR' AND j.distributor_code IS NOT NULL THEN 1 ELSE 0 END) as total_pnr_jks_y,
+                SUM(CASE WHEN l.pilar = '3. NGVO' THEN 1 ELSE 0 END) as total_ngvo,
+                SUM(CASE WHEN l.pilar = '3. NGVO' AND j.distributor_code IS NOT NULL THEN 1 ELSE 0 END) as total_ngvo_jks_y,
+                SUM(CASE WHEN l.latitude IS NULL OR l.latitude = 0 THEN 1 ELSE 0 END) as total_no_geotag,
+                SUM(CASE WHEN (l.latitude IS NULL OR l.latitude = 0) AND j.distributor_code IS NOT NULL THEN 1 ELSE 0 END) as total_no_geotag_jks_y
             ")->first();
 
-        // Ambil semua Team SPI (tanpa difilter hierarchy karena beda struktur tabel)
-        $teamsQuery = DB::table('fsalesman')
-            ->where('TEAM', 'SPI')
-            ->select('SLSNO as kode_team', 'SLSNAME as nama_team');
-
-        $teams = $teamsQuery->orderBy('SLSNAME')->get();
-
         return view('livewire.call-plan.jks-team-elite.list-toko-pareto.index', [
-            'data' => $data,
-            'regions' => $regions,
-            'areas' => $areas,
+            'data'        => $data,
+            'regions'     => collect($this->regions), // properti Livewire → Collection untuk blade
+            'areas'       => $areas,
             'supervisors' => $supervisors,
-            'teams' => $teams,
-            'kpi' => $kpi,
+            'teams'       => collect($this->teams),   // properti Livewire → Collection untuk blade
+            'kpi'         => $kpi,
         ])->layout('layouts.app');
     }
 
@@ -299,13 +342,13 @@ class Index extends Component
     public function openFilterModal() { $this->isFilterModalOpen = true; }
     public function closeFilterModal() { $this->isFilterModalOpen = false; }
     public function applyFilter() { $this->isFilterModalOpen = false; $this->resetPage(); }
-    public function resetFilter() { 
-        $this->reset(['filterRegion', 'filterArea', 'filterSupervisor', 'filterKpi']); 
-        $this->isFilterModalOpen = false; 
-        
+    public function resetFilter() {
+        $this->reset(['filterRegion', 'filterArea', 'filterSupervisor', 'filterKpi']);
+        $this->isFilterModalOpen = false;
+
         // Kembalikan auto-select region setelah reset jika user non-admin hanya 1 region
-        $this->mount();
-        $this->resetPage(); 
+        $this->loadStaticData();
+        $this->resetPage();
     }
 
     // --- FITUR TAMBAH CUSTOMER BARU ---

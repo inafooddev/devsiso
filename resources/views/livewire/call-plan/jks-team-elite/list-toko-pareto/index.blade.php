@@ -38,7 +38,7 @@
                 </div>
             </div>
             <!-- Total Target -->
-            <div wire:click="setFilterKpi('')" class="rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden cursor-pointer transition-all {{ $filterKpi === '' ? 'ring-2 ring-primary bg-primary/5' : 'bg-base-100 hover:bg-base-200/50' }}">
+            <div class="rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden bg-base-100 transition-all">
                 <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-currency-dollar class="w-24 h-24" /></div>
                 <div class="text-sm text-base-content/70 font-medium z-10">Total Target</div>
                 <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_target ?? 0, 0, ',', '.') }}</div>
@@ -96,7 +96,7 @@
                 <!-- Kiri: Search -->
                 <div class="w-full md:w-1/3 relative">
                     <x-heroicon-s-magnifying-glass class="w-4 h-4 absolute left-3 top-2.5 text-base-content/50" />
-                    <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari Kode/Nama/Alamat/Pilar..." 
+                    <input wire:model.live.debounce.500ms="search" type="text" placeholder="Cari Kode/Nama/Alamat/Pilar..." 
                            class="input input-sm input-bordered w-full pl-9 focus:input-primary">
                 </div>
 
@@ -105,8 +105,9 @@
                     <!-- TOMBOL FILTER -->
                     <x-ui.button variant="neutral" size="sm" outline wire:click="openFilterModal">
                         <x-heroicon-s-funnel class="w-4 h-4 mr-1" /> Filter
-                        @if($filterRegion || $filterArea || $filterSupervisor)
-                            <div class="badge badge-primary badge-sm ml-2">!</div>
+                        @php $activeFilterCount = (int)(bool)$filterRegion + (int)(bool)$filterArea + (int)(bool)$filterSupervisor; @endphp
+                        @if($activeFilterCount > 0)
+                            <div class="badge badge-primary badge-sm ml-2">{{ $activeFilterCount }}</div>
                         @endif
                     </x-ui.button>                    
                     
@@ -148,7 +149,7 @@
             </div>
 
             <!-- Tabel -->
-            <div wire:key="table-wrapper-{{ md5($search . $filterRegion . $filterArea . $filterSupervisor . $data->currentPage()) }}">
+            <div wire:key="table-wrapper-{{ md5($search . $filterRegion . $filterArea . $filterSupervisor . ($data?->currentPage() ?? 0)) }}">
                 <x-ui.table hover striped sticky loading="{{ false }}" empty="Tidak ada data ditemukan." class="border-x-0 border-b-0 rounded-none shadow-none">
                 <x-slot:head>
                     <tr>
@@ -325,21 +326,23 @@
         <div class="space-y-4">
             <div class="form-control w-full">
                 <label class="label"><span class="label-text font-semibold">Region</span></label>
-                <select wire:model.live="filterRegion" class="select select-sm select-bordered w-full">
+                {{-- ✅ FIX #5: Gunakan wire:model biasa (bukan .live) agar tidak trigger
+                     re-render setiap kali pilihan berubah. Update dikirim saat klik Terapkan. --}}
+                <select wire:model="filterRegion" class="select select-sm select-bordered w-full">
                     <option value="">-- Semua Region --</option>
                     @foreach($regions as $r) <option value="{{ $r->region_code }}">{{ $r->region_name }}</option> @endforeach
                 </select>
             </div>
             <div class="form-control w-full">
                 <label class="label"><span class="label-text font-semibold">Area</span></label>
-                <select wire:model.live="filterArea" class="select select-sm select-bordered w-full" @if(!$filterRegion) disabled @endif>
+                <select wire:model="filterArea" class="select select-sm select-bordered w-full" @if(!$filterRegion) disabled @endif>
                     <option value="">-- Semua Area --</option>
                     @foreach($areas as $a) <option value="{{ $a->area_code }}">{{ $a->area_name }}</option> @endforeach
                 </select>
             </div>
             <div class="form-control w-full">
                 <label class="label"><span class="label-text font-semibold">Supervisor</span></label>
-                <select wire:model.live="filterSupervisor" class="select select-sm select-bordered w-full" @if(!$filterArea) disabled @endif>
+                <select wire:model="filterSupervisor" class="select select-sm select-bordered w-full" @if(!$filterArea) disabled @endif>
                     <option value="">-- Semua Supervisor --</option>
                     @foreach($supervisors as $s) <option value="{{ $s->supervisor_code }}">{{ $s->supervisor_name }}</option> @endforeach
                 </select>
@@ -353,7 +356,7 @@
 
     <!-- MODAL IMPORT -->
     <x-ui.modal wire:key="modal-import-key" id="modal-import" title="Import Excel (Full Sync)" icon="arrow-down-on-square" :open="$isImportModalOpen" wire:close="$set('isImportModalOpen', false)">
-        <form wire:submit.prevent="import">
+        <form id="form-import" wire:submit.prevent="import">
             <x-ui.notif type="info" class="mb-4 text-xs">
                 <b>Info Full Sync:</b><br>Jika "Kode PRC + Distributor" sudah ada, data akan di-Update. Jika belum ada, akan di-Insert.
             </x-ui.notif>
@@ -369,20 +372,19 @@
                 </span>
                 @error('importFile') <span class="text-error text-xs mt-1">{{ $message }}</span> @enderror
             </div>
-            
-            <div class="flex justify-end gap-2 mt-6">
-                <x-ui.button type="button" variant="neutral" outline wire:click="$set('isImportModalOpen', false)">Batal</x-ui.button>
-                <x-ui.button type="submit" variant="primary" icon="cloud-arrow-up" wire:loading.attr="disabled" wire:target="import, importFile">
-                    <span wire:loading.remove wire:target="import">Upload & Sync</span>
-                    <span wire:loading wire:target="import">Proses...</span>
-                </x-ui.button>
-            </div>
         </form>
+        <x-slot:footer>
+            <x-ui.button type="button" variant="neutral" outline wire:click="$set('isImportModalOpen', false)">Batal</x-ui.button>
+            <x-ui.button form="form-import" type="submit" variant="primary" icon="cloud-arrow-up" wire:loading.attr="disabled" wire:target="import, importFile">
+                <span wire:loading.remove wire:target="import">Upload & Sync</span>
+                <span wire:loading wire:target="import">Proses...</span>
+            </x-ui.button>
+        </x-slot:footer>
     </x-ui.modal>
 
     <!-- MODAL TAMBAH CUSTOMER BARU -->
     <x-ui.modal wire:key="modal-create-key" id="modal-create" title="Tambah Customer Baru" icon="plus-circle" size="lg" :open="$isCreateModalOpen" wire:close="$set('isCreateModalOpen', false)">
-        <form wire:submit.prevent="store">
+        <form id="form-create" wire:submit.prevent="store">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
                 <x-input-text label="Distributor Code *" wire:model="distributor_code" placeholder="Contoh: SBY01" />
                 <x-input-text label="Customer Code PRC *" wire:model="customer_code_prc" placeholder="Contoh: CUST-991" />
@@ -406,16 +408,16 @@
                 <x-input-text label="Target" wire:model="target" type="number" step="0.01" />
                 <x-input-text label="Keterangan" wire:model="keterangan" />
             </div>
-            <div class="flex justify-end gap-2 mt-4">
-                <x-ui.button type="button" variant="neutral" outline wire:click="$set('isCreateModalOpen', false)">Batal</x-ui.button>
-                <x-ui.button type="submit" variant="primary" icon="check-circle">Simpan Customer</x-ui.button>
-            </div>
         </form>
+        <x-slot:footer>
+            <x-ui.button type="button" variant="neutral" outline wire:click="$set('isCreateModalOpen', false)">Batal</x-ui.button>
+            <x-ui.button form="form-create" type="submit" variant="primary" icon="check-circle">Simpan Customer</x-ui.button>
+        </x-slot:footer>
     </x-ui.modal>
 
     <!-- MODAL EDIT -->
     <x-ui.modal wire:key="modal-edit-key" id="modal-edit" title="Edit Toko Pareto" icon="pencil-square" size="lg" :open="$isEditModalOpen" wire:close="$set('isEditModalOpen', false)">
-        <form wire:submit.prevent="update">
+        <form id="form-edit" wire:submit.prevent="update">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
                 <div class="form-control mb-4">
                     <label class="label pb-1"><span class="label-text text-xs font-medium">Distributor Code *</span></label>
@@ -445,11 +447,11 @@
                 <x-input-text label="Target" wire:model="target" type="number" step="0.01" />
                 <x-input-text label="Keterangan" wire:model="keterangan" />
             </div>
-            <div class="flex justify-end gap-2 mt-4">
-                <x-ui.button type="button" variant="neutral" outline wire:click="$set('isEditModalOpen', false)">Batal</x-ui.button>
-                <x-ui.button type="submit" variant="primary" icon="check">Simpan Perubahan</x-ui.button>
-            </div>
         </form>
+        <x-slot:footer>
+            <x-ui.button type="button" variant="neutral" outline wire:click="$set('isEditModalOpen', false)">Batal</x-ui.button>
+            <x-ui.button form="form-edit" type="submit" variant="primary" icon="check">Simpan Perubahan</x-ui.button>
+        </x-slot:footer>
     </x-ui.modal>
 
     <!-- MODAL DELETE -->
