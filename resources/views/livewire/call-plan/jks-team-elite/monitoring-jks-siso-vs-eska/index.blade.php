@@ -30,12 +30,11 @@
             .matrix-th-top-2 { position: sticky; top: 34px; z-index: 40; }
             .matrix-col-1 { position: sticky; left: 0; z-index: 30; min-width: 56px; max-width: 56px; }
             .matrix-col-2 { position: sticky; left: 56px; z-index: 30; min-width: 68px; max-width: 68px; }
-            .matrix-col-3 { position: sticky; left: 124px; z-index: 30; min-width: 67px; max-width: 67px; }
-            .matrix-col-4 { position: sticky; left: 191px; z-index: 30; min-width: 105px; max-width: 105px; }
+            .matrix-col-3 { position: sticky; left: 124px; z-index: 30; min-width: 150px; max-width: 150px; }
             
             /* Top-Left Intersections */
-            .matrix-th-top-1.matrix-col-1, .matrix-th-top-1.matrix-col-2, .matrix-th-top-1.matrix-col-3, .matrix-th-top-1.matrix-col-4,
-            .matrix-th-top-2.matrix-col-1, .matrix-th-top-2.matrix-col-2, .matrix-th-top-2.matrix-col-3, .matrix-th-top-2.matrix-col-4 {
+            .matrix-th-top-1.matrix-col-1, .matrix-th-top-1.matrix-col-2, .matrix-th-top-1.matrix-col-3,
+            .matrix-th-top-2.matrix-col-1, .matrix-th-top-2.matrix-col-2, .matrix-th-top-2.matrix-col-3 {
                 z-index: 50; /* Above both sticky rows and columns */
             }
             
@@ -60,8 +59,7 @@
                     <tr>
                         <th rowspan="2" class="matrix-th-top-1 matrix-col-1 align-middle bg-base-300 border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] uppercase tracking-wider text-[10px] font-bold text-base-content/80 px-2 py-1">Region</th>
                         <th rowspan="2" class="matrix-th-top-1 matrix-col-2 align-middle bg-base-300 border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] uppercase tracking-wider text-[10px] font-bold text-base-content/80 px-2 py-1">Area</th>
-                        <th rowspan="2" class="matrix-th-top-1 matrix-col-3 align-middle bg-base-300 border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] uppercase tracking-wider text-[10px] font-bold text-base-content/80 px-2 py-1">Kode Team</th>
-                        <th rowspan="2" class="matrix-th-top-1 matrix-col-4 align-middle bg-base-300 border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] uppercase tracking-wider text-[10px] font-bold text-base-content/80 px-2 py-1">Nama Team</th>
+                        <th rowspan="2" class="matrix-th-top-1 matrix-col-3 align-middle bg-base-300 border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] uppercase tracking-wider text-[10px] font-bold text-base-content/80 px-2 py-1">Nama Team</th>
                         @foreach($monthDates as $date => $dayData)
                         <th colspan="3" class="matrix-th-top-1 text-center bg-base-300 border-b border-base-200 matrix-date-border p-0 {{ $dayData['is_sunday'] ? 'text-error font-bold bg-error/10' : 'text-base-content/80' }}">
                             <div class="flex items-center justify-center h-[34px] w-full uppercase tracking-widest text-[10px] font-bold">
@@ -89,8 +87,7 @@
                     <tr class="matrix-row transition-colors">
                         <td class="matrix-col-1 text-base-content/80 border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] truncate px-2 py-1 {{ $index % 2 === 0 ? 'bg-base-100' : 'bg-base-200' }}" title="{{ $team->region_name ?? '-' }}">{{ $team->region_name ?? '-' }}</td>
                         <td class="matrix-col-2 text-base-content/80 border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] truncate px-2 py-1 {{ $index % 2 === 0 ? 'bg-base-100' : 'bg-base-200' }}" title="{{ $team->area_name ?? '-' }}">{{ $team->area_name ?? '-' }}</td>
-                        <td class="matrix-col-3 font-medium border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] truncate px-2 py-1 {{ $index % 2 === 0 ? 'bg-base-100' : 'bg-base-200' }}" title="{{ $team->supervisor_code }}">{{ $team->supervisor_code }}</td>
-                        <td class="matrix-col-4 text-base-content/80 border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] truncate px-2 py-1 {{ $index % 2 === 0 ? 'bg-base-100' : 'bg-base-200' }} uppercase" title="{{ $team->supervisor_name }}">{{ $team->supervisor_name }}</td>
+                        <td class="matrix-col-3 text-base-content/80 font-medium border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] truncate px-2 py-1 {{ $index % 2 === 0 ? 'bg-base-100' : 'bg-base-200' }} uppercase" title="{{ $team->supervisor_name }}">{{ $team->supervisor_name }}</td>
                         @foreach($monthDates as $date => $dayData)
                             @php
                                 $siso = $dataMatrix[$team->supervisor_code][$date]['siso'] ?? 0;

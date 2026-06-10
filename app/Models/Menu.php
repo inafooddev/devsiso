@@ -51,7 +51,7 @@ class Menu extends Model
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(\Spatie\Permission\Models\Role::class, 'menu_role')
-                    ->withPivot('can_edit', 'can_import', 'can_export')
+                    ->withPivot('can_edit', 'can_import', 'can_export', 'can_add', 'can_delete')
                     ->withTimestamps();
     }
 

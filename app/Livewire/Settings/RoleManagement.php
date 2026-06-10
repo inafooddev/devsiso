@@ -99,6 +99,8 @@ class RoleManagement extends Component
                 'can_edit' => false,
                 'can_import' => false,
                 'can_export' => false,
+                'can_add' => false,
+                'can_delete' => false,
             ];
         }
             
@@ -115,6 +117,8 @@ class RoleManagement extends Component
                 'can_edit' => (bool) $pivot->can_edit,
                 'can_import' => (bool) $pivot->can_import,
                 'can_export' => (bool) $pivot->can_export,
+                'can_add' => (bool) $pivot->can_add,
+                'can_delete' => (bool) $pivot->can_delete,
             ];
         }
         
@@ -133,13 +137,15 @@ class RoleManagement extends Component
             $inserts = [];
             foreach($this->rolePermissions as $menuId => $perms) {
                 // Jika setidaknya salah satu di-centang, simpan barisnya
-                if(!empty($perms['can_edit']) || !empty($perms['can_import']) || !empty($perms['can_export'])) {
+                if(!empty($perms['can_edit']) || !empty($perms['can_import']) || !empty($perms['can_export']) || !empty($perms['can_add']) || !empty($perms['can_delete'])) {
                     $inserts[] = [
                         'menu_id' => $menuId, 
                         'role_id' => $role->id, 
                         'can_edit' => !empty($perms['can_edit']) ? 1 : 0,
                         'can_import' => !empty($perms['can_import']) ? 1 : 0,
                         'can_export' => !empty($perms['can_export']) ? 1 : 0,
+                        'can_add' => !empty($perms['can_add']) ? 1 : 0,
+                        'can_delete' => !empty($perms['can_delete']) ? 1 : 0,
                         'created_at' => now(), 
                         'updated_at' => now()
                     ];

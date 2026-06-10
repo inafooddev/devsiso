@@ -118,6 +118,8 @@ class User extends Authenticatable
                             'can_edit' => false,
                             'can_import' => false,
                             'can_export' => false,
+                            'can_add' => false,
+                            'can_delete' => false,
                         ];
                     }
                 }
@@ -140,6 +142,8 @@ class User extends Authenticatable
                                 'can_edit' => false,
                                 'can_import' => false,
                                 'can_export' => false,
+                                'can_add' => false,
+                                'can_delete' => false,
                             ];
                         }
                         
@@ -147,6 +151,8 @@ class User extends Authenticatable
                             if ($r->pivot->can_edit) $this->menuAccessCache[$m->route]['can_edit'] = true;
                             if ($r->pivot->can_import) $this->menuAccessCache[$m->route]['can_import'] = true;
                             if ($r->pivot->can_export) $this->menuAccessCache[$m->route]['can_export'] = true;
+                            if ($r->pivot->can_add) $this->menuAccessCache[$m->route]['can_add'] = true;
+                            if ($r->pivot->can_delete) $this->menuAccessCache[$m->route]['can_delete'] = true;
                         }
                     }
                 }

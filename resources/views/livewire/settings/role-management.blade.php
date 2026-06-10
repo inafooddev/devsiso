@@ -110,8 +110,20 @@
 
                                 <th class="text-center align-top">
                                     <div class="flex flex-col items-center">
+                                        <span>Tambah</span>
+                                        <button type="button" wire:click="toggleAll('can_add')" class="text-[10px] bg-base-200 hover:bg-base-300 px-2 py-0.5 rounded mt-1 transition-colors">Check All</button>
+                                    </div>
+                                </th>
+                                <th class="text-center align-top">
+                                    <div class="flex flex-col items-center">
                                         <span>Edit</span>
                                         <button type="button" wire:click="toggleAll('can_edit')" class="text-[10px] bg-base-200 hover:bg-base-300 px-2 py-0.5 rounded mt-1 transition-colors">Check All</button>
+                                    </div>
+                                </th>
+                                <th class="text-center align-top">
+                                    <div class="flex flex-col items-center">
+                                        <span>Hapus</span>
+                                        <button type="button" wire:click="toggleAll('can_delete')" class="text-[10px] bg-base-200 hover:bg-base-300 px-2 py-0.5 rounded mt-1 transition-colors">Check All</button>
                                     </div>
                                 </th>
                                 <th class="text-center align-top">
@@ -135,7 +147,9 @@
                                         <div class="w-5 h-5 mr-2 flex justify-center items-center">{!! $menu['icon'] ?? '' !!}</div>
                                         <span>{{ $menu['name'] }}</span>
                                     </td>
+                                    <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $menu['id'] }}.can_add" class="checkbox checkbox-primary checkbox-sm"></td>
                                     <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $menu['id'] }}.can_edit" class="checkbox checkbox-secondary checkbox-sm"></td>
+                                    <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $menu['id'] }}.can_delete" class="checkbox checkbox-error checkbox-sm"></td>
                                     <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $menu['id'] }}.can_import" class="checkbox checkbox-accent checkbox-sm"></td>
                                     <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $menu['id'] }}.can_export" class="checkbox checkbox-info checkbox-sm"></td>
                                 </tr>
@@ -144,7 +158,9 @@
                                     @foreach($menu['children'] as $child1)
                                         <tr class="hover:bg-base-200/50 border-t border-base-200">
                                             <td class="pl-10 font-medium text-base-content/90">{{ $child1['name'] }}</td>
+                                            <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $child1['id'] }}.can_add" class="checkbox checkbox-primary checkbox-sm"></td>
                                             <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $child1['id'] }}.can_edit" class="checkbox checkbox-secondary checkbox-sm"></td>
+                                            <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $child1['id'] }}.can_delete" class="checkbox checkbox-error checkbox-sm"></td>
                                             <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $child1['id'] }}.can_import" class="checkbox checkbox-accent checkbox-sm"></td>
                                             <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $child1['id'] }}.can_export" class="checkbox checkbox-info checkbox-sm"></td>
                                         </tr>
@@ -153,7 +169,9 @@
                                             @foreach($child1['children'] as $child2)
                                                 <tr class="hover:bg-base-200/50">
                                                     <td class="pl-16 text-sm text-base-content/80">{{ $child2['name'] }}</td>
+                                                    <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $child2['id'] }}.can_add" class="checkbox checkbox-primary checkbox-sm"></td>
                                                     <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $child2['id'] }}.can_edit" class="checkbox checkbox-secondary checkbox-sm"></td>
+                                                    <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $child2['id'] }}.can_delete" class="checkbox checkbox-error checkbox-sm"></td>
                                                     <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $child2['id'] }}.can_import" class="checkbox checkbox-accent checkbox-sm"></td>
                                                     <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $child2['id'] }}.can_export" class="checkbox checkbox-info checkbox-sm"></td>
                                                 </tr>
@@ -162,7 +180,9 @@
                                                     @foreach($child2['children'] as $child3)
                                                         <tr class="hover:bg-base-200/50 bg-base-200/30">
                                                             <td class="pl-20 text-xs text-base-content/70">{{ $child3['name'] }}</td>
+                                                            <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $child3['id'] }}.can_add" class="checkbox checkbox-primary checkbox-xs"></td>
                                                             <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $child3['id'] }}.can_edit" class="checkbox checkbox-secondary checkbox-xs"></td>
+                                                            <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $child3['id'] }}.can_delete" class="checkbox checkbox-error checkbox-xs"></td>
                                                             <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $child3['id'] }}.can_import" class="checkbox checkbox-accent checkbox-xs"></td>
                                                             <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $child3['id'] }}.can_export" class="checkbox checkbox-info checkbox-xs"></td>
                                                         </tr>

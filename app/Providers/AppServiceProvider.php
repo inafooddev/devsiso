@@ -43,5 +43,13 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Blade::if('canExport', function ($routeName) {
             return auth()->check() && auth()->user()->hasMenuAccess($routeName, 'can_export');
         });
+
+        \Illuminate\Support\Facades\Blade::if('canAdd', function ($routeName) {
+            return auth()->check() && auth()->user()->hasMenuAccess($routeName, 'can_add');
+        });
+
+        \Illuminate\Support\Facades\Blade::if('canDelete', function ($routeName) {
+            return auth()->check() && auth()->user()->hasMenuAccess($routeName, 'can_delete');
+        });
     }
 }

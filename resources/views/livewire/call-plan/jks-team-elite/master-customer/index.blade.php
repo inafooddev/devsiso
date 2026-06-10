@@ -144,11 +144,11 @@
                     </x-ui.button>                    
                     
                     <!-- TOMBOL TAMBAH TOKO -->
-                    @canEdit('call-plan.jks-team-elite.master-customer')
+                    @canAdd('call-plan.jks-team-elite.master-customer')
                     <x-ui.button variant="primary" size="sm" wire:click="openCreateModal">
                         <x-heroicon-s-plus class="w-4 h-4 mr-1" /> Tambah
                     </x-ui.button>
-                    @endcanEdit
+                    @endcanAdd
 
                     <!-- TOMBOL IMPORT -->
                     @canEdit('call-plan.jks-team-elite.master-customer')
@@ -290,11 +290,11 @@
                         </button>
                         @endcanEdit
                         
-                        @canEdit('call-plan.jks-team-elite.master-customer')
+                        @canDelete('call-plan.jks-team-elite.master-customer')
                         <button wire:click="confirmDelete('{{ $item->distributor_code }}', '{{ $item->uniq_kd }}')" class="btn btn-xs btn-ghost text-error hover:bg-error hover:text-white" title="Hapus">
                             <x-heroicon-s-trash class="w-4 h-4" />
                         </button>
-                        @endcanEdit
+                        @endcanDelete
                     </td>
                 </tr>
                 @endforeach
