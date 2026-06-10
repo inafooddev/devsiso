@@ -392,8 +392,8 @@ class Index extends Component
             'pilar' => 'required|string|in:1. RWO,2. PNR,3. NGVO,4. GRO',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
-            'target' => 'nullable|numeric',
-            'keterangan' => 'nullable|string',
+            'target' => 'required|numeric',
+            'keterangan' => 'required|string',
         ]);
 
         // Security Check: Pastikan user berhak menambah data di distributor ini
@@ -493,7 +493,8 @@ class Index extends Component
             'pilar' => 'required|string|in:1. RWO,2. PNR,3. NGVO,4. GRO',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
-            'target' => 'nullable|numeric',
+            'target' => 'required|numeric',
+            'keterangan' => 'required|string',
         ], [
             'distributor_code.required' => 'Distributor Code wajib diisi',
             'distributor_code.exists' => 'Distributor Code tidak valid',
@@ -501,6 +502,8 @@ class Index extends Component
             'customer_name.required' => 'Nama Customer wajib diisi',
             'uniq_kd.required' => 'Uniq KD wajib diisi',
             'pilar.required' => 'Pilar wajib diisi',
+            'target.required' => 'Target wajib diisi',
+            'keterangan.required' => 'Keterangan wajib diisi',
         ]);
 
         // Cek duplikasi uniq_kd jika diubah

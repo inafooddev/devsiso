@@ -470,8 +470,8 @@
                         <option value="4. GRO">4. GRO</option>
                     </select>
                 </div>
-                <x-input-text label="Target" wire:model="target" type="number" step="0.01" />
-                <x-input-text label="Keterangan" wire:model="keterangan" />
+                <x-input-text label="Target *" wire:model="target" type="number" step="0.01" />
+                <x-input-text label="Keterangan *" wire:model="keterangan" />
             </div>
             <div class="flex justify-end gap-2 mt-4">
                 <x-ui.button type="button" variant="neutral" outline wire:click="$set('isCreateModalOpen', false)">Batal</x-ui.button>
@@ -523,8 +523,8 @@
                         <option value="4. GRO">4. GRO</option>
                     </select>
                 </div>
-                <x-input-text label="Target" wire:model="target" type="number" step="0.01" />
-                <x-input-text label="Keterangan" wire:model="keterangan" />
+                <x-input-text label="Target *" wire:model="target" type="number" step="0.01" />
+                <x-input-text label="Keterangan *" wire:model="keterangan" />
             </div>
             <div class="flex justify-end gap-2 mt-4">
                 <x-ui.button type="button" variant="neutral" outline wire:click="$set('isEditModalOpen', false)">Batal</x-ui.button>
