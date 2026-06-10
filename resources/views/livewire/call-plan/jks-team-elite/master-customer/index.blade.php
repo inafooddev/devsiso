@@ -151,11 +151,11 @@
                     @endcanAdd
 
                     <!-- TOMBOL IMPORT -->
-                    @canEdit('call-plan.jks-team-elite.master-customer')
+                    @canImport('call-plan.jks-team-elite.master-customer')
                     <x-ui.button variant="info" size="sm" outline wire:click="openImportModal">
                         <x-heroicon-s-arrow-down-on-square class="w-4 h-4 mr-1" /> Import
                     </x-ui.button>
-                    @endcanEdit
+                    @endcanImport
                     
                     <!-- TOMBOL EXPORT -->
                     @canExport('call-plan.jks-team-elite.master-customer')
