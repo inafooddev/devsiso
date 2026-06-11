@@ -347,6 +347,11 @@ class Index extends Component
             $masterQuery->where('md.distributor_code', $this->filter_distributor);
         }
 
+        $masterQuery->orderBy('md.region_name')
+                    ->orderBy('md.area_name')
+                    ->orderBy('md.distributor_name')
+                    ->orderBy('f.SLSNAME');
+
         $salesData = $masterQuery->paginate(15);
 
         // 2. Tentukan bulan-bulan yang akan ditampilkan dari filter start_month sampai end_month

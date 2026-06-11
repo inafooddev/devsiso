@@ -78,6 +78,11 @@ class MonitoringDeviceExport implements FromView, WithDrawings, WithEvents, Shou
             $masterQuery->where('md.distributor_code', $this->filter_distributor);
         }
 
+        $masterQuery->orderBy('md.region_name')
+                    ->orderBy('md.area_name')
+                    ->orderBy('md.distributor_name')
+                    ->orderBy('f.SLSNAME');
+
         $salesData = $masterQuery->get();
 
         // 2. Determine months
