@@ -1002,12 +1002,15 @@
                 }
 
                 let icons = {
-                    '1': getIcon('blue'),
-                    '2': getIcon('green'),
-                    '3': getIcon('orange'),
-                    '4': getIcon('red'),
-                    '5': getIcon('violet'),
-                    'grey': getIcon('grey')
+                    'blue': getIcon('blue'),
+                    'green': getIcon('green'),
+                    'orange': getIcon('orange'),
+                    'red': getIcon('red'),
+                    'violet': getIcon('violet'),
+                    'grey': getIcon('grey'),
+                    'black': getIcon('black'),
+                    'gold': getIcon('gold'),
+                    'yellow': getIcon('yellow')
                 };
                 
                 // Add Legend once
@@ -1018,12 +1021,12 @@
                         div.innerHTML = `
                             <div class="font-bold mb-2 pb-1 border-b border-gray-200 text-gray-800 tracking-wide">Keterangan Warna</div>
                             <div class="flex flex-col gap-1.5">
-                                <div class="flex items-center gap-2"><img src="${iconBaseUrl}blue.png" class="h-4"> <span class="text-gray-700 font-medium">Minggu 1</span></div>
-                                <div class="flex items-center gap-2"><img src="${iconBaseUrl}green.png" class="h-4"> <span class="text-gray-700 font-medium">Minggu 2</span></div>
-                                <div class="flex items-center gap-2"><img src="${iconBaseUrl}orange.png" class="h-4"> <span class="text-gray-700 font-medium">Minggu 3</span></div>
-                                <div class="flex items-center gap-2"><img src="${iconBaseUrl}red.png" class="h-4"> <span class="text-gray-700 font-medium">Minggu 4</span></div>
-                                <div class="flex items-center gap-2"><img src="${iconBaseUrl}violet.png" class="h-4"> <span class="text-gray-700 font-medium">Minggu 5</span></div>
-                                <div class="flex items-center gap-2 mt-1 pt-1.5 border-t border-gray-100"><img src="${iconBaseUrl}grey.png" class="h-4 opacity-70"> <span class="text-gray-500 font-semibold italic">Pareto (Belum Terjadwal)</span></div>
+                                <div class="flex items-center gap-2"><img src="${iconBaseUrl}green.png" class="h-4"> <span class="text-gray-700 font-medium">Sudah Terjadwal (JKS)</span></div>
+                                <div class="flex items-center gap-2 mt-2 pt-2 border-t border-gray-200"><span class="font-bold text-gray-800">Pareto (Belum Terjadwal)</span></div>
+                                <div class="flex items-center gap-2 mt-1"><img src="${iconBaseUrl}blue.png" class="h-4 opacity-80"> <span class="text-gray-600 font-medium italic">Pilar 1 (RWO)</span></div>
+                                <div class="flex items-center gap-2 mt-1"><img src="${iconBaseUrl}violet.png" class="h-4 opacity-80"> <span class="text-gray-600 font-medium italic">Pilar 2 (PNR)</span></div>
+                                <div class="flex items-center gap-2 mt-1"><img src="${iconBaseUrl}orange.png" class="h-4 opacity-80"> <span class="text-gray-600 font-medium italic">Pilar 3 (NGVO)</span></div>
+                                <div class="flex items-center gap-2 mt-1"><img src="${iconBaseUrl}grey.png" class="h-4 opacity-80"> <span class="text-gray-600 font-medium italic">Lainnya</span></div>
                             </div>
                         `;
                         return div;
@@ -1042,6 +1045,9 @@
                             if (store.tgl_format) {
                                 popupHtml += `<span class="text-[11px] font-bold text-gray-700 flex items-center gap-1">🕒 ${store.tgl_format} (${store.hari}) - W${store.minggu}</span>`;
                                 popupHtml += `<span class="text-[11px] font-bold text-gray-700 flex items-center gap-1">👤 ${store.nama_team}</span>`;
+                            }
+                            if (store.pilar) {
+                                popupHtml += `<span class="badge badge-outline badge-sm font-bold border-gray-300 text-gray-600 shadow-sm mt-1 w-max">Pilar: ${store.pilar}</span>`;
                             }
                             popupHtml += `<span class="badge badge-primary badge-sm font-bold border-none text-white shadow-sm mt-1 w-max">Dijadwalkan JKS</span>`;
                             
@@ -1080,7 +1086,7 @@
                             }
                             popupHtml += `</div>`;
                             
-                            let markerIcon = icons[store.minggu] || icons['1'];
+                            let markerIcon = icons['green'];
                             let m = L.marker([lat, lng], {icon: markerIcon}).addTo(map).bindPopup(popupHtml);
                             markers.push(m);
                             bounds.extend([lat, lng]);
@@ -1095,7 +1101,11 @@
                             let lat = parseFloat(store.latitude);
                             let lng = parseFloat(store.longitude);
                             
-                            let popupContent = `<b>${store.custname}</b><br>${store.customer_address || ''}<div class="mt-2 flex flex-col gap-2"><span class="badge badge-ghost badge-sm border-none bg-base-300 text-base-content font-semibold shadow-sm w-max">Belum Dijadwalkan</span>`;
+                            let popupContent = `<b>${store.custname}</b><br>${store.customer_address || ''}<div class="mt-2 flex flex-col gap-1">`;
+                            if (store.pilar) {
+                                popupContent += `<span class="badge badge-outline badge-sm font-bold border-gray-300 text-gray-600 shadow-sm w-max">Pilar: ${store.pilar}</span>`;
+                            }
+                            popupContent += `<span class="badge badge-ghost badge-sm border-none bg-base-300 text-base-content font-semibold shadow-sm w-max mt-1 mb-1">Belum Dijadwalkan</span>`;
                             
                             if (!data.isGlobal) {
                                 popupContent += `<button type="button" onclick="window.dispatchEvent(new CustomEvent('map-add-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}' } }))" class="btn btn-primary btn-xs text-white">Tambahkan Jadwal</button>`;
@@ -1123,7 +1133,14 @@
                             
                             popupContent += `</div>`;
                             
-                            let m = L.marker([lat, lng], {icon: icons['grey']}).addTo(map).bindPopup(popupContent);
+                            let paretoIcon = icons['grey'];
+                            if (store.pilar) {
+                                if (store.pilar.includes('1. RWO')) paretoIcon = icons['blue'];
+                                else if (store.pilar.includes('2. PNR')) paretoIcon = icons['violet'];
+                                else if (store.pilar.includes('3. NGVO')) paretoIcon = icons['orange'];
+                            }
+                            
+                            let m = L.marker([lat, lng], {icon: paretoIcon}).addTo(map).bindPopup(popupContent);
                             markers.push(m);
                             bounds.extend([lat, lng]);
                             hasValidMarker = true;

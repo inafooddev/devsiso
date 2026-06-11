@@ -721,7 +721,7 @@ class Index extends Component
         $this->mapModalTitle = "Peta Persebaran Toko - " . \Carbon\Carbon::parse($tanggal)->format('d M Y') . " ($kodeTeam)";
         
         $query = JksTeamElite::query()
-            ->select('jks_team_elite.custno', 'jks_team_elite.custname', 'jks_team_elite.distributor_code', 'jks_team_elite.tanggal', 'jks_team_elite.kode_team', 'jks_team_elite.nama_team', 'l.latitude', 'l.longitude', 'l.customer_address', 'mc.week_month as minggu', 'mc.day as hari')
+            ->select('jks_team_elite.custno', 'jks_team_elite.custname', 'jks_team_elite.distributor_code', 'jks_team_elite.tanggal', 'jks_team_elite.kode_team', 'jks_team_elite.nama_team', 'l.latitude', 'l.longitude', 'l.customer_address', 'mc.week_month as minggu', 'mc.day as hari', 'l.pilar')
             ->leftJoin('list_toko_pareto_team_elite as l', function($join) {
                 $join->on('jks_team_elite.custno', '=', 'l.customer_code_prc')
                      ->on('jks_team_elite.distributor_code', '=', 'l.distributor_code');
@@ -759,7 +759,7 @@ class Index extends Component
             ->whereNotIn('customer_code_prc', $alreadyScheduledCustNos)
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
-            ->select('customer_code_prc as custno', 'customer_name as custname', 'distributor_code', 'latitude', 'longitude', 'customer_address')
+            ->select('customer_code_prc as custno', 'customer_name as custname', 'distributor_code', 'latitude', 'longitude', 'customer_address', 'pilar')
             ->get();
             
         // Limit Pareto stores to a 10km radius from ANY scheduled store
@@ -823,7 +823,7 @@ class Index extends Component
         $this->applyHierarchyAccess($jksQuery, 'jks_team_elite.distributor_code');
         
         $jksStores = $jksQuery
-            ->select('jks_team_elite.custno', 'jks_team_elite.custname', 'jks_team_elite.distributor_code', 'jks_team_elite.tanggal', 'jks_team_elite.kode_team', 'jks_team_elite.nama_team', 'l.latitude', 'l.longitude', 'l.customer_address', 'mc.week_month as minggu', 'mc.day as hari')
+            ->select('jks_team_elite.custno', 'jks_team_elite.custname', 'jks_team_elite.distributor_code', 'jks_team_elite.tanggal', 'jks_team_elite.kode_team', 'jks_team_elite.nama_team', 'l.latitude', 'l.longitude', 'l.customer_address', 'mc.week_month as minggu', 'mc.day as hari', 'l.pilar')
             ->leftJoin('list_toko_pareto_team_elite as l', function($join) {
                 $join->on('jks_team_elite.custno', '=', 'l.customer_code_prc')
                      ->on('jks_team_elite.distributor_code', '=', 'l.distributor_code');
@@ -847,7 +847,7 @@ class Index extends Component
             ->whereNotIn('customer_code_prc', $jksCustNos)
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
-            ->select('customer_code_prc as custno', 'customer_name as custname', 'distributor_code', 'latitude', 'longitude', 'customer_address')
+            ->select('customer_code_prc as custno', 'customer_name as custname', 'distributor_code', 'latitude', 'longitude', 'customer_address', 'pilar')
             ->get();
             
         // Limit Pareto stores to a 10km radius from ANY scheduled store in the current global view
