@@ -1,3 +1,11 @@
+@push('styles')
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+@endpush
+
+@push('scripts')
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+@endpush
+
 <div class="w-full max-w-md mx-auto min-h-screen bg-slate-50 text-slate-800 flex flex-col shadow-sm border-x border-slate-100 relative" x-data="mobileRwoApp($wire)" x-init="init()">
     
     {{-- Toast Notification --}}
@@ -41,6 +49,13 @@
                     <span class="w-1.5 h-1.5 rounded-full" :class="isOffline ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'"></span>
                     <span x-text="isOffline ? 'Offline' : 'Online'"></span>
                 </div>
+
+                <!-- Peta Button -->
+                <button @click="openMapSheet()" 
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/5 text-indigo-600 text-[9px] font-extrabold tracking-wider uppercase hover:bg-indigo-500/10 transition-all duration-200">
+                    <x-heroicon-s-map class="w-3.5 h-3.5" />
+                    <span>Peta</span>
+                </button>
 
                 <!-- Panduan Button -->
                 <button @click="showGuideSheet = true" 
@@ -159,6 +174,12 @@
                                     <span class="text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border transition-colors duration-200"
                                           :class="outlet.is_valid ? 'bg-blue-50 text-blue-600 border-blue-100/80' : 'bg-slate-50 text-slate-500 border-slate-200/80'"
                                           x-text="outlet.is_valid ? 'Terverifikasi' : 'Belum Verifikasi'"></span>
+                                          
+                                    <!-- Jarak Radius -->
+                                    <template x-if="outlet.distanceToUser !== undefined">
+                                        <span class="text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border bg-purple-50 text-purple-600 border-purple-100/80"
+                                              x-text="outlet.distanceToUser.toFixed(2) + ' KM'"></span>
+                                    </template>
                                 </div>
                                 <h4 class="text-xs font-black text-slate-800 mt-2 tracking-tight truncate" x-text="outlet.customer_name"></h4>
                                 <p class="text-[10px] text-slate-400 font-semibold leading-normal mt-0.5 line-clamp-2" x-text="outlet.alamat"></p>
@@ -202,6 +223,14 @@
 
                             <!-- Buttons -->
                             <div class="flex items-center gap-1.5">
+                                <template x-if="outlet.latitude && outlet.longitude">
+                                    <a :href="'https://www.google.com/maps/dir/?api=1&destination=' + outlet.latitude + ',' + outlet.longitude" 
+                                       target="_blank"
+                                       class="btn btn-xs btn-outline border-slate-200 hover:bg-slate-100 h-8 rounded-lg text-[9px] uppercase font-black text-slate-700 tracking-wider flex items-center gap-1 py-1 px-2.5 shadow-xs">
+                                        <x-heroicon-s-map class="w-3.5 h-3.5 text-blue-500" />
+                                        <span class="hidden sm:inline">Arah</span>
+                                    </a>
+                                </template>
                                 <button @click="detailOutlet = outlet" 
                                         class="btn btn-xs btn-outline border-slate-200 hover:bg-slate-100 h-8 rounded-lg text-[9px] uppercase font-black text-slate-700 tracking-wider flex items-center gap-1 py-1 px-2.5 shadow-xs">
                                     <x-heroicon-s-information-circle class="w-3.5 h-3.5 text-slate-400" />
@@ -226,13 +255,22 @@
             {{-- Empty State --}}
             <template x-if="outletsList.length === 0">
                 <div class="bg-white border border-slate-100 rounded-3xl py-12 px-6 text-center shadow-xs flex-1 flex flex-col items-center justify-center">
-                    <div class="flex flex-col items-center gap-3 text-slate-300" x-show="!selectedRegion && !selectedArea && !selectedBranch && !search">
+                    <div class="flex flex-col items-center gap-3 text-slate-300" x-show="(!selectedRegion && !selectedArea && !selectedBranch && !search) && !userLocation">
                         <div class="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 mb-2">
                             <x-heroicon-o-map class="w-8 h-8 stroke-[1.5]" />
                         </div>
                         <h4 class="text-xs font-black uppercase tracking-wider text-slate-700">Pilih Wilayah Terlebih Dahulu</h4>
                         <p class="text-[10px] text-slate-400 max-w-[200px] mx-auto leading-normal font-semibold">
                             Gunakan filter wilayah atau cari nama toko untuk menampilkan data outlet.
+                        </p>
+                    </div>
+                    <div class="flex flex-col items-center gap-3 text-slate-300" x-show="(!selectedRegion && !selectedArea && !selectedBranch && !search) && userLocation">
+                        <div class="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 mb-2">
+                            <x-heroicon-o-map class="w-8 h-8 stroke-[1.5]" />
+                        </div>
+                        <h4 class="text-xs font-black uppercase tracking-wider text-slate-700">Tidak Ada Toko Terdekat</h4>
+                        <p class="text-[10px] text-slate-400 max-w-[200px] mx-auto leading-normal font-semibold">
+                            Tidak ada toko dalam radius 10 KM dari lokasi Anda saat ini. Gunakan filter untuk mencari toko lain.
                         </p>
                     </div>
                     <div class="flex flex-col items-center gap-3 text-slate-300" x-show="selectedRegion || selectedArea || selectedBranch || search">
@@ -987,6 +1025,50 @@
         </div>
     </div>
 
+    {{-- Bottom Sheet: Map --}}
+    <div x-show="showMapSheet" 
+         class="fixed inset-0 z-40" 
+         x-cloak>
+        <div x-show="showMapSheet"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @click="showMapSheet = false"
+             class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs"></div>
+        
+        <div x-show="showMapSheet"
+             x-transition:enter="transition cubic-bezier(0.16, 1, 0.3, 1) duration-500"
+             x-transition:enter-start="translate-y-full"
+             x-transition:enter-end="translate-y-0"
+             x-transition:leave="transition ease-in duration-300"
+             x-transition:leave-start="translate-y-0"
+             x-transition:leave-end="translate-y-full"
+             class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white rounded-t-[32px] shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.15)] h-[85vh] flex flex-col z-50">
+             
+             <!-- Handle -->
+             <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto my-3 shrink-0"></div>
+             
+             <!-- Header -->
+             <div class="px-5 pb-3 flex items-center justify-between border-b border-slate-100 shrink-0">
+                 <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                     <x-heroicon-s-map class="w-4 h-4 text-indigo-500" />
+                     Peta Lokasi Toko
+                 </h3>
+                 <button @click="showMapSheet = false" class="btn btn-ghost btn-circle btn-xs text-slate-400 hover:text-slate-600">
+                     <x-heroicon-s-x-mark class="w-5 h-5" />
+                 </button>
+             </div>
+             
+             <!-- Map Container -->
+             <div class="flex-1 w-full bg-slate-100 relative rounded-b-none overflow-hidden">
+                 <div id="outletsMap" class="absolute inset-0 z-0"></div>
+             </div>
+        </div>
+    </div>
+
     {{-- Bottom Sheet: Panduan Penggunaan --}}
     <div x-show="showGuideSheet" 
          class="fixed inset-0 z-40" 
@@ -1130,6 +1212,9 @@
             selectedBranch: '',
             search: '',
             
+            userLocation: null,
+            userLocationError: false,
+            
             activeOutlet: null,
             fotoDepanBlob: null,
             fotoDalamBlob: null,
@@ -1175,9 +1260,75 @@
             showFiltersSheet: false,
             detailOutlet: null,
             showGuideSheet: false,
+            showMapSheet: false,
+            mapInstance: null,
+            mapMarkers: [],
             queryTimeout: null,
             cachedOutlets: null,
             
+            openMapSheet() {
+                this.showMapSheet = true;
+                setTimeout(() => {
+                    this.initMap();
+                }, 300); // Wait for transition
+            },
+            
+            initMap() {
+                if (!this.mapInstance) {
+                    this.mapInstance = L.map('outletsMap').setView([-6.200000, 106.816666], 11);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                        attribution: '&copy; OpenStreetMap &copy; CARTO',
+                        subdomains: 'abcd',
+                        maxZoom: 20
+                    }).addTo(this.mapInstance);
+                }
+                
+                // Clear existing markers
+                if (this.mapMarkers && this.mapMarkers.length > 0) {
+                    this.mapMarkers.forEach(m => this.mapInstance.removeLayer(m));
+                }
+                this.mapMarkers = [];
+                
+                const bounds = L.latLngBounds();
+                let hasBounds = false;
+                
+                // Add user location marker
+                if (this.userLocation) {
+                    const userIcon = L.divIcon({
+                        className: 'custom-div-icon',
+                        html: '<div style="background-color:#3b82f6;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>',
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8]
+                    });
+                    const marker = L.marker([this.userLocation.latitude, this.userLocation.longitude], {icon: userIcon})
+                        .bindPopup('<b>Lokasi Anda</b>')
+                        .addTo(this.mapInstance);
+                    this.mapMarkers.push(marker);
+                    bounds.extend([this.userLocation.latitude, this.userLocation.longitude]);
+                    hasBounds = true;
+                }
+                
+                // Add outlet markers
+                this.outletsList.forEach(outlet => {
+                    if (outlet.latitude && outlet.longitude) {
+                        const marker = L.marker([outlet.latitude, outlet.longitude])
+                            .bindPopup('<b>' + outlet.customer_name + '</b><br/>' + outlet.customer_code)
+                            .addTo(this.mapInstance);
+                        this.mapMarkers.push(marker);
+                        bounds.extend([outlet.latitude, outlet.longitude]);
+                        hasBounds = true;
+                    }
+                });
+                
+                this.mapInstance.invalidateSize();
+                
+                if (hasBounds) {
+                    this.mapInstance.fitBounds(bounds, { padding: [30, 30] });
+                } else if (this.userLocation) {
+                    this.mapInstance.setView([this.userLocation.latitude, this.userLocation.longitude], 12);
+                }
+            },
+
             showToast(message, type = 'success') {
                 this.toast.message = message;
                 this.toast.type = type;
@@ -1206,6 +1357,43 @@
                 }
                 return msg + ' Menunggu Sinkronisasi';
             },
+
+            fetchUserLocation() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            this.userLocation = {
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude
+                            };
+                            this.queryOutlets(true);
+                        },
+                        (error) => {
+                            console.warn("Geolocation not available or denied:", error);
+                            this.userLocationError = true;
+                        },
+                        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                    );
+                }
+            },
+            
+            calculateDistance(lat1, lon1, lat2, lon2) {
+                if ((lat1 == lat2) && (lon1 == lon2)) {
+                    return 0;
+                } else {
+                    const radlat1 = Math.PI * lat1/180;
+                    const radlat2 = Math.PI * lat2/180;
+                    const theta = lon1-lon2;
+                    const radtheta = Math.PI * theta/180;
+                    let dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
+                    if (dist > 1) dist = 1;
+                    dist = Math.acos(dist);
+                    dist = dist * 180/Math.PI;
+                    dist = dist * 60 * 1.1515;
+                    dist = dist * 1.609344;
+                    return dist;
+                }
+            },
             
             resetAllFilters() {
                 this.selectedRegion = '';
@@ -1232,6 +1420,8 @@
                 this.seedMasterData();
                 this.loadDropdowns();
                 await this.updateQueueCount();
+                
+                this.fetchUserLocation();
                 
                 // Watchers for filtering
                 this.$watch('selectedRegion', () => {
@@ -1383,7 +1573,28 @@
                     
                     // Limit items to prevent DOM freezing (browser lag).
                     const isFiltered = this.selectedRegion || this.selectedArea || this.selectedBranch || this.search;
-                    this.outletsList = isFiltered ? outlets.slice(0, 100) : outlets.slice(0, 30);
+                    if (isFiltered) {
+                        this.outletsList = outlets.slice(0, 100);
+                    } else if (this.userLocation) {
+                        let nearby = [];
+                        outlets.forEach(o => {
+                            if (o.latitude && o.longitude) {
+                                const dist = this.calculateDistance(
+                                    this.userLocation.latitude, 
+                                    this.userLocation.longitude, 
+                                    parseFloat(o.latitude), 
+                                    parseFloat(o.longitude)
+                                );
+                                if (dist <= 10) {
+                                    nearby.push({...o, distanceToUser: dist});
+                                }
+                            }
+                        });
+                        nearby.sort((a, b) => a.distanceToUser - b.distanceToUser);
+                        this.outletsList = nearby.slice(0, 100);
+                    } else {
+                        this.outletsList = outlets.slice(0, 30);
+                    }
                 };
 
                 if (this.cachedOutlets) {
