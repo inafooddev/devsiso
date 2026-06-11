@@ -255,16 +255,33 @@
             {{-- Empty State --}}
             <template x-if="outletsList.length === 0">
                 <div class="bg-white border border-slate-100 rounded-3xl py-12 px-6 text-center shadow-xs flex-1 flex flex-col items-center justify-center">
-                    <div class="flex flex-col items-center gap-3 text-slate-300" x-show="(!selectedRegion && !selectedArea && !selectedBranch && !search) && !userLocation">
+                    <!-- Loading Location -->
+                    <div class="flex flex-col items-center gap-3 text-slate-300" x-show="(!selectedRegion && !selectedArea && !selectedBranch && !search) && isFetchingLocation">
                         <div class="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 mb-2">
-                            <x-heroicon-o-map class="w-8 h-8 stroke-[1.5]" />
+                            <span class="loading loading-spinner loading-md text-primary"></span>
                         </div>
-                        <h4 class="text-xs font-black uppercase tracking-wider text-slate-700">Pilih Wilayah Terlebih Dahulu</h4>
+                        <h4 class="text-xs font-black uppercase tracking-wider text-slate-700">Mencari Lokasi...</h4>
                         <p class="text-[10px] text-slate-400 max-w-[200px] mx-auto leading-normal font-semibold">
-                            Gunakan filter wilayah atau cari nama toko untuk menampilkan data outlet.
+                            Sedang mendapatkan koordinat lokasi Anda saat ini.
                         </p>
                     </div>
-                    <div class="flex flex-col items-center gap-3 text-slate-300" x-show="(!selectedRegion && !selectedArea && !selectedBranch && !search) && userLocation">
+
+                    <!-- Location Error -->
+                    <div class="flex flex-col items-center gap-3 text-slate-300" x-show="(!selectedRegion && !selectedArea && !selectedBranch && !search) && userLocationError && !isFetchingLocation">
+                        <div class="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 mb-2 border border-rose-100">
+                            <x-heroicon-o-map-pin class="w-8 h-8 stroke-[1.5]" />
+                        </div>
+                        <h4 class="text-xs font-black uppercase tracking-wider text-slate-700">Lokasi Tidak Ditemukan</h4>
+                        <p class="text-[10px] text-slate-400 max-w-[240px] mx-auto leading-normal font-semibold">
+                            GPS gagal atau Anda sedang offline. Pastikan <b>GPS / Lokasi</b> aktif dan izinkan akses browser. Anda juga bisa mencari toko secara manual lewat tombol pencarian/filter.
+                        </p>
+                        <button @click="fetchUserLocation()" class="btn btn-sm btn-outline border-slate-200 mt-2 text-[10px] rounded-lg shadow-xs hover:bg-slate-100 uppercase tracking-wider font-bold">
+                            Coba Lagi
+                        </button>
+                    </div>
+
+                    <!-- No Nearby Stores (Success but empty) -->
+                    <div class="flex flex-col items-center gap-3 text-slate-300" x-show="(!selectedRegion && !selectedArea && !selectedBranch && !search) && userLocation && !isFetchingLocation">
                         <div class="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 mb-2">
                             <x-heroicon-o-map class="w-8 h-8 stroke-[1.5]" />
                         </div>
@@ -273,6 +290,8 @@
                             Tidak ada toko dalam radius 10 KM dari lokasi Anda saat ini. Gunakan filter untuk mencari toko lain.
                         </p>
                     </div>
+
+                    <!-- Filtered But Empty -->
                     <div class="flex flex-col items-center gap-3 text-slate-300" x-show="selectedRegion || selectedArea || selectedBranch || search">
                         <div class="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 mb-2">
                             <x-heroicon-o-magnifying-glass class="w-8 h-8 stroke-[1.5]" />
@@ -1062,6 +1081,14 @@
                  </button>
              </div>
              
+             <!-- Offline Warning for Map -->
+             <template x-if="isOffline">
+                 <div class="bg-amber-50 px-5 py-2 text-[10px] text-amber-700 border-b border-amber-100 font-semibold flex items-center gap-2 shrink-0">
+                     <x-heroicon-s-exclamation-triangle class="w-3.5 h-3.5 flex-shrink-0" />
+                     Mode offline: Latar peta mungkin tidak termuat, tetapi posisi titik tetap akurat.
+                 </div>
+             </template>
+             
              <!-- Map Container -->
              <div class="flex-1 w-full bg-slate-100 relative rounded-b-none overflow-hidden">
                  <div id="outletsMap" class="absolute inset-0 z-0"></div>
@@ -1214,6 +1241,7 @@
             
             userLocation: null,
             userLocationError: false,
+            isFetchingLocation: true,
             
             activeOutlet: null,
             fotoDepanBlob: null,
@@ -1359,6 +1387,10 @@
             },
 
             fetchUserLocation() {
+                this.isFetchingLocation = true;
+                this.userLocationError = false;
+                this.outletsList = []; // clear list while fetching
+                
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
                         (position) => {
@@ -1366,14 +1398,21 @@
                                 latitude: position.coords.latitude,
                                 longitude: position.coords.longitude
                             };
+                            this.isFetchingLocation = false;
                             this.queryOutlets(true);
                         },
                         (error) => {
                             console.warn("Geolocation not available or denied:", error);
                             this.userLocationError = true;
+                            this.isFetchingLocation = false;
+                            this.queryOutlets(true);
                         },
                         { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
                     );
+                } else {
+                    this.userLocationError = true;
+                    this.isFetchingLocation = false;
+                    this.queryOutlets(true);
                 }
             },
             
@@ -1592,8 +1631,11 @@
                         });
                         nearby.sort((a, b) => a.distanceToUser - b.distanceToUser);
                         this.outletsList = nearby.slice(0, 100);
+                    } else if (this.userLocationError) {
+                        this.outletsList = []; // Empty state will handle error UI
                     } else {
-                        this.outletsList = outlets.slice(0, 30);
+                        // isFetchingLocation
+                        this.outletsList = [];
                     }
                 };
 
