@@ -11,15 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('distributor_implementasi_eskalink', function (Blueprint $table) {
-            $table->id();
-            $table->string('distributor_code', 15)->nullable();
-            $table->string('distributor_name', 100)->nullable();
-            $table->string('eskalink_code', 15)->nullable();
-            $table->string('eskalink_code_dist', 100)->nullable();
-            $table->string('implementasi', 15)->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('distributor_implementasi_eskalink')) {
+            Schema::create('distributor_implementasi_eskalink', function (Blueprint $table) {
+                $table->id();
+                $table->string('distributor_code', 15)->nullable();
+                $table->string('distributor_name', 100)->nullable();
+                $table->string('eskalink_code', 15)->nullable();
+                $table->string('eskalink_code_dist', 100)->nullable();
+                $table->string('implementasi', 15)->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

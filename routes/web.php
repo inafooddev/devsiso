@@ -79,7 +79,7 @@ use App\Livewire\Eskalink\SellingOutEskalink\Index as SellingOutEskalinkIndex;
 use App\Livewire\Settings\UserManagement;
 use App\Livewire\Welcome;
 use App\Livewire\Others\MappingSupervisorCode\Index as MappingSupervisorCodeIndex;
-
+use App\Livewire\MonitoringDevice\Index as MonitoringDeviceIndex;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -87,6 +87,7 @@ use App\Livewire\Others\MappingSupervisorCode\Index as MappingSupervisorCodeInde
 */
 
 Route::get('/mobile/rwo', \App\Livewire\Rwo\MobileUpdate::class)->name('mobile.rwo.update');
+Route::get('/mobile/monitoring-device', \App\Livewire\Mobile\MonitoringDeviceSe\Index::class)->name('mobile.monitoring-device.index');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', Login::class)->name('login');
@@ -224,6 +225,7 @@ Route::middleware(['auth'])->group(function () {
     // ==========================================
 
     Route::get('/mapping-supervisor-code', MappingSupervisorCodeIndex::class)->name('mapping-supervisor-code.index');
+    Route::get('/monitoring-device', MonitoringDeviceIndex::class)->name('monitoring-device.index');
     Route::get('/rwo', RwoIndex::class)->name('rwo.index');
     Route::get('/rwo/summary', \App\Livewire\Rwo\Summary::class)->name('rwo.summary');
     Route::get('/under-construction', UnderConstruction::class)->name('under-construction');
