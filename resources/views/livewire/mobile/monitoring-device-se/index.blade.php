@@ -122,21 +122,21 @@
                             <!-- Indikator Foto -->
                             @if($mData && $mData['foto_tampak_depan'])
                                 <div class="flex items-center gap-1 px-2 py-1 rounded-full text-[8px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100/50">
-                                    <x-heroicon-s-check-circle class="w-3 h-3" /> Depan
+                                    <x-heroicon-s-check-circle class="w-3 h-3" /> Device Depan
                                 </div>
                             @else
                                 <div class="flex items-center gap-1 px-2 py-1 rounded-full text-[8px] font-bold bg-slate-50 text-slate-400 border border-slate-100/50">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Depan
+                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Device Depan
                                 </div>
                             @endif
 
                             @if($mData && $mData['foto_tampak_belakang'])
                                 <div class="flex items-center gap-1 px-2 py-1 rounded-full text-[8px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100/50">
-                                    <x-heroicon-s-check-circle class="w-3 h-3" /> Belakang
+                                    <x-heroicon-s-check-circle class="w-3 h-3" /> Device Belakang
                                 </div>
                             @else
                                 <div class="flex items-center gap-1 px-2 py-1 rounded-full text-[8px] font-bold bg-slate-50 text-slate-400 border border-slate-100/50">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Belakang
+                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Device Belakang
                                 </div>
                             @endif
                         </div>
@@ -280,7 +280,7 @@
 
                  <!-- Foto Depan -->
                  <div class="form-control">
-                     <label class="label py-1"><span class="label-text text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Foto Depan (Toko)</span></label>
+                     <label class="label py-1"><span class="label-text text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Foto Device (Depan)</span></label>
                      <input type="file" wire:model="foto_tampak_depan" accept="image/*" capture="environment" class="file-input file-input-bordered h-11 rounded-xl text-sm bg-slate-50 w-full" />
                      <div wire:loading wire:target="foto_tampak_depan" class="text-[10px] text-primary font-bold mt-1 animate-pulse">Sedang memproses gambar...</div>
                      @error('foto_tampak_depan') <span class="text-error text-[10px] mt-1">{{ $message }}</span> @enderror
@@ -297,7 +297,7 @@
 
                  <!-- Foto Belakang -->
                  <div class="form-control">
-                     <label class="label py-1"><span class="label-text text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Foto Belakang (Gudang)</span></label>
+                     <label class="label py-1"><span class="label-text text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Foto Device (Belakang)</span></label>
                      <input type="file" wire:model="foto_tampak_belakang" accept="image/*" capture="environment" class="file-input file-input-bordered h-11 rounded-xl text-sm bg-slate-50 w-full" />
                      <div wire:loading wire:target="foto_tampak_belakang" class="text-[10px] text-primary font-bold mt-1 animate-pulse">Sedang memproses gambar...</div>
                      @error('foto_tampak_belakang') <span class="text-error text-[10px] mt-1">{{ $message }}</span> @enderror
@@ -390,7 +390,7 @@
                      <div class="grid grid-cols-2 gap-3">
                          <!-- Foto Depan -->
                          <div class="border border-slate-200 rounded-xl p-2 bg-white flex flex-col items-center">
-                             <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 mb-2">Tampak Depan</span>
+                             <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 mb-2">Device Depan</span>
                              @if($detailData['foto_tampak_depan'])
                                  <img src="{{ Storage::url($detailData['foto_tampak_depan']) }}" class="w-full h-32 object-contain rounded-lg bg-slate-50" />
                              @else
@@ -403,7 +403,7 @@
 
                          <!-- Foto Belakang -->
                          <div class="border border-slate-200 rounded-xl p-2 bg-white flex flex-col items-center">
-                             <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 mb-2">Tampak Belakang</span>
+                             <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 mb-2">Device Belakang</span>
                              @if($detailData['foto_tampak_belakang'])
                                  <img src="{{ Storage::url($detailData['foto_tampak_belakang']) }}" class="w-full h-32 object-contain rounded-lg bg-slate-50" />
                              @else
