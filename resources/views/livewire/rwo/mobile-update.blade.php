@@ -1336,8 +1336,33 @@
                     hasBounds = true;
                 }
                 
-                // Add outlet markers
-                this.outletsList.forEach(outlet => {
+                // Add outlet markers (Up to 30 KM or based on filters)
+                let outletsToShow = [];
+                const isFiltered = this.selectedRegion || this.selectedArea || this.selectedBranch || this.search;
+                
+                if (isFiltered) {
+                    // If filtered manually, show only what's on the filtered list
+                    outletsToShow = this.outletsList; 
+                } else if (this.userLocation && this.cachedOutlets) {
+                    // If no filter, show all stores within 30 KM radius on map
+                    this.cachedOutlets.forEach(o => {
+                        if (o.latitude && o.longitude) {
+                            const dist = this.calculateDistance(
+                                this.userLocation.latitude, 
+                                this.userLocation.longitude, 
+                                parseFloat(o.latitude), 
+                                parseFloat(o.longitude)
+                            );
+                            if (dist <= 30) {
+                                outletsToShow.push(o);
+                            }
+                        }
+                    });
+                } else {
+                    outletsToShow = this.outletsList;
+                }
+                
+                outletsToShow.forEach(outlet => {
                     if (outlet.latitude && outlet.longitude) {
                         const marker = L.marker([outlet.latitude, outlet.longitude])
                             .bindPopup('<b>' + outlet.customer_name + '</b><br/>' + outlet.customer_code)
