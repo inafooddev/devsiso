@@ -281,7 +281,7 @@
                  <!-- Foto Depan -->
                  <div class="form-control">
                      <label class="label py-1"><span class="label-text text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Foto Device (Depan)</span></label>
-                     <input type="file" wire:model="foto_tampak_depan" accept="image/*" capture="environment" class="file-input file-input-bordered h-11 rounded-xl text-sm bg-slate-50 w-full" />
+                     <input type="file" wire:model="foto_tampak_depan" accept="image/*" class="file-input file-input-bordered h-11 rounded-xl text-sm bg-slate-50 w-full" />
                      <div wire:loading wire:target="foto_tampak_depan" class="text-[10px] text-primary font-bold mt-1 animate-pulse">Sedang memproses gambar...</div>
                      @error('foto_tampak_depan') <span class="text-error text-[10px] mt-1">{{ $message }}</span> @enderror
                      
@@ -298,7 +298,7 @@
                  <!-- Foto Belakang -->
                  <div class="form-control">
                      <label class="label py-1"><span class="label-text text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Foto Device (Belakang)</span></label>
-                     <input type="file" wire:model="foto_tampak_belakang" accept="image/*" capture="environment" class="file-input file-input-bordered h-11 rounded-xl text-sm bg-slate-50 w-full" />
+                     <input type="file" wire:model="foto_tampak_belakang" accept="image/*" class="file-input file-input-bordered h-11 rounded-xl text-sm bg-slate-50 w-full" />
                      <div wire:loading wire:target="foto_tampak_belakang" class="text-[10px] text-primary font-bold mt-1 animate-pulse">Sedang memproses gambar...</div>
                      @error('foto_tampak_belakang') <span class="text-error text-[10px] mt-1">{{ $message }}</span> @enderror
                      
