@@ -117,6 +117,7 @@ class Index extends Component
                 $monthDates[$dt->date] = [
                     'label' => $parsedDate->format('d'),
                     'is_sunday' => $parsedDate->isSunday(),
+                    'is_saturday' => $parsedDate->isSaturday(),
                     'is_weekday' => $parsedDate->isWeekday(),
                     'week_month' => $dt->week_month,
                     'is_end_of_week' => false,

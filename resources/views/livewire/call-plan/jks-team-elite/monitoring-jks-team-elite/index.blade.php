@@ -90,7 +90,7 @@
                                 @if(isset($jksData[$team->kode_team][$date]))
                                     @php
                                         $tokoCount = $jksData[$team->kode_team][$date];
-                                        $isRed = $dayData['is_weekday'] && $tokoCount < 10;
+                                        $isRed = ($dayData['is_weekday'] && $tokoCount < 10) || (isset($dayData['is_saturday']) && $dayData['is_saturday'] && $tokoCount < 5);
                                     @endphp
                                     <span wire:click="showStoreDetails('{{ $team->kode_team }}', '{{ $date }}')" class="text-[11px] font-bold cursor-pointer hover:underline {{ $isRed ? 'text-error' : 'text-success' }}">{{ $tokoCount }}</span>
                                 @else
