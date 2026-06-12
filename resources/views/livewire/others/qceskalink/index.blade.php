@@ -305,7 +305,12 @@
 
                         {{-- Excel File --}}
                         <div class="space-y-1.5">
-                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">File Excel Data QC <span class="text-error">*</span></label>
+                            <div class="flex items-center justify-between ml-1">
+                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50">File Excel Data QC <span class="text-error">*</span></label>
+                                <button type="button" wire:click="downloadFormat" class="text-xs text-info hover:underline flex items-center gap-1 font-semibold">
+                                    <x-heroicon-s-arrow-down-tray class="w-3 h-3"/> Download Format
+                                </button>
+                            </div>
                             <input wire:model="importExcel" type="file" accept=".xlsx, .xls, .csv" class="file-input file-input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('importExcel') file-input-error @enderror" required>
                             <span class="text-[10px] text-base-content/40 ml-1">Format: xlsx, xls, csv (Max: 10MB)</span>
                             @error('importExcel') <span class="block text-error text-[10px] font-medium ml-1 mt-1">{{ $message }}</span> @enderror

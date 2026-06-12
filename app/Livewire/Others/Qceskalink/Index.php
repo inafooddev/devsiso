@@ -70,6 +70,11 @@ class Index extends Component
         }
     }
 
+    public function downloadFormat()
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\QcFormatExport, 'Format_Import_QC_Eskalink.xlsx');
+    }
+
     public function export()
     {
         $fileName = 'QC_Eskalink_' . date('Ymd_His') . '.xlsx';
@@ -189,6 +194,7 @@ class Index extends Component
     {
         $startOfMonth = \Carbon\Carbon::parse($this->monthFilter)->startOfMonth()->format('Y-m-d');
         $endOfMonth = \Carbon\Carbon::parse($this->monthFilter)->endOfMonth()->format('Y-m-d');
+        $user = \Illuminate\Support\Facades\Auth::user();
 
         // Subquery for CORE
         $coreQuery = DB::table('nominal_qc_dist')
@@ -275,6 +281,13 @@ class Index extends Component
                 'core.file_surat'
             );
 
+        if ($user && !empty($user->region_code)) {
+            // Kita asumsikan user yang punya array/string region_code dan bukan super admin
+            if (!$user->hasRole('admin')) {
+                $query->whereIn('md.region_code', (array) $user->region_code);
+            }
+        }
+
         if ($this->search) {
             $query->where(function($q) {
                 $q->where('md.distributor_name', 'ilike', '%' . $this->search . '%')
@@ -292,11 +305,16 @@ class Index extends Component
 
         $data = $query->get();
 
-        $regions = DB::table('master_distributors')
+        $regionsQuery = DB::table('master_distributors')
             ->select('region_code', 'region_name')
             ->where('is_active', true)
-            ->where('region_code', '<>', 'HOINA')
-            ->groupBy('region_code', 'region_name')
+            ->where('region_code', '<>', 'HOINA');
+            
+        if ($user && !empty($user->region_code) && !$user->hasRole('admin')) {
+            $regionsQuery->whereIn('region_code', (array) $user->region_code);
+        }
+            
+        $regions = $regionsQuery->groupBy('region_code', 'region_name')
             ->orderBy('region_name')
             ->get();
 
