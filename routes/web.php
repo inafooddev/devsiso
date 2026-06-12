@@ -79,6 +79,7 @@ use App\Livewire\Eskalink\SellingOutEskalink\Index as SellingOutEskalinkIndex;
 use App\Livewire\Settings\UserManagement;
 use App\Livewire\Welcome;
 use App\Livewire\Others\MappingSupervisorCode\Index as MappingSupervisorCodeIndex;
+use App\Livewire\Others\Qceskalink\Index as QceskalinkIndex;
 use App\Livewire\MonitoringDevice\Index as MonitoringDeviceIndex;
 /*
 |--------------------------------------------------------------------------
@@ -225,6 +226,7 @@ Route::middleware(['auth'])->group(function () {
     // ==========================================
 
     Route::get('/mapping-supervisor-code', MappingSupervisorCodeIndex::class)->name('mapping-supervisor-code.index');
+    Route::get('/qceskalink', QceskalinkIndex::class)->name('qceskalink.index');
     Route::get('/monitoring-device', MonitoringDeviceIndex::class)->name('monitoring-device.index');
     Route::get('/rwo', RwoIndex::class)->name('rwo.index');
     Route::get('/rwo/summary', \App\Livewire\Rwo\Summary::class)->name('rwo.summary');
