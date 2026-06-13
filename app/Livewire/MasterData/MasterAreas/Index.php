@@ -8,20 +8,27 @@ use App\Models\MasterRegion;
 use Livewire\WithPagination;
 use Illuminate\Validation\Rule;
 use App\Traits\EnforcesMenuPermissions;
+use App\Exports\MasterAreasExport;
+use App\Exports\MasterAreasTemplateExport;
+use App\Imports\MasterAreasImport;
+use Maatwebsite\Excel\Facades\Excel;
+use Livewire\WithFileUploads;
 
 class Index extends Component
 {
-    use WithPagination, EnforcesMenuPermissions;
+    use WithPagination, EnforcesMenuPermissions, WithFileUploads;
 
     protected $paginationTheme = 'tailwind';
     protected string $menuRoute = 'master-areas.index';
 
     public $search = '';
+    public $regionFilter = '';
     
     // Modal & Form States
     public $isFormModalOpen = false;
     public $isEditing = false;
     public $isDeleteModalOpen = false;
+    public $isImportModalOpen = false;
     
     // Form Fields
     public $areaId;
@@ -29,8 +36,14 @@ class Index extends Component
     public $area_name;
     public $region_code = '';
     public $areaIdToDelete;
+    public $importFile;
 
-    protected $queryString = ['search'];
+    protected $queryString = ['search', 'regionFilter'];
+
+    public function updatedRegionFilter()
+    {
+        $this->resetPage();
+    }
 
     /**
      * Aturan validasi.
@@ -169,7 +182,11 @@ class Index extends Component
             });
         }
 
-        $areas = $query->paginate(10);
+        if (!empty($this->regionFilter)) {
+            $query->where('region_code', $this->regionFilter);
+        }
+
+        $areas = $query->paginate(50);
         
         // Ambil data region untuk dropdown form
         $regionsQuery = MasterRegion::orderBy('region_name', 'asc');
@@ -204,13 +221,117 @@ class Index extends Component
         $area = $query->where('area_code', $this->areaIdToDelete)->first();
 
         if ($area) {
-            \App\Helpers\ActivityLogger::log('Delete Area', "Menghapus area: {$area->area_code} - {$area->area_name}");
-            $area->delete();
-            session()->flash('message', 'Area berhasil dihapus.');
+            try {
+                $area->delete();
+                \App\Helpers\ActivityLogger::log('Delete Area', "Menghapus area: {$area->area_code} - {$area->area_name}");
+                session()->flash('message', 'Area berhasil dihapus.');
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Tutup modal
+                $this->isDeleteModalOpen = false;
+
+                // Handle pesan error UI & Log System
+                if ($e->getCode() === '23503' || $e->getCode() == 23000) {
+                    $errorMsg = 'Gagal menghapus! Area ini tidak bisa dihapus karena masih digunakan atau terhubung dengan data Master Distributor.';
+                    $systemMsg = "FOREIGN KEY CONSTRAINT VIOLATION\nData Area ({$area->area_code}) ditolak untuk dihapus oleh Database sistem. Alasannya karena data area ini masih dipakai (direferensikan) oleh entitas lain, yaitu pada tabel 'master_distributors'. Anda harus menghapus atau mengubah area pada distributor yang bersangkutan terlebih dahulu.";
+                } else {
+                    $errorMsg = 'Terjadi kesalahan sistem saat menghapus data.';
+                    $systemMsg = $e->getMessage();
+                }
+                session()->flash('error', $errorMsg);
+
+                // Siapkan konten log txt
+                $logContent = "=================================================\n";
+                $logContent .= "       LOG ERROR DELETE MASTER AREA\n";
+                $logContent .= "=================================================\n\n";
+                $logContent .= "Waktu         : " . now()->format('Y-m-d H:i:s') . "\n";
+                $logContent .= "Kode Area     : {$area->area_code}\n";
+                $logContent .= "Nama Area     : {$area->area_name}\n";
+                $logContent .= "Kode Error    : {$e->getCode()}\n\n";
+                $logContent .= "Pesan Sistem  :\n{$systemMsg}\n\n";
+                $logContent .= "=================================================\n";
+
+                $fileName = 'log_master_area_' . date('Ymd_His') . '.txt';
+
+                return response()->streamDownload(function () use ($logContent) {
+                    echo $logContent;
+                }, $fileName);
+            }
         } else {
             session()->flash('error', 'Anda tidak memiliki otoritas untuk menghapus area ini.');
         }
 
         $this->isDeleteModalOpen = false;
+    }
+
+    public function export()
+    {
+        $this->authorizeAction('can_view');
+        return Excel::download(new MasterAreasExport([
+            'search' => $this->search,
+            'regionFilter' => $this->regionFilter,
+        ]), 'Data_Master_Area_' . date('Ymd_His') . '.xlsx');
+    }
+
+    public function downloadTemplate()
+    {
+        $this->authorizeAction('can_view');
+        return Excel::download(new MasterAreasTemplateExport, 'Template_Import_Master_Area.xlsx');
+    }
+
+    public function import()
+    {
+        $this->authorizeAction('can_edit');
+        
+        $this->validate([
+            'importFile' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        try {
+            $import = new MasterAreasImport();
+            Excel::import($import, $this->importFile);
+
+            $message = "Proses Import Selesai. Berhasil: {$import->importedCount}. Gagal/Dilewati: {$import->skippedCount}.";
+            \App\Helpers\ActivityLogger::log('Import Master Area', "Import data Area. Sukses: {$import->importedCount}, Skip: {$import->skippedCount}");
+            
+            // Set pesan flash (gunakan warning jika ada yg gagal)
+            if ($import->skippedCount > 0) {
+                session()->flash('error', $message . ' (Silakan periksa file log untuk detailnya)');
+            } else {
+                session()->flash('message', $message . ' (Semua data berhasil diimpor)');
+            }
+
+            // Siapkan konten log txt
+            $logContent = "=================================================\n";
+            $logContent .= "            LOG IMPORT MASTER AREA\n";
+            $logContent .= "=================================================\n\n";
+            $logContent .= "Waktu         : " . now()->format('Y-m-d H:i:s') . "\n";
+            $logContent .= "Total Sukses  : {$import->importedCount}\n";
+            $logContent .= "Total Gagal   : {$import->skippedCount}\n\n";
+            $logContent .= "Rincian Proses:\n";
+            $logContent .= "-------------------------------------------------\n";
+            if (empty($import->logs)) {
+                $logContent .= "Tidak ada data yang diproses.\n";
+            } else {
+                foreach ($import->logs as $log) {
+                    $logContent .= $log . "\n";
+                }
+            }
+            $logContent .= "=================================================\n";
+
+            $fileName = 'log_import_area_' . date('Ymd_His') . '.txt';
+
+            $this->isImportModalOpen = false;
+            $this->reset('importFile');
+
+            // Trigger download file txt
+            return response()->streamDownload(function () use ($logContent) {
+                echo $logContent;
+            }, $fileName);
+
+        } catch (\Exception $e) {
+            $this->isImportModalOpen = false;
+            $this->reset('importFile');
+            session()->flash('error', 'Sistem Gagal memproses file import: ' . $e->getMessage());
+        }
     }
 }
