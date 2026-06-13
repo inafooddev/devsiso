@@ -13,20 +13,22 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('salesmans', function (Blueprint $table) {
-            $table->string('salesman_code', 15)->primary();
-            $table->string('distributor_code', 15);
-            $table->string('salesman_name', 150);
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-
-            // Foreign Key Constraint
-            $table->foreign('distributor_code')
-                  ->references('distributor_code')
-                  ->on('master_distributors')
-                  ->onUpdate('cascade')
-                  ->onDelete('cascade');
-        });
+        if (!Schema::hasTable('salesmans')) {
+            Schema::create('salesmans', function (Blueprint $table) {
+                $table->string('salesman_code', 15)->primary();
+                $table->string('distributor_code', 15);
+                $table->string('salesman_name', 150);
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
+    
+                // Foreign Key Constraint
+                $table->foreign('distributor_code')
+                      ->references('distributor_code')
+                      ->on('master_distributors')
+                      ->onUpdate('cascade')
+                      ->onDelete('cascade');
+            });
+        }
     }
 
     /**

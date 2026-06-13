@@ -1,4 +1,4 @@
-<div>
+<div class="flex-1 flex flex-col w-full h-full min-h-0">
     <x-slot name="title">Laporan Selling In</x-slot>
 
     <!-- Full Page Loading Overlay -->
@@ -10,9 +10,21 @@
         </div>
     </div>
 
-    <div class="mx-auto px-4 sm:px-6 py-8">
+    <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full">
         
-        <x-card flush x-data="{
+        <!-- Tabular Navigation -->
+        @canImport('selling-in.index')
+        <div role="tablist" class="tabs tabs-boxed bg-base-200/50 p-1 w-fit rounded-xl border border-base-300">
+            <a role="tab" href="{{ route('selling-in.index') }}" class="tab tab-sm md:tab-md font-semibold transition-all {{ request()->routeIs('selling-in.index') ? 'tab-active bg-base-100 shadow-sm text-base-content rounded-lg' : 'text-base-content/60 hover:text-base-content' }}">
+                <x-heroicon-s-chart-bar class="w-4 h-4 mr-2" /> Summary Laporan
+            </a>
+            <a role="tab" href="{{ route('selling-in.import') }}" class="tab tab-sm md:tab-md font-semibold transition-all {{ request()->routeIs('selling-in.import') ? 'tab-active bg-base-100 shadow-sm text-base-content rounded-lg' : 'text-base-content/60 hover:text-base-content' }}">
+                <x-heroicon-s-arrow-up-tray class="w-4 h-4 mr-2" /> Import Data
+            </a>
+        </div>
+        @endcanImport
+
+        <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden" x-data="{
             globalSearch: '',
             get items() { return $wire.data || []; },
             get filteredItems() {
@@ -38,24 +50,23 @@
         }">
             
             <!-- Custom Header layout: Search on Left, Buttons on Right -->
-            <div class="px-6 pt-5 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-base-200">
-                <!-- Left: Global Search -->
-                <div class="flex items-center gap-4 w-full md:w-auto">
-                    @if($hasSearched)
-                        <div class="relative w-full md:w-64">
-                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                <x-heroicon-o-magnifying-glass class="w-4 h-4 text-base-content/40" />
-                            </div>
-                            <input type="text" x-model="globalSearch" class="input input-sm input-bordered w-full pl-9 focus:ring-1 focus:ring-primary rounded-xl transition-all" placeholder="Cari di semua kolom...">
-                        </div>
-                    @endif
+            <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-base-200/30">
+                
+                <div class="shrink-0 w-full sm:w-auto">
+                    <h2 class="text-base md:text-lg font-bold">Data Laporan</h2>
+                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Ringkasan penjualan distributor</p>
                 </div>
 
-                <!-- Right: Buttons -->
-                <div class="flex items-center gap-3 flex-shrink-0">
+                <div class="flex flex-wrap items-center justify-start md:justify-end gap-2 md:gap-3 w-full sm:w-auto">
+                    <!-- Left: Global Search -->
+                    @if($hasSearched)
+                        <x-ui.search-input x-model="globalSearch" placeholder="Cari di semua kolom..." />
+                    @endif
+
+                    <!-- Active Filters Badge -->
                     @if($hasSearched && !empty($startMonth) && !empty($endMonth))
                         <!-- Active Filters Badge -->
-                        <div class="hidden lg:flex items-center gap-2 bg-info/10 border border-info/20 px-3 py-1.5 rounded-xl text-xs text-info font-medium shadow-sm">
+                        <div class="hidden xl:flex items-center gap-2 bg-info/10 border border-info/20 px-3 py-1.5 rounded-xl text-xs text-info font-medium shadow-sm h-8">
                             <x-heroicon-o-funnel class="w-4 h-4" />
                             {{ $this->activeFilters['period'] ?? '' }}
                             <span class="border-l border-info/30 h-4 mx-1"></span>
@@ -63,17 +74,9 @@
                         </div>
                     @endif
 
-                    <x-ui.button size="sm" variant="outline" wire:click="$set('isFilterModalOpen', true)">
-                        <x-heroicon-o-funnel class="w-4 h-4 mr-2" />
-                        {{ $hasSearched ? 'Ubah Filter' : 'Filter' }}
-                    </x-ui.button>
-                    
-                    @canImport('selling-in.index')
-                    <x-ui.button tag="a" href="{{ route('selling-in.import') }}" size="sm" variant="primary">
-                        <x-heroicon-o-arrow-up-tray class="w-4 h-4 mr-2" />
-                        Import
-                    </x-ui.button>
-                    @endcanImport
+                    <div class="flex items-center gap-1 md:gap-2">
+                        <x-ui.action-button type="filter" label="{{ $hasSearched ? 'Ubah Filter' : 'Filter' }}" wire:click="$set('isFilterModalOpen', true)" />
+                    </div>
                 </div>
             </div>
 
@@ -89,8 +92,8 @@
                     </div>
                 </div>
             @else
-                <div class="pb-4">
-                    <x-ui.table hover sticky class="overflow-y-auto custom-scrollbar shadow-sm" style="max-height: 650px;" empty="Tidak ada transaksi penjualan untuk filter yang dipilih.">
+                <div class="flex-1 overflow-auto bg-base-100 w-full relative p-3 md:p-4 lg:p-5">
+                    <x-ui.table hover sticky class="whitespace-nowrap border-0 shadow-none" empty="Tidak ada transaksi penjualan untuk filter yang dipilih.">
                         <x-slot:head>
                             <tr>
                                 <th>Region</th>
@@ -139,7 +142,7 @@
                     </x-ui.table>
                 </div>
             @endif
-        </x-card>
+        </div>
     </div>
 
     <!-- Modal Filter Laporan -->

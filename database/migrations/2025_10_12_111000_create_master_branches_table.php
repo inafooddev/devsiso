@@ -13,19 +13,21 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('master_branches', function (Blueprint $table) {
-            $table->string('branch_code', 15)->primary();
-            $table->string('branch_name', 50);
-            $table->string('supervisor_code', 15);
-            $table->timestamps();
-
-            // Definisi foreign key constraint
-            $table->foreign('supervisor_code')
-                  ->references('supervisor_code')
-                  ->on('master_supervisors')
-                  ->onDelete('cascade')
-                  ->onUpdate('cascade');
-        });
+        if (!Schema::hasTable('master_branches')) {
+            Schema::create('master_branches', function (Blueprint $table) {
+                $table->string('branch_code', 15)->primary();
+                $table->string('branch_name', 50);
+                $table->string('supervisor_code', 15);
+                $table->timestamps();
+    
+                // Definisi foreign key constraint
+                $table->foreign('supervisor_code')
+                      ->references('supervisor_code')
+                      ->on('master_supervisors')
+                      ->onDelete('cascade')
+                      ->onUpdate('cascade');
+            });
+        }
     }
 
     /**

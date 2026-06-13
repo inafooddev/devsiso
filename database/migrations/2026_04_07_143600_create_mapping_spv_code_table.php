@@ -11,12 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('mapping_spv_code', function (Blueprint $table) {
-            $table->id(); // Membuat kolom 'id' bertipe bigserial (auto_increment & primary_key)
-            $table->string('branch_code', 15)->nullable();
-            $table->string('supervisor_code', 15)->nullable();
-            $table->timestamps(); // Membuat kolom 'created_at' dan 'updated_at'
-        });
+        if (!Schema::hasTable('mapping_spv_code')) {
+            Schema::create('mapping_spv_code', function (Blueprint $table) {
+                $table->id(); // Membuat kolom 'id' bertipe bigserial (auto_increment & primary_key)
+                $table->string('branch_code', 15)->nullable();
+                $table->string('supervisor_code', 15)->nullable();
+                $table->timestamps(); // Membuat kolom 'created_at' dan 'updated_at'
+            });
+        }
     }
 
     /**

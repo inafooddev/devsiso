@@ -1,14 +1,23 @@
-<div>
-    <div class="p-6 max-w-7xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h2 class="text-2xl font-bold text-base-content">Manajemen Access Group (View)</h2>
-                <p class="text-sm text-base-content/70 mt-1">Kelola data grup yang mengatur visibilitas menu sidebar untuk user.</p>
+<div class="flex-1 flex flex-col w-full h-full min-h-0">
+    <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full">
+        <x-slot name="title">View Menu (Akses Grup)</x-slot>
+
+        @include('livewire.settings._navigation')
+
+        <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+            
+            {{-- Header Card & Actions --}}
+            <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+                <div class="shrink-0 w-full sm:w-auto">
+                    <h2 class="text-base md:text-lg font-bold">Manajemen Access Group (View Menu)</h2>
+                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Kelola data grup yang mengatur visibilitas menu sidebar untuk user.</p>
+                </div>
+                
+                <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
+                    <x-ui.search-input wire:model.live.debounce.300ms="search" placeholder="Cari grup..." />
+                    <x-ui.action-button type="add" wire:click="create" label="Tambah Grup" />
+                </div>
             </div>
-            <x-ui.button variant="primary" icon="plus" wire:click="create">
-                Tambah Grup
-            </x-ui.button>
-        </div>
 
     @if (session()->has('message'))
         <div class="mb-6">
@@ -18,8 +27,8 @@
         </div>
     @endif
 
-    <div class="bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden">
-        <x-ui.table>
+    <div class="flex-1 overflow-auto bg-base-100 w-full relative p-3 md:p-4 lg:p-5">
+        <x-ui.table class="whitespace-nowrap border-0 shadow-none">
             <x-slot:head>
                 <tr>
                     <th class="w-16">ID</th>
@@ -48,12 +57,12 @@
             </tr>
             @endforeach
         </x-ui.table>
+    </div>
 
-        <div class="mt-4 p-4">
-            @if(method_exists($groups, 'links'))
-                {{ $groups->links() }}
-            @endif
-        </div>
+    <div class="p-3 md:p-4 lg:p-5 border-t border-base-300 bg-base-200/30">
+        @if(method_exists($groups, 'links'))
+            {{ $groups->links() }}
+        @endif
     </div>
 
     <!-- Modal Tambah/Edit Grup -->
@@ -83,7 +92,13 @@
 
     <!-- Modal Akses View Menu -->
     <x-ui.modal id="modal-akses-menu" title="Atur Visibilitas Menu: {{ $groupNameForMenu }}" icon="eye" size="lg" :dismissible="false" :open="$isMenuModalOpen" wire:close="$set('isMenuModalOpen', false)">
-        <p class="text-sm text-base-content/70 mb-4 border-b border-base-200 pb-2">Centang menu yang akan muncul di sidebar untuk pengguna dalam grup ini.</p>
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4 border-b border-base-200 pb-3">
+            <p class="text-sm text-base-content/70">Centang menu yang akan muncul di sidebar.</p>
+            <div class="space-x-1 shrink-0">
+                <button type="button" wire:click="selectAllMenus" class="btn btn-xs btn-outline btn-primary">Pilih Semua</button>
+                <button type="button" wire:click="unselectAllMenus" class="btn btn-xs btn-outline btn-error">Hapus Semua</button>
+            </div>
+        </div>
         
         <form wire:submit.prevent="storeMenuAccess" id="form-akses-menu">
             <div class="max-h-[60vh] overflow-y-auto pr-2">

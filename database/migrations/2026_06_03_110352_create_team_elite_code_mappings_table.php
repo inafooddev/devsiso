@@ -11,15 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('team_elite_code_mappings', function (Blueprint $table) {
-            $table->id();
-            $table->string('region_code')->nullable();
-            $table->string('area_code')->nullable();
-            $table->string('team_elite_code')->nullable();
-            $table->string('siso_code')->nullable();
-            $table->string('level')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('team_elite_code_mappings')) {
+            Schema::create('team_elite_code_mappings', function (Blueprint $table) {
+                $table->id();
+                $table->string('region_code')->nullable();
+                $table->string('area_code')->nullable();
+                $table->string('team_elite_code')->nullable();
+                $table->string('siso_code')->nullable();
+                $table->string('level')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

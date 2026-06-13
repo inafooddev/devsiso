@@ -8,14 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('access_group_menu', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('access_group_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('menu_id')->constrained()->cascadeOnDelete();
-            $table->timestamps();
-            
-            $table->unique(['access_group_id', 'menu_id']);
-        });
+        if (!Schema::hasTable('access_group_menu')) {
+            Schema::create('access_group_menu', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('access_group_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('menu_id')->constrained()->cascadeOnDelete();
+                $table->timestamps();
+                
+                $table->unique(['access_group_id', 'menu_id']);
+            });
+        }
     }
 
     public function down(): void

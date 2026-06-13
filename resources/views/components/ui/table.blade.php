@@ -32,6 +32,7 @@
     'loading'   => false,
     'empty'     => 'Tidak ada data ditemukan.',
     'emptyIcon' => 'inbox',
+    'pinCols'   => false,
 ])
 
 @php
@@ -40,6 +41,7 @@
         $striped ? 'table-zebra' : '',
         $compact ? 'table-xs'    : '',
         $sticky  ? 'table-pin-rows' : '',
+        $pinCols ? 'table-pin-cols' : '',
     ])->filter()->join(' ');
 @endphp
 

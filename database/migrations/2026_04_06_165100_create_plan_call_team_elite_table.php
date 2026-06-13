@@ -11,19 +11,21 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('plan_call_team_elite', function (Blueprint $table) {
-            $table->id(); // Secara otomatis membuat kolom 'id' bertipe bigserial (auto-incrementing BIGINT) dan menjadikannya primary key
-            $table->date('tanggal')->nullable();
-            $table->string('minggu', 10)->nullable();
-            $table->string('level', 10)->nullable();
-            $table->string('kode_sales', 150)->nullable();
-            $table->string('cabang', 50)->nullable();
-            $table->string('kode_toko', 50)->nullable();
-            $table->string('nama_toko', 255)->nullable();
-            $table->string('pilar', 10)->nullable();
-            $table->decimal('target', 18, 6)->nullable();
-            $table->timestamps(); // Secara otomatis membuat kolom 'created_at' dan 'updated_at'
-        });
+        if (!Schema::hasTable('plan_call_team_elite')) {
+            Schema::create('plan_call_team_elite', function (Blueprint $table) {
+                $table->id(); // Secara otomatis membuat kolom 'id' bertipe bigserial (auto-incrementing BIGINT) dan menjadikannya primary key
+                $table->date('tanggal')->nullable();
+                $table->string('minggu', 10)->nullable();
+                $table->string('level', 10)->nullable();
+                $table->string('kode_sales', 150)->nullable();
+                $table->string('cabang', 50)->nullable();
+                $table->string('kode_toko', 50)->nullable();
+                $table->string('nama_toko', 255)->nullable();
+                $table->string('pilar', 10)->nullable();
+                $table->decimal('target', 18, 6)->nullable();
+                $table->timestamps(); // Secara otomatis membuat kolom 'created_at' dan 'updated_at'
+            });
+        }
     }
 
     /**

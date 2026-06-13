@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('unmapped_units', function (Blueprint $table) {
-            $table->id();
-            $table->string('distributor_code');
-            $table->string('raw_unit');
-            $table->timestamps();
-
-            $table->unique(['distributor_code', 'raw_unit']);
-        });
+        if (!Schema::hasTable('unmapped_units')) {
+            Schema::create('unmapped_units', function (Blueprint $table) {
+                $table->id();
+                $table->string('distributor_code');
+                $table->string('raw_unit');
+                $table->timestamps();
+    
+                $table->unique(['distributor_code', 'raw_unit']);
+            });
+        }
     }
 
     /**

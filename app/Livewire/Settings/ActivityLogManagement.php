@@ -22,6 +22,16 @@ class ActivityLogManagement extends Component
         'actionFilter' => ['except' => ''],
     ];
 
+    public function mount()
+    {
+        if (empty($this->dateFrom)) {
+            $this->dateFrom = now()->startOfWeek()->toDateString();
+        }
+        if (empty($this->dateTo)) {
+            $this->dateTo = now()->endOfWeek()->toDateString();
+        }
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -44,7 +54,9 @@ class ActivityLogManagement extends Component
 
     public function resetFilters()
     {
-        $this->reset(['search', 'dateFrom', 'dateTo', 'actionFilter']);
+        $this->reset(['search', 'actionFilter']);
+        $this->dateFrom = now()->startOfWeek()->toDateString();
+        $this->dateTo = now()->endOfWeek()->toDateString();
         $this->resetPage();
     }
 
@@ -95,7 +107,7 @@ class ActivityLogManagement extends Component
 
     public function render()
     {
-        $logs = $this->getFilteredLogsQuery()->latest()->paginate(20);
+        $logs = $this->getFilteredLogsQuery()->latest()->paginate(100);
 
         // Fetch unique actions to populate the filter dropdown
         $actions = ActivityLog::select('action')

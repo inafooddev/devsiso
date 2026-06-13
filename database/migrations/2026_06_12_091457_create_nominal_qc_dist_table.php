@@ -11,19 +11,21 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('nominal_qc_dist', function (Blueprint $table) {
-            $table->id();
-            $table->date('tanggal');
-            $table->string('distributor_code');
-            $table->integer('qty');
-            $table->decimal('discount_4', 15, 4);
-            $table->decimal('discount_8', 15, 4);
-            $table->decimal('neto', 15, 4);
-            $table->decimal('nominal_surat', 15, 4);
-            $table->string('file_surat')->nullable();
-            $table->timestamp('timestamp')->useCurrent();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('nominal_qc_dist')) {
+            Schema::create('nominal_qc_dist', function (Blueprint $table) {
+                $table->id();
+                $table->date('tanggal');
+                $table->string('distributor_code');
+                $table->integer('qty');
+                $table->decimal('discount_4', 15, 4);
+                $table->decimal('discount_8', 15, 4);
+                $table->decimal('neto', 15, 4);
+                $table->decimal('nominal_surat', 15, 4);
+                $table->string('file_surat')->nullable();
+                $table->timestamp('timestamp')->useCurrent();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

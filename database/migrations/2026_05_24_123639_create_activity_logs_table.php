@@ -11,16 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('activity_logs', function (Blueprint $table) {
-            $table->id();
-            $table->string('user_id')->nullable(); // Assuming userid is a string
-            $table->string('user_name')->nullable();
-            $table->string('action');
-            $table->text('description')->nullable();
-            $table->string('ip_address')->nullable();
-            $table->text('user_agent')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('activity_logs')) {
+            Schema::create('activity_logs', function (Blueprint $table) {
+                $table->id();
+                $table->string('user_id')->nullable(); // Assuming userid is a string
+                $table->string('user_name')->nullable();
+                $table->string('action');
+                $table->text('description')->nullable();
+                $table->string('ip_address')->nullable();
+                $table->text('user_agent')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

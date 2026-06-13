@@ -1,14 +1,23 @@
-<div>
-    <div class="p-6 max-w-7xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h2 class="text-2xl font-bold text-base-content">Manajemen Role Sistem</h2>
-                <p class="text-sm text-base-content/70 mt-1">Kelola data hak akses role yang dapat diberikan kepada user.</p>
+<div class="flex-1 flex flex-col w-full h-full min-h-0">
+    <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full">
+        <x-slot name="title">Manajemen Role Sistem</x-slot>
+
+        @include('livewire.settings._navigation')
+
+        <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+            
+            {{-- Header Card & Actions --}}
+            <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+                <div class="shrink-0 w-full sm:w-auto">
+                    <h2 class="text-base md:text-lg font-bold">Data Role (Peran)</h2>
+                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Kelola data hak akses role yang dapat diberikan kepada user.</p>
+                </div>
+                
+                <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
+                    <x-ui.search-input wire:model.live.debounce.300ms="search" placeholder="Cari role..." />
+                    <x-ui.action-button type="add" wire:click="create" label="Tambah Role" />
+                </div>
             </div>
-            <x-ui.button variant="primary" icon="plus" wire:click="create">  
-                Tambah Role
-            </x-ui.button>
-        </div>
 
         <!-- Alert Sukses -->
         @if (session()->has('message'))
@@ -29,15 +38,16 @@
         @endif
 
         <!-- Tabel Role -->
-        <x-ui.table empty="Belum ada data role" emptyIcon="shield-check">
-            <x-slot:head>
-                <tr>
-                    <th>ID</th>
-                    <th>Nama Role (Kode)</th>
-                    <th>Total User</th>
-                    <th class="text-right">Aksi</th>
-                </tr>
-            </x-slot:head>
+        <div class="flex-1 overflow-auto bg-base-100 w-full relative p-3 md:p-4 lg:p-5">
+            <x-ui.table empty="Belum ada data role" emptyIcon="shield-check" class="whitespace-nowrap border-0 shadow-none">
+                <x-slot:head>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nama Role (Kode)</th>
+                        <th>Total User</th>
+                        <th class="text-right">Aksi</th>
+                    </tr>
+                </x-slot:head>
             
             @foreach($roles as $role)
             <tr>
@@ -64,9 +74,10 @@
                 </td>
             </tr>
             @endforeach
-        </x-ui.table>
+            </x-ui.table>
+        </div>
 
-        <div class="mt-4">
+        <div class="p-3 md:p-4 lg:p-5 border-t border-base-300 bg-base-200/30">
             @if(method_exists($roles, 'links'))
                 {{ $roles->links() }}
             @endif

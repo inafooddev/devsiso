@@ -1,39 +1,38 @@
-<div>
-    <div class="p-6 max-w-7xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h2 class="text-2xl font-bold text-base-content">Manajemen Pengguna</h2>
-                <p class="text-sm text-base-content/70 mt-1">Kelola data pengguna, role, dan cakupan wilayah.</p>
-            </div>
-            <div>
-                <x-ui.button variant="primary" icon="plus" wire:click="create">
-                    Tambah User
-                </x-ui.button>
-            </div>
-        </div>
+<div class="flex-1 flex flex-col w-full h-full min-h-0">
+    <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full">
+        <x-slot name="title">Manajemen Pengguna</x-slot>
+
+        @include('livewire.settings._navigation')
 
         {{-- Alert Sukses --}}
         @if (session()->has('message'))
-            <div class="mb-6">
+            <div>
                 <x-ui.notif type="success" dismissible="true">
                     {{ session('message') }}
                 </x-ui.notif>
             </div>
         @endif
 
-        <!-- Filter Card -->
-        <div class="bg-base-100 p-5 rounded-xl border border-base-200 shadow-sm mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-sm font-bold text-base-content/80 flex items-center gap-2">
-                    <x-heroicon-o-funnel class="w-4 h-4 text-primary" />
-                    Filter & Pencarian
-                </h3>
-                @if($search || $roleFilter || $accessLevelFilter || $regionFilter)
-                    <span class="badge badge-sm badge-primary font-medium animate-pulse">Filter Aktif</span>
-                @endif
-            </div>
+        <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
             
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
+            {{-- Header Card & Filters --}}
+            <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col gap-4 bg-base-200/30">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div class="shrink-0 w-full sm:w-auto">
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-base md:text-lg font-bold">Data Pengguna</h2>
+                            @if($search || $roleFilter || $accessLevelFilter || $regionFilter)
+                                <span class="badge badge-sm badge-primary font-medium animate-pulse">Filter Aktif</span>
+                            @endif
+                        </div>
+                        <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Kelola data pengguna, role, dan cakupan wilayah.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
+                        <x-ui.action-button type="add" wire:click="create" />
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
                 <!-- Search -->
                 <div class="form-control w-full sm:col-span-2">
                     <label class="label py-1"><span class="label-text text-xs font-semibold text-base-content/70">Keyword</span></label>
@@ -86,21 +85,16 @@
 
                 <!-- Reset Button -->
                 <div class="form-control w-full">
-                    <x-ui.button 
-                        variant="ghost" 
-                        outline 
-                        class="w-full text-sm border-base-300 hover:border-error hover:text-error" 
-                        wire:click="resetFilters" 
-                        icon="arrow-path"
-                    >
-                        Reset Filter
-                    </x-ui.button>
+                    <button type="button" wire:click="resetFilters" class="btn btn-sm btn-ghost hover:bg-error/10 hover:text-error w-full text-xs" title="Reset Filter">
+                        <x-heroicon-s-arrow-path class="w-4 h-4" /> Reset
+                    </button>
                 </div>
             </div>
         </div>
 
         {{-- Tabel User --}}
-        <x-ui.table empty="Belum ada data user" emptyIcon="users">
+        <div class="flex-1 overflow-auto bg-base-100 w-full relative p-3 md:p-4 lg:p-5">
+            <x-ui.table empty="Belum ada data user" emptyIcon="users" class="whitespace-nowrap border-0 shadow-none">
             <x-slot:head>
                 <tr>
                     <th>User ID</th>
@@ -207,13 +201,15 @@
                 </td>
             </tr>
             @endforeach
-        </x-ui.table>
+            </x-ui.table>
+        </div>
 
-        <div class="mt-4">
+        <div class="p-3 md:p-4 lg:p-5 border-t border-base-300 bg-base-200/30">
             @if(method_exists($users, 'links'))
                 {{ $users->links() }}
             @endif
         </div>
+        
     </div>
 
     {{-- ═══════════════════════════════════════════════════════════════════ --}}

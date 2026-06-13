@@ -1,8 +1,19 @@
-<div>
+<div class="flex-1 flex flex-col w-full h-full min-h-0">
     <x-slot name="title">Import Data Selling In</x-slot>
 
-    <div class="mx-auto px-4 sm:px-6 py-8">
+    <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full">
         
+        <!-- Tabular Navigation -->
+        @canImport('selling-in.index')
+        <div role="tablist" class="tabs tabs-boxed bg-base-200/50 p-1 w-fit rounded-xl border border-base-300">
+            <a role="tab" href="{{ route('selling-in.index') }}" class="tab tab-sm md:tab-md font-semibold transition-all {{ request()->routeIs('selling-in.index') ? 'tab-active bg-base-100 shadow-sm text-base-content rounded-lg' : 'text-base-content/60 hover:text-base-content' }}">
+                <x-heroicon-s-chart-bar class="w-4 h-4 mr-2" /> Summary Laporan
+            </a>
+            <a role="tab" href="{{ route('selling-in.import') }}" class="tab tab-sm md:tab-md font-semibold transition-all {{ request()->routeIs('selling-in.import') ? 'tab-active bg-base-100 shadow-sm text-base-content rounded-lg' : 'text-base-content/60 hover:text-base-content' }}">
+                <x-heroicon-s-arrow-up-tray class="w-4 h-4 mr-2" /> Import Data
+            </a>
+        </div>
+        @endcanImport
         <!-- Notifikasi Utama -->
         @if (session()->has('message'))
             <x-ui.notif type="success" dismissible class="mb-8">

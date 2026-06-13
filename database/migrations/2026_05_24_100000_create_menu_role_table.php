@@ -11,12 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('menu_role', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('menu_id')->constrained('menus')->cascadeOnDelete();
-            $table->foreignId('role_id')->constrained('roles')->cascadeOnDelete();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('menu_role')) {
+            Schema::create('menu_role', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('menu_id')->constrained('menus')->cascadeOnDelete();
+                $table->foreignId('role_id')->constrained('roles')->cascadeOnDelete();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

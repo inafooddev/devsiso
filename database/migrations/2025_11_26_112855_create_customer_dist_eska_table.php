@@ -11,28 +11,30 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('customer_dist_eska', function (Blueprint $table) {
-            // id;bigserial;y;y;;
-            $table->id(); 
-            
-            // bln;date;;;;
-            $table->date('bln')->nullable();
-            
-            // distid;varchar(100);;;;
-            $table->string('distid', 100)->nullable();
-            
-            // branch;varchar(100);;;;
-            $table->string('branch', 100)->nullable();
-            
-            // custno;varchar(300);;;;
-            $table->string('custno', 300)->nullable();
-            
-            // custname;varchar(300);;;;
-            $table->string('custname', 300)->nullable();
-            
-            // created_at & updated_at;timestamp;;;;
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('customer_dist_eska')) {
+            Schema::create('customer_dist_eska', function (Blueprint $table) {
+                // id;bigserial;y;y;;
+                $table->id(); 
+                
+                // bln;date;;;;
+                $table->date('bln')->nullable();
+                
+                // distid;varchar(100);;;;
+                $table->string('distid', 100)->nullable();
+                
+                // branch;varchar(100);;;;
+                $table->string('branch', 100)->nullable();
+                
+                // custno;varchar(300);;;;
+                $table->string('custno', 300)->nullable();
+                
+                // custname;varchar(300);;;;
+                $table->string('custname', 300)->nullable();
+                
+                // created_at & updated_at;timestamp;;;;
+                $table->timestamps();
+            });
+        }
     }
 
     /**

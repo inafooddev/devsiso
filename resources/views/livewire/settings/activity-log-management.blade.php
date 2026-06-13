@@ -1,55 +1,26 @@
-<div>
-    <div class="p-6 max-w-7xl mx-auto space-y-6">
-        <!-- Header Section -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-base-100 p-6 rounded-xl border border-base-200 shadow-sm">
-            <div>
-                <h2 class="text-2xl font-bold text-base-content flex items-center gap-2">
-                    <x-heroicon-o-document-text class="w-7 h-7 text-primary" />
-                    Log Aktivitas
-                </h2>
-                <p class="text-sm text-base-content/60 mt-1">Pantau dan analisis riwayat aktivitas pengguna di sistem secara real-time.</p>
-            </div>
-            <div>
-                <x-ui.button 
-                    variant="success" 
-                    icon="arrow-down-tray" 
-                    wire:click="export" 
-                    wire:loading.attr="disabled"
-                    wire:target="export"
-                >
-                    Export Excel
-                </x-ui.button>
-            </div>
-        </div>
+<div class="flex-1 flex flex-col w-full h-full min-h-0">
+    <x-slot name="title">Log Aktivitas</x-slot>
 
+    <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 w-full p-3 md:p-4">
+        
         <!-- Filter Card -->
-        <div class="bg-base-100 p-5 rounded-xl border border-base-200 shadow-sm">
+        <div class="bg-base-100 p-4 rounded-xl border border-base-200 shadow-sm shrink-0">
             <h3 class="text-sm font-semibold text-base-content/80 mb-4 flex items-center gap-2">
                 <x-heroicon-o-funnel class="w-4 h-4 text-primary" />
                 Filter Data
             </h3>
             
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
                 <!-- Search -->
                 <div class="form-control w-full sm:col-span-2 md:col-span-1">
                     <label class="label py-1"><span class="label-text text-xs font-semibold text-base-content/70">Keyword</span></label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-base-content/40">
-                            <x-heroicon-s-magnifying-glass class="w-4 h-4" />
-                        </span>
-                        <input 
-                            type="text" 
-                            wire:model.live.debounce.300ms="search" 
-                            placeholder="Cari user, aksi, deskripsi..." 
-                            class="input input-bordered w-full pl-10 text-sm focus:input-primary" 
-                        />
-                    </div>
+                    <x-ui.search-input wire:model.live.debounce.300ms="search" placeholder="Cari user, aksi, deskripsi..." />
                 </div>
 
                 <!-- Action Filter -->
                 <div class="form-control w-full">
                     <label class="label py-1"><span class="label-text text-xs font-semibold text-base-content/70">Aksi</span></label>
-                    <select wire:model.live="actionFilter" class="select select-bordered w-full text-sm focus:select-primary">
+                    <select wire:model.live="actionFilter" class="select select-bordered select-sm w-full text-sm focus:select-primary">
                         <option value="">Semua Aksi</option>
                         @foreach($actions as $act)
                             <option value="{{ $act }}">{{ strtoupper($act) }}</option>
@@ -63,7 +34,7 @@
                     <input 
                         type="date" 
                         wire:model.live="dateFrom" 
-                        class="input input-bordered w-full text-sm focus:input-primary" 
+                        class="input input-bordered input-sm w-full text-sm focus:input-primary" 
                     />
                 </div>
 
@@ -73,7 +44,7 @@
                     <input 
                         type="date" 
                         wire:model.live="dateTo" 
-                        class="input input-bordered w-full text-sm focus:input-primary" 
+                        class="input input-bordered input-sm w-full text-sm focus:input-primary" 
                     />
                 </div>
 
@@ -82,6 +53,7 @@
                     <x-ui.button 
                         variant="ghost" 
                         outline 
+                        size="sm"
                         class="w-full text-sm border-base-300 hover:border-error hover:text-error" 
                         wire:click="resetFilters" 
                         icon="arrow-path"
@@ -89,12 +61,28 @@
                         Reset Filter
                     </x-ui.button>
                 </div>
+
+                <!-- Export Button -->
+                <div class="form-control w-full">
+                    <x-ui.button 
+                        variant="success" 
+                        size="sm"
+                        class="w-full text-sm" 
+                        wire:click="export" 
+                        wire:loading.attr="disabled"
+                        wire:target="export"
+                        icon="arrow-down-tray"
+                    >
+                        Export Excel
+                    </x-ui.button>
+                </div>
             </div>
         </div>
 
         <!-- Table Container -->
-        <div class="bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden">
-            <x-ui.table empty="Belum ada log aktivitas." emptyIcon="clock" :loading="false">
+        <div class="bg-base-100 rounded-xl shadow-sm border border-base-200 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+            <div class="flex-1 min-h-0 overflow-y-auto">
+                <x-ui.table empty="Belum ada log aktivitas." emptyIcon="clock" :loading="false">
                 <x-slot:head>
                     <tr>
                         <th class="w-48">WAKTU</th>
@@ -131,7 +119,7 @@
                         </td>
 
                         <!-- Aksi -->
-                        <td>
+                        <td class="whitespace-nowrap">
                             @php
                                 $actionLower = strtolower($log->action);
                                 $badgeVariant = 'neutral';
@@ -141,13 +129,15 @@
                                     $badgeVariant = 'info';
                                 } elseif (str_contains($actionLower, 'delete') || str_contains($actionLower, 'hapus') || str_contains($actionLower, 'destroy') || str_contains($actionLower, 'remove')) {
                                     $badgeVariant = 'error';
+                                } elseif (str_contains($actionLower, 'export') || str_contains($actionLower, 'download')) {
+                                    $badgeVariant = 'secondary';
                                 } elseif (str_contains($actionLower, 'login') || str_contains($actionLower, 'auth')) {
                                     $badgeVariant = 'primary';
                                 } elseif (str_contains($actionLower, 'logout')) {
                                     $badgeVariant = 'warning';
                                 }
                             @endphp
-                            <x-ui.badge :variant="$badgeVariant" outline class="uppercase tracking-wider font-semibold text-[10px]">
+                            <x-ui.badge :variant="$badgeVariant" outline class="uppercase tracking-wider font-semibold text-[10px] whitespace-nowrap">
                                 {{ $log->action }}
                             </x-ui.badge>
                         </td>
@@ -172,6 +162,7 @@
                     </tr>
                 @endforeach
             </x-ui.table>
+            </div>
 
             <div class="p-4 border-t border-base-200 bg-base-100">
                 @if(method_exists($logs, 'links'))

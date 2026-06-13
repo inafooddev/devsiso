@@ -11,17 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('monitoring_device_se', function (Blueprint $table) {
-            $table->id();
-            $table->date('tanggal')->nullable();
-            $table->string('distributor_code')->nullable();
-            $table->string('sales_code')->nullable();
-            $table->string('foto_tampak_depan')->nullable();
-            $table->string('foto_tampak_belakang')->nullable();
-            $table->string('kondisi_hp')->nullable();
-            $table->string('kondisi_kartu')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('monitoring_device_se')) {
+            Schema::create('monitoring_device_se', function (Blueprint $table) {
+                $table->id();
+                $table->date('tanggal')->nullable();
+                $table->string('distributor_code')->nullable();
+                $table->string('sales_code')->nullable();
+                $table->string('foto_tampak_depan')->nullable();
+                $table->string('foto_tampak_belakang')->nullable();
+                $table->string('kondisi_hp')->nullable();
+                $table->string('kondisi_kartu')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

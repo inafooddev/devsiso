@@ -79,6 +79,9 @@ use App\Livewire\Eskalink\SellingOutEskalink\Index as SellingOutEskalinkIndex;
 use App\Livewire\Settings\UserManagement;
 use App\Livewire\Welcome;
 use App\Livewire\Others\MappingSupervisorCode\Index as MappingSupervisorCodeIndex;
+use App\Livewire\Others\ComponentStandard\Index as ComponentStandardIndex;
+use App\Livewire\Others\LayoutStandard\Index as LayoutStandardIndex;
+use App\Livewire\Others\PageTemplateStandard\Index as PageTemplateStandardIndex;
 use App\Livewire\Others\Qceskalink\Index as QceskalinkIndex;
 use App\Livewire\MonitoringDevice\Index as MonitoringDeviceIndex;
 /*
@@ -225,6 +228,10 @@ Route::middleware(['auth'])->group(function () {
     // MISCELLANEOUS / OTHERS
     // ==========================================
 
+    Route::get('/standarisasi', \App\Livewire\Others\Standarisasi\Index::class)->name('standarisasi.index');
+    Route::get('/others/component-standard', ComponentStandardIndex::class)->name('others.component-standard');
+    Route::get('/others/layout-standard', LayoutStandardIndex::class)->name('others.layout-standard');
+    Route::get('/others/page-template-standard', PageTemplateStandardIndex::class)->name('others.page-template-standard');
     Route::get('/mapping-supervisor-code', MappingSupervisorCodeIndex::class)->name('mapping-supervisor-code.index');
     Route::get('/qceskalink', QceskalinkIndex::class)->name('qceskalink.index');
     Route::get('/monitoring-device', MonitoringDeviceIndex::class)->name('monitoring-device.index');

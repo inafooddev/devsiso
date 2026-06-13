@@ -46,44 +46,16 @@
                 </li>
                 @hasrole('admin')
                 <li>
-                    <details>
-                        <summary class="flex items-center gap-3">
-                            <x-heroicon-s-cog-6-tooth class="w-4 h-4 text-base-content/60" />
-                            Settings
-                        </summary>
-                        <ul class="p-2 bg-base-200/50 rounded-box mt-1">
-                            <li>
-                                <a href="{{ route('users.index') }}" class="flex items-center gap-3">
-                                    <x-heroicon-s-users class="w-4 h-4 text-base-content/60" />
-                                    Users
-                                </a>
-                            </li>
-                            <li>
-                                <a href="{{ route('roles.index') }}" class="flex items-center gap-3">
-                                    <x-heroicon-o-shield-check class="w-5 h-5 text-base-content/70" />
-                                    <span>Roles (Aksi)</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="{{ route('access-groups.index') }}" class="flex items-center gap-3">
-                                    <x-heroicon-o-eye class="w-5 h-5 text-base-content/70" />
-                                    <span>Grup (View)</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="{{ route('menus.index') }}" class="flex items-center gap-3">
-                                    <x-heroicon-s-bars-3-bottom-left class="w-4 h-4 text-base-content/60" />
-                                    Menus
-                                </a>
-                            </li>
-                            <li>
-                                <a href="{{ route('activity-logs.index') }}" class="flex items-center gap-3">
-                                    <x-heroicon-o-clipboard-document-list class="w-5 h-5 text-base-content/70" />
-                                    <span>Log Aktivitas</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </details>
+                    <a href="{{ route('users.index') }}" class="flex items-center gap-3">
+                        <x-heroicon-s-users class="w-4 h-4 text-base-content/60" />
+                        User Management
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('activity-logs.index') }}" class="flex items-center gap-3">
+                        <x-heroicon-o-clipboard-document-list class="w-5 h-5 text-base-content/70" />
+                        Log Aktivitas
+                    </a>
                 </li>
                 @endhasrole
                 <div class="divider my-1"></div>

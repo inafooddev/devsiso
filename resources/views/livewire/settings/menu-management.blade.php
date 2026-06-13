@@ -1,14 +1,22 @@
-<div>
-    <div class="p-6 max-w-7xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h2 class="text-2xl font-bold text-base-content">Manajemen Menu</h2>
-                <p class="text-sm text-base-content/70 mt-1">Kelola data master menu aplikasi (tambah, edit, hapus).</p>
+<div class="flex-1 flex flex-col w-full h-full min-h-0">
+    <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full">
+        <x-slot name="title">Manajemen Menu</x-slot>
+
+        @include('livewire.settings._navigation')
+
+        <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+            
+            {{-- Header Card & Actions --}}
+            <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+                <div class="shrink-0 w-full sm:w-auto">
+                    <h2 class="text-base md:text-lg font-bold">Struktur Menu Sidebar</h2>
+                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Kelola data master menu aplikasi (tambah, edit, hapus).</p>
+                </div>
+                
+                <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
+                    <x-ui.action-button type="add" wire:click="create" label="Tambah Menu" />
+                </div>
             </div>
-            <x-ui.button variant="primary" icon="plus" wire:click="create">  
-                Tambah Menu
-            </x-ui.button>
-        </div>
 
         <!-- Alert Sukses -->
         @if (session()->has('message'))
@@ -20,11 +28,7 @@
         @endif
 
         <!-- List Menu Berbentuk Pohon -->
-        <div class="bg-base-100 shadow-sm border border-base-200 rounded-xl overflow-hidden">
-            <div class="p-4 border-b border-base-200 bg-base-200/50">
-                <h3 class="font-semibold text-base-content">Struktur Menu Sidebar</h3>
-            </div>
-            <div class="p-4">
+        <div class="flex-1 overflow-auto bg-base-100 w-full relative p-3 md:p-4 lg:p-5">
                 @if(count($menus) > 0)
                     <div class="space-y-4">
                         @foreach($menus as $menu)
@@ -106,7 +110,6 @@
                         <p>Belum ada data menu di sistem.</p>
                     </div>
                 @endif
-            </div>
         </div>
     </div>
 

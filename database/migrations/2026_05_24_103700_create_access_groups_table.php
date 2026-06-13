@@ -8,12 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('access_groups', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->unique();
-            $table->string('description')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('access_groups')) {
+            Schema::create('access_groups', function (Blueprint $table) {
+                $table->id();
+                $table->string('name')->unique();
+                $table->string('description')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void

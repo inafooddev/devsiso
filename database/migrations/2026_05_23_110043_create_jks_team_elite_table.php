@@ -11,22 +11,24 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('jks_team_elite', function (Blueprint $table) {
-            $table->id();
-            $table->date('tanggal')->nullable();
-            $table->string('kode_team', 50)->nullable();
-            $table->string('nama_team', 255)->nullable();
-            $table->string('kode_region', 50)->nullable();
-            $table->string('nama_region', 255)->nullable();
-            $table->string('kode_area', 50)->nullable();
-            $table->string('nama_area', 255)->nullable();
-            $table->string('distributor_code', 50)->nullable();
-            $table->string('distributor_name', 255)->nullable();
-            $table->string('custno', 100)->nullable();
-            $table->string('custname', 255)->nullable();
-            $table->text('addres')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('jks_team_elite')) {
+            Schema::create('jks_team_elite', function (Blueprint $table) {
+                $table->id();
+                $table->date('tanggal')->nullable();
+                $table->string('kode_team', 50)->nullable();
+                $table->string('nama_team', 255)->nullable();
+                $table->string('kode_region', 50)->nullable();
+                $table->string('nama_region', 255)->nullable();
+                $table->string('kode_area', 50)->nullable();
+                $table->string('nama_area', 255)->nullable();
+                $table->string('distributor_code', 50)->nullable();
+                $table->string('distributor_name', 255)->nullable();
+                $table->string('custno', 100)->nullable();
+                $table->string('custname', 255)->nullable();
+                $table->text('addres')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

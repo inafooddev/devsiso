@@ -12,18 +12,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('master_calender', function (Blueprint $table) {
-            $table->date('date')->primary();
-            $table->string('day', 15);
-            $table->integer('day_number');
-            $table->integer('week_year');
-            $table->integer('week_month');
-            $table->integer('month');
-            $table->integer('quarter');
-            $table->integer('semester');
-            $table->integer('year');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('master_calender')) {
+            Schema::create('master_calender', function (Blueprint $table) {
+                $table->date('date')->primary();
+                $table->string('day', 15);
+                $table->integer('day_number');
+                $table->integer('week_year');
+                $table->integer('week_month');
+                $table->integer('month');
+                $table->integer('quarter');
+                $table->integer('semester');
+                $table->integer('year');
+                $table->timestamps();
+            });
+        }
 
         DB::table('master_calender')->insert([
             ['date' => '2025-12-28', 'day' => 'Minggu', 'day_number' => 7, 'week_year' => 1, 'week_month' => 1, 'month' => 12, 'quarter' => 4, 'semester' => 2, 'year' => 2025, 'created_at' => now(), 'updated_at' => now()],

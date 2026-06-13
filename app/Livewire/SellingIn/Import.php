@@ -34,6 +34,11 @@ class Import extends Component
 
     protected $queryString = ['search', 'filterYear'];
 
+    public function mount()
+    {
+        $this->authorizeAction('can_import');
+    }
+
     public function updatingSearch() { $this->resetPage(); }
 
     public function render()

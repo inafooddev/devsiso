@@ -12,6 +12,7 @@ class RoleManagement extends Component
 {
     use WithPagination;
 
+    public $search = '';
     public $name; // Input untuk nama role baru
     public $isModalOpen = false;
 
@@ -31,7 +32,9 @@ class RoleManagement extends Component
     {
         return view('livewire.settings.role-management', [
             // Menampilkan semua role dengan paginasi
-            'roles' => Role::latest()->paginate(10),
+            'roles' => Role::when($this->search, function($query) {
+                $query->where('name', 'like', '%' . $this->search . '%');
+            })->latest()->paginate(10),
         ]);
     }
 

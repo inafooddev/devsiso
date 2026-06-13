@@ -13,20 +13,22 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('master_supervisors', function (Blueprint $table) {
-            $table->string('supervisor_code', 15)->primary();
-            $table->string('supervisor_name', 50);
-            $table->string('description', 100)->nullable();
-            $table->string('area_code', 15);
-            $table->timestamps();
-
-            // Definisi foreign key constraint
-            $table->foreign('area_code')
-                  ->references('area_code')
-                  ->on('master_areas')
-                  ->onDelete('cascade')
-                  ->onUpdate('cascade');
-        });
+        if (!Schema::hasTable('master_supervisors')) {
+            Schema::create('master_supervisors', function (Blueprint $table) {
+                $table->string('supervisor_code', 15)->primary();
+                $table->string('supervisor_name', 50);
+                $table->string('description', 100)->nullable();
+                $table->string('area_code', 15);
+                $table->timestamps();
+    
+                // Definisi foreign key constraint
+                $table->foreign('area_code')
+                      ->references('area_code')
+                      ->on('master_areas')
+                      ->onDelete('cascade')
+                      ->onUpdate('cascade');
+            });
+        }
     }
 
     /**

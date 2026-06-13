@@ -13,6 +13,8 @@ class AccessGroupManagement extends Component
 {
     use WithPagination;
 
+    public $search = '';
+
     // Properti Form Group
     public $groupId, $name, $description;
 
@@ -29,7 +31,9 @@ class AccessGroupManagement extends Component
     public function render()
     {
         return view('livewire.settings.access-group-management', [
-            'groups' => AccessGroup::latest()->paginate(10),
+            'groups' => AccessGroup::when($this->search, function($query) {
+                $query->where('name', 'like', '%' . $this->search . '%');
+            })->latest()->paginate(10),
         ]);
     }
 
@@ -120,6 +124,16 @@ class AccessGroupManagement extends Component
             $this->isMenuModalOpen = false;
             session()->flash('message', 'Akses View untuk Group ' . $group->name . ' berhasil diperbarui.');
         }
+    }
+
+    public function selectAllMenus()
+    {
+        $this->selectedMenus = Menu::pluck('id')->toArray();
+    }
+
+    public function unselectAllMenus()
+    {
+        $this->selectedMenus = [];
     }
 
     private function resetFields()

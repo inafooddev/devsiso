@@ -11,15 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('unit_mappings', function (Blueprint $table) {
-            $table->id();
-            $table->string('distributor_code');
-            $table->string('raw_unit');
-            $table->string('mapped_unit'); // CTN/PCK/PCS
-            $table->timestamps();
-
-            $table->unique(['distributor_code', 'raw_unit']);
-        });
+        if (!Schema::hasTable('unit_mappings')) {
+            Schema::create('unit_mappings', function (Blueprint $table) {
+                $table->id();
+                $table->string('distributor_code');
+                $table->string('raw_unit');
+                $table->string('mapped_unit'); // CTN/PCK/PCS
+                $table->timestamps();
+    
+                $table->unique(['distributor_code', 'raw_unit']);
+            });
+        }
     }
 
     /**

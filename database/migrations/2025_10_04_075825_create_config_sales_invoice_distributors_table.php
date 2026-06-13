@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('config_sales_invoice_distributor', function (Blueprint $table) {
-            $table->bigIncrements('id');
-            $table->string('distributor_code', 25)->nullable();
-            $table->string('config_name', 100);
-            $table->json('config')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('config_sales_invoice_distributor')) {
+            Schema::create('config_sales_invoice_distributor', function (Blueprint $table) {
+                $table->bigIncrements('id');
+                $table->string('distributor_code', 25)->nullable();
+                $table->string('config_name', 100);
+                $table->json('config')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

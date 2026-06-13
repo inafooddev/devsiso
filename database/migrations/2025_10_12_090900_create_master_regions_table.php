@@ -13,11 +13,13 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('master_regions', function (Blueprint $table) {
-            $table->string('region_code', 15)->primary();
-            $table->string('region_name', 50);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('master_regions')) {
+            Schema::create('master_regions', function (Blueprint $table) {
+                $table->string('region_code', 15)->primary();
+                $table->string('region_name', 50);
+                $table->timestamps();
+            });
+        }
     }
 
     /**

@@ -13,11 +13,13 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('product_lines', function (Blueprint $table) {
-            $table->string('line_id', 15)->primary();
-            $table->string('line_name', 100);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('product_lines')) {
+            Schema::create('product_lines', function (Blueprint $table) {
+                $table->string('line_id', 15)->primary();
+                $table->string('line_name', 100);
+                $table->timestamps();
+            });
+        }
     }
 
     /**
