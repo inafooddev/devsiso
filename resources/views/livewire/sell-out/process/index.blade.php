@@ -1,17 +1,23 @@
-<div>
+<div class="flex-1 flex flex-col w-full h-full min-h-0">
     <x-slot name="title">Generate Format Data Eska</x-slot>
 
-    <div class="mx-auto px-4 sm:px-6 py-8">
-        <x-card flush>
+    <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
+        
+        <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
             <!-- Header & Actions -->
              @unless(auth()->user()->hasRole('guest'))
-            <div class="px-6 py-5 border-b border-base-300 flex flex-col sm:flex-row justify-between items-center gap-4 bg-base-200/50">
-                <div class="flex flex-wrap items-center gap-3">
-                    <button wire:click="$set('isFilterModalOpen', true)" 
-                        class="btn btn-sm btn-outline border-base-300 hover:bg-base-200 hover:text-base-content text-base-content rounded-xl normal-case">
-                        <x-heroicon-o-funnel class="w-4 h-4" />
-                        Filter Periode
-                    </button>
+            <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-base-200/30">
+                <div class="shrink-0 w-full lg:w-auto">
+                    <h2 class="text-base md:text-lg font-bold">Generate Format Data Eska</h2>
+                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Pemrosesan & Konversi Data Sell Out</p>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-start lg:justify-end gap-2 md:gap-3 w-full lg:w-auto">
+                    <x-ui.action-button
+                        type="filter"
+                        label="Filter Periode"
+                        wire:click="$set('isFilterModalOpen', true)"
+                    />
                     
                     @canEdit('sell-out.process')
                     <button wire:click="startProcess" wire:loading.attr="disabled" wire:target="startProcess"
@@ -32,20 +38,20 @@
                         Mulai Proses
                     </button>
                     @endcanEdit
-                </div>
 
-                @if (session()->has('error'))
-                    <div class="alert alert-error py-2 px-4 rounded-xl text-xs w-full sm:w-auto shadow-sm">
-                        <x-heroicon-o-exclamation-triangle class="w-4 h-4" />
-                        <span>{{ session('error') }}</span>
-                    </div>
-                @endif
+                    @if (session()->has('error'))
+                        <div class="alert alert-error py-2 px-4 rounded-xl text-xs w-full sm:w-auto shadow-sm ml-auto">
+                            <x-heroicon-o-exclamation-triangle class="w-4 h-4" />
+                            <span>{{ session('error') }}</span>
+                        </div>
+                    @endif
+                </div>
             </div>
             @endunless
 
             <!-- Log Proses Console -->
-            <div class="p-6 bg-base-100" wire:poll.1500ms="syncLog">
-                <div class="flex items-center justify-between mb-4">
+            <div class="p-4 md:p-5 bg-base-100 flex-1 flex flex-col overflow-hidden" wire:poll.1500ms="syncLog">
+                <div class="flex items-center justify-between mb-4 shrink-0">
                     <h4 class="text-sm font-bold text-base-content/70 flex items-center gap-2">
                         <x-heroicon-o-command-line class="w-4 h-4 text-primary" />
                         Log Proses Pemrosesan Data
@@ -57,11 +63,11 @@
                     </div>
                 </div>
 
-                <div class="relative group">
+                <div class="relative group flex-1 overflow-hidden flex flex-col">
                     <!-- Glass effect overlay -->
                     <div class="absolute -inset-0.5 bg-gradient-to-b from-primary/10 to-transparent rounded-2xl blur opacity-20 transition duration-1000 group-hover:opacity-30"></div>
                     
-                    <div class="relative w-full bg-slate-950 text-slate-300 rounded-2xl shadow-2xl p-6 font-mono text-[13px] leading-relaxed overflow-y-auto custom-scrollbar border border-white/5" style="height: 60vh;">
+                    <div class="relative flex-1 w-full bg-slate-950 text-slate-300 rounded-2xl shadow-2xl p-6 font-mono text-[13px] leading-relaxed overflow-y-auto custom-scrollbar border border-white/5">
                         @if(empty($logLines))
                             <div class="flex flex-col items-center justify-center h-full text-slate-500 space-y-3">
                                 <x-heroicon-o-cpu-chip class="w-12 h-12 opacity-20" />
@@ -96,7 +102,7 @@
                     </div>
                 </div>
             </div>
-        </x-card>
+        </div>
     </div>
 
     <!-- Modal Filter -->
