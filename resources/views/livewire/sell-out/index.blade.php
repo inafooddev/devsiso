@@ -1,82 +1,133 @@
-<div>
+<div class="flex-1 flex flex-col w-full h-full min-h-0">
     <x-slot name="title">Sales Invoices Distributor</x-slot>
 
-    <div class="mx-auto px-4 sm:px-6 py-8">
-        <x-card flush>
-            <!-- Header & Actions -->
-            <div class="px-6 py-5 border-b border-base-300 flex flex-col xl:flex-row justify-between items-center gap-4">
+    <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
+        
+        @include('livewire.sell-out._tabs')
 
-                <!-- Left: Action Buttons -->
-                <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+        <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+            
+            {{-- Header Card & Actions --}}
+            <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+                <div class="shrink-0 w-full sm:w-auto">
+                    <h2 class="text-base md:text-lg font-bold">Data Ringkasan Sell Out</h2>
+                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Ringkasan transaksi invoice sales distributor</p>
+                </div>
+                
+                <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
+                    <!-- Search Component -->
+                    <x-ui.search-input 
+                        wire:model.live.debounce.300ms="search" 
+                        placeholder="Cari Region, Area, Distributor..." 
+                    />
 
-                    {{-- FILTER --}}
-                    <x-ui.button
-                        variant="ghost"
-                        size="sm"
-                        icon="funnel"
-                        outline
-                        wire:click="$set('isFilterModalOpen', true)"
+                    <!-- Custom Month Picker Component -->
+                    <div x-data="{
+                            open: false,
+                            month: @entangle('monthFilter').live,
+                            year: @entangle('yearFilter').live,
+                            monthNames: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                            get monthName() {
+                                return this.month ? this.monthNames[this.month - 1] : '';
+                            },
+                            get displayText() {
+                                if (this.month && this.year) return this.monthName + ' ' + this.year;
+                                if (this.year) return 'Semua Bulan ' + this.year;
+                                if (this.month) return this.monthName + ' Semua Tahun';
+                                return 'Semua Waktu';
+                            },
+                            get safeYear() {
+                                return this.year || new Date().getFullYear();
+                            },
+                            decYear() {
+                                this.year = this.safeYear - 1;
+                            },
+                            incYear() {
+                                this.year = this.safeYear + 1;
+                            },
+                            setThisMonth() {
+                                let d = new Date();
+                                this.month = d.getMonth() + 1;
+                                this.year = d.getFullYear();
+                                this.open = false;
+                            },
+                            clear() {
+                                this.month = null;
+                                this.year = null;
+                                this.open = false;
+                            }
+                        }" 
+                        class="relative"
                     >
-                        Filter
-                    </x-ui.button>
+                        <!-- Trigger Button -->
+                        <button type="button" @click="open = !open" class="btn btn-sm bg-base-100 border-base-300 hover:bg-base-200 text-base-content/80 font-medium rounded-xl gap-2 min-w-[120px] justify-between shadow-sm">
+                            <span x-text="displayText" class="flex-1 text-left"></span>
+                            <x-heroicon-m-calendar class="w-4 h-4 opacity-50 shrink-0" />
+                        </button>
 
-                        {{-- IMPORT --}}
-                        @canImport('sales-invoice-report.index')
-                        <x-ui.button
-                            tag="a"
-                            href="{{ route('sales-invoices.import') }}"
-                            variant="primary"
-                            size="sm"
-                            icon="arrow-up-tray"
-                        >
-                            Import
-                        </x-ui.button>
-                        @endcanImport
+                        <!-- Popover -->
+                        <div x-show="open" @click.away="open = false" style="display: none;"
+                             class="absolute right-0 mt-2 w-64 bg-base-100 border border-base-300 shadow-xl rounded-2xl z-50 p-4"
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="transform opacity-0 scale-95"
+                             x-transition:enter-end="transform opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="transform opacity-100 scale-100"
+                             x-transition:leave-end="transform opacity-0 scale-95">
+                             
+                             <!-- Header / Year Selector -->
+                             <div class="flex items-center justify-between mb-4 bg-base-200/50 rounded-lg p-1">
+                                 <button type="button" @click="decYear()" class="btn btn-ghost btn-xs btn-square">
+                                     <x-heroicon-m-chevron-left class="w-4 h-4" />
+                                 </button>
+                                 <span class="font-bold text-base-content text-sm" x-text="safeYear"></span>
+                                 <button type="button" @click="incYear()" class="btn btn-ghost btn-xs btn-square">
+                                     <x-heroicon-m-chevron-right class="w-4 h-4" />
+                                 </button>
+                             </div>
+
+                             <!-- Month Grid -->
+                             <div class="grid grid-cols-4 gap-1.5 mb-4">
+                                 <template x-for="(name, index) in monthNames">
+                                     <button type="button" 
+                                             @click="month = index + 1; open = false;"
+                                             class="px-1 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                                             :class="month === (index + 1) ? 'bg-primary text-primary-content shadow-md shadow-primary/20' : 'hover:bg-base-200 text-base-content/80'"
+                                             x-text="name">
+                                     </button>
+                                 </template>
+                             </div>
+
+                             <!-- Footer -->
+                             <div class="flex items-center justify-between pt-3 border-t border-base-200">
+                                 <button type="button" @click="clear()" class="text-xs font-semibold text-primary hover:text-primary/80">Clear</button>
+                                 <button type="button" @click="setThisMonth()" class="text-xs font-semibold text-primary hover:text-primary/80">This month</button>
+                             </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap items-center gap-1 md:gap-2">
+                        {{-- FILTER --}}
+                        <x-ui.action-button
+                            type="filter"
+                            wire:click="$set('isFilterModalOpen', true)"
+                        />
 
                         {{-- EXPORT --}}
                         @canExport('sales-invoice-report.index')
-                        <x-ui.button
-                            variant="success"
-                            size="sm"
-                            icon="arrow-down-tray"
+                        <x-ui.action-button
+                            type="export"
                             wire:click="$set('isExportModalOpen', true)"
-                        >
-                            Export
-                        </x-ui.button>
+                        />
                         @endcanExport
-
-                        {{-- CONFIG --}}
-                        @canEdit('sales-configs.index')
-                        <x-ui.button
-                            tag="a"
-                            href="{{ route('sales-configs.index') }}"
-                            variant="warning"
-                            size="sm"
-                            icon="cog-6-tooth"
-                        >
-                            Config
-                        </x-ui.button>
-                        @endcanEdit
-
-                </div>
-
-                <!-- Right: Search -->
-                <div class="w-full xl:w-auto">
-                    <div class="relative group w-full xl:w-72">
-                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <x-heroicon-o-magnifying-glass class="w-4 h-4 text-base-content/40 group-focus-within:text-primary transition-colors duration-200" />
-                        </div>
-                        <input wire:model.live.debounce.300ms="search" type="text"
-                            placeholder="Cari Region, Area, Distributor..."
-                            class="input input-sm w-full bg-base-100 border border-base-300 text-base-content rounded-xl pl-10 pr-4 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-base-content/40">
                     </div>
                 </div>
             </div>
 
             <!-- Table Content -->
-            <div class="relative">
+            <div class="flex-1 min-h-0 overflow-hidden relative flex flex-col">
                 @if (!$hasAppliedFilters)
-                    <div class="flex items-center justify-center text-center" style="height: 400px;">
+                    <div class="flex-1 flex items-center justify-center text-center p-4">
                         <div class="p-8 rounded-2xl max-w-sm mx-auto">
                             <div class="h-16 w-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
                                 <x-heroicon-o-funnel class="h-8 w-8" />
@@ -86,21 +137,13 @@
                         </div>
                     </div>
                 @else
-                    <div class="overflow-x-auto">
-                        <div class="overflow-y-auto custom-scrollbar" style="max-height: 650px;">
-                            <table class="min-w-full text-xs">
-                                <colgroup>
-                                    <col style="width:6%"><col style="width:6%"><col style="width:10%">
-                                    <col style="width:5%"><col style="width:8%"><col style="width:5%">
-                                    <col style="width:6%"><col style="width:5%"><col style="width:5%">
-                                    <col style="width:5%"><col style="width:6%"><col style="width:6%">
-                                    <col style="width:6%"><col style="width:6%"><col style="width:5%"><col style="width:5%">
-                                </colgroup>
+                    <div class="flex-1 overflow-auto custom-scrollbar bg-base-100 rounded-b-2xl min-h-0">
+                        <table class="table table-sm table-zebra w-full whitespace-nowrap">
 
                                 <thead class="sticky top-0 bg-base-200/90 backdrop-blur-sm z-10 border-b border-base-300">
                                     <tr>
                                         @foreach(['Region','Area','Distributor','Config','Last Update','Row','CTN','Pak','Pcs','Qty','Gross','Disc4','Disc8','DPP','Tax','Nett'] as $col)
-                                        <th class="px-4 py-3.5 text-left font-semibold text-base-content/60 uppercase tracking-wider whitespace-nowrap {{ in_array($col, ['Row','CTN','Pak','Pcs','Qty','Gross','Disc4','Disc8','DPP','Tax','Nett']) ? 'text-right' : '' }} {{ $col === 'Config' ? 'text-center' : '' }}">{{ $col }}</th>
+                                        <th class="text-left font-semibold text-base-content/60 uppercase tracking-wider whitespace-nowrap {{ in_array($col, ['Row','CTN','Pak','Pcs','Qty','Gross','Disc4','Disc8','DPP','Tax','Nett']) ? 'text-right' : '' }} {{ $col === 'Config' ? 'text-center' : '' }}">{{ $col }}</th>
                                         @endforeach
                                     </tr>
                                 </thead>
@@ -109,13 +152,13 @@
                                     @forelse ($summaryData as $data)
                                         @php $isZeroNett = ($data->nett_raw ?? 0) == 0; @endphp
                                         <tr class="hover:bg-base-300/40 transition-colors duration-150 {{ $isZeroNett ? 'bg-error/5' : '' }}">
-                                            <td class="px-4 py-3 whitespace-nowrap text-base-content/60">{{ $data->region_name }}</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-base-content/60">{{ $data->area_name }}</td>
-                                            <td class="px-4 py-3 whitespace-nowrap">
+                                            <td class="whitespace-nowrap text-base-content/60">{{ $data->region_name }}</td>
+                                            <td class="whitespace-nowrap text-base-content/60">{{ $data->area_name }}</td>
+                                            <td class="whitespace-nowrap">
                                                 <div class="font-medium text-base-content/90">{{ $data->distributor_name }}</div>
                                                 <div class="text-[11px] text-base-content/40 mt-0.5">{{ $data->distributor_code }}</div>
                                             </td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-center">
+                                            <td class="whitespace-nowrap text-center">
                                                 @if ($data->kodemaping)
                                                     <span class="inline-flex items-center justify-center h-6 w-6 rounded-full bg-success/10 ring-1 ring-success/30 text-success" title="Telah di-mapping">
                                                         <x-heroicon-s-check class="h-3.5 w-3.5" />
@@ -126,18 +169,18 @@
                                                     </span>
                                                 @endif
                                             </td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-base-content/60">{{ $data->last_up ? \Carbon\Carbon::parse($data->last_up)->format('d M Y') : '-' }}</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right text-base-content/70">{{ number_format($data->baris ?? 0, 0) }}</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right text-base-content/70">{{ number_format($data->ktn ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right text-base-content/70">{{ number_format($data->pak ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right text-base-content/70">{{ number_format($data->pcs ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right text-base-content/70">{{ number_format($data->qty ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right text-base-content/70">{{ number_format($data->gross_raw ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right text-base-content/70">{{ number_format($data->discount4_raw ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right text-base-content/70">{{ number_format($data->discount8_raw ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right text-base-content/70">{{ number_format($data->dpp_raw ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right text-base-content/70">{{ number_format($data->tax_raw ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right font-bold {{ $isZeroNett ? 'text-error' : 'text-primary' }}">{{ number_format($data->nett_raw ?? 0, 0, ',', '.') }}</td>
+                                            <td class="whitespace-nowrap text-base-content/60">{{ $data->last_up ? \Carbon\Carbon::parse($data->last_up)->format('d M Y') : '-' }}</td>
+                                            <td class="whitespace-nowrap text-right text-base-content/70">{{ number_format($data->baris ?? 0, 0) }}</td>
+                                            <td class="whitespace-nowrap text-right text-base-content/70">{{ number_format($data->ktn ?? 0, 0, ',', '.') }}</td>
+                                            <td class="whitespace-nowrap text-right text-base-content/70">{{ number_format($data->pak ?? 0, 0, ',', '.') }}</td>
+                                            <td class="whitespace-nowrap text-right text-base-content/70">{{ number_format($data->pcs ?? 0, 0, ',', '.') }}</td>
+                                            <td class="whitespace-nowrap text-right text-base-content/70">{{ number_format($data->qty ?? 0, 0, ',', '.') }}</td>
+                                            <td class="whitespace-nowrap text-right text-base-content/70">{{ number_format($data->gross_raw ?? 0, 0, ',', '.') }}</td>
+                                            <td class="whitespace-nowrap text-right text-base-content/70">{{ number_format($data->discount4_raw ?? 0, 0, ',', '.') }}</td>
+                                            <td class="whitespace-nowrap text-right text-base-content/70">{{ number_format($data->discount8_raw ?? 0, 0, ',', '.') }}</td>
+                                            <td class="whitespace-nowrap text-right text-base-content/70">{{ number_format($data->dpp_raw ?? 0, 0, ',', '.') }}</td>
+                                            <td class="whitespace-nowrap text-right text-base-content/70">{{ number_format($data->tax_raw ?? 0, 0, ',', '.') }}</td>
+                                            <td class="whitespace-nowrap text-right font-bold {{ $isZeroNett ? 'text-error' : 'text-primary' }}">{{ number_format($data->nett_raw ?? 0, 0, ',', '.') }}</td>
                                         </tr>
                                     @empty
                                         <tr>
@@ -153,27 +196,26 @@
                                 @if ($summaryData->isNotEmpty() && $grandTotals)
                                     <tfoot class="sticky bottom-0 bg-base-200/90 backdrop-blur-sm border-t border-base-300 z-10">
                                         <tr>
-                                            <td colspan="5" class="px-4 py-3.5 text-right text-xs font-bold text-base-content/70 uppercase tracking-wider whitespace-nowrap">TOTAL KESELURUHAN</td>
-                                            <td class="px-4 py-3.5 text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_baris'] ?? 0, 0) }}</td>
-                                            <td class="px-4 py-3.5 text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_ktn'] ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3.5 text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_pak'] ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3.5 text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_pcs'] ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3.5 text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_quantity'] ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3.5 text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_gross'] ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3.5 text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_cashback'] ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3.5 text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_bonusbarang'] ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3.5 text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_dpp'] ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3.5 text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_tax'] ?? 0, 0, ',', '.') }}</td>
-                                            <td class="px-4 py-3.5 text-right text-sm font-black text-primary whitespace-nowrap">{{ number_format($grandTotals['total_nett'] ?? 0, 0, ',', '.') }}</td>
+                                            <td colspan="5" class="text-right text-xs font-bold text-base-content/70 uppercase tracking-wider whitespace-nowrap">TOTAL KESELURUHAN</td>
+                                            <td class="text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_baris'] ?? 0, 0) }}</td>
+                                            <td class="text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_ktn'] ?? 0, 0, ',', '.') }}</td>
+                                            <td class="text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_pak'] ?? 0, 0, ',', '.') }}</td>
+                                            <td class="text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_pcs'] ?? 0, 0, ',', '.') }}</td>
+                                            <td class="text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_quantity'] ?? 0, 0, ',', '.') }}</td>
+                                            <td class="text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_gross'] ?? 0, 0, ',', '.') }}</td>
+                                            <td class="text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_cashback'] ?? 0, 0, ',', '.') }}</td>
+                                            <td class="text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_bonusbarang'] ?? 0, 0, ',', '.') }}</td>
+                                            <td class="text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_dpp'] ?? 0, 0, ',', '.') }}</td>
+                                            <td class="text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_tax'] ?? 0, 0, ',', '.') }}</td>
+                                            <td class="text-right text-sm font-black text-primary whitespace-nowrap">{{ number_format($grandTotals['total_nett'] ?? 0, 0, ',', '.') }}</td>
                                         </tr>
                                     </tfoot>
                                 @endif
                             </table>
                         </div>
-                    </div>
                 @endif
             </div>
-        </x-card>
+        </div>
     </div>
 
     <!-- Modal Filter -->
@@ -266,58 +308,31 @@
                             </div>
                         </div>
 
-                        <!-- Bulan & Tahun -->
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label for="monthFilter" class="block text-sm font-medium text-base-content/70 mb-1.5">Bulan</label>
-                                <select wire:model.defer="monthFilter" id="monthFilter" class="select select-bordered select-sm w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-primary/50">
-                                    @for ($m = 1; $m <= 12; $m++)
-                                        <option value="{{ $m }}">{{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}</option>
-                                    @endfor
-                                </select>
-                            </div>
-                            <div>
-                                <label for="yearFilter" class="block text-sm font-medium text-base-content/70 mb-1.5">Tahun</label>
-                                <select wire:model.defer="yearFilter" id="yearFilter" class="select select-bordered select-sm w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-primary/50">
-                                    @for ($y = now()->year; $y >= now()->year - 5; $y--)
-                                        <option value="{{ $y }}">{{ $y }}</option>
-                                    @endfor
-                                </select>
-                            </div>
-                        </div>
+
                     </div>
                 </div>
 
-                <div class="px-6 py-4 border-t border-base-300 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-                    <x-ui.button
-                        size="sm"
-                        variant="ghost"
-                        type="button"
+                <div class="px-6 py-4 border-t border-base-300 flex flex-wrap items-center sm:justify-end gap-3">
+                    <x-ui.action-button
+                        type="default"
+                        label="Batal"
                         @click="open = false"
-                        class="sm:mr-auto"
-                    >
-                        Batal
-                    </x-ui.button>
+                        class="btn-ghost sm:mr-auto shrink-0"
+                    />
 
-                    <x-ui.button
-                        size="sm"
-                        variant="ghost"
-                        outline
-                        type="button"
+                    <x-ui.action-button
+                        type="default"
+                        label="Reset"
                         wire:click="resetFilters"
-                    >
-                        Reset
-                    </x-ui.button>
+                        class="btn-ghost border border-base-300 hover:bg-base-200 shrink-0"
+                    />
 
-                    <x-ui.button
-                        size="sm"
-                        type="submit"
-                        variant="primary"
-                        class="shadow-sm shadow-primary/20"
-                    >
-                        Terapkan
-                    </x-ui.button>
-
+                    <x-ui.action-button
+                        type="save"
+                        label="Terapkan"
+                        icon=""
+                        class="shrink-0"
+                    />
                 </div>
             </form>
         </div>
@@ -396,10 +411,21 @@
                     </div>
                 </div>
 
-                <div class="px-6 py-4 border-t border-base-300 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-                    <button @click="open = false" type="button" class="btn btn-ghost border border-base-300 hover:bg-base-300 rounded-xl normal-case">Batal</button>
-                    <button type="submit" wire:loading.attr="disabled" wire:target="export"
-                        class="btn btn-success rounded-xl normal-case text-white shadow-sm shadow-success/20">
+                <div class="px-6 py-4 border-t border-base-300 flex flex-wrap items-center sm:justify-end gap-3">
+                    <x-ui.action-button
+                        type="default"
+                        label="Batal"
+                        @click="open = false"
+                        class="btn-ghost border border-base-300 hover:bg-base-200 shrink-0"
+                    />
+                    <x-ui.action-button
+                        type="export"
+                        label=""
+                        icon=""
+                        class="shrink-0"
+                        wire:loading.attr="disabled"
+                        wire:target="export"
+                    >
                         <span wire:loading.remove wire:target="export" class="flex items-center gap-2">
                             <x-heroicon-o-arrow-down-tray class="w-4 h-4" />
                             Ekspor Sekarang
@@ -408,7 +434,7 @@
                             <span class="loading loading-spinner loading-sm"></span>
                             Mengekspor...
                         </span>
-                    </button>
+                    </x-ui.action-button>
                 </div>
             </form>
         </div>

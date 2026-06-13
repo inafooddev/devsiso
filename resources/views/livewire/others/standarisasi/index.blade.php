@@ -26,7 +26,7 @@
 
 PENTING: Anda WAJIB mengikuti standarisasi UI "Devsiso Design System" secara ketat. Berikut aturannya:
 1. Baca referensi aturan desain di artefak `ui_guidelines.md` (jika ada di history) atau ikuti poin-poin ini.
-2. Layout Utama: Harus 100% fluid. Jangan gunakan pembatas lebar seperti `max-w-screen-2xl`. Gunakan `w-full flex-1 flex flex-col min-h-0 min-w-0` untuk mencegah overflow flexbox.
+2. Layout Utama (100% Fluid & No Page Scroll): Page utama TIDAK BOLEH scroll. Jangan gunakan pembatas lebar. Gunakan pembungkus utama `flex-1 flex flex-col min-h-0 min-w-0 w-full`. Area konten internal (seperti pembungkus isi card/tabel) yang harus menangani scroll secara mandiri menggunakan `overflow-y-auto`.
 3. Spacing Responsif: Gunakan padding dan gap berundak. Contoh: `gap-3 md:gap-4 lg:gap-6` dan `p-3 md:p-4 lg:p-5`.
 4. Komponen UI Baku: Dilarang keras membuat tag &lt;button&gt; manual untuk aksi standar. Wajib gunakan komponen Blade: `&lt;x-ui.search-input /&gt;` dan `&lt;x-ui.action-button type="..." /&gt;` (Pilihan type: add, edit, delete, import, export, filter, save).
 5. Baris Aksi (Header): Harus dibungkus dengan `flex flex-wrap` agar tombol tidak tumpang tindih saat layar di-zoom.
@@ -52,7 +52,8 @@ Lakukan perbaikan berikut:
 3. Terapkan adaptive padding pada card (`p-3 md:p-4 lg:p-5`) dan adaptive gap (`gap-3 md:gap-4 lg:gap-6`).
 4. Hapus class `max-w-*` atau `table-pin-cols` jika ada, karena dapat merusak responsivitas.
 5. Suntikkan class `min-w-0` pada setiap container flex column untuk mencegah flexbox anak menembus batas layar.
-6. Tambahkan `whitespace-nowrap` pada tabel agar memunculkan scroll horizontal yang rapi.</pre>
+6. Tambahkan `whitespace-nowrap` pada tabel agar memunculkan scroll horizontal yang rapi.
+7. Terapkan Layout 100% Fluid & No Page Scroll: Pastikan kontainer utama page menggunakan `flex-1 min-h-0`. Pindahkan perilaku scroll mandiri (`overflow-y-auto`) KHUSUS ke dalam kontainer anak (misalnya pembungkus tabel atau form).</pre>
                     </div>
                 </div>
             </div>

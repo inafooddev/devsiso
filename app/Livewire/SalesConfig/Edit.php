@@ -217,7 +217,7 @@ class Edit extends Component
      */
     public function render()
     {
-        return view('livewire.sales-config.edit', [
+        return view('livewire.sell-out.sales-config.edit', [
             'staticHeaders' => $this->headers
         ])->layout('layouts.app'); // Menambahkan layout untuk menghindari error
     }

@@ -74,6 +74,14 @@ class Index extends Component
 
         $this->monthFilter = now()->month;
         $this->yearFilter = now()->year;
+        $this->statusFilter = 'Y';
+
+        // Sisanya ambil semuanya (Pilih semua region dan area yang tersedia)
+        $this->selectAllRegions();
+        $this->selectAllAreas();
+
+        // Tampilkan data langsung saat pertama kali dimuat
+        $this->hasAppliedFilters = true;
     }
 
     /**
@@ -234,7 +242,7 @@ class Index extends Component
             ];
         }
 
-        return view('livewire.sales-invoice-report.index', [
+        return view('livewire.sell-out.index', [
             'summaryData' => $summaryData,
             'grandTotals' => $grandTotals,
         ])->layout('layouts.app');

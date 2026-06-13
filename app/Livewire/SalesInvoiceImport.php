@@ -143,7 +143,7 @@ class SalesInvoiceImport extends Component
     
     public function render()
     {
-        return view('livewire.sales-invoice.import')->layout('layouts.app');
+        return view('livewire.sell-out.import')->layout('layouts.app');
     }
 }
 

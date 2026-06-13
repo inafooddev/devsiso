@@ -95,15 +95,23 @@
                             </td>
                             <th class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
                                 <div class="flex items-center justify-center gap-1">
-                                    <button class="btn btn-xs btn-circle btn-ghost text-info hover:bg-info/10" title="Detail">
-                                        <x-heroicon-s-eye class="w-4 h-4" />
-                                    </button>
-                                    <button class="btn btn-xs btn-circle btn-ghost text-primary hover:bg-primary/10" title="Edit">
-                                        <x-heroicon-s-pencil class="w-4 h-4" />
-                                    </button>
-                                    <button class="btn btn-xs btn-circle btn-ghost text-error hover:bg-error/10" title="Hapus">
-                                        <x-heroicon-s-trash class="w-4 h-4" />
-                                    </button>
+                                    <x-ui.action-button 
+                                        type="default" 
+                                        icon="eye" 
+                                        label="" 
+                                        class="btn-ghost text-info hover:bg-info/10 btn-square" 
+                                        title="Detail" 
+                                    />
+                                    <x-ui.action-button 
+                                        type="edit" 
+                                        class="btn-square" 
+                                        title="Edit" 
+                                    />
+                                    <x-ui.action-button 
+                                        type="delete" 
+                                        class="btn-square" 
+                                        title="Hapus" 
+                                    />
                                 </div>
                             </th>
                         </tr>

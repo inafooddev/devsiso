@@ -1,27 +1,26 @@
-<div>
+<div class="flex-1 flex flex-col w-full h-full min-h-0">
     <x-slot name="title">Tambah Config Sales Invoice Distributor</x-slot>
 
-    <div class="mx-auto px-6 py-8">
-        <x-card flush class="overflow-visible">
-            <form wire:submit.prevent="save">
+    <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+        <form wire:submit.prevent="save" class="flex-1 flex flex-col min-h-0">
 
-                <!-- Action Buttons (Sticky) -->
-                <div class="sticky top-0 bg-base-100/80 backdrop-blur-md -mx-6 -mt-6 mb-6 border-b border-white/5 rounded-t-2xl">
-                    <div class="flex items-center space-x-3 p-4">
-                        <button type="submit" 
-                                class="btn btn-primary rounded-xl shadow-lg shadow-primary/20 normal-case">
-                            <x-heroicon-o-check class="w-5 h-5" />
-                            <span>Simpan</span>
-                        </button>
-                        <a href="{{ route('sales-configs.index') }}" 
-                           class="btn btn-ghost border border-white/10 hover:bg-white/5 rounded-xl normal-case">
-                            <x-heroicon-o-arrow-left class="w-5 h-5 text-base-content/60" />
-                            <span>Kembali</span>
-                        </a>
-                    </div>
-                </div>
+            <!-- Action Buttons (Header Card) -->
+            <div class="bg-base-200/50 p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-wrap items-center gap-3 shadow-sm z-10">
+                <x-ui.action-button
+                    type="save"
+                />
+                <x-ui.action-button
+                    type="default"
+                    label="Kembali"
+                    icon="arrow-left"
+                    href="{{ route('sales-configs.index') }}"
+                    class="btn-ghost border border-base-300 hover:bg-base-300/50"
+                />
+            </div>
 
-                <div class="px-6 pb-6">
+            <!-- Scrollable Form Area -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-5 md:p-6 lg:p-8">
+                <div class="max-w-4xl mx-auto">
                     @if ($errors->any())
                         <div class="mb-8 p-4 bg-error/10 border border-error/20 text-error rounded-xl flex items-start space-x-3">
                             <x-heroicon-s-exclamation-circle class="w-5 h-5 mt-0.5 flex-shrink-0" />
@@ -134,8 +133,7 @@
                         </table>
                     </div>
                 </div>
-            </form>
-        </x-card>
+            </div>
+        </form>
     </div>
 </div>
-

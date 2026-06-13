@@ -45,7 +45,7 @@
             <x-navbar :title="$title ?? 'Dashboard'" />
 
             {{-- Page Content --}}
-            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-base-200 p-3 md:p-4 lg:p-6 flex flex-col relative">
+            <main class="flex-1 overflow-hidden bg-base-200 p-3 md:p-4 lg:p-6 flex flex-col relative">
                 <div class="w-full flex-1 flex flex-col min-h-0 min-w-0">
                     {{ $slot }}
                 </div>

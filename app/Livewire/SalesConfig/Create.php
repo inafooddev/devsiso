@@ -218,10 +218,9 @@ class Create extends Component
 
         $distributors = $distributorsQuery->take(50)->get();
 
-        return view('livewire.sales-config.create', [
+        return view('livewire.sell-out.sales-config.create', [
             'staticHeaders' => $this->headers,
             'distributors' => $distributors, // Kirim data ke view
         ])->layout('layouts.app');
     }
 }
-

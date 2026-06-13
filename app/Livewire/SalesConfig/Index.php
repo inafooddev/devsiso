@@ -61,9 +61,9 @@ class Index extends Component
         }
 
         $configs = $query->latest("$tableName.created_at")
-            ->paginate(10);
+            ->paginate(50);
 
-        return view('livewire.sales-config.index', [
+        return view('livewire.sell-out.sales-config.index', [
             'configs' => $configs,
         ])->layout('layouts.app');
     }

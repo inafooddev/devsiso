@@ -1,8 +1,11 @@
-<div>
+<div class="flex-1 flex flex-col w-full h-full min-h-0">
     <x-slot name="title">Import Sales Invoice Distributor</x-slot>
 
-    <div class="mx-auto px-4 sm:px-6 py-8">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+    <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
+        @include('livewire.sell-out._tabs')
+        
+        <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 min-h-0 pb-6">
 
             <!-- Left Column: Upload Form -->
             <div class="lg:col-span-1 flex flex-col">
@@ -42,27 +45,24 @@
                             </div>
 
                             <!-- Action Buttons -->
-                            <div class="flex items-center gap-3 pt-2">
-                                <button type="submit"
-                                        wire:loading.attr="disabled"
-                                        wire:target="import"
-                                        class="btn btn-primary flex-1 rounded-xl shadow-lg shadow-primary/20 normal-case">
-                                    <span wire:loading.remove wire:target="import" class="flex items-center gap-2">
-                                        <x-heroicon-o-arrow-up-tray class="w-5 h-5" />
+                            <div class="pt-2">
+                                <x-ui.action-button
+                                    type="import"
+                                    class="w-full !btn-primary text-primary-content shadow-lg shadow-primary/20"
+                                    label=""
+                                    icon=""
+                                    wire:loading.attr="disabled"
+                                    wire:target="import"
+                                >
+                                    <span wire:loading.remove wire:target="import" class="flex items-center gap-2 justify-center w-full">
+                                        <x-heroicon-o-arrow-up-tray class="w-4 h-4" />
                                         Mulai Proses Import
                                     </span>
-                                    <span wire:loading wire:target="import" class="flex items-center gap-2">
+                                    <span wire:loading wire:target="import" class="flex items-center gap-2 justify-center w-full">
                                         <span class="loading loading-spinner loading-sm"></span>
                                         Memproses...
                                     </span>
-                                </button>
-
-                                <a href="{{ route('sales-configs.index') }}"
-                                   class="btn btn-ghost border border-base-300 hover:bg-base-200 hover:text-base-content rounded-xl normal-case shrink-0"
-                                   title="Kelola Config Distributor">
-                                    <x-heroicon-o-cog-6-tooth class="w-5 h-5 text-base-content/60" />
-                                    Config
-                                </a>
+                                </x-ui.action-button>
                             </div>
                         </div>
                     </form>
@@ -136,6 +136,7 @@
                 </div>
             </div>
 
+        </div>
         </div>
     </div>
 
