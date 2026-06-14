@@ -40,13 +40,17 @@ class Index extends Component
 
     public function export()
     {
+        $user = auth()->user();
+        $allowed_regions = (!$user->hasRole('admin') && !empty($user->region_code)) ? $user->region_code : [];
+
         return \Maatwebsite\Excel\Facades\Excel::download(
             new \App\Exports\MappingDistributorImplementasiEskalinkExport(
                 $this->search,
                 $this->filterRegion,
                 $this->filterArea,
                 $this->filterIsActive,
-                $this->filterIsImplementasi
+                $this->filterIsImplementasi,
+                $allowed_regions
             ), 
             'mapping_distributor_eskalink.xlsx'
         );
@@ -114,16 +118,32 @@ class Index extends Component
         $this->reset(['distributor_code', 'distributor_name', 'eskalink_code', 'eskalink_code_dist', 'implementasi', 'editId']);
     }
 
+    /**
+     * Helper untuk memfilter Query berdasarkan hak akses region user.
+     */
+    private function applyRegionAccess($query, $column = 'master_distributors.region_code')
+    {
+        $user = auth()->user();
+
+        if (!$user->hasRole('admin') && !empty($user->region_code)) {
+            $query->whereIn($column, $user->region_code);
+        }
+
+        return $query;
+    }
+
     public function render()
     {
         $unmappedDistributors = [];
         if ($this->isModalOpen && !$this->isEdit) {
-            $unmappedDistributors = \App\Models\MasterDistributor::select('master_distributors.distributor_code', 'master_distributors.distributor_name')
+            $unmappedQuery = \App\Models\MasterDistributor::select('master_distributors.distributor_code', 'master_distributors.distributor_name')
                 ->leftJoin('distributor_implementasi_eskalink as die', 'die.distributor_code', '=', 'master_distributors.distributor_code')
                 ->whereNull('die.distributor_code')
                 ->where('master_distributors.is_active', true)
-                ->orderBy('master_distributors.distributor_name')
-                ->get();
+                ->orderBy('master_distributors.distributor_name');
+            
+            $this->applyRegionAccess($unmappedQuery, 'master_distributors.region_code');
+            $unmappedDistributors = $unmappedQuery->get();
         }
 
         $query = \App\Models\DistributorImplementasiEskalink::query()
@@ -144,6 +164,8 @@ class Index extends Component
             ])
             ->leftJoin('master_distributors', 'distributor_implementasi_eskalink.distributor_code', '=', 'master_distributors.distributor_code')
             ->where('distributor_implementasi_eskalink.distributor_code', '!=', 'HOINA');
+
+        $this->applyRegionAccess($query, 'master_distributors.region_code');
 
         if ($this->search !== '') {
             $query->where(function($q) {
@@ -200,15 +222,20 @@ class Index extends Component
             ->where('master_distributors.is_active', true)
             ->count();
 
-        $regions = \App\Models\MasterDistributor::select('region_name')->distinct()->whereNotNull('region_name')->orderBy('region_name')->pluck('region_name');
-        $areas = \App\Models\MasterDistributor::select('area_name')->distinct()->whereNotNull('area_name')->orderBy('area_name')->pluck('area_name');
+        $regionsQuery = \App\Models\MasterDistributor::select('region_name')->distinct()->whereNotNull('region_name');
+        $this->applyRegionAccess($regionsQuery, 'region_code');
+        $regions = $regionsQuery->orderBy('region_name')->pluck('region_name');
+        
+        $areasQuery = \App\Models\MasterDistributor::select('area_name')->distinct()->whereNotNull('area_name');
+        $this->applyRegionAccess($areasQuery, 'region_code');
+        $areas = $areasQuery->orderBy('area_name')->pluck('area_name');
 
         return view('livewire.master-data.mapping-distributor-implementasi-eskalink.index', [
             'data' => $query->orderBy('master_distributors.region_name', 'asc')
               ->orderBy('master_distributors.area_name', 'asc')
               ->orderBy('master_distributors.branch_name', 'asc')
               ->orderBy('distributor_implementasi_eskalink.distributor_name', 'asc')
-              ->paginate(10),
+              ->paginate(50),
             'regions' => $regions,
             'areas' => $areas,
             'kpi' => [

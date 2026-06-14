@@ -168,7 +168,8 @@ class Index extends Component
     {
         $query = MasterArea::with('region')
             ->where('region_code', '!=', 'HOINA')
-            ->orderBy('region_code', 'asc');
+            ->orderBy('region_code', 'asc')
+            ->orderBy('area_name', 'asc');
 
         $this->applyRegionAccess($query);
 

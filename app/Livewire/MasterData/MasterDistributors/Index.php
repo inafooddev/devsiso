@@ -50,11 +50,15 @@ class Index extends Component
     public $area_name = 'N/A';
     public $supervisor_name = 'N/A';
 
-    // Map Modal States
-    public $isMapModalOpen = false;
+    // Detail Modal States
+    public $isDetailModalOpen = false;
+    public $detailData = [];
     public $mapLatitude;
     public $mapLongitude;
     public $mapDistributorName;
+
+    public $isAllMapsModalOpen = false;
+    public $allMapLocations = [];
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -275,7 +279,12 @@ class Index extends Component
             $query->where('area_code', $this->areaFilter);
         }
 
-        $distributors = $query->latest()->paginate(10);
+        $distributors = $query->orderByDesc('is_active')
+                              ->orderBy('region_code')
+                              ->orderBy('area_code')
+                              ->orderBy('supervisor_code')
+                              ->orderBy('distributor_code')
+                              ->paginate(50);
         
         $regionQuery = MasterRegion::query()->where('region_code', '!=', 'HOINA');
         $this->applyRegionAccess($regionQuery);
@@ -345,9 +354,9 @@ class Index extends Component
         $this->isDeleteModalOpen = false;
     }
 
-    public function showMap($distributorCode)
+    public function showDetail($distributorCode)
     {
-        $query = MasterDistributor::query();
+        $query = MasterDistributor::with('supervisor.area.region');
         $this->applyRegionAccess($query);
 
         $distributor = $query->where('distributor_code', $distributorCode)->first();
@@ -356,16 +365,75 @@ class Index extends Component
             session()->flash('error', 'Distributor tidak ditemukan atau berada di luar otoritas Anda.');
             return;
         }
+
+        $this->detailData = [
+            'distributor_code' => $distributor->distributor_code,
+            'distributor_name' => $distributor->distributor_name,
+            'region_name' => isset($distributor->supervisor->area->region->region_code) ? "{$distributor->supervisor->area->region->region_code} - {$distributor->supervisor->area->region->region_name}" : '-',
+            'area_name' => isset($distributor->supervisor->area->area_code) ? "{$distributor->supervisor->area->area_code} - {$distributor->supervisor->area->area_name}" : '-',
+            'supervisor_name' => isset($distributor->supervisor->supervisor_code) ? "{$distributor->supervisor->supervisor_code} - {$distributor->supervisor->supervisor_name}" . ($distributor->supervisor->description ? " - {$distributor->supervisor->description}" : "") : '-',
+            'branch_name' => isset($distributor->branch_code) ? "{$distributor->branch_code} - {$distributor->branch_name}" : '-',
+            'join_date' => $distributor->join_date ? $distributor->join_date->translatedFormat('d M Y') : '-',
+            'resign_date' => $distributor->resign_date ? $distributor->resign_date->translatedFormat('d M Y') : '-',
+            'is_active' => $distributor->is_active,
+            'latitude' => $distributor->latitude,
+            'longitude' => $distributor->longitude,
+        ];
+        
+        $this->mapLatitude = $distributor->latitude;
+        $this->mapLongitude = $distributor->longitude;
+        
+        $this->isDetailModalOpen = true;
         
         if ($distributor->latitude && $distributor->longitude) {
-            $this->mapLatitude = $distributor->latitude;
-            $this->mapLongitude = $distributor->longitude;
-            $this->mapDistributorName = $distributor->distributor_name;
-            $this->isMapModalOpen = true;
-            $this->dispatch('map-opened');
-        } else {
-            session()->flash('error', 'Koordinat lokasi tidak tersedia untuk distributor ini.');
+            $this->dispatch('detail-opened');
         }
+    }
+
+    public function showAllMaps()
+    {
+        $query = MasterDistributor::query()->whereNotNull('latitude')->whereNotNull('longitude');
+        $this->applyRegionAccess($query);
+        
+        if ($this->search) {
+            $search = $this->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('distributor_code', 'ilike', '%' . $search . '%')
+                  ->orWhere('distributor_name', 'ilike', '%' . $search . '%')
+                  ->orWhere('branch_name', 'ilike', '%' . $search . '%')
+                  ->orWhere('supervisor_name', 'ilike', '%' . $search . '%')
+                  ->orWhereHas('supervisor', function ($qs) use ($search) {
+                      $qs->where('description', 'ilike', "%$search%");
+                  });
+            });
+        }
+
+        if ($this->statusFilter !== '') {
+            $query->where('is_active', $this->statusFilter);
+        }
+
+        if ($this->regionFilter) {
+            $query->where('region_code', $this->regionFilter)->where('region_code', '!=', 'HOINA');
+        }
+
+        if ($this->areaFilter) {
+            $query->where('area_code', $this->areaFilter);
+        }
+
+        $distributors = $query->get(['distributor_code', 'distributor_name', 'latitude', 'longitude', 'is_active']);
+        
+        $this->allMapLocations = $distributors->map(function($d) {
+            return [
+                'lat' => $d->latitude,
+                'lng' => $d->longitude,
+                'name' => $d->distributor_name,
+                'code' => $d->distributor_code,
+                'active' => $d->is_active,
+            ];
+        })->toArray();
+        
+        $this->isAllMapsModalOpen = true;
+        $this->dispatch('all-maps-opened');
     }
 
     public function export()
@@ -390,5 +458,24 @@ class Index extends Component
         ];
 
         return Excel::download(new MasterDistributorsExport($filters), 'master_distributors.xlsx');
+    }
+
+    #[Computed]
+    public function kpiData()
+    {
+        $query = MasterDistributor::query()->where('distributor_code', '!=', 'HOINA');
+        // KPI menampilkan data global, tidak mengikuti filter otoritas region user
+        $distributors = $query->get(['is_active', 'region_code']);
+
+        return [
+            'total' => $distributors->count(),
+            'aktif' => $distributors->where('is_active', true)->count(),
+            'jawa1' => $distributors->where('is_active', true)->where('region_code', 'INAJWA1')->count(),
+            'jawa2' => $distributors->where('is_active', true)->where('region_code', 'INAJWA2')->count(),
+            'pulau' => $distributors->where('is_active', true)->where('region_code', 'INAPUL1')->count(),
+            'sumatera1' => $distributors->where('is_active', true)->where('region_code', 'INASUM1')->count(),
+            'sumatera2' => $distributors->where('is_active', true)->where('region_code', 'INASUM2')->count(),
+            'remote' => $distributors->where('is_active', true)->where('region_code', 'INAREM1')->count(),
+        ];
     }
 }

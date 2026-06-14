@@ -7,10 +7,15 @@ use App\Models\MasterRegion;
 use Livewire\WithPagination;
 use Illuminate\Validation\Rule;
 use App\Traits\EnforcesMenuPermissions;
+use Livewire\WithFileUploads;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\MasterRegionsExport;
+use App\Exports\MasterRegionsTemplateExport;
+use App\Imports\MasterRegionsImport;
 
 class Index extends Component
 {
-    use WithPagination, EnforcesMenuPermissions;
+    use WithPagination, EnforcesMenuPermissions, WithFileUploads;
 
     protected $paginationTheme = 'tailwind';
     protected string $menuRoute = 'master-regions.index';
@@ -21,12 +26,14 @@ class Index extends Component
     public $isFormModalOpen = false;
     public $isEditing = false;
     public $isDeleteModalOpen = false;
+    public $isImportModalOpen = false;
     
     // Form Fields
     public $regionId;
     public $region_code;
     public $region_name;
     public $regionIdToDelete;
+    public $importFile;
 
     protected $queryString = ['search'];
 
@@ -161,7 +168,7 @@ class Index extends Component
             });
         }
 
-        $regions = $query->latest('region_code')->paginate(10);
+        $regions = $query->paginate(50);
 
         return view('livewire.master-data.master-regions.index', [
             'regions' => $regions,
@@ -190,12 +197,110 @@ class Index extends Component
         $region = $query->where('region_code', $this->regionIdToDelete)->first();
 
         if ($region) {
-            $region->delete();
-            session()->flash('message', 'Region berhasil dihapus.');
+            try {
+                $region->delete();
+                \App\Helpers\ActivityLogger::log('Delete Region', "Menghapus region: {$region->region_code} - {$region->region_name}");
+                session()->flash('message', 'Region berhasil dihapus.');
+            } catch (\Illuminate\Database\QueryException $e) {
+                $this->isDeleteModalOpen = false;
+
+                if ($e->getCode() === '23503' || $e->getCode() == 23000) {
+                    $errorMsg = 'Gagal menghapus! Region ini tidak bisa dihapus karena masih digunakan atau terhubung dengan data Master Area.';
+                    $systemMsg = "FOREIGN KEY CONSTRAINT VIOLATION\nData Region ({$region->region_code}) ditolak untuk dihapus oleh Database sistem. Alasannya karena data region ini masih dipakai (direferensikan) oleh entitas lain. Anda harus menghapus atau mengubah region pada area yang bersangkutan terlebih dahulu.";
+                } else {
+                    $errorMsg = 'Terjadi kesalahan sistem saat menghapus data.';
+                    $systemMsg = $e->getMessage();
+                }
+                session()->flash('error', $errorMsg);
+
+                $logContent = "=================================================\n";
+                $logContent .= "      LOG ERROR DELETE MASTER REGION\n";
+                $logContent .= "=================================================\n\n";
+                $logContent .= "Waktu         : " . now()->format('Y-m-d H:i:s') . "\n";
+                $logContent .= "Kode Region   : {$region->region_code}\n";
+                $logContent .= "Nama Region   : {$region->region_name}\n";
+                $logContent .= "Kode Error    : {$e->getCode()}\n\n";
+                $logContent .= "Pesan Sistem  :\n{$systemMsg}\n\n";
+                $logContent .= "=================================================\n";
+
+                $fileName = 'log_master_region_' . date('Ymd_His') . '.txt';
+
+                return response()->streamDownload(function () use ($logContent) {
+                    echo $logContent;
+                }, $fileName);
+            }
         } else {
             session()->flash('error', 'Anda tidak memiliki otoritas untuk menghapus region ini.');
         }
 
         $this->isDeleteModalOpen = false;
+    }
+
+    public function export()
+    {
+        $this->authorizeAction('can_view');
+        return Excel::download(new MasterRegionsExport([
+            'search' => $this->search,
+        ]), 'Data_Master_Region_' . date('Ymd_His') . '.xlsx');
+    }
+
+    public function downloadTemplate()
+    {
+        $this->authorizeAction('can_view');
+        return Excel::download(new MasterRegionsTemplateExport, 'Template_Import_Master_Region.xlsx');
+    }
+
+    public function import()
+    {
+        $this->authorizeAction('can_edit');
+        
+        $this->validate([
+            'importFile' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        try {
+            $import = new MasterRegionsImport();
+            Excel::import($import, $this->importFile);
+
+            $message = "Proses Import Selesai. Berhasil: {$import->importedCount}. Gagal/Dilewati: {$import->skippedCount}.";
+            \App\Helpers\ActivityLogger::log('Import Master Region', "Import data Region. Sukses: {$import->importedCount}, Skip: {$import->skippedCount}");
+            
+            if ($import->skippedCount > 0) {
+                session()->flash('error', $message . ' (Silakan periksa file log untuk detailnya)');
+            } else {
+                session()->flash('message', $message . ' (Semua data berhasil diimpor)');
+            }
+
+            $logContent = "=================================================\n";
+            $logContent .= "           LOG IMPORT MASTER REGION\n";
+            $logContent .= "=================================================\n\n";
+            $logContent .= "Waktu         : " . now()->format('Y-m-d H:i:s') . "\n";
+            $logContent .= "Total Sukses  : {$import->importedCount}\n";
+            $logContent .= "Total Gagal   : {$import->skippedCount}\n\n";
+            $logContent .= "Rincian Proses:\n";
+            $logContent .= "-------------------------------------------------\n";
+            if (empty($import->logs)) {
+                $logContent .= "Tidak ada data yang diproses.\n";
+            } else {
+                foreach ($import->logs as $log) {
+                    $logContent .= $log . "\n";
+                }
+            }
+            $logContent .= "=================================================\n";
+
+            $fileName = 'log_import_region_' . date('Ymd_His') . '.txt';
+
+            $this->isImportModalOpen = false;
+            $this->reset('importFile');
+
+            return response()->streamDownload(function () use ($logContent) {
+                echo $logContent;
+            }, $fileName);
+
+        } catch (\Exception $e) {
+            $this->isImportModalOpen = false;
+            $this->reset('importFile');
+            session()->flash('error', 'Sistem Gagal memproses file import: ' . $e->getMessage());
+        }
     }
 }

@@ -18,14 +18,16 @@ class MappingDistributorImplementasiEskalinkExport implements FromQuery, WithHea
     protected $area;
     protected $isActive;
     protected $isImplementasi;
+    protected $allowed_regions;
 
-    public function __construct($search, $region, $area, $isActive, $isImplementasi)
+    public function __construct($search, $region, $area, $isActive, $isImplementasi, $allowed_regions = [])
     {
         $this->search = $search;
         $this->region = $region;
         $this->area = $area;
         $this->isActive = $isActive;
         $this->isImplementasi = $isImplementasi;
+        $this->allowed_regions = $allowed_regions;
     }
 
     public function query()
@@ -44,6 +46,10 @@ class MappingDistributorImplementasiEskalinkExport implements FromQuery, WithHea
             ])
             ->leftJoin('master_distributors', 'distributor_implementasi_eskalink.distributor_code', '=', 'master_distributors.distributor_code')
             ->where('distributor_implementasi_eskalink.distributor_code', '!=', 'HOINA');
+
+        if (!empty($this->allowed_regions)) {
+            $query->whereIn('master_distributors.region_code', $this->allowed_regions);
+        }
 
         if ($this->search !== '') {
             $query->where(function($q) {

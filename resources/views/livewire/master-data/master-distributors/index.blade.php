@@ -1,175 +1,229 @@
-<div>
+<div class="flex-1 flex flex-col w-full h-full min-h-0">
     <x-slot name="title">Data Master Distributor</x-slot>
 
-    <div class="mx-auto px-4 sm:px-6 py-8 text-base-content">
+    <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-2 md:gap-3 w-full h-full">
         {{-- Notifikasi --}}
-        <div class="mb-6">
-            @if (session()->has('message'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
-                    <x-heroicon-s-check-circle class="w-6 h-6" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
-                        <div class="text-sm">{{ session('message') }}</div>
-                    </div>
+        @if (session()->has('message'))
+            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-success shadow-sm rounded-xl border-none bg-success/20 text-success shrink-0">
+                <x-heroicon-s-check-circle class="w-5 h-5" />
+                <div>
+                    <h3 class="font-bold text-[10px] uppercase tracking-wider">Sukses</h3>
+                    <div class="text-xs">{{ session('message') }}</div>
                 </div>
-            @endif
+            </div>
+        @endif
 
-            @if (session()->has('error'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
-                    <x-heroicon-s-x-circle class="w-6 h-6" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
-                        <div class="text-sm">{{ session('error') }}</div>
-                    </div>
+        @if (session()->has('error'))
+            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-error shadow-sm rounded-xl border-none bg-error/20 text-error shrink-0">
+                <x-heroicon-s-x-circle class="w-5 h-5" />
+                <div>
+                    <h3 class="font-bold text-[10px] uppercase tracking-wider">Error</h3>
+                    <div class="text-xs">{{ session('error') }}</div>
                 </div>
-            @endif
+            </div>
+        @endif
+
+        {{-- KPI Cards --}}
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 shrink-0">
+            <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-2 flex flex-col items-center justify-center text-center">
+                <p class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider mb-0.5">Aktif</p>
+                <h4 class="text-lg md:text-xl font-black text-success">{{ $this->kpiData['aktif'] }}</h4>
+            </div>
+            <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-2 flex flex-col items-center justify-center text-center">
+                <p class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider mb-0.5" title="Jawa 1 Aktif">Jawa 1</p>
+                <h4 class="text-lg md:text-xl font-black text-success">{{ $this->kpiData['jawa1'] }}</h4>
+            </div>
+            <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-2 flex flex-col items-center justify-center text-center">
+                <p class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider mb-0.5" title="Jawa 2 Aktif">Jawa 2</p>
+                <h4 class="text-lg md:text-xl font-black text-success">{{ $this->kpiData['jawa2'] }}</h4>
+            </div>
+            <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-2 flex flex-col items-center justify-center text-center">
+                <p class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider mb-0.5" title="Pulau Aktif">Pulau</p>
+                <h4 class="text-lg md:text-xl font-black text-success">{{ $this->kpiData['pulau'] }}</h4>
+            </div>
+            <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-2 flex flex-col items-center justify-center text-center">
+                <p class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider mb-0.5" title="Sumatera 1 Aktif">Sumatera 1</p>
+                <h4 class="text-lg md:text-xl font-black text-success">{{ $this->kpiData['sumatera1'] }}</h4>
+            </div>
+            <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-2 flex flex-col items-center justify-center text-center">
+                <p class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider mb-0.5" title="Sumatera 2 Aktif">Sumatera 2</p>
+                <h4 class="text-lg md:text-xl font-black text-success">{{ $this->kpiData['sumatera2'] }}</h4>
+            </div>
+            <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-2 flex flex-col items-center justify-center text-center">
+                <p class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider mb-0.5" title="Remote Aktif">Remote</p>
+                <h4 class="text-lg md:text-xl font-black text-success">{{ $this->kpiData['remote'] }}</h4>
+            </div>
         </div>
 
-        <x-card flush title="Master Distributor" icon="truck" subtitle="Kelola data mitra distributor dan mapping wilayah operasional" class="pb-6">
-            <x-slot:actions>
-                <div class="flex flex-wrap items-center gap-3">
-                    {{-- Export & Sync --}}
-                    @if(auth()->user()->hasRole('admin'))
-                        <button wire:click="synchronize" wire:loading.attr="disabled" class="btn btn-sm btn-ghost rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200">
-                            <x-heroicon-s-arrow-path wire:loading.class="animate-spin" wire:target="synchronize" class="w-4 h-4" />
-                            Sync
-                        </button>
-                    @endif
-                    @canExport('master-distributors.index')
-                    <button wire:click="export" wire:loading.attr="disabled" class="btn btn-sm btn-ghost rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200">
-                        <x-heroicon-s-document-arrow-down wire:loading.remove wire:target="export" class="w-4 h-4 text-success" />
-                        <span wire:loading wire:target="export" class="loading loading-spinner loading-xs"></span>
-                        Export
-                    </button>
-                    @endcanExport
+        <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
 
-                    <div class="divider divider-horizontal mx-0 h-8"></div>
-
-                    {{-- Tombol Tambah --}}
-                    @canEdit('master-distributors.index')
-                    <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
-                        <x-heroicon-s-plus class="w-4 h-4" />
-                        Tambah
-                    </button>
-                    @endcanEdit
+            {{-- Header Card & Actions --}}
+            <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+                <div class="shrink-0 w-full sm:w-auto">
+                    <h2 class="text-base md:text-lg font-bold">Master Distributor</h2>
+                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Kelola data distributor</p>
                 </div>
-            </x-slot:actions>
+                
+                <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
+                    <!-- Search Component -->
+                    <x-ui.search-input 
+                        wire:model.live.debounce.300ms="search" 
+                        placeholder="Cari Distributor..." 
+                    />
 
-            {{-- Filter Bar --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 px-6 py-4 bg-base-200/30 border-b border-base-300">
-                <div class="relative group">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/30 group-focus-within:text-primary transition-colors">
-                        <x-heroicon-s-magnifying-glass class="w-4 h-4" />
+                    <!-- Filter Status -->
+                    <select wire:model.live="statusFilter" class="select select-sm select-bordered w-32 sm:w-36 rounded-xl bg-base-200 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                        <option value="">Semua Status</option>
+                        <option value="1">Aktif</option>
+                        <option value="0">Tidak Aktif</option>
+                    </select>
+
+                    <!-- Filter Region Component -->
+                    <select wire:model.live="regionFilter" class="select select-sm select-bordered w-36 sm:w-40 rounded-xl bg-base-200 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                        <option value="">Semua Region</option>
+                        @foreach($regions as $region)
+                            <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
+                        @endforeach
+                    </select>
+
+                    <!-- Filter Area Component -->
+                    <select wire:model.live="areaFilter" @disabled(!$regionFilter) class="select select-sm select-bordered w-36 sm:w-40 rounded-xl bg-base-200 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300 disabled:opacity-50">
+                        <option value="">Semua Area</option>
+                        @foreach($areas as $area)
+                            <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
+                        @endforeach
+                    </select>
+
+                    <div class="flex flex-wrap items-center gap-1 md:gap-2">
+                        @canEdit('master-distributors.index')
+                            <x-ui.action-button type="default" icon="arrow-path" wire:click="synchronize" title="Sinkronisasi dengan Data Master Dasar" label="Sync" />
+                        @endcanEdit
+                        <x-ui.action-button type="default" class="btn-info text-white shadow-sm shadow-info/20" icon="map" wire:click="showAllMaps" title="Tampilkan Peta Sebaran" label="Maps" />
+                        @canExport('master-distributors.index')
+                            <x-ui.action-button type="export" wire:click="export" />
+                        @endcanExport
+
+                        <div class="hidden md:block w-px h-6 bg-base-300 mx-1"></div>
+
+                        @canEdit('master-distributors.index')
+                        <x-ui.action-button
+                            type="add"
+                            wire:click="openCreateModal"
+                        />
+                        @endcanEdit
                     </div>
-                    <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari Distributor..." 
-                           class="input input-sm input-bordered pl-10 w-full rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
                 </div>
-
-                <select wire:model.live="statusFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 text-xs font-medium focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                    <option value="">Semua Status</option>
-                    <option value="1">Aktif</option>
-                    <option value="0">Tidak Aktif</option>
-                </select>
-
-                <select wire:model.live="regionFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 text-xs font-medium focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                    <option value="">Semua Region</option>
-                    @foreach($regions as $region)
-                        <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
-                    @endforeach
-                </select>
-
-                <select wire:model.live="areaFilter" @disabled(!$regionFilter) class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 text-xs font-medium focus:ring-2 focus:ring-primary/50 transition-all duration-300 disabled:opacity-50">
-                    <option value="">Semua Area</option>
-                    @foreach($areas as $area)
-                        <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
-                    @endforeach
-                </select>
             </div>
 
-            {{-- Tabel Data --}}
-            <x-ui.table loading="{{ false }}" empty="Tidak ada data distributor ditemukan.">
-                <x-slot:head>
-                    <tr>
-                        <th class="w-16">No</th>
-                        <th>Kode</th>
-                        <th>Distributor</th>
-                        <th>Cabang / Supervisor</th>
-                        <th>Area / Region</th>
-                        <th>Status</th>
-                        <th class="text-center">Aksi</th>
-                    </tr>
-                </x-slot:head>
+            {{-- Body Card (Tabel Scrollable area) --}}
+            <div class="flex-1 overflow-auto bg-base-100 w-full relative">
+                @if($distributors->isEmpty())
+                    <div class="flex flex-col items-center justify-center h-full text-base-content/50 p-6">
+                        <x-heroicon-o-truck class="w-12 h-12 mb-2 opacity-50" />
+                        <p class="text-sm font-medium">Tidak ada data distributor ditemukan.</p>
+                    </div>
+                @else
+                    <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
+                        <thead class="text-[11px] uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
+                            <tr>
+                                <th class="w-12 text-center">No</th>
+                                <th class="w-32">Region</th>
+                                <th class="w-40">Area</th>
+                                <th class="w-48">Supervisor</th>
+                                <th class="min-w-[250px] w-full">Distributor</th>
+                                <th class="w-24 text-center">Status</th>
+                                <th class="w-28 text-center">Join Date</th>
+                                <th class="w-28 text-center">Resign Date</th>
+                                <th class="w-32 text-center bg-base-200 shadow-[inset_1px_0_0_rgba(0,0,0,0.1)]">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-[11px]">
+                            @foreach ($distributors as $index => $distributor)
+                                <tr wire:key="distributor-{{ $distributor->distributor_code }}" class="hover:bg-base-200/50 transition-colors group">
+                                    <th class="text-center">{{ $distributors->firstItem() + $index }}</th>
+                                    
+                                    {{-- Region --}}
+                                    <td>
+                                        <div class="flex flex-col gap-0.5 w-32">
+                                            <span class="font-mono text-[11px] font-semibold text-base-content/70 truncate" title="{{ $distributor->region_code ?? '-' }}">{{ $distributor->region_code ?? '-' }}</span>
+                                            <span class="text-[10px] uppercase tracking-wider font-bold text-base-content/90 truncate" title="{{ $distributor->region_name ?? '-' }}">{{ $distributor->region_name ?? '-' }}</span>
+                                        </div>
+                                    </td>
 
-                @foreach ($distributors as $index => $distributor)
-                    <tr wire:key="distributor-{{ $distributor->distributor_code }}" class="group text-sm">
-                        <td>
-                            <span class="text-xs font-semibold text-base-content/40">{{ $distributors->firstItem() + $index }}</span>
-                        </td>
-                        <td>
-                            <span class="badge badge-sm badge-outline border-base-300 text-primary font-mono px-2 py-3 rounded-lg">{{ $distributor->distributor_code }}</span>
-                        </td>
-                        <td>
-                            <div class="flex flex-col">
-                                <span class="font-bold text-base-content/80 group-hover:text-primary transition-colors">{{ $distributor->distributor_name }}</span>
-                                <span class="text-[10px] text-base-content/40 italic">{{ $distributor->created_at->format('d M Y') }}</span>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="flex flex-col gap-1">
-                                <div class="flex items-center gap-1.5 text-xs text-base-content/70">
-                                    <x-heroicon-s-building-office-2 class="w-3.5 h-3.5 text-base-content/30" />
-                                    <span>{{ $distributor->branch_name }}</span>
-                                </div>
-                                <div class="flex items-center gap-1.5 text-[10px] text-base-content/50 font-medium">
-                                    <x-heroicon-s-user-circle class="w-3.5 h-3.5 text-base-content/30" />
-                                    <span>{{ $distributor->supervisor->description ?? '-' }}</span>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="flex flex-col gap-0.5">
-                                <div class="flex items-center gap-1.5">
-                                    <x-heroicon-s-map-pin class="w-3.5 h-3.5 text-base-content/30" />
-                                    <span class="text-xs text-base-content/60 font-medium">{{ $distributor->area_name ?? 'N/A' }}</span>
-                                </div>
-                                <span class="text-[9px] uppercase tracking-wider text-base-content/30 ml-5 font-bold">{{ $distributor->region_name ?? 'N/A' }}</span>
-                            </div>
-                        </td>
-                        <td>
-                            @if ($distributor->is_active)
-                                <span class="badge badge-sm border-none bg-success/20 text-success font-bold px-3 py-2 rounded-lg">Aktif</span>
-                            @else
-                                <span class="badge badge-sm border-none bg-error/20 text-error font-bold px-3 py-2 rounded-lg">Nonaktif</span>
-                            @endif
-                        </td>
-                        <td>
-                            <div class="flex items-center justify-center gap-1">
-                                <button wire:click="showMap('{{ $distributor->distributor_code }}')" 
-                                        class="btn btn-ghost btn-xs btn-square rounded-lg text-info hover:bg-info/10 transition-all duration-200" title="Peta">
-                                    <x-heroicon-s-map class="w-4 h-4" />
-                                </button>
-                                @canEdit('master-distributors.index')
-                                <button wire:click="openEditModal('{{ $distributor->distributor_code }}')" 
-                                        class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit">
-                                    <x-heroicon-s-pencil-square class="w-4 h-4" />
-                                </button>
-                                <button wire:click="confirmDelete('{{ $distributor->distributor_code }}')" 
-                                        class="btn btn-ghost btn-xs btn-square rounded-lg text-error hover:bg-error/10 transition-all duration-200" title="Hapus">
-                                    <x-heroicon-s-trash class="w-4 h-4" />
-                                </button>
-                                @endcanEdit
-                            </div>
-                        </td>
-                    </tr>
-                @endforeach
-            </x-ui.table>
+                                    {{-- Area --}}
+                                    <td>
+                                        <div class="flex flex-col gap-0.5 w-40">
+                                            <span class="font-mono text-[11px] font-semibold text-base-content/70 truncate" title="{{ $distributor->area_code ?? '-' }}">{{ $distributor->area_code ?? '-' }}</span>
+                                            <span class="text-[10px] uppercase tracking-wider font-bold text-base-content/90 truncate" title="{{ $distributor->area_name ?? '-' }}">{{ $distributor->area_name ?? '-' }}</span>
+                                        </div>
+                                    </td>
+
+                                    {{-- Supervisor --}}
+                                    <td>
+                                        <div class="flex flex-col gap-0.5 w-48">
+                                            <span class="font-mono text-[11px] font-semibold text-base-content/70 truncate" title="{{ $distributor->supervisor_code ?? '-' }}">{{ $distributor->supervisor_code ?? '-' }}</span>
+                                            <span class="text-[10px] uppercase tracking-wider font-bold text-base-content/90 truncate" title="{{ $distributor->supervisor->description ?? $distributor->supervisor_name ?? '-' }}">{{ $distributor->supervisor->description ?? $distributor->supervisor_name ?? '-' }}</span>
+                                        </div>
+                                    </td>
+
+                                    {{-- Distributor --}}
+                                    <td>
+                                        <div class="flex flex-col gap-0.5 min-w-[250px] w-full max-w-[250px] sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl">
+                                            <span class="font-mono text-[11px] font-semibold text-primary truncate" title="{{ $distributor->distributor_code }}">{{ $distributor->distributor_code }}</span>
+                                            <span class="font-bold text-[11px] text-base-content/80 group-hover:text-primary transition-colors truncate w-full" title="{{ $distributor->distributor_name }}">{{ $distributor->distributor_name }}</span>
+                                        </div>
+                                    </td>
+
+                                    {{-- Status --}}
+                                    <td class="text-center">
+                                        @if ($distributor->is_active)
+                                            <span class="badge badge-sm border-none bg-success/20 text-success font-bold px-3 py-2 rounded-lg text-[10px]">Aktif</span>
+                                        @else
+                                            <span class="badge badge-sm border-none bg-error/20 text-error font-bold px-3 py-2 rounded-lg text-[10px]">Nonaktif</span>
+                                        @endif
+                                    </td>
+
+                                    {{-- Join Date --}}
+                                    <td class="text-center text-base-content/70">
+                                        {{ $distributor->join_date ? $distributor->join_date->translatedFormat('d M Y') : '-' }}
+                                    </td>
+
+                                    {{-- Resign Date --}}
+                                    <td class="text-center text-base-content/70">
+                                        {{ $distributor->resign_date ? $distributor->resign_date->translatedFormat('d M Y') : '-' }}
+                                    </td>
+
+                                    <th class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
+                                        <div class="flex items-center justify-center gap-1">
+                                            <button wire:click="showDetail('{{ $distributor->distributor_code }}')" 
+                                                    class="btn btn-ghost btn-sm btn-square rounded-xl text-info hover:bg-info/10 transition-all duration-200" title="Detail">
+                                                <x-heroicon-s-information-circle class="w-4 h-4" />
+                                            </button>
+                                            @canEdit('master-distributors.index')
+                                            <button wire:click="openEditModal('{{ $distributor->distributor_code }}')" 
+                                                    class="btn btn-ghost btn-sm btn-square rounded-xl text-warning hover:bg-warning/10 transition-all duration-200" title="Edit">
+                                                <x-heroicon-s-pencil-square class="w-4 h-4" />
+                                            </button>
+                                            <button wire:click="confirmDelete('{{ $distributor->distributor_code }}')" 
+                                                    class="btn btn-ghost btn-sm btn-square rounded-xl text-error hover:bg-error/10 transition-all duration-200" title="Hapus">
+                                                <x-heroicon-s-trash class="w-4 h-4" />
+                                            </button>
+                                            @endcanEdit
+                                        </div>
+                                    </th>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            </div>
 
             @if($distributors->hasPages())
-                <div class="mt-4 px-6">
+                <div class="p-3 md:p-4 border-t border-base-300 bg-base-50 shrink-0">
                     {{ $distributors->links() }}
                 </div>
             @endif
-        </x-card>
+        </div>
     </div>
 
     {{-- Modal Form (Create/Edit) --}}
@@ -405,12 +459,12 @@
         </div>
     </div>
 
-    {{-- Modal Map --}}
+    {{-- Modal Detail --}}
     <div x-data="{ 
-        open: @entangle('isMapModalOpen'),
+        open: @entangle('isDetailModalOpen'),
+        detail: @entangle('detailData'),
         latitude: @entangle('mapLatitude'),
         longitude: @entangle('mapLongitude'),
-        distributorName: @entangle('mapDistributorName'),
         initMap() {
             if (!this.open) return;
             const waitForLeaflet = setInterval(() => {
@@ -418,6 +472,7 @@
                     clearInterval(waitForLeaflet);
                     this.$nextTick(() => {
                         setTimeout(() => {
+                            if (!this.latitude || !this.longitude) return;
                             const mapElement = document.getElementById('distributorMap');
                             if (!mapElement) return;
                             
@@ -437,19 +492,20 @@
                                 
                                 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                                     maxZoom: 19,
-                                    attribution: '&copy; <a href=\'https://www.openstreetmap.org/copyright\'>OpenStreetMap</a> contributors &copy; <a href=\'https://carto.com/attributions\'>CARTO</a>'
+                                    attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
                                 }).addTo(map);
                                 
+                                const colorClass = this.detail?.is_active ? 'text-success' : 'text-error';
                                 const customIcon = L.divIcon({
-                                    className: 'custom-pin',
-                                    html: `<svg class='w-8 h-8 text-primary drop-shadow-lg' fill='currentColor' viewBox='0 0 24 24'><path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/></svg>`,
+                                    className: 'custom-pin bg-transparent border-none',
+                                    html: `<svg class='w-8 h-8 ${colorClass} drop-shadow-lg' fill='currentColor' viewBox='0 0 24 24'><path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/></svg>`,
                                     iconSize: [32, 32],
                                     iconAnchor: [16, 32],
                                     popupAnchor: [0, -32]
                                 });
 
                                 L.marker([lat, lng], {icon: customIcon}).addTo(map)
-                                 .bindPopup(`<div class='font-sans px-1 py-0.5 text-base-content'><strong class='text-base-content'>${this.distributorName}</strong><br><span class='text-[10px] text-base-content/40 font-mono'>${lat}, ${lng}</span></div>`)
+                                 .bindPopup(`<div class='font-sans px-1 py-0.5 text-slate-800'><strong class='text-slate-800'>${this.detail?.distributor_name}</strong><br><span class='text-[10px] text-slate-500 font-mono'>${lat}, ${lng}</span></div>`)
                                  .openPopup();
                                 
                                 setTimeout(() => { map.invalidateSize(); }, 200);
@@ -462,7 +518,7 @@
         }
     }" 
     x-show="open" 
-    @open-map.window="initMap()"
+    @detail-opened.window="initMap()"
     x-cloak 
     class="fixed inset-0 z-[60] flex items-center justify-center p-4">
         
@@ -472,16 +528,16 @@
 
         <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
              x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-             class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-2xl overflow-hidden ring-1 ring-base-content/5 flex flex-col text-base-content">
+             class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-5xl overflow-hidden ring-1 ring-base-content/5 flex flex-col text-base-content max-h-[90vh]">
             
-            <div class="px-6 py-5 border-b border-base-300 flex items-center justify-between bg-base-200/30">
+            <div class="px-6 py-5 border-b border-base-300 flex items-center justify-between bg-base-200/30 shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="p-2.5 rounded-2xl bg-info/10 text-info">
-                        <x-heroicon-s-map class="w-6 h-6" />
+                        <x-heroicon-s-information-circle class="w-6 h-6" />
                     </div>
                     <div>
-                        <h3 class="font-bold text-lg leading-none" x-text="distributorName || 'Lokasi Distributor'"></h3>
-                        <p class="text-[10px] text-base-content/50 mt-1 font-mono">LAT: <span x-text="latitude"></span>, LONG: <span x-text="longitude"></span></p>
+                        <h3 class="font-bold text-lg leading-none" x-text="detail?.distributor_name || 'Detail Distributor'"></h3>
+                        <p class="text-[10px] text-base-content/50 mt-1 font-mono">KODE: <span x-text="detail?.distributor_code"></span></p>
                     </div>
                 </div>
                 <button @click="open = false" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300 transition-all duration-200">
@@ -489,8 +545,166 @@
                 </button>
             </div>
             
-            <div class="p-4 bg-base-100">
-                <div id="distributorMap" style="height: 400px; width: 100%;" class="rounded-2xl shadow-inner border border-base-300 bg-base-200 relative overflow-hidden z-0">
+            <div class="p-6 bg-base-100 overflow-y-auto flex-1">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Data Detail -->
+                    <div class="space-y-4 text-sm">
+                        <div class="grid grid-cols-3 gap-2 border-b border-base-300 pb-2">
+                            <span class="text-base-content/60 font-medium">Status</span>
+                            <div class="col-span-2">
+                                <template x-if="detail?.is_active">
+                                    <span class="badge badge-sm border-none bg-success/20 text-success font-bold px-3 py-2 rounded-lg text-[10px]">Aktif</span>
+                                </template>
+                                <template x-if="!detail?.is_active">
+                                    <span class="badge badge-sm border-none bg-error/20 text-error font-bold px-3 py-2 rounded-lg text-[10px]">Nonaktif</span>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 border-b border-base-300 pb-2">
+                            <span class="text-base-content/60 font-medium">Region</span>
+                            <span class="col-span-2 font-semibold" x-text="detail?.region_name"></span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 border-b border-base-300 pb-2">
+                            <span class="text-base-content/60 font-medium">Area</span>
+                            <span class="col-span-2 font-semibold" x-text="detail?.area_name"></span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 border-b border-base-300 pb-2">
+                            <span class="text-base-content/60 font-medium">Supervisor</span>
+                            <span class="col-span-2 font-semibold" x-text="detail?.supervisor_name"></span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 border-b border-base-300 pb-2">
+                            <span class="text-base-content/60 font-medium">Cabang</span>
+                            <span class="col-span-2 font-semibold" x-text="detail?.branch_name"></span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 border-b border-base-300 pb-2">
+                            <span class="text-base-content/60 font-medium">Tanggal Join</span>
+                            <span class="col-span-2 font-semibold" x-text="detail?.join_date"></span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 border-b border-base-300 pb-2">
+                            <span class="text-base-content/60 font-medium">Tanggal Resign</span>
+                            <span class="col-span-2 font-semibold" x-text="detail?.resign_date"></span>
+                        </div>
+                    </div>
+
+                    <!-- Map -->
+                    <div class="flex flex-col h-full min-h-[400px]">
+                        <div class="flex items-center gap-2 mb-2">
+                            <x-heroicon-s-map-pin class="w-4 h-4 text-base-content/50" />
+                            <span class="text-sm font-bold text-base-content/70">Lokasi Koordinat</span>
+                        </div>
+                        <template x-if="latitude && longitude">
+                            <div id="distributorMap" class="w-full flex-1 rounded-2xl shadow-inner border border-base-300 bg-base-200 relative overflow-hidden z-0">
+                                <div class="absolute inset-0 flex flex-col items-center justify-center text-base-content/20">
+                                    <span class="loading loading-spinner loading-md mb-2"></span>
+                                    <p class="text-[10px] font-bold uppercase tracking-widest">Memuat Peta...</p>
+                                </div>
+                            </div>
+                        </template>
+                        <template x-if="!latitude || !longitude">
+                            <div class="w-full flex-1 rounded-2xl border border-dashed border-base-300 bg-base-200/50 flex flex-col items-center justify-center text-base-content/40 p-6 text-center">
+                                <x-heroicon-o-map class="w-12 h-12 mb-3 opacity-50" />
+                                <p class="text-sm font-medium">Koordinat tidak tersedia</p>
+                                <p class="text-[10px] mt-1">Data latitude dan longitude kosong.</p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal All Maps --}}
+    <div x-data="{ 
+        open: @entangle('isAllMapsModalOpen'),
+        locations: @entangle('allMapLocations'),
+        initMap() {
+            if (!this.open) return;
+            const waitForLeaflet = setInterval(() => {
+                if (typeof L !== 'undefined') {
+                    clearInterval(waitForLeaflet);
+                    this.$nextTick(() => {
+                        setTimeout(() => {
+                            const mapElement = document.getElementById('allDistributorsMap');
+                            if (!mapElement) return;
+                            
+                            if (window.allDistributorsMapInstance) {
+                                window.allDistributorsMapInstance.remove();
+                                window.allDistributorsMapInstance = null;
+                            }
+                            
+                            try {
+                                const map = L.map('allDistributorsMap');
+                                window.allDistributorsMapInstance = map;
+                                
+                                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                                    maxZoom: 19,
+                                    attribution: '&copy; OpenStreetMap &copy; CARTO'
+                                }).addTo(map);
+                                
+                                const markers = [];
+                                
+                                this.locations.forEach(loc => {
+                                    const lat = parseFloat(loc.lat);
+                                    const lng = parseFloat(loc.lng);
+                                    if (isNaN(lat) || isNaN(lng)) return;
+                                    
+                                    const colorClass = loc.active ? 'text-success' : 'text-error';
+                                    const customIcon = L.divIcon({
+                                        className: 'custom-pin bg-transparent border-none',
+                                        html: `<svg class='w-8 h-8 ${colorClass} drop-shadow-lg' fill='currentColor' viewBox='0 0 24 24'><path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/></svg>`,
+                                        iconSize: [32, 32],
+                                        iconAnchor: [16, 32],
+                                        popupAnchor: [0, -32]
+                                    });
+
+                                    const marker = L.marker([lat, lng], {icon: customIcon})
+                                        .bindPopup(`<div class='font-sans px-1 py-0.5 text-slate-800'><strong class='text-slate-800'>${loc.name}</strong><br><span class='text-[10px] text-slate-500 font-mono'>${loc.code}</span></div>`);
+                                    marker.addTo(map);
+                                    markers.push([lat, lng]);
+                                });
+                                
+                                // Selalu fokus ke Indonesia secara default
+                                map.setView([-0.7893, 113.9213], 5);
+                                
+                                setTimeout(() => { map.invalidateSize(); }, 200);
+                            } catch (error) { console.error('Map error:', error); }
+                        }, 300);
+                    });
+                }
+            }, 100);
+            setTimeout(() => { clearInterval(waitForLeaflet); }, 5000);
+        }
+    }" 
+    x-show="open" 
+    @all-maps-opened.window="initMap()"
+    x-cloak 
+    class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
+
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+             class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-4xl max-h-[90vh] overflow-hidden ring-1 ring-base-content/5 flex flex-col text-base-content">
+            
+            <div class="px-6 py-5 border-b border-base-300 flex items-center justify-between bg-base-200/30">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 rounded-2xl bg-info/10 text-info">
+                        <x-heroicon-s-map class="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg leading-none">Peta Sebaran Distributor</h3>
+                        <p class="text-[10px] text-base-content/50 mt-1 font-mono">Menampilkan titik distributor (<span x-text="locations.length"></span> lokasi)</p>
+                    </div>
+                </div>
+                <button @click="open = false" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300 transition-all duration-200">
+                    <x-heroicon-s-x-mark class="w-5 h-5" />
+                </button>
+            </div>
+            
+            <div class="p-4 bg-base-100 flex-1">
+                <div id="allDistributorsMap" style="height: 60vh; width: 100%;" class="rounded-2xl shadow-inner border border-base-300 bg-base-200 relative overflow-hidden z-0">
                     <div class="absolute inset-0 flex flex-col items-center justify-center text-base-content/20">
                         <span class="loading loading-spinner loading-md mb-2"></span>
                         <p class="text-[10px] font-bold uppercase tracking-widest">Memuat Peta...</p>
@@ -502,8 +716,11 @@
 
     @script
     <script>
-        Livewire.on('map-opened', () => {
-            setTimeout(() => { window.dispatchEvent(new CustomEvent('open-map')); }, 100);
+        Livewire.on('detail-opened', () => {
+            setTimeout(() => { window.dispatchEvent(new CustomEvent('detail-opened')); }, 100);
+        });
+        Livewire.on('all-maps-opened', () => {
+            setTimeout(() => { window.dispatchEvent(new CustomEvent('all-maps-opened')); }, 100);
         });
     </script>
     @endscript
