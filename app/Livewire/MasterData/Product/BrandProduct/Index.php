@@ -5,12 +5,17 @@ namespace App\Livewire\MasterData\Product\BrandProduct;
 use Livewire\Component;
 use App\Models\ProductBrand;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use Illuminate\Validation\Rule;
 use App\Traits\EnforcesMenuPermissions;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProductBrandsExport;
+use App\Exports\ProductBrandsTemplateExport;
+use App\Imports\ProductBrandsImport;
 
 class Index extends Component
 {
-    use WithPagination, EnforcesMenuPermissions;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
     protected string $menuRoute = 'product-brands.index';
@@ -21,12 +26,14 @@ class Index extends Component
     public $isFormModalOpen = false;
     public $isEditing = false;
     public $isDeleteModalOpen = false;
+    public $isImportModalOpen = false;
     public $brandIdToDelete;
 
     // Form Fields
     public $brand_id;
     public $brand_name;
     public $old_brand_id;
+    public $importFile;
 
     protected $queryString = ['search' => ['except' => '']];
 
@@ -114,7 +121,7 @@ class Index extends Component
         $brands = ProductBrand::where('brand_id', 'ILIKE', '%' . $this->search . '%')
             ->orWhere('brand_name', 'ILIKE', '%' . $this->search . '%')
             ->latest('brand_id')
-            ->paginate(10);
+            ->paginate(50);
 
         return view('livewire.master-data.product.brand.index', [
             'brands' => $brands,
@@ -138,6 +145,44 @@ class Index extends Component
             session()->flash('message', 'Product Brand berhasil dihapus.');
         }
         $this->isDeleteModalOpen = false;
+    }
+
+    public function export()
+    {
+        $this->authorizeAction('can_export');
+        \App\Helpers\ActivityLogger::log('Export Product Brand', "Mengekspor data product brand");
+        return Excel::download(new ProductBrandsExport(), 'product_brands.xlsx');
+    }
+
+    public function downloadTemplate()
+    {
+        return Excel::download(new ProductBrandsTemplateExport(), 'template_import_product_brands.xlsx');
+    }
+
+    public function openImportModal()
+    {
+        $this->importFile = null;
+        $this->isImportModalOpen = true;
+    }
+
+    public function import()
+    {
+        $this->authorizeAction('can_edit');
+        
+        $this->validate([
+            'importFile' => 'required|mimes:xlsx,xls,csv|max:2048',
+        ]);
+
+        try {
+            Excel::import(new ProductBrandsImport, $this->importFile);
+            \App\Helpers\ActivityLogger::log('Import Product Brand', "Mengimpor data product brand dari Excel");
+            session()->flash('message', 'Data Product Brand berhasil diimport.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Terjadi kesalahan saat import: ' . $e->getMessage());
+        }
+
+        $this->isImportModalOpen = false;
+        $this->importFile = null;
     }
 }
 

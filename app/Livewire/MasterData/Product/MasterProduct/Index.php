@@ -10,14 +10,17 @@ use App\Models\ProductGroup;
 use App\Models\ProductSubBrand;
 use App\Models\Category;
 use App\Exports\ProductMastersExport;
+use App\Exports\ProductMastersTemplateExport;
+use App\Imports\ProductMastersImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use Illuminate\Validation\Rule;
 use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination, EnforcesMenuPermissions;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
     protected string $menuRoute = 'product-masters.index';
@@ -30,7 +33,9 @@ class Index extends Component
     public $isFormModalOpen = false;
     public $isEditing = false;
     public $isDeleteModalOpen = false;
+    public $isImportModalOpen = false;
     public $productIdToDelete;
+    public $importFile;
 
     // Form Fields
     public $product_id;
@@ -221,7 +226,7 @@ class Index extends Component
                 $query->where('is_active', $this->statusFilter);
             })
             ->latest('product_id')
-            ->paginate(10);
+            ->paginate(50);
 
         return view('livewire.master-data.product.master.index', [
             'products' => $products,
@@ -254,5 +259,36 @@ class Index extends Component
         $this->authorizeAction('can_export');
 
         return Excel::download(new ProductMastersExport(), 'master_products_all.xlsx');
+    }
+
+    public function downloadTemplate()
+    {
+        return Excel::download(new ProductMastersTemplateExport(), 'template_import_product_masters.xlsx');
+    }
+
+    public function openImportModal()
+    {
+        $this->importFile = null;
+        $this->isImportModalOpen = true;
+    }
+
+    public function import()
+    {
+        $this->authorizeAction('can_edit');
+        
+        $this->validate([
+            'importFile' => 'required|mimes:xlsx,xls,csv|max:2048',
+        ]);
+
+        try {
+            Excel::import(new ProductMastersImport, $this->importFile);
+            \App\Helpers\ActivityLogger::log('Import Product Master', "Mengimpor data product master dari Excel");
+            session()->flash('message', 'Data Product Master berhasil diimport.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Terjadi kesalahan saat import: ' . $e->getMessage());
+        }
+
+        $this->isImportModalOpen = false;
+        $this->importFile = null;
     }
 }

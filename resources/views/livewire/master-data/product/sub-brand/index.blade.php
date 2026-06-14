@@ -1,120 +1,140 @@
-<div>
-    <x-slot name="title">Data Product Sub-Brands</x-slot>
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 w-full h-full">
+    <x-slot name="title">Data Master Product Sub-Brand</x-slot>
 
-    <div class="mx-auto px-4 sm:px-6 py-8 text-base-content">
-        {{-- Notifikasi --}}
-        <div class="mb-6">
-            @if (session()->has('message'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
-                    <x-heroicon-s-check-circle class="w-6 h-6" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
-                        <div class="text-sm">{{ session('message') }}</div>
-                    </div>
-                </div>
-            @endif
+    {{-- Notifikasi --}}
+    @if (session()->has('message'))
+        <div x-data="{ show: true }" x-show="show" class="alert alert-success shadow-sm rounded-xl border-none bg-success/20 text-success shrink-0 flex items-start">
+            <x-heroicon-s-check-circle class="w-5 h-5 mt-0.5 shrink-0" />
+            <div class="flex-1">
+                <h3 class="font-bold text-[10px] uppercase tracking-wider">Sukses</h3>
+                <div class="text-xs">{{ session('message') }}</div>
+            </div>
+            <button @click="show = false" class="btn btn-ghost btn-xs btn-circle shrink-0 mt-0.5 opacity-70 hover:opacity-100 hover:bg-success/20 transition-all">
+                <x-heroicon-s-x-mark class="w-4 h-4" />
+            </button>
+        </div>
+    @endif
 
-            @if (session()->has('error'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
-                    <x-heroicon-s-x-circle class="w-6 h-6" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
-                        <div class="text-sm">{{ session('error') }}</div>
-                    </div>
+    @if (session()->has('error'))
+        <div x-data="{ show: true }" x-show="show" class="alert alert-error shadow-sm rounded-xl border-none bg-error/20 text-error shrink-0 flex items-start">
+            <x-heroicon-s-x-circle class="w-5 h-5 mt-0.5 shrink-0" />
+            <div class="flex-1">
+                <h3 class="font-bold text-[10px] uppercase tracking-wider">Error</h3>
+                <div class="text-xs">{{ session('error') }}</div>
+            </div>
+            <button @click="show = false" class="btn btn-ghost btn-xs btn-circle shrink-0 mt-0.5 opacity-70 hover:opacity-100 hover:bg-error/20 transition-all">
+                <x-heroicon-s-x-mark class="w-4 h-4" />
+            </button>
+        </div>
+    @endif
+
+    {{-- Main Card (Tabel) --}}
+    <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+        
+        {{-- Header Card & Actions --}}
+        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+            <div class="shrink-0 w-full sm:w-auto">
+                <h2 class="text-base md:text-lg font-bold">Product Sub-Brand</h2>
+                <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Kelola varian sub-merk produk</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
+                {{-- Search --}}
+                <x-ui.search-input wire:model.live.debounce.300ms="search" placeholder="Cari Sub-Brand..." />
+
+                {{-- Action Buttons --}}
+                <div class="flex flex-wrap items-center gap-1 md:gap-2">
+                    @canEdit('product-sub-brands.index')
+                    <x-ui.action-button type="import" wire:click="openImportModal" />
+                    <x-ui.action-button type="add" wire:click="openCreateModal" />
+                    <div class="hidden md:block w-px h-6 bg-base-300 mx-1"></div>
+                    @endcanEdit
+                    
+                    @canExport('product-sub-brands.index')
+                    <x-ui.action-button type="export" wire:click="export" />
+                    @endcanExport
                 </div>
-            @endif
+            </div>
         </div>
 
-        <x-card flush title="Product Sub-Brands" icon="puzzle-piece" subtitle="Kelola varian sub-merk produk untuk detail item penjualan" class="pb-6">
-            <x-slot:actions>
-                <div class="flex flex-wrap items-center gap-3">
-                    <div class="relative group mr-2">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/30 group-focus-within:text-primary transition-colors">
-                            <x-heroicon-s-magnifying-glass class="w-4 h-4" />
-                        </div>
-                        <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari Sub-Brand..." 
-                               class="input input-sm input-bordered pl-10 w-full sm:w-64 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                    </div>
-
-                    {{-- Tombol Tambah --}}
-                    @canEdit('product-sub-brands.index')
-                    <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
-                        <x-heroicon-s-plus class="w-4 h-4" />
-                        Tambah Sub-Brand
-                    </button>
-                    @endcanEdit
-                </div>
-            </x-slot:actions>
-
-            {{-- Tabel Data --}}
-            <x-ui.table loading="{{ false }}" empty="Tidak ada data product sub-brand ditemukan.">
-                <x-slot:head>
+        {{-- Body Card (Tabel Scrollable area) --}}
+        <div class="flex-1 overflow-auto bg-base-100 w-full relative">
+            <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
+                <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
                     <tr>
                         <th class="w-16">No</th>
-                        <th>Kode Sub-Brand</th>
-                        <th>Nama Product Sub-Brand</th>
+                        <th>Product Sub-Brand</th>
                         <th>Dibuat Pada</th>
                         <th>Update Terakhir</th>
-                        <th class="text-center w-32">Aksi</th>
+                        <th class="text-center bg-base-200 shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] w-32">Aksi</th>
                     </tr>
-                </x-slot:head>
+                </thead>
+                <tbody class="text-sm">
+                    @forelse ($subBrands as $index => $subBrand)
+                        <tr wire:key="sub-brand-{{ $subBrand->sub_brand_id }}" class="hover:bg-base-200/50 transition-colors group">
+                            <th>{{ $subBrands->firstItem() + $index }}</th>
+                            
+                            {{-- Product Sub Brand --}}
+                            <td>
+                                <div class="flex flex-col gap-0.5">
+                                    <span class="font-bold text-[11px] text-base-content/90">{{ $subBrand->sub_brand_name }}</span>
+                                    <span class="text-[10px] text-base-content/50 font-mono uppercase">{{ $subBrand->sub_brand_id }}</span>
+                                </div>
+                            </td>
+                            
+                            {{-- Created At --}}
+                            <td>
+                                <div class="flex items-center gap-2 text-base-content/50">
+                                    <x-heroicon-s-calendar class="w-3.5 h-3.5" />
+                                    <span class="text-xs">{{ $subBrand->created_at->format('d M Y') }}</span>
+                                </div>
+                            </td>
 
-                @foreach ($subBrands as $index => $subBrand)
-                    <tr wire:key="sub-brand-{{ $subBrand->sub_brand_id }}" class="group text-sm">
-                        <td>
-                            <span class="text-xs font-semibold text-base-content/40">{{ $subBrands->firstItem() + $index }}</span>
-                        </td>
-                        <td>
-                            <span class="badge badge-sm badge-outline border-base-300 text-primary font-mono px-2 py-3 rounded-lg">{{ $subBrand->sub_brand_id }}</span>
-                        </td>
-                        <td>
-                            <span class="font-bold text-base-content/80 group-hover:text-primary transition-colors">{{ $subBrand->sub_brand_name }}</span>
-                        </td>
-                        <td>
-                            <div class="flex items-center gap-2 text-base-content/50">
-                                <x-heroicon-s-calendar class="w-3.5 h-3.5" />
-                                <span>{{ $subBrand->created_at->format('d M Y') }}</span>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="flex items-center gap-2 text-base-content/50">
-                                <x-heroicon-s-clock class="w-3.5 h-3.5" />
-                                <span>{{ $subBrand->updated_at->diffForHumans() }}</span>
-                            </div>
-                        </td>
-                        <td>
-                            @canEdit('product-sub-brands.index')
-                            <div class="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                <button wire:click="openEditModal('{{ $subBrand->sub_brand_id }}')" 
-                                        class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit">
-                                    <x-heroicon-s-pencil-square class="w-4 h-4" />
-                                </button>
-                                <button wire:click="confirmDelete('{{ $subBrand->sub_brand_id }}')" 
-                                        class="btn btn-ghost btn-xs btn-square rounded-lg text-error hover:bg-error/10 transition-all duration-200" title="Hapus">
-                                    <x-heroicon-s-trash class="w-4 h-4" />
-                                </button>
-                            </div>
-                            @else
-                            <span class="text-xs text-base-content/50 italic">View Only</span>
-                            @endcanEdit
-                        </td>
-                    </tr>
-                @endforeach
-            </x-ui.table>
+                            {{-- Updated At --}}
+                            <td>
+                                <div class="flex items-center gap-2 text-base-content/50">
+                                    <x-heroicon-s-clock class="w-3.5 h-3.5" />
+                                    <span class="text-xs">{{ $subBrand->updated_at->diffForHumans() }}</span>
+                                </div>
+                            </td>
 
-            @if($subBrands->hasPages())
-                <div class="mt-4 px-6">
-                    {{ $subBrands->links() }}
-                </div>
-            @endif
-        </x-card>
+                            <td class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
+                                @canEdit('product-sub-brands.index')
+                                <div class="flex items-center justify-center gap-1 transition-opacity duration-200">
+                                    <x-ui.action-button type="edit" wire:click="openEditModal('{{ $subBrand->sub_brand_id }}')" class="btn-square" title="Edit" />
+                                    <x-ui.action-button type="delete" wire:click="confirmDelete('{{ $subBrand->sub_brand_id }}')" class="btn-square" title="Hapus" />
+                                </div>
+                                @else
+                                <span class="text-[10px] text-base-content/50 italic">View Only</span>
+                                @endcanEdit
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5">
+                                <div class="flex flex-col items-center justify-center py-12 text-base-content/40">
+                                    <x-heroicon-o-inbox class="w-12 h-12 mb-3 opacity-20" />
+                                    <p class="text-sm font-medium">Tidak ada data ditemukan.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        @if($subBrands->hasPages())
+            <div class="p-3 md:p-4 lg:p-5 border-t border-base-300 shrink-0 bg-base-200">
+                {{ $subBrands->links() }}
+            </div>
+        @endif
     </div>
 
     {{-- Modal Form (Create/Edit) --}}
     <div x-data="{ open: @entangle('isFormModalOpen') }" 
          x-show="open" 
          x-cloak 
-         class="fixed inset-0 z-50 flex items-center justify-center p-4">
+         class="fixed inset-0 z-[60] flex items-center justify-center p-4">
         
         <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
              x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
@@ -147,8 +167,16 @@
                 <div class="p-6 space-y-6 bg-base-100">
                     <div class="space-y-1.5">
                         <label for="sub_brand_id" class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">ID Sub-Brand</label>
-                        <input wire:model.blur="sub_brand_id" type="text" id="sub_brand_id" placeholder="Cth: SBR-001"
-                               class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('sub_brand_id') input-error @enderror">
+                        <div class="relative group">
+                            <input wire:model.blur="sub_brand_id" type="text" id="sub_brand_id" placeholder="Cth: SBR-001"
+                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('sub_brand_id') input-error @enderror"
+                                   {{ $isEditing ? 'disabled' : '' }}>
+                            @if($isEditing)
+                                <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-base-content/30">
+                                    <x-heroicon-s-lock-closed class="w-4 h-4" />
+                                </div>
+                            @endif
+                        </div>
                         @error('sub_brand_id') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1 mt-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" /> {{ $message }}</span> @enderror
                     </div>
 
@@ -201,6 +229,67 @@
                     <span wire:loading wire:target="delete" class="loading loading-spinner loading-sm"></span>
                 </button>
             </div>
+        </div>
+    </div>
+
+    {{-- ========== MODAL IMPORT ========== --}}
+    <div x-data="{ open: @entangle('isImportModalOpen') }"
+         x-show="open" x-cloak
+         class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
+
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+             class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-md overflow-hidden ring-1 ring-base-content/5 flex flex-col text-base-content">
+            
+            <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 rounded-2xl bg-info/10 text-info">
+                        <x-heroicon-s-arrow-up-tray class="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg leading-none">Import Product Sub-Brand</h3>
+                        <p class="text-[11px] text-base-content/50 mt-1 uppercase tracking-wider font-semibold">Unggah data Excel/CSV</p>
+                    </div>
+                </div>
+                <button @click="open = false" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300 transition-all duration-200">
+                    <x-heroicon-s-x-mark class="w-5 h-5" />
+                </button>
+            </div>
+
+            <form wire:submit.prevent="import">
+                <div class="p-6 space-y-4 bg-base-100">
+                    <div class="alert alert-info shadow-sm rounded-xl border-none bg-info/10 text-info shrink-0 flex items-start text-xs p-3">
+                        <x-heroicon-s-information-circle class="w-5 h-5 shrink-0" />
+                        <div class="flex-1">
+                            Gunakan template yang disediakan untuk menghindari kegagalan import. Pastikan tidak mengubah header kolom.
+                        </div>
+                    </div>
+                    
+                    <button type="button" wire:click="downloadTemplate" class="btn btn-sm btn-outline btn-info rounded-xl w-full normal-case gap-2">
+                        <span wire:loading.remove wire:target="downloadTemplate"><x-heroicon-s-arrow-down-tray class="w-4 h-4" /></span>
+                        <span wire:loading wire:target="downloadTemplate" class="loading loading-spinner loading-xs"></span>
+                        Download Template
+                    </button>
+
+                    <div class="form-control w-full">
+                        <label class="label text-xs font-bold uppercase tracking-wider text-base-content/50 px-1 pt-4">Pilih File Excel/CSV</label>
+                        <input type="file" wire:model="importFile" accept=".xlsx,.xls,.csv" class="file-input file-input-bordered file-input-primary w-full rounded-2xl" required />
+                        @error('importFile') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1 mt-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" /> {{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 px-6 py-5 border-t border-base-300 bg-base-200/30 shrink-0">
+                    <button type="button" @click="open = false" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300 transition-all duration-200">Batal</button>
+                    <button type="submit" class="btn btn-primary rounded-xl px-8 normal-case shadow-sm shadow-primary/20 gap-2" wire:loading.attr="disabled">
+                        <span wire:loading.remove wire:target="import">Proses Import</span>
+                        <span wire:loading wire:target="import" class="loading loading-spinner loading-xs"></span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

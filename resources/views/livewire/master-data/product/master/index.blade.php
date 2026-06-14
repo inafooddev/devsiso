@@ -1,153 +1,181 @@
-<div>
-    <x-slot name="title">Data Master Products</x-slot>
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 w-full h-full">
+    <x-slot name="title">Data Master Product</x-slot>
 
-    <div class="mx-auto px-4 sm:px-6 py-8 text-base-content">
-        {{-- Notifikasi --}}
-        <div class="mb-6 space-y-3">
-            @if (session()->has('message'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
-                     class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
-                    <x-heroicon-s-check-circle class="w-6 h-6 shrink-0" />
-                    <div><h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
-                         <div class="text-sm">{{ session('message') }}</div></div>
+    {{-- Notifikasi --}}
+    @if (session()->has('message'))
+        <div x-data="{ show: true }" x-show="show" class="alert alert-success shadow-sm rounded-xl border-none bg-success/20 text-success shrink-0 flex items-start">
+            <x-heroicon-s-check-circle class="w-5 h-5 mt-0.5 shrink-0" />
+            <div class="flex-1">
+                <h3 class="font-bold text-[10px] uppercase tracking-wider">Sukses</h3>
+                <div class="text-xs">{{ session('message') }}</div>
+            </div>
+            <button @click="show = false" class="btn btn-ghost btn-xs btn-circle shrink-0 mt-0.5 opacity-70 hover:opacity-100 hover:bg-success/20 transition-all">
+                <x-heroicon-s-x-mark class="w-4 h-4" />
+            </button>
+        </div>
+    @endif
+
+    @if (session()->has('error'))
+        <div x-data="{ show: true }" x-show="show" class="alert alert-error shadow-sm rounded-xl border-none bg-error/20 text-error shrink-0 flex items-start">
+            <x-heroicon-s-x-circle class="w-5 h-5 mt-0.5 shrink-0" />
+            <div class="flex-1">
+                <h3 class="font-bold text-[10px] uppercase tracking-wider">Error</h3>
+                <div class="text-xs">{{ session('error') }}</div>
+            </div>
+            <button @click="show = false" class="btn btn-ghost btn-xs btn-circle shrink-0 mt-0.5 opacity-70 hover:opacity-100 hover:bg-error/20 transition-all">
+                <x-heroicon-s-x-mark class="w-4 h-4" />
+            </button>
+        </div>
+    @endif
+
+    {{-- Main Card (Tabel) --}}
+    <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+        
+        {{-- Header Card & Actions --}}
+        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+            <div class="shrink-0 w-full sm:w-auto">
+                <h2 class="text-base md:text-lg font-bold">Master Product</h2>
+                <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Kelola data produk beserta atribut UOM dan harga</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
+                {{-- Search --}}
+                <x-ui.search-input wire:model.live.debounce.300ms="search" placeholder="Cari produk..." />
+
+                {{-- Status Filter --}}
+                <select wire:model.live="statusFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300 font-medium text-xs">
+                    <option value="">Semua Status</option>
+                    <option value="1">Aktif</option>
+                    <option value="0">Tidak Aktif</option>
+                </select>
+
+                {{-- Action Buttons --}}
+                <div class="flex flex-wrap items-center gap-1 md:gap-2">
+                    @canEdit('product-masters.index')
+                    <x-ui.action-button type="import" wire:click="openImportModal" />
+                    <x-ui.action-button type="add" wire:click="openCreateModal" />
+                    <div class="hidden md:block w-px h-6 bg-base-300 mx-1"></div>
+                    @endcanEdit
+                    
+                    @canExport('product-masters.index')
+                    <x-ui.action-button type="export" wire:click="export" />
+                    @endcanExport
                 </div>
-            @endif
-            @if (session()->has('error'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
-                     class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
-                    <x-heroicon-s-x-circle class="w-6 h-6 shrink-0" />
-                    <div><h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
-                         <div class="text-sm">{{ session('error') }}</div></div>
-                </div>
-            @endif
+            </div>
         </div>
 
-        <x-card flush title="Master Product" icon="cube" subtitle="Kelola data produk beserta atribut UOM dan harga zona" class="pb-6">
-            <x-slot:actions>
-                <div class="flex flex-wrap items-center gap-3">
-                    {{-- Search --}}
-                    <div class="relative group">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/30 group-focus-within:text-primary transition-colors">
-                            <x-heroicon-s-magnifying-glass class="w-4 h-4" />
-                        </div>
-                        <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari kode atau nama produk..."
-                               class="input input-sm input-bordered pl-10 w-full sm:w-72 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                    </div>
-
-                    {{-- Status Filter --}}
-                    <select wire:model.live="statusFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                        <option value="">Semua Status</option>
-                        <option value="1">Aktif</option>
-                        <option value="0">Tidak Aktif</option>
-                    </select>
-
-                    {{-- Export --}}
-                    @canExport('product-masters.index')
-                    <button wire:click="export" wire:loading.attr="disabled" class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
-                        <span wire:loading.remove wire:target="export"><x-heroicon-s-arrow-down-tray class="w-4 h-4" /></span>
-                        <span wire:loading wire:target="export" class="loading loading-spinner loading-xs"></span>
-                        Export
-                    </button>
-                    @endcanExport
-
-                    {{-- Add Button --}}
-                    @canEdit('product-masters.index')
-                    <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
-                        <x-heroicon-s-plus class="w-4 h-4" />
-                        Tambah Produk
-                    </button>
-                    @endcanEdit
-                </div>
-            </x-slot:actions>
-
-            {{-- Tabel --}}
-            <x-ui.table empty="Tidak ada data produk ditemukan.">
-                <x-slot:head>
+        {{-- Body Card (Tabel Scrollable area) --}}
+        <div class="flex-1 overflow-auto bg-base-100 w-full relative">
+            <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
+                <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
                     <tr>
                         <th class="w-12">No</th>
-                        <th>Product ID</th>
-                        <th>Nama Produk</th>
+                        <th>Produk</th>
                         <th class="text-center">Status</th>
                         <th>Group</th>
                         <th>UOM</th>
                         <th>Base Unit</th>
                         <th>CTN->PCS</th>
-                        <th>ctn->pak</th>
-                        <th>pak/pcs</th>
+                        <th>CTN->PAK</th>
+                        <th>PAK->PCS</th>
                         <th class="text-right">Zone 1</th>
                         <th class="text-right">Zone 2</th>
                         <th class="text-right">Zone 3</th>
-                        <th class="text-center w-24">Aksi</th>
+                        <th class="text-center bg-base-200 shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] w-24">Aksi</th>
                     </tr>
-                </x-slot:head>
-
-                @foreach ($products as $index => $product)
-                    <tr wire:key="product-{{ $product->product_id }}" class="group text-sm">
-                        <td><span class="text-xs font-semibold text-base-content/40">{{ $products->firstItem() + $index }}</span></td>
-                        <td>
-                            <span class="badge badge-sm badge-outline border-base-300 text-primary font-mono px-2 py-3 rounded-lg">{{ $product->product_id }}</span>
-                        </td>
-                        <td>
-                            <span class="font-bold text-base-content/80 group-hover:text-primary transition-colors">{{ $product->product_name }}</span>
-                        </td>
-                        <td class="text-center">
-                            @if ($product->is_active)
-                                <span class="badge badge-sm badge-success/20 text-success border-success/30 px-3 rounded-full">Aktif</span>
-                            @else
-                                <span class="badge badge-sm badge-error/20 text-error border-error/30 px-3 rounded-full">Nonaktif</span>
-                            @endif
-                        </td>
-                        <td>
-                            <div class="text-xs text-base-content/50 space-y-0.5">
-                                <div>{{ $product->line_name ?? '-' }}</div>
-                                <div>{{ $product->brand_name ?? '-' }}</div>
-                                <div>{{ $product->brand_unit_name ?? '-' }}</div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="text-xs text-base-content/50 space-y-0.5">
-                                <div>{{ $product->uom1 ?? '-' }}</div>
-                                <div>{{ $product->uom2 ?? '-' }}</div>
-                                <div>{{ $product->uom3 ?? '-' }}</div>
-                            </div>
-                        </td>
-                        <td><span class="text-base-content/60">{{ $product->base_unit ?? '-' }}</span></td>
-                        <td>{{ $product->conv_unit1 ?? '-' }}</td>
-                        <td>{{ $product->conv_unit2 ?? '-' }}</td>
-                        <td>{{ $product->conv_unit3 ?? '-' }}</td>
-                        <td class="text-right font-mono text-xs">{{ $product->price_zone1 ? number_format($product->price_zone1, 0, ',', '.') : '-' }}</td>
-                        <td class="text-right font-mono text-xs">{{ $product->price_zone2 ? number_format($product->price_zone2, 0, ',', '.') : '-' }}</td>
-                        <td class="text-right font-mono text-xs">{{ $product->price_zone3 ? number_format($product->price_zone3, 0, ',', '.') : '-' }}</td>
-                        <td>
-                            <div class="flex items-center justify-center gap-1">
-                                @canEdit('product-masters.index')
-                                <button wire:click="openEditModal('{{ $product->product_id }}')"
-                                        class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit">
-                                    <x-heroicon-s-pencil-square class="w-4 h-4" />
-                                </button>
-                                <button wire:click="confirmDelete('{{ $product->product_id }}')"
-                                        class="btn btn-ghost btn-xs btn-square rounded-lg text-error hover:bg-error/10 transition-all duration-200" title="Hapus">
-                                    <x-heroicon-s-trash class="w-4 h-4" />
-                                </button>
+                </thead>
+                <tbody class="text-sm">
+                    @forelse ($products as $index => $product)
+                        <tr wire:key="product-{{ $product->product_id }}" class="hover:bg-base-200/50 transition-colors group">
+                            <th>{{ $products->firstItem() + $index }}</th>
+                            
+                            {{-- Produk --}}
+                            <td>
+                                <div class="flex flex-col gap-0.5">
+                                    <span class="font-bold text-[11px] text-base-content/90">{{ $product->product_name }}</span>
+                                    <span class="text-[10px] text-base-content/50 font-mono uppercase">{{ $product->product_id }}</span>
+                                </div>
+                            </td>
+                            
+                            {{-- Status --}}
+                            <td class="text-center">
+                                @if ($product->is_active)
+                                    <span class="badge badge-sm badge-success/20 text-success border-success/30 px-3 rounded-full font-semibold">Aktif</span>
                                 @else
-                                <span class="text-xs text-base-content/50 italic">View Only</span>
-                                @endcanEdit
-                            </div>
-                        </td>
-                    </tr>
-                @endforeach
-            </x-ui.table>
+                                    <span class="badge badge-sm badge-error/20 text-error border-error/30 px-3 rounded-full font-semibold">Nonaktif</span>
+                                @endif
+                            </td>
 
-            @if($products->hasPages())
-                <div class="mt-4 px-6">{{ $products->links() }}</div>
-            @endif
-        </x-card>
+                            {{-- Group --}}
+                            <td>
+                                <div class="flex flex-col gap-0.5 text-[10px] text-base-content/60 font-medium">
+                                    <span>{{ $product->line_name ?? '-' }}</span>
+                                    <span>{{ $product->brand_name ?? '-' }}</span>
+                                    <span class="text-base-content/40">{{ $product->brand_unit_name ?? '-' }}</span>
+                                </div>
+                            </td>
+
+                            {{-- UOM --}}
+                            <td>
+                                <div class="flex flex-col gap-0.5 text-[10px] text-base-content/60 font-medium font-mono">
+                                    <span>{{ $product->uom1 ?? '-' }}</span>
+                                    <span>{{ $product->uom2 ?? '-' }}</span>
+                                    <span>{{ $product->uom3 ?? '-' }}</span>
+                                </div>
+                            </td>
+
+                            {{-- Base Unit --}}
+                            <td>
+                                <span class="text-[11px] font-semibold text-base-content/70">{{ $product->base_unit ?? '-' }}</span>
+                            </td>
+
+                            {{-- Konversi --}}
+                            <td class="text-[11px] font-mono">{{ $product->conv_unit1 ?? '-' }}</td>
+                            <td class="text-[11px] font-mono">{{ $product->conv_unit2 ?? '-' }}</td>
+                            <td class="text-[11px] font-mono">{{ $product->conv_unit3 ?? '-' }}</td>
+
+                            {{-- Zone --}}
+                            <td class="text-right font-mono text-[11px] text-base-content/80">{{ $product->price_zone1 ? number_format($product->price_zone1, 0, ',', '.') : '-' }}</td>
+                            <td class="text-right font-mono text-[11px] text-base-content/80">{{ $product->price_zone2 ? number_format($product->price_zone2, 0, ',', '.') : '-' }}</td>
+                            <td class="text-right font-mono text-[11px] text-base-content/80">{{ $product->price_zone3 ? number_format($product->price_zone3, 0, ',', '.') : '-' }}</td>
+
+                            {{-- Aksi --}}
+                            <td class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
+                                @canEdit('product-masters.index')
+                                <div class="flex items-center justify-center gap-1 transition-opacity duration-200">
+                                    <x-ui.action-button type="edit" wire:click="openEditModal('{{ $product->product_id }}')" class="btn-square" title="Edit" />
+                                    <x-ui.action-button type="delete" wire:click="confirmDelete('{{ $product->product_id }}')" class="btn-square" title="Hapus" />
+                                </div>
+                                @else
+                                <span class="text-[10px] text-base-content/50 italic">View Only</span>
+                                @endcanEdit
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="13">
+                                <div class="flex flex-col items-center justify-center py-12 text-base-content/40">
+                                    <x-heroicon-o-inbox class="w-12 h-12 mb-3 opacity-20" />
+                                    <p class="text-sm font-medium">Tidak ada data ditemukan.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        @if($products->hasPages())
+            <div class="p-3 md:p-4 lg:p-5 border-t border-base-300 shrink-0 bg-base-200">
+                {{ $products->links() }}
+            </div>
+        @endif
     </div>
 
     {{-- ========== MODAL FORM (Create / Edit) ========== --}}
     <div x-data="{ open: @entangle('isFormModalOpen') }"
          x-show="open" x-cloak
-         class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-10 overflow-y-auto">
+         class="fixed inset-0 z-[60] flex items-start justify-center p-4 pt-10 overflow-y-auto">
 
         {{-- Backdrop --}}
         <div x-show="open"
@@ -162,7 +190,7 @@
              class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-3xl ring-1 ring-base-content/5 text-base-content my-auto">
 
             {{-- Header --}}
-            <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30 rounded-t-3xl">
+            <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30 rounded-t-3xl shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="p-2.5 rounded-2xl bg-primary/10 text-primary">
                         @if($isEditing)
@@ -183,7 +211,7 @@
 
             {{-- Body --}}
             <form wire:submit.prevent="save">
-                <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto bg-base-100 custom-scrollbar">
 
                     {{-- === Section: Identitas Produk === --}}
                     <div>
@@ -194,17 +222,24 @@
                             {{-- Product ID --}}
                             <div class="space-y-1.5">
                                 <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Kode Produk <span class="text-error">*</span></label>
-                                <input wire:model.blur="product_id" type="text" placeholder="Contoh: PRD001"
-                                       class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('product_id') input-error @enderror"
-                                       {{ $isEditing ? 'readonly' : '' }}>
-                                @error('product_id') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
+                                <div class="relative group">
+                                    <input wire:model.blur="product_id" type="text" placeholder="Contoh: PRD001"
+                                           class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('product_id') input-error @enderror"
+                                           {{ $isEditing ? 'readonly' : '' }}>
+                                    @if($isEditing)
+                                        <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-base-content/30">
+                                            <x-heroicon-s-lock-closed class="w-4 h-4" />
+                                        </div>
+                                    @endif
+                                </div>
+                                @error('product_id') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1 mt-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
                             </div>
                             {{-- Product Name --}}
                             <div class="space-y-1.5">
                                 <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Nama Produk <span class="text-error">*</span></label>
                                 <input wire:model="product_name" type="text" placeholder="Nama lengkap produk"
                                        class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('product_name') input-error @enderror">
-                                @error('product_name') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
+                                @error('product_name') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1 mt-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
                             </div>
                             {{-- Line --}}
                             <div class="space-y-1.5">
@@ -215,7 +250,7 @@
                                         <option value="{{ $line->line_id }}">{{ $line->line_name }}</option>
                                     @endforeach
                                 </select>
-                                @error('line_id') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
+                                @error('line_id') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1 mt-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
                             </div>
                             {{-- Brand --}}
                             <div class="space-y-1.5">
@@ -226,7 +261,7 @@
                                         <option value="{{ $brand->brand_id }}">{{ $brand->brand_name }}</option>
                                     @endforeach
                                 </select>
-                                @error('brand_id') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
+                                @error('brand_id') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1 mt-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
                             </div>
                             {{-- Group --}}
                             <div class="space-y-1.5">
@@ -237,7 +272,7 @@
                                         <option value="{{ $group->product_group_id }}">{{ $group->brand_unit_name }}</option>
                                     @endforeach
                                 </select>
-                                @error('product_group_id') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
+                                @error('product_group_id') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1 mt-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
                             </div>
                             {{-- Sub Brand --}}
                             <div class="space-y-1.5">
@@ -262,7 +297,7 @@
                                 <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Unit Dasar <span class="text-error">*</span></label>
                                 <input wire:model="base_unit" type="text" placeholder="Contoh: 90"
                                        class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('base_unit') input-error @enderror">
-                                @error('base_unit') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
+                                @error('base_unit') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1 mt-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" />{{ $message }}</span> @enderror
                             </div>
                         </div>
                     </div>
@@ -278,13 +313,13 @@
                                 <label class="text-xs font-bold text-base-content/50 ml-1">Nama Unit</label>
                                 <input wire:model="uom{{ $i }}" type="text" placeholder="Contoh: PCS"
                                        class="input input-sm input-bordered w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                                @error("uom{$i}") <span class="text-error text-[10px] ml-1">{{ $message }}</span> @enderror
+                                @error("uom{$i}") <span class="text-error text-[10px] font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                             </div>
                             <div class="space-y-1.5">
                                 <label class="text-xs font-bold text-base-content/50 ml-1">Konversi</label>
                                 <input wire:model="conv_unit{{ $i }}" type="number" step="0.01" min="0" placeholder="0.00"
                                        class="input input-sm input-bordered w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                                @error("conv_unit{$i}") <span class="text-error text-[10px] ml-1">{{ $message }}</span> @enderror
+                                @error("conv_unit{$i}") <span class="text-error text-[10px] font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                             </div>
                         </div>
                         @endforeach
@@ -299,7 +334,7 @@
                             <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Zone {{ $z }}</label>
                             <input wire:model="price_zone{{ $z }}" type="number" step="1" min="0" placeholder="0"
                                    class="input input-sm input-bordered w-full bg-base-200 border-base-300 rounded-xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                            @error("price_zone{$z}") <span class="text-error text-[10px] ml-1">{{ $message }}</span> @enderror
+                            @error("price_zone{$z}") <span class="text-error text-[10px] font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                         </div>
                         @endforeach
                     </div>
@@ -309,12 +344,12 @@
                     {{-- === Section: Kategori === --}}
                     <div class="space-y-2">
                         <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Pilih Kategori (Bisa lebih dari satu)</label>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-3 bg-base-200/50 rounded-2xl border border-base-300">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-3 bg-base-200/50 rounded-2xl border border-base-300 custom-scrollbar">
                             @foreach($allCategories as $cat)
                             <label class="flex items-center gap-2 cursor-pointer group p-1.5 rounded-xl hover:bg-base-300 transition-colors">
                                 <input wire:model="selectedCategories" type="checkbox" value="{{ $cat->category_id }}"
                                        class="checkbox checkbox-primary checkbox-sm rounded-md">
-                                <span class="text-xs text-base-content/70 group-hover:text-base-content transition-colors">{{ $cat->category_name }}</span>
+                                <span class="text-xs text-base-content/70 group-hover:text-base-content transition-colors font-medium">{{ $cat->category_name }}</span>
                             </label>
                             @endforeach
                         </div>
@@ -322,7 +357,7 @@
                 </div>
 
                 {{-- Footer --}}
-                <div class="flex items-center justify-end gap-3 px-6 py-5 border-t border-base-300 bg-base-200/30 rounded-b-3xl">
+                <div class="flex items-center justify-end gap-3 px-6 py-5 border-t border-base-300 bg-base-200/30 rounded-b-3xl shrink-0">
                     <button type="button" @click="open = false" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300 transition-all duration-200">Batal</button>
                     <button type="submit" class="btn btn-primary rounded-xl px-10 normal-case shadow-sm shadow-primary/20 gap-2">
                         <span wire:loading.remove wire:target="save">{{ $isEditing ? 'Simpan Perubahan' : 'Simpan Produk' }}</span>
@@ -354,12 +389,73 @@
                 <p class="text-[13px] text-base-content/50 leading-relaxed px-4">Data master produk ini akan dihapus secara <span class="text-error font-bold italic">permanen</span>.</p>
             </div>
             <div class="flex items-center justify-center gap-3 px-6 pb-8">
-                <button type="button" @click="open = false" class="btn btn-ghost flex-1 rounded-xl normal-case">Batal</button>
-                <button wire:click="delete" class="btn btn-error flex-1 rounded-xl normal-case shadow-sm shadow-error/20 text-white">
+                <button type="button" @click="open = false" class="btn btn-ghost flex-1 rounded-xl normal-case transition-all duration-200">Batal</button>
+                <button wire:click="delete" class="btn btn-error flex-1 rounded-xl normal-case shadow-sm shadow-error/20 text-white transition-all duration-200">
                     <span wire:loading.remove wire:target="delete">Ya, Hapus</span>
                     <span wire:loading wire:target="delete" class="loading loading-spinner loading-sm"></span>
                 </button>
             </div>
+        </div>
+    </div>
+
+    {{-- ========== MODAL IMPORT ========== --}}
+    <div x-data="{ open: @entangle('isImportModalOpen') }"
+         x-show="open" x-cloak
+         class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
+
+        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+             class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-md overflow-hidden ring-1 ring-base-content/5 flex flex-col text-base-content">
+            
+            <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 rounded-2xl bg-info/10 text-info">
+                        <x-heroicon-s-arrow-up-tray class="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg leading-none">Import Product Master</h3>
+                        <p class="text-[11px] text-base-content/50 mt-1 uppercase tracking-wider font-semibold">Unggah data Excel/CSV</p>
+                    </div>
+                </div>
+                <button @click="open = false" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300 transition-all duration-200">
+                    <x-heroicon-s-x-mark class="w-5 h-5" />
+                </button>
+            </div>
+
+            <form wire:submit.prevent="import">
+                <div class="p-6 space-y-4 bg-base-100">
+                    <div class="alert alert-info shadow-sm rounded-xl border-none bg-info/10 text-info shrink-0 flex items-start text-xs p-3">
+                        <x-heroicon-s-information-circle class="w-5 h-5 shrink-0" />
+                        <div class="flex-1">
+                            Gunakan template yang disediakan untuk menghindari kegagalan import. Pastikan tidak mengubah header kolom.
+                        </div>
+                    </div>
+                    
+                    <button type="button" wire:click="downloadTemplate" class="btn btn-sm btn-outline btn-info rounded-xl w-full normal-case gap-2">
+                        <span wire:loading.remove wire:target="downloadTemplate"><x-heroicon-s-arrow-down-tray class="w-4 h-4" /></span>
+                        <span wire:loading wire:target="downloadTemplate" class="loading loading-spinner loading-xs"></span>
+                        Download Template
+                    </button>
+
+                    <div class="form-control w-full">
+                        <label class="label text-xs font-bold uppercase tracking-wider text-base-content/50 px-1 pt-4">Pilih File Excel/CSV</label>
+                        <input type="file" wire:model="importFile" accept=".xlsx,.xls,.csv" class="file-input file-input-bordered file-input-primary w-full rounded-2xl" required />
+                        @error('importFile') <span class="text-error text-[10px] font-medium ml-1 flex items-center gap-1 mt-1"><x-heroicon-s-exclamation-circle class="w-3 h-3" /> {{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 px-6 py-5 border-t border-base-300 bg-base-200/30 shrink-0">
+                    <button type="button" @click="open = false" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300 transition-all duration-200">Batal</button>
+                    <button type="submit" class="btn btn-primary rounded-xl px-8 normal-case shadow-sm shadow-primary/20 gap-2" wire:loading.attr="disabled">
+                        <span wire:loading.remove wire:target="import">Proses Import</span>
+                        <span wire:loading wire:target="import" class="loading loading-spinner loading-xs"></span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

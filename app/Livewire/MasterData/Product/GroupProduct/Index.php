@@ -5,12 +5,17 @@ namespace App\Livewire\MasterData\Product\GroupProduct;
 use Livewire\Component;
 use App\Models\ProductGroup;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use Illuminate\Validation\Rule;
 use App\Traits\EnforcesMenuPermissions;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProductGroupsExport;
+use App\Exports\ProductGroupsTemplateExport;
+use App\Imports\ProductGroupsImport;
 
 class Index extends Component
 {
-    use WithPagination, EnforcesMenuPermissions;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
     protected string $menuRoute = 'product-groups.index';
@@ -21,12 +26,14 @@ class Index extends Component
     public $isFormModalOpen = false;
     public $isEditing = false;
     public $isDeleteModalOpen = false;
+    public $isImportModalOpen = false;
     public $groupIdToDelete;
 
     // Form Fields
     public $product_group_id;
     public $brand_unit_name;
     public $old_group_id;
+    public $importFile;
 
     protected $queryString = ['search' => ['except' => '']];
 
@@ -114,7 +121,7 @@ class Index extends Component
         $groups = ProductGroup::where('product_group_id', 'ILIKE', '%' . $this->search . '%')
             ->orWhere('brand_unit_name', 'ILIKE', '%' . $this->search . '%')
             ->latest('product_group_id')
-            ->paginate(10);
+            ->paginate(50);
 
         return view('livewire.master-data.product.group.index', [
             'groups' => $groups,
@@ -138,5 +145,43 @@ class Index extends Component
             session()->flash('message', 'Product Group berhasil dihapus.');
         }
         $this->isDeleteModalOpen = false;
+    }
+
+    public function export()
+    {
+        $this->authorizeAction('can_export');
+        \App\Helpers\ActivityLogger::log('Export Product Group', "Mengekspor data product group");
+        return Excel::download(new ProductGroupsExport(), 'product_groups.xlsx');
+    }
+
+    public function downloadTemplate()
+    {
+        return Excel::download(new ProductGroupsTemplateExport(), 'template_import_product_groups.xlsx');
+    }
+
+    public function openImportModal()
+    {
+        $this->importFile = null;
+        $this->isImportModalOpen = true;
+    }
+
+    public function import()
+    {
+        $this->authorizeAction('can_edit');
+        
+        $this->validate([
+            'importFile' => 'required|mimes:xlsx,xls,csv|max:2048',
+        ]);
+
+        try {
+            Excel::import(new ProductGroupsImport, $this->importFile);
+            \App\Helpers\ActivityLogger::log('Import Product Group', "Mengimpor data product group dari Excel");
+            session()->flash('message', 'Data Product Group berhasil diimport.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Terjadi kesalahan saat import: ' . $e->getMessage());
+        }
+
+        $this->isImportModalOpen = false;
+        $this->importFile = null;
     }
 }

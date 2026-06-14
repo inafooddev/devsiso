@@ -5,12 +5,17 @@ namespace App\Livewire\MasterData\Product\SubBrandProduct;
 use Livewire\Component;
 use App\Models\ProductSubBrand;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use Illuminate\Validation\Rule;
 use App\Traits\EnforcesMenuPermissions;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProductSubBrandsExport;
+use App\Exports\ProductSubBrandsTemplateExport;
+use App\Imports\ProductSubBrandsImport;
 
 class Index extends Component
 {
-    use WithPagination, EnforcesMenuPermissions;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
     protected string $menuRoute = 'product-sub-brands.index';
@@ -21,12 +26,14 @@ class Index extends Component
     public $isFormModalOpen = false;
     public $isEditing = false;
     public $isDeleteModalOpen = false;
+    public $isImportModalOpen = false;
     public $subBrandIdToDelete;
 
     // Form Fields
     public $sub_brand_id;
     public $sub_brand_name;
     public $old_sub_brand_id;
+    public $importFile;
 
     protected $queryString = ['search' => ['except' => '']];
 
@@ -114,7 +121,7 @@ class Index extends Component
         $subBrands = ProductSubBrand::where('sub_brand_id', 'ILIKE', '%' . $this->search . '%')
             ->orWhere('sub_brand_name', 'ILIKE', '%' . $this->search . '%')
             ->latest('sub_brand_id')
-            ->paginate(10);
+            ->paginate(50);
 
         return view('livewire.master-data.product.sub-brand.index', [
             'subBrands' => $subBrands,
@@ -138,5 +145,43 @@ class Index extends Component
             session()->flash('message', 'Product Sub-Brand berhasil dihapus.');
         }
         $this->isDeleteModalOpen = false;
+    }
+
+    public function export()
+    {
+        $this->authorizeAction('can_export');
+        \App\Helpers\ActivityLogger::log('Export Product Sub-Brand', "Mengekspor data product sub-brand");
+        return Excel::download(new ProductSubBrandsExport(), 'product_sub_brands.xlsx');
+    }
+
+    public function downloadTemplate()
+    {
+        return Excel::download(new ProductSubBrandsTemplateExport(), 'template_import_product_sub_brands.xlsx');
+    }
+
+    public function openImportModal()
+    {
+        $this->importFile = null;
+        $this->isImportModalOpen = true;
+    }
+
+    public function import()
+    {
+        $this->authorizeAction('can_edit');
+        
+        $this->validate([
+            'importFile' => 'required|mimes:xlsx,xls,csv|max:2048',
+        ]);
+
+        try {
+            Excel::import(new ProductSubBrandsImport, $this->importFile);
+            \App\Helpers\ActivityLogger::log('Import Product Sub-Brand', "Mengimpor data product sub-brand dari Excel");
+            session()->flash('message', 'Data Product Sub-Brand berhasil diimport.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Terjadi kesalahan saat import: ' . $e->getMessage());
+        }
+
+        $this->isImportModalOpen = false;
+        $this->importFile = null;
     }
 }

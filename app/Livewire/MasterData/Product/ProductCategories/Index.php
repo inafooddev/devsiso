@@ -7,12 +7,17 @@ use App\Models\ProductCategory;
 use App\Models\ProductMaster;
 use App\Models\Category;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use Illuminate\Validation\Rule;
 use App\Traits\EnforcesMenuPermissions;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProductCategoriesMapExport;
+use App\Exports\ProductCategoriesMapTemplateExport;
+use App\Imports\ProductCategoriesMapImport;
 
 class Index extends Component
 {
-    use WithPagination, EnforcesMenuPermissions;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
     protected string $menuRoute = 'product-categories.index';
@@ -23,7 +28,9 @@ class Index extends Component
     public $isFormModalOpen = false;
     public $isEditing = false;
     public $isDeleteModalOpen = false;
+    public $isImportModalOpen = false;
     public $mappingIdToDelete;
+    public $importFile;
 
     // Form Fields
     public $mapping_id;
@@ -137,7 +144,7 @@ class Index extends Component
                       ->orWhere('category_id', 'ILIKE', '%' . $this->search . '%');
             })
             ->latest()
-            ->paginate(10);
+            ->paginate(50);
 
         return view('livewire.master-data.product.map-categories.index', [
             'mappings' => $mappings,
@@ -161,6 +168,44 @@ class Index extends Component
             session()->flash('message', 'Pemetaan Kategori Produk berhasil dihapus.');
         }
         $this->isDeleteModalOpen = false;
+    }
+
+    public function export()
+    {
+        $this->authorizeAction('can_export');
+        \App\Helpers\ActivityLogger::log('Export Product Categories Map', "Mengekspor data pemetaan product categories");
+        return Excel::download(new ProductCategoriesMapExport(), 'product_categories_mapping.xlsx');
+    }
+
+    public function downloadTemplate()
+    {
+        return Excel::download(new ProductCategoriesMapTemplateExport(), 'template_import_product_categories_map.xlsx');
+    }
+
+    public function openImportModal()
+    {
+        $this->importFile = null;
+        $this->isImportModalOpen = true;
+    }
+
+    public function import()
+    {
+        $this->authorizeAction('can_edit');
+        
+        $this->validate([
+            'importFile' => 'required|mimes:xlsx,xls,csv|max:2048',
+        ]);
+
+        try {
+            Excel::import(new ProductCategoriesMapImport, $this->importFile);
+            \App\Helpers\ActivityLogger::log('Import Product Categories Map', "Mengimpor data pemetaan product categories dari Excel");
+            session()->flash('message', 'Data Pemetaan Product Categories berhasil diimport.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Terjadi kesalahan saat import: ' . $e->getMessage());
+        }
+
+        $this->isImportModalOpen = false;
+        $this->importFile = null;
     }
 }
 

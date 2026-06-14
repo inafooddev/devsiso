@@ -5,12 +5,17 @@ namespace App\Livewire\MasterData\Product\LineProduct;
 use Livewire\Component;
 use App\Models\ProductLine;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use Illuminate\Validation\Rule;
 use App\Traits\EnforcesMenuPermissions;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProductLinesExport;
+use App\Exports\ProductLinesTemplateExport;
+use App\Imports\ProductLinesImport;
 
 class Index extends Component
 {
-    use WithPagination, EnforcesMenuPermissions;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
     protected string $menuRoute = 'product-lines.index';
@@ -21,12 +26,14 @@ class Index extends Component
     public $isFormModalOpen = false;
     public $isEditing = false;
     public $isDeleteModalOpen = false;
+    public $isImportModalOpen = false;
     public $lineIdToDelete;
 
     // Form Fields
     public $line_id;
     public $line_name;
     public $old_line_id;
+    public $importFile;
 
     protected $queryString = ['search' => ['except' => '']];
 
@@ -114,7 +121,7 @@ class Index extends Component
         $lines = ProductLine::where('line_id', 'ilike', '%' . $this->search . '%')
             ->orWhere('line_name', 'ilike', '%' . $this->search . '%')
             ->latest('line_id')
-            ->paginate(10);
+            ->paginate(50);
 
         return view('livewire.master-data.product.line.index', [
             'lines' => $lines,
@@ -145,5 +152,43 @@ class Index extends Component
         }
 
         $this->isDeleteModalOpen = false;
+    }
+
+    public function export()
+    {
+        $this->authorizeAction('can_export');
+        \App\Helpers\ActivityLogger::log('Export Product Line', "Mengekspor data product line");
+        return Excel::download(new ProductLinesExport(), 'product_lines.xlsx');
+    }
+
+    public function downloadTemplate()
+    {
+        return Excel::download(new ProductLinesTemplateExport(), 'template_import_product_lines.xlsx');
+    }
+
+    public function openImportModal()
+    {
+        $this->importFile = null;
+        $this->isImportModalOpen = true;
+    }
+
+    public function import()
+    {
+        $this->authorizeAction('can_edit');
+        
+        $this->validate([
+            'importFile' => 'required|mimes:xlsx,xls,csv|max:2048',
+        ]);
+
+        try {
+            Excel::import(new ProductLinesImport, $this->importFile);
+            \App\Helpers\ActivityLogger::log('Import Product Line', "Mengimpor data product line dari Excel");
+            session()->flash('message', 'Data Product Line berhasil diimport.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Terjadi kesalahan saat import: ' . $e->getMessage());
+        }
+
+        $this->isImportModalOpen = false;
+        $this->importFile = null;
     }
 }
