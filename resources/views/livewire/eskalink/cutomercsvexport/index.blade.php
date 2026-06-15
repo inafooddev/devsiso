@@ -1,5 +1,5 @@
 <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
-    <x-slot name="title">Laporan Customer Belum Terpetakan (ESKA)</x-slot>
+    <x-slot name="title">Data PDAMASTER (SAP Export)</x-slot>
 
     {{-- Notifikasi --}}
     @if (session()->has('message') || session()->has('error'))
@@ -30,11 +30,11 @@
                 <div class="flex flex-col gap-1">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                            <x-heroicon-s-user-minus class="w-5 h-5 text-primary" />
+                            <x-heroicon-s-document-arrow-down class="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                            <h2 class="text-lg md:text-xl font-bold text-base-content leading-none">Unmapped Customers</h2>
-                            <p class="text-xs text-base-content/60 mt-1">Laporan customer distributor yang belum memiliki pemetaan valid di sistem principal</p>
+                            <h2 class="text-lg md:text-xl font-bold text-base-content leading-none">PDAMASTER SAP Export</h2>
+                            <p class="text-xs text-base-content/60 mt-1">Export data master customer dalam format TXT untuk integrasi sistem SAP</p>
                         </div>
                     </div>
                 </div>
@@ -53,11 +53,12 @@
                     
                     {{-- Export --}}
                     @if ($isFiltered)
-                    @canExport('customer-eska-unmap.index')
-                    <x-ui.action-button type="export" wire:click="export" wire:loading.attr="disabled">
+                    <button wire:click="export" wire:loading.attr="disabled"
+                            class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
+                        <span wire:loading.remove wire:target="export"><x-heroicon-s-arrow-down-tray class="w-4 h-4" /></span>
                         <span wire:loading wire:target="export" class="loading loading-spinner loading-xs ml-1"></span>
-                    </x-ui.action-button>
-                    @endcanExport
+                        Export SAP (.txt)
+                    </button>
                     @endif
                 </div>
             </div>
@@ -70,11 +71,11 @@
                     <div class="w-20 h-20 rounded-full bg-base-200 flex items-center justify-center mb-5">
                         <x-heroicon-s-funnel class="w-10 h-10" />
                     </div>
-                    <h3 class="text-base font-bold text-base-content/60 mb-1">Filter Belum Diterapkan</h3>
-                    <p class="text-sm text-center max-w-xs">Silakan tentukan periode dan wilayah untuk memuat laporan customer yang belum terpetakan.</p>
+                    <h3 class="text-base font-bold text-base-content/60 mb-1">Data Belum Dimuat</h3>
+                    <p class="text-sm text-center max-w-xs">Tentukan periode dan wilayah distributor untuk melihat data master customer.</p>
                     <button wire:click="$set('isFilterModalOpen', true)"
                             class="btn btn-sm btn-primary rounded-xl normal-case gap-2 mt-6 shadow-sm shadow-primary/20">
-                        <x-heroicon-s-funnel class="w-4 h-4" /> Buka Filter Laporan
+                        <x-heroicon-s-funnel class="w-4 h-4" /> Buka Filter Data
                     </button>
                 </div>
             @else
@@ -83,15 +84,12 @@
                         <thead>
                             <tr class="bg-base-200/50">
                                 <th class="w-12 text-center text-xs">No</th>
-                                <th class="text-xs">Bulan</th>
-                                <th class="text-xs">Region</th>
-                                <th class="text-xs">Area</th>
-                                <th class="text-xs">Branch</th>
+                                <th class="text-xs">Region / Area</th>
                                 <th class="text-xs">Distributor</th>
-                                <th class="text-xs bg-base-200/30">Cust No (Dist)</th>
-                                <th class="text-xs bg-base-200/30">Cust Name (Dist)</th>
-                                <th class="text-xs bg-primary/5">Cust No (Prc)</th>
-                                <th class="text-xs bg-primary/5">Cust Name (Prc)</th>
+                                <th class="w-32 text-xs">Cust No</th>
+                                <th class="text-xs">Nama Customer</th>
+                                <th class="text-xs">Kota</th>
+                                <th class="text-xs">Details (SAP)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -100,22 +98,47 @@
                                     <td class="text-center font-medium text-base-content/50">
                                         {{ $customers->firstItem() + $index }}
                                     </td>
-                                    <td><span class="font-mono text-xs font-bold text-base-content/60">{{ Carbon\Carbon::parse($row->bln)->format('M Y') }}</span></td>
-                                    <td><span class="font-bold text-base-content/80 text-xs">{{ $row->region_name }}</span></td>
-                                    <td><span class="text-[10px] text-base-content/50 font-bold uppercase tracking-widest">{{ $row->area_name }}</span></td>
-                                    <td class="text-[10px] text-base-content/50">{{ $row->branch }}</td>
-                                    <td><span class="font-medium text-base-content/80 text-xs">{{ $row->distributor_name }}</span></td>
-                                    <td class="bg-base-200/5 font-mono text-[10px]">{{ $row->custno_dist }}</td>
-                                    <td class="bg-base-200/5 font-bold text-base-content/80 text-xs">{{ $row->dist_cust_name }}</td>
-                                    <td class="bg-primary/5 font-mono text-[10px] text-primary">{{ $row->custno }}</td>
-                                    <td class="bg-primary/5 font-bold text-primary text-xs">{{ $row->prc_cust_name }}</td>
+                                    <td>
+                                        <div>
+                                            <span class="font-bold text-base-content/80 group-hover:text-primary transition-colors">
+                                                {{ $row->region_name }}
+                                            </span>
+                                            <div class="text-[11px] text-base-content/40 font-semibold uppercase tracking-wider mt-0.5">{{ $row->area_name }}</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="flex flex-col">
+                                            <span class="font-medium text-base-content/80">{{ $row->distributor_name }}</span>
+                                            <span class="text-[10px] text-base-content/40 font-mono">ID: {{ $row->kodecabang }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-sm badge-outline border-primary/30 text-primary font-mono rounded-lg">
+                                            {{ $row->custno }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="flex flex-col gap-0.5">
+                                            <span class="font-bold text-base-content/80">{{ $row->custname }}</span>
+                                            <span class="text-[10px] text-base-content/40 max-w-xs truncate" title="{{ $row->custadd1 }}">{{ $row->custadd1 }}</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="font-medium text-base-content/60 italic text-xs">{{ $row->ccity }}</span></td>
+                                    <td>
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="badge badge-xs bg-base-200 border-none text-base-content/50" title="Term">T: {{ $row->cterm }}</span>
+                                            <span class="badge badge-xs bg-base-200 border-none text-base-content/50" title="Type">Y: {{ $row->typeout }}</span>
+                                            <span class="badge badge-xs bg-base-200 border-none text-base-content/50" title="Group">G: {{ $row->grupout }}</span>
+                                            <span class="badge badge-xs bg-base-200 border-none text-base-content/50" title="Price">H: {{ $row->gharga }}</span>
+                                        </div>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="10" class="text-center py-8 text-base-content/50">
+                                    <td colspan="7" class="text-center py-8 text-base-content/50">
                                         <div class="flex flex-col items-center justify-center gap-2">
                                             <x-heroicon-o-inbox class="w-8 h-8 text-base-content/30" />
-                                            <span>Semua customer untuk wilayah dan periode ini sudah terpetakan dengan benar.</span>
+                                            <span>Tidak ada data customer yang ditemukan untuk kriteria filter ini.</span>
                                         </div>
                                     </td>
                                 </tr>
@@ -154,8 +177,8 @@
                         <x-heroicon-s-funnel class="w-6 h-6" />
                     </div>
                     <div>
-                        <h3 class="font-bold text-lg leading-none">Filter Unmapped Customer</h3>
-                        <p class="text-[11px] text-base-content/50 mt-1 uppercase tracking-wider font-semibold">Tentukan wilayah filter</p>
+                        <h3 class="font-bold text-lg leading-none">Filter PDAMASTER Export</h3>
+                        <p class="text-[11px] text-base-content/50 mt-1 uppercase tracking-wider font-semibold">Tentukan periode dan wilayah export</p>
                     </div>
                 </div>
                 <button @click="open = false" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300">
@@ -167,7 +190,7 @@
                 <div class="p-6 space-y-6 overflow-visible min-h-0">
                     {{-- Periode --}}
                     <div class="space-y-1.5 shrink-0">
-                        <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Bulan <span class="text-error">*</span></label>
+                        <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Periode Bulan <span class="text-error">*</span></label>
                         <input type="month" wire:model="monthFilter"
                                class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
                         @error('monthFilter') <span class="text-error text-[10px] font-medium ml-1">{{ $message }}</span> @enderror
@@ -295,7 +318,7 @@
                                             @endforeach
                                         @else
                                             <div class="py-6 px-4 text-center text-xs text-base-content/40 italic">
-                                                Pilih area terlebih dahulu
+                                                Pilih wilayah area untuk memuat distributor.
                                             </div>
                                         @endif
                                     </div>
@@ -314,7 +337,7 @@
                     <div class="flex gap-2">
                         <button type="button" @click="open = false" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300">Batal</button>
                         <button type="submit" class="btn btn-primary rounded-xl px-8 normal-case shadow-sm shadow-primary/20 gap-2">
-                            <x-heroicon-s-check-circle class="w-4 h-4" /> Tampilkan Laporan
+                            <x-heroicon-s-check-circle class="w-4 h-4" /> Tampilkan Data
                         </button>
                     </div>
                 </div>

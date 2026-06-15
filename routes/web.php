@@ -10,7 +10,7 @@ use App\Http\Controllers\ConfigSalesInvoiceDistributorController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\CallPlan\Index as CallPlanIndex;
-use App\Livewire\CustomerCsvExportComponent;
+
 use App\Livewire\Eskalink\CustomerEska\Index as CustomerEskaIndex;
 use App\Livewire\Eskalink\CustomerEskaDist\Index as CustomerEskaDistIndex;
 use App\Livewire\Eskalink\CustomerEskaMap\Index as CustomerEskaMapIndex;
@@ -187,7 +187,7 @@ Route::middleware(['auth'])->group(function () {
     // ==========================================
     Route::get('/customers/data', CustomerData::class)->name('customers.data');
     Route::get('/customer-export', CustomerExportComponent::class)->name('customer.export');
-    Route::get('/customer-csv-export', CustomerCsvExportComponent::class)->name('customer.csv.export');
+    Route::get('/customer-csv-export', \App\Livewire\Eskalink\CustomerCsvExport\Index::class)->name('customer.csv.export');
 
     // ==========================================
     // CALL PLAN

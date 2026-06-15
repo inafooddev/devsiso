@@ -282,7 +282,7 @@ class Index extends Component
                 });
             }
 
-            $data = $query->orderBy('pm.product_code_dist')->paginate(10);
+            $data = $query->orderBy('pm.product_code_dist')->paginate(100);
         }
 
         return view('livewire.eskalink.produk-eska.index', [

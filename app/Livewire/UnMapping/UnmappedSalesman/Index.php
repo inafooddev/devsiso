@@ -224,7 +224,7 @@ class Index extends Component
         $salesmans = collect();
         if ($this->hasAppliedFilters) {
             $query = $this->buildQuery();
-            $salesmans = $query->paginate(15);
+            $salesmans = $query->paginate(100);
         }
 
         return view('livewire.un-mapping.unmapped-salesman.index', [

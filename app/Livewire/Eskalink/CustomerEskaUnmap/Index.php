@@ -17,7 +17,7 @@ class Index extends Component
     protected $paginationTheme = 'tailwind';
     protected string $menuRoute = 'customer-eska-unmap.index';
 
-    // Filter properties (Multi-select support) apa ya 
+    // Filter properties (Multi-select)
     public $monthFilter;
     public $regionFilter = [];
     public $areaFilter = [];
@@ -107,15 +107,32 @@ class Index extends Component
         $this->updatedRegionFilter();
     }
 
+    public function clearAllRegions()
+    {
+        $this->regionFilter = [];
+        $this->updatedRegionFilter();
+    }
+
     public function selectAllAreas()
     {
         $this->areaFilter = $this->areasOption->pluck('area_code')->toArray();
         $this->updatedAreaFilter();
     }
 
+    public function clearAllAreas()
+    {
+        $this->areaFilter = [];
+        $this->updatedAreaFilter();
+    }
+
     public function selectAllDistributors()
     {
         $this->distributorFilter = $this->distributorsOption->pluck('distributor_code')->toArray();
+    }
+
+    public function clearAllDistributors()
+    {
+        $this->distributorFilter = [];
     }
 
     // --- DEPENDENT DROPDOWN ---
@@ -168,7 +185,8 @@ class Index extends Component
         $this->validate([
             'monthFilter' => 'required',
             'regionFilter' => 'required|array|min:1',
-            'areaFilter' => 'required|array|min:1',
+            'areaFilter' => 'nullable|array',
+            'distributorFilter' => 'nullable|array',
         ]);
 
         $user = auth()->user();
@@ -291,7 +309,7 @@ class Index extends Component
                 });
             }
 
-            $data = $query->orderBy('cme.distid', 'asc')->paginate(20);
+            $data = $query->orderBy('cme.distid', 'asc')->paginate(100);
         }
 
         return view('livewire.eskalink.customer-eska-unmap.index', [

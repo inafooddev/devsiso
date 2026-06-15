@@ -242,7 +242,7 @@ class Index extends Component
                 });
             }
 
-            $data = $query->orderBy('cme.custno_dist')->paginate(10);
+            $data = $query->orderBy('cme.custno_dist')->paginate(100);
         }
 
         return view('livewire.eskalink.customer-eska-map.index', [

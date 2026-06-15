@@ -1,69 +1,68 @@
-<div>
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <x-slot name="title">Laporan Salesman Belum Terpetakan</x-slot>
 
-    <div class="mx-auto px-4 sm:px-6 py-8 text-base-content">
-        {{-- Notifikasi --}}
-        <div class="mb-6 space-y-3">
-            @if (session()->has('message'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
-                     class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
-                    <x-heroicon-s-check-circle class="w-6 h-6 shrink-0" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
-                        <div class="text-sm">{{ session('message') }}</div>
-                    </div>
-                </div>
-            @endif
-            @if (session()->has('error'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
-                     class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
-                    <x-heroicon-s-x-circle class="w-6 h-6 shrink-0" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
-                        <div class="text-sm">{{ session('error') }}</div>
-                    </div>
-                </div>
-            @endif
-        </div>
+    {{-- Notifikasi --}}
+    @if (session()->has('message') || session()->has('error'))
+    <div class="shrink-0 mb-2">
+        @if (session()->has('message'))
+            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
+                 class="alert alert-success shadow-sm rounded-xl border-none bg-success/20 text-success text-sm py-2">
+                <x-heroicon-s-check-circle class="w-5 h-5 shrink-0" />
+                <span>{{ session('message') }}</span>
+            </div>
+        @endif
+        @if (session()->has('error'))
+            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
+                 class="alert alert-error shadow-sm rounded-xl border-none bg-error/20 text-error text-sm py-2">
+                <x-heroicon-s-x-circle class="w-5 h-5 shrink-0" />
+                <span>{{ session('error') }}</span>
+            </div>
+        @endif
+    </div>
+    @endif
 
-        <x-card flush title="Unmapped Salesmen" icon="user-group" subtitle="Laporan salesman distributor yang belum memiliki pemetaan ke salesman principal" class="pb-6">
-            <x-slot:actions>
-                <div class="flex flex-wrap items-center gap-2">
-                    {{-- Search --}}
-                    <div class="relative group">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/30 group-focus-within:text-primary transition-colors">
-                            <x-heroicon-s-magnifying-glass class="w-4 h-4" />
+    {{-- Card Wrapper --}}
+    <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+        {{-- Header Section --}}
+        <div class="flex-none p-4 md:p-6 border-b border-base-200">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                {{-- Title Area --}}
+                <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                            <x-heroicon-s-user-group class="w-5 h-5 text-primary" />
                         </div>
-                        <input wire:model.live.debounce.300ms="search" type="text"
-                               placeholder="Cari kode/nama salesman..."
-                               class="input input-sm input-bordered pl-10 w-full sm:w-64 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                        <div>
+                            <h2 class="text-lg md:text-xl font-bold text-base-content leading-none">Unmapped Salesmen</h2>
+                            <p class="text-xs text-base-content/60 mt-1">Laporan salesman distributor yang belum memiliki pemetaan ke salesman principal</p>
+                        </div>
                     </div>
+                </div>
 
+                {{-- Action Area --}}
+                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    {{-- Search --}}
+                    <x-ui.search-input wire:model.live.debounce.300ms="search" placeholder="Cari kode/nama salesman..." />
+                    
                     {{-- Filter Button --}}
-                    <button wire:click="$set('isFilterModalOpen', true)"
-                            class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
-                        <x-heroicon-s-funnel class="w-4 h-4" />
-                        Filter
-                        @if($hasAppliedFilters)
-                            <span class="badge badge-xs badge-primary rounded-full">ON</span>
-                        @endif
-                    </button>
-
+                    <x-ui.action-button type="filter" wire:click="$set('isFilterModalOpen', true)" :active="$hasAppliedFilters" />
+                    
+                    <div class="hidden md:block w-px h-6 bg-base-300 mx-1"></div>
+                    
                     {{-- Export --}}
                     @canExport('mapping.unmapped-salesmans')
-                    <button wire:click="export" wire:loading.attr="disabled"
-                            class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
-                        <span wire:loading.remove wire:target="export"><x-heroicon-s-arrow-down-tray class="w-4 h-4" /></span>
-                        <span wire:loading wire:target="export" class="loading loading-spinner loading-xs"></span>
-                        Export Excel
-                    </button>
+                    <x-ui.action-button type="export" wire:click="export" wire:loading.attr="disabled">
+                        <span wire:loading wire:target="export" class="loading loading-spinner loading-xs ml-1"></span>
+                    </x-ui.action-button>
                     @endcanExport
                 </div>
-            </x-slot:actions>
+            </div>
+        </div>
 
-            {{-- State: Filter Belum Diterapkan --}}
+        {{-- Table Section --}}
+        <div class="flex-1 min-h-0 relative overflow-hidden bg-base-200/30 flex flex-col">
             @if (!$hasAppliedFilters)
-                <div class="flex flex-col items-center justify-center py-20 text-base-content/40">
+                <div class="flex-1 flex flex-col items-center justify-center py-20 text-base-content/40">
                     <div class="w-20 h-20 rounded-full bg-base-200 flex items-center justify-center mb-5">
                         <x-heroicon-s-funnel class="w-10 h-10" />
                     </div>
@@ -75,53 +74,69 @@
                     </button>
                 </div>
             @else
-                {{-- Tabel --}}
-                <x-ui.table empty="Semua salesman untuk periode ini sudah memiliki pemetaan.">
-                    <x-slot:head>
-                        <tr>
-                            <th class="w-12 text-center text-xs">No</th>
-                            <th>Distributor</th>
-                            <th>Kode Salesman (Dist)</th>
-                            <th>Nama Salesman (Dist)</th>
-                            <th class="text-center w-24">Aksi</th>
-                        </tr>
-                    </x-slot:head>
-
-                    @foreach ($salesmans as $index => $salesman)
-                        <tr wire:key="salesman-{{ $salesman->distributor_code }}-{{ $salesman->salesman_code }}" class="group text-sm">
-                            <td class="text-center"><span class="text-xs font-semibold text-base-content/40">{{ $salesmans->firstItem() + $index }}</span></td>
-                            <td>
-                                <div>
-                                    <span class="font-bold text-base-content/80 group-hover:text-primary transition-colors">
-                                        {{ $salesman->distributor_name }}
-                                    </span>
-                                    <div class="text-xs text-base-content/40 font-mono mt-0.5">{{ $salesman->distributor_code }}</div>
-                                </div>
-                            </td>
-                            <td><span class="font-mono text-base-content/70">{{ $salesman->salesman_code }}</span></td>
-                            <td><span class="font-medium text-base-content/80">{{ $salesman->salesman_name }}</span></td>
-                            <td>
-                                <div class="flex justify-center">
-                                    @canEdit('mapping.unmapped-salesmans')
-                                    <button wire:click="openMapModal('{{ $salesman->distributor_code }}', '{{ $salesman->salesman_code }}', '{{ addslashes($salesman->salesman_name) }}')"
-                                            class="btn btn-primary btn-xs rounded-lg normal-case gap-1 shadow-sm shadow-primary/20 transition-all duration-200">
-                                        <x-heroicon-s-link class="w-3.5 h-3.5" />
-                                        Petakan
-                                    </button>
-                                    @else
-                                    <span class="text-xs text-base-content/50 italic">View Only</span>
-                                    @endcanEdit
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </x-ui.table>
-
-                @if($salesmans->hasPages())
-                    <div class="mt-4 px-6">{{ $salesmans->links() }}</div>
-                @endif
+                <div class="flex-1 overflow-auto h-full">
+                    <table class="table table-sm table-pin-rows table-pin-cols w-full">
+                        <thead>
+                            <tr class="bg-base-200/50">
+                                <th class="w-12 text-center text-xs">No</th>
+                                <th class="text-xs">Distributor</th>
+                                <th class="text-xs">Kode Salesman (Dist)</th>
+                                <th class="text-xs">Nama Salesman (Dist)</th>
+                                <th class="w-24 text-center text-xs">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($salesmans as $index => $salesman)
+                                <tr wire:key="salesman-{{ $salesman->distributor_code }}-{{ $salesman->salesman_code }}" class="hover:bg-base-200/50 transition-colors text-sm">
+                                    <td class="text-center font-medium text-base-content/50">
+                                        {{ $salesmans->firstItem() + $index }}
+                                    </td>
+                                    <td>
+                                        <div class="font-bold text-base-content/90">{{ $salesman->distributor_name }}</div>
+                                        <div class="text-xs text-base-content/50 font-mono mt-0.5">{{ $salesman->distributor_code }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="font-mono text-base-content/70">{{ $salesman->salesman_code }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="font-medium text-base-content/80">{{ $salesman->salesman_name }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="flex justify-center">
+                                            @canEdit('mapping.unmapped-salesmans')
+                                            <button wire:click="openMapModal('{{ $salesman->distributor_code }}', '{{ $salesman->salesman_code }}', '{{ addslashes($salesman->salesman_name) }}')"
+                                                    class="btn btn-primary btn-xs rounded-lg normal-case gap-1 shadow-sm shadow-primary/20 transition-all duration-200">
+                                                <x-heroicon-s-link class="w-3.5 h-3.5" />
+                                                Petakan
+                                            </button>
+                                            @else
+                                            <span class="text-xs text-base-content/50 italic">View Only</span>
+                                            @endcanEdit
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="text-center py-8 text-base-content/50">
+                                        <div class="flex flex-col items-center justify-center gap-2">
+                                            <x-heroicon-o-inbox class="w-8 h-8 text-base-content/30" />
+                                            <span>Semua salesman untuk periode ini sudah memiliki pemetaan.</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             @endif
-        </x-card>
+        </div>
+
+        {{-- Pagination Section --}}
+        @if ($hasAppliedFilters && $salesmans->hasPages())
+        <div class="flex-none p-4 border-t border-base-200 bg-base-50">
+            {{ $salesmans->links() }}
+        </div>
+        @endif
     </div>
 
     {{-- ========== MODAL FILTER ========== --}}

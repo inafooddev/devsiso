@@ -85,7 +85,8 @@ class Edit extends Component
         }
         $this->principalProducts = ProductMaster::where('product_name', 'ILIKE', '%' . $value . '%')
                                     ->orWhere('product_id', 'ILIKE', '%' . $value . '%')
-                                    ->limit(10)
+                                    ->orderBy('is_active', 'desc')
+                                    ->limit(50)
                                     ->get();
     }
 

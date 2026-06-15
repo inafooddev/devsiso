@@ -210,7 +210,7 @@ class Index extends Component
         $this->principalProducts = ProductMaster::where('product_name', 'ILIKE', '%' . $value . '%')
                                     ->orWhere('product_id', 'ILIKE', '%' . $value . '%')
                                     ->orderBy('is_active', 'desc')
-                                    ->limit(10)
+                                    ->limit(50)
                                     ->get();
     }
 

@@ -1,73 +1,72 @@
-<div>
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <x-slot name="title">Data Customer Eska Distributor</x-slot>
 
-    <div class="mx-auto px-4 sm:px-6 py-8 text-base-content">
-        {{-- Notifikasi --}}
-        <div class="mb-6 space-y-3">
-            @if (session()->has('message'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
-                     class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
-                    <x-heroicon-s-check-circle class="w-6 h-6 shrink-0" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
-                        <div class="text-sm">{{ session('message') }}</div>
-                    </div>
-                </div>
-            @endif
-            @if (session()->has('error'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
-                     class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
-                    <x-heroicon-s-x-circle class="w-6 h-6 shrink-0" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
-                        <div class="text-sm">{{ session('error') }}</div>
-                    </div>
-                </div>
-            @endif
-        </div>
+    {{-- Notifikasi --}}
+    @if (session()->has('message') || session()->has('error'))
+    <div class="shrink-0 mb-2">
+        @if (session()->has('message'))
+            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
+                 class="alert alert-success shadow-sm rounded-xl border-none bg-success/20 text-success text-sm py-2">
+                <x-heroicon-s-check-circle class="w-5 h-5 shrink-0" />
+                <span>{{ session('message') }}</span>
+            </div>
+        @endif
+        @if (session()->has('error'))
+            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
+                 class="alert alert-error shadow-sm rounded-xl border-none bg-error/20 text-error text-sm py-2">
+                <x-heroicon-s-x-circle class="w-5 h-5 shrink-0" />
+                <span>{{ session('error') }}</span>
+            </div>
+        @endif
+    </div>
+    @endif
 
-        <x-card flush title="Master Customer Eska (Dist)" icon="building-office-2" subtitle="Data master customer distributor yang terintegrasi melalui Eskalink" class="pb-6">
-            <x-slot:actions>
-                <div class="flex flex-wrap items-center gap-2">
+    {{-- Card Wrapper --}}
+    <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+        {{-- Header Section --}}
+        <div class="flex-none p-4 md:p-6 border-b border-base-200">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                {{-- Title Area --}}
+                <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                            <x-heroicon-s-building-office-2 class="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                            <h2 class="text-lg md:text-xl font-bold text-base-content leading-none">Master Customer Eska (Dist)</h2>
+                            <p class="text-xs text-base-content/60 mt-1">Data master customer distributor yang terintegrasi melalui Eskalink</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Action Area --}}
+                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
                     {{-- Search --}}
                     @if ($isFiltered)
-                    <div class="relative group">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/30 group-focus-within:text-primary transition-colors">
-                            <x-heroicon-s-magnifying-glass class="w-4 h-4" />
-                        </div>
-                        <input wire:model.live.debounce.500ms="search" type="text"
-                               placeholder="Cari nama/no/branch customer..."
-                               class="input input-sm input-bordered pl-10 w-full sm:w-64 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                    </div>
+                        <x-ui.search-input wire:model.live.debounce.500ms="search" placeholder="Cari nama/no/branch customer..." />
                     @endif
-
+                    
                     {{-- Filter Button --}}
-                    <button wire:click="$set('isFilterModalOpen', true)"
-                            class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
-                        <x-heroicon-s-funnel class="w-4 h-4" />
-                        Filter
-                        @if($isFiltered)
-                            <span class="badge badge-xs badge-primary rounded-full">ON</span>
-                        @endif
-                    </button>
-
+                    <x-ui.action-button type="filter" wire:click="$set('isFilterModalOpen', true)" :active="$isFiltered" />
+                    
+                    <div class="hidden md:block w-px h-6 bg-base-300 mx-1"></div>
+                    
                     {{-- Export --}}
                     @if ($isFiltered)
                     @canExport('customer-eska-dist.index')
-                    <button wire:click="export" wire:loading.attr="disabled"
-                            class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
-                        <span wire:loading.remove wire:target="export"><x-heroicon-s-arrow-down-tray class="w-4 h-4" /></span>
-                        <span wire:loading wire:target="export" class="loading loading-spinner loading-xs"></span>
-                        Export Excel
-                    </button>
+                    <x-ui.action-button type="export" wire:click="export" wire:loading.attr="disabled">
+                        <span wire:loading wire:target="export" class="loading loading-spinner loading-xs ml-1"></span>
+                    </x-ui.action-button>
                     @endcanExport
                     @endif
                 </div>
-            </x-slot:actions>
+            </div>
+        </div>
 
-            {{-- State: Filter Belum Diterapkan --}}
+        {{-- Table Section --}}
+        <div class="flex-1 min-h-0 relative overflow-hidden bg-base-200/30 flex flex-col">
             @if (!$isFiltered)
-                <div class="flex flex-col items-center justify-center py-20 text-base-content/40">
+                <div class="flex-1 flex flex-col items-center justify-center py-20 text-base-content/40">
                     <div class="w-20 h-20 rounded-full bg-base-200 flex items-center justify-center mb-5">
                         <x-heroicon-s-funnel class="w-10 h-10" />
                     </div>
@@ -79,47 +78,69 @@
                     </button>
                 </div>
             @else
-                {{-- Tabel --}}
-                <x-ui.table empty="Tidak ada data customer yang ditemukan untuk distributor ini.">
-                    <x-slot:head>
-                        <tr>
-                            <th>Region / Area</th>
-                            <th>Kode Distributor (ESKA)</th>
-                            <th>Branch</th>
-                            <th>Nama Distributor (PRC)</th>
-                            <th class="w-32">Cust No</th>
-                            <th>Nama Customer</th>
-                        </tr>
-                    </x-slot:head>
-
-                    @foreach ($customers as $row)
-                        <tr class="group text-sm">
-                            <td>
-                                <div>
-                                    <span class="font-bold text-base-content/80 group-hover:text-primary transition-colors">
-                                        {{ $row->region_name }}
-                                    </span>
-                                    <div class="text-[11px] text-base-content/40 font-semibold uppercase tracking-wider mt-0.5">{{ $row->area_name }}</div>
-                                </div>
-                            </td>
-                            <td><span class="font-mono text-base-content/70">{{ $row->distid }}</span></td>
-                            <td><span class="font-medium text-base-content/60 italic">{{ $row->branch }}</span></td>
-                            <td><span class="font-medium text-base-content/80">{{ $row->distributor_name }}</span></td>
-                            <td>
-                                <span class="badge badge-sm badge-outline border-secondary/30 text-secondary font-mono rounded-lg">
-                                    {{ $row->custno }}
-                                </span>
-                            </td>
-                            <td><span class="font-bold text-base-content/80">{{ $row->custname }}</span></td>
-                        </tr>
-                    @endforeach
-                </x-ui.table>
-
-                @if($customers->hasPages())
-                    <div class="mt-4 px-6">{{ $customers->links() }}</div>
-                @endif
+                <div class="flex-1 overflow-auto h-full">
+                    <table class="table table-sm table-pin-rows table-pin-cols w-full">
+                        <thead>
+                            <tr class="bg-base-200/50">
+                                <th class="w-12 text-center text-xs">No</th>
+                                <th class="text-xs">Region / Area</th>
+                                <th class="text-xs">Kode Distributor (ESKA)</th>
+                                <th class="text-xs">Branch</th>
+                                <th class="text-xs">Nama Distributor (PRC)</th>
+                                <th class="w-32 text-xs">Cust No</th>
+                                <th class="text-xs">Nama Customer</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($customers as $index => $row)
+                                <tr class="hover:bg-base-200/50 transition-colors text-sm">
+                                    <td class="text-center font-medium text-base-content/50">
+                                        {{ $customers->firstItem() + $index }}
+                                    </td>
+                                    <td>
+                                        <div class="font-bold text-base-content/90">{{ $row->region_name }}</div>
+                                        <div class="text-[11px] text-base-content/50 font-semibold uppercase tracking-wider mt-0.5">{{ $row->area_name }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="font-mono text-base-content/70">{{ $row->distid }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="font-medium text-base-content/60 italic">{{ $row->branch }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="font-medium text-base-content/80">{{ $row->distributor_name }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-sm badge-outline border-secondary/30 text-secondary font-mono rounded-lg">
+                                            {{ $row->custno }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="font-bold text-base-content/80">{{ $row->custname }}</span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="text-center py-8 text-base-content/50">
+                                        <div class="flex flex-col items-center justify-center gap-2">
+                                            <x-heroicon-o-inbox class="w-8 h-8 text-base-content/30" />
+                                            <span>Tidak ada data customer yang ditemukan untuk distributor ini.</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             @endif
-        </x-card>
+        </div>
+
+        {{-- Pagination Section --}}
+        @if ($isFiltered && $customers->hasPages())
+        <div class="flex-none p-4 border-t border-base-200 bg-base-50">
+            {{ $customers->links() }}
+        </div>
+        @endif
     </div>
 
     {{-- ========== MODAL FILTER ========== --}}

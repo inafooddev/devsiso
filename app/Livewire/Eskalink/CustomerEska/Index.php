@@ -225,7 +225,7 @@ class Index extends Component
                 });
             }
 
-            $data = $query->orderBy('cpe.custname')->paginate(10);
+            $data = $query->orderBy('cpe.custname')->paginate(100);
         }
 
         return view('livewire.eskalink.customer-eska.index', [

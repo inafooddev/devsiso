@@ -1,49 +1,61 @@
-<div>
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <x-slot name="title">Data Produk Eska</x-slot>
 
-    <div class="mx-auto px-4 sm:px-6 py-8 text-base-content">
-        {{-- Notifikasi --}}
-        <div class="mb-6 space-y-3">
-            @if (session()->has('message'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
-                     class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
-                    <x-heroicon-s-check-circle class="w-6 h-6 shrink-0" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
-                        <div class="text-sm">{{ session('message') }}</div>
-                    </div>
+    {{-- Notifikasi Toast --}}
+    <div class="toast toast-top toast-center z-[100] mt-16">
+        @if (session()->has('message'))
+            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
+                 class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
+                <x-heroicon-s-check-circle class="w-6 h-6 shrink-0" />
+                <div>
+                    <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
+                    <div class="text-sm">{{ session('message') }}</div>
                 </div>
-            @endif
-            @if (session()->has('error'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
-                     class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
-                    <x-heroicon-s-x-circle class="w-6 h-6 shrink-0" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
-                        <div class="text-sm">{{ session('error') }}</div>
-                    </div>
+            </div>
+        @endif
+        @if (session()->has('error'))
+            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
+                 class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
+                <x-heroicon-s-x-circle class="w-6 h-6 shrink-0" />
+                <div>
+                    <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
+                    <div class="text-sm">{{ session('error') }}</div>
                 </div>
-            @endif
-        </div>
+            </div>
+        @endif
+    </div>
 
-        <x-card flush title="Master Produk Eska" icon="cube" subtitle="Data master produk distributor yang telah terhubung dengan kode principal dan informasi kemasan" class="pb-6">
-            <x-slot:actions>
-                <div class="flex flex-wrap items-center gap-2">
-                    {{-- Search --}}
-                    @if ($isFiltered)
-                    <div class="relative group">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/30 group-focus-within:text-primary transition-colors">
-                            <x-heroicon-s-magnifying-glass class="w-4 h-4" />
-                        </div>
-                        <input wire:model.live.debounce.500ms="search" type="text"
-                               placeholder="Cari kode/nama produk..."
-                               class="input input-sm input-bordered pl-10 w-full sm:w-64 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+    {{-- Main Card --}}
+    <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+        
+        {{-- Header Card & Actions --}}
+        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+            <div class="shrink-0 w-full sm:w-auto">
+                <h2 class="text-base md:text-lg font-bold flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                        <x-heroicon-s-cube class="w-5 h-5" />
                     </div>
-                    @endif
-
-                    {{-- Filter Button --}}
-                    <button wire:click="$set('isFilterModalOpen', true)"
-                            class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
+                    Master Produk Eska
+                </h2>
+                <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Data master produk distributor</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
+                {{-- Search --}}
+                @if ($isFiltered)
+                <div class="relative group grow sm:grow-0">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/30 group-focus-within:text-primary transition-colors">
+                        <x-heroicon-s-magnifying-glass class="w-4 h-4" />
+                    </div>
+                    <input wire:model.live.debounce.500ms="search" type="text"
+                           placeholder="Cari kode/nama produk..."
+                           class="input input-sm input-bordered pl-10 w-full sm:w-64 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                </div>
+                @endif
+                
+                {{-- Actions Button --}}
+                <div class="flex flex-wrap items-center gap-1 md:gap-2">
+                    <button wire:click="$set('isFilterModalOpen', true)" class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
                         <x-heroicon-s-funnel class="w-4 h-4" />
                         Filter
                         @if($isFiltered)
@@ -51,22 +63,23 @@
                         @endif
                     </button>
 
-                    {{-- Export --}}
                     @if ($isFiltered)
                     @canExport('produk-eska.index')
                     <button wire:click="openExportModal"
                             class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
                         <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
-                        Export Excel
+                        Export
                     </button>
                     @endcanExport
                     @endif
                 </div>
-            </x-slot:actions>
+            </div>
+        </div>
 
-            {{-- State: Filter Belum Diterapkan --}}
+        {{-- Body Card (Tabel Scrollable area) --}}
+        <div class="flex-1 overflow-auto bg-base-100 w-full relative">
             @if (!$isFiltered)
-                <div class="flex flex-col items-center justify-center py-20 text-base-content/40">
+                <div class="flex flex-col items-center justify-center py-20 text-base-content/40 absolute inset-0">
                     <div class="w-20 h-20 rounded-full bg-base-200 flex items-center justify-center mb-5">
                         <x-heroicon-s-cube class="w-10 h-10" />
                     </div>
@@ -78,62 +91,75 @@
                     </button>
                 </div>
             @else
-                {{-- Tabel --}}
-                <x-ui.table empty="Tidak ada data produk yang ditemukan untuk kriteria filter ini.">
-                    <x-slot:head>
-                        <tr>
-                            <th class="w-32">Kode Dist</th>
-                            <th class="w-40">Kode Produk</th>
-                            <th>Nama Produk (Distributor)</th>
-                            <th class="text-center">UOM (1-3)</th>
-                            <th class="text-center">Conv (2-3)</th>
-                        </tr>
-                    </x-slot:head>
-
-                    @foreach ($products as $row)
-                        <tr class="group text-sm">
-                            <td><span class="font-mono text-[11px] text-base-content/40 uppercase tracking-widest">{{ $row->eskalink_code_dist }}</span></td>
-                            <td>
-                                <div class="badge badge-md bg-primary/10 border-primary/20 text-primary font-mono rounded-lg px-3">
-                                    {{ $row->product_code_dist }}
-                                </div>
-                            </td>
-                            <td>
-                                <div class="font-semibold text-base-content/80 group-hover:text-primary transition-colors text-sm tracking-tight">
-                                    {{ $row->product_name_dist }}
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <div class="flex items-center justify-center gap-1.5">
-                                    <span class="badge badge-xs bg-base-200 border-none text-base-content/60" title="UOM 1">{{ $row->uom1 ?: '-' }}</span>
-                                    <span class="text-base-content/20">/</span>
-                                    <span class="badge badge-xs bg-base-200 border-none text-base-content/60" title="UOM 2">{{ $row->uom2 ?: '-' }}</span>
-                                    <span class="text-base-content/20">/</span>
-                                    <span class="badge badge-xs bg-base-200 border-none text-base-content/60" title="UOM 3">{{ $row->uom3 ?: '-' }}</span>
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <div class="flex items-center justify-center gap-2">
-                                    <div class="flex flex-col items-center">
-                                        <span class="text-[10px] font-bold text-base-content/40 uppercase tracking-tighter">Conv 2</span>
-                                        <span class="font-mono text-xs font-bold">{{ number_format($row->conv_unit2 ?? 0) }}</span>
-                                    </div>
-                                    <div class="h-4 w-px bg-base-300"></div>
-                                    <div class="flex flex-col items-center">
-                                        <span class="text-[10px] font-bold text-base-content/40 uppercase tracking-tighter">Conv 3</span>
-                                        <span class="font-mono text-xs font-bold">{{ number_format($row->conv_unit3 ?? 0) }}</span>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </x-ui.table>
-
-                @if($products->hasPages())
-                    <div class="mt-4 px-6">{{ $products->links() }}</div>
+                @if($products->isEmpty())
+                    <div class="flex flex-col items-center justify-center py-20 text-base-content/40 absolute inset-0">
+                        <div class="w-20 h-20 rounded-full bg-base-200 flex items-center justify-center mb-5">
+                            <x-heroicon-s-magnifying-glass class="w-10 h-10" />
+                        </div>
+                        <h3 class="text-base font-bold text-base-content/60 mb-1">Data Tidak Ditemukan</h3>
+                        <p class="text-sm text-center max-w-xs">Tidak ada data produk yang ditemukan untuk kriteria filter ini.</p>
+                    </div>
+                @else
+                    <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
+                        <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
+                            <tr>
+                                <th class="w-32">Kode Dist</th>
+                                <th class="w-40">Kode Produk</th>
+                                <th>Nama Produk (Distributor)</th>
+                                <th class="text-center">UOM (1-3)</th>
+                                <th class="text-center bg-base-200 shadow-[inset_1px_0_0_rgba(0,0,0,0.1)]">Conv (2-3)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            @foreach ($products as $row)
+                                <tr class="hover:bg-base-200/50 transition-colors group text-sm">
+                                    <td><span class="font-mono text-[11px] text-base-content/40 uppercase tracking-widest">{{ $row->eskalink_code_dist }}</span></td>
+                                    <td>
+                                        <div class="badge badge-md bg-primary/10 border-primary/20 text-primary font-mono rounded-lg px-3">
+                                            {{ $row->product_code_dist }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="font-semibold text-base-content/80 group-hover:text-primary transition-colors tracking-tight">
+                                            {{ $row->product_name_dist }}
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="flex items-center justify-center gap-1.5">
+                                            <span class="badge badge-xs bg-base-200 border-none text-base-content/60" title="UOM 1">{{ $row->uom1 ?: '-' }}</span>
+                                            <span class="text-base-content/20">/</span>
+                                            <span class="badge badge-xs bg-base-200 border-none text-base-content/60" title="UOM 2">{{ $row->uom2 ?: '-' }}</span>
+                                            <span class="text-base-content/20">/</span>
+                                            <span class="badge badge-xs bg-base-200 border-none text-base-content/60" title="UOM 3">{{ $row->uom3 ?: '-' }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <div class="flex flex-col items-center">
+                                                <span class="text-[10px] font-bold text-base-content/40 uppercase tracking-tighter">Conv 2</span>
+                                                <span class="font-mono text-xs font-bold">{{ number_format($row->conv_unit2 ?? 0) }}</span>
+                                            </div>
+                                            <div class="h-4 w-px bg-base-300"></div>
+                                            <div class="flex flex-col items-center">
+                                                <span class="text-[10px] font-bold text-base-content/40 uppercase tracking-tighter">Conv 3</span>
+                                                <span class="font-mono text-xs font-bold">{{ number_format($row->conv_unit3 ?? 0) }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 @endif
             @endif
-        </x-card>
+        </div>
+
+        {{-- Pagination Footer --}}
+        @if ($isFiltered && $products->hasPages())
+        <div class="p-3 border-t border-base-300 bg-base-50 shrink-0">
+            {{ $products->links() }}
+        </div>
+        @endif
     </div>
 
     {{-- ========== MODAL FILTER ========== --}}

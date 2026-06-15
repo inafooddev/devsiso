@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Eskalink\CustomerCsvExport;
 
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -9,7 +9,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
-class CustomerCsvExportComponent extends Component
+class Index extends Component
 {
     use WithPagination;
 
@@ -105,15 +105,32 @@ class CustomerCsvExportComponent extends Component
         $this->updatedRegionFilter();
     }
 
+    public function clearAllRegions()
+    {
+        $this->regionFilter = [];
+        $this->updatedRegionFilter();
+    }
+
     public function selectAllAreas()
     {
         $this->areaFilter = $this->areasOption->pluck('area_code')->toArray();
         $this->updatedAreaFilter();
     }
 
+    public function clearAllAreas()
+    {
+        $this->areaFilter = [];
+        $this->updatedAreaFilter();
+    }
+
     public function selectAllDistributors()
     {
         $this->distributorFilter = $this->distributorsOption->pluck('distributor_code')->toArray();
+    }
+
+    public function clearAllDistributors()
+    {
+        $this->distributorFilter = [];
     }
 
     // --- DEPENDENT DROPDOWN ---
@@ -269,10 +286,10 @@ class CustomerCsvExportComponent extends Component
                 });
             }
 
-            $customers = $query->orderBy('cpe.custno')->paginate(10);
+            $customers = $query->orderBy('cpe.custno')->paginate(100);
         }
 
-        return view('livewire.customer-csv-export-component', [
+        return view('livewire.eskalink.cutomercsvexport.index', [
             'customers' => $customers
         ])->layout('layouts.app');
     }

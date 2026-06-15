@@ -54,7 +54,8 @@ class Create extends Component
         }
         $this->principalSalesmans = Salesman::where('salesman_name', 'ILIKE', '%' . $value . '%')
                                     ->orWhere('salesman_code', 'ILIKE', '%' . $value . '%')
-                                    ->limit(10)
+                                    ->orderBy('is_active', 'desc')
+                                    ->limit(50)
                                     ->get();
     }
 

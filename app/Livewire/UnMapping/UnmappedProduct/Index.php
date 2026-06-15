@@ -224,7 +224,7 @@ class Index extends Component
         $products = collect();
         if ($this->hasAppliedFilters) {
             $query = $this->buildQuery();
-            $products = $query->paginate(10);
+            $products = $query->paginate(100);
         }
 
         return view('livewire.un-mapping.unmapped-product.index', [
@@ -258,7 +258,7 @@ class Index extends Component
         $this->principalProducts = ProductMaster::where('product_name', 'ILIKE', '%' . $value . '%')
                                     ->orWhere('product_id', 'ILIKE', '%' . $value . '%')
                                     ->orderBy('is_active', 'desc')
-                                    ->limit(10)
+                                    ->limit(50)
                                     ->get();
     }
 

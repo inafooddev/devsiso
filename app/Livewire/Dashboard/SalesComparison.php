@@ -307,7 +307,7 @@ class SalesComparison extends Component
             $comparisons = $query
                 ->orderBy('region_code')
                 ->orderBy('entity_code')
-                ->paginate(20);
+                ->paginate(100);
         }
 
         return view('livewire.dashboard.sales-comparison', [

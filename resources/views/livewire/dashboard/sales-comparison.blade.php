@@ -1,37 +1,49 @@
-<div>
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <x-slot name="title">Komparasi Sales (Eska vs SID)</x-slot>
 
-    <div class="mx-auto px-4 sm:px-6 py-8 text-base-content">
-        {{-- Notifikasi --}}
-        <div class="mb-6 space-y-3">
-            @if (session()->has('message'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
-                     class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
-                    <x-heroicon-s-check-circle class="w-6 h-6 shrink-0" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
-                        <div class="text-sm">{{ session('message') }}</div>
-                    </div>
+    {{-- Notifikasi Toast --}}
+    <div class="toast toast-top toast-center z-[100] mt-16">
+        @if (session()->has('message'))
+            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
+                 class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
+                <x-heroicon-s-check-circle class="w-6 h-6 shrink-0" />
+                <div>
+                    <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
+                    <div class="text-sm">{{ session('message') }}</div>
                 </div>
-            @endif
-            @if (session()->has('error'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
-                     class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
-                    <x-heroicon-s-x-circle class="w-6 h-6 shrink-0" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
-                        <div class="text-sm">{{ session('error') }}</div>
-                    </div>
+            </div>
+        @endif
+        @if (session()->has('error'))
+            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
+                 class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
+                <x-heroicon-s-x-circle class="w-6 h-6 shrink-0" />
+                <div>
+                    <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
+                    <div class="text-sm">{{ session('error') }}</div>
                 </div>
-            @endif
-        </div>
+            </div>
+        @endif
+    </div>
 
-        <x-card flush title="Sales Comparison Dashboard" icon="chart-bar" subtitle="Komparasi data Selling Out sistem ESKA dengan data Sales Invoice sistem SID untuk memantau integritas data operasional" class="pb-6">
-            <x-slot:actions>
-                <div class="flex flex-wrap items-center gap-2">
-                    {{-- Filter Button --}}
-                    <button wire:click="$set('isFilterModalOpen', true)"
-                            class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
+    {{-- Main Card --}}
+    <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+        
+        {{-- Header Card & Actions --}}
+        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+            <div class="shrink-0 w-full sm:w-auto">
+                <h2 class="text-base md:text-lg font-bold flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                        <x-heroicon-s-chart-bar class="w-5 h-5" />
+                    </div>
+                    Sales Comparison Dashboard
+                </h2>
+                <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Komparasi data Selling Out sistem ESKA dengan data Sales Invoice sistem SID</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
+                {{-- Actions Button --}}
+                <div class="flex flex-wrap items-center gap-1 md:gap-2">
+                    <button wire:click="$set('isFilterModalOpen', true)" class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
                         <x-heroicon-s-funnel class="w-4 h-4" />
                         Filter Laporan
                         @if($isFiltered)
@@ -39,20 +51,20 @@
                         @endif
                     </button>
 
-                    {{-- Import Button (Admin Only) --}}
                     @hasanyrole('admin|user')
-                    <button wire:click="$set('isImportModalOpen', true)"
-                            class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
+                    <button wire:click="$set('isImportModalOpen', true)" class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
                         <x-heroicon-s-arrow-up-tray class="w-4 h-4" />
                         Import SO Eska
                     </button>
                     @endhasanyrole
                 </div>
-            </x-slot:actions>
+            </div>
+        </div>
 
-            {{-- State: Filter Belum Diterapkan --}}
+        {{-- Body Card (Tabel Scrollable area) --}}
+        <div class="flex-1 overflow-auto bg-base-100 w-full relative flex flex-col">
             @if (!$isFiltered)
-                <div class="flex flex-col items-center justify-center py-20 text-base-content/40">
+                <div class="flex flex-col items-center justify-center py-20 text-base-content/40 absolute inset-0">
                     <div class="w-20 h-20 rounded-full bg-base-200 flex items-center justify-center mb-5">
                         <x-heroicon-s-chart-bar class="w-10 h-10" />
                     </div>
@@ -65,7 +77,7 @@
                 </div>
             @else
                 {{-- Summary Section --}}
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 px-6 mb-8 mt-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 lg:p-6 shrink-0">
                     <div class="bg-base-200/50 rounded-2xl p-5 border border-base-300 transition-all hover:shadow-md group">
                         <div class="flex items-center gap-4">
                             <div class="p-3 rounded-xl bg-primary/10 text-primary group-hover:scale-110 transition-transform">
@@ -115,58 +127,68 @@
                     </div>
                 </div>
 
-                {{-- Tabel --}}
-                <x-ui.table empty="Tidak ada data komparasi yang ditemukan untuk kriteria filter ini.">
-                    <x-slot:head>
-                        <tr>
-                            <th>Wilayah</th>
-                            <th>Distributor / Cabang</th>
-                            <th class="text-right">Sales ESKA (Net)</th>
-                            <th class="text-right">Sales SID (Net)</th>
-                            <th class="text-right bg-base-200/30">Selisih</th>
-                            <th class="text-center w-32 whitespace-nowrap">Status</th>
-                        </tr>
-                    </x-slot:head>
-
-                    @foreach ($comparisons as $row)
-                        <tr class="group text-sm">
-                            <td>
-                                <div class="flex flex-col">
-                                    <span class="font-bold text-base-content/80">{{ $row->region_name }}</span>
-                                    <span class="text-[10px] font-bold text-base-content/30 uppercase tracking-widest">{{ $row->entity_name }}</span>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="flex flex-col">
-                                    <span class="font-bold text-base-content/80 group-hover:text-primary transition-colors">{{ $row->branch_name }}</span>
-                                    <span class="badge badge-xs badge-outline border-base-content/20 font-mono text-[9px] uppercase tracking-tighter">{{ $row->branch_code }}</span>
-                                </div>
-                            </td>
-                            <td class="text-right font-mono font-medium text-base-content/70">
-                                {{ number_format($row->net_eska) }}
-                            </td>
-                            <td class="text-right font-mono font-medium text-base-content/70">
-                                {{ number_format($row->net_siso) }}
-                            </td>
-                            <td class="text-right font-mono font-bold bg-base-200/10 {{ $row->selisih != 0 ? 'text-error' : 'text-success' }}">
-                                {{ number_format($row->selisih) }}
-                            </td>
-                            <td class="text-center">
-                                @if (abs($row->selisih) >= 1000)
-                                    <span class="badge badge-error badge-sm text-white rounded-lg font-bold px-3">NOT OK</span>
-                                @else
-                                    <span class="badge badge-success badge-sm text-white rounded-lg font-bold px-3">OK</span>
-                                @endif
-                            </td>
-                        </tr>
-                    @endforeach
-                </x-ui.table>
-
-                @if($comparisons->hasPages())
-                    <div class="mt-4 px-6">{{ $comparisons->links() }}</div>
-                @endif
+                {{-- Tabel Container --}}
+                <div class="flex-1 overflow-auto border-t border-base-300">
+                    <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
+                        <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
+                            <tr>
+                                <th>Wilayah</th>
+                                <th>Distributor / Cabang</th>
+                                <th class="text-right">Sales ESKA (Net)</th>
+                                <th class="text-right">Sales SID (Net)</th>
+                                <th class="text-right bg-base-200/30">Selisih</th>
+                                <th class="text-center w-32 whitespace-nowrap">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            @forelse ($comparisons as $row)
+                                <tr class="hover:bg-base-200/50 transition-colors group">
+                                    <td>
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-base-content/80">{{ $row->region_name }}</span>
+                                            <span class="text-[10px] font-bold text-base-content/30 uppercase tracking-widest">{{ $row->entity_name }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-base-content/80 group-hover:text-primary transition-colors">{{ $row->branch_name }}</span>
+                                            <span class="badge badge-xs badge-outline border-base-content/20 font-mono text-[9px] uppercase tracking-tighter">{{ $row->branch_code }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-right font-mono font-medium text-base-content/70">
+                                        {{ number_format($row->net_eska) }}
+                                    </td>
+                                    <td class="text-right font-mono font-medium text-base-content/70">
+                                        {{ number_format($row->net_siso) }}
+                                    </td>
+                                    <td class="text-right font-mono font-bold bg-base-200/10 border-x border-base-300 {{ $row->selisih != 0 ? 'text-error' : 'text-success' }}">
+                                        {{ number_format($row->selisih) }}
+                                    </td>
+                                    <td class="text-center">
+                                        @if (abs($row->selisih) >= 1000)
+                                            <span class="badge badge-error badge-sm text-white rounded-lg font-bold px-3">NOT OK</span>
+                                        @else
+                                            <span class="badge badge-success badge-sm text-white rounded-lg font-bold px-3">OK</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="text-center py-8 text-base-content/40">Tidak ada data komparasi yang ditemukan untuk kriteria filter ini.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             @endif
-        </x-card>
+        </div>
+
+        {{-- Pagination Footer --}}
+        @if ($isFiltered && $comparisons->hasPages())
+        <div class="p-3 border-t border-base-300 bg-base-50 shrink-0">
+            {{ $comparisons->links() }}
+        </div>
+        @endif
     </div>
 
     {{-- ========== MODAL FILTER ========== --}}

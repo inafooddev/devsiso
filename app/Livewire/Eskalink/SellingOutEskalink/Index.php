@@ -246,7 +246,7 @@ class Index extends Component
                 });
             }
 
-            $data = $query->paginate(20);
+            $data = $query->paginate(100);
         }
 
         return view('livewire.eskalink.selling-out-eskalink.index', [
