@@ -4,24 +4,23 @@
     {{-- 5 KPI Cards Section (Tetap statis di atas) --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-6 shrink-0">
             @for ($i = 1; $i <= 5; $i++)
-            <div class="bg-base-100 p-3 md:p-4 lg:p-5 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
+            <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
                 {{-- Dekorasi KPI --}}
                 <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 transition-transform group-hover:scale-150"></div>
                 
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                        @if($i == 1) <x-heroicon-s-users class="w-5 h-5" />
-                        @elseif($i == 2) <x-heroicon-s-chart-bar class="w-5 h-5" />
-                        @elseif($i == 3) <x-heroicon-s-currency-dollar class="w-5 h-5" />
-                        @elseif($i == 4) <x-heroicon-s-document-text class="w-5 h-5" />
-                        @else <x-heroicon-s-check-circle class="w-5 h-5" />
+                <div class="flex items-start justify-between relative z-10">
+                    <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate pr-2 mt-1">KPI Target {{ $i }}</h3>
+                    <div class="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        @if($i == 1) <x-heroicon-s-users class="w-4 h-4" />
+                        @elseif($i == 2) <x-heroicon-s-chart-bar class="w-4 h-4" />
+                        @elseif($i == 3) <x-heroicon-s-currency-dollar class="w-4 h-4" />
+                        @elseif($i == 4) <x-heroicon-s-document-text class="w-4 h-4" />
+                        @else <x-heroicon-s-check-circle class="w-4 h-4" />
                         @endif
                     </div>
-                    <div class="min-w-0 flex-1">
-                        <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate">KPI Target {{ $i }}</h3>
-                        <div class="text-lg md:text-xl font-bold leading-none mt-1 truncate">{{ number_format(rand(1000, 9999)) }}</div>
-                    </div>
                 </div>
+                
+                <div class="text-lg md:text-xl font-bold leading-none mt-1 md:mt-2 truncate relative z-10 text-primary">{{ number_format(rand(1000, 9999)) }}</div>
             </div>
             @endfor
         </div>
@@ -52,9 +51,9 @@
                     <div class="flex flex-wrap items-center gap-1 md:gap-2">
                         <x-ui.action-button type="filter" />
                         <x-ui.action-button type="import" />
-                        <x-ui.action-button type="export" />
-                        <div class="hidden md:block w-px h-6 bg-base-300 mx-1"></div>
                         <x-ui.action-button type="add" />
+                        <div class="hidden md:block w-px h-6 bg-base-300 mx-1"></div>
+                        <x-ui.action-button type="export" />
                     </div>
                 </div>
             </div>

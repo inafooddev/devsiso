@@ -1,4 +1,4 @@
-<div>
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <x-slot name="title">Master Customer JKS (Team Elite)</x-slot>
 
     @php
@@ -11,170 +11,148 @@
         };
     @endphp
 
-    <div class="mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-4 sm:pt-2 sm:pb-6 lg:pt-2 lg:pb-8">
-        <style>
-            .custom-master-table th, 
-            .custom-master-table td {
-                font-size: 11px !important;
-            }
-            .custom-master-table .text-\[9px\] {
-                font-size: 9px !important;
-            }
-        </style>
+    <!-- Notifikasi -->
+    @if (session()->has('message'))
+        <x-ui.notif type="success" dismissible class="shrink-0 mb-0">
+            {{ session('message') }}
+        </x-ui.notif>
+    @endif
+    @if (session()->has('error'))
+        <x-ui.notif type="error" dismissible class="shrink-0 mb-0">
+            {{ session('error') }}
+        </x-ui.notif>
+    @endif
+
+    {{-- KPI Cards Section --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4 lg:gap-6 shrink-0">
+        <!-- Total Customer -->
+        <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 transition-transform group-hover:scale-150"></div>
+            <div class="flex items-start justify-between relative z-10">
+                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate pr-2 mt-1">Total Customer</h3>
+                <div class="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <x-heroicon-s-users class="w-4 h-4" />
+                </div>
+            </div>
+            <div class="text-lg md:text-xl font-bold leading-none mt-1 md:mt-2 truncate relative z-10 text-primary">{{ number_format($kpi->total_customer ?? 0, 0, ',', '.') }}</div>
+        </div>
         
-        <!-- Notifikasi -->
-        @if (session()->has('message'))
-            <x-ui.notif type="success" dismissible class="mb-6">
-                {{ session('message') }}
-            </x-ui.notif>
-        @endif
-        @if (session()->has('error'))
-            <x-ui.notif type="error" dismissible class="mb-6">
-                {{ session('error') }}
-            </x-ui.notif>
-        @endif
-
-
-
-        <!-- KPI CARDS -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-            <!-- Total Customer -->
-            <div class="bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200 flex flex-col justify-between h-[86px] relative transition-all hover:shadow-md hover:bg-base-200/20">
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] text-base-content/60 font-bold uppercase tracking-wider">Total Customer</span>
-                    <div class="p-1.5 rounded-lg bg-primary/10 text-primary">
-                        <x-heroicon-s-users class="w-4 h-4" />
-                    </div>
+        <!-- Total Pareto -->
+        <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-secondary/10 transition-transform group-hover:scale-150"></div>
+            <div class="flex items-start justify-between relative z-10">
+                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate pr-2 mt-1">Total Pareto</h3>
+                <div class="w-8 h-8 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
+                    <x-heroicon-s-tag class="w-4 h-4" />
                 </div>
-                <div class="text-2xl font-bold mt-auto text-primary tracking-tight">{{ number_format($kpi->total_customer ?? 0, 0, ',', '.') }}</div>
             </div>
-            
-            <!-- Total Pareto -->
-            <div class="bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200 flex flex-col justify-between h-[86px] relative transition-all hover:shadow-md hover:bg-base-200/20">
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] text-base-content/60 font-bold uppercase tracking-wider">Total Pareto</span>
-                    <div class="p-1.5 rounded-lg bg-secondary/10 text-secondary">
-                        <x-heroicon-s-tag class="w-4 h-4" />
-                    </div>
-                </div>
-                <div class="text-2xl font-bold mt-auto text-secondary tracking-tight">{{ number_format($kpi->total_pareto ?? 0, 0, ',', '.') }}</div>
-            </div>
-
-            <!-- Total RWO -->
-            <div class="bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200 flex flex-col justify-between h-[86px] relative transition-all hover:shadow-md hover:bg-base-200/20">
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] text-base-content/60 font-bold uppercase tracking-wider">Total RWO</span>
-                    <div class="p-1.5 rounded-lg bg-error/10 text-error">
-                        <x-heroicon-s-tag class="w-4 h-4" />
-                    </div>
-                </div>
-                <div class="text-2xl font-bold mt-auto text-error tracking-tight">{{ number_format($kpi->total_rwo ?? 0, 0, ',', '.') }}</div>
-            </div>
-
-            <!-- Total PNR -->
-            <div class="bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200 flex flex-col justify-between h-[86px] relative transition-all hover:shadow-md hover:bg-base-200/20">
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] text-base-content/60 font-bold uppercase tracking-wider">Total PNR</span>
-                    <div class="p-1.5 rounded-lg bg-warning/10 text-warning">
-                        <x-heroicon-s-tag class="w-4 h-4" />
-                    </div>
-                </div>
-                <div class="text-2xl font-bold mt-auto text-warning tracking-tight">{{ number_format($kpi->total_pnr ?? 0, 0, ',', '.') }}</div>
-            </div>
-
-            <!-- Total NGVO -->
-            <div class="bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200 flex flex-col justify-between h-[86px] relative transition-all hover:shadow-md hover:bg-base-200/20">
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] text-base-content/60 font-bold uppercase tracking-wider">Total NGVO</span>
-                    <div class="p-1.5 rounded-lg bg-success/10 text-success">
-                        <x-heroicon-s-tag class="w-4 h-4" />
-                    </div>
-                </div>
-                <div class="text-2xl font-bold mt-auto text-success tracking-tight">{{ number_format($kpi->total_ngvo ?? 0, 0, ',', '.') }}</div>
-            </div>
-
-            <!-- Total GRO -->
-            <div class="bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200 flex flex-col justify-between h-[86px] relative transition-all hover:shadow-md hover:bg-base-200/20">
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] text-base-content/60 font-bold uppercase tracking-wider">Total GRO</span>
-                    <div class="p-1.5 rounded-lg bg-info/10 text-info">
-                        <x-heroicon-s-tag class="w-4 h-4" />
-                    </div>
-                </div>
-                <div class="text-2xl font-bold mt-auto text-info tracking-tight">{{ number_format($kpi->total_gro ?? 0, 0, ',', '.') }}</div>
-            </div>
+            <div class="text-lg md:text-xl font-bold leading-none mt-1 md:mt-2 truncate relative z-10 text-secondary">{{ number_format($kpi->total_pareto ?? 0, 0, ',', '.') }}</div>
         </div>
 
-        <!-- Panel Table -->
-        <div class="bg-base-100 shadow-xl rounded-2xl overflow-hidden border border-base-200">
-            <!-- Header Panel -->
-            <div class="px-6 py-4 border-b border-base-200 bg-base-200/30 flex flex-col md:flex-row justify-between items-center gap-4">
-                
-                <!-- Kiri: Search & Direct Dropdowns -->
-                <div class="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto flex-1">
-                    <div class="relative w-full sm:w-64">
-                        <x-heroicon-s-magnifying-glass class="w-4 h-4 absolute left-3 top-2.5 text-base-content/50" />
-                        <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari Kode/Nama/Alamat/Pilar..." 
-                               class="input input-sm input-bordered w-full pl-9 focus:input-primary">
-                    </div>
-                    
-                    <select wire:model.live="filterPareto" class="select select-sm select-bordered w-full sm:w-36 focus:select-primary">
-                        <option value="">-- Semua Status --</option>
-                        <option value="PARETO">Pareto</option>
-                        <option value="NON PARETO">Non-Pareto</option>
-                    </select>
-
-                    <select wire:model.live="filterPilar" class="select select-sm select-bordered w-full sm:w-36 focus:select-primary">
-                        <option value="">-- Semua Pilar --</option>
-                        <option value="1. RWO">1. RWO</option>
-                        <option value="2. PNR">2. PNR</option>
-                        <option value="3. NGVO">3. NGVO</option>
-                        <option value="4. GRO">4. GRO</option>
-                    </select>
+        <!-- Total RWO -->
+        <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-error/10 transition-transform group-hover:scale-150"></div>
+            <div class="flex items-start justify-between relative z-10">
+                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate pr-2 mt-1">Total RWO</h3>
+                <div class="w-8 h-8 rounded-xl bg-error/10 flex items-center justify-center text-error shrink-0">
+                    <x-heroicon-s-tag class="w-4 h-4" />
                 </div>
+            </div>
+            <div class="text-lg md:text-xl font-bold leading-none mt-1 md:mt-2 truncate relative z-10 text-error">{{ number_format($kpi->total_rwo ?? 0, 0, ',', '.') }}</div>
+        </div>
 
-                <!-- Kanan: Aksi (Filter, Export) -->
-                <div class="flex items-center gap-2 w-full md:w-auto overflow-x-auto justify-end">
-                    <!-- TOMBOL FILTER -->
-                    <x-ui.button variant="neutral" size="sm" outline wire:click="openFilterModal">
-                        <x-heroicon-s-funnel class="w-4 h-4 mr-1" /> Filter
-                        @if($filterRegion || $filterArea || $filterSupervisor || $filterDistributor || $filterPareto || $filterPilar)
-                            <div class="badge badge-primary badge-sm ml-2">!</div>
-                        @endif
-                    </x-ui.button>                    
-                    
-                    <!-- TOMBOL TAMBAH TOKO -->
-                    @canAdd('call-plan.jks-team-elite.master-customer')
-                    <x-ui.button variant="primary" size="sm" wire:click="openCreateModal">
-                        <x-heroicon-s-plus class="w-4 h-4 mr-1" /> Tambah
-                    </x-ui.button>
-                    @endcanAdd
+        <!-- Total PNR -->
+        <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-warning/10 transition-transform group-hover:scale-150"></div>
+            <div class="flex items-start justify-between relative z-10">
+                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate pr-2 mt-1">Total PNR</h3>
+                <div class="w-8 h-8 rounded-xl bg-warning/10 flex items-center justify-center text-warning shrink-0">
+                    <x-heroicon-s-tag class="w-4 h-4" />
+                </div>
+            </div>
+            <div class="text-lg md:text-xl font-bold leading-none mt-1 md:mt-2 truncate relative z-10 text-warning">{{ number_format($kpi->total_pnr ?? 0, 0, ',', '.') }}</div>
+        </div>
 
-                    <!-- TOMBOL IMPORT -->
+        <!-- Total NGVO -->
+        <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-success/10 transition-transform group-hover:scale-150"></div>
+            <div class="flex items-start justify-between relative z-10">
+                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate pr-2 mt-1">Total NGVO</h3>
+                <div class="w-8 h-8 rounded-xl bg-success/10 flex items-center justify-center text-success shrink-0">
+                    <x-heroicon-s-tag class="w-4 h-4" />
+                </div>
+            </div>
+            <div class="text-lg md:text-xl font-bold leading-none mt-1 md:mt-2 truncate relative z-10 text-success">{{ number_format($kpi->total_ngvo ?? 0, 0, ',', '.') }}</div>
+        </div>
+
+        <!-- Total GRO -->
+        <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-info/10 transition-transform group-hover:scale-150"></div>
+            <div class="flex items-start justify-between relative z-10">
+                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate pr-2 mt-1">Total GRO</h3>
+                <div class="w-8 h-8 rounded-xl bg-info/10 flex items-center justify-center text-info shrink-0">
+                    <x-heroicon-s-tag class="w-4 h-4" />
+                </div>
+            </div>
+            <div class="text-lg md:text-xl font-bold leading-none mt-1 md:mt-2 truncate relative z-10 text-info">{{ number_format($kpi->total_gro ?? 0, 0, ',', '.') }}</div>
+        </div>
+    </div>
+
+    {{-- Main Card (Tabel) yang mengambil sisa ruang flex --}}
+    <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+        
+        {{-- Header Card & Actions --}}
+        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+            <div class="shrink-0 w-full sm:w-auto">
+                <h2 class="text-base md:text-lg font-bold">Data Master Customer</h2>
+                <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Daftar customer yang tersedia</p>
+            </div>
+            
+            {{-- Menggunakan flex-wrap agar barisan aksi jatuh secara responsif --}}
+            <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
+                {{-- Search --}}
+                <div class="relative w-full sm:w-64">
+                    <x-heroicon-s-magnifying-glass class="w-4 h-4 absolute left-3 top-2.5 text-base-content/50" />
+                    <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari Kode/Nama/Alamat/Pilar..." 
+                           class="input input-sm input-bordered w-full pl-9 focus:input-primary">
+                </div>
+                
+                {{-- Filter --}}
+                <x-ui.action-button type="filter" wire:click="openFilterModal" class="relative shrink-0">
+                    @if($filterRegion || $filterArea || $filterSupervisor || $filterDistributor || $filterPareto || $filterPilar)
+                        <div class="badge badge-primary badge-xs absolute -top-1 -right-1"></div>
+                    @endif
+                </x-ui.action-button>
+
+                {{-- Aksi --}}
+                <div class="flex items-center justify-between sm:justify-end gap-1 md:gap-2 shrink-0">
+                    <div class="w-[1px] h-6 bg-base-300 hidden sm:block mx-1"></div>
+
                     @canImport('call-plan.jks-team-elite.master-customer')
-                    <x-ui.button variant="info" size="sm" outline wire:click="openImportModal">
-                        <x-heroicon-s-arrow-down-on-square class="w-4 h-4 mr-1" /> Import
-                    </x-ui.button>
+                    <x-ui.action-button type="import" wire:click="openImportModal" />
                     @endcanImport
                     
-                    <!-- TOMBOL EXPORT -->
+                    @canAdd('call-plan.jks-team-elite.master-customer')
+                    <x-ui.action-button type="add" wire:click="openCreateModal" />
+                    @endcanAdd
+
+                    <div class="w-[1px] h-6 bg-base-300 hidden sm:block mx-1"></div>
+
                     @canExport('call-plan.jks-team-elite.master-customer')
-                    <x-ui.button variant="success" size="sm" class="bg-[#217346] hover:bg-[#1e663e] border-[#217346] hover:border-[#1e663e] text-white" wire:click="export" wire:loading.attr="disabled" wire:target="export">
-                        <span wire:loading.remove wire:target="export" class="flex items-center gap-1">
-                            <x-heroicon-s-arrow-up-on-square class="w-4 h-4" /> Export
+                    <x-ui.action-button type="export" wire:click="export" wire:loading.attr="disabled" wire:target="export">
+                        <span wire:loading wire:target="export" class="ml-1">
+                            <span class="loading loading-spinner loading-xs"></span>
                         </span>
-                        <span wire:loading wire:target="export" class="flex items-center gap-1">
-                            <span class="loading loading-spinner loading-xs"></span> Proses...
-                        </span>
-                    </x-ui.button>
+                    </x-ui.action-button>
                     @endcanExport
                 </div>
             </div>
+        </div>
 
-            <!-- Tabel -->
-            <div wire:key="table-wrapper-{{ md5($search . $filterRegion . $filterArea . $filterSupervisor . $filterDistributor . $filterPareto . $data->currentPage()) }}">
-                <x-ui.table hover striped sticky loading="{{ false }}" empty="Tidak ada data ditemukan." class="custom-master-table max-h-[54vh] overflow-y-auto border-x-0 border-b-0 rounded-none shadow-none">
-                <x-slot:head>
+        {{-- Body Card (Tabel Scrollable area) --}}
+        <div class="flex-1 overflow-auto bg-base-100 w-full relative">
+            <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
+                <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
                     <tr>
                         <th wire:click="sortBy('md.region_name')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
                             <div class="flex items-center justify-between gap-2">
@@ -260,53 +238,65 @@
                             </div>
                         </th>
                         
-                        <th class="text-center">Aksi</th>
+                        <th class="text-center bg-base-200 shadow-[inset_1px_0_0_rgba(0,0,0,0.1)]">Aksi</th>
                     </tr>
-                </x-slot:head>
-
-                @foreach($data as $item)
-                <tr wire:key="cust-row-{{ $item->customer_code }}-{{ $item->distributor_code }}">
-                    <td class="whitespace-nowrap text-xs text-base-content/50 font-normal">{{ $item->region_name }}</td>
-                    <td class="whitespace-nowrap text-xs text-base-content/50 font-normal">{{ $item->area_name }}</td>
-                    <td class="whitespace-nowrap text-xs text-base-content/50 font-normal">{{ $item->supervisor_name ?? '-' }}</td>
-                    <td class="text-xs font-normal">
-                        <div class="max-w-[120px] truncate text-base-content/60" title="{{ $item->distributor_name }}">{{ $item->distributor_name }}</div>
-                        <div class="text-[9px] text-base-content/40 font-mono">{{ $item->distributor_code }}</div>
-                    </td>
-                    <td class="max-w-[95px] truncate font-mono text-xs" title="{{ $item->customer_code }}">{{ $item->customer_code }}</td>
-                    <td class="whitespace-nowrap">{{ $item->uniq_kd ?? '-' }}</td>
-                    <td class="min-w-[200px] font-bold">{{ $item->customer_name }}</td>
-                    <td class="max-w-[125px] truncate text-xs opacity-70" title="{{ $item->customer_address }}">{{ $item->customer_address }}</td>
-                    <td>{{ $item->kecamatan }}</td>
-                    <td>{{ $item->desa }}</td>
-                    <td class="whitespace-nowrap text-center">
-                        <x-ui.badge variant="{{ match($item->pilar) { '1. RWO' => 'error', '2. PNR' => 'warning', '3. NGVO' => 'success', '4. GRO' => 'info', default => 'neutral' } }}">{{ $item->pilar ?? '-' }}</x-ui.badge>
-                    </td>
-                    <td class="text-right whitespace-nowrap">{{ number_format((float)($item->target ?? 0), 0, ',', '.') }}</td>
-                    <td class="text-center whitespace-nowrap">
-                        @canEdit('call-plan.jks-team-elite.master-customer')
-                        <button wire:click="openEditModal('{{ $item->distributor_code }}', '{{ $item->uniq_kd }}')" class="btn btn-xs btn-ghost text-info hover:bg-info hover:text-white" title="Edit">
-                            <x-heroicon-s-pencil-square class="w-4 h-4" />
-                        </button>
-                        @endcanEdit
-                        
-                        @canDelete('call-plan.jks-team-elite.master-customer')
-                        <button wire:click="confirmDelete('{{ $item->distributor_code }}', '{{ $item->uniq_kd }}')" class="btn btn-xs btn-ghost text-error hover:bg-error hover:text-white" title="Hapus">
-                            <x-heroicon-s-trash class="w-4 h-4" />
-                        </button>
-                        @endcanDelete
-                    </td>
-                </tr>
-                @endforeach
-            </x-ui.table>
-            </div>
-            
-            @if($data->hasPages())
-                <div class="px-6 py-4 border-t border-base-200 bg-base-200/30">
-                    {{ $data->links() }}
-                </div>
-            @endif
+                </thead>
+                <tbody class="text-sm">
+                    @forelse($data as $item)
+                    <tr wire:key="cust-row-{{ $item->customer_code }}-{{ $item->distributor_code }}" class="hover:bg-base-200/50 transition-colors">
+                        <td class="text-xs text-base-content/70">{{ $item->region_name }}</td>
+                        <td class="text-xs text-base-content/70">{{ $item->area_name }}</td>
+                        <td class="text-xs text-base-content/70">{{ $item->supervisor_name ?? '-' }}</td>
+                        <td class="text-xs">
+                            <div class="max-w-[150px] truncate text-base-content/80 font-medium" title="{{ $item->distributor_name }}">{{ $item->distributor_name }}</div>
+                            <div class="text-[10px] text-base-content/50 font-mono mt-0.5">{{ $item->distributor_code }}</div>
+                        </td>
+                        <td class="max-w-[120px] truncate font-mono text-xs text-base-content/70" title="{{ $item->customer_code }}">{{ $item->customer_code }}</td>
+                        <td class="font-mono text-xs">{{ $item->uniq_kd ?? '-' }}</td>
+                        <td class="min-w-[200px] font-bold text-base-content/90">{{ $item->customer_name }}</td>
+                        <td class="max-w-[200px] truncate text-xs text-base-content/60" title="{{ $item->customer_address }}">{{ $item->customer_address }}</td>
+                        <td class="text-xs text-base-content/70">{{ $item->kecamatan }}</td>
+                        <td class="text-xs text-base-content/70">{{ $item->desa }}</td>
+                        <td class="text-center">
+                            @php
+                                $badgeColor = match($item->pilar) { 
+                                    '1. RWO' => 'error', 
+                                    '2. PNR' => 'warning', 
+                                    '3. NGVO' => 'success', 
+                                    '4. GRO' => 'info', 
+                                    default => 'neutral' 
+                                };
+                            @endphp
+                            <span class="badge badge-sm badge-outline badge-{{ $badgeColor }}">{{ $item->pilar ?? '-' }}</span>
+                        </td>
+                        <td class="text-right font-mono text-xs">Rp {{ number_format((float)($item->target ?? 0), 0, ',', '.') }}</td>
+                        <th class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
+                            <div class="flex items-center justify-center gap-1">
+                                @canEdit('call-plan.jks-team-elite.master-customer')
+                                <x-ui.action-button type="edit" class="btn-square" title="Edit" wire:click="openEditModal('{{ $item->distributor_code }}', '{{ $item->uniq_kd }}')" />
+                                @endcanEdit
+                                
+                                @canDelete('call-plan.jks-team-elite.master-customer')
+                                <x-ui.action-button type="delete" class="btn-square" title="Hapus" wire:click="confirmDelete('{{ $item->distributor_code }}', '{{ $item->uniq_kd }}')" />
+                                @endcanDelete
+                            </div>
+                        </th>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="13" class="text-center py-8 text-base-content/50">Tidak ada data ditemukan.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
+        
+        @if($data->hasPages())
+            {{-- Footer Card (Pagination) --}}
+            <div class="p-3 md:p-4 lg:p-5 border-t border-base-300 shrink-0 bg-base-200">
+                {{ $data->links() }}
+            </div>
+        @endif
     </div>
 
     <!-- MODAL FILTER -->

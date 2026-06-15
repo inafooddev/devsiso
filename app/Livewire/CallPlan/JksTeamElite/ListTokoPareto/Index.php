@@ -296,7 +296,7 @@ class Index extends Component
         // ✅ FIX #3: getBaseQuery() hanya dipanggil SEKALI, di-clone untuk tiap kebutuhan
         $baseQuery = $this->getBaseQuery();
 
-        $data = (clone $baseQuery)->paginate(15);
+        $data = (clone $baseQuery)->paginate(100);
 
         // --- KPI Calculation ---
         // Gunakan clone dari $baseQuery — tidak memanggil getBaseQuery() lagi

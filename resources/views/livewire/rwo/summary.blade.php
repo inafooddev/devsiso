@@ -7,9 +7,6 @@
             font-size: 8px !important;
             padding: 6px 8px !important;
         }
-        /* Memastikan kedua baris thead sticky jika table-pin-rows DaisyUI kurang spesifik */
-        .table-summary-rwo thead tr:nth-child(1) th { top: 0; z-index: 21; }
-        .table-summary-rwo thead tr:nth-child(2) th { top: 29px; z-index: 20; }
     </style>
 
     <!-- TABS -->
@@ -56,8 +53,8 @@
 
         {{-- Body Card (Tabel Scrollable area) --}}
         <div class="flex-1 overflow-auto w-full relative">
-            <table class="table table-sm table-zebra table-pin-rows table-summary-rwo w-full whitespace-nowrap">
-                <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm relative z-20">
+            <table class="table table-sm table-zebra table-summary-rwo w-full whitespace-nowrap">
+                <thead class="sticky top-0 z-20 text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
                     <tr>
                             <th rowspan="2" class="align-middle border-b border-r border-base-200">No</th>
                             <th rowspan="2" class="align-middle border-b border-r border-base-200">Region</th>

@@ -1,4 +1,4 @@
-<div>
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <x-slot name="title">List Toko Pareto (Team Elite)</x-slot>
 
     @php
@@ -10,150 +10,167 @@
             return $sortColumn === $column ? 'w-4 h-4 text-primary' : 'w-4 h-4 text-base-content/30';
         };
     @endphp
-
-    <div class="mx-auto p-4 sm:p-6 lg:p-8">
         
-        <!-- Notifikasi -->
-        @if (session()->has('message'))
-            <x-ui.notif type="success" dismissible class="mb-6">
-                {{ session('message') }}
-            </x-ui.notif>
-        @endif
-        @if (session()->has('error'))
-            <x-ui.notif type="error" dismissible class="mb-6">
-                {{ session('error') }}
-            </x-ui.notif>
-        @endif
+    <!-- Notifikasi -->
+    @if (session()->has('message'))
+        <x-ui.notif type="success" dismissible class="shrink-0">
+            {{ session('message') }}
+        </x-ui.notif>
+    @endif
+    @if (session()->has('error'))
+        <x-ui.notif type="error" dismissible class="shrink-0">
+            {{ session('error') }}
+        </x-ui.notif>
+    @endif
 
-        <!-- KPI CARDS -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-            <!-- Total Toko -->
-            <div wire:click="setFilterKpi('')" class="rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden cursor-pointer transition-all {{ $filterKpi === '' ? 'ring-2 ring-primary bg-primary/5' : 'bg-base-100 hover:bg-base-200/50' }}">
-                <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-building-storefront class="w-24 h-24" /></div>
-                <div class="text-sm text-base-content/70 font-medium z-10">Total Toko</div>
-                <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_toko ?? 0, 0, ',', '.') }}</div>
-                <div class="text-sm text-success mt-2 font-bold z-10 flex items-center gap-1">
-                    <x-heroicon-s-check-circle class="w-4 h-4"/>
-                    On JKS: {{ number_format($kpi->total_toko_jks_y ?? 0, 0, ',', '.') }}
-                </div>
+    {{-- KPI Cards Section --}}
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3 shrink-0">
+        <!-- Total Toko -->
+        <div wire:click="setFilterKpi('')" class="bg-base-100 p-3 rounded-xl shadow-sm border flex flex-col relative overflow-hidden group cursor-pointer transition-all {{ $filterKpi === '' ? 'ring-2 ring-primary border-primary/50' : 'border-base-300 hover:border-primary/50' }}">
+            <div class="absolute -right-4 -top-4 w-12 h-12 rounded-full bg-primary/10 transition-transform group-hover:scale-150"></div>
+            <div class="absolute right-2 top-2 text-primary opacity-20 group-hover:opacity-40 transition-opacity">
+                <x-heroicon-s-building-storefront class="w-10 h-10" />
             </div>
-            <!-- Total Target -->
-            <div class="rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden bg-base-100 transition-all">
-                <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-currency-dollar class="w-24 h-24" /></div>
-                <div class="text-sm text-base-content/70 font-medium z-10">Total Target</div>
-                <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_target ?? 0, 0, ',', '.') }}</div>
-                <div class="text-sm text-success mt-2 font-bold z-10 flex items-center gap-1">
-                    <x-heroicon-s-check-circle class="w-4 h-4"/>
-                    On JKS: {{ number_format($kpi->total_target_jks_y ?? 0, 0, ',', '.') }}
-                </div>
-            </div>
-            <!-- Toko RWO -->
-            <div wire:click="setFilterKpi('rwo')" class="rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden cursor-pointer transition-all {{ $filterKpi === 'rwo' ? 'ring-2 ring-primary bg-primary/5' : 'bg-base-100 hover:bg-base-200/50' }}">
-                <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-tag class="w-24 h-24" /></div>
-                <div class="text-sm text-base-content/70 font-medium z-10">Toko RWO</div>
-                <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_rwo ?? 0, 0, ',', '.') }}</div>
-                <div class="text-sm text-success mt-2 font-bold z-10 flex items-center gap-1">
-                    <x-heroicon-s-check-circle class="w-4 h-4"/>
-                    On JKS: {{ number_format($kpi->total_rwo_jks_y ?? 0, 0, ',', '.') }}
-                </div>
-            </div>
-            <!-- Toko PNR -->
-            <div wire:click="setFilterKpi('pnr')" class="rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden cursor-pointer transition-all {{ $filterKpi === 'pnr' ? 'ring-2 ring-primary bg-primary/5' : 'bg-base-100 hover:bg-base-200/50' }}">
-                <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-tag class="w-24 h-24" /></div>
-                <div class="text-sm text-base-content/70 font-medium z-10">Toko PNR</div>
-                <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_pnr ?? 0, 0, ',', '.') }}</div>
-                <div class="text-sm text-success mt-2 font-bold z-10 flex items-center gap-1">
-                    <x-heroicon-s-check-circle class="w-4 h-4"/>
-                    On JKS: {{ number_format($kpi->total_pnr_jks_y ?? 0, 0, ',', '.') }}
-                </div>
-            </div>
-            <!-- Toko NGVO -->
-            <div wire:click="setFilterKpi('ngvo')" class="rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden cursor-pointer transition-all {{ $filterKpi === 'ngvo' ? 'ring-2 ring-primary bg-primary/5' : 'bg-base-100 hover:bg-base-200/50' }}">
-                <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-tag class="w-24 h-24" /></div>
-                <div class="text-sm text-base-content/70 font-medium z-10">Toko NGVO</div>
-                <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_ngvo ?? 0, 0, ',', '.') }}</div>
-                <div class="text-sm text-success mt-2 font-bold z-10 flex items-center gap-1">
-                    <x-heroicon-s-check-circle class="w-4 h-4"/>
-                    On JKS: {{ number_format($kpi->total_ngvo_jks_y ?? 0, 0, ',', '.') }}
-                </div>
-            </div>
-            <!-- Total No Geotag -->
-            <div wire:click="setFilterKpi('no_geotag')" class="rounded-2xl p-4 shadow-sm border border-base-200 flex flex-col justify-center relative overflow-hidden cursor-pointer transition-all {{ $filterKpi === 'no_geotag' ? 'ring-2 ring-primary bg-primary/5' : 'bg-base-100 hover:bg-base-200/50' }}">
-                <div class="absolute -right-4 -top-4 opacity-5 text-primary"><x-heroicon-s-map-pin class="w-24 h-24" /></div>
-                <div class="text-sm text-base-content/70 font-medium z-10">Total No Geotag</div>
-                <div class="text-2xl font-bold mt-1 z-10">{{ number_format($kpi->total_no_geotag ?? 0, 0, ',', '.') }}</div>
-                <div class="text-sm text-success mt-2 font-bold z-10 flex items-center gap-1">
-                    <x-heroicon-s-check-circle class="w-4 h-4"/>
-                    On JKS: {{ number_format($kpi->total_no_geotag_jks_y ?? 0, 0, ',', '.') }}
+            <div class="relative z-10 flex flex-col">
+                <h3 class="text-[10px] font-bold text-base-content/50 uppercase tracking-wider truncate">Total Toko</h3>
+                <div class="text-lg font-bold leading-none mt-1 truncate">{{ number_format($kpi->total_toko ?? 0, 0, ',', '.') }}</div>
+                <div class="text-[10px] text-success mt-1.5 font-bold flex items-center gap-1">
+                    <x-heroicon-s-check-circle class="w-3 h-3"/> On JKS: {{ number_format($kpi->total_toko_jks_y ?? 0, 0, ',', '.') }}
                 </div>
             </div>
         </div>
 
-        <div class="bg-base-100 shadow-xl rounded-2xl overflow-hidden border border-base-200">
-            <!-- Header Panel -->
-            <div class="px-6 py-4 border-b border-base-200 bg-base-200/30 flex flex-col md:flex-row justify-between items-center gap-4">
-                
-                <!-- Kiri: Search -->
-                <div class="w-full md:w-1/3 relative">
-                    <x-heroicon-s-magnifying-glass class="w-4 h-4 absolute left-3 top-2.5 text-base-content/50" />
-                    <input wire:model.live.debounce.500ms="search" type="text" placeholder="Cari Kode/Nama/Alamat/Pilar..." 
-                           class="input input-sm input-bordered w-full pl-9 focus:input-primary">
+        <!-- Total Target -->
+        <div class="bg-base-100 p-3 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden transition-all">
+            <div class="absolute -right-4 -top-4 w-12 h-12 rounded-full bg-primary/10 transition-transform"></div>
+            <div class="absolute right-2 top-2 text-primary opacity-20 transition-opacity">
+                <x-heroicon-s-currency-dollar class="w-10 h-10" />
+            </div>
+            <div class="relative z-10 flex flex-col">
+                <h3 class="text-[10px] font-bold text-base-content/50 uppercase tracking-wider truncate">Total Target</h3>
+                <div class="text-lg font-bold leading-none mt-1 truncate">{{ number_format($kpi->total_target ?? 0, 0, ',', '.') }}</div>
+                <div class="text-[10px] text-success mt-1.5 font-bold flex items-center gap-1">
+                    <x-heroicon-s-check-circle class="w-3 h-3"/> On JKS: {{ number_format($kpi->total_target_jks_y ?? 0, 0, ',', '.') }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Toko RWO -->
+        <div wire:click="setFilterKpi('rwo')" class="bg-base-100 p-3 rounded-xl shadow-sm border flex flex-col relative overflow-hidden group cursor-pointer transition-all {{ $filterKpi === 'rwo' ? 'ring-2 ring-primary border-primary/50' : 'border-base-300 hover:border-primary/50' }}">
+            <div class="absolute -right-4 -top-4 w-12 h-12 rounded-full bg-primary/10 transition-transform group-hover:scale-150"></div>
+            <div class="absolute right-2 top-2 text-primary opacity-20 group-hover:opacity-40 transition-opacity">
+                <x-heroicon-s-tag class="w-10 h-10" />
+            </div>
+            <div class="relative z-10 flex flex-col">
+                <h3 class="text-[10px] font-bold text-base-content/50 uppercase tracking-wider truncate">Toko RWO</h3>
+                <div class="text-lg font-bold leading-none mt-1 truncate">{{ number_format($kpi->total_rwo ?? 0, 0, ',', '.') }}</div>
+                <div class="text-[10px] text-success mt-1.5 font-bold flex items-center gap-1">
+                    <x-heroicon-s-check-circle class="w-3 h-3"/> On JKS: {{ number_format($kpi->total_rwo_jks_y ?? 0, 0, ',', '.') }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Toko PNR -->
+        <div wire:click="setFilterKpi('pnr')" class="bg-base-100 p-3 rounded-xl shadow-sm border flex flex-col relative overflow-hidden group cursor-pointer transition-all {{ $filterKpi === 'pnr' ? 'ring-2 ring-primary border-primary/50' : 'border-base-300 hover:border-primary/50' }}">
+            <div class="absolute -right-4 -top-4 w-12 h-12 rounded-full bg-primary/10 transition-transform group-hover:scale-150"></div>
+            <div class="absolute right-2 top-2 text-primary opacity-20 group-hover:opacity-40 transition-opacity">
+                <x-heroicon-s-tag class="w-10 h-10" />
+            </div>
+            <div class="relative z-10 flex flex-col">
+                <h3 class="text-[10px] font-bold text-base-content/50 uppercase tracking-wider truncate">Toko PNR</h3>
+                <div class="text-lg font-bold leading-none mt-1 truncate">{{ number_format($kpi->total_pnr ?? 0, 0, ',', '.') }}</div>
+                <div class="text-[10px] text-success mt-1.5 font-bold flex items-center gap-1">
+                    <x-heroicon-s-check-circle class="w-3 h-3"/> On JKS: {{ number_format($kpi->total_pnr_jks_y ?? 0, 0, ',', '.') }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Toko NGVO -->
+        <div wire:click="setFilterKpi('ngvo')" class="bg-base-100 p-3 rounded-xl shadow-sm border flex flex-col relative overflow-hidden group cursor-pointer transition-all {{ $filterKpi === 'ngvo' ? 'ring-2 ring-primary border-primary/50' : 'border-base-300 hover:border-primary/50' }}">
+            <div class="absolute -right-4 -top-4 w-12 h-12 rounded-full bg-primary/10 transition-transform group-hover:scale-150"></div>
+            <div class="absolute right-2 top-2 text-primary opacity-20 group-hover:opacity-40 transition-opacity">
+                <x-heroicon-s-tag class="w-10 h-10" />
+            </div>
+            <div class="relative z-10 flex flex-col">
+                <h3 class="text-[10px] font-bold text-base-content/50 uppercase tracking-wider truncate">Toko NGVO</h3>
+                <div class="text-lg font-bold leading-none mt-1 truncate">{{ number_format($kpi->total_ngvo ?? 0, 0, ',', '.') }}</div>
+                <div class="text-[10px] text-success mt-1.5 font-bold flex items-center gap-1">
+                    <x-heroicon-s-check-circle class="w-3 h-3"/> On JKS: {{ number_format($kpi->total_ngvo_jks_y ?? 0, 0, ',', '.') }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Total No Geotag -->
+        <div wire:click="setFilterKpi('no_geotag')" class="bg-base-100 p-3 rounded-xl shadow-sm border flex flex-col relative overflow-hidden group cursor-pointer transition-all {{ $filterKpi === 'no_geotag' ? 'ring-2 ring-primary border-primary/50' : 'border-base-300 hover:border-primary/50' }}">
+            <div class="absolute -right-4 -top-4 w-12 h-12 rounded-full bg-primary/10 transition-transform group-hover:scale-150"></div>
+            <div class="absolute right-2 top-2 text-primary opacity-20 group-hover:opacity-40 transition-opacity">
+                <x-heroicon-s-map-pin class="w-10 h-10" />
+            </div>
+            <div class="relative z-10 flex flex-col">
+                <h3 class="text-[10px] font-bold text-base-content/50 uppercase tracking-wider truncate">Total No Geotag</h3>
+                <div class="text-lg font-bold leading-none mt-1 truncate">{{ number_format($kpi->total_no_geotag ?? 0, 0, ',', '.') }}</div>
+                <div class="text-[10px] text-success mt-1.5 font-bold flex items-center gap-1">
+                    <x-heroicon-s-check-circle class="w-3 h-3"/> On JKS: {{ number_format($kpi->total_no_geotag_jks_y ?? 0, 0, ',', '.') }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Main Card --}}
+    <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+        {{-- Header Card & Actions --}}
+        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-base-200/30">
+            <div class="shrink-0 w-full md:w-auto">
+                <h2 class="text-base md:text-lg font-bold">Daftar Toko Pareto</h2>
+                <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Kelola data toko pareto</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center justify-start md:justify-end gap-2 md:gap-3 w-full md:w-auto">
+                <div class="relative grow md:grow-0 group">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/30 group-focus-within:text-primary transition-colors">
+                        <x-heroicon-s-magnifying-glass class="w-4 h-4" />
+                    </div>
+                    <input type="text" wire:model.live.debounce.500ms="search" placeholder="Cari Kode/Nama/Alamat/Pilar..." 
+                           class="input input-sm input-bordered pl-10 w-full rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300" />
                 </div>
 
-                <!-- Kanan: Aksi (Tambah, Filter, Import, Export) -->
-                <div class="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
+                <div class="flex flex-wrap items-center gap-1 md:gap-2">
                     <!-- TOMBOL FILTER -->
-                    <x-ui.button variant="neutral" size="sm" outline wire:click="openFilterModal">
-                        <x-heroicon-s-funnel class="w-4 h-4 mr-1" /> Filter
+                    <button type="button" class="btn btn-sm btn-ghost border border-base-300 bg-base-100" wire:click="openFilterModal">
+                        <x-heroicon-s-funnel class="w-4 h-4" /> Filter
                         @php $activeFilterCount = (int)(bool)$filterRegion + (int)(bool)$filterArea + (int)(bool)$filterSupervisor; @endphp
                         @if($activeFilterCount > 0)
-                            <div class="badge badge-primary badge-sm ml-2">{{ $activeFilterCount }}</div>
+                            <div class="badge badge-primary badge-sm ml-1">{{ $activeFilterCount }}</div>
                         @endif
-                    </x-ui.button>                    
-                    
-                    <!-- TOMBOL TAMBAH CUSTOMER BARU -->
+                    </button>
+
                     @canEdit('plan-call-team-elite.toko-pareto')
-                    <x-ui.button variant="primary" size="sm" wire:click="openCreateModal" icon="plus">
-                        Tambah Customer
-                    </x-ui.button>
+                    <x-ui.action-button type="default" icon="map-pin" label="Sync Geotag" wire:click="syncGeotag" wire:loading.attr="disabled" />
                     @endcanEdit
-                    
+
                     @canImport('plan-call-team-elite.toko-pareto')
-                    <x-ui.button variant="success" size="sm" wire:click="openImportModal">
-                        <x-heroicon-s-arrow-down-on-square class="w-4 h-4 mr-1" /> Import
-                    </x-ui.button>
+                    <x-ui.action-button type="import" wire:click="openImportModal" />
                     @endcanImport
 
-                    @canEdit('plan-call-team-elite.toko-pareto')
-                    <x-ui.button variant="secondary" size="sm" wire:click="syncGeotag" wire:loading.attr="disabled" wire:target="syncGeotag">
-                        <span wire:loading.remove wire:target="syncGeotag" class="flex items-center gap-1">
-                            <x-heroicon-s-map-pin class="w-4 h-4" /> Sync Geotag
-                        </span>
-                        <span wire:loading wire:target="syncGeotag" class="flex items-center gap-1">
-                            <span class="loading loading-spinner loading-xs"></span> Sinkronisasi...
-                        </span>
-                    </x-ui.button>
-                    @endcanEdit
+                    @canAdd('plan-call-team-elite.toko-pareto')
+                    <x-ui.action-button type="add" label="Tambah" wire:click="openCreateModal" />
+                    @endcanAdd
+
+                    <div class="hidden md:block w-px h-6 bg-base-300 mx-1"></div>
 
                     @canExport('plan-call-team-elite.toko-pareto')
-                    <x-ui.button variant="info" size="sm" wire:click="export" wire:loading.attr="disabled" wire:target="export">
-                        <span wire:loading.remove wire:target="export" class="flex items-center gap-1">
-                            <x-heroicon-s-arrow-up-on-square class="w-4 h-4" /> Export
-                        </span>
-                        <span wire:loading wire:target="export" class="flex items-center gap-1">
-                            <span class="loading loading-spinner loading-xs"></span> Proses...
-                        </span>
-                    </x-ui.button>
+                    <x-ui.action-button type="export" wire:click="export" wire:loading.attr="disabled" />
                     @endcanExport
                 </div>
             </div>
+        </div>
 
-            <!-- Tabel -->
-            <div wire:key="table-wrapper-{{ md5($search . $filterRegion . $filterArea . $filterSupervisor . ($data?->currentPage() ?? 0)) }}">
-                <x-ui.table hover striped sticky loading="{{ false }}" empty="Tidak ada data ditemukan." class="border-x-0 border-b-0 rounded-none shadow-none">
-                <x-slot:head>
+        {{-- Body Card (Tabel Scrollable area) --}}
+        <div class="flex-1 overflow-auto w-full relative" wire:key="table-wrapper-{{ md5($search . $filterRegion . $filterArea . $filterSupervisor . ($data?->currentPage() ?? 0)) }}">
+            <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
+                <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm relative z-20">
                     <tr>
-                        <th class="w-20">Aksi</th>
+                        <th class="w-24 text-center bg-base-200 shadow-[inset_1px_0_0_rgba(0,0,0,0.1)]">Aksi</th>
                         
                         <th wire:click="sortBy('m.region_name')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
                             <div class="flex items-center justify-between gap-2">
@@ -255,42 +272,37 @@
                             </div>
                         </th>
                     </tr>
-                </x-slot:head>
-
-                @foreach($data as $item)
+                </thead>
+                <tbody>
+                @forelse($data as $item)
                 <tr wire:key="toko-row-{{ $item->id }}">
-                    <td class="whitespace-nowrap flex gap-1">
-                        @canEdit('plan-call-team-elite.toko-pareto')
-                        <button type="button" class="btn btn-xs btn-info btn-outline" @click="$wire.edit({{ $item->id }})" title="Edit">
-                            <x-heroicon-s-pencil-square class="w-3.5 h-3.5" />
-                        </button>
-                        
-                        @if ($item->on_jks === 'Y')
-                        <button type="button" class="btn btn-xs btn-error btn-outline opacity-50 cursor-not-allowed" disabled title="Toko sudah terdaftar di JKS (tidak dapat dihapus)">
-                            <x-heroicon-s-trash class="w-3.5 h-3.5" />
-                        </button>
-                        @else
-                        <button type="button" class="btn btn-xs btn-error btn-outline" @click="$wire.confirmDelete({{ $item->id }})" title="Hapus">
-                            <x-heroicon-s-trash class="w-3.5 h-3.5" />
-                        </button>
-                        @endif
-                        
-                        <button type="button" class="btn btn-xs btn-success btn-outline" @click="$wire.addToJks({{ $item->id }})" title="Add to JKS">
-                            <x-heroicon-s-plus-circle class="w-3.5 h-3.5" />
-                        </button>
-                        @endcanEdit
-                    </td>
+                    <th class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
+                        <div class="flex items-center justify-center gap-1">
+                            @canEdit('plan-call-team-elite.toko-pareto')
+                            <x-ui.action-button type="edit" class="btn-square" title="Edit" wire:click="edit({{ $item->id }})" />
+                            @endcanEdit
+                            
+                            @canDelete('plan-call-team-elite.toko-pareto')
+                            @if ($item->on_jks === 'Y')
+                            <x-ui.action-button type="delete" class="btn-square opacity-50 cursor-not-allowed" disabled title="Toko sudah terdaftar di JKS (tidak dapat dihapus)" />
+                            @else
+                            <x-ui.action-button type="delete" class="btn-square" title="Hapus" wire:click="confirmDelete({{ $item->id }})" />
+                            @endif
+                            @endcanDelete
+                            
+                            @canEdit('plan-call-team-elite.toko-pareto')
+                            <x-ui.action-button type="default" icon="plus-circle" label="" class="btn-square btn-ghost text-success hover:bg-success/10 border-success/30" title="Add to JKS" wire:click="addToJks({{ $item->id }})" />
+                            @endcanEdit
+                        </div>
+                    </th>
                     <td class="whitespace-nowrap">{{ $item->region_name }}</td>
                     <td class="whitespace-nowrap">{{ $item->area_name }}</td>
-                    <td class="whitespace-nowrap">
-                        <span class="font-bold">{{ $item->distributor_name }}</span><br>
-                        <span class="text-[10px] text-base-content/50">{{ $item->distributor_code }}</span>
-                    </td>
+                    <td class="max-w-[150px] truncate" title="{{ $item->distributor_name }}">{{ $item->distributor_name }}</td>
                     <td class="whitespace-nowrap">{{ $item->supervisor_name }}</td>
                     <td class="whitespace-nowrap font-mono">{{ $item->customer_code_prc }}</td>
                     <td class="whitespace-nowrap">{{ $item->uniq_kd }}</td>
-                    <td class="min-w-[200px] font-bold">{{ $item->customer_name }}</td>
-                    <td class="min-w-[250px] text-xs opacity-70">{{ $item->customer_address }}</td>
+                    <td class="max-w-[180px] truncate font-bold" title="{{ $item->customer_name }}">{{ $item->customer_name }}</td>
+                    <td class="max-w-[220px] truncate text-xs opacity-70" title="{{ $item->customer_address }}">{{ $item->customer_address }}</td>
                     <td>{{ $item->kecamatan }}</td>
                     <td>{{ $item->desa }}</td>
                     <td class="whitespace-nowrap text-xs opacity-70">
@@ -309,16 +321,24 @@
                         @endif
                     </td>
                 </tr>
-                @endforeach
-            </x-ui.table>
-            </div>
-            
-            @if($data->hasPages())
-                <div class="px-6 py-4 border-t border-base-200 bg-base-200/30">
-                    {{ $data->links() }}
-                </div>
-            @endif
+                @empty
+                    <tr>
+                        <td colspan="16" class="text-center py-8 text-base-content/50">
+                            <x-heroicon-o-document-magnifying-glass class="w-12 h-12 mx-auto mb-3 opacity-30" />
+                            Tidak ada data yang ditemukan.
+                        </td>
+                    </tr>
+                @endforelse
+                </tbody>
+            </table>
         </div>
+            
+        @if($data->hasPages())
+            {{-- Pagination --}}
+            <div class="p-3 md:p-4 border-t border-base-300 bg-base-200/30 shrink-0">
+                {{ $data->links() }}
+            </div>
+        @endif
     </div>
 
     <!-- MODAL FILTER -->

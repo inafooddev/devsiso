@@ -53,13 +53,16 @@ class Index extends Component
     public $distributor_code, $customer_code_prc, $customer_name, $uniq_kd, $customer_address;
     public $kecamatan, $desa, $latitude, $longitude, $pilar, $target, $keterangan;
     
-    // Properti Edit & Delete
+    // State Edit & Delete
     public $isEditModalOpen = false;
     public $isDeleteModalOpen = false;
     public $original_distributor_code;
     public $original_uniq_kd;
     public $delete_distributor_code;
     public $delete_uniq_kd;
+
+    // State Map Modal
+
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -307,7 +310,7 @@ class Index extends Component
             $distributors = $distQuery->orderBy('distributor_name')->get();
         }
 
-        $data = $this->getBaseQuery()->paginate(15);
+        $data = $this->getBaseQuery()->paginate(100);
 
         // --- KPI Cards Calculation ---
         $kpiQuery = $this->getBaseQuery(true, true);
@@ -362,7 +365,6 @@ class Index extends Component
         $this->mount();
         $this->resetPage(); 
     }
-
     // --- FITUR TAMBAH CUSTOMER BARU ---
     /**
      * Helper Keamanan: Memastikan kode distributor yang dimanipulasi valid dengan hak akses.
