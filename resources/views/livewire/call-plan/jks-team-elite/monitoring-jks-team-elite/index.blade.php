@@ -1,24 +1,38 @@
-<div>
-    <!-- TABS -->
-    <div class="tabs tabs-boxed mb-4 w-fit bg-base-100 shadow-sm border border-base-200 p-1">
-        <a href="{{ route('call-plan.jks-team-elite.monitoring') }}" class="tab px-8 tab-active font-bold" wire:navigate>Summary</a>
-        <a href="{{ route('jks-team-elite.index') }}" class="tab px-8 text-base-content/70 hover:text-base-content" wire:navigate>Detail</a>
-        <a href="{{ route('call-plan.jks-team-elite.monitoring-siso-vs-eska') }}" class="tab px-8 text-base-content/70 hover:text-base-content" wire:navigate>SISO vs ESKA</a>
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
+    <x-slot name="title">Monitoring JKS Team Elite</x-slot>
+
+    {{-- TABS --}}
+    <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex items-center shadow-sm relative z-10 -mb-1 md:-mb-2">
+        <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
+            <a href="{{ route('call-plan.jks-team-elite.monitoring') }}" class="tab tab-xs px-4 tab-active font-bold shadow-sm bg-base-100" wire:navigate>Summary</a>
+            <a href="{{ route('jks-team-elite.index') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Detail</a>
+            <a href="{{ route('call-plan.jks-team-elite.monitoring-siso-vs-eska') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>SISO vs ESKA</a>
+        </div>
     </div>
-    <x-card title="Monitoring JKS Team Elite" icon="clipboard-document-check" class="mb-4" flush="true">
-        <x-slot:actions>
-            <div class="flex items-center gap-2">
-                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari Tim..." class="input input-bordered input-sm w-36 lg:w-48" />
-                <select wire:model.live="filterRegion" class="select select-bordered select-sm">
+
+    <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+        
+        {{-- Header Card & Actions --}}
+        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+            <div class="shrink-0 w-full sm:w-auto">
+                <h2 class="text-base md:text-lg font-bold">Monitoring JKS</h2>
+                <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Ringkasan kalender JKS Team Elite</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
+                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari Tim..." class="input input-bordered input-sm w-full sm:w-36 lg:w-48 rounded-xl bg-base-100" />
+                <select wire:model.live="filterRegion" class="select select-bordered select-sm w-full sm:w-auto rounded-xl bg-base-100">
                     <option value="">Semua Region</option>
                     @foreach($regions as $region)
                         <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
                     @endforeach
                 </select>
-                <label class="text-sm font-medium ml-2">Bulan:</label>
-                <input type="month" wire:model.live="filterMonth" class="input input-bordered input-sm" />
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <label class="text-xs font-semibold text-base-content/60 uppercase tracking-wider">Bulan</label>
+                    <input type="month" wire:model.live="filterMonth" class="input input-bordered input-sm rounded-xl bg-base-100 w-full sm:w-auto" />
+                </div>
             </div>
-        </x-slot:actions>
+        </div>
 
         <style>
             /* Matrix Table UI/UX Revamp */
@@ -53,7 +67,7 @@
             <p class="text-sm mt-1">Silakan pilih bulan pada kalender di atas untuk menampilkan data matriks.</p>
         </div>
         @else
-        <div class="overflow-auto border border-base-300 bg-base-100 rounded-xl mt-4 mb-4 relative shadow-sm" style="height: 550px;">
+        <div class="flex-1 overflow-auto bg-base-100 w-full relative">
             <table class="matrix-table text-xs">
                 <thead>
                     <tr>
@@ -112,7 +126,7 @@
             </table>
         </div>
         @endif
-    </x-card>
+    </div>
 
     <!-- DETAIL MODAL TOKO (Standalone DaisyUI) -->
     <dialog id="modal-detail" class="modal modal-bottom sm:modal-middle {{ $isDetailModalOpen ? 'modal-open' : '' }}">

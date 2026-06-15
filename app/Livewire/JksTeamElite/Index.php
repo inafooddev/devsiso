@@ -34,7 +34,7 @@ class Index extends Component
 
     // Sorting
     public $sortField = 'tanggal';
-    public $sortDirection = 'desc';
+    public $sortDirection = 'asc';
 
     // Modal & Form States
     public $isFormModalOpen = false;
@@ -1107,7 +1107,7 @@ class Index extends Component
                 )
                 ->orderBy($sortField, $this->sortDirection);
 
-            $records = $query->paginate(10);
+            $records = $query->paginate(100);
             
             // KPI Calculation (Single Outlet / Unique Stores)
             $filterTeam = $this->filterTeam;

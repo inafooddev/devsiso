@@ -1,16 +1,16 @@
-<div>
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <x-slot name="title">JKS Team Elite</x-slot>
 
-    <!-- TABS -->
-    <div class="mx-auto px-4 sm:px-6 pt-4">
-        <div class="tabs tabs-boxed mb-4 w-fit bg-base-100 shadow-sm border border-base-200 p-1">
-            <a href="{{ route('call-plan.jks-team-elite.monitoring') }}" class="tab px-8 text-base-content/70 hover:text-base-content" wire:navigate>Summary</a>
-            <a href="{{ route('jks-team-elite.index') }}" class="tab px-8 tab-active font-bold" wire:navigate>Detail</a>
-            <a href="{{ route('call-plan.jks-team-elite.monitoring-siso-vs-eska') }}" class="tab px-8 text-base-content/70 hover:text-base-content" wire:navigate>SISO vs ESKA</a>
+    {{-- TABS --}}
+    <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex items-center shadow-sm relative z-10 -mb-1 md:-mb-2">
+        <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
+            <a href="{{ route('call-plan.jks-team-elite.monitoring') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Summary</a>
+            <a href="{{ route('jks-team-elite.index') }}" class="tab tab-xs px-4 tab-active font-bold shadow-sm bg-base-100" wire:navigate>Detail</a>
+            <a href="{{ route('call-plan.jks-team-elite.monitoring-siso-vs-eska') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>SISO vs ESKA</a>
         </div>
     </div>
 
-    <div class="mx-auto px-4 sm:px-6 pb-8">
+    <div class="flex flex-col flex-1 min-h-0">
         {{-- Notifikasi --}}
         @if (session()->has('message') || session()->has('error'))
             <div class="mb-6 mt-4">
@@ -37,32 +37,32 @@
         @endif
 
         @if(!empty($filterTeam) && !empty($filterStartDate) && !empty($filterEndDate))
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-6 shrink-0 mb-4">
                 {{-- Card Total Toko --}}
                 @php
                     $gapToko = max(0, $paretoKpi['total_toko'] - $kpi['total_toko']);
                     $pctToko = $paretoKpi['total_toko'] > 0 ? round(($kpi['total_toko'] / $paretoKpi['total_toko']) * 100) : 0;
                 @endphp
-                <div class="bg-base-100 rounded-2xl p-5 border border-base-200 shadow-sm relative overflow-hidden group hover:border-primary/30 hover:shadow-md transition-all duration-300">
+                <div class="bg-base-100 rounded-xl p-3 lg:p-4 border border-base-200 shadow-sm relative overflow-hidden group hover:border-primary/30 hover:shadow-md transition-all duration-300">
                     <div class="absolute -right-4 -top-4 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none">
-                        <x-heroicon-s-building-storefront class="w-24 h-24 text-primary" />
+                        <x-heroicon-s-building-storefront class="w-16 h-16 md:w-20 md:h-20 text-primary" />
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center gap-2 mb-3">
-                            <div class="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                                <x-heroicon-s-building-storefront class="w-4 h-4" />
+                        <div class="flex items-center gap-1.5 mb-2">
+                            <div class="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center text-primary">
+                                <x-heroicon-s-building-storefront class="w-3 h-3" />
                             </div>
-                            <h3 class="text-[11px] font-extrabold text-base-content/60 uppercase tracking-widest">Total Toko</h3>
+                            <h3 class="text-[10px] font-bold text-base-content/60 uppercase tracking-widest">Total Toko</h3>
                         </div>
-                        <div class="flex items-baseline gap-1 flex-wrap mb-3 cursor-help" title="Format: Terjadwal (Semua Pilar) / Terjadwal (3 Pilar) / Target Pareto (3 Pilar)">
-                            <span class="text-3xl font-black text-primary leading-none">{{ number_format($kpi['total_toko_all'] ?? 0) }}</span>
-                            <span class="text-lg font-bold text-primary/70 leading-none">/ {{ number_format($kpi['total_toko']) }}</span>
-                            <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_toko']) }}</span>
+                        <div class="flex items-baseline gap-1 flex-wrap mb-2 cursor-help" title="Format: Terjadwal (Semua Pilar) / Terjadwal (3 Pilar) / Target Pareto (3 Pilar)">
+                            <span class="text-xl font-bold text-primary leading-none">{{ number_format($kpi['total_toko_all'] ?? 0) }}</span>
+                            <span class="text-sm font-bold text-primary/70 leading-none">/ {{ number_format($kpi['total_toko']) }}</span>
+                            <span class="text-[10px] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_toko']) }}</span>
                         </div>
-                        <div class="w-full bg-base-200 rounded-full h-1.5 mb-2 overflow-hidden">
-                            <div class="bg-primary h-1.5 rounded-full transition-all duration-500" style="width: {{ min(100, $pctToko) }}%"></div>
+                        <div class="w-full bg-base-200 rounded-full h-1 mb-1.5 overflow-hidden">
+                            <div class="bg-primary h-1 rounded-full transition-all duration-500" style="width: {{ min(100, $pctToko) }}%"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                        <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider">
                             <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapToko) }}</span></span>
                             <span class="text-primary">{{ $pctToko }}%</span>
                         </div>
@@ -74,25 +74,25 @@
                     $gapTarget = max(0, $paretoKpi['total_target'] - $kpi['total_target']);
                     $pctTarget = $paretoKpi['total_target'] > 0 ? round(($kpi['total_target'] / $paretoKpi['total_target']) * 100) : 0;
                 @endphp
-                <div class="bg-base-100 rounded-2xl p-5 border border-base-200 shadow-sm relative overflow-hidden group hover:border-success/30 hover:shadow-md transition-all duration-300">
+                <div class="bg-base-100 rounded-xl p-3 lg:p-4 border border-base-200 shadow-sm relative overflow-hidden group hover:border-success/30 hover:shadow-md transition-all duration-300">
                     <div class="absolute -right-4 -top-4 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none">
-                        <x-heroicon-s-banknotes class="w-24 h-24 text-success" />
+                        <x-heroicon-s-banknotes class="w-16 h-16 md:w-20 md:h-20 text-success" />
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center gap-2 mb-3">
-                            <div class="w-7 h-7 rounded-lg bg-success/10 flex items-center justify-center text-success">
-                                <x-heroicon-s-banknotes class="w-4 h-4" />
+                        <div class="flex items-center gap-1.5 mb-2">
+                            <div class="w-6 h-6 rounded-md bg-success/10 flex items-center justify-center text-success">
+                                <x-heroicon-s-banknotes class="w-3 h-3" />
                             </div>
-                            <h3 class="text-[11px] font-extrabold text-base-content/60 uppercase tracking-widest">Total Target</h3>
+                            <h3 class="text-[10px] font-bold text-base-content/60 uppercase tracking-widest">Total Target</h3>
                         </div>
-                        <div class="flex items-baseline gap-1.5 mb-3">
-                            <span class="text-3xl font-black text-success leading-none">{{ number_format($kpi['total_target']) }}</span>
-                            <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_target']) }}</span>
+                        <div class="flex items-baseline gap-1.5 mb-2">
+                            <span class="text-xl font-bold text-success leading-none">{{ number_format($kpi['total_target']) }}</span>
+                            <span class="text-[10px] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_target']) }}</span>
                         </div>
-                        <div class="w-full bg-base-200 rounded-full h-1.5 mb-2 overflow-hidden">
-                            <div class="bg-success h-1.5 rounded-full transition-all duration-500" style="width: {{ min(100, $pctTarget) }}%"></div>
+                        <div class="w-full bg-base-200 rounded-full h-1 mb-1.5 overflow-hidden">
+                            <div class="bg-success h-1 rounded-full transition-all duration-500" style="width: {{ min(100, $pctTarget) }}%"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                        <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider">
                             <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapTarget) }}</span></span>
                             <span class="text-success">{{ $pctTarget }}%</span>
                         </div>
@@ -104,25 +104,25 @@
                     $gapRwo = max(0, $paretoKpi['total_rwo'] - $kpi['total_rwo']);
                     $pctRwo = $paretoKpi['total_rwo'] > 0 ? round(($kpi['total_rwo'] / $paretoKpi['total_rwo']) * 100) : 0;
                 @endphp
-                <div class="bg-base-100 rounded-2xl p-5 border border-base-200 shadow-sm relative overflow-hidden group hover:border-info/30 hover:shadow-md transition-all duration-300">
+                <div class="bg-base-100 rounded-xl p-3 lg:p-4 border border-base-200 shadow-sm relative overflow-hidden group hover:border-info/30 hover:shadow-md transition-all duration-300">
                     <div class="absolute -right-4 -top-4 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none">
-                        <x-heroicon-s-shopping-bag class="w-24 h-24 text-info" />
+                        <x-heroicon-s-shopping-bag class="w-16 h-16 md:w-20 md:h-20 text-info" />
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center gap-2 mb-3">
-                            <div class="w-7 h-7 rounded-lg bg-info/10 flex items-center justify-center text-info">
-                                <x-heroicon-s-shopping-bag class="w-4 h-4" />
+                        <div class="flex items-center gap-1.5 mb-2">
+                            <div class="w-6 h-6 rounded-md bg-info/10 flex items-center justify-center text-info">
+                                <x-heroicon-s-shopping-bag class="w-3 h-3" />
                             </div>
-                            <h3 class="text-[11px] font-extrabold text-base-content/60 uppercase tracking-widest">Total RWO</h3>
+                            <h3 class="text-[10px] font-bold text-base-content/60 uppercase tracking-widest">Total RWO</h3>
                         </div>
-                        <div class="flex items-baseline gap-1.5 mb-3">
-                            <span class="text-3xl font-black text-info leading-none">{{ number_format($kpi['total_rwo']) }}</span>
-                            <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_rwo']) }}</span>
+                        <div class="flex items-baseline gap-1.5 mb-2">
+                            <span class="text-xl font-bold text-info leading-none">{{ number_format($kpi['total_rwo']) }}</span>
+                            <span class="text-[10px] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_rwo']) }}</span>
                         </div>
-                        <div class="w-full bg-base-200 rounded-full h-1.5 mb-2 overflow-hidden">
-                            <div class="bg-info h-1.5 rounded-full transition-all duration-500" style="width: {{ min(100, $pctRwo) }}%"></div>
+                        <div class="w-full bg-base-200 rounded-full h-1 mb-1.5 overflow-hidden">
+                            <div class="bg-info h-1 rounded-full transition-all duration-500" style="width: {{ min(100, $pctRwo) }}%"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                        <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider">
                             <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapRwo) }}</span></span>
                             <span class="text-info">{{ $pctRwo }}%</span>
                         </div>
@@ -134,25 +134,25 @@
                     $gapPnr = max(0, $paretoKpi['total_pnr'] - $kpi['total_pnr']);
                     $pctPnr = $paretoKpi['total_pnr'] > 0 ? round(($kpi['total_pnr'] / $paretoKpi['total_pnr']) * 100) : 0;
                 @endphp
-                <div class="bg-base-100 rounded-2xl p-5 border border-base-200 shadow-sm relative overflow-hidden group hover:border-secondary/30 hover:shadow-md transition-all duration-300">
+                <div class="bg-base-100 rounded-xl p-3 lg:p-4 border border-base-200 shadow-sm relative overflow-hidden group hover:border-secondary/30 hover:shadow-md transition-all duration-300">
                     <div class="absolute -right-4 -top-4 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none">
-                        <x-heroicon-s-archive-box class="w-24 h-24 text-secondary" />
+                        <x-heroicon-s-archive-box class="w-16 h-16 md:w-20 md:h-20 text-secondary" />
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center gap-2 mb-3">
-                            <div class="w-7 h-7 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary">
-                                <x-heroicon-s-archive-box class="w-4 h-4" />
+                        <div class="flex items-center gap-1.5 mb-2">
+                            <div class="w-6 h-6 rounded-md bg-secondary/10 flex items-center justify-center text-secondary">
+                                <x-heroicon-s-archive-box class="w-3 h-3" />
                             </div>
-                            <h3 class="text-[11px] font-extrabold text-base-content/60 uppercase tracking-widest">Total PNR</h3>
+                            <h3 class="text-[10px] font-bold text-base-content/60 uppercase tracking-widest">Total PNR</h3>
                         </div>
-                        <div class="flex items-baseline gap-1.5 mb-3">
-                            <span class="text-3xl font-black text-secondary leading-none">{{ number_format($kpi['total_pnr']) }}</span>
-                            <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_pnr']) }}</span>
+                        <div class="flex items-baseline gap-1.5 mb-2">
+                            <span class="text-xl font-bold text-secondary leading-none">{{ number_format($kpi['total_pnr']) }}</span>
+                            <span class="text-[10px] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_pnr']) }}</span>
                         </div>
-                        <div class="w-full bg-base-200 rounded-full h-1.5 mb-2 overflow-hidden">
-                            <div class="bg-secondary h-1.5 rounded-full transition-all duration-500" style="width: {{ min(100, $pctPnr) }}%"></div>
+                        <div class="w-full bg-base-200 rounded-full h-1 mb-1.5 overflow-hidden">
+                            <div class="bg-secondary h-1 rounded-full transition-all duration-500" style="width: {{ min(100, $pctPnr) }}%"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                        <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider">
                             <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapPnr) }}</span></span>
                             <span class="text-secondary">{{ $pctPnr }}%</span>
                         </div>
@@ -164,25 +164,25 @@
                     $gapNgvo = max(0, $paretoKpi['total_ngvo'] - $kpi['total_ngvo']);
                     $pctNgvo = $paretoKpi['total_ngvo'] > 0 ? round(($kpi['total_ngvo'] / $paretoKpi['total_ngvo']) * 100) : 0;
                 @endphp
-                <div class="bg-base-100 rounded-2xl p-5 border border-base-200 shadow-sm relative overflow-hidden group hover:border-warning/30 hover:shadow-md transition-all duration-300">
+                <div class="bg-base-100 rounded-xl p-3 lg:p-4 border border-base-200 shadow-sm relative overflow-hidden group hover:border-warning/30 hover:shadow-md transition-all duration-300">
                     <div class="absolute -right-4 -top-4 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none">
-                        <x-heroicon-s-sparkles class="w-24 h-24 text-warning" />
+                        <x-heroicon-s-sparkles class="w-16 h-16 md:w-20 md:h-20 text-warning" />
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center gap-2 mb-3">
-                            <div class="w-7 h-7 rounded-lg bg-warning/10 flex items-center justify-center text-warning">
-                                <x-heroicon-s-sparkles class="w-4 h-4" />
+                        <div class="flex items-center gap-1.5 mb-2">
+                            <div class="w-6 h-6 rounded-md bg-warning/10 flex items-center justify-center text-warning">
+                                <x-heroicon-s-sparkles class="w-3 h-3" />
                             </div>
-                            <h3 class="text-[11px] font-extrabold text-base-content/60 uppercase tracking-widest">Total NGVO</h3>
+                            <h3 class="text-[10px] font-bold text-base-content/60 uppercase tracking-widest">Total NGVO</h3>
                         </div>
-                        <div class="flex items-baseline gap-1.5 mb-3">
-                            <span class="text-3xl font-black text-warning leading-none">{{ number_format($kpi['total_ngvo']) }}</span>
-                            <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_ngvo']) }}</span>
+                        <div class="flex items-baseline gap-1.5 mb-2">
+                            <span class="text-xl font-bold text-warning leading-none">{{ number_format($kpi['total_ngvo']) }}</span>
+                            <span class="text-[10px] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_ngvo']) }}</span>
                         </div>
-                        <div class="w-full bg-base-200 rounded-full h-1.5 mb-2 overflow-hidden">
-                            <div class="bg-warning h-1.5 rounded-full transition-all duration-500" style="width: {{ min(100, $pctNgvo) }}%"></div>
+                        <div class="w-full bg-base-200 rounded-full h-1 mb-1.5 overflow-hidden">
+                            <div class="bg-warning h-1 rounded-full transition-all duration-500" style="width: {{ min(100, $pctNgvo) }}%"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                        <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider">
                             <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapNgvo) }}</span></span>
                             <span class="text-warning">{{ $pctNgvo }}%</span>
                         </div>
@@ -191,133 +191,118 @@
             </div>
         @endif
 
-        <x-card flush title="JKS Team Elite" icon="users" subtitle="Kelola data JKS Team Elite" class="pb-6">
-            <div class="px-6 py-4 border-b border-base-200 bg-base-100/50">
-                <div class="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 flex-wrap w-full justify-between">
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
-                        {{-- Filter Team --}}
-                        <div class="relative w-full sm:w-64 md:w-72" x-data="{ open: false }" @click.outside="open = false">
-                            <button type="button" @click="open = !open" class="select select-sm select-bordered w-full rounded-xl bg-base-200 border-base-300 flex items-center justify-between px-3 text-left">
-                                <span class="truncate text-base-content/70">
-                                    @if(count($filterTeam) === 0)
-                                        Pilih Team...
-                                    @elseif(count($filterTeam) === 1)
-                                        {{ collect($teams)->firstWhere('kode_team', $filterTeam[0])->nama_team ?? '1 Team' }}
-                                    @else
-                                        {{ count($filterTeam) }} Team Terpilih
-                                    @endif
-                                </span>
-                                <x-heroicon-s-chevron-down class="w-4 h-4 text-base-content/50" />
-                            </button>
-                            
-                            <div x-show="open" 
-                                 x-transition
-                                 x-cloak
-                                 class="absolute z-50 w-80 mt-1 bg-base-100 border border-base-300 rounded-xl shadow-xl left-0 flex flex-col overflow-hidden">
-                                 
-                                <div class="px-3 py-2 border-b border-base-300 bg-base-100 z-10 flex flex-col gap-2 shrink-0">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <button type="button" wire:click="selectAllTeams" class="btn btn-xs btn-ghost text-primary hover:bg-primary/10">Pilih Semua</button>
-                                        <button type="button" wire:click="resetTeams" class="btn btn-xs btn-ghost text-error hover:bg-error/10">Reset</button>
-                                    </div>
-                                    <div class="relative">
-                                        <input type="text" wire:model.live.debounce.300ms="searchTeamFilter" placeholder="Cari nama/kode team..." class="input input-sm input-bordered w-full rounded-lg pl-8 bg-base-200" />
-                                        <x-heroicon-s-magnifying-glass class="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/50" />
-                                    </div>
+        <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+            
+            {{-- Header Card & Actions --}}
+            <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+                <div class="shrink-0 w-full sm:w-auto">
+                    <h2 class="text-base md:text-lg font-bold">JKS Team Elite</h2>
+                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Kelola data JKS Team Elite</p>
+                </div>
+                
+                {{-- Menggunakan flex-wrap agar barisan aksi jatuh secara responsif --}}
+                <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
+                    
+                    {{-- Filter Team --}}
+                    <div class="relative w-full sm:w-48" x-data="{ open: false }" @click.outside="open = false">
+                        <button type="button" @click="open = !open" class="select select-sm select-bordered w-full rounded-xl bg-base-100 border-base-300 flex items-center justify-between px-3 text-left">
+                            <span class="truncate text-base-content/70">
+                                @if(count($filterTeam) === 0)
+                                    Pilih Team...
+                                @elseif(count($filterTeam) === 1)
+                                    {{ collect($teams)->firstWhere('kode_team', $filterTeam[0])->nama_team ?? '1 Team' }}
+                                @else
+                                    {{ count($filterTeam) }} Team Terpilih
+                                @endif
+                            </span>
+                            <x-heroicon-s-chevron-down class="w-4 h-4 text-base-content/50" />
+                        </button>
+                        
+                        <div x-show="open" 
+                             x-transition
+                             x-cloak
+                             class="absolute z-50 w-80 mt-1 bg-base-100 border border-base-300 rounded-xl shadow-xl left-0 flex flex-col overflow-hidden">
+                             
+                            <div class="px-3 py-2 border-b border-base-300 bg-base-100 z-10 flex flex-col gap-2 shrink-0">
+                                <div class="flex items-center justify-between gap-2">
+                                    <button type="button" wire:click="selectAllTeams" class="btn btn-xs btn-ghost text-primary hover:bg-primary/10">Pilih Semua</button>
+                                    <button type="button" wire:click="resetTeams" class="btn btn-xs btn-ghost text-error hover:bg-error/10">Reset</button>
                                 </div>
-                                 
-                                <div class="p-2 space-y-1 overflow-y-auto overflow-x-auto max-h-60">
-                                    @php
-                                        $filteredTeams = empty($searchTeamFilter) 
-                                            ? collect($teams) 
-                                            : collect($teams)->filter(fn($t) => stripos($t->nama_team, $searchTeamFilter) !== false || stripos($t->kode_team, $searchTeamFilter) !== false);
-                                    @endphp
-
-                                    @forelse($filteredTeams as $team)
-                                        <label class="flex items-center gap-3 p-2 hover:bg-base-200 rounded-lg cursor-pointer transition-colors w-max pr-4">
-                                            <input type="checkbox" wire:model.live="filterTeam" value="{{ $team->kode_team }}" class="checkbox checkbox-sm checkbox-primary rounded-md shrink-0" />
-                                            <span class="text-sm select-none whitespace-nowrap">{{ $team->nama_team }}</span>
-                                        </label>
-                                    @empty
-                                        <div class="text-center py-4 text-sm text-base-content/50">Team tidak ditemukan</div>
-                                    @endforelse
+                                <div class="relative">
+                                    <input type="text" wire:model.live.debounce.300ms="searchTeamFilter" placeholder="Cari nama/kode team..." class="input input-sm input-bordered w-full rounded-lg pl-8 bg-base-200" />
+                                    <x-heroicon-s-magnifying-glass class="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/50" />
                                 </div>
                             </div>
-                        </div>
+                             
+                            <div class="p-2 space-y-1 overflow-y-auto overflow-x-auto max-h-60">
+                                @php
+                                    $filteredTeams = empty($searchTeamFilter) 
+                                        ? collect($teams) 
+                                        : collect($teams)->filter(fn($t) => stripos($t->nama_team, $searchTeamFilter) !== false || stripos($t->kode_team, $searchTeamFilter) !== false);
+                                @endphp
 
-                        {{-- Filter Date Range --}}
-                        <div class="flex items-center gap-2 w-full sm:w-auto">
-                            <input wire:model.live.debounce.300ms="filterStartDate" type="date" class="input input-sm input-bordered w-full sm:w-36 rounded-xl bg-base-200 border-base-300">
-                            <span class="text-base-content/50 text-sm hidden sm:inline">s/d</span>
-                            <input wire:model.live.debounce.300ms="filterEndDate" type="date" class="input input-sm input-bordered w-full sm:w-36 rounded-xl bg-base-200 border-base-300">
-                        </div>
-
-                        {{-- Global Search --}}
-                        <div class="relative w-full sm:w-48">
-                            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari data..." class="input input-sm input-bordered w-full rounded-xl pl-8 bg-base-200 border-base-300" />
-                            <x-heroicon-s-magnifying-glass class="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/50" />
+                                @forelse($filteredTeams as $team)
+                                    <label class="flex items-center gap-3 p-2 hover:bg-base-200 rounded-lg cursor-pointer transition-colors w-max pr-4">
+                                        <input type="checkbox" wire:model.live="filterTeam" value="{{ $team->kode_team }}" class="checkbox checkbox-sm checkbox-primary rounded-md shrink-0" />
+                                        <span class="text-sm select-none whitespace-nowrap">{{ $team->nama_team }}</span>
+                                    </label>
+                                @empty
+                                    <div class="text-center py-4 text-sm text-base-content/50">Team tidak ditemukan</div>
+                                @endforelse
+                            </div>
                         </div>
                     </div>
 
-                    {{-- Tombol Export --}}
+                    {{-- Filter Date Range --}}
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <input wire:model.live.debounce.300ms="filterStartDate" type="date" class="input input-sm input-bordered w-full sm:w-32 rounded-xl bg-base-100 border-base-300">
+                        <span class="text-base-content/50 text-sm hidden sm:inline">s/d</span>
+                        <input wire:model.live.debounce.300ms="filterEndDate" type="date" class="input input-sm input-bordered w-full sm:w-32 rounded-xl bg-base-100 border-base-300">
+                    </div>
+
+
+
+                    {{-- Separator 1 --}}
+                    <div class="w-[1px] h-6 bg-base-300 hidden sm:block mx-1"></div>
+
+                    {{-- Actions Button --}}
                     @php
                         $canExportBtn = !empty($filterTeam) && !empty($filterStartDate) && !empty($filterEndDate);
                     @endphp
-                    <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto mt-2 lg:mt-0 justify-end">
+                    <div class="flex flex-wrap items-center gap-1 md:gap-2 shrink-0">
+                        
+                        {{-- Import, Tambah, Maps --}}
+                        @canImport('jks-team-elite.index')
+                        <x-ui.action-button type="import" wire:click="openImportModal" />
+                        @endcanImport
+
+                        @canEdit('jks-team-elite.index')
+                        <x-ui.action-button type="add" label="Tambah" wire:click="openCreateModal" />
+                        @endcanEdit
+
+                        <x-ui.action-button type="default" icon="map" label="Maps" class="text-info bg-info/10 hover:bg-info hover:text-white border-0 shadow-sm" wire:click="showGlobalMap" />
+
+                        {{-- Separator 2 --}}
+                        <div class="w-[1px] h-6 bg-base-300 hidden sm:block mx-1"></div>
+
+                        {{-- Export, Eska Export --}}
                         @canExport('jks-team-elite.index')
                         <div class="tooltip tooltip-bottom" data-tip="{{ !$canExportBtn ? 'Pilih Team dan tanggal terlebih dahulu' : 'Export data ke Excel' }}">
-                            <button wire:click="export"
-                                {{ !$canExportBtn ? 'disabled' : '' }}
-                                class="btn btn-sm btn-success rounded-xl normal-case gap-2 shadow-sm text-white {{ !$canExportBtn ? 'btn-disabled opacity-40 cursor-not-allowed' : '' }}">
-                                <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
-                                <span class="hidden lg:inline">Export</span>
-                            </button>
+                            <x-ui.action-button type="export" wire:click="export" :disabled="!$canExportBtn" />
                         </div>
                         <div class="tooltip tooltip-bottom" data-tip="{{ !$canExportBtn ? 'Pilih Team dan tanggal terlebih dahulu' : 'Export data ke Excel format ESKA' }}">
-                            <button wire:click="openExportEskaModal"
-                                {{ !$canExportBtn ? 'disabled' : '' }}
-                                class="btn btn-sm btn-info rounded-xl normal-case gap-2 shadow-sm text-white {{ !$canExportBtn ? 'btn-disabled opacity-40 cursor-not-allowed' : '' }}">
-                                <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
-                                <span class="hidden lg:inline">Export ESKA</span>
-                            </button>
+                            <x-ui.action-button type="default" icon="arrow-down-tray" label="ESKA Export" class="text-info bg-info/10 hover:bg-info hover:text-white border-0 shadow-sm" wire:click="openExportEskaModal" :disabled="!$canExportBtn" />
                         </div>
                         @endcanExport
 
-                        {{-- Tombol Import --}}
-                        @canImport('jks-team-elite.index')
-                        <div class="tooltip tooltip-bottom" data-tip="Import data Excel">
-                            <button wire:click="openImportModal" class="btn btn-sm btn-warning rounded-xl normal-case gap-2 shadow-sm text-white">
-                                <x-heroicon-s-arrow-up-tray class="w-4 h-4" />
-                                <span class="hidden lg:inline">Import</span>
-                            </button>
-                        </div>
-                        @endcanImport
-
-                        {{-- Tombol Tambah --}}
-                        @canEdit('jks-team-elite.index')
-                        <div class="tooltip tooltip-bottom" data-tip="Tambah Jadwal JKS">
-                            <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
-                                <x-heroicon-s-plus class="w-4 h-4" />
-                                <span class="hidden lg:inline">Tambah</span>
-                            </button>
-                        </div>
-                        @endcanEdit
-
-                        {{-- Tombol Maps --}}
-                        <div class="tooltip tooltip-bottom" data-tip="Lihat Maps Global">
-                            <button wire:click="showGlobalMap" class="btn btn-sm btn-info rounded-xl normal-case gap-2 shadow-sm text-white">
-                                <x-heroicon-s-map class="w-4 h-4" />
-                                <span class="hidden lg:inline">Maps</span>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="px-6 py-4">
-                <div class="overflow-x-auto rounded-xl border border-base-200 shadow-sm">
-                <table class="table table-sm table-zebra w-full text-[11px] [&_th]:text-[11px] [&_td]:text-[11px]">
-                    <thead>
+            {{-- Body Card (Tabel Scrollable area) --}}
+            <div class="flex-1 overflow-auto bg-base-100 w-full relative">
+                <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap text-[11px] [&_th]:text-[11px] [&_td]:text-[11px]">
+                    <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
                         <tr>
                             <th>No</th>
                             <th class="cursor-pointer hover:bg-base-200 transition-colors select-none" wire:click="sortBy('tanggal')">
@@ -415,7 +400,19 @@
                                     <td>{{ \Carbon\Carbon::parse($record->tanggal)->locale('id')->isoFormat('dddd') }}</td>
                                     <td class="text-center font-bold">W-{{ $record->week_month ?? '-' }}</td>
                                     <td class="text-center">
-                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}')" class="badge badge-primary badge-outline font-bold cursor-pointer hover:bg-primary hover:text-white transition-colors">
+                                        @php
+                                            $dayOfWeek = \Carbon\Carbon::parse($record->tanggal)->dayOfWeekIso; // 1 = Senin, ..., 6 = Sabtu
+                                            $isRed = false;
+                                            if ($dayOfWeek >= 1 && $dayOfWeek <= 5 && $record->total_toko < 10) {
+                                                $isRed = true;
+                                            } elseif ($dayOfWeek == 6 && $record->total_toko < 5) {
+                                                $isRed = true;
+                                            }
+                                            $badgeClass = $isRed 
+                                                ? 'badge-error badge-outline hover:bg-error hover:text-white' 
+                                                : 'badge-primary badge-outline hover:bg-primary hover:text-white';
+                                        @endphp
+                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}')" class="badge {{ $badgeClass }} font-bold cursor-pointer transition-colors">
                                             {{ $record->total_toko }}
                                         </button>
                                     </td>
@@ -436,19 +433,10 @@
                                     </td>
                                     <td>
                                         <div class="flex items-center justify-center gap-1">
-                                            <button wire:click="showMap('{{ $record->tanggal }}', '{{ $record->kode_team }}')" 
-                                                    class="btn btn-ghost btn-xs btn-square rounded-lg text-info hover:bg-info/10 transition-all duration-200" title="Lihat Peta">
-                                                <x-heroicon-s-map class="w-4 h-4" />
-                                            </button>
+                                            <x-ui.action-button type="default" icon="map" label="" class="btn-ghost text-info hover:bg-info/10 btn-square" title="Lihat Peta" wire:click="showMap('{{ $record->tanggal }}', '{{ $record->kode_team }}')" />
                                             @canEdit('jks-team-elite.index')
-                                            <button wire:click="openEditModal('{{ $record->tanggal }}', '{{ $record->kode_team }}', '{{ $record->kode_region }}')" 
-                                                    class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit Grup">
-                                                <x-heroicon-s-pencil-square class="w-4 h-4" />
-                                            </button>
-                                            <button wire:click="confirmDelete('{{ $record->tanggal }}', '{{ $record->kode_team }}', '{{ $record->kode_region }}')" 
-                                                    class="btn btn-ghost btn-xs btn-square rounded-lg text-error hover:bg-error/10 transition-all duration-200" title="Hapus Grup">
-                                                <x-heroicon-s-trash class="w-4 h-4" />
-                                            </button>
+                                            <x-ui.action-button type="edit" class="btn-square" title="Edit Grup" wire:click="openEditModal('{{ $record->tanggal }}', '{{ $record->kode_team }}', '{{ $record->kode_region }}')" />
+                                            <x-ui.action-button type="delete" class="btn-square" title="Hapus Grup" wire:click="confirmDelete('{{ $record->tanggal }}', '{{ $record->kode_team }}', '{{ $record->kode_region }}')" />
                                             @endcanEdit
                                         </div>
                                     </td>
@@ -463,12 +451,17 @@
                 </table>
             </div>
 
-            @if($records->hasPages())
-                <div class="mt-4 px-2">
+            {{-- Footer Card (Pagination) --}}
+            <div class="p-3 md:p-4 lg:p-5 border-t border-base-300 shrink-0 bg-base-200">
+                @if($records->hasPages())
                     {{ $records->links() }}
-                </div>
-            @endif
-        </x-card>
+                @else
+                    <div class="text-xs md:text-sm text-base-content/60 text-center sm:text-left">
+                        Menampilkan seluruh data
+                    </div>
+                @endif
+            </div>
+        </div>
     </div>
 
     {{-- Modal Form (Create/Edit) --}}
