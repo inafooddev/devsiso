@@ -1,172 +1,158 @@
-<div>
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <x-slot name="title">Mapping Salesman Distributor</x-slot>
-
-    <div class="mx-auto px-4 sm:px-6 py-8 text-base-content">
         {{-- Notifikasi --}}
-        <div class="mb-6 space-y-3">
+        @if (session()->has('message') || session()->has('error'))
+        <div class="shrink-0 space-y-3">
             @if (session()->has('message'))
                 <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
-                     class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
-                    <x-heroicon-s-check-circle class="w-6 h-6 shrink-0" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
-                        <div class="text-sm">{{ session('message') }}</div>
+                     class="alert alert-success shadow-sm rounded-xl border-none bg-success/20 text-success shrink-0 flex items-start">
+                    <x-heroicon-s-check-circle class="w-5 h-5 mt-0.5 shrink-0" />
+                    <div class="flex-1">
+                        <h3 class="font-bold text-[10px] uppercase tracking-wider">Sukses</h3>
+                        <div class="text-[10px]">{{ session('message') }}</div>
                     </div>
+                    <button @click="show = false" class="btn btn-ghost btn-xs btn-circle shrink-0 mt-0.5 opacity-70 hover:opacity-100 hover:bg-success/20 transition-all">
+                        <x-heroicon-s-x-mark class="w-4 h-4" />
+                    </button>
                 </div>
             @endif
             @if (session()->has('error'))
                 <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
-                     class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
-                    <x-heroicon-s-x-circle class="w-6 h-6 shrink-0" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
-                        <div class="text-sm">{{ session('error') }}</div>
+                     class="alert alert-error shadow-sm rounded-xl border-none bg-error/20 text-error shrink-0 flex items-start">
+                    <x-heroicon-s-x-circle class="w-5 h-5 mt-0.5 shrink-0" />
+                    <div class="flex-1">
+                        <h3 class="font-bold text-[10px] uppercase tracking-wider">Error</h3>
+                        <div class="text-[10px]">{{ session('error') }}</div>
                     </div>
+                    <button @click="show = false" class="btn btn-ghost btn-xs btn-circle shrink-0 mt-0.5 opacity-70 hover:opacity-100 hover:bg-error/20 transition-all">
+                        <x-heroicon-s-x-mark class="w-4 h-4" />
+                    </button>
                 </div>
             @endif
         </div>
+        @endif
 
-        <x-card flush title="Mapping Salesman" icon="user-group" subtitle="Kelola pemetaan salesman distributor ke salesman principal" class="pb-6">
-            <x-slot:actions>
-                <div class="flex flex-wrap items-center gap-2">
-                    {{-- Search --}}
-                    <div class="relative group">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/30 group-focus-within:text-primary transition-colors">
-                            <x-heroicon-s-magnifying-glass class="w-4 h-4" />
-                        </div>
-                        <input wire:model.live.debounce.300ms="search" type="text"
-                               placeholder="Cari kode/nama salesman..."
-                               class="input input-sm input-bordered pl-10 w-full sm:w-64 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                    </div>
-
-                    {{-- Filter Button --}}
-                    <button wire:click="$set('isFilterModalOpen', true)"
-                            class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
-                        <x-heroicon-s-funnel class="w-4 h-4" />
-                        Filter
-                        @if($hasAppliedFilters)
-                            <span class="badge badge-xs badge-primary rounded-full">ON</span>
-                        @endif
-                    </button>
-                    
-                    {{-- Import Button --}}
-                    @canImport('salesman-mappings.index')
-                    <button wire:click="$set('isImportModalOpen', true)"
-                            class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
-                        <x-heroicon-s-arrow-up-tray class="w-4 h-4" />
-                        Import
-                    </button>
-                    @endcanImport
-
-                    {{-- Export --}}
-                    @canExport('salesman-mappings.index')
-                    <button wire:click="export" wire:loading.attr="disabled"
-                            class="btn btn-sm btn-outline rounded-xl normal-case gap-2 border-base-300 hover:bg-base-200 transition-all duration-200">
-                        <span wire:loading.remove wire:target="export"><x-heroicon-s-arrow-down-tray class="w-4 h-4" /></span>
-                        <span wire:loading wire:target="export" class="loading loading-spinner loading-xs"></span>
-                        Export
-                    </button>
-                    @endcanExport
-                    
-                    <a href="{{ asset('templates/salesman_mapping_template.xlsx') }}" download 
-                       class="btn btn-sm btn-outline btn-warning rounded-xl normal-case gap-2 transition-all duration-200">
-                        <x-heroicon-s-document-arrow-down class="w-4 h-4" />
-                        Template
-                    </a>
-
-                    {{-- Add Button --}}
-                    @canEdit('salesman-mappings.index')
-                    <button wire:click="openCreateModal"
-                       class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
-                        <x-heroicon-s-user-plus class="w-4 h-4" />
-                        Tambah Manual
-                    </button>
-                    @endcanEdit
+        {{-- Main Card --}}
+        <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+            {{-- Header Card & Actions --}}
+            <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+                <div class="shrink-0 w-full sm:w-auto">
+                    <h2 class="text-base md:text-lg font-bold">Mapping Salesman</h2>
+                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Kelola pemetaan salesman distributor ke salesman principal</p>
                 </div>
-            </x-slot:actions>
+
+                {{-- Menggunakan flex-wrap agar barisan aksi jatuh secara responsif jika window menyempit / dizoom --}}
+                <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
+                    {{-- Search --}}
+                    <x-ui.search-input wire:model.live.debounce.300ms="search" placeholder="Cari data..." />
+
+                    {{-- Action Buttons List --}}
+                    <div class="flex flex-wrap items-center gap-1 md:gap-2">
+                        <x-ui.action-button type="filter" wire:click="$set('isFilterModalOpen', true)" :active="$hasAppliedFilters" />
+                        @canImport('salesman-mappings.index')
+                            <x-ui.action-button type="import" wire:click="$set('isImportModalOpen', true)" />
+                        @endcanImport
+                        
+                        @canEdit('salesman-mappings.index')
+                            <x-ui.action-button type="add" wire:click="openCreateModal" label="Tambah" />
+                        @endcanEdit
+
+                        <div class="hidden md:block w-px h-6 bg-base-300 mx-1"></div>
+
+                        @canExport('salesman-mappings.index')
+                            <x-ui.action-button type="export" wire:click="export" wire:loading.attr="disabled" wire:target="export" />
+                        @endcanExport
+                    </div>
+                </div>
+            </div>
 
             {{-- State: Filter Belum Diterapkan --}}
             @if (!$hasAppliedFilters)
-                <div class="flex flex-col items-center justify-center py-20 text-base-content/40">
-                    <div class="w-20 h-20 rounded-full bg-base-200 flex items-center justify-center mb-5">
-                        <x-heroicon-s-funnel class="w-10 h-10" />
+                <div class="flex-1 overflow-auto bg-base-100 flex flex-col items-center justify-center py-20 text-base-content/40">
+                    <div class="w-20 h-20 rounded-full bg-base-200 flex items-center justify-center mb-5 shadow-inner">
+                        <x-heroicon-s-funnel class="w-10 h-10 text-base-content/30" />
                     </div>
                     <h3 class="text-base font-bold text-base-content/60 mb-1">Filter Belum Diterapkan</h3>
-                    <p class="text-sm text-center max-w-xs">Klik tombol <strong>Filter</strong> untuk memilih region, area, atau distributor dan menampilkan data.</p>
+                    <p class="text-[11px] text-center max-w-xs leading-relaxed">Klik tombol <strong>Filter</strong> untuk memilih wilayah dan menampilkan data.</p>
                     <button wire:click="$set('isFilterModalOpen', true)"
                             class="btn btn-sm btn-primary rounded-xl normal-case gap-2 mt-6 shadow-sm shadow-primary/20">
                         <x-heroicon-s-funnel class="w-4 h-4" /> Buka Filter
                     </button>
                 </div>
+            @elseif($mappings->isEmpty())
+                {{-- State: Kosong --}}
+                <div class="flex-1 overflow-auto bg-base-100 flex flex-col items-center justify-center py-20 text-base-content/40">
+                    <div class="w-20 h-20 rounded-full bg-base-200 flex items-center justify-center mb-5 shadow-inner">
+                        <x-heroicon-s-inbox class="w-10 h-10 text-base-content/30" />
+                    </div>
+                    <h3 class="text-base font-bold text-base-content/60 mb-1">Data Kosong</h3>
+                    <p class="text-[11px] text-center max-w-xs leading-relaxed">Tidak ada pemetaan salesman yang cocok dengan filter atau pencarian Anda.</p>
+                </div>
             @else
-                {{-- Tabel --}}
-                <x-ui.table empty="Tidak ada pemetaan salesman yang cocok dengan filter.">
-                    <x-slot:head>
-                        <tr>
-                            <th class="w-12">No</th>
-                            <th>Distributor</th>
-                            <th>Salesman Distributor</th>
-                            <th>Salesman Principal</th>
-                            <th>Tgl. Dibuat</th>
-                            <th class="text-center w-24">Aksi</th>
-                        </tr>
-                    </x-slot:head>
-
-                    @foreach ($mappings as $index => $mapping)
-                        <tr wire:key="mapping-{{ $mapping->id }}" class="group text-sm">
-                            <td><span class="text-xs font-semibold text-base-content/40">{{ $mappings->firstItem() + $index }}</span></td>
-                            <td>
-                                <div>
-                                    <span class="font-bold text-base-content/80 group-hover:text-primary transition-colors">
-                                        {{ $mapping->masterDistributor->distributor_name ?? 'N/A' }}
-                                    </span>
-                                    <div class="text-xs text-base-content/40 font-mono mt-0.5">{{ $mapping->distributor_code }}</div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="flex flex-col">
-                                    <span class="font-bold text-base-content/80">{{ $mapping->salesman_name_dist }}</span>
-                                    <span class="text-xs text-base-content/40 font-mono">{{ $mapping->salesman_code_dist }}</span>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="flex flex-col">
-                                    <span class="font-bold text-base-content/80">{{ $mapping->principalSalesman->salesman_name ?? '-' }}</span>
-                                    <span class="text-xs text-base-content/40 font-mono">{{ $mapping->salesman_code_prc }}</span>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="flex items-center gap-2 text-base-content/50 text-xs">
-                                    <x-heroicon-s-calendar class="w-3.5 h-3.5 shrink-0" />
-                                    <span>{{ $mapping->created_at->format('d M Y') }}</span>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="flex items-center justify-center gap-1">
-                                    @canEdit('salesman-mappings.index')
-                                    <button wire:click="openEditModal('{{ $mapping->id }}')"
-                                            class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit">
-                                        <x-heroicon-s-pencil-square class="w-4 h-4" />
-                                    </button>
-                                    <button wire:click="confirmDelete('{{ $mapping->id }}')"
-                                            class="btn btn-ghost btn-xs btn-square rounded-lg text-error hover:bg-error/10 transition-all duration-200" title="Hapus">
-                                        <x-heroicon-s-trash class="w-4 h-4" />
-                                    </button>
-                                    @else
-                                    <span class="text-xs text-base-content/50 italic">View Only</span>
-                                    @endcanEdit
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </x-ui.table>
-
+                {{-- Body Card (Tabel Scrollable area) --}}
+                <div class="flex-1 overflow-auto bg-base-100 w-full relative">
+                    <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
+                        <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
+                            <tr>
+                                <th class="w-16 text-center">No</th>
+                                <th>Distributor</th>
+                                <th>Salesman Distributor</th>
+                                <th>Salesman Principal</th>
+                                <th class="text-center bg-base-200 shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] w-24">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            @foreach ($mappings as $index => $mapping)
+                                <tr wire:key="mapping-{{ $mapping->id }}" class="hover:bg-base-200/50 transition-colors group">
+                                    <td class="text-center font-medium">{{ $mappings->firstItem() + $index }}</td>
+                                    <td>
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-base-content/80 group-hover:text-primary transition-colors">
+                                                {{ $mapping->masterDistributor->distributor_name ?? 'N/A' }}
+                                            </span>
+                                            <span class="text-xs text-base-content/40 font-mono mt-0.5">{{ $mapping->distributor_code }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-base-content/80 group-hover:text-primary transition-colors">
+                                                {{ $mapping->salesman_name_dist }}
+                                            </span>
+                                            <span class="text-xs text-base-content/40 font-mono mt-0.5">{{ $mapping->salesman_code_dist }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-base-content/80 group-hover:text-primary transition-colors">
+                                                {{ $mapping->principalSalesman->salesman_name ?? '-' }}
+                                            </span>
+                                            <span class="text-xs text-base-content/40 font-mono mt-0.5">{{ $mapping->salesman_code_prc }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
+                                        <div class="flex items-center justify-center gap-1">
+                                            @canEdit('salesman-mappings.index')
+                                                <x-ui.action-button type="edit" wire:click="openEditModal('{{ $mapping->id }}')" />
+                                                <x-ui.action-button type="delete" wire:click="confirmDelete('{{ $mapping->id }}')" />
+                                            @else
+                                                <span class="text-xs text-base-content/50 italic">View Only</span>
+                                            @endcanEdit
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                
+                {{-- Footer Card (Pagination) --}}
                 @if($mappings->hasPages())
-                    <div class="mt-4 px-6">{{ $mappings->links() }}</div>
+                    <div class="p-3 md:p-4 lg:p-5 border-t border-base-300 shrink-0 bg-base-200">
+                        {{ $mappings->links() }}
+                    </div>
                 @endif
             @endif
-        </x-card>
-    </div>
+        </div>
 
     {{-- ========== MODAL FILTER ========== --}}
     <div x-data="{ open: @entangle('isFilterModalOpen') }"
@@ -431,9 +417,15 @@
                     </div>
                     <div class="p-4 bg-info/10 rounded-2xl border border-info/20 text-info flex items-start gap-3">
                         <x-heroicon-s-information-circle class="w-5 h-5 shrink-0 mt-0.5" />
-                        <div class="text-xs leading-relaxed font-medium">
+                        <div class="text-[11px] leading-relaxed font-medium">
                             Pastikan format file sesuai dengan template yang telah disediakan untuk menghindari kegagalan impor.
                         </div>
+                    </div>
+                    
+                    <div class="mt-4 p-4 bg-base-200/50 rounded-2xl border border-base-300">
+                        <h4 class="text-xs font-bold text-base-content/70 mb-2">Belum punya template?</h4>
+                        <p class="text-[11px] text-base-content/50 mb-3">Unduh template Excel untuk melihat format kolom yang dibutuhkan.</p>
+                        <x-ui.action-button type="template" href="{{ asset('templates/salesman_mapping_template.xlsx') }}" download />
                     </div>
                 </div>
 

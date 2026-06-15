@@ -387,8 +387,9 @@ class Index extends Component
                                 'product_mappings.*', 
                                 'product_masters.product_name as product_name_prc' 
                                )
-                               ->latest('product_mappings.created_at')
-                               ->paginate(10);
+                               ->orderBy('master_distributors.distributor_name')
+                               ->orderBy('product_mappings.product_name_dist')
+                               ->paginate(100);
         }
 
         return view('livewire.mapping.product.index', [

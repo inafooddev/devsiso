@@ -47,6 +47,9 @@ class SalesmansExport implements FromQuery, WithHeadings, WithMapping, ShouldAut
         if (!empty($this->filters['distributorFilter'])) {
             $query->where('salesmans.distributor_code', $this->filters['distributorFilter']);
         }
+        if (isset($this->filters['typeFilter']) && $this->filters['typeFilter'] !== '') {
+            $query->where('salesmans.is_principle', $this->filters['typeFilter']);
+        }
         if (!empty($this->filters['search'])) {
             // Gunakan ILIKE untuk PostgreSQL
             $query->where(function ($q) {

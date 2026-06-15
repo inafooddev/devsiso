@@ -20,4 +20,9 @@ class UnmappedUnit extends Model
     {
         $this->attributes['raw_unit'] = strtoupper(trim($value));
     }
+
+    public function masterDistributor()
+    {
+        return $this->belongsTo(MasterDistributor::class, 'distributor_code', 'distributor_code');
+    }
 }

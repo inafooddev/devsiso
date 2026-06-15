@@ -42,6 +42,11 @@
             'icon'  => 'trash',
             'label' => '', // Biasanya icon saja kalau di dalam baris
         ],
+        'view' => [
+            'class' => 'btn-ghost text-info hover:bg-info/10',
+            'icon'  => 'eye',
+            'label' => '', // Biasanya icon saja kalau di dalam baris
+        ],
         default => [
             'class' => 'btn-neutral',
             'icon'  => null,

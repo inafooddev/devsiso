@@ -361,8 +361,9 @@ class Index extends Component
             }
 
             $mappings = $query->select('salesman_mappings.*')
-                              ->latest('salesman_mappings.created_at')
-                              ->paginate(10);
+                              ->orderBy('master_distributors.distributor_name')
+                              ->orderBy('salesman_mappings.salesman_name_dist')
+                              ->paginate(100);
         }
 
         return view('livewire.mapping.salesman.index', [

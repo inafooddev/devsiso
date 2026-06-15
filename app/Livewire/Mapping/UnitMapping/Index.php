@@ -60,6 +60,11 @@ class Index extends Component
     {
         $this->authorizeAction('can_edit');
 
+        if (!$this->checkDistributorAccess($this->distributor_code)) {
+            session()->flash('error', 'Anda tidak memiliki akses ke region distributor ini.');
+            return;
+        }
+
         $this->distributor_code = strtoupper(trim($this->distributor_code));
         $this->raw_unit = strtoupper(trim($this->raw_unit));
         $this->mapped_unit = strtoupper(trim($this->mapped_unit));
@@ -120,6 +125,12 @@ class Index extends Component
         $this->authorizeAction('can_edit');
 
         $mapping = UnitMapping::findOrFail($id);
+        
+        if (!$this->checkDistributorAccess($mapping->distributor_code)) {
+            session()->flash('error', 'Anda tidak memiliki akses ke region distributor ini.');
+            return;
+        }
+
         $distCode = $mapping->distributor_code;
         \App\Helpers\ActivityLogger::log('Delete Unit Mapping', "Menghapus unit mapping untuk distributor: {$distCode}. Raw: {$mapping->raw_unit} -> {$mapping->mapped_unit}");
         $mapping->delete();
@@ -139,6 +150,27 @@ class Index extends Component
         $this->isModalOpen = true;
     }
 
+    public function clearUnmapped()
+    {
+        $this->authorizeAction('can_edit');
+
+        $user = auth()->user();
+        if ($user->hasRole('admin')) {
+            UnmappedUnit::truncate();
+        } else {
+            $userRegions = $user->region_code;
+            if (!empty($userRegions)) {
+                $distributors = \App\Models\MasterDistributor::whereIn('region_code', $userRegions)->pluck('distributor_code');
+                UnmappedUnit::whereIn('distributor_code', $distributors)->delete();
+            }
+        }
+
+        \Illuminate\Support\Facades\Cache::forget('mapping_notification_counts_' . auth()->id());
+        $this->dispatch('refreshNotifications');
+        \App\Helpers\ActivityLogger::log('Clear Unmapped Unit', 'Menghapus semua data unit yang belum di-mapping.');
+        session()->flash('message', 'Semua data unit yang belum di-mapping berhasil dihapus.');
+    }
+
     private function resetFields()
     {
         $this->mappingId = null;
@@ -151,26 +183,58 @@ class Index extends Component
     public function render()
     {
         $mappings = UnitMapping::query()
-            ->when($this->search, function($query) {
+            ->select('unit_mappings.*')
+            ->leftJoin('master_distributors', 'unit_mappings.distributor_code', '=', 'master_distributors.distributor_code');
+            
+        $this->applyRegionAccess($mappings, 'master_distributors.region_code');
+
+        $mappings = $mappings->when($this->search, function($query) {
                 $query->where(function($q) {
-                    $q->where('distributor_code', 'like', '%' . $this->search . '%')
-                      ->orWhere('raw_unit', 'like', '%' . $this->search . '%')
-                      ->orWhere('mapped_unit', 'like', '%' . $this->search . '%');
+                    $q->where('unit_mappings.distributor_code', 'ilike', '%' . $this->search . '%')
+                      ->orWhere('master_distributors.distributor_name', 'ilike', '%' . $this->search . '%')
+                      ->orWhere('unit_mappings.raw_unit', 'ilike', '%' . $this->search . '%')
+                      ->orWhere('unit_mappings.mapped_unit', 'ilike', '%' . $this->search . '%');
                 });
             })
             ->when($this->filterUnit, function($query) {
-                $query->where('mapped_unit', $this->filterUnit);
+                $query->where('unit_mappings.mapped_unit', $this->filterUnit);
             })
-            ->orderBy('distributor_code')
-            ->orderBy('mapped_unit')
-            ->orderBy('raw_unit')
-            ->paginate(15);
+            ->orderBy('master_distributors.distributor_name')
+            ->orderBy('unit_mappings.mapped_unit')
+            ->orderBy('unit_mappings.raw_unit')
+            ->paginate(100);
 
-        $unmappedUnits = UnmappedUnit::orderBy('distributor_code')->get();
+        $unmappedUnits = UnmappedUnit::query()
+            ->select('unmapped_units.*')
+            ->leftJoin('master_distributors', 'unmapped_units.distributor_code', '=', 'master_distributors.distributor_code');
+            
+        $this->applyRegionAccess($unmappedUnits, 'master_distributors.region_code');
+        
+        $unmappedUnits = $unmappedUnits->orderBy('master_distributors.distributor_name')
+            ->get();
 
         return view('livewire.mapping.unit-mapping.index', [
             'mappings' => $mappings,
             'unmappedUnits' => $unmappedUnits
         ]);
+    }
+
+    private function applyRegionAccess($query, $column = 'region_code')
+    {
+        $user = auth()->user();
+
+        // Jika bukan admin dan memiliki batasan region_code (array)
+        if (!$user->hasRole('admin') && !empty($user->region_code)) {
+            $query->whereIn($column, $user->region_code);
+        }
+
+        return $query;
+    }
+
+    private function checkDistributorAccess($distributorCode)
+    {
+        $query = \App\Models\MasterDistributor::where('distributor_code', $distributorCode);
+        $this->applyRegionAccess($query);
+        return $query->exists();
     }
 }

@@ -23,10 +23,10 @@ class Index extends Component
     protected $paginationTheme = 'tailwind';
     protected string $menuRoute = 'salesmans.index';
 
-    // Properti Filter
-    public $regionFilter;
-    public $areaFilter;
-    public $distributorFilter;
+    public $regionFilter = '';
+    public $areaFilter = '';
+    public $distributorFilter = '';
+    public $typeFilter = '';
     public $search = '';
 
     // Properti Dropdown Data
@@ -41,6 +41,8 @@ class Index extends Component
     public $isFilterModalOpen = false;
     public $isDeleteModalOpen = false;
     public $isFormModalOpen = false;
+    public $isImportModalOpen = false;
+    public $isViewModalOpen = false;
     public $isEditing = false;
     public $hasAppliedFilters = false;
 
@@ -70,6 +72,8 @@ class Index extends Component
     public $existing_foto_skb;
     
     public $iteration = 0;
+    public $importFile;
+    public $viewingSalesman = null;
     
     // Properti filter untuk di form create
     public $formRegionFilter;
@@ -126,6 +130,7 @@ class Index extends Component
             $this->regionFilter = $filters['regionFilter'] ?? $this->regionFilter;
             $this->areaFilter = $filters['areaFilter'] ?? null;
             $this->distributorFilter = $filters['distributorFilter'] ?? null;
+            $this->typeFilter = $filters['typeFilter'] ?? '';
             $this->search = $filters['search'] ?? '';
             $this->hasAppliedFilters = $filters['hasAppliedFilters'] ?? false;
 
@@ -465,8 +470,10 @@ class Index extends Component
     public function resetFilters()
     {
         $this->reset(['regionFilter', 'areaFilter', 'distributorFilter', 'search']);
-        $this->areas = collect();
-        $this->distributors = collect();
+        $this->areaFilter = '';
+        $this->distributorFilter = '';
+        $this->typeFilter = '';
+        $this->search = '';
         $this->hasAppliedFilters = false;
         session()->forget('salesman_filters');
 
@@ -483,6 +490,7 @@ class Index extends Component
             'regionFilter' => $this->regionFilter,
             'areaFilter' => $this->areaFilter,
             'distributorFilter' => $this->distributorFilter,
+            'typeFilter' => $this->typeFilter,
             'search' => $this->search,
             'hasAppliedFilters' => $this->hasAppliedFilters,
         ]);
@@ -495,7 +503,9 @@ class Index extends Component
         if ($this->hasAppliedFilters) {
             $query = Salesman::query()
                 ->with(['masterDistributor.area.region'])
-                ->join('master_distributors', 'salesmans.distributor_code', '=', 'master_distributors.distributor_code');
+                ->join('master_distributors', 'salesmans.distributor_code', '=', 'master_distributors.distributor_code')
+                ->join('master_areas', 'master_distributors.area_code', '=', 'master_areas.area_code')
+                ->join('master_regions', 'master_areas.region_code', '=', 'master_regions.region_code');
             
             // Terapkan keamanan scope wilayah
             $this->applyRegionAccess($query, 'master_distributors.region_code');
@@ -503,6 +513,7 @@ class Index extends Component
             if ($this->regionFilter) $query->where('master_distributors.region_code', $this->regionFilter);
             if ($this->areaFilter) $query->where('master_distributors.area_code', $this->areaFilter);
             if ($this->distributorFilter) $query->where('salesmans.distributor_code', $this->distributorFilter);
+            if ($this->typeFilter !== '') $query->where('salesmans.is_principle', $this->typeFilter);
             
             if ($this->search) {
                 $query->where(function($q) {
@@ -514,10 +525,51 @@ class Index extends Component
                 });
             }
 
-            $salesmans = $query->select('salesmans.*')->latest('salesmans.created_at')->paginate(10);
+            $salesmans = $query->select('salesmans.*')
+                               ->orderBy('master_regions.region_name')
+                               ->orderBy('master_areas.area_name')
+                               ->orderBy('master_distributors.distributor_name')
+                               ->orderBy('salesmans.salesman_name')
+                               ->paginate(50);
         }
 
         return view('livewire.master-data.salesmans.index', ['salesmans' => $salesmans])->layout('layouts.app');
+    }
+
+    public function openImportModal()
+    {
+        $this->isImportModalOpen = true;
+    }
+
+    public function downloadTemplate()
+    {
+        return Excel::download(new \App\Exports\SalesmansTemplateExport, 'Template_Import_Salesman.xlsx');
+    }
+
+    public function import()
+    {
+        $this->authorizeAction('can_edit');
+        
+        $this->validate([
+            'importFile' => 'required|file|mimes:xlsx,xls'
+        ], [
+            'importFile.required' => 'File Excel wajib diunggah.',
+            'importFile.mimes' => 'Format file harus .xlsx atau .xls.'
+        ]);
+
+        try {
+            $user = auth()->user();
+            $allowedRegions = (!$user->hasRole('admin') && is_array($user->region_code)) ? $user->region_code : [];
+            
+            $import = new \App\Imports\SalesmansImport($allowedRegions);
+            Excel::import($import, $this->importFile->path());
+
+            session()->flash('message', "Import selesai! {$import->importedCount} data berhasil diproses, {$import->skippedCount} data dilewati (distributor tidak valid / di luar otoritas).");
+            $this->isImportModalOpen = false;
+            $this->importFile = null;
+        } catch (\Exception $e) {
+            session()->flash('error', 'Terjadi kesalahan saat import: ' . $e->getMessage());
+        }
     }
 
     public function confirmDelete($salesmanCode, $distributorCode)
@@ -525,6 +577,24 @@ class Index extends Component
         $this->salesmanCodeToDelete = $salesmanCode;
         $this->distributorCodeToDelete = $distributorCode;
         $this->isDeleteModalOpen = true;
+    }
+
+    public function viewDetail($salesmanCode, $distributorCode)
+    {
+        $this->viewingSalesman = Salesman::with(['masterDistributor.area.region'])
+            ->where('salesman_code', $salesmanCode)
+            ->where('distributor_code', $distributorCode)
+            ->first();
+
+        if ($this->viewingSalesman) {
+            $this->isViewModalOpen = true;
+        }
+    }
+
+    public function closeViewModal()
+    {
+        $this->isViewModalOpen = false;
+        $this->viewingSalesman = null;
     }
 
     public function delete()
@@ -581,6 +651,7 @@ class Index extends Component
             'regionFilter' => $finalRegionFilter,
             'areaFilter' => $this->areaFilter,
             'distributorFilter' => $this->distributorFilter,
+            'typeFilter' => $this->typeFilter,
             'search' => $this->search,
             // Tambahkan parameter allowed_regions untuk class Export Excel-nya
             'allowed_regions' => (!$user->hasRole('admin')) ? $user->region_code : [], 
