@@ -864,7 +864,7 @@ class Index extends Component
             });
         }
 
-        $outlets = $query->orderBy('id', 'desc')->paginate(10);
+        $outlets = $query->orderBy('id', 'desc')->paginate(100);
 
         return view('livewire.rwo.index', [
             'outlets' => $outlets,

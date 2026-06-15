@@ -25,6 +25,62 @@
         @endif
     </div>
 
+    @if ($isFiltered)
+    {{-- Summary Section (KPI) --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 shrink-0">
+        <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 lg:p-5 transition-all hover:shadow-md group">
+            <div class="flex items-center gap-4">
+                <div class="p-3 rounded-xl bg-primary/10 text-primary group-hover:scale-110 transition-transform">
+                    <x-heroicon-s-home-modern class="w-6 h-6" />
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-base-content/40">Total Depo</p>
+                    <p class="text-2xl font-black text-base-content/80">{{ number_format($summary->total_branch ?? 0) }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-base-100 rounded-xl shadow-sm border border-success/20 p-4 lg:p-5 transition-all hover:shadow-md group relative overflow-hidden">
+            <div class="absolute inset-0 bg-success/5"></div>
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="p-3 rounded-xl bg-success/10 text-success group-hover:scale-110 transition-transform">
+                    <x-heroicon-s-check-circle class="w-6 h-6" />
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-success/60">Sudah Tarik Data</p>
+                    <p class="text-2xl font-black text-success">{{ number_format($summary->net_siso_non_zero ?? 0) }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-base-100 rounded-xl shadow-sm border border-warning/20 p-4 lg:p-5 transition-all hover:shadow-md group relative overflow-hidden">
+            <div class="absolute inset-0 bg-warning/5"></div>
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="p-3 rounded-xl bg-warning/10 text-warning group-hover:scale-110 transition-transform">
+                    <x-heroicon-s-x-circle class="w-6 h-6" />
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-warning/60">Belum Tarik Data</p>
+                    <p class="text-2xl font-black text-warning">{{ number_format($summary->net_siso_zero ?? 0) }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-base-100 rounded-xl shadow-sm border border-error/20 p-4 lg:p-5 transition-all hover:shadow-md group relative overflow-hidden">
+            <div class="absolute inset-0 bg-error/5"></div>
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="p-3 rounded-xl bg-error/10 text-error group-hover:scale-110 transition-transform">
+                    <x-heroicon-s-exclamation-triangle class="w-6 h-6" />
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-error/60">Total NOT OK</p>
+                    <p class="text-2xl font-black text-error">{{ number_format($summary->total_not_ok ?? 0) }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Main Card --}}
     <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
         
@@ -76,64 +132,15 @@
                     </button>
                 </div>
             @else
-                {{-- Summary Section --}}
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 lg:p-6 shrink-0">
-                    <div class="bg-base-200/50 rounded-2xl p-5 border border-base-300 transition-all hover:shadow-md group">
-                        <div class="flex items-center gap-4">
-                            <div class="p-3 rounded-xl bg-primary/10 text-primary group-hover:scale-110 transition-transform">
-                                <x-heroicon-s-home-modern class="w-6 h-6" />
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-bold uppercase tracking-widest text-base-content/40">Total Depo</p>
-                                <p class="text-2xl font-black text-base-content/80">{{ number_format($summary->total_branch ?? 0) }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-success/5 rounded-2xl p-5 border border-success/20 transition-all hover:shadow-md group">
-                        <div class="flex items-center gap-4">
-                            <div class="p-3 rounded-xl bg-success/10 text-success group-hover:scale-110 transition-transform">
-                                <x-heroicon-s-check-circle class="w-6 h-6" />
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-bold uppercase tracking-widest text-success/60">Sudah Tarik Data</p>
-                                <p class="text-2xl font-black text-success">{{ number_format($summary->net_siso_non_zero ?? 0) }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-warning/5 rounded-2xl p-5 border border-warning/20 transition-all hover:shadow-md group">
-                        <div class="flex items-center gap-4">
-                            <div class="p-3 rounded-xl bg-warning/10 text-warning group-hover:scale-110 transition-transform">
-                                <x-heroicon-s-x-circle class="w-6 h-6" />
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-bold uppercase tracking-widest text-warning/60">Belum Tarik Data</p>
-                                <p class="text-2xl font-black text-warning">{{ number_format($summary->net_siso_zero ?? 0) }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-error/5 rounded-2xl p-5 border border-error/20 transition-all hover:shadow-md group">
-                        <div class="flex items-center gap-4">
-                            <div class="p-3 rounded-xl bg-error/10 text-error group-hover:scale-110 transition-transform">
-                                <x-heroicon-s-exclamation-triangle class="w-6 h-6" />
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-bold uppercase tracking-widest text-error/60">Total NOT OK</p>
-                                <p class="text-2xl font-black text-error">{{ number_format($summary->total_not_ok ?? 0) }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 {{-- Tabel Container --}}
-                <div class="flex-1 overflow-auto border-t border-base-300">
+                <div class="flex-1 overflow-auto">
                     <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
                         <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
                             <tr>
-                                <th>Wilayah</th>
-                                <th>Distributor / Cabang</th>
+                                <th>Region</th>
+                                <th>Area</th>
+                                <th>Branch Code</th>
+                                <th>Branch Name</th>
                                 <th class="text-right">Sales ESKA (Net)</th>
                                 <th class="text-right">Sales SID (Net)</th>
                                 <th class="text-right bg-base-200/30">Selisih</th>
@@ -142,19 +149,11 @@
                         </thead>
                         <tbody class="text-sm">
                             @forelse ($comparisons as $row)
-                                <tr class="hover:bg-base-200/50 transition-colors group">
-                                    <td>
-                                        <div class="flex flex-col">
-                                            <span class="font-bold text-base-content/80">{{ $row->region_name }}</span>
-                                            <span class="text-[10px] font-bold text-base-content/30 uppercase tracking-widest">{{ $row->entity_name }}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="flex flex-col">
-                                            <span class="font-bold text-base-content/80 group-hover:text-primary transition-colors">{{ $row->branch_name }}</span>
-                                            <span class="badge badge-xs badge-outline border-base-content/20 font-mono text-[9px] uppercase tracking-tighter">{{ $row->branch_code }}</span>
-                                        </div>
-                                    </td>
+                                <tr class="hover:bg-base-200/50 transition-colors group text-sm">
+                                    <td><div class="font-bold text-base-content/80">{{ $row->region_name }}</div></td>
+                                    <td><div class="text-base-content/70">{{ $row->entity_name }}</div></td>
+                                    <td><span class="font-mono text-[11px] text-base-content/50 uppercase tracking-widest">{{ $row->branch_code }}</span></td>
+                                    <td><span class="font-semibold text-base-content/80">{{ $row->branch_name }}</span></td>
                                     <td class="text-right font-mono font-medium text-base-content/70">
                                         {{ number_format($row->net_eska) }}
                                     </td>
@@ -174,7 +173,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center py-8 text-base-content/40">Tidak ada data komparasi yang ditemukan untuk kriteria filter ini.</td>
+                                    <td colspan="8" class="text-center py-8 text-base-content/40">Tidak ada data komparasi yang ditemukan untuk kriteria filter ini.</td>
                                 </tr>
                             @endforelse
                         </tbody>

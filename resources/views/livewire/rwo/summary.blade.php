@@ -1,4 +1,4 @@
-<div>
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <x-slot name="title">Summary RWO</x-slot>
 
     <style>
@@ -7,45 +7,58 @@
             font-size: 8px !important;
             padding: 6px 8px !important;
         }
+        /* Memastikan kedua baris thead sticky jika table-pin-rows DaisyUI kurang spesifik */
+        .table-summary-rwo thead tr:nth-child(1) th { top: 0; z-index: 21; }
+        .table-summary-rwo thead tr:nth-child(2) th { top: 29px; z-index: 20; }
     </style>
 
-    <div class="mx-auto px-4 sm:px-6 pt-4">
-        <!-- TABS -->
-        <div class="tabs tabs-boxed mb-4 w-fit bg-base-100 shadow-sm border border-base-200 p-1">
-            <a href="{{ route('rwo.summary') }}" class="tab px-8 tab-active font-bold" wire:navigate>Summary</a>
-            <a href="{{ route('rwo.index') }}" class="tab px-8 text-base-content/70 hover:text-base-content" wire:navigate>Detail</a>
+    <!-- TABS -->
+    <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex items-center shadow-sm relative z-10 -mb-1 md:-mb-2">
+        <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
+            <a href="{{ route('rwo.summary') }}" class="tab tab-xs px-4 tab-active font-bold shadow-sm bg-base-100" wire:navigate>Summary</a>
+            <a href="{{ route('rwo.index') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Detail</a>
         </div>
     </div>
 
-    <div class="mx-auto px-4 sm:px-6 pb-8">
-        <x-card title="Summary Kekurangan Kelengkapan Data RWO" icon="chart-bar" flush="true">
-            <x-slot:actions>
-                <div class="flex flex-col sm:flex-row gap-2 w-full">
-                    <select wire:model.live="filter_region_code" class="select select-sm select-bordered rounded-xl bg-base-200 border-base-300 w-full sm:w-40 text-xs">
-                        <option value="">Semua Region</option>
-                        @foreach($this->getFilterRegions() as $region)
-                            <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
-                        @endforeach
-                    </select>
+    {{-- Main Card --}}
+    <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+        {{-- Header Card & Actions --}}
+        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-base-200/30">
+            <div class="shrink-0 w-full md:w-auto">
+                <h2 class="text-base md:text-lg font-bold">Summary Kekurangan Kelengkapan Data RWO</h2>
+                <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Ringkasan status data</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center justify-start md:justify-end gap-2 md:gap-3 w-full md:w-auto">
+                <select wire:model.live="filter_region_code" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow md:grow-0 text-xs">
+                    <option value="">Semua Region</option>
+                    @foreach($this->getFilterRegions() as $region)
+                        <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
+                    @endforeach
+                </select>
 
-                    <select wire:model.live="filter_area_code" class="select select-sm select-bordered rounded-xl bg-base-200 border-base-300 w-full sm:w-40 text-xs">
-                        <option value="">Semua Area</option>
-                        @foreach($this->getFilterAreas() as $area)
-                            <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
-                        @endforeach
-                    </select>
+                <select wire:model.live="filter_area_code" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow md:grow-0 text-xs">
+                    <option value="">Semua Area</option>
+                    @foreach($this->getFilterAreas() as $area)
+                        <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
+                    @endforeach
+                </select>
 
-                    <div class="relative w-full sm:w-64">
-                        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari Region, Area, atau Branch..." class="input input-sm input-bordered w-full rounded-xl pl-8 bg-base-200 border-base-300" />
-                        <x-heroicon-s-magnifying-glass class="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/50" />
+                <div class="relative grow md:grow-0 group">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/30 group-focus-within:text-primary transition-colors">
+                        <x-heroicon-s-magnifying-glass class="w-4 h-4" />
                     </div>
+                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari Region, Area, atau Branch..." 
+                           class="input input-sm input-bordered pl-10 w-full rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300" />
                 </div>
-            </x-slot:actions>
+            </div>
+        </div>
 
-            <div class="overflow-x-auto border-t border-base-200 mb-6">
-                <x-ui.table striped hover class="table-summary-rwo w-full whitespace-nowrap [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-20 [&_thead]:shadow-sm border-x-0 border-b-0 rounded-none h-[500px] overflow-auto block">
-                    <x-slot:head>
-                        <tr>
+        {{-- Body Card (Tabel Scrollable area) --}}
+        <div class="flex-1 overflow-auto w-full relative">
+            <table class="table table-sm table-zebra table-pin-rows table-summary-rwo w-full whitespace-nowrap">
+                <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm relative z-20">
+                    <tr>
                             <th rowspan="2" class="align-middle border-b border-r border-base-200">No</th>
                             <th rowspan="2" class="align-middle border-b border-r border-base-200">Region</th>
                             <th rowspan="2" class="align-middle border-b border-r border-base-200">Area</th>
@@ -66,8 +79,8 @@
                             <th class="border-b border-r border-base-200 text-center bg-error/5">Foto Toko</th>
                             <th class="border-b border-base-200 text-center bg-error/5">Not Valid</th>
                         </tr>
-                    </x-slot:head>
-                    <tbody>
+                </thead>
+                <tbody>
                         @php
                             $groupedByRegion = collect($records)->groupBy('region_name');
                             $index = 0;
@@ -223,25 +236,24 @@
                         @endforelse
                     </tbody>
                     @if(count($records) > 0)
-                    <tfoot class="sticky bottom-0 z-20 bg-base-300 font-bold shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-                        <tr class="text-base-content" style="background-color: #e5e7eb !important;">
-                            <td colspan="5" class="text-right uppercase tracking-wider pr-4 py-3">GRAND TOTAL KESELURUHAN</td>
-                            <td class="text-center py-3 text-primary">{{ number_format($grandTotals['total_customer']) }}</td>
-                            <td class="text-center py-3 {{ $grandTotals['missing_no_hp'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_no_hp']) }}</td>
-                            <td class="text-center py-3 {{ $grandTotals['missing_nama_pemilik_toko'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_nama_pemilik_toko']) }}</td>
-                            <td class="text-center py-3 {{ $grandTotals['missing_nama_ktp'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_nama_ktp']) }}</td>
-                            <td class="text-center py-3 {{ $grandTotals['missing_nik_ktp'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_nik_ktp']) }}</td>
-                            <td class="text-center py-3 {{ $grandTotals['missing_foto_ktp'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_foto_ktp']) }}</td>
-                            <td class="text-center py-3 {{ $grandTotals['missing_no_rekening'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_no_rekening']) }}</td>
-                            <td class="text-center py-3 {{ $grandTotals['missing_nama_bank'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_nama_bank']) }}</td>
-                            <td class="text-center py-3 {{ $grandTotals['missing_nama_pemilik_norek'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_nama_pemilik_norek']) }}</td>
-                            <td class="text-center py-3 {{ $grandTotals['missing_foto_toko'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_foto_toko']) }}</td>
-                            <td class="text-center py-3 {{ $grandTotals['missing_is_valid'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_is_valid']) }}</td>
+                    <tfoot class="sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+                        <tr class="text-base-content/80 text-[10px]" style="background-color: #e5e7eb !important;">
+                            <td colspan="5" class="text-right font-black uppercase tracking-wider pr-4 py-3">GRAND TOTAL KESELURUHAN</td>
+                            <td class="text-center font-black py-3 text-primary">{{ number_format($grandTotals['total_customer']) }}</td>
+                            <td class="text-center font-black py-3 {{ $grandTotals['missing_no_hp'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_no_hp']) }}</td>
+                            <td class="text-center font-black py-3 {{ $grandTotals['missing_nama_pemilik_toko'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_nama_pemilik_toko']) }}</td>
+                            <td class="text-center font-black py-3 {{ $grandTotals['missing_nama_ktp'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_nama_ktp']) }}</td>
+                            <td class="text-center font-black py-3 {{ $grandTotals['missing_nik_ktp'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_nik_ktp']) }}</td>
+                            <td class="text-center font-black py-3 {{ $grandTotals['missing_foto_ktp'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_foto_ktp']) }}</td>
+                            <td class="text-center font-black py-3 {{ $grandTotals['missing_no_rekening'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_no_rekening']) }}</td>
+                            <td class="text-center font-black py-3 {{ $grandTotals['missing_nama_bank'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_nama_bank']) }}</td>
+                            <td class="text-center font-black py-3 {{ $grandTotals['missing_nama_pemilik_norek'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_nama_pemilik_norek']) }}</td>
+                            <td class="text-center font-black py-3 {{ $grandTotals['missing_foto_toko'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_foto_toko']) }}</td>
+                            <td class="text-center font-black py-3 {{ $grandTotals['missing_is_valid'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_is_valid']) }}</td>
                         </tr>
                     </tfoot>
                     @endif
-                </x-ui.table>
-            </div>
-        </x-card>
+            </table>
+        </div>
     </div>
 </div>
