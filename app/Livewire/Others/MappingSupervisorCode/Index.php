@@ -302,7 +302,11 @@ class Index extends Component
             });
         }
 
-        $data = $query->paginate(10);
+        $query->orderBy('mr.region_name', 'asc')
+              ->orderBy('ma.area_name', 'asc')
+              ->orderBy('tecm.level', 'asc');
+
+        $data = $query->paginate(100);
 
         return view('livewire.others.mapping-supervisor-code.index', [
             'data' => $data,

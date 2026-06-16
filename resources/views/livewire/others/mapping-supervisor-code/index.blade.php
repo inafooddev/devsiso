@@ -1,62 +1,80 @@
-<div>
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <x-slot name="title">Mapping Supervisor/Team Elite</x-slot>
 
-    <div class="mx-auto px-4 sm:px-6 py-8 text-base-content">
-        {{-- Notifikasi --}}
-        <div class="mb-6 space-y-3">
-            @if (session()->has('message'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
-                     class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
-                    <x-heroicon-s-check-circle class="w-6 h-6 shrink-0" />
-                    <div>
-                        <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
-                        <div class="text-sm">{{ session('message') }}</div>
-                    </div>
+    {{-- Notifikasi Toast --}}
+    <div class="toast toast-top toast-center z-[100] mt-16">
+        @if (session()->has('message'))
+            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
+                 class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
+                <x-heroicon-s-check-circle class="w-6 h-6 shrink-0" />
+                <div>
+                    <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
+                    <div class="text-sm">{{ session('message') }}</div>
                 </div>
-            @endif
-        </div>
+            </div>
+        @endif
+        @if (session()->has('error'))
+            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
+                 class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
+                <x-heroicon-s-x-circle class="w-6 h-6 shrink-0" />
+                <div>
+                    <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
+                    <div class="text-sm">{{ session('error') }}</div>
+                </div>
+            </div>
+        @endif
+    </div>
 
-        <x-card flush title="Mapping Supervisor/Team Elite" icon="user-group" subtitle="Daftar data mapping team elite dan supervisor code" class="pb-6">
-            <x-slot:actions>
-                <div class="flex flex-wrap items-center gap-2">
-                    {{-- Search --}}
-                    <div class="relative group">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/30 group-focus-within:text-primary transition-colors">
-                            <x-heroicon-s-magnifying-glass class="w-4 h-4" />
-                        </div>
-                        <input wire:model.live.debounce.300ms="search" type="text"
-                               placeholder="Cari data..."
-                               class="input input-sm input-bordered pl-10 w-full sm:w-64 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+    {{-- Main Card --}}
+    <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+        
+        {{-- Header Card & Actions --}}
+        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-base-200/30">
+            <div class="shrink-0 w-full md:w-auto">
+                <h2 class="text-base md:text-lg font-bold">Mapping Supervisor/Team Elite</h2>
+                <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Daftar data mapping team elite dan supervisor code</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center justify-start md:justify-end gap-2 md:gap-3 w-full md:w-auto">
+                {{-- Search --}}
+                <div class="relative group grow sm:grow-0">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/30 group-focus-within:text-primary transition-colors">
+                        <x-heroicon-s-magnifying-glass class="w-4 h-4" />
                     </div>
+                    <input wire:model.live.debounce.300ms="search" type="text"
+                           placeholder="Cari data..."
+                           class="input input-sm input-bordered pl-10 w-full sm:w-48 lg:w-56 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                </div>
 
-                    {{-- Region Filter --}}
-                    <select wire:model.live="regionFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300">
-                        <option value="">Semua Region</option>
-                        @foreach($regions as $region)
-                            <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
-                        @endforeach
-                    </select>
+                {{-- Region Filter --}}
+                <select wire:model.live="regionFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0">
+                    <option value="">Semua Region</option>
+                    @foreach($regions as $region)
+                        <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
+                    @endforeach
+                </select>
 
-                    {{-- Area Filter --}}
-                    <select wire:model.live="areaFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300" @if(!$regionFilter) disabled @endif>
-                        <option value="">Semua Area</option>
-                        @foreach($areas as $area)
-                            <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
-                        @endforeach
-                    </select>
+                {{-- Area Filter --}}
+                <select wire:model.live="areaFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0" @if(!$regionFilter) disabled @endif>
+                    <option value="">Semua Area</option>
+                    @foreach($areas as $area)
+                        <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
+                    @endforeach
+                </select>
 
-                    {{-- Level Filter --}}
-                    <select wire:model.live="levelFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300">
-                        <option value="">Semua Level</option>
-                        @foreach($levels as $level)
-                            <option value="{{ $level }}">{{ ucfirst($level) }}</option>
-                        @endforeach
-                    </select>
+                {{-- Level Filter --}}
+                <select wire:model.live="levelFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0">
+                    <option value="">Semua Level</option>
+                    @foreach($levels as $level)
+                        <option value="{{ $level }}">{{ ucfirst($level) }}</option>
+                    @endforeach
+                </select>
 
-                    <button wire:click="export" class="btn btn-sm btn-success text-white rounded-xl normal-case gap-2 shadow-sm shadow-success/20">
-                        <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
-                        Export
-                        <span wire:loading wire:target="export" class="loading loading-spinner loading-xs ml-1"></span>
+                <div class="flex flex-wrap items-center gap-1 md:gap-2 mt-2 sm:mt-0 w-full sm:w-auto justify-end">
+                    <button wire:click="export" wire:loading.attr="disabled" wire:target="export" class="btn btn-sm btn-ghost bg-base-100 border border-base-300 rounded-xl" title="Export">
+                        <x-heroicon-s-arrow-down-tray class="w-4 h-4" wire:loading.remove wire:target="export" />
+                        <span class="loading loading-spinner loading-xs" wire:loading wire:target="export"></span>
+                        <span class="hidden sm:inline">Export</span>
                     </button>
 
                     <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
@@ -64,12 +82,15 @@
                         Tambah Data
                     </button>
                 </div>
-            </x-slot:actions>
+            </div>
+        </div>
 
-            <x-ui.table empty="Tidak ada data mapping yang cocok dengan pencarian dan filter Anda.">
-                <x-slot:head>
+        {{-- Body Card (Tabel Scrollable area) --}}
+        <div class="flex-1 overflow-auto bg-base-100 w-full relative">
+            <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
+                <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
                     <tr>
-                        <th class="w-12">No</th>
+                        <th class="w-16">No</th>
                         <th>Region</th>
                         <th>Area</th>
                         <th>Kode Eska (Team Elite)</th>
@@ -77,44 +98,55 @@
                         <th>Kode Siso (Supervisor)</th>
                         <th>Nama Siso</th>
                         <th>Level</th>
-                        <th class="w-24 text-center">Aksi</th>
+                        <th class="text-center w-24 bg-base-200 shadow-[inset_1px_0_0_rgba(0,0,0,0.1)]">Aksi</th>
                     </tr>
-                </x-slot:head>
-
-                @foreach ($data as $index => $item)
-                    <tr wire:key="mapping-{{ $index }}" class="group text-sm">
-                        <td><span class="text-xs font-semibold text-base-content/40">{{ $data->firstItem() + $index }}</span></td>
-                        <td><span class="font-bold text-base-content/80">{{ $item->region_name ?? '-' }}</span></td>
-                        <td><span class="font-bold text-base-content/80">{{ $item->area_name ?? '-' }}</span></td>
-                        <td><span class="font-mono text-base-content/80">{{ $item->kode_eska ?? '-' }}</span></td>
-                        <td><span class="font-bold text-base-content/80">{{ $item->nama_eska ?? '-' }}</span></td>
-                        <td><span class="font-mono text-base-content/80">{{ $item->kode_siso ?? '-' }}</span></td>
-                        <td><span class="font-bold text-base-content/80">{{ $item->nama_siso ?? '-' }}</span></td>
-                        <td>
-                            @if($item->level)
-                                <span class="badge badge-sm badge-outline">{{ ucfirst($item->level) }}</span>
-                            @else
-                                -
-                            @endif
-                        </td>
-                        <td class="text-center">
-                            <div class="flex items-center justify-center gap-2">
-                                <button wire:click="openEditModal({{ $item->id }})" class="btn btn-xs btn-circle btn-ghost text-primary hover:bg-primary/10" title="Edit">
-                                    <x-heroicon-s-pencil class="w-4 h-4" />
-                                </button>
-                                <button wire:click="deleteMapping({{ $item->id }})" wire:confirm="Apakah Anda yakin ingin menghapus data mapping ini?" class="btn btn-xs btn-circle btn-ghost text-error hover:bg-error/10" title="Hapus">
-                                    <x-heroicon-s-trash class="w-4 h-4" />
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                @endforeach
-            </x-ui.table>
-
-            @if($data->hasPages())
-                <div class="mt-4 px-6">{{ $data->links() }}</div>
-            @endif
-        </x-card>
+                </thead>
+                <tbody class="text-xs md:text-sm">
+                    @forelse ($data as $index => $item)
+                        <tr wire:key="mapping-{{ $item->id }}" class="hover:bg-base-200/50 transition-colors group">
+                            <th><span class="font-semibold text-base-content/50">{{ $data->firstItem() + $index }}</span></th>
+                            <td><span class="font-bold text-base-content">{{ $item->region_name ?? '-' }}</span></td>
+                            <td><span class="font-bold text-base-content">{{ $item->area_name ?? '-' }}</span></td>
+                            <td><span class="font-mono text-base-content/80">{{ $item->kode_eska ?? '-' }}</span></td>
+                            <td><span class="font-bold text-base-content/80">{{ $item->nama_eska ?? '-' }}</span></td>
+                            <td><span class="font-mono text-base-content/80">{{ $item->kode_siso ?? '-' }}</span></td>
+                            <td><span class="font-bold text-base-content/80">{{ $item->nama_siso ?? '-' }}</span></td>
+                            <td>
+                                @if($item->level)
+                                    <span class="badge badge-sm badge-outline">{{ ucfirst($item->level) }}</span>
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <th class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
+                                <div class="flex items-center justify-center gap-1">
+                                    <button wire:click="openEditModal({{ $item->id }})" class="btn btn-xs btn-square btn-ghost text-primary hover:bg-primary/10 transition-colors" title="Edit">
+                                        <x-heroicon-s-pencil-square class="w-4 h-4" />
+                                    </button>
+                                    <button wire:click="deleteMapping({{ $item->id }})" wire:confirm="Apakah Anda yakin ingin menghapus data mapping ini?" class="btn btn-xs btn-square btn-ghost text-error hover:bg-error/10 transition-colors" title="Hapus">
+                                        <x-heroicon-s-trash class="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </th>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="9" class="text-center py-12 text-base-content/40 bg-base-100">
+                                <x-heroicon-o-inbox class="w-10 h-10 mx-auto mb-3 opacity-50" />
+                                <p>Tidak ada data mapping yang cocok dengan pencarian dan filter Anda.</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        
+        {{-- Footer Card (Pagination) --}}
+        @if($data->hasPages())
+            <div class="p-3 md:p-4 lg:p-5 border-t border-base-300 shrink-0 bg-base-200">
+                {{ $data->links() }}
+            </div>
+        @endif
     </div>
 
     {{-- ========== MODAL FORM CREATE ========== --}}

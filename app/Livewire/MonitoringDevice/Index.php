@@ -352,7 +352,7 @@ class Index extends Component
                     ->orderBy('md.distributor_name')
                     ->orderBy('f.SLSNAME');
 
-        $salesData = $masterQuery->paginate(15);
+        $salesData = $masterQuery->paginate(50);
 
         // 2. Tentukan bulan-bulan yang akan ditampilkan dari filter start_month sampai end_month
         $months = [];

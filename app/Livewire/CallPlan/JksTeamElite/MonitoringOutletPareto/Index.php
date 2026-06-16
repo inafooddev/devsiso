@@ -442,7 +442,7 @@ class Index extends Component
             $countSql = "SELECT COUNT(*) as total FROM ({$finalSql}) as total_sub";
             $totalItems = DB::selectOne($countSql, $bindings)->total;
 
-            $perPage = 15;
+            $perPage = 100;
             $page = $this->getPage();
 
             $paginatedSql = $finalSql . $orderBySql . " LIMIT ? OFFSET ?";

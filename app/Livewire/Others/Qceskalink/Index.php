@@ -34,6 +34,12 @@ class Index extends Component
     public $editFileSurat;
     public $existingFileSurat;
 
+    // Eska Properties for Comparison
+    public $eskaQty = 0;
+    public $eskaDisc4 = 0;
+    public $eskaDisc8 = 0;
+    public $eskaNeto = 0;
+
     public function mount()
     {
         $this->monthFilter = date('Y-m'); // Default ke bulan saat ini
@@ -90,6 +96,7 @@ class Index extends Component
         $this->editDistName = $distName;
 
         $tanggal = \Carbon\Carbon::parse($this->monthFilter)->startOfMonth()->format('Y-m-d');
+        $endOfMonth = \Carbon\Carbon::parse($this->monthFilter)->endOfMonth()->format('Y-m-d');
         
         $data = \App\Models\NominalQcDist::where('distributor_code', $distCode)
                     ->where('tanggal', $tanggal)
@@ -111,13 +118,30 @@ class Index extends Component
             $this->existingFileSurat = null;
         }
 
+        // Fetch Eska data for comparison
+        $eskaData = DB::table('selling_out_eskalink')
+            ->whereBetween('invoice_date', [$tanggal, $endOfMonth])
+            ->where('branch_code', $distCode)
+            ->select(
+                DB::raw('SUM(qty3_pcs) as qty'),
+                DB::raw('SUM(line_discount_4) as discount_4'),
+                DB::raw('SUM(line_discount_8) as discount_8'),
+                DB::raw('SUM(nett_amount) as neto')
+            )
+            ->first();
+            
+        $this->eskaQty = $eskaData ? ($eskaData->qty ?? 0) : 0;
+        $this->eskaDisc4 = $eskaData ? ($eskaData->discount_4 ?? 0) : 0;
+        $this->eskaDisc8 = $eskaData ? ($eskaData->discount_8 ?? 0) : 0;
+        $this->eskaNeto = $eskaData ? ($eskaData->neto ?? 0) : 0;
+
         $this->isEditModalOpen = true;
     }
 
     public function closeEditModal()
     {
         $this->isEditModalOpen = false;
-        $this->reset(['editDistCode', 'editDistName', 'editQty', 'editDisc4', 'editDisc8', 'editNeto', 'editNominalSurat', 'editFileSurat', 'existingFileSurat']);
+        $this->reset(['editDistCode', 'editDistName', 'editQty', 'editDisc4', 'editDisc8', 'editNeto', 'editNominalSurat', 'editFileSurat', 'existingFileSurat', 'eskaQty', 'eskaDisc4', 'eskaDisc8', 'eskaNeto']);
     }
 
     public function deleteData($distCode)

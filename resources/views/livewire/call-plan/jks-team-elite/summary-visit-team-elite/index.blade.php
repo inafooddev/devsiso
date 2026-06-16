@@ -1,18 +1,20 @@
-<div>
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <!-- TABS -->
-    <div class="tabs tabs-boxed mb-4 w-fit bg-base-100 shadow-sm border border-base-200 p-1">
-        <button class="tab px-8 {{ $currentTab === 'summary' ? 'tab-active font-bold' : '' }}" wire:click="setTab('summary')">Summary</button>
-        <button class="tab px-8 {{ $currentTab === 'detail' ? 'tab-active font-bold' : '' }}" wire:click="setTab('detail')">Detail</button>
+    <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex items-center shadow-sm relative z-10 -mb-1 md:-mb-2">
+        <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
+            <button class="tab tab-xs px-4 transition-colors {{ $currentTab === 'summary' ? 'tab-active font-bold shadow-sm bg-base-100' : 'text-base-content/70 hover:text-base-content' }}" wire:click="setTab('summary')">Summary</button>
+            <button class="tab tab-xs px-4 transition-colors {{ $currentTab === 'detail' ? 'tab-active font-bold shadow-sm bg-base-100' : 'text-base-content/70 hover:text-base-content' }}" wire:click="setTab('detail')">Detail</button>
+        </div>
     </div>
     @if($isFiltered && $currentTab === 'detail')
     <!-- KPI CARDS -->
-    <div class="grid grid-cols-7 gap-4 mb-6 items-stretch">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-3 md:gap-4 lg:gap-6 shrink-0 -mb-1 lg:-mb-3">
         
         <!-- Total Visit -->
-        <div class="bg-base-100 rounded-xl p-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow duration-300 border border-base-200 flex flex-col h-full">
-            <div class="text-[10px] text-base-content/50 font-semibold uppercase tracking-wider mb-1" title="Jumlah toko yang telah dikunjungi">Total Visit</div>
-            <div class="flex items-center justify-between mb-1">
-                <div class="text-xl xl:text-2xl font-extrabold text-base-content tracking-tight">{{ number_format($kpiData['total_visit'] ?? 0, 0, ',', '.') }}</div>
+        <div class="bg-base-100 rounded-xl px-2.5 py-2 shadow-sm border border-base-300 flex flex-col justify-center">
+            <div class="text-[9px] text-base-content/50 font-semibold uppercase tracking-wider mb-0.5" title="Jumlah toko yang telah dikunjungi">Total Visit</div>
+            <div class="flex items-center justify-between">
+                <div class="text-lg xl:text-xl font-extrabold text-base-content tracking-tight leading-none">{{ number_format($kpiData['total_visit'] ?? 0, 0, ',', '.') }}</div>
                 @php
                             $pct = ($kpiData['total_toko'] ?? 0) > 0 ? (($kpiData['total_visit'] ?? 0) / ($kpiData['total_toko'] ?? 1) * 100) : 0;
                             $pctClass = $pct >= 80 ? 'text-success bg-success/10' : ($pct >= 50 ? 'text-warning bg-warning/10' : 'text-error bg-error/10');
@@ -20,12 +22,12 @@
                 <span class="text-[8px] font-bold px-1.5 py-0.5 rounded {{ $pctClass }}">{{ number_format($pct, 1, ',', '.') }}%</span>
             </div>
             
-            <div class="mt-auto pt-2 flex flex-col gap-1">
+            <div class="mt-1 flex flex-col gap-0">
                 <div class="flex justify-between items-center">
                     <span class="text-[9px] font-medium text-base-content/40 uppercase">Total Toko</span>
                     <span class="text-[11px] font-bold text-base-content/70" title="{{ number_format($kpiData['total_toko'] ?? 0, 0, ',', '.') }}">{{ number_format($kpiData['total_toko'] ?? 0, 0, ',', '.') }}</span>
                 </div>
-                <div class="flex justify-between items-center border-t border-base-200/60 pt-1.5">
+                <div class="flex justify-between items-center border-t border-base-200/60 mt-0.5 pt-0.5">
                     <span class="text-[9px] font-medium text-base-content/40 uppercase">Gap</span>
                     @php
                         $gap = ($kpiData['total_toko'] ?? 0) - ($kpiData['total_visit'] ?? 0);
@@ -37,10 +39,10 @@
         </div>
 
         <!-- Total Toko Order -->
-        <div class="bg-base-100 rounded-xl p-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow duration-300 border border-base-200 flex flex-col h-full">
-            <div class="text-[10px] text-base-content/50 font-semibold uppercase tracking-wider mb-1" title="Jumlah toko yang melakukan pemesanan (Order > 0)">Toko Order</div>
-            <div class="flex items-center justify-between mb-1">
-                <div class="text-xl xl:text-2xl font-extrabold text-base-content tracking-tight">{{ number_format($kpiData['total_toko_order'] ?? 0, 0, ',', '.') }}</div>
+        <div class="bg-base-100 rounded-xl px-2.5 py-2 shadow-sm border border-base-300 flex flex-col justify-center">
+            <div class="text-[9px] text-base-content/50 font-semibold uppercase tracking-wider mb-0.5" title="Jumlah toko yang melakukan pemesanan (Order > 0)">Toko Order</div>
+            <div class="flex items-center justify-between">
+                <div class="text-lg xl:text-xl font-extrabold text-base-content tracking-tight leading-none">{{ number_format($kpiData['total_toko_order'] ?? 0, 0, ',', '.') }}</div>
                 @php
                             $pctOrder = ($kpiData['total_visit'] ?? 0) > 0 ? (($kpiData['total_toko_order'] ?? 0) / ($kpiData['total_visit'] ?? 1) * 100) : 0;
                             $pctOrderClass = $pctOrder >= 80 ? 'text-success bg-success/10' : ($pctOrder >= 50 ? 'text-warning bg-warning/10' : 'text-error bg-error/10');
@@ -48,12 +50,12 @@
                 <span class="text-[8px] font-bold px-1.5 py-0.5 rounded {{ $pctOrderClass }}">{{ number_format($pctOrder, 1, ',', '.') }}%</span>
             </div>
             
-            <div class="mt-auto pt-2 flex flex-col gap-1">
+            <div class="mt-1 flex flex-col gap-0">
                 <div class="flex justify-between items-center">
                     <span class="text-[9px] font-medium text-base-content/40 uppercase">Total Visit</span>
                     <span class="text-[11px] font-bold text-base-content/70" title="{{ number_format($kpiData['total_visit'] ?? 0, 0, ',', '.') }}">{{ number_format($kpiData['total_visit'] ?? 0, 0, ',', '.') }}</span>
                 </div>
-                <div class="flex justify-between items-center border-t border-base-200/60 pt-1.5">
+                <div class="flex justify-between items-center border-t border-base-200/60 mt-0.5 pt-0.5">
                     <span class="text-[9px] font-medium text-base-content/40 uppercase">Gap</span>
                     @php
                         $gapOrder = ($kpiData['total_visit'] ?? 0) - ($kpiData['total_toko_order'] ?? 0);
@@ -65,10 +67,10 @@
         </div>
 
         <!-- Total Order -->
-        <div class="bg-base-100 rounded-xl p-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow duration-300 border border-base-200 flex flex-col h-full">
-            <div class="text-[10px] text-base-content/50 font-semibold uppercase tracking-wider mb-1" title="Total nilai pemesanan keseluruhan">Total Order</div>
-            <div class="flex items-center justify-between mb-1">
-                <div class="text-xl xl:text-2xl font-extrabold text-base-content tracking-tight" title="{{ number_format($kpiData['total_order'] ?? 0, 0, ',', '.') }}">{{ number_format($kpiData['total_order'] ?? 0, 0, ',', '.') }}</div>
+        <div class="bg-base-100 rounded-xl px-2.5 py-2 shadow-sm border border-base-300 flex flex-col justify-center">
+            <div class="text-[9px] text-base-content/50 font-semibold uppercase tracking-wider mb-0.5" title="Total nilai pemesanan keseluruhan">Total Order</div>
+            <div class="flex items-center justify-between">
+                <div class="text-lg xl:text-xl font-extrabold text-base-content tracking-tight leading-none" title="{{ number_format($kpiData['total_order'] ?? 0, 0, ',', '.') }}">{{ number_format($kpiData['total_order'] ?? 0, 0, ',', '.') }}</div>
                 @php
                             $pctTarget = ($kpiData['total_target'] ?? 0) > 0 ? (($kpiData['total_order'] ?? 0) / ($kpiData['total_target'] ?? 1) * 100) : 0;
                             $pctTargetClass = $pctTarget >= 80 ? 'text-success bg-success/10' : ($pctTarget >= 50 ? 'text-warning bg-warning/10' : 'text-error bg-error/10');
@@ -76,12 +78,12 @@
                 <span class="text-[8px] font-bold px-1.5 py-0.5 rounded {{ $pctTargetClass }}">{{ number_format($pctTarget, 1, ',', '.') }}%</span>
             </div>
             
-            <div class="mt-auto pt-2 flex flex-col gap-1">
+            <div class="mt-1 flex flex-col gap-0">
                 <div class="flex justify-between items-center">
                     <span class="text-[9px] font-medium text-base-content/40 uppercase">Target</span>
                     <span class="text-[9px] font-bold text-base-content/70" title="{{ number_format($kpiData['total_target'] ?? 0, 0, ',', '.') }}">{{ number_format($kpiData['total_target'] ?? 0, 0, ',', '.') }}</span>
                 </div>
-                <div class="flex justify-between items-center border-t border-base-200/60 pt-1.5">
+                <div class="flex justify-between items-center border-t border-base-200/60 mt-0.5 pt-0.5">
                     <span class="text-[9px] font-medium text-base-content/40 uppercase">Gap</span>
                     @php
                         $gapTarget = ($kpiData['total_target'] ?? 0) - ($kpiData['total_order'] ?? 0);
@@ -93,10 +95,10 @@
         </div>
 
         <!-- Visit 1. RWO -->
-        <div class="bg-base-100 rounded-xl p-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow duration-300 border border-base-200 flex flex-col h-full">
-            <div class="text-[10px] text-base-content/50 font-semibold uppercase tracking-wider mb-1" title="Kinerja toko pada pilar 1. RWO">Total 1. RWO</div>
-            <div class="flex items-center justify-between mb-1">
-                <div class="text-xl xl:text-2xl font-extrabold text-base-content tracking-tight">{{ number_format($kpiData['total_rwo'] ?? 0, 0, ',', '.') }}</div>
+        <div class="bg-base-100 rounded-xl px-2.5 py-2 shadow-sm border border-base-300 flex flex-col justify-center">
+            <div class="text-[9px] text-base-content/50 font-semibold uppercase tracking-wider mb-0.5" title="Kinerja toko pada pilar 1. RWO">Total 1. RWO</div>
+            <div class="flex items-center justify-between">
+                <div class="text-lg xl:text-xl font-extrabold text-base-content tracking-tight leading-none">{{ number_format($kpiData['total_rwo'] ?? 0, 0, ',', '.') }}</div>
                 @php
                             $pctRwo = ($kpiData['total_rwo'] ?? 0) > 0 ? (($kpiData['toko_order_rwo'] ?? 0) / ($kpiData['total_rwo'] ?? 1) * 100) : 0;
                             $pctRwoClass = $pctRwo >= 80 ? 'text-success bg-success/10' : ($pctRwo >= 50 ? 'text-warning bg-warning/10' : 'text-error bg-error/10');
@@ -104,12 +106,12 @@
                 <span class="text-[8px] font-bold px-1.5 py-0.5 rounded {{ $pctRwoClass }}">{{ number_format($pctRwo, 1, ',', '.') }}%</span>
             </div>
             
-            <div class="mt-auto pt-2 flex flex-col gap-1">
+            <div class="mt-1 flex flex-col gap-0">
                 <div class="flex justify-between items-center">
                     <span class="text-[9px] font-medium text-base-content/40 uppercase">Toko Order</span>
                     <span class="text-[11px] font-bold text-base-content/70" title="{{ number_format($kpiData['toko_order_rwo'] ?? 0, 0, ',', '.') }}">{{ number_format($kpiData['toko_order_rwo'] ?? 0, 0, ',', '.') }}</span>
                 </div>
-                <div class="flex justify-between items-center border-t border-base-200/60 pt-1.5">
+                <div class="flex justify-between items-center border-t border-base-200/60 mt-0.5 pt-0.5">
                     <span class="text-[9px] font-medium text-base-content/40 uppercase">Val Order</span>
                     <span class="text-[11px] font-bold text-success text-right" title="{{ number_format($kpiData['total_order_rwo'] ?? 0, 0, ',', '.') }}">{{ number_format($kpiData['total_order_rwo'] ?? 0, 0, ',', '.') }}</span>
                 </div>
@@ -117,10 +119,10 @@
         </div>
 
         <!-- Visit 2. PNR -->
-        <div class="bg-base-100 rounded-xl p-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow duration-300 border border-base-200 flex flex-col h-full">
-            <div class="text-[10px] text-base-content/50 font-semibold uppercase tracking-wider mb-1" title="Kinerja toko pada pilar 2. PNR">Total 2. PNR</div>
-            <div class="flex items-center justify-between mb-1">
-                <div class="text-xl xl:text-2xl font-extrabold text-base-content tracking-tight">{{ number_format($kpiData['total_pnr'] ?? 0, 0, ',', '.') }}</div>
+        <div class="bg-base-100 rounded-xl px-2.5 py-2 shadow-sm border border-base-300 flex flex-col justify-center">
+            <div class="text-[9px] text-base-content/50 font-semibold uppercase tracking-wider mb-0.5" title="Kinerja toko pada pilar 2. PNR">Total 2. PNR</div>
+            <div class="flex items-center justify-between">
+                <div class="text-lg xl:text-xl font-extrabold text-base-content tracking-tight leading-none">{{ number_format($kpiData['total_pnr'] ?? 0, 0, ',', '.') }}</div>
                 @php
                             $pctPnr = ($kpiData['total_pnr'] ?? 0) > 0 ? (($kpiData['toko_order_pnr'] ?? 0) / ($kpiData['total_pnr'] ?? 1) * 100) : 0;
                             $pctPnrClass = $pctPnr >= 80 ? 'text-success bg-success/10' : ($pctPnr >= 50 ? 'text-warning bg-warning/10' : 'text-error bg-error/10');
@@ -128,12 +130,12 @@
                 <span class="text-[8px] font-bold px-1.5 py-0.5 rounded {{ $pctPnrClass }}">{{ number_format($pctPnr, 1, ',', '.') }}%</span>
             </div>
             
-            <div class="mt-auto pt-2 flex flex-col gap-1">
+            <div class="mt-1 flex flex-col gap-0">
                 <div class="flex justify-between items-center">
                     <span class="text-[9px] font-medium text-base-content/40 uppercase">Toko Order</span>
                     <span class="text-[11px] font-bold text-base-content/70" title="{{ number_format($kpiData['toko_order_pnr'] ?? 0, 0, ',', '.') }}">{{ number_format($kpiData['toko_order_pnr'] ?? 0, 0, ',', '.') }}</span>
                 </div>
-                <div class="flex justify-between items-center border-t border-base-200/60 pt-1.5">
+                <div class="flex justify-between items-center border-t border-base-200/60 mt-0.5 pt-0.5">
                     <span class="text-[9px] font-medium text-base-content/40 uppercase">Val Order</span>
                     <span class="text-[11px] font-bold text-success text-right" title="{{ number_format($kpiData['total_order_pnr'] ?? 0, 0, ',', '.') }}">{{ number_format($kpiData['total_order_pnr'] ?? 0, 0, ',', '.') }}</span>
                 </div>
@@ -141,10 +143,10 @@
         </div>
 
         <!-- Visit 3. NGVO -->
-        <div class="bg-base-100 rounded-xl p-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow duration-300 border border-base-200 flex flex-col h-full">
-            <div class="text-[10px] text-base-content/50 font-semibold uppercase tracking-wider mb-1" title="Kinerja toko pada pilar 3. NGVO">Total 3. NGVO</div>
-            <div class="flex items-center justify-between mb-1">
-                <div class="text-xl xl:text-2xl font-extrabold text-base-content tracking-tight">{{ number_format($kpiData['total_ngvo'] ?? 0, 0, ',', '.') }}</div>
+        <div class="bg-base-100 rounded-xl px-2.5 py-2 shadow-sm border border-base-300 flex flex-col justify-center">
+            <div class="text-[9px] text-base-content/50 font-semibold uppercase tracking-wider mb-0.5" title="Kinerja toko pada pilar 3. NGVO">Total 3. NGVO</div>
+            <div class="flex items-center justify-between">
+                <div class="text-lg xl:text-xl font-extrabold text-base-content tracking-tight leading-none">{{ number_format($kpiData['total_ngvo'] ?? 0, 0, ',', '.') }}</div>
                 @php
                             $pctNgvo = ($kpiData['total_ngvo'] ?? 0) > 0 ? (($kpiData['toko_order_ngvo'] ?? 0) / ($kpiData['total_ngvo'] ?? 1) * 100) : 0;
                             $pctNgvoClass = $pctNgvo >= 80 ? 'text-success bg-success/10' : ($pctNgvo >= 50 ? 'text-warning bg-warning/10' : 'text-error bg-error/10');
@@ -152,12 +154,12 @@
                 <span class="text-[8px] font-bold px-1.5 py-0.5 rounded {{ $pctNgvoClass }}">{{ number_format($pctNgvo, 1, ',', '.') }}%</span>
             </div>
             
-            <div class="mt-auto pt-2 flex flex-col gap-1">
+            <div class="mt-1 flex flex-col gap-0">
                 <div class="flex justify-between items-center">
                     <span class="text-[9px] font-medium text-base-content/40 uppercase">Toko Order</span>
                     <span class="text-[11px] font-bold text-base-content/70" title="{{ number_format($kpiData['toko_order_ngvo'] ?? 0, 0, ',', '.') }}">{{ number_format($kpiData['toko_order_ngvo'] ?? 0, 0, ',', '.') }}</span>
                 </div>
-                <div class="flex justify-between items-center border-t border-base-200/60 pt-1.5">
+                <div class="flex justify-between items-center border-t border-base-200/60 mt-0.5 pt-0.5">
                     <span class="text-[9px] font-medium text-base-content/40 uppercase">Val Order</span>
                     <span class="text-[11px] font-bold text-success text-right" title="{{ number_format($kpiData['total_order_ngvo'] ?? 0, 0, ',', '.') }}">{{ number_format($kpiData['total_order_ngvo'] ?? 0, 0, ',', '.') }}</span>
                 </div>
@@ -165,13 +167,13 @@
         </div>
 
         <!-- Total NOO -->
-        <div class="bg-base-100 rounded-xl p-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow duration-300 border border-base-200 flex flex-col h-full">
-            <div class="text-[10px] text-base-content/50 font-semibold uppercase tracking-wider mb-1" title="Jumlah toko berstatus NOO">Total NOO</div>
-            <div class="flex items-center justify-between mb-1">
-                <div class="text-xl xl:text-2xl font-extrabold text-base-content tracking-tight">{{ number_format($kpiData['total_noo'] ?? 0, 0, ',', '.') }}</div>
+        <div class="bg-base-100 rounded-xl px-2.5 py-2 shadow-sm border border-base-300 flex flex-col justify-center">
+            <div class="text-[9px] text-base-content/50 font-semibold uppercase tracking-wider mb-0.5" title="Jumlah toko berstatus NOO">Total NOO</div>
+            <div class="flex items-center justify-between">
+                <div class="text-lg xl:text-xl font-extrabold text-base-content tracking-tight leading-none">{{ number_format($kpiData['total_noo'] ?? 0, 0, ',', '.') }}</div>
             </div>
             
-            <div class="mt-auto pt-2 flex flex-col gap-1">
+            <div class="mt-1 flex flex-col gap-0">
                 <div class="flex justify-between items-center opacity-0 pointer-events-none">
                     <span class="text-[9px] font-medium text-base-content/40 uppercase">-</span>
                     <span class="text-[8px] font-bold px-1.5 py-0.5 rounded">-</span>
@@ -185,9 +187,16 @@
 
     </div>
     @endif
-    <x-card title="Summary Visit Team Elite" icon="document-text" class="mb-4" flush="true">
-        <x-slot:actions>
-            <div class="flex flex-wrap items-center gap-2">
+    <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+            <div class="shrink-0 w-full sm:w-auto">
+                <h2 class="text-base md:text-lg font-bold flex items-center gap-2">
+                    <x-heroicon-o-document-text class="w-5 h-5 text-primary" />
+                    Summary Visit Team Elite
+                </h2>
+                <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Ringkasan kunjungan JKS Team Elite</p>
+            </div>
+            <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
                 <select wire:model.live="selectedRegion" class="select select-sm select-bordered min-w-[150px]">
                     <option value="">Semua Region</option>
                     @foreach($regions as $region)
@@ -219,12 +228,13 @@
                     Filter
                 </x-ui.button>
             </div>
-        </x-slot:actions>
+        </div>
 
         @if($isFiltered)
         @if($currentTab === 'summary')
-        <x-ui.table striped hover empty="Tidak ada data." class="max-h-[60vh] overflow-y-auto border-x-0 border-b-0 rounded-none shadow-none mt-2 [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-20 [&_thead]:shadow-sm [&_thead_tr]:bg-base-300 [&_tfoot]:sticky [&_tfoot]:bottom-0 [&_tfoot]:z-20 [&_tfoot]:shadow-[0_-1px_3px_rgba(0,0,0,0.1)] [&_th]:!text-[10px] [&_td]:!text-[10px] [&_.badge]:!text-[10px] [&_.badge]:!py-0.5 [&_.badge]:!px-1">
-            <x-slot:head>
+        <div class="flex-1 overflow-auto bg-base-100 w-full relative">
+            <table class="table table-sm table-zebra w-full whitespace-nowrap text-xs">
+                <thead class="sticky top-0 z-10 text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm [&_th]:bg-base-300">
                 <tr>
                     <th rowspan="2" class="align-middle border-b border-r border-base-200">Region</th>
                     <th rowspan="2" class="align-middle border-b border-r border-base-200">Area</th>
@@ -258,9 +268,19 @@
                     <th class="text-center border-b border-base-200">Visit</th>
                     <th class="text-center border-b border-base-200">%</th>
                 </tr>
-            </x-slot:head>
-            
-            @foreach($dataSummary as $row)
+                </thead>
+                <tbody class="text-xs">
+                @if(empty($dataSummary))
+                    <tr>
+                        <td colspan="99">
+                            <div class="flex flex-col items-center justify-center py-12 gap-3 text-base-content/40">
+                                <x-heroicon-o-inbox class="w-10 h-10" />
+                                <p class="text-sm">Tidak ada data.</p>
+                            </div>
+                        </td>
+                    </tr>
+                @else
+                    @foreach($dataSummary as $row)
                 <tr>
                     <td class="whitespace-nowrap border-r border-base-200/50">{{ $row->region_name }}</td>
                     <td class="whitespace-nowrap border-r border-base-200/50">{{ $row->area_name }}</td>
@@ -323,9 +343,12 @@
                         </x-ui.badge>
                     </td>
                 </tr>
-            @endforeach
-            <x-slot:foot>
-                <tr class="bg-base-200 font-bold border-t-2 border-base-300">
+                    @endforeach
+                @endif
+                </tbody>
+                @if(!empty($dataSummary))
+                <tfoot class="sticky bottom-0 z-10 bg-base-200 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
+                    <tr class="font-bold border-t-2 border-base-300">
                     <td colspan="3" class="text-right border-r border-base-200/50 uppercase tracking-wider">Subtotal</td>
                     <td class="text-center">{{ number_format($kpiData['total_toko'] ?? 0, 0, ',', '.') }}</td>
                     <td class="text-center">{{ number_format($kpiData['total_visit'] ?? 0, 0, ',', '.') }}</td>
@@ -376,11 +399,14 @@
                         {{ number_format($ngvoPctTotal, 1, ',', '.') }}%
                     </td>
                 </tr>
-            </x-slot:foot>
-        </x-ui.table>
+                </tfoot>
+                @endif
+            </table>
+        </div>
         @elseif($currentTab === 'detail')
-        <x-ui.table striped hover sticky="true" empty="Tidak ada data." class="max-h-[60vh] overflow-y-auto border-x-0 border-b-0 rounded-none shadow-none mt-2 [&_tfoot]:sticky [&_tfoot]:bottom-0 [&_tfoot]:z-20 [&_tfoot]:shadow-[0_-1px_3px_rgba(0,0,0,0.1)] [&_th]:!text-[10px] [&_td]:!text-[10px] [&_.badge]:!text-[10px] [&_.badge]:!py-0.5 [&_.badge]:!px-1">
-            <x-slot:head>
+        <div class="flex-1 overflow-auto bg-base-100 w-full relative">
+            <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap text-xs">
+                <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm [&_th]:bg-base-300">
                 <tr>
                     <th>Region</th>
                     <th>Area</th>
@@ -397,9 +423,19 @@
                     <th class="text-right">Invoice</th>
                     <th class="text-right">Selisih</th>
                 </tr>
-            </x-slot:head>
-            
-            @foreach($dataKunjungan as $row)
+                </thead>
+                <tbody class="text-xs">
+                @if(empty($dataKunjungan))
+                    <tr>
+                        <td colspan="99">
+                            <div class="flex flex-col items-center justify-center py-12 gap-3 text-base-content/40">
+                                <x-heroicon-o-inbox class="w-10 h-10" />
+                                <p class="text-sm">Tidak ada data.</p>
+                            </div>
+                        </td>
+                    </tr>
+                @else
+                    @foreach($dataKunjungan as $row)
                 <tr class="{{ str_contains(strtoupper($row->keterangan ?? ''), 'NOO') ? '!bg-warning/20 hover:!bg-warning/30' : '' }}">
                     <td class="whitespace-nowrap">{{ $row->region_name }}</td>
                     <td class="whitespace-nowrap">{{ $row->area_name }}</td>
@@ -428,18 +464,22 @@
                     <td class="whitespace-nowrap font-mono text-right font-bold">{{ number_format($row->invoice ?? 0, 0, ',', '.') }}</td>
                     <td class="whitespace-nowrap font-mono text-right {{ (($row->invoice ?? 0) - ($row->order_val ?? 0)) < 0 ? 'text-error' : 'text-success' }}">{{ number_format(($row->invoice ?? 0) - ($row->order_val ?? 0), 0, ',', '.') }}</td>
                 </tr>
-            @endforeach
-
-            <x-slot:foot>
-                <tr class="font-bold border-t-2 border-base-300">
+                    @endforeach
+                @endif
+                </tbody>
+                @if(!empty($dataKunjungan))
+                <tfoot class="sticky bottom-0 z-10 bg-base-200 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
+                    <tr class="font-bold border-t-2 border-base-300">
                     <td colspan="10" class="text-right uppercase tracking-wider">Subtotal</td>
                     <td class="text-right font-mono text-sm text-base-content">{{ number_format($kpiData['total_target'] ?? 0, 0, ',', '.') }}</td>
                     <td class="text-right font-mono text-sm text-base-content">{{ number_format($kpiData['total_order'] ?? 0, 0, ',', '.') }}</td>
                     <td class="text-right font-mono text-sm text-base-content">{{ number_format($kpiData['total_invoice'] ?? 0, 0, ',', '.') }}</td>
                     <td class="text-right font-mono text-sm {{ (($kpiData['total_invoice'] ?? 0) - ($kpiData['total_order'] ?? 0)) < 0 ? 'text-error' : 'text-success' }}">{{ number_format(($kpiData['total_invoice'] ?? 0) - ($kpiData['total_order'] ?? 0), 0, ',', '.') }}</td>
                 </tr>
-            </x-slot:foot>
-        </x-ui.table>
+                </tfoot>
+                @endif
+            </table>
+        </div>
         @endif
         @else
         <div class="p-8 text-center text-base-content/60">
@@ -451,5 +491,5 @@
             @endif
         </div>
         @endif
-    </x-card>
+    </div>
 </div>
