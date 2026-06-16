@@ -21,8 +21,8 @@
             
             <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
                 <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari Tim..." class="input input-bordered input-sm w-full sm:w-36 lg:w-48 rounded-xl bg-base-100" />
-                <select wire:model.live="filterRegion" class="select select-bordered select-sm w-full sm:w-auto rounded-xl bg-base-100">
-                    <option value="">Semua Region</option>
+                <select wire:model.live="filterRegion" class="select select-bordered select-sm w-full sm:w-auto rounded-xl bg-base-100" @if(count($regions) <= 1) disabled @endif>
+                    @if(count($regions) > 1) <option value="">Semua Region</option> @endif
                     @foreach($regions as $region)
                         <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
                     @endforeach

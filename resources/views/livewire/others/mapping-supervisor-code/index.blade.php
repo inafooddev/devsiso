@@ -47,7 +47,7 @@
                 </div>
 
                 {{-- Region Filter --}}
-                <select wire:model.live="regionFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0">
+                <select wire:model.live="regionFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0" {{ (!auth()->user()->hasRole('admin') && count($regions) === 1) ? 'disabled' : '' }}>
                     <option value="">Semua Region</option>
                     @foreach($regions as $region)
                         <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
@@ -71,16 +71,20 @@
                 </select>
 
                 <div class="flex flex-wrap items-center gap-1 md:gap-2 mt-2 sm:mt-0 w-full sm:w-auto justify-end">
+                    @canExport('mapping-supervisor-code.index')
                     <button wire:click="export" wire:loading.attr="disabled" wire:target="export" class="btn btn-sm btn-ghost bg-base-100 border border-base-300 rounded-xl" title="Export">
                         <x-heroicon-s-arrow-down-tray class="w-4 h-4" wire:loading.remove wire:target="export" />
                         <span class="loading loading-spinner loading-xs" wire:loading wire:target="export"></span>
                         <span class="hidden sm:inline">Export</span>
                     </button>
+                    @endcanExport
 
+                    @canAdd('mapping-supervisor-code.index')
                     <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20">
                         <x-heroicon-s-plus class="w-4 h-4" />
                         Tambah Data
                     </button>
+                    @endcanAdd
                 </div>
             </div>
         </div>
@@ -120,12 +124,16 @@
                             </td>
                             <th class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
                                 <div class="flex items-center justify-center gap-1">
+                                    @canEdit('mapping-supervisor-code.index')
                                     <button wire:click="openEditModal({{ $item->id }})" class="btn btn-xs btn-square btn-ghost text-primary hover:bg-primary/10 transition-colors" title="Edit">
                                         <x-heroicon-s-pencil-square class="w-4 h-4" />
                                     </button>
+                                    @endcanEdit
+                                    @canDelete('mapping-supervisor-code.index')
                                     <button wire:click="deleteMapping({{ $item->id }})" wire:confirm="Apakah Anda yakin ingin menghapus data mapping ini?" class="btn btn-xs btn-square btn-ghost text-error hover:bg-error/10 transition-colors" title="Hapus">
                                         <x-heroicon-s-trash class="w-4 h-4" />
                                     </button>
+                                    @endcanDelete
                                 </div>
                             </th>
                         </tr>

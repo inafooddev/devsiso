@@ -90,11 +90,20 @@ class Index extends Component
 
         // Level Supervisor
         if (!empty($user->supervisor_code)) {
-            return $query->whereExists(function ($sub) use ($user, $distributorCodeColumn) {
-                $sub->selectRaw('1')
-                    ->from('master_distributors as md_auth')
-                    ->whereColumn('md_auth.distributor_code', $distributorCodeColumn)
-                    ->where('md_auth.supervisor_code', $user->supervisor_code);
+            $sisoCodes = \Illuminate\Support\Facades\DB::table('team_elite_code_mappings')
+                ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$user->supervisor_code])
+                ->pluck('siso_code')
+                ->toArray();
+
+            return $query->whereExists(function ($sub) use ($sisoCodes, $distributorCodeColumn) {
+                if (!empty($sisoCodes)) {
+                    $sub->selectRaw('1')
+                        ->from('master_distributors as md_auth')
+                        ->whereColumn('md_auth.distributor_code', $distributorCodeColumn)
+                        ->whereIn('md_auth.supervisor_code', $sisoCodes);
+                } else {
+                    $sub->selectRaw('1')->whereRaw('1 = 0');
+                }
             });
         }
 
@@ -123,13 +132,35 @@ class Index extends Component
 
     public function mount()
     {
-        $query = DB::table('master_distributors')->select('region_code')->whereNotNull('region_code')->distinct();
-        $query = $this->applyHierarchyAccess($query, 'distributor_code');
-        
-        $regions = $query->get();
-
-        if (!auth()->user()->hasRole('admin') && $regions->count() === 1) {
-            $this->filterRegion = $regions->first()->region_code;
+        $user = auth()->user();
+        if (!$user->hasRole('admin')) {
+            // Auto-set Region
+            $regionQuery = DB::table('master_distributors')->select('region_code')->whereNotNull('region_code')->distinct();
+            $regionQuery = $this->applyHierarchyAccess($regionQuery, 'distributor_code');
+            $regions = $regionQuery->get();
+            if ($regions->count() === 1) {
+                $this->filterRegion = $regions->first()->region_code;
+                
+                // Auto-set Area
+                $areaQuery = DB::table('master_distributors')->select('area_code')->whereNotNull('area_code')->where('region_code', $this->filterRegion)->distinct();
+                $areaQuery = $this->applyHierarchyAccess($areaQuery, 'distributor_code');
+                $areas = $areaQuery->get();
+                if ($areas->count() === 1) {
+                    $this->filterArea = $areas->first()->area_code;
+                    
+                    // Auto-set Supervisor
+                    $spvQuery = DB::table('master_distributors as md')
+                        ->join('team_elite_code_mappings as t', 't.siso_code', '=', 'md.supervisor_code')
+                        ->select('t.team_elite_code as supervisor_code')
+                        ->where('md.area_code', $this->filterArea)
+                        ->distinct();
+                    $spvQuery = $this->applyHierarchyAccess($spvQuery, 'md.distributor_code');
+                    $spvs = $spvQuery->get();
+                    if ($spvs->count() === 1) {
+                        $this->filterSupervisor = $spvs->first()->supervisor_code;
+                    }
+                }
+            }
         }
     }
 
@@ -219,7 +250,18 @@ class Index extends Component
         // Dropdown Filters
         if ($this->filterRegion) $query->where('md.region_code', $this->filterRegion);
         if ($this->filterArea) $query->where('md.area_code', $this->filterArea);
-        if ($this->filterSupervisor) $query->where('t.team_elite_code', $this->filterSupervisor);
+        if ($this->filterSupervisor) {
+            $sisoCodes = \Illuminate\Support\Facades\DB::table('team_elite_code_mappings')
+                ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$this->filterSupervisor])
+                ->pluck('siso_code')
+                ->toArray();
+            
+            if (!empty($sisoCodes)) {
+                $query->whereIn('md.supervisor_code', $sisoCodes);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
         if ($this->filterDistributor) $query->where('l.distributor_code', $this->filterDistributor);
         
         if (!$excludePilarAndPareto) {

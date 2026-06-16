@@ -53,8 +53,16 @@ class Index extends Component
             ->select('kode_region', 'nama_region')
             ->whereNotNull('kode_region');
             
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereIn('kode_region', (array) $user->region_code);
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $query->where('kode_team', $user->supervisor_code);
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $query->whereIn('kode_area', $user->area_code);
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $query->whereIn('kode_region', $user->region_code);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
         }
             
         $this->regions = $query->distinct()
@@ -76,11 +84,25 @@ class Index extends Component
         $this->teams = [];
 
         if ($value) {
-            $this->areas = DB::table('jks_team_elite')
+            $query = DB::table('jks_team_elite')
                 ->where('kode_region', $value)
                 ->whereNotNull('kode_area')
-                ->select('kode_area', 'nama_area')
-                ->distinct()
+                ->select('kode_area', 'nama_area');
+                
+            $user = auth()->user();
+            if ($user && !$user->hasRole('admin')) {
+                if (!empty($user->supervisor_code)) {
+                    $query->where('kode_team', $user->supervisor_code);
+                } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                    $query->whereIn('kode_area', $user->area_code);
+                } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                    $query->whereIn('kode_region', $user->region_code);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            }
+                
+            $this->areas = $query->distinct()
                 ->orderBy('nama_area')
                 ->get()
                 ->toArray();
@@ -93,12 +115,26 @@ class Index extends Component
         $this->teams = [];
 
         if ($value) {
-            $this->teams = DB::table('jks_team_elite')
+            $query = DB::table('jks_team_elite')
                 ->where('kode_region', $this->selectedRegion)
                 ->where('kode_area', $value)
                 ->whereNotNull('kode_team')
-                ->select('kode_team', 'nama_team')
-                ->distinct()
+                ->select('kode_team', 'nama_team');
+                
+            $user = auth()->user();
+            if ($user && !$user->hasRole('admin')) {
+                if (!empty($user->supervisor_code)) {
+                    $query->where('kode_team', $user->supervisor_code);
+                } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                    $query->whereIn('kode_area', $user->area_code);
+                } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                    $query->whereIn('kode_region', $user->region_code);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            }
+                
+            $this->teams = $query->distinct()
                 ->orderBy('nama_team')
                 ->get()
                 ->toArray();
@@ -169,8 +205,16 @@ class Index extends Component
             });
 
         $user = auth()->user();
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereIn('jks.kode_region', (array) $user->region_code);
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $query->where('jks.kode_team', $user->supervisor_code);
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $query->whereIn('jks.kode_area', $user->area_code);
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $query->whereIn('jks.kode_region', $user->region_code);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
         }
 
         if ($this->appliedRegion) {
@@ -263,8 +307,16 @@ class Index extends Component
             ->distinct();
 
         $user = auth()->user();
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $uniqueTargets->whereIn('sub_jks.kode_region', (array) $user->region_code);
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $uniqueTargets->where('sub_jks.kode_team', $user->supervisor_code);
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $uniqueTargets->whereIn('sub_jks.kode_area', $user->area_code);
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $uniqueTargets->whereIn('sub_jks.kode_region', $user->region_code);
+            } else {
+                $uniqueTargets->whereRaw('1 = 0');
+            }
         }
 
         if ($this->appliedStartDate && $this->appliedEndDate) {
@@ -325,8 +377,16 @@ class Index extends Component
             ->orderBy('jks.nama_area')
             ->orderBy('jks.nama_team');
 
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereIn('jks.kode_region', (array) $user->region_code);
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $query->where('jks.kode_team', $user->supervisor_code);
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $query->whereIn('jks.kode_area', $user->area_code);
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $query->whereIn('jks.kode_region', $user->region_code);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
         }
 
         if ($this->appliedStartDate && $this->appliedEndDate) {

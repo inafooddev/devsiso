@@ -203,11 +203,19 @@ class UserManagement extends Component
      */
     private function loadAvailableSupervisors()
     {
-        $query = MasterSupervisor::orderBy('supervisor_name')
-            ->where('supervisor_code', '!=', 'HOINA');
+        $query = \Illuminate\Support\Facades\DB::table('team_elite_code_mappings as tecm')
+            ->leftJoin('fsalesman as f', 'tecm.team_elite_code', '=', 'f.SLSNO')
+            ->where('tecm.level', 'supervisor')
+            ->select(
+                'tecm.region_code',
+                'tecm.area_code',
+                'tecm.team_elite_code as supervisor_code',
+                'f.SLSNAME as supervisor_name'
+            )
+            ->orderBy('supervisor_name');
 
         if (!empty($this->filterAreaForSpv)) {
-            $query->where('area_code', $this->filterAreaForSpv);
+            $query->where('tecm.area_code', $this->filterAreaForSpv);
         }
 
         return $query->get();
@@ -340,7 +348,12 @@ class UserManagement extends Component
 
         // Validasi tambahan per level
         if ($this->accessLevel === 'supervisor') {
-            $rules['supervisor_code'] = 'required|exists:master_supervisors,supervisor_code';
+            $rules['supervisor_code'] = [
+                'required',
+                Rule::exists('team_elite_code_mappings', 'team_elite_code')->where(function ($query) {
+                    return $query->where('level', 'supervisor');
+                }),
+            ];
         }
 
         $this->validate($rules);

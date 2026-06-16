@@ -32,8 +32,26 @@ class Index extends Component
             ->select('region_code', 'region_name');
             
         $user = auth()->user();
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $regionQuery->whereIn('region_code', (array) $user->region_code);
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $regionQuery->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('team_elite_code_mappings as tecm')
+                        ->whereColumn('tecm.region_code', 'master_regions.region_code')
+                        ->where('tecm.team_elite_code', $user->supervisor_code);
+                });
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $regionQuery->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('team_elite_code_mappings as tecm')
+                        ->whereColumn('tecm.region_code', 'master_regions.region_code')
+                        ->whereIn('tecm.area_code', $user->area_code);
+                });
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $regionQuery->whereIn('region_code', $user->region_code);
+            } else {
+                $regionQuery->whereRaw('1 = 0');
+            }
         }
         
         $regions = $regionQuery->get();
@@ -59,8 +77,16 @@ class Index extends Component
             ]);
 
         $user = auth()->user();
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereIn('t.region_code', (array) $user->region_code);
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $query->where('t.team_elite_code', $user->supervisor_code);
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $query->whereIn('t.area_code', $user->area_code);
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $query->whereIn('t.region_code', $user->region_code);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
         }
 
         if ($this->filterRegion) {
@@ -84,8 +110,26 @@ class Index extends Component
 
         $regionsQuery = DB::table('master_regions')
             ->select('region_code', 'region_name');
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $regionsQuery->whereIn('region_code', (array) $user->region_code);
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $regionsQuery->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('team_elite_code_mappings as tecm')
+                        ->whereColumn('tecm.region_code', 'master_regions.region_code')
+                        ->where('tecm.team_elite_code', $user->supervisor_code);
+                });
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $regionsQuery->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('team_elite_code_mappings as tecm')
+                        ->whereColumn('tecm.region_code', 'master_regions.region_code')
+                        ->whereIn('tecm.area_code', $user->area_code);
+                });
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $regionsQuery->whereIn('region_code', $user->region_code);
+            } else {
+                $regionsQuery->whereRaw('1 = 0');
+            }
         }
         $regions = $regionsQuery->orderBy('region_name')->get();
 
@@ -192,7 +236,7 @@ class Index extends Component
         $this->selectedTeamName = $team ? $team->SLSNAME : $kodeTeam;
 
         // Fetch SISO
-        $this->storeDetailsSiso = DB::table('jks_team_elite as j')
+        $storeDetailsSisoQuery = DB::table('jks_team_elite as j')
             ->select(
                 'j.custno', 
                 'j.custname', 
@@ -200,14 +244,38 @@ class Index extends Component
                 'j.addres'
             )
             ->where('j.kode_team', $kodeTeam)
-            ->where('j.tanggal', $date)
-            ->orderBy('j.custname', 'asc')
+            ->where('j.tanggal', $date);
+
+        $user = auth()->user();
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $storeDetailsSisoQuery->where('j.kode_team', $user->supervisor_code);
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $storeDetailsSisoQuery->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('team_elite_code_mappings as tecm')
+                        ->whereColumn('tecm.team_elite_code', 'j.kode_team')
+                        ->whereIn('tecm.area_code', $user->area_code);
+                });
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $storeDetailsSisoQuery->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('team_elite_code_mappings as tecm')
+                        ->whereColumn('tecm.team_elite_code', 'j.kode_team')
+                        ->whereIn('tecm.region_code', $user->region_code);
+                });
+            } else {
+                $storeDetailsSisoQuery->whereRaw('1 = 0');
+            }
+        }
+
+        $this->storeDetailsSiso = $storeDetailsSisoQuery->orderBy('j.custname', 'asc')
             ->distinct()
             ->get()
             ->toArray();
 
         // Fetch ESKA
-        $this->storeDetailsEska = DB::table('rpt_visit_an_h as r')
+        $storeDetailsEskaQuery = DB::table('rpt_visit_an_h as r')
             ->select(
                 'r.CUSTNO as custno',
                 'r.CUSTNAME as custname',
@@ -218,10 +286,31 @@ class Index extends Component
             ->where('r.FLAG_PJP', 'R')
             ->where('r.CUSTNO', 'not like', 'D202%')
             ->where('r.MUID', $kodeTeam)
-            ->whereRaw('r."TANGGAL"::date = ?', [$date])
-            ->distinct()
-            ->get()
-            ->toArray();
+            ->whereRaw('r."TANGGAL"::date = ?', [$date]);
+
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $storeDetailsEskaQuery->where('r.MUID', $user->supervisor_code);
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $storeDetailsEskaQuery->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('team_elite_code_mappings as tecm')
+                        ->whereColumn('tecm.team_elite_code', 'r.MUID')
+                        ->whereIn('tecm.area_code', $user->area_code);
+                });
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $storeDetailsEskaQuery->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('team_elite_code_mappings as tecm')
+                        ->whereColumn('tecm.team_elite_code', 'r.MUID')
+                        ->whereIn('tecm.region_code', $user->region_code);
+                });
+            } else {
+                $storeDetailsEskaQuery->whereRaw('1 = 0');
+            }
+        }
+
+        $this->storeDetailsEska = $storeDetailsEskaQuery->distinct()->get()->toArray();
 
         $this->sisoCustnos = collect($this->storeDetailsSiso)->pluck('custno')->toArray();
         $this->eskaCustnos = collect($this->storeDetailsEska)->pluck('custno')->toArray();

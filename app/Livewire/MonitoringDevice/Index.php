@@ -7,10 +7,25 @@ use Livewire\WithPagination;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'monitoring-device.index';
+
+    /**
+     * Helper to filter Query based on user region access.
+     */
+    private function applyRegionAccess($query, $column = 'region_code')
+    {
+        $user = auth()->user();
+        if (!$user->hasRole('admin') && !empty($user->region_code)) {
+            $query->whereIn($column, $user->region_code);
+        }
+        return $query;
+    }
 
     public $search = '';
     public $start_month;
@@ -22,6 +37,8 @@ class Index extends Component
 
     public function exportExcel()
     {
+        $this->authorizeAction('can_export');
+
         $filters = [
             'search' => $this->search,
             'filter_region' => $this->filter_region,
@@ -108,6 +125,7 @@ class Index extends Component
 
     public function delete($id)
     {
+        $this->authorizeAction('can_delete');
         \DB::table('monitoring_device_se')->where('id', $id)->delete();
         session()->flash('message', 'Data monitoring berhasil dihapus.');
     }
@@ -142,7 +160,7 @@ class Index extends Component
 
     public function getFormDistributors()
     {
-        return \DB::table('fsalesman as f')
+        $query = \DB::table('fsalesman as f')
             ->select('f.KD as distributor_code', 'md.distributor_name')
             ->leftJoin('distributor_implementasi_eskalink as die', 'die.eskalink_code', '=', 'f.KD')
             ->leftJoin('master_distributors as md', 'die.distributor_code', '=', 'md.distributor_code')
@@ -150,9 +168,11 @@ class Index extends Component
             ->where('f.FLAG_ACTIVE', 'Y')
             ->where('f.FLAG_OFFICE', 'N')
             ->where('md.is_active', true)
-            ->distinct()
-            ->orderBy('md.distributor_name')
-            ->get();
+            ->distinct();
+
+        $this->applyRegionAccess($query, 'md.region_code');
+
+        return $query->orderBy('md.distributor_name')->get();
     }
 
     public function getFormSales()
@@ -215,9 +235,11 @@ class Index extends Component
         }
 
         if ($this->editId) {
+            $this->authorizeAction('can_edit');
             \DB::table('monitoring_device_se')->where('id', $this->editId)->update($data);
             session()->flash('message', 'Data monitoring berhasil diubah.');
         } else {
+            $this->authorizeAction('can_add');
             $data['created_at'] = now();
             \DB::table('monitoring_device_se')->insert($data);
             session()->flash('message', 'Data monitoring berhasil ditambahkan.');
@@ -232,6 +254,13 @@ class Index extends Component
         // Default: Dari Januari tahun ini sampai bulan ini
         $this->start_month = \Carbon\Carbon::now()->startOfYear()->format('Y-m');
         $this->end_month = \Carbon\Carbon::now()->format('Y-m');
+
+        // Auto-select jika user bukan admin dan hanya memiliki akses ke 1 region
+        $regions = $this->getFilterRegions();
+        if (!auth()->user()->hasRole('admin') && count($regions) === 1) {
+            $this->filter_region = $regions->first()->region_code;
+            $this->updatedFilterRegion($this->filter_region);
+        }
     }
 
     public function updatedFilterRegion($value)
@@ -260,18 +289,28 @@ class Index extends Component
         $this->filter_distributor = '';
         $this->start_month = \Carbon\Carbon::now()->startOfYear()->format('Y-m');
         $this->end_month = \Carbon\Carbon::now()->format('Y-m');
+
+        // Auto-select jika user bukan admin dan hanya memiliki akses ke 1 region
+        $regions = $this->getFilterRegions();
+        if (!auth()->user()->hasRole('admin') && count($regions) === 1) {
+            $this->filter_region = $regions->first()->region_code;
+            $this->updatedFilterRegion($this->filter_region);
+        }
+
         $this->resetPage();
     }
 
     public function getFilterRegions()
     {
-        return \DB::table('master_distributors')
+        $query = \DB::table('master_distributors')
             ->select('region_code', 'region_name')
             ->where('is_active', true)
             ->whereNotNull('region_code')
-            ->distinct()
-            ->orderBy('region_name')
-            ->get();
+            ->distinct();
+
+        $this->applyRegionAccess($query, 'region_code');
+
+        return $query->orderBy('region_name')->get();
     }
 
     public function getFilterAreas()
@@ -281,6 +320,8 @@ class Index extends Component
             ->where('is_active', true)
             ->whereNotNull('area_code')
             ->distinct();
+
+        $this->applyRegionAccess($query, 'region_code');
 
         if (!empty($this->filter_region)) {
             $query->where('region_code', $this->filter_region);
@@ -295,6 +336,8 @@ class Index extends Component
             ->where('is_active', true)
             ->whereNotNull('distributor_code')
             ->distinct();
+
+        $this->applyRegionAccess($query, 'region_code');
 
         if (!empty($this->filter_region)) {
             $query->where('region_code', $this->filter_region);
@@ -326,6 +369,8 @@ class Index extends Component
             ->where('f.FLAG_ACTIVE', 'Y')
             ->where('f.FLAG_OFFICE', 'N')
             ->where('md.is_active', true);
+
+        $this->applyRegionAccess($masterQuery, 'md.region_code');
 
         if (!empty($this->search)) {
             $masterQuery->where(function ($q) {

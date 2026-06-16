@@ -9,11 +9,15 @@ use App\Imports\SellingOutEskalinkImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 use Livewire\WithFileUploads;
+use App\Traits\EnforcesMenuPermissions;
 
 class SalesComparison extends Component
 {
     use WithPagination;
     use WithFileUploads;
+    use EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'dashboard.sales-comparison';
 
     protected $paginationTheme = 'tailwind';
 
@@ -144,11 +148,7 @@ class SalesComparison extends Component
 
     public function import()
     {
-        $user = auth()->user();
-        if (!$user->hasRole('admin|user')) {
-            session()->flash('error', 'Hanya Administrator yang diizinkan untuk mengimpor data Selling Out.');
-            return;
-        }
+        $this->authorizeAction('can_import');
 
         $this->validate([
             'importFile' => 'file|max:102400|mimes:xlsx,xls',

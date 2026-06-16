@@ -44,15 +44,78 @@ class Index extends Component
         $this->startDate = date('Y-m-01');
         $this->endDate = date('Y-m-t');
 
-        // Auto-select region if user only has 1 region
         $user = auth()->user();
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $regions = DB::table('master_regions')
-                ->select('region_code')
-                ->whereIn('region_code', (array) $user->region_code)
-                ->get();
+        if (!$user->hasRole('admin')) {
+            // Auto-set Region
+            $regionQuery = DB::table('master_distributors')->select('region_code')->whereNotNull('region_code')->distinct();
+            if (!empty($user->supervisor_code)) {
+                $sisoCodes = \Illuminate\Support\Facades\DB::table('team_elite_code_mappings')
+                    ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$user->supervisor_code])
+                    ->pluck('siso_code')
+                    ->toArray();
+                if (!empty($sisoCodes)) {
+                    $regionQuery->whereIn('supervisor_code', $sisoCodes);
+                } else {
+                    $regionQuery->whereRaw('1 = 0');
+                }
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $regionQuery->whereIn('area_code', $user->area_code);
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $regionQuery->whereIn('region_code', $user->region_code);
+            } else {
+                $regionQuery->whereRaw('1 = 0');
+            }
+            
+            $regions = $regionQuery->get();
             if ($regions->count() === 1) {
                 $this->filterRegion = $regions->first()->region_code;
+                
+                // Auto-set Area
+                $areaQuery = DB::table('master_distributors')->select('area_code')->whereNotNull('area_code')->where('region_code', $this->filterRegion)->distinct();
+                if (!empty($user->supervisor_code)) {
+                    if (!empty($sisoCodes)) {
+                        $areaQuery->whereIn('supervisor_code', $sisoCodes);
+                    } else {
+                        $areaQuery->whereRaw('1 = 0');
+                    }
+                } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                    $areaQuery->whereIn('area_code', $user->area_code);
+                } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                    $areaQuery->whereIn('region_code', $user->region_code);
+                } else {
+                    $areaQuery->whereRaw('1 = 0');
+                }
+
+                $areas = $areaQuery->get();
+                if ($areas->count() === 1) {
+                    $this->filterArea = $areas->first()->area_code;
+                    
+                    // Auto-set Supervisor
+                    $spvQuery = DB::table('master_distributors as md')
+                        ->join('team_elite_code_mappings as t', 't.siso_code', '=', 'md.supervisor_code')
+                        ->select('t.team_elite_code as supervisor_code')
+                        ->where('md.area_code', $this->filterArea)
+                        ->distinct();
+                    
+                    if (!empty($user->supervisor_code)) {
+                        if (!empty($sisoCodes)) {
+                            $spvQuery->whereIn('md.supervisor_code', $sisoCodes);
+                        } else {
+                            $spvQuery->whereRaw('1 = 0');
+                        }
+                    } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                        $spvQuery->whereIn('md.area_code', $user->area_code);
+                    } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                        $spvQuery->whereIn('md.region_code', $user->region_code);
+                    } else {
+                        $spvQuery->whereRaw('1 = 0');
+                    }
+
+                    $spvs = $spvQuery->get();
+                    if ($spvs->count() === 1) {
+                        $this->filterSupervisor = $spvs->first()->supervisor_code;
+                    }
+                }
             }
         }
     }
@@ -102,11 +165,28 @@ class Index extends Component
         $this->reset(['filterRegion', 'filterArea', 'filterSupervisor', 'filterPilar', 'filterStatusVisit']);
 
         $user = auth()->user();
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $regions = DB::table('master_regions')
-                ->select('region_code')
-                ->whereIn('region_code', (array) $user->region_code)
-                ->get();
+        if ($user && !$user->hasRole('admin')) {
+            $regions = DB::table('master_regions')->select('region_code');
+            if (!empty($user->supervisor_code)) {
+                $regions->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('team_elite_code_mappings as tecm')
+                        ->whereColumn('tecm.region_code', 'master_regions.region_code')
+                        ->where('tecm.team_elite_code', $user->supervisor_code);
+                });
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $regions->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('team_elite_code_mappings as tecm')
+                        ->whereColumn('tecm.region_code', 'master_regions.region_code')
+                        ->whereIn('tecm.area_code', $user->area_code);
+                });
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $regions->whereIn('region_code', $user->region_code);
+            } else {
+                $regions->whereRaw('1 = 0');
+            }
+            $regions = $regions->get();
             if ($regions->count() === 1) {
                 $this->filterRegion = $regions->first()->region_code;
             }
@@ -126,12 +206,38 @@ class Index extends Component
         $whereClauses = [];
 
         // Permissions check
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $regionCodes = (array) $user->region_code;
-            $placeholders = implode(',', array_fill(0, count($regionCodes), '?'));
-            $whereClauses[] = "md.region_code IN ($placeholders)";
-            foreach ($regionCodes as $code) {
-                $bindings[] = $code;
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $sisoCodes = \Illuminate\Support\Facades\DB::table('team_elite_code_mappings')
+                    ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$user->supervisor_code])
+                    ->pluck('siso_code')
+                    ->toArray();
+                
+                if (!empty($sisoCodes)) {
+                    $placeholders = implode(',', array_fill(0, count($sisoCodes), '?'));
+                    $whereClauses[] = "md.supervisor_code IN ($placeholders)";
+                    foreach ($sisoCodes as $code) {
+                        $bindings[] = trim($code);
+                    }
+                } else {
+                    $whereClauses[] = "1 = 0"; // No mapping found, return empty
+                }
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $areaCodes = $user->area_code;
+                $placeholders = implode(',', array_fill(0, count($areaCodes), '?'));
+                $whereClauses[] = "md.area_code IN ($placeholders)";
+                foreach ($areaCodes as $code) {
+                    $bindings[] = $code;
+                }
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $regionCodes = $user->region_code;
+                $placeholders = implode(',', array_fill(0, count($regionCodes), '?'));
+                $whereClauses[] = "md.region_code IN ($placeholders)";
+                foreach ($regionCodes as $code) {
+                    $bindings[] = $code;
+                }
+            } else {
+                $whereClauses[] = "1 = 0";
             }
         }
 
@@ -149,8 +255,20 @@ class Index extends Component
 
         // Supervisor Filter
         if ($this->filterSupervisor) {
-            $whereClauses[] = "t.team_elite_code = ?";
-            $bindings[] = $this->filterSupervisor;
+            $sisoCodes = \Illuminate\Support\Facades\DB::table('team_elite_code_mappings')
+                ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$this->filterSupervisor])
+                ->pluck('siso_code')
+                ->toArray();
+            
+            if (!empty($sisoCodes)) {
+                $placeholders = implode(',', array_fill(0, count($sisoCodes), '?'));
+                $whereClauses[] = "md.supervisor_code IN ($placeholders)";
+                foreach ($sisoCodes as $code) {
+                    $bindings[] = trim($code);
+                }
+            } else {
+                $whereClauses[] = "1 = 0";
+            }
         }
 
         // Search Filter
@@ -250,10 +368,10 @@ class Index extends Component
                 ON l.distributor_code = md.distributor_code
 
             LEFT JOIN team_elite_code_mappings t
-                ON t.siso_code = md.supervisor_code
+                ON TRIM(t.siso_code) = TRIM(md.supervisor_code)
 
             LEFT JOIN fsalesman f
-                ON t.team_elite_code = f.\"SLSNO\"
+                ON TRIM(t.team_elite_code) = TRIM(f.\"SLSNO\")
 
             LEFT JOIN visit_data v
                 ON l.customer_code_prc = v.custno
@@ -276,6 +394,8 @@ class Index extends Component
                 l.pilar
             {$havingSql}
         ";
+
+        \Illuminate\Support\Facades\Log::info("MONITORING SQL: " . $rawSql, $bindings);
 
         return [$rawSql, $bindings];
     }
@@ -341,8 +461,25 @@ class Index extends Component
             ->select('region_code', 'region_name')
             ->whereNotNull('region_code')
             ->distinct();
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $regionQuery->whereIn('region_code', (array) $user->region_code);
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $sisoCodes = \Illuminate\Support\Facades\DB::table('team_elite_code_mappings')
+                    ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$user->supervisor_code])
+                    ->pluck('siso_code')
+                    ->toArray();
+
+                if (!empty($sisoCodes)) {
+                    $regionQuery->whereIn('supervisor_code', $sisoCodes);
+                } else {
+                    $regionQuery->whereRaw('1 = 0');
+                }
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $regionQuery->whereIn('area_code', $user->area_code);
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $regionQuery->whereIn('region_code', $user->region_code);
+            } else {
+                $regionQuery->whereRaw('1 = 0');
+            }
         }
         $regions = $regionQuery->orderBy('region_name')->get();
 
@@ -354,8 +491,25 @@ class Index extends Component
                 ->where('region_code', $this->filterRegion)
                 ->whereNotNull('area_code')
                 ->distinct();
-            if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-                $areaQuery->whereIn('region_code', (array) $user->region_code);
+            if ($user && !$user->hasRole('admin')) {
+                if (!empty($user->supervisor_code)) {
+                    $sisoCodes = \Illuminate\Support\Facades\DB::table('team_elite_code_mappings')
+                        ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$user->supervisor_code])
+                        ->pluck('siso_code')
+                        ->toArray();
+
+                    if (!empty($sisoCodes)) {
+                        $areaQuery->whereIn('supervisor_code', $sisoCodes);
+                    } else {
+                        $areaQuery->whereRaw('1 = 0');
+                    }
+                } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                    $areaQuery->whereIn('area_code', $user->area_code);
+                } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                    $areaQuery->whereIn('region_code', $user->region_code);
+                } else {
+                    $areaQuery->whereRaw('1 = 0');
+                }
             }
             $areas = $areaQuery->orderBy('area_name')->get();
         }
@@ -369,8 +523,25 @@ class Index extends Component
                 ->select('t.team_elite_code as supervisor_code', 'f.SLSNAME as supervisor_name')
                 ->where('md.area_code', $this->filterArea)
                 ->distinct();
-            if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-                $spvQuery->whereIn('md.region_code', (array) $user->region_code);
+            if ($user && !$user->hasRole('admin')) {
+                if (!empty($user->supervisor_code)) {
+                    $sisoCodes = \Illuminate\Support\Facades\DB::table('team_elite_code_mappings')
+                        ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$user->supervisor_code])
+                        ->pluck('siso_code')
+                        ->toArray();
+
+                    if (!empty($sisoCodes)) {
+                        $spvQuery->whereIn('md.supervisor_code', $sisoCodes);
+                    } else {
+                        $spvQuery->whereRaw('1 = 0');
+                    }
+                } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                    $spvQuery->whereIn('md.area_code', $user->area_code);
+                } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                    $spvQuery->whereIn('md.region_code', $user->region_code);
+                } else {
+                    $spvQuery->whereRaw('1 = 0');
+                }
             }
             $supervisors = $spvQuery->orderBy('f.SLSNAME')->get();
         }

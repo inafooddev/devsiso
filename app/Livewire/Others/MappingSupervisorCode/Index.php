@@ -9,12 +9,26 @@ use App\Models\MasterRegion;
 use App\Models\MasterArea;
 use App\Exports\MappingSupervisorCodeExport;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, EnforcesMenuPermissions;
 
     protected $paginationTheme = 'tailwind';
+    protected string $menuRoute = 'mapping-supervisor-code.index';
+
+    /**
+     * Helper to filter Query based on user region access.
+     */
+    private function applyRegionAccess($query, $column = 'region_code')
+    {
+        $user = auth()->user();
+        if (!$user->hasRole('admin') && !empty($user->region_code)) {
+            $query->whereIn($column, $user->region_code);
+        }
+        return $query;
+    }
 
     public $search = '';
     public $regionFilter = '';
@@ -47,8 +61,14 @@ class Index extends Component
 
     public function mount()
     {
-        $this->regions = MasterRegion::orderBy('region_name')->get();
-        if ($this->regionFilter) {
+        $query = MasterRegion::orderBy('region_name');
+        $this->applyRegionAccess($query, 'region_code');
+        $this->regions = $query->get();
+
+        if (!auth()->user()->hasRole('admin') && count($this->regions) === 1) {
+            $this->regionFilter = $this->regions->first()->region_code;
+            $this->updatedRegionFilter($this->regionFilter);
+        } elseif ($this->regionFilter) {
             $this->areas = MasterArea::where('region_code', $this->regionFilter)->orderBy('area_name')->get();
         }
     }
@@ -98,7 +118,9 @@ class Index extends Component
         $this->isEditMode = false;
         $this->mappingId = null;
 
-        $this->formRegions = MasterRegion::orderBy('region_name')->get();
+        $query = MasterRegion::orderBy('region_name');
+        $this->applyRegionAccess($query, 'region_code');
+        $this->formRegions = $query->get();
 
         $this->loadTeamElites();
         
@@ -126,7 +148,10 @@ class Index extends Component
         $this->formAreaCode = $mapping->area_code;
         $this->formLevel = $mapping->level;
         
-        $this->formRegions = MasterRegion::orderBy('region_name')->get();
+        $query = MasterRegion::orderBy('region_name');
+        $this->applyRegionAccess($query, 'region_code');
+        $this->formRegions = $query->get();
+        
         $this->formAreas = MasterArea::where('region_code', $this->formRegionCode)->orderBy('area_name')->get();
         
         $this->loadTeamElites($mapping->team_elite_code);
@@ -233,9 +258,11 @@ class Index extends Component
         ];
 
         if ($this->isEditMode && $this->mappingId) {
+            $this->authorizeAction('can_edit');
             \App\Models\TeamEliteCodeMapping::find($this->mappingId)?->update($data);
             session()->flash('message', 'Mapping berhasil diubah.');
         } else {
+            $this->authorizeAction('can_add');
             \App\Models\TeamEliteCodeMapping::create($data);
             session()->flash('message', 'Mapping berhasil ditambahkan.');
         }
@@ -249,12 +276,14 @@ class Index extends Component
 
     public function deleteMapping($id)
     {
+        $this->authorizeAction('can_delete');
         \App\Models\TeamEliteCodeMapping::find($id)?->delete();
         session()->flash('message', 'Mapping berhasil dihapus.');
     }
 
     public function export()
     {
+        $this->authorizeAction('can_export');
         return Excel::download(
             new MappingSupervisorCodeExport($this->regionFilter, $this->areaFilter, $this->levelFilter, $this->search),
             'Mapping_Supervisor_Code.xlsx'
@@ -278,6 +307,8 @@ class Index extends Component
                 'tecm.level',
                 'tecm.id'
             );
+
+        $this->applyRegionAccess($query, 'tecm.region_code');
 
         if ($this->regionFilter) {
             $query->where('tecm.region_code', $this->regionFilter);

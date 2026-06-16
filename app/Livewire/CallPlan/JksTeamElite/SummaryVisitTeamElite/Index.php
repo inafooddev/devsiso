@@ -43,8 +43,16 @@ class Index extends Component
             ->select('region_code', 'region_name')
             ->whereNotNull('region_code');
             
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $regionQuery->whereIn('region_code', (array) $user->region_code);
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $regionQuery->where('team_code', $user->supervisor_code);
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $regionQuery->whereIn('area_code', $user->area_code);
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $regionQuery->whereIn('region_code', $user->region_code);
+            } else {
+                $regionQuery->whereRaw('1 = 0');
+            }
         }
 
         $this->regions = $regionQuery->distinct()
@@ -55,14 +63,39 @@ class Index extends Component
         $query = DB::table('zv_summary_visit_team_elite')
             ->whereNotNull('level');
             
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereIn('region_code', (array) $user->region_code);
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $query->where('team_code', $user->supervisor_code);
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $query->whereIn('area_code', $user->area_code);
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $query->whereIn('region_code', $user->region_code);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
         }
 
         $this->levels = $query->distinct()
             ->orderBy('level')
             ->pluck('level')
             ->toArray();
+
+        if (count($this->regions) === 1) {
+            $this->selectedRegion = $this->regions[0]->region_code;
+            // Trigger updatedSelectedRegion manually since Livewire lifecycle doesn't trigger it on mount property change
+            $this->updatedSelectedRegion($this->selectedRegion);
+        }
+
+        if (count($this->levels) === 1) {
+            $this->selectedLevel = $this->levels[0];
+            // Trigger updatedSelectedLevel manually
+            $this->updatedSelectedLevel($this->selectedLevel);
+        }
+
+        // If we auto-selected level, check if we can auto-select team
+        if ($this->selectedLevel && count($this->teams) === 1) {
+            $this->selectedTeam = $this->teams[0]->team_code;
+        }
     }
 
     public function updatedSelectedRegion($value)
@@ -88,8 +121,16 @@ class Index extends Component
             }
                 
             $user = auth()->user();
-            if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-                $query->whereIn('region_code', (array) $user->region_code);
+            if ($user && !$user->hasRole('admin')) {
+                if (!empty($user->supervisor_code)) {
+                    $query->where('team_code', $user->supervisor_code);
+                } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                    $query->whereIn('area_code', $user->area_code);
+                } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                    $query->whereIn('region_code', $user->region_code);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
             }
 
             $this->teams = $query->distinct()
@@ -119,12 +160,26 @@ class Index extends Component
         $dynamicBindings = [];
 
         $user = auth()->user();
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $regionCodes = (array) $user->region_code;
-            $placeholders = implode(',', array_fill(0, count($regionCodes), '?'));
-            $visitConditions .= " AND s.region_code IN ($placeholders)";
-            foreach ($regionCodes as $code) {
-                $dynamicBindings[] = $code;
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $visitConditions .= " AND s.team_code = ?";
+                $dynamicBindings[] = $user->supervisor_code;
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $areaCodes = $user->area_code;
+                $placeholders = implode(',', array_fill(0, count($areaCodes), '?'));
+                $visitConditions .= " AND s.area_code IN ($placeholders)";
+                foreach ($areaCodes as $code) {
+                    $dynamicBindings[] = $code;
+                }
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $regionCodes = $user->region_code;
+                $placeholders = implode(',', array_fill(0, count($regionCodes), '?'));
+                $visitConditions .= " AND s.region_code IN ($placeholders)";
+                foreach ($regionCodes as $code) {
+                    $dynamicBindings[] = $code;
+                }
+            } else {
+                $visitConditions .= " AND 1 = 0";
             }
         }
 
@@ -246,12 +301,26 @@ class Index extends Component
         $dynamicBindings = [];
 
         $user = auth()->user();
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $regionCodes = (array) $user->region_code;
-            $placeholders = implode(',', array_fill(0, count($regionCodes), '?'));
-            $visitConditions .= " AND s.region_code IN ($placeholders)";
-            foreach ($regionCodes as $code) {
-                $dynamicBindings[] = $code;
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $visitConditions .= " AND s.team_code = ?";
+                $dynamicBindings[] = $user->supervisor_code;
+            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                $areaCodes = $user->area_code;
+                $placeholders = implode(',', array_fill(0, count($areaCodes), '?'));
+                $visitConditions .= " AND s.area_code IN ($placeholders)";
+                foreach ($areaCodes as $code) {
+                    $dynamicBindings[] = $code;
+                }
+            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                $regionCodes = $user->region_code;
+                $placeholders = implode(',', array_fill(0, count($regionCodes), '?'));
+                $visitConditions .= " AND s.region_code IN ($placeholders)";
+                foreach ($regionCodes as $code) {
+                    $dynamicBindings[] = $code;
+                }
+            } else {
+                $visitConditions .= " AND 1 = 0";
             }
         }
 

@@ -36,6 +36,7 @@
             </div>
             
             <div class="flex flex-wrap items-center justify-start md:justify-end gap-2 md:gap-3 w-full md:w-auto">
+                @canExport('monitoring-device.index')
                 <button wire:click="exportExcel" wire:loading.attr="disabled" wire:target="exportExcel" class="btn btn-sm btn-success text-white rounded-xl shadow-sm normal-case gap-2 border-0">
                     <span wire:loading.remove wire:target="exportExcel" class="flex items-center gap-1">
                         <x-heroicon-o-document-arrow-down class="w-4 h-4" />
@@ -43,11 +44,14 @@
                     </span>
                     <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
                 </button>
+                @endcanExport
 
+                @canAdd('monitoring-device.index')
                 <button wire:click="openCreateModal" class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm border-0">
                     <x-heroicon-s-plus class="w-4 h-4" />
                     Tambah Data
                 </button>
+                @endcanAdd
             </div>
         </div>
 
@@ -64,7 +68,7 @@
             </div>
 
             {{-- Filters --}}
-            <select wire:model.live="filter_region" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0">
+            <select wire:model.live="filter_region" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0" {{ (!auth()->user()->hasRole('admin') && count($this->getFilterRegions()) === 1) ? 'disabled' : '' }}>
                 <option value="">Semua Region</option>
                 @foreach($this->getFilterRegions() as $region)
                     <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
@@ -189,12 +193,16 @@
                                 <td class="border-r border-b border-base-200 text-center bg-base-100/50 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
                                     @if($mData && !empty($mData['id']))
                                         <div class="flex items-center justify-center gap-1">
+                                            @canEdit('monitoring-device.index')
                                             <button wire:click="edit({{ $mData['id'] }})" class="btn btn-xs btn-square btn-ghost text-warning hover:bg-warning/10 tooltip transition-colors" data-tip="Edit">
                                                 <x-heroicon-s-pencil-square class="w-4 h-4" />
                                             </button>
+                                            @endcanEdit
+                                            @canDelete('monitoring-device.index')
                                             <button onclick="if(confirm('Apakah Anda yakin ingin menghapus data ini?')) { @this.delete({{ $mData['id'] }}) }" class="btn btn-xs btn-square btn-ghost text-error hover:bg-error/10 tooltip transition-colors" data-tip="Hapus">
                                                 <x-heroicon-s-trash class="w-4 h-4" />
                                             </button>
+                                            @endcanDelete
                                         </div>
                                     @else
                                         <span class="text-base-content/30 italic text-[10px]">-</span>

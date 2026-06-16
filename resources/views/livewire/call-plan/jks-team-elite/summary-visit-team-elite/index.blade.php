@@ -197,21 +197,21 @@
                 <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Ringkasan kunjungan JKS Team Elite</p>
             </div>
             <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
-                <select wire:model.live="selectedRegion" class="select select-sm select-bordered min-w-[150px]">
-                    <option value="">Semua Region</option>
+                <select wire:model.live="selectedRegion" class="select select-sm select-bordered min-w-[150px]" @if(count($regions) <= 1) disabled @endif>
+                    @if(count($regions) > 1) <option value="">Semua Region</option> @endif
                     @foreach($regions as $region)
                         <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
                     @endforeach
                 </select>
-                <select wire:model.live="selectedLevel" class="select select-sm select-bordered min-w-[150px]">
-                    <option value="">Semua Level</option>
+                <select wire:model.live="selectedLevel" class="select select-sm select-bordered min-w-[150px]" @if(count($levels) <= 1) disabled @endif>
+                    @if(count($levels) > 1) <option value="">Semua Level</option> @endif
                     @foreach($levels as $level)
                         <option value="{{ $level }}">{{ ucfirst($level) }}</option>
                     @endforeach
                 </select>
                 @if($currentTab === 'detail')
-                <select wire:model.live="selectedTeam" class="select select-sm select-bordered min-w-[150px]" @if(empty($teams)) disabled @endif>
-                    <option value="" disabled>Pilih Team...</option>
+                <select wire:model.live="selectedTeam" class="select select-sm select-bordered min-w-[150px]" @if(empty($teams) || count($teams) <= 1) disabled @endif>
+                    @if(count($teams) > 1 || count($teams) == 0) <option value="" disabled>Pilih Team...</option> @endif
                     @foreach($teams as $team)
                         <option value="{{ $team->team_code }}">{{ $team->team_name }}</option>
                     @endforeach

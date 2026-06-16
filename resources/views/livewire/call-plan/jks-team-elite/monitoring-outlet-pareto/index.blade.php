@@ -354,8 +354,8 @@
             <!-- Region Select -->
             <div class="form-control w-full">
                 <label class="label"><span class="label-text font-semibold text-xs">Region</span></label>
-                <select wire:model.live="filterRegion" class="select select-sm select-bordered w-full">
-                    <option value="">-- Semua Region --</option>
+                <select wire:model.live="filterRegion" class="select select-sm select-bordered w-full" @if(count($regions) <= 1) disabled @endif>
+                    @if(count($regions) > 1) <option value="">-- Semua Region --</option> @endif
                     @foreach($regions as $r)
                         <option value="{{ $r->region_code }}">{{ $r->region_name }}</option>
                     @endforeach
@@ -365,8 +365,8 @@
             <!-- Area Select -->
             <div class="form-control w-full">
                 <label class="label"><span class="label-text font-semibold text-xs">Area</span></label>
-                <select wire:model.live="filterArea" class="select select-sm select-bordered w-full" @if(!$filterRegion) disabled @endif>
-                    <option value="">-- Semua Area --</option>
+                <select wire:model.live="filterArea" class="select select-sm select-bordered w-full" @if(!$filterRegion || count($areas) <= 1) disabled @endif>
+                    @if(count($areas) > 1 || count($areas) == 0) <option value="">-- Semua Area --</option> @endif
                     @foreach($areas as $a)
                         <option value="{{ $a->area_code }}">{{ $a->area_name }}</option>
                     @endforeach
@@ -376,8 +376,8 @@
             <!-- Supervisor Select -->
             <div class="form-control w-full">
                 <label class="label"><span class="label-text font-semibold text-xs">Supervisor</span></label>
-                <select wire:model.live="filterSupervisor" class="select select-sm select-bordered w-full" @if(!$filterArea) disabled @endif>
-                    <option value="">-- Semua Supervisor --</option>
+                <select wire:model.live="filterSupervisor" class="select select-sm select-bordered w-full" @if(!$filterArea || count($supervisors) <= 1) disabled @endif>
+                    @if(count($supervisors) > 1 || count($supervisors) == 0) <option value="">-- Semua Supervisor --</option> @endif
                     @foreach($supervisors as $s)
                         <option value="{{ $s->supervisor_code }}">{{ $s->supervisor_name }}</option>
                     @endforeach

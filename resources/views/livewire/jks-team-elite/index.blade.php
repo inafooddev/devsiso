@@ -205,7 +205,7 @@
                     
                     {{-- Filter Team --}}
                     <div class="relative w-full sm:w-48" x-data="{ open: false }" @click.outside="open = false">
-                        <button type="button" @click="open = !open" class="select select-sm select-bordered w-full rounded-xl bg-base-100 border-base-300 flex items-center justify-between px-3 text-left">
+                        <button type="button" @click="open = !open" class="select select-sm select-bordered w-full rounded-xl bg-base-100 border-base-300 flex items-center justify-between px-3 text-left" @if(count($teams) <= 1) disabled @endif>
                             <span class="truncate text-base-content/70">
                                 @if(count($filterTeam) === 0)
                                     Pilih Team...

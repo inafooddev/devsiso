@@ -105,34 +105,57 @@ class Index extends Component
             return $query;
         }
 
+        $isJksQuery = str_contains($distributorCodeColumn, 'jks_team_elite.');
+
         // Level Supervisor
         if (!empty($user->supervisor_code)) {
-            return $query->whereExists(function ($sub) use ($user, $distributorCodeColumn) {
-                $sub->selectRaw('1')
-                    ->from('master_distributors as md')
-                    ->whereColumn('md.distributor_code', $distributorCodeColumn)
-                    ->where('md.supervisor_code', $user->supervisor_code);
-            });
+            if ($isJksQuery) {
+                return $query->where('jks_team_elite.kode_team', $user->supervisor_code);
+            } else {
+                $sisoCodes = \Illuminate\Support\Facades\DB::table('team_elite_code_mappings')
+                    ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$user->supervisor_code])
+                    ->pluck('siso_code')
+                    ->toArray();
+
+                if (!empty($sisoCodes)) {
+                    return $query->whereExists(function ($sub) use ($sisoCodes, $distributorCodeColumn) {
+                        $sub->selectRaw('1')
+                            ->from('master_distributors as md_auth')
+                            ->whereColumn('md_auth.distributor_code', $distributorCodeColumn)
+                            ->whereIn('md_auth.supervisor_code', $sisoCodes);
+                    });
+                } else {
+                    return $query->whereRaw('1 = 0');
+                }
+            }
         }
 
         // Level Area (Array)
         if (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
-            return $query->whereExists(function ($sub) use ($user, $distributorCodeColumn) {
-                $sub->selectRaw('1')
-                    ->from('master_distributors as md')
-                    ->whereColumn('md.distributor_code', $distributorCodeColumn)
-                    ->whereIn('md.area_code', $user->area_code);
-            });
+            if ($isJksQuery) {
+                return $query->whereIn('jks_team_elite.kode_area', $user->area_code);
+            } else {
+                return $query->whereExists(function ($sub) use ($user, $distributorCodeColumn) {
+                    $sub->selectRaw('1')
+                        ->from('master_distributors as md_auth')
+                        ->whereColumn('md_auth.distributor_code', $distributorCodeColumn)
+                        ->whereIn('md_auth.area_code', $user->area_code);
+                });
+            }
         }
 
         // Level Region (Array)
         if (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
-            return $query->whereExists(function ($sub) use ($user, $distributorCodeColumn) {
-                $sub->selectRaw('1')
-                    ->from('master_distributors as md')
-                    ->whereColumn('md.distributor_code', $distributorCodeColumn)
-                    ->whereIn('md.region_code', $user->region_code);
-            });
+            if ($isJksQuery) {
+                return $query->whereIn('jks_team_elite.kode_region', $user->region_code);
+            } else {
+                return $query->whereExists(function ($sub) use ($user, $distributorCodeColumn) {
+                    $sub->selectRaw('1')
+                        ->from('master_distributors as md_auth')
+                        ->whereColumn('md_auth.distributor_code', $distributorCodeColumn)
+                        ->whereIn('md_auth.region_code', $user->region_code);
+                });
+            }
         }
 
         // Jika user bukan admin tapi tidak punya akses apa-apa (sup/area/region kosong)
@@ -142,11 +165,34 @@ class Index extends Component
     public function mount()
     {
         try {
-            $this->teams = DB::table('fsalesman')
-                ->select('SLSNO as kode_team', 'SLSNAME as nama_team')
-                ->where('TEAM', 'SPI')
-                ->get()
-                ->toArray();
+            $query = DB::table('team_elite_code_mappings as tecm')
+                ->select(
+                    'tecm.region_code',
+                    'tecm.area_code',
+                    'tecm.team_elite_code as kode_team',
+                    'f.SLSNAME as nama_team'
+                )
+                ->leftJoin('fsalesman as f', 'tecm.team_elite_code', '=', 'f.SLSNO');
+
+            $user = auth()->user();
+
+            if ($user && !$user->hasRole('admin')) {
+                if (!empty($user->supervisor_code)) {
+                    $query->where('tecm.team_elite_code', $user->supervisor_code);
+                } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                    $query->whereIn('tecm.area_code', $user->area_code);
+                } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                    $query->whereIn('tecm.region_code', $user->region_code);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            }
+
+            $this->teams = $query->get()->toArray();
+
+            if (count($this->teams) === 1) {
+                $this->filterTeam = [$this->teams[0]->kode_team];
+            }
         } catch (\Exception $e) {
             $this->teams = [];
         }
