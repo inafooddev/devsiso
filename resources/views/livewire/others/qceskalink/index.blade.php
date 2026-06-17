@@ -101,15 +101,20 @@
 
                 {{-- Actions Button --}}
                 <div class="flex flex-wrap items-center gap-1 md:gap-2">
+                    @canImport('qceskalink.index')
                     <button wire:click="openImportModal" class="btn btn-sm btn-info text-white rounded-xl normal-case gap-2 shadow-sm shadow-info/20">
                         <x-heroicon-s-arrow-up-tray class="w-4 h-4" />
                         <span class="hidden sm:inline">Import</span>
                     </button>
+                    @endcanImport
+                    
+                    @canExport('qceskalink.index')
                     <button wire:click="export" class="btn btn-sm btn-success text-white rounded-xl normal-case gap-2 shadow-sm shadow-success/20">
                         <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
                         <span class="hidden sm:inline">Export</span>
                         <span wire:loading wire:target="export" class="loading loading-spinner loading-xs ml-1"></span>
                     </button>
+                    @endcanExport
                 </div>
             </div>
         </div>
@@ -245,17 +250,22 @@
                                 {{-- ACTION --}}
                                 <td class="border border-base-300 text-center">
                                     <div class="flex items-center justify-center gap-1">
+                                        @canEdit('qceskalink.index')
                                         <button wire:click="openEditModal('{{ $item->distributor_code }}', '{{ addslashes($item->distributor_name) }}')" 
                                                 class="btn btn-xs btn-square btn-outline btn-primary" 
                                                 title="Edit/Isi Manual">
                                             <x-heroicon-s-pencil-square class="w-4 h-4" />
                                         </button>
+                                        @endcanEdit
+                                        
+                                        @canDelete('qceskalink.index')
                                         <button wire:click="deleteData('{{ $item->distributor_code }}')" 
                                                 onclick="return confirm('Yakin ingin menghapus semua data CORE untuk distributor ini?')"
                                                 class="btn btn-xs btn-square btn-outline btn-error" 
                                                 title="Hapus Data">
                                             <x-heroicon-s-trash class="w-4 h-4" />
                                         </button>
+                                        @endcanDelete
                                     </div>
                                 </td>
                             </tr>
