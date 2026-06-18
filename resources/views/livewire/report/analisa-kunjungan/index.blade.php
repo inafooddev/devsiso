@@ -6,13 +6,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <style>
-        /* Fix konflik CSS transition antara Tailwind/DaisyUI dan Leaflet saat zoom/pan */
-        .leaflet-container * {
-            transition-property: none !important;
-        }
-        .leaflet-zoom-anim .leaflet-zoom-animated {
-            transition-property: transform !important;
-        }
 
         #visit-map {
             height: 400px;
@@ -70,12 +63,22 @@
                     $mapPoints = [];
                     if (!empty($dataKunjungan)) {
                         foreach($dataKunjungan as $row) {
+                            $custno = strtoupper($row->custno ?? '');
+                            if (strpos($custno, 'BRI') !== false || strpos($custno, 'EVA') !== false) {
+                                continue;
+                            }
+                            
+                            if (strtoupper($row->flag_visit ?? '') !== 'Y') {
+                                continue;
+                            }
+                            
                             if (!empty($row->visit_lat) && !empty($row->visit_lon)) {
                                 $mapPoints[] = [
                                     'lat' => $row->visit_lat,
                                     'lon' => $row->visit_lon,
                                     'name' => $row->custname,
-                                    'spv' => $row->supervisor_name
+                                    'spv' => $row->supervisor_name,
+                                    'date' => $row->tanggal ?? '-'
                                 ];
                             }
                         }
@@ -337,7 +340,7 @@
                     }
                     
                     this.mapInstance.invalidateSize();
-                }, 100);
+                }, 300);
             }
          }"
          @open-map-modal.window="initMap($event.detail)">
@@ -365,12 +368,8 @@
             initMap(points) {
                 this.open = true;
 
-                if (typeof L === 'undefined') {
-                    alert('Leaflet belum termuat. Silakan refresh halaman.');
-                    return;
-                }
-
-                if (typeof L.markerClusterGroup === 'undefined') {
+                
+                if (typeof L === 'undefined' || typeof L.markerClusterGroup === 'undefined') {
                     const script = document.createElement('script');
                     script.src = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
                     script.onload = () => this.initMap(points);
@@ -431,7 +430,7 @@
 
                         if (!isNaN(lat) && !isNaN(lon)) {
                             const m = L.marker([lat, lon], {icon: blueIcon})
-                                .bindPopup(`<strong>${pt.name}</strong><br>SPV: ${pt.spv}`);
+                                .bindPopup(`<strong>${pt.name}</strong><br>Tgl: ${pt.date}<br>SPV: ${pt.spv}`);
                             this.markersLayer.addLayer(m);
                             bounds.push([lat, lon]);
                         }
@@ -445,13 +444,12 @@
                     
                     this.mapInstance.invalidateSize();
                     setTimeout(() => { if (this.mapInstance) this.mapInstance.invalidateSize(); }, 300);
-                    setTimeout(() => { if (this.mapInstance) this.mapInstance.invalidateSize(); }, 600);
                     
                     } catch (e) {
                         console.error(e);
                         alert('Terjadi kesalahan saat memuat peta: ' + e.message);
                     }
-                }, 100);
+                }, 300);
             }
          }"
          @open-all-maps-modal.window="initMap($event.detail)">

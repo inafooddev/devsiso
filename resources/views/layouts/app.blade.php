@@ -21,6 +21,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <style>
          [x-cloak] { display: none !important; }
+         /* Fix konflik CSS transition antara Tailwind/DaisyUI dan Leaflet saat zoom/pan/cluster */
+         .leaflet-container * { transition: none; }
     </style>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
