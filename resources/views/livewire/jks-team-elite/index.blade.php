@@ -276,9 +276,9 @@
                         <x-ui.action-button type="import" wire:click="openImportModal" />
                         @endcanImport
 
-                        @canEdit('jks-team-elite.index')
+                        @canAdd('jks-team-elite.index')
                         <x-ui.action-button type="add" label="Tambah" wire:click="openCreateModal" />
-                        @endcanEdit
+                        @endcanAdd
 
                         <x-ui.action-button type="default" icon="map" label="Maps" class="text-info bg-info/10 hover:bg-info hover:text-white border-0 shadow-sm" wire:click="showGlobalMap" />
 
@@ -436,8 +436,10 @@
                                             <x-ui.action-button type="default" icon="map" label="" class="btn-ghost text-info hover:bg-info/10 btn-square" title="Lihat Peta" wire:click="showMap('{{ $record->tanggal }}', '{{ $record->kode_team }}')" />
                                             @canEdit('jks-team-elite.index')
                                             <x-ui.action-button type="edit" class="btn-square" title="Edit Grup" wire:click="openEditModal('{{ $record->tanggal }}', '{{ $record->kode_team }}', '{{ $record->kode_region }}')" />
-                                            <x-ui.action-button type="delete" class="btn-square" title="Hapus Grup" wire:click="confirmDelete('{{ $record->tanggal }}', '{{ $record->kode_team }}', '{{ $record->kode_region }}')" />
                                             @endcanEdit
+                                            @canDelete('jks-team-elite.index')
+                                            <x-ui.action-button type="delete" class="btn-square" title="Hapus Grup" wire:click="confirmDelete('{{ $record->tanggal }}', '{{ $record->kode_team }}', '{{ $record->kode_region }}')" />
+                                            @endcanDelete
                                         </div>
                                     </td>
                                 </tr>
