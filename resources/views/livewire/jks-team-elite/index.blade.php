@@ -976,9 +976,14 @@
                         </div>
                         {{ $mapModalTitle }}
                     </h3>
-                    <button wire:click="$set('isMapModalOpen', false)" class="btn btn-ghost btn-sm btn-square rounded-xl hover:bg-error/10 hover:text-error transition-colors">
-                        <x-heroicon-s-x-mark class="w-5 h-5" />
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="initMap(); updateMarkers($wire.mapModalData);" class="btn btn-info btn-sm text-white rounded-xl" title="Klik jika peta tidak sejajar/blank">
+                            <x-heroicon-o-arrow-path class="w-4 h-4" /> Refresh
+                        </button>
+                        <button wire:click="$set('isMapModalOpen', false)" class="btn btn-ghost btn-sm btn-square rounded-xl hover:bg-error/10 hover:text-error transition-colors">
+                            <x-heroicon-s-x-mark class="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
                 <!-- Content -->
                 <div class="flex-1 w-full bg-base-200 relative">

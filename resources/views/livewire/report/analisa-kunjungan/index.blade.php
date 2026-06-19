@@ -285,18 +285,23 @@
             open: false,
             mapInstance: null,
             markersLayer: null,
+            mapData: null,
             initMap(data) {
+                if(data) this.mapData = data;
+                else data = this.mapData;
+                
                 this.open = true;
                 setTimeout(() => {
-                    if (!this.mapInstance) {
-                        this.mapInstance = L.map('visit-map');
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            attribution: '&copy; OpenStreetMap contributors'
-                        }).addTo(this.mapInstance);
-                        this.markersLayer = L.layerGroup().addTo(this.mapInstance);
-                    } else {
-                        this.markersLayer.clearLayers();
+                    if (this.mapInstance) {
+                        this.mapInstance.off();
+                        this.mapInstance.remove();
+                        this.mapInstance = null;
                     }
+                    this.mapInstance = L.map('visit-map');
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; OpenStreetMap contributors'
+                    }).addTo(this.mapInstance);
+                    this.markersLayer = L.layerGroup().addTo(this.mapInstance);
 
                     let mLat = parseFloat(data.masterLat);
                     let mLon = parseFloat(data.masterLon);
@@ -353,6 +358,9 @@
                     <div class="flex items-center gap-2 text-sm"><div class="w-3 h-3 bg-blue-500 rounded-full"></div> Visit Point</div>
                 </div>
                 <div class="modal-action">
+                    <button type="button" class="btn btn-info text-white" @click="initMap()" title="Klik jika peta tidak sejajar/blank">
+                        <x-heroicon-o-arrow-path class="w-4 h-4" /> Refresh Peta
+                    </button>
                     <button type="button" class="btn" @click="open = false">Tutup</button>
                 </div>
             </div>
@@ -365,7 +373,11 @@
             open: false,
             mapInstance: null,
             markersLayer: null,
+            mapPoints: null,
             initMap(points) {
+                if(points) this.mapPoints = points;
+                else points = this.mapPoints;
+                
                 this.open = true;
 
                 
@@ -389,27 +401,28 @@
 
                 setTimeout(() => {
                     try {
-                        if (!this.mapInstance) {
-                            this.mapInstance = L.map('all-visit-map');
-                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                attribution: '&copy; OpenStreetMap contributors'
-                            }).addTo(this.mapInstance);
-                            this.markersLayer = L.markerClusterGroup({
-                                maxClusterRadius: function(zoom) {
-                                    // 1 piksel layar dalam meter pada ekuator = 156543 / 2^zoom
-                                    let radius = 50 / (156543 / Math.pow(2, zoom));
-                                    // Membulatkan dan memastikan minimal 1px agar tidak crash
-                                    return Math.max(1, Math.round(radius));
-                                },
-                                spiderfyOnMaxZoom: true,
-                                showCoverageOnHover: true,
-                                zoomToBoundsOnClick: true,
-                                disableClusteringAtZoom: 18
-                            });
-                            this.mapInstance.addLayer(this.markersLayer);
-                        } else {
-                            this.markersLayer.clearLayers();
+                        if (this.mapInstance) {
+                            this.mapInstance.off();
+                            this.mapInstance.remove();
+                            this.mapInstance = null;
                         }
+                        this.mapInstance = L.map('all-visit-map');
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '&copy; OpenStreetMap contributors'
+                        }).addTo(this.mapInstance);
+                        this.markersLayer = L.markerClusterGroup({
+                            maxClusterRadius: function(zoom) {
+                                // 1 piksel layar dalam meter pada ekuator = 156543 / 2^zoom
+                                let radius = 50 / (156543 / Math.pow(2, zoom));
+                                // Membulatkan dan memastikan minimal 1px agar tidak crash
+                                return Math.max(1, Math.round(radius));
+                            },
+                            spiderfyOnMaxZoom: true,
+                            showCoverageOnHover: true,
+                            zoomToBoundsOnClick: true,
+                            disableClusteringAtZoom: 18
+                        });
+                        this.mapInstance.addLayer(this.markersLayer);
 
                     const bounds = [];
                     const iconBaseUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-';
@@ -458,6 +471,9 @@
                 <h3 class="font-bold text-lg mb-4">Sebaran Titik Visit Kunjungan</h3>
                 <div id="all-visit-map" wire:ignore class="rounded-xl border border-base-300"></div>
                 <div class="modal-action">
+                    <button type="button" class="btn btn-info text-white" @click="initMap()" title="Klik jika peta tidak sejajar/blank">
+                        <x-heroicon-o-arrow-path class="w-4 h-4" /> Refresh Peta
+                    </button>
                     <button type="button" class="btn" @click="open = false">Tutup</button>
                 </div>
             </div>
