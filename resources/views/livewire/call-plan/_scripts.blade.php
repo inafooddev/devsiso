@@ -208,6 +208,7 @@
                             <div>
                                 <h4 class="font-bold text-xs">${store.name}</h4>
                                 <div class="text-[9px] text-gray-500 font-mono">${store.code}</div>
+                                <div class="text-[9px] text-gray-500 font-mono cursor-pointer hover:text-blue-500 transition-colors" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${store.lat},${store.lng}', '_blank');" title="Buka di Google Maps">📍 ${store.lat}, ${store.lng}</div>
                             </div>
                         </div>
                         <div class="space-y-2 text-xs">

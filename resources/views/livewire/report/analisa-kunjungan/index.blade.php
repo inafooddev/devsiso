@@ -320,12 +320,12 @@
                     const blueIcon = L.icon({ ...iconProps, iconUrl: `${iconBaseUrl}blue.png` });
 
                     if (!isNaN(mLat) && !isNaN(mLon)) {
-                        L.marker([mLat, mLon], {icon: redIcon}).bindPopup('Master Point').addTo(this.markersLayer);
+                        L.marker([mLat, mLon], {icon: redIcon}).bindPopup(`<strong>Master Point</strong><br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open(\`https://www.google.com/maps/search/?api=1&query=${mLat},${mLon}\`, \`_blank\`);' title='Buka di Google Maps'>📍 ${mLat}, ${mLon}</span>`).addTo(this.markersLayer);
                         bounds.push([mLat, mLon]);
                     }
 
                     if (!isNaN(vLat) && !isNaN(vLon)) {
-                        L.marker([vLat, vLon], {icon: blueIcon}).bindPopup('Visit Point').addTo(this.markersLayer);
+                        L.marker([vLat, vLon], {icon: blueIcon}).bindPopup(`<strong>Visit Point</strong><br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open(\`https://www.google.com/maps/search/?api=1&query=${vLat},${vLon}\`, \`_blank\`);' title='Buka di Google Maps'>📍 ${vLat}, ${vLon}</span>`).addTo(this.markersLayer);
                         bounds.push([vLat, vLon]);
                     }
 
@@ -430,7 +430,7 @@
 
                         if (!isNaN(lat) && !isNaN(lon)) {
                             const m = L.marker([lat, lon], {icon: blueIcon})
-                                .bindPopup(`<strong>${pt.name}</strong><br>Tgl: ${pt.date}<br>SPV: ${pt.spv}`);
+                                .bindPopup(`<strong>${pt.name}</strong><br>Tgl: ${pt.date}<br>SPV: ${pt.spv}<br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open(\`https://www.google.com/maps/search/?api=1&query=${lat},${lon}\`, \`_blank\`);' title='Buka di Google Maps'>📍 ${lat}, ${lon}</span>`);
                             this.markersLayer.addLayer(m);
                             bounds.push([lat, lon]);
                         }

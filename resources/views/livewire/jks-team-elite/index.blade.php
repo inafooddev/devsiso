@@ -1057,7 +1057,7 @@
                             let lat = parseFloat(store.latitude);
                             let lng = parseFloat(store.longitude);
                             
-                            let popupHtml = `<b>${store.custname}</b><br>${store.customer_address || ''}<div class="mt-2 flex flex-col gap-1">`;
+                            let popupHtml = `<b>${store.custname}</b><br>${store.customer_address || ''}<br><span class="text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${lat},${lng}', '_blank');" title="Buka di Google Maps">📍 ${lat}, ${lng}</span><div class="mt-2 flex flex-col gap-1">`;
                             if (store.tgl_format) {
                                 popupHtml += `<span class="text-[11px] font-bold text-gray-700 flex items-center gap-1">🕒 ${store.tgl_format} (${store.hari}) - W${store.minggu}</span>`;
                                 popupHtml += `<span class="text-[11px] font-bold text-gray-700 flex items-center gap-1">👤 ${store.nama_team}</span>`;
@@ -1117,7 +1117,7 @@
                             let lat = parseFloat(store.latitude);
                             let lng = parseFloat(store.longitude);
                             
-                            let popupContent = `<b>${store.custname}</b><br>${store.customer_address || ''}<div class="mt-2 flex flex-col gap-1">`;
+                            let popupContent = `<b>${store.custname}</b><br>${store.customer_address || ''}<br><span class="text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${lat},${lng}', '_blank');" title="Buka di Google Maps">📍 ${lat}, ${lng}</span><div class="mt-2 flex flex-col gap-1">`;
                             if (store.pilar) {
                                 popupContent += `<span class="badge badge-outline badge-sm font-bold border-gray-300 text-gray-600 shadow-sm w-max">Pilar: ${store.pilar}</span>`;
                             }
