@@ -39,6 +39,7 @@ class Index extends Component
     // Modal & Form States
     public $isFormModalOpen = false;
     public $isEditing = false;
+    public $formError = null;
     public $isDeleteModalOpen = false;
     public $isImportModalOpen = false;
     public $isExportEskaModalOpen = false;
@@ -446,6 +447,7 @@ class Index extends Component
         $this->tanggal          = null;
         $this->selectedTeamCode = '';
         $this->selectedTeamName = '';
+        $this->formError        = null;
         
         $this->searchDistributor = '';
         $this->distributorOptions = [];
@@ -464,18 +466,19 @@ class Index extends Component
      */
     public function save()
     {
-        $this->authorizeAction('can_edit');
+        try {
+            $this->authorizeAction('can_edit');
 
-        $this->validate([
-            'tanggal' => 'required|date',
-            'selectedTeamCode' => 'required|string',
-            'selectedTeamName' => 'required|string',
-            'selectedCustomers' => 'required|array|min:1',
-        ], [
-            'tanggal.required' => 'Tanggal harus diisi.',
-            'selectedTeamCode.required' => 'Team harus dipilih.',
-            'selectedCustomers.required' => 'Minimal pilih 1 customer untuk disimpan.',
-        ]);
+            $this->validate([
+                'tanggal' => 'required|date',
+                'selectedTeamCode' => 'required|string',
+                'selectedTeamName' => 'required|string',
+                'selectedCustomers' => 'required|array|min:1',
+            ], [
+                'tanggal.required' => 'Tanggal harus diisi.',
+                'selectedTeamCode.required' => 'Team harus dipilih.',
+                'selectedCustomers.required' => 'Minimal pilih 1 customer untuk disimpan.',
+            ]);
 
         if ($this->isEditing && !empty($this->oldGroupParams)) {
             // Hapus data grup yang lama
@@ -516,8 +519,19 @@ class Index extends Component
             session()->flash('message', count($inserts) . ' Data customer berhasil disimpan.');
         }
 
-        $this->isFormModalOpen = false;
-        $this->resetForm();
+            $this->isFormModalOpen = false;
+            $this->resetForm();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == '23505') {
+                $this->formError = 'Gagal menyimpan. Jadwal JKS untuk toko tersebut sudah dibuat pada tanggal yang sama. Silakan cek kembali.';
+                return;
+            }
+            return $this->downloadExceptionLog($e, 'Menyimpan Data Grup JKS');
+        } catch (\Exception $e) {
+            return $this->downloadExceptionLog($e, 'Menyimpan Data Grup JKS');
+        }
     }
 
     /**
@@ -538,7 +552,8 @@ class Index extends Component
      */
     public function delete()
     {
-        $this->authorizeAction('can_edit');
+        try {
+            $this->authorizeAction('can_edit');
 
         if (!empty($this->dataIdToDelete)) {
             JksTeamElite::whereDate('tanggal', $this->dataIdToDelete['tanggal'])
@@ -552,8 +567,11 @@ class Index extends Component
             session()->flash('error', 'Grup data tidak ditemukan.');
         }
 
-        $this->isDeleteModalOpen = false;
-        $this->dataIdToDelete = [];
+            $this->isDeleteModalOpen = false;
+            $this->dataIdToDelete = [];
+        } catch (\Exception $e) {
+            return $this->downloadExceptionLog($e, 'Menghapus Grup Data JKS');
+        }
     }
 
     /**
@@ -561,7 +579,8 @@ class Index extends Component
      */
     public function export()
     {
-        $this->authorizeAction('can_export');
+        try {
+            $this->authorizeAction('can_export');
 
         if (empty($this->filterTeam) || empty($this->filterStartDate) || empty($this->filterEndDate)) {
             session()->flash('error', 'Pilih Team dan rentang tanggal terlebih dahulu sebelum export.');
@@ -571,10 +590,13 @@ class Index extends Component
         $teamsLog = is_array($this->filterTeam) ? implode(', ', $this->filterTeam) : $this->filterTeam;
         \App\Helpers\ActivityLogger::log('Export JKS Team Elite', "Mengekspor data JKS Team Elite. Team: {$teamsLog}");
 
-        return Excel::download(
-            new JksTeamEliteExport($this->filterTeam, $this->filterStartDate, $this->filterEndDate), 
-            'jks_team_elite_' . date('Ymd_His') . '.xlsx'
-        );
+            return Excel::download(
+                new JksTeamEliteExport($this->filterTeam, $this->filterStartDate, $this->filterEndDate), 
+                'jks_team_elite_' . date('Ymd_His') . '.xlsx'
+            );
+        } catch (\Exception $e) {
+            return $this->downloadExceptionLog($e, 'Export Excel');
+        }
     }
 
     /**
@@ -598,7 +620,8 @@ class Index extends Component
      */
     public function exportEska()
     {
-        $this->authorizeAction('can_export');
+        try {
+            $this->authorizeAction('can_export');
 
         if (empty($this->filterTeam) || empty($this->filterStartDate) || empty($this->filterEndDate)) {
             session()->flash('error', 'Pilih Team dan rentang tanggal terlebih dahulu sebelum export.');
@@ -611,10 +634,13 @@ class Index extends Component
         $teamsLog = is_array($this->filterTeam) ? implode(', ', $this->filterTeam) : $this->filterTeam;
         \App\Helpers\ActivityLogger::log('Export ESKA JKS Team Elite', "Mengekspor data ESKA JKS Team Elite dengan Flag Delete {$flagDelete}. Team: {$teamsLog}");
 
-        return Excel::download(
-            new JksTeamEliteEskaExport($this->filterTeam, $this->filterStartDate, $this->filterEndDate, $flagDelete), 
-            'jks_team_elite_eska_' . date('Ymd_His') . '.xlsx'
-        );
+            return Excel::download(
+                new JksTeamEliteEskaExport($this->filterTeam, $this->filterStartDate, $this->filterEndDate, $flagDelete), 
+                'jks_team_elite_eska_' . date('Ymd_His') . '.xlsx'
+            );
+        } catch (\Exception $e) {
+            return $this->downloadExceptionLog($e, 'Export ESKA Excel');
+        }
     }
 
     /**
@@ -1086,6 +1112,28 @@ class Index extends Component
         }, $fileName);
     }
 
+    /**
+     * Handle & Download Exception Log
+     */
+    protected function downloadExceptionLog(\Exception $e, $actionName = 'Aksi')
+    {
+        $errorText = "LAPORAN ERROR SISTEM - JKS TEAM ELITE\n";
+        $errorText .= "Aksi: " . $actionName . "\n";
+        $errorText .= "Tanggal: " . now()->format('Y-m-d H:i:s') . "\n";
+        $errorText .= str_repeat("=", 80) . "\n\n";
+        $errorText .= "Pesan Error: " . $e->getMessage() . "\n";
+        $errorText .= "File: " . $e->getFile() . " (Baris " . $e->getLine() . ")\n\n";
+        $errorText .= "Trace:\n" . $e->getTraceAsString() . "\n";
+        
+        $fileName = 'Error_Log_' . date('Ymd_His') . '.txt';
+
+        session()->flash('error', "Terjadi kesalahan saat {$actionName}. Log error otomatis didownload.");
+
+        return response()->streamDownload(function () use ($errorText) {
+            echo $errorText;
+        }, $fileName);
+    }
+
     public function render()
     {
         $records = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
@@ -1118,7 +1166,8 @@ class Index extends Component
                     'jks_team_elite.kode_team',
                     'jks_team_elite.nama_team',
                     'mc.week_month',
-                    DB::raw('COUNT(jks_team_elite.custno) as total_toko'),
+                    DB::raw("COUNT(CASE WHEN jks_team_elite.custno NOT ILIKE '%BRI%' AND jks_team_elite.custno NOT ILIKE '%EVA%' THEN 1 END) as total_toko"),
+                    DB::raw("COUNT(CASE WHEN jks_team_elite.custno ILIKE '%BRI%' OR jks_team_elite.custno ILIKE '%EVA%' THEN 1 END) as total_toko_bri_eva"),
                     DB::raw('SUM(CASE WHEN l.pilar = \'1. RWO\' THEN 1 ELSE 0 END) as total_rwo'),
                     DB::raw('SUM(CASE WHEN l.pilar = \'2. PNR\' THEN 1 ELSE 0 END) as total_pnr'),
                     DB::raw('SUM(CASE WHEN l.pilar = \'3. NGVO\' THEN 1 ELSE 0 END) as total_ngvo')

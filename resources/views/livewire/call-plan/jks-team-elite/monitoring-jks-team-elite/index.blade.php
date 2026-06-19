@@ -99,14 +99,27 @@
                         <td class="matrix-col-3 font-medium border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] truncate px-2 py-1 {{ $index % 2 === 0 ? 'bg-base-100' : 'bg-base-200' }}" title="{{ $team->kode_team }}">{{ $team->kode_team }}</td>
                         <td class="matrix-col-4 text-base-content/80 border-b border-r border-base-200 shadow-[1px_0_0_0_oklch(var(--bc)/0.05)] truncate px-2 py-1 {{ $index % 2 === 0 ? 'bg-base-100' : 'bg-base-200' }} uppercase" title="{{ $team->nama_team }}">{{ $team->nama_team }}</td>
                         @foreach($monthDates as $date => $dayData)
-                        <td class="text-center p-0 border-b border-r border-base-200 last:border-r-0 {{ $dayData['is_sunday'] ? 'bg-error/5' : '' }} {{ $dayData['is_end_of_week'] && !$loop->last ? 'matrix-week-border' : '' }}">
+                        @php
+                            $cellBg = '';
+                            $textColor = '';
+                            $tokoCount = null;
+                            $hasData = isset($jksData[$team->kode_team][$date]);
+                            
+                            if ($hasData) {
+                                $cellData = $jksData[$team->kode_team][$date];
+                                $tokoCount = $cellData['count'];
+                                $isRed = ($dayData['is_weekday'] && $tokoCount < 10) || (isset($dayData['is_saturday']) && $dayData['is_saturday'] && $tokoCount < 5);
+                                $textColor = $isRed ? 'text-error' : 'text-success';
+                                
+                                if (!$isRed && !$cellData['has_bri_eva']) {
+                                    $cellBg = 'bg-warning/30';
+                                }
+                            }
+                        @endphp
+                        <td class="text-center p-0 border-b border-r border-base-200 last:border-r-0 {{ $dayData['is_sunday'] ? 'bg-error/5' : '' }} {{ $dayData['is_end_of_week'] && !$loop->last ? 'matrix-week-border' : '' }} {{ $cellBg }}">
                             <div class="flex items-center justify-center h-full w-full min-h-[32px]">
-                                @if(isset($jksData[$team->kode_team][$date]))
-                                    @php
-                                        $tokoCount = $jksData[$team->kode_team][$date];
-                                        $isRed = ($dayData['is_weekday'] && $tokoCount < 10) || (isset($dayData['is_saturday']) && $dayData['is_saturday'] && $tokoCount < 5);
-                                    @endphp
-                                    <span wire:click="showStoreDetails('{{ $team->kode_team }}', '{{ $date }}')" class="text-[11px] font-bold cursor-pointer hover:underline {{ $isRed ? 'text-error' : 'text-success' }}">{{ $tokoCount }}</span>
+                                @if($hasData)
+                                    <span wire:click="showStoreDetails('{{ $team->kode_team }}', '{{ $date }}')" class="text-[11px] font-bold cursor-pointer hover:underline {{ $textColor }}">{{ $tokoCount }}</span>
                                 @else
                                     <span class="text-base-content/20 text-[10px] font-bold">&middot;</span>
                                 @endif

@@ -15,22 +15,32 @@
         @if (session()->has('message') || session()->has('error'))
             <div class="mb-6 mt-4">
                 @if (session()->has('message'))
-                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success mb-4">
-                        <x-heroicon-s-check-circle class="w-6 h-6" />
-                        <div>
-                            <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
-                            <div class="text-sm">{{ session('message') }}</div>
+                    <div x-data="{ show: true }" x-show="show" class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success mb-4 flex justify-between items-start">
+                        <div class="flex items-start gap-3">
+                            <x-heroicon-s-check-circle class="w-6 h-6 shrink-0 mt-0.5" />
+                            <div>
+                                <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
+                                <div class="text-sm">{{ session('message') }}</div>
+                            </div>
                         </div>
+                        <button type="button" @click="show = false" class="btn btn-ghost btn-sm btn-circle shrink-0 hover:bg-success/20">
+                            <x-heroicon-s-x-mark class="w-5 h-5" />
+                        </button>
                     </div>
                 @endif
 
                 @if (session()->has('error'))
-                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error">
-                        <x-heroicon-s-x-circle class="w-6 h-6" />
-                        <div>
-                            <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
-                            <div class="text-sm">{{ session('error') }}</div>
+                    <div x-data="{ show: true }" x-show="show" class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error flex justify-between items-start">
+                        <div class="flex items-start gap-3">
+                            <x-heroicon-s-x-circle class="w-6 h-6 shrink-0 mt-0.5" />
+                            <div>
+                                <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
+                                <div class="text-sm">{{ session('error') }}</div>
+                            </div>
                         </div>
+                        <button type="button" @click="show = false" class="btn btn-ghost btn-sm btn-circle shrink-0 hover:bg-error/20">
+                            <x-heroicon-s-x-mark class="w-5 h-5" />
+                        </button>
                     </div>
                 @endif
             </div>
@@ -399,19 +409,24 @@
                                     <td><div class="font-bold">{{ $record->nama_team }}</div></td>
                                     <td>{{ \Carbon\Carbon::parse($record->tanggal)->locale('id')->isoFormat('dddd') }}</td>
                                     <td class="text-center font-bold">W-{{ $record->week_month ?? '-' }}</td>
+                                    @php
+                                        $dayOfWeek = \Carbon\Carbon::parse($record->tanggal)->dayOfWeekIso; // 1 = Senin, ..., 6 = Sabtu
+                                        $isRed = false;
+                                        if ($dayOfWeek >= 1 && $dayOfWeek <= 5 && $record->total_toko < 10) {
+                                            $isRed = true;
+                                        } elseif ($dayOfWeek == 6 && $record->total_toko < 5) {
+                                            $isRed = true;
+                                        }
+                                        
+                                        $badgeClass = 'badge-primary badge-outline hover:bg-primary hover:text-white';
+                                        
+                                        if ($isRed) {
+                                            $badgeClass = 'badge-error badge-outline hover:bg-error hover:text-white';
+                                        } elseif ($record->total_toko_bri_eva == 0) {
+                                            $badgeClass = 'badge-primary badge-outline !bg-warning/30 hover:bg-primary hover:text-white';
+                                        }
+                                    @endphp
                                     <td class="text-center">
-                                        @php
-                                            $dayOfWeek = \Carbon\Carbon::parse($record->tanggal)->dayOfWeekIso; // 1 = Senin, ..., 6 = Sabtu
-                                            $isRed = false;
-                                            if ($dayOfWeek >= 1 && $dayOfWeek <= 5 && $record->total_toko < 10) {
-                                                $isRed = true;
-                                            } elseif ($dayOfWeek == 6 && $record->total_toko < 5) {
-                                                $isRed = true;
-                                            }
-                                            $badgeClass = $isRed 
-                                                ? 'badge-error badge-outline hover:bg-error hover:text-white' 
-                                                : 'badge-primary badge-outline hover:bg-primary hover:text-white';
-                                        @endphp
                                         <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}')" class="badge {{ $badgeClass }} font-bold cursor-pointer transition-colors">
                                             {{ $record->total_toko }}
                                         </button>
@@ -501,6 +516,12 @@
             <div class="flex-1 overflow-hidden flex flex-col md:flex-row bg-base-100">
                 {{-- Kiri: Form Input & Search --}}
                 <div class="w-full md:w-1/2 p-6 border-r border-base-300 overflow-y-auto">
+                    @if($formError)
+                        <div class="alert alert-error shadow-sm rounded-xl border-none bg-error/10 text-error mb-4 flex items-start gap-3">
+                            <x-heroicon-s-x-circle class="w-5 h-5 shrink-0 mt-0.5" />
+                            <div class="text-sm font-medium">{{ $formError }}</div>
+                        </div>
+                    @endif
                     <form id="form-jks" class="space-y-4">
                         <div class="grid grid-cols-2 gap-4">
                             {{-- Tanggal --}}

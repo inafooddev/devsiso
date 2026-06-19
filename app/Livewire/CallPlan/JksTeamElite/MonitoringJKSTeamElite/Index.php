@@ -143,7 +143,12 @@ class Index extends Component
             $month = substr($this->filterMonth, 5, 2);
 
             $jksRaw = DB::table('jks_team_elite')
-                ->select('kode_team', 'tanggal', DB::raw('count(*) as total_toko'))
+                ->select(
+                    'kode_team', 
+                    'tanggal', 
+                    DB::raw("COUNT(CASE WHEN custno NOT ILIKE '%BRI%' AND custno NOT ILIKE '%EVA%' THEN 1 END) as total_toko"),
+                    DB::raw("COUNT(CASE WHEN custno ILIKE '%BRI%' OR custno ILIKE '%EVA%' THEN 1 END) as total_toko_bri_eva")
+                )
                 ->whereYear('tanggal', $year)
                 ->whereMonth('tanggal', $month)
                 ->whereIn('kode_team', $teams->pluck('kode_team'))
@@ -151,7 +156,10 @@ class Index extends Component
                 ->get();
 
             foreach ($jksRaw as $data) {
-                $jksData[$data->kode_team][$data->tanggal] = $data->total_toko;
+                $jksData[$data->kode_team][$data->tanggal] = [
+                    'count' => $data->total_toko,
+                    'has_bri_eva' => $data->total_toko_bri_eva > 0
+                ];
             }
 
             $datesRaw = DB::table('master_calender')
