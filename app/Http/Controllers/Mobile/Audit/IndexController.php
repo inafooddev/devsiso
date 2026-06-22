@@ -49,8 +49,10 @@ class IndexController extends Controller
                 hat.foto_audit1,
                 hat.foto_audit2,
                 hat.foto_audit3,
-                l.latitude,
-                l.longitude
+                l.latitude AS master_latitude,
+                l.longitude AS master_longitude,
+                hat.latitude AS audit_latitude,
+                hat.longitude AS audit_longitude
             ")
             ->leftJoin('master_distributors as md', 'l.distributor_code', '=', 'md.distributor_code')
             ->leftJoin('reward_outlet as ro', 'l.customer_code', '=', 'ro.eskalink_code')

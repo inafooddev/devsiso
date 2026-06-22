@@ -8,6 +8,25 @@ import {
 } from '@heroicons/react/24/outline';
 import { ShieldExclamationIcon, BuildingStorefrontIcon } from '@heroicons/react/24/solid';
 
+const deg2rad = (deg) => {
+    return deg * (Math.PI / 180);
+};
+
+const getDistance = (lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+        Math.sin(dLon / 2) * Math.sin(dLon / 2)
+    ; 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
+    const d = R * c; // Distance in km
+    return d;
+};
+
 export default function Index({ outlets, auditReports = [] }) {
     // Draft states (for UI inputs only)
     const [search, setSearch] = useState('');
@@ -28,6 +47,51 @@ export default function Index({ outlets, auditReports = [] }) {
     const [isGettingLocation, setIsGettingLocation] = useState(false);
     const [toast, setToast] = useState(null);
     const [activeTab, setActiveTab] = useState('list'); // 'list' or 'report'
+    const [userLocation, setUserLocation] = useState(null);
+    const [gpsStatus, setGpsStatus] = useState('loading'); // 'loading', 'success', 'error'
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const timeoutId = setTimeout(() => {
+            if (isMounted && !userLocation) {
+                setGpsStatus('error');
+            }
+        }, 10000); // 10 seconds check
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    clearTimeout(timeoutId);
+                    if (isMounted) {
+                        setUserLocation({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude
+                        });
+                        setGpsStatus('success');
+                    }
+                },
+                (error) => {
+                    clearTimeout(timeoutId);
+                    console.warn("Could not get current position for nearest stores", error);
+                    if (isMounted) {
+                        setGpsStatus('error');
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 }
+            );
+        } else {
+            clearTimeout(timeoutId);
+            if (isMounted) {
+                setGpsStatus('error');
+            }
+        }
+
+        return () => {
+            isMounted = false;
+            clearTimeout(timeoutId);
+        };
+    }, []);
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
@@ -67,8 +131,8 @@ export default function Index({ outlets, auditReports = [] }) {
             customer_address: outlet.customer_address,
             auditor: outlet.auditor || '',
             keterangan_hasil_audit: outlet.keterangan_hasil_audit || '',
-            latitude: outlet.latitude || '',
-            longitude: outlet.longitude || '',
+            latitude: outlet.audit_latitude || '',
+            longitude: outlet.audit_longitude || '',
             foto_audit1: null,
             foto_audit2: null,
             foto_audit3: null,
@@ -188,7 +252,23 @@ export default function Index({ outlets, auditReports = [] }) {
     // Heavy filtering logic only runs when APPLIED states change
     useEffect(() => {
         if (!isFiltered) {
-            setFilteredOutlets([]);
+            if (userLocation && outlets && outlets.length > 0) {
+                const sorted = [...outlets]
+                    .map(o => {
+                        const dist = getDistance(
+                            userLocation.latitude,
+                            userLocation.longitude,
+                            parseFloat(o.master_latitude),
+                            parseFloat(o.master_longitude)
+                        );
+                        return { ...o, distance: dist };
+                    })
+                    .filter(o => o.distance <= 5) // Filter radius 5km
+                    .sort((a, b) => a.distance - b.distance);
+                setFilteredOutlets(sorted);
+            } else {
+                setFilteredOutlets([]);
+            }
             return;
         }
 
@@ -209,7 +289,7 @@ export default function Index({ outlets, auditReports = [] }) {
         
         // Membatasi hasil maksimal 150 agar browser tidak freeze saat render data terlalu banyak
         setFilteredOutlets(result.slice(0, 150));
-    }, [appliedSearch, appliedRegion, appliedArea, appliedDistributor, outlets, isFiltered]);
+    }, [appliedSearch, appliedRegion, appliedArea, appliedDistributor, outlets, isFiltered, userLocation]);
 
     // Handlers
     const applyFilters = () => {
@@ -279,7 +359,7 @@ export default function Index({ outlets, auditReports = [] }) {
     };
 
     return (
-        <div className="w-full max-w-md mx-auto min-h-screen bg-slate-50 text-slate-800 flex flex-col shadow-sm border-x border-slate-100 relative">
+        <div className="w-full min-h-screen bg-slate-50 text-slate-800 flex flex-col relative">
             <Head title="Audit Toko" />
 
             {/* Header */}
@@ -325,8 +405,20 @@ export default function Index({ outlets, auditReports = [] }) {
 
             {/* Main Content */}
             {activeTab === 'list' ? (
-                <main className="flex-1 px-4 pt-4 pb-24 space-y-4 flex flex-col bg-slate-50/50">
-                    <div className="flex-1 flex flex-col gap-3">
+                <main className="flex-1 px-4 pt-4 pb-24 bg-slate-50/50">
+                    {!isFiltered && gpsStatus === 'success' && (
+                        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center gap-2.5 mb-4 text-[10px] text-indigo-700 font-bold shadow-sm">
+                            <MapPinIcon className="w-4 h-4 text-indigo-600 shrink-0" />
+                            <span>Menampilkan toko terdekat dalam radius 5 km dari lokasi Anda.</span>
+                        </div>
+                    )}
+                    {!isFiltered && gpsStatus === 'loading' && (
+                        <div className="bg-slate-100 border border-slate-200 rounded-xl p-3 flex items-center gap-2.5 mb-4 text-[10px] text-slate-600 font-bold animate-pulse shadow-sm">
+                            <div className="w-4 h-4 rounded-full border-2 border-slate-400 border-t-transparent animate-spin shrink-0"></div>
+                            <span>Mendeteksi lokasi GPS Anda untuk mencari toko dalam radius 5 km (Maksimal 10 detik)...</span>
+                        </div>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {filteredOutlets.length > 0 ? filteredOutlets.map((outlet, index) => (
                         <div key={index} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col gap-3.5">
                             <div className="flex items-start justify-between gap-3">
@@ -336,6 +428,11 @@ export default function Index({ outlets, auditReports = [] }) {
                                         <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border ${outlet.status_audit === 'Sudah' ? 'bg-emerald-50 text-emerald-600 border-emerald-100/80' : 'bg-rose-50 text-rose-600 border-rose-100/80'}`}>
                                             {outlet.status_audit === 'Sudah' ? 'Sudah Audit' : 'Belum Audit'}
                                         </span>
+                                        {outlet.distance !== undefined && outlet.distance !== Infinity && (
+                                            <span className="text-[8px] px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-100/80 font-bold">
+                                                {outlet.distance < 1 ? `${Math.round(outlet.distance * 1000)} m` : `${outlet.distance.toFixed(1)} km`}
+                                            </span>
+                                        )}
                                     </div>
                                     <h4 className="text-xs font-black text-slate-800 tracking-tight leading-snug truncate">{outlet.customer_name}</h4>
                                     
@@ -354,8 +451,8 @@ export default function Index({ outlets, auditReports = [] }) {
                             
                             {/* Action Buttons */}
                             <div className="flex items-center gap-2 mt-2 pt-3 border-t border-slate-100">
-                                {outlet.latitude && outlet.longitude && (
-                                    <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.latitude},${outlet.longitude}`} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-bold uppercase tracking-wide hover:bg-emerald-100">
+                                {outlet.master_latitude && outlet.master_longitude && (
+                                    <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.master_latitude},${outlet.master_longitude}`} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-bold uppercase tracking-wide hover:bg-emerald-100">
                                         <MapIcon className="w-3.5 h-3.5" />
                                         Direction
                                     </a>
@@ -367,17 +464,51 @@ export default function Index({ outlets, auditReports = [] }) {
                             </div>
                         </div>
                     )) : (
-                        <div className="bg-white border border-slate-100 rounded-3xl py-12 px-6 text-center shadow-sm flex-1 flex flex-col items-center justify-center">
-                            <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 mb-2">
-                                {isFiltered ? <ShieldExclamationIcon className="w-8 h-8" /> : <MagnifyingGlassIcon className="w-8 h-8" />}
-                            </div>
-                            <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                                {isFiltered ? 'Tidak Ada Data' : 'Silakan Cari/Filter Data'}
-                            </h4>
-                            {!isFiltered && (
-                                <p className="text-[10px] text-slate-400 mt-2 font-medium">
-                                    Gunakan pencarian atau filter untuk memunculkan daftar audit outlet.
-                                </p>
+                        <div className="bg-white border border-slate-100 rounded-3xl py-12 px-6 text-center shadow-sm flex-1 flex flex-col items-center justify-center col-span-full">
+                            {isFiltered ? (
+                                <>
+                                    <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 mb-2">
+                                        <ShieldExclamationIcon className="w-8 h-8" />
+                                    </div>
+                                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">Tidak Ada Data</h4>
+                                    <p className="text-[10px] text-slate-400 mt-2 font-medium">
+                                        Kriteria pencarian Anda tidak cocok dengan toko mana pun.
+                                    </p>
+                                </>
+                            ) : (
+                                gpsStatus === 'loading' ? (
+                                    <>
+                                        <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 mb-2">
+                                            <div className="w-8 h-8 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
+                                        </div>
+                                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">Mencari Toko Terdekat...</h4>
+                                        <p className="text-[10px] text-slate-400 mt-2 font-medium">
+                                            Mendeteksi lokasi GPS perangkat Anda.
+                                        </p>
+                                    </>
+                                ) : gpsStatus === 'error' ? (
+                                    <>
+                                        <div className="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 mb-2">
+                                            <ShieldExclamationIcon className="w-8 h-8" />
+                                        </div>
+                                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">Gagal Mendeteksi Lokasi</h4>
+                                        <p className="text-[10px] text-slate-400 mt-2 font-medium max-w-xs mx-auto leading-relaxed">
+                                            Izin lokasi ditolak, waktu habis, atau GPS mati. <br />
+                                            <span className="text-indigo-600 font-bold">Silakan nyalakan GPS Anda</span> atau terapkan filter wilayah di pojok kanan atas secara manual.
+                                        </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 mb-2">
+                                            <MapPinIcon className="w-8 h-8" />
+                                        </div>
+                                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">Tidak Ada Toko Terdekat</h4>
+                                        <p className="text-[10px] text-slate-400 mt-2 font-medium max-w-xs mx-auto leading-relaxed">
+                                            Lokasi Anda berhasil dideteksi, namun tidak ditemukan toko dalam <span className="font-bold">radius 5 km</span>. <br />
+                                            Silakan terapkan filter wilayah di pojok kanan atas secara manual.
+                                        </p>
+                                    </>
+                                )
                             )}
                         </div>
                     )}
@@ -403,7 +534,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                     Export Excel
                                 </a>
                             </div>
-                            <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto pr-1">
                                 {auditReports.length > 0 ? auditReports.map((report, index) => (
                                     <div key={index} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col gap-2 relative overflow-hidden">
                                         <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
@@ -452,7 +583,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                         </div>
                                     </div>
                                 )) : (
-                                    <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center">
+                                    <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center col-span-full">
                                         <ShieldExclamationIcon className="w-8 h-8 text-slate-300 mb-2" />
                                         <span className="text-[11px] font-bold text-slate-500">Belum ada hasil audit</span>
                                     </div>
@@ -468,7 +599,7 @@ export default function Index({ outlets, auditReports = [] }) {
             {showFiltersSheet && (
                 <div className="fixed inset-0 z-50">
                     <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowFiltersSheet(false)}></div>
-                    <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white rounded-t-[32px] shadow-2xl flex flex-col max-h-[85%] z-50 animate-slide-up">
+                    <div className="fixed bottom-0 left-0 right-0 max-w-xl md:max-w-2xl mx-auto bg-white rounded-t-[32px] shadow-2xl flex flex-col max-h-[85%] z-50 animate-slide-up">
                         <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto my-3 shrink-0"></div>
                         <div className="px-5 pb-3 pt-2 flex items-start justify-between border-b border-slate-100 shrink-0">
                             <div>
@@ -514,7 +645,7 @@ export default function Index({ outlets, auditReports = [] }) {
             {detailOutlet && (
                 <div className="fixed inset-0 z-50">
                     <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setDetailOutlet(null)}></div>
-                    <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white rounded-t-[32px] shadow-2xl flex flex-col max-h-[85%] z-50 animate-slide-up">
+                    <div className="fixed bottom-0 left-0 right-0 max-w-xl md:max-w-2xl mx-auto bg-white rounded-t-[32px] shadow-2xl flex flex-col max-h-[85%] z-50 animate-slide-up">
                         <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto my-3 shrink-0"></div>
                         <div className="px-5 pb-3 pt-2 flex items-start justify-between border-b border-slate-100 shrink-0">
                             <div>
@@ -768,8 +899,8 @@ export default function Index({ outlets, auditReports = [] }) {
 
 
             {/* Bottom Navigation */}
-            <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-100 shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)] pb-[env(safe-area-inset-bottom)] max-w-md mx-auto">
-                <div className="flex items-center justify-around p-2">
+            <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-100 shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)] pb-[env(safe-area-inset-bottom)]">
+                <div className="flex items-center justify-around p-2 max-w-2xl mx-auto">
                     <button 
                         onClick={() => setActiveTab('list')}
                         className={`flex flex-col items-center justify-center w-full py-2 gap-1 rounded-xl transition-all ${activeTab === 'list' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
