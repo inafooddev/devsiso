@@ -1054,14 +1054,14 @@ export default function Index({ outlets, auditReports = [] }) {
                                                     <>
                                                         <img src={data.foto_audit1 ? URL.createObjectURL(data.foto_audit1) : `/storage/${detailOutlet.foto_audit1}`} alt="Audit 1" className="absolute inset-0 w-full h-full object-cover" />
                                                         <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center gap-1.5 sm:gap-3">
-                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(data.foto_audit1 ? URL.createObjectURL(data.foto_audit1) : `/storage/${detailOutlet.foto_audit1}`) }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(data.foto_audit1 ? URL.createObjectURL(data.foto_audit1) : `/storage/${detailOutlet.foto_audit1}`) }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all">
                                                                 <EyeIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                             </button>
-                                                            <button type="button" onClick={(e) => { e.preventDefault(); fileInput1.current.click() }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                            <button type="button" onClick={(e) => { e.preventDefault(); fileInput1.current.click() }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all">
                                                                 <PencilIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                             </button>
                                                             {data.foto_audit1 && (
-                                                                <button type="button" onClick={(e) => { e.preventDefault(); setData('foto_audit1', null); if(fileInput1.current) fileInput1.current.value=''; }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-rose-500/80 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                                <button type="button" onClick={(e) => { e.preventDefault(); setData('foto_audit1', null); if(fileInput1.current) fileInput1.current.value=''; }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-rose-100 flex items-center justify-center text-rose-600 shadow-sm backdrop-blur-sm transition-all">
                                                                     <TrashIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                                 </button>
                                                             )}
@@ -1082,14 +1082,14 @@ export default function Index({ outlets, auditReports = [] }) {
                                                     <>
                                                         <img src={data.foto_audit2 ? URL.createObjectURL(data.foto_audit2) : `/storage/${detailOutlet.foto_audit2}`} alt="Audit 2" className="absolute inset-0 w-full h-full object-cover" />
                                                         <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center gap-1.5 sm:gap-3">
-                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(data.foto_audit2 ? URL.createObjectURL(data.foto_audit2) : `/storage/${detailOutlet.foto_audit2}`) }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(data.foto_audit2 ? URL.createObjectURL(data.foto_audit2) : `/storage/${detailOutlet.foto_audit2}`) }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all">
                                                                 <EyeIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                             </button>
-                                                            <button type="button" onClick={(e) => { e.preventDefault(); fileInput2.current.click() }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                            <button type="button" onClick={(e) => { e.preventDefault(); fileInput2.current.click() }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all">
                                                                 <PencilIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                             </button>
                                                             {data.foto_audit2 && (
-                                                                <button type="button" onClick={(e) => { e.preventDefault(); setData('foto_audit2', null); if(fileInput2.current) fileInput2.current.value=''; }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-rose-500/80 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                                <button type="button" onClick={(e) => { e.preventDefault(); setData('foto_audit2', null); if(fileInput2.current) fileInput2.current.value=''; }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-rose-100 flex items-center justify-center text-rose-600 shadow-sm backdrop-blur-sm transition-all">
                                                                     <TrashIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                                 </button>
                                                             )}
@@ -1110,14 +1110,14 @@ export default function Index({ outlets, auditReports = [] }) {
                                                     <>
                                                         <img src={data.foto_audit3 ? URL.createObjectURL(data.foto_audit3) : `/storage/${detailOutlet.foto_audit3}`} alt="Audit 3" className="absolute inset-0 w-full h-full object-cover" />
                                                         <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center gap-1.5 sm:gap-3">
-                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(data.foto_audit3 ? URL.createObjectURL(data.foto_audit3) : `/storage/${detailOutlet.foto_audit3}`) }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(data.foto_audit3 ? URL.createObjectURL(data.foto_audit3) : `/storage/${detailOutlet.foto_audit3}`) }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all">
                                                                 <EyeIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                             </button>
-                                                            <button type="button" onClick={(e) => { e.preventDefault(); fileInput3.current.click() }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                            <button type="button" onClick={(e) => { e.preventDefault(); fileInput3.current.click() }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all">
                                                                 <PencilIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                             </button>
                                                             {data.foto_audit3 && (
-                                                                <button type="button" onClick={(e) => { e.preventDefault(); setData('foto_audit3', null); if(fileInput3.current) fileInput3.current.value=''; }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-rose-500/80 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                                <button type="button" onClick={(e) => { e.preventDefault(); setData('foto_audit3', null); if(fileInput3.current) fileInput3.current.value=''; }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-rose-100 flex items-center justify-center text-rose-600 shadow-sm backdrop-blur-sm transition-all">
                                                                     <TrashIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                                 </button>
                                                             )}
