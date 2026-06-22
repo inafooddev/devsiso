@@ -28,6 +28,44 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
 };
 
 export default function Index({ outlets, auditReports = [] }) {
+    const [sessionAuditor, setSessionAuditor] = useState(null);
+    const [isSessionLoaded, setIsSessionLoaded] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [isFormTouched, setIsFormTouched] = useState(false);
+
+    useEffect(() => {
+        const stored = localStorage.getItem('selected_auditor');
+        if (stored) {
+            setSessionAuditor(stored);
+        }
+        setIsSessionLoaded(true);
+    }, []);
+
+    const handleLoginAuditor = (name) => {
+        localStorage.setItem('selected_auditor', name);
+        setSessionAuditor(name);
+        showToast(`Selamat datang, ${name}!`, 'success');
+    };
+
+    const handleLogoutAuditor = () => {
+        setShowLogoutModal(true);
+    };
+
+    const confirmLogoutAuditor = () => {
+        localStorage.removeItem('selected_auditor');
+        setSessionAuditor(null);
+        setShowLogoutModal(false);
+        showToast('Berhasil keluar dari sesi.', 'success');
+    };
+
+    const [reportSearch, setReportSearch] = useState('');
+    const allMyReports = (auditReports || []).filter(r => r.auditor?.toLowerCase().trim() === sessionAuditor?.toLowerCase().trim());
+    const filteredReports = allMyReports.filter(r => {
+        if (!reportSearch) return true;
+        const q = reportSearch.toLowerCase();
+        return (r.customer_name?.toLowerCase().includes(q) || r.customer_code?.toLowerCase().includes(q) || r.cabang?.toLowerCase().includes(q));
+    });
+
     // Draft states (for UI inputs only)
     const [search, setSearch] = useState('');
     const [selectedRegion, setSelectedRegion] = useState('');
@@ -48,13 +86,14 @@ export default function Index({ outlets, auditReports = [] }) {
     const [toast, setToast] = useState(null);
     const [activeTab, setActiveTab] = useState('list'); // 'list' or 'report'
     const [userLocation, setUserLocation] = useState(null);
+    const userLocationRef = useRef(null);
     const [gpsStatus, setGpsStatus] = useState('loading'); // 'loading', 'success', 'error'
 
     useEffect(() => {
         let isMounted = true;
 
         const timeoutId = setTimeout(() => {
-            if (isMounted && !userLocation) {
+            if (isMounted && !userLocationRef.current) {
                 setGpsStatus('error');
             }
         }, 10000); // 10 seconds check
@@ -64,10 +103,12 @@ export default function Index({ outlets, auditReports = [] }) {
                 (position) => {
                     clearTimeout(timeoutId);
                     if (isMounted) {
-                        setUserLocation({
+                        const newLocation = {
                             latitude: position.coords.latitude,
                             longitude: position.coords.longitude
-                        });
+                        };
+                        setUserLocation(newLocation);
+                        userLocationRef.current = newLocation;
                         setGpsStatus('success');
                     }
                 },
@@ -102,7 +143,7 @@ export default function Index({ outlets, auditReports = [] }) {
     const fileInput2 = useRef(null);
     const fileInput3 = useRef(null);
 
-    const { data, setData, post, processing, errors, reset, transform } = useForm({
+    const { data, setData, post, processing, errors, reset, isDirty } = useForm({
         customer_code: '',
         distributor_code: '',
         customer_name: '',
@@ -115,9 +156,23 @@ export default function Index({ outlets, auditReports = [] }) {
         foto_audit2: null,
         foto_audit3: null,
     });
+    const [showDiscardModal, setShowDiscardModal] = useState(false);
+    const [showNoPhotoWarning, setShowNoPhotoWarning] = useState(false);
+    const [deletingReport, setDeletingReport] = useState(null);
+    const [isDeletingCode, setIsDeletingCode] = useState(null);
+    const [totalFilteredCount, setTotalFilteredCount] = useState(0);
+
+    useEffect(() => {
+        if (sessionAuditor) {
+            setData('auditor', sessionAuditor);
+        }
+    }, [sessionAuditor]);
 
     const openDetail = (outlet) => {
+        setIsFormTouched(false);
         setDetailOutlet(outlet);
+        setShowNoPhotoWarning(false);
+        setZoomedImage(null);
         
         // Reset file inputs explicitly just in case
         if (fileInput1.current) fileInput1.current.value = '';
@@ -129,7 +184,7 @@ export default function Index({ outlets, auditReports = [] }) {
             distributor_code: outlet.distributor_code,
             customer_name: outlet.customer_name,
             customer_address: outlet.customer_address,
-            auditor: outlet.auditor || '',
+            auditor: sessionAuditor || outlet.auditor || '',
             keterangan_hasil_audit: outlet.keterangan_hasil_audit || '',
             latitude: outlet.audit_latitude || '',
             longitude: outlet.audit_longitude || '',
@@ -169,9 +224,7 @@ export default function Index({ outlets, auditReports = [] }) {
         }
     };
 
-    const submitAudit = (e) => {
-        e.preventDefault();
-        
+    const proceedSubmit = () => {
         // If coordinate is already retrieved, submit directly
         if (data.latitude && data.longitude && data.latitude !== '0' && data.longitude !== '0') {
             executeSubmit(data.latitude, data.longitude);
@@ -211,14 +264,26 @@ export default function Index({ outlets, auditReports = [] }) {
         }
     };
 
-    const executeSubmit = (lat, lng) => {
-        transform((currentData) => ({
-            ...currentData,
-            latitude: lat,
-            longitude: lng,
-        }));
+    const submitAudit = (e) => {
+        e.preventDefault();
+        
+        // Warning no photo
+        const hasPhoto = data.foto_audit1 || data.foto_audit2 || data.foto_audit3 || detailOutlet?.foto_audit1 || detailOutlet?.foto_audit2 || detailOutlet?.foto_audit3;
+        if (!hasPhoto && !showNoPhotoWarning) {
+            setShowNoPhotoWarning(true);
+            return;
+        }
 
+        proceedSubmit();
+    };
+
+    const executeSubmit = (lat, lng) => {
         post('/mobile/audit', {
+            data: {
+                ...data,
+                latitude: lat,
+                longitude: lng,
+            },
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {
@@ -288,6 +353,7 @@ export default function Index({ outlets, auditReports = [] }) {
         }
         
         // Membatasi hasil maksimal 150 agar browser tidak freeze saat render data terlalu banyak
+        setTotalFilteredCount(result.length);
         setFilteredOutlets(result.slice(0, 150));
     }, [appliedSearch, appliedRegion, appliedArea, appliedDistributor, outlets, isFiltered, userLocation]);
 
@@ -320,43 +386,116 @@ export default function Index({ outlets, auditReports = [] }) {
         setAppliedSearch('');
     };
 
-    const handleDetailClick = (report) => {
+    const openDetailFromReport = (report, scrollToForm = false) => {
         const outlet = (outlets || []).find(o => o.customer_code === report.customer_code);
         if (outlet) {
             openDetail(outlet);
+            if (scrollToForm) {
+                setTimeout(() => {
+                    const formEl = document.getElementById('audit-form-container');
+                    if (formEl) {
+                        formEl.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }, 300);
+            }
         } else {
             showToast('Data toko tidak ditemukan di master list.', 'error');
         }
     };
 
-    const handleEditClick = (report) => {
-        const outlet = (outlets || []).find(o => o.customer_code === report.customer_code);
-        if (outlet) {
-            openDetail(outlet);
-            setTimeout(() => {
-                const formEl = document.getElementById('audit-form-container');
-                if (formEl) {
-                    formEl.scrollIntoView({ behavior: 'smooth' });
-                }
-            }, 300);
+    const requestDeleteReport = (report) => {
+        setDeletingReport(report);
+    };
+
+    const confirmDeleteReport = () => {
+        if (!deletingReport) return;
+        setIsDeletingCode(deletingReport.customer_code);
+        
+        router.delete(`/mobile/audit/${deletingReport.customer_code}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                showToast('Hasil audit berhasil dihapus!', 'success');
+                setDeletingReport(null);
+            },
+            onError: () => {
+                showToast('Gagal menghapus hasil audit.', 'error');
+                setDeletingReport(null);
+            },
+            onFinish: () => {
+                setIsDeletingCode(null);
+            }
+        });
+    };
+
+    const handleCloseDetail = () => {
+        if (isFormTouched) {
+            setShowDiscardModal(true);
         } else {
-            showToast('Data toko tidak ditemukan di master list.', 'error');
+            setDetailOutlet(null);
+            setShowNoPhotoWarning(false);
         }
     };
 
-    const handleDeleteClick = (report) => {
-        if (confirm(`Apakah Anda yakin ingin menghapus hasil audit untuk ${report.customer_name}?`)) {
-            router.delete(`/mobile/audit/${report.customer_code}`, {
-                preserveScroll: true,
-                onSuccess: () => {
-                    showToast('Hasil audit berhasil dihapus!', 'success');
-                },
-                onError: () => {
-                    showToast('Gagal menghapus hasil audit.', 'error');
-                }
-            });
-        }
-    };
+    if (!isSessionLoaded) {
+        return (
+            <div className="w-full min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
+            </div>
+        );
+    }
+
+    if (isSessionLoaded && !sessionAuditor) {
+        return (
+            <div className="w-full min-h-screen bg-gradient-to-br from-indigo-50 via-slate-50 to-indigo-100/50 flex items-center justify-center p-6">
+                <Head title="Pilih Auditor - Audit Toko" />
+                <div className="w-full max-w-sm bg-white/90 backdrop-blur-lg border border-slate-200/50 rounded-3xl shadow-xl p-6 flex flex-col items-center animate-fade-in">
+                    
+                    <div className="w-14 h-14 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-600 shadow-sm shadow-indigo-600/10 mb-4 animate-bounce-slow">
+                        <ShieldCheckIcon className="w-8 h-8" />
+                    </div>
+                    <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 leading-tight text-center">Sistem Audit Toko</h2>
+                    <p className="text-[10px] font-bold text-indigo-600 tracking-widest uppercase mb-6 leading-none text-center">Pilih Identitas Auditor</p>
+                    
+
+
+                    <div className="w-full flex flex-col gap-3">
+                        {[
+                            { name: 'Lisa', gradient: 'linear-gradient(135deg, #6366f1, #2563eb)' },
+                            { name: 'Juliana', gradient: 'linear-gradient(135deg, #ec4899, #e11d48)' },
+                            { name: 'Vera', gradient: 'linear-gradient(135deg, #10b981, #0d9488)' }
+                        ].map((auditor) => (
+                            <button
+                                key={auditor.name}
+                                onClick={() => handleLoginAuditor(auditor.name)}
+                                className="w-full flex items-center justify-between p-3.5 bg-white border border-slate-200 hover:border-indigo-500 hover:shadow-md active:scale-[0.98] rounded-2xl transition-all group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div 
+                                        style={{ background: auditor.gradient }} 
+                                        className="w-10 h-10 rounded-xl text-white font-black flex items-center justify-center shadow-md shadow-slate-900/10 shrink-0 text-sm"
+                                    >
+                                        {auditor.name.charAt(0)}
+                                    </div>
+                                    <div className="text-left">
+                                        <h4 className="text-xs font-black text-slate-800 tracking-tight leading-snug group-hover:text-indigo-600 transition-colors">{auditor.name}</h4>
+                                    </div>
+                                </div>
+                                <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="mt-8 text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                        PT INAFOOD © {new Date().getFullYear()}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full min-h-screen bg-slate-50 text-slate-800 flex flex-col relative">
@@ -371,9 +510,31 @@ export default function Index({ outlets, auditReports = [] }) {
                         </div>
                         <div>
                             <h1 className="text-xs font-black uppercase tracking-wider text-slate-900 leading-tight">Audit Toko</h1>
-                            <p className="text-[8px] font-bold text-indigo-600 tracking-widest uppercase leading-none">Daftar Outlet</p>
+                            <p className="text-[8px] font-bold text-indigo-600 tracking-widest uppercase leading-none">
+                                {activeTab === 'list' ? 'Daftar Outlet' : 'Hasil Laporan Audit'}
+                            </p>
                         </div>
                     </div>
+                    {sessionAuditor && (
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 px-2.5 py-1.5 rounded-xl shadow-inner">
+                                <div className="w-5 h-5 rounded-lg bg-indigo-600 text-white text-[9px] font-black flex items-center justify-center uppercase shrink-0">
+                                    {sessionAuditor.charAt(0)}
+                                </div>
+                                <span className="text-[10px] font-black text-slate-700 leading-none">{sessionAuditor}</span>
+                            </div>
+                            <button 
+                                type="button"
+                                onClick={handleLogoutAuditor}
+                                className="p-1.5 rounded-xl text-rose-500 bg-rose-50 hover:bg-rose-100 transition-colors border border-rose-100 shrink-0"
+                                title="Ganti Auditor"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                            </button>
+                        </div>
+                    )}
                 </header>
 
                 <div className="px-4 pb-3 flex items-center gap-2">
@@ -384,7 +545,7 @@ export default function Index({ outlets, auditReports = [] }) {
                         <input value={search} onChange={(e) => setSearch(e.target.value)}
                                type="text" 
                                placeholder="Cari (Tekan Enter / Go)..." 
-                               className="block w-full pl-10 pr-8 py-2 text-sm text-gray-900 border border-gray-300 rounded-xl bg-gray-50 focus:ring-indigo-500 focus:border-indigo-500 outline-none" />
+                               className="block w-full pl-10 pr-8 py-2 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:border-indigo-500 outline-none text-slate-800" />
                         {search && (
                             <button type="button" onClick={clearSearch} className="absolute right-3 text-slate-400 hover:text-slate-600">
                                 <XMarkIcon className="w-4 h-4" />
@@ -419,8 +580,8 @@ export default function Index({ outlets, auditReports = [] }) {
                         </div>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {filteredOutlets.length > 0 ? filteredOutlets.map((outlet, index) => (
-                        <div key={index} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col gap-3.5">
+                    {filteredOutlets.length > 0 ? filteredOutlets.map((outlet) => (
+                        <div key={outlet.customer_code} className={`border rounded-2xl p-4 shadow-sm flex flex-col gap-3.5 transition-all ${outlet.rwo_status === 'RWO' ? 'bg-purple-50/60 border-purple-200/80 shadow-purple-100/40' : 'bg-white border-slate-100'}`}>
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
                                     <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
@@ -428,6 +589,22 @@ export default function Index({ outlets, auditReports = [] }) {
                                         <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border ${outlet.status_audit === 'Sudah' ? 'bg-emerald-50 text-emerald-600 border-emerald-100/80' : 'bg-rose-50 text-rose-600 border-rose-100/80'}`}>
                                             {outlet.status_audit === 'Sudah' ? 'Sudah Audit' : 'Belum Audit'}
                                         </span>
+                                        {outlet.status_audit === 'Sudah' && (
+                                            outlet.auditor?.toLowerCase().trim() === sessionAuditor?.toLowerCase().trim() ? (
+                                                <span className="text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider bg-indigo-50 text-indigo-600 border border-indigo-100/80">
+                                                    ✓ Oleh Anda
+                                                </span>
+                                            ) : outlet.auditor && (
+                                                <span className="text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider bg-slate-50 text-slate-500 border border-slate-200/80">
+                                                    Oleh: {outlet.auditor}
+                                                </span>
+                                            )
+                                        )}
+                                        {outlet.rwo_status && (
+                                            <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border ${outlet.rwo_status === 'RWO' ? 'bg-purple-50 text-purple-600 border-purple-100/80' : 'bg-slate-50 text-slate-500 border-slate-200/80'}`}>
+                                                {outlet.rwo_status}
+                                            </span>
+                                        )}
                                         {outlet.distance !== undefined && outlet.distance !== Infinity && (
                                             <span className="text-[8px] px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-100/80 font-bold">
                                                 {outlet.distance < 1 ? `${Math.round(outlet.distance * 1000)} m` : `${outlet.distance.toFixed(1)} km`}
@@ -512,6 +689,13 @@ export default function Index({ outlets, auditReports = [] }) {
                             )}
                         </div>
                     )}
+                    {totalFilteredCount > 150 && (
+                        <div className="mt-4 text-center">
+                            <span className="inline-block px-3 py-1.5 bg-indigo-50 border border-indigo-100 text-indigo-600 text-[10px] font-bold rounded-lg shadow-sm">
+                                Menampilkan 150 dari {totalFilteredCount} hasil. Gunakan filter untuk mempersempit.
+                            </span>
+                        </div>
+                    )}
                 </div>
             </main>
             ) : (
@@ -525,7 +709,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                     Daftar Hasil Audit
                                 </h4>
                                 <a 
-                                    href="/mobile/audit/export" 
+                                    href={`/mobile/audit/export?auditor=${sessionAuditor}`}
                                     className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wide hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-600/10"
                                 >
                                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -534,9 +718,20 @@ export default function Index({ outlets, auditReports = [] }) {
                                     Export Excel
                                 </a>
                             </div>
+
+                            <div className="relative mb-4">
+                                <input type="text" value={reportSearch} onChange={(e) => setReportSearch(e.target.value)} placeholder="Cari laporan (toko, kode, cabang)..." className="w-full h-10 pl-10 pr-10 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:border-indigo-500 outline-none" />
+                                <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
+                                {reportSearch && (
+                                    <button onClick={() => setReportSearch('')} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+                                        <XMarkIcon className="w-5 h-5" />
+                                    </button>
+                                )}
+                            </div>
+
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto pr-1">
-                                {auditReports.length > 0 ? auditReports.map((report, index) => (
-                                    <div key={index} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col gap-2 relative overflow-hidden">
+                                {filteredReports.length > 0 ? filteredReports.map((report) => (
+                                    <div key={report.customer_code} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col gap-2 relative overflow-hidden">
                                         <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
                                         <div className="flex justify-between items-start gap-2">
                                             <div className="flex-1 min-w-0">
@@ -552,6 +747,14 @@ export default function Index({ outlets, auditReports = [] }) {
                                             <BuildingStorefrontIcon className="w-3.5 h-3.5 shrink-0 text-slate-400" />
                                             <span className="flex-1 leading-snug">Cabang: <span className="font-bold text-slate-700">{report.cabang || '-'}</span></span>
                                         </div>
+                                        {report.created_at && (
+                                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium mt-1">
+                                                <svg className="w-3.5 h-3.5 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <span className="flex-1 leading-snug">Tanggal: <span className="font-bold text-slate-700">{new Date(report.created_at).toLocaleString('id-ID', {day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit'})}</span></span>
+                                            </div>
+                                        )}
                                         {report.keterangan_hasil_audit && (
                                             <div className="text-[10px] text-slate-500 mt-1 leading-snug">
                                                 <span className="font-bold text-slate-700">Keterangan Hasil Audit:</span>{' '}
@@ -560,25 +763,30 @@ export default function Index({ outlets, auditReports = [] }) {
                                         )}
                                         <div className="flex gap-2 mt-3 pt-3 border-t border-slate-200/60">
                                             <button 
-                                                onClick={() => handleDetailClick(report)} 
+                                                onClick={() => openDetailFromReport(report)} 
                                                 className="flex-1 inline-flex items-center justify-center gap-1 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 text-[10px] font-bold uppercase tracking-wide hover:bg-indigo-100 transition-colors"
                                             >
                                                 <EyeIcon className="w-3.5 h-3.5" />
                                                 Detail
                                             </button>
                                             <button 
-                                                onClick={() => handleEditClick(report)} 
+                                                onClick={() => openDetailFromReport(report, true)} 
                                                 className="flex-1 inline-flex items-center justify-center gap-1 h-8 rounded-lg bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-bold uppercase tracking-wide hover:bg-amber-100 transition-colors"
                                             >
                                                 <PencilIcon className="w-3.5 h-3.5" />
                                                 Edit
                                             </button>
                                             <button 
-                                                onClick={() => handleDeleteClick(report)} 
-                                                className="flex-1 inline-flex items-center justify-center gap-1 h-8 rounded-lg bg-rose-50 text-rose-600 border border-rose-100 text-[10px] font-bold uppercase tracking-wide hover:bg-rose-100 transition-colors"
+                                                onClick={() => requestDeleteReport(report)} 
+                                                disabled={isDeletingCode === report.customer_code}
+                                                className={`flex-1 inline-flex items-center justify-center gap-1 h-8 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors ${isDeletingCode === report.customer_code ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100'}`}
                                             >
-                                                <TrashIcon className="w-3.5 h-3.5" />
-                                                Hapus
+                                                {isDeletingCode === report.customer_code ? (
+                                                    <div className="w-3 h-3 rounded-full border-2 border-slate-400 border-t-transparent animate-spin"></div>
+                                                ) : (
+                                                    <TrashIcon className="w-3.5 h-3.5" />
+                                                )}
+                                                {isDeletingCode === report.customer_code ? 'Hapus...' : 'Hapus'}
                                             </button>
                                         </div>
                                     </div>
@@ -620,22 +828,22 @@ export default function Index({ outlets, auditReports = [] }) {
                             </div>
                             <div>
                                 <label className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mb-2">Area</label>
-                                <select value={selectedArea} onChange={(e) => { setSelectedArea(e.target.value); setSelectedDistributor(''); }} disabled={!selectedRegion && areas.length > 50} className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500 font-semibold text-slate-700 disabled:opacity-50 disabled:bg-slate-100">
+                                <select value={selectedArea} onChange={(e) => { setSelectedArea(e.target.value); setSelectedDistributor(''); }} disabled={!selectedRegion} className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500 font-semibold text-slate-700 disabled:opacity-50 disabled:bg-slate-100">
                                     <option value="">Semua Area</option>
                                     {areas.map(a => <option key={a} value={a}>{a}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mb-2">Distributor</label>
-                                <select value={selectedDistributor} onChange={(e) => setSelectedDistributor(e.target.value)} disabled={!selectedArea && distributors.length > 50} className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500 font-semibold text-slate-700 disabled:opacity-50 disabled:bg-slate-100">
+                                <select value={selectedDistributor} onChange={(e) => setSelectedDistributor(e.target.value)} disabled={!selectedArea} className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500 font-semibold text-slate-700 disabled:opacity-50 disabled:bg-slate-100">
                                     <option value="">Semua Distributor</option>
                                     {distributors.map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                             </div>
                         </div>
                         <div className="p-5 border-t border-slate-100 bg-slate-50 flex gap-3">
-                            <button onClick={() => { setSelectedRegion(''); setSelectedArea(''); setSelectedDistributor(''); }} className="flex-1 h-12 border border-slate-200 bg-white rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50">Kosongkan</button>
-                            <button onClick={applyFilters} className="flex-[2] h-12 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20">Terapkan</button>
+                            <button onClick={() => { resetFilters(); setShowFiltersSheet(false); }} className="flex-1 h-12 border border-slate-200 bg-white rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50">Kosongkan</button>
+                            <button onClick={applyFilters} className="flex-1 h-12 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20">Terapkan</button>
                         </div>
                     </div>
                 </div>
@@ -644,15 +852,22 @@ export default function Index({ outlets, auditReports = [] }) {
             {/* Detail Bottom Sheet */}
             {detailOutlet && (
                 <div className="fixed inset-0 z-50">
-                    <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setDetailOutlet(null)}></div>
+                    <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={handleCloseDetail}></div>
                     <div className="fixed bottom-0 left-0 right-0 max-w-xl md:max-w-2xl mx-auto bg-white rounded-t-[32px] shadow-2xl flex flex-col max-h-[85%] z-50 animate-slide-up">
                         <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto my-3 shrink-0"></div>
                         <div className="px-5 pb-3 pt-2 flex items-start justify-between border-b border-slate-100 shrink-0">
                             <div>
-                                <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 font-mono font-bold rounded-md text-[9px] mb-1">{detailOutlet.customer_code}</span>
+                                <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                                    <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 font-mono font-bold rounded-md text-[9px]">{detailOutlet.customer_code}</span>
+                                    {detailOutlet.rwo_status && (
+                                        <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border ${detailOutlet.rwo_status === 'RWO' ? 'bg-purple-50 text-purple-600 border-purple-100/80' : 'bg-slate-50 text-slate-500 border-slate-200/80'}`}>
+                                            {detailOutlet.rwo_status}
+                                        </span>
+                                    )}
+                                </div>
                                 <h4 className="text-sm font-black text-slate-900 leading-tight pr-2">{detailOutlet.customer_name}</h4>
                             </div>
-                            <button onClick={() => setDetailOutlet(null)} className="text-slate-400 p-1 bg-slate-50 rounded-full shrink-0">
+                            <button onClick={handleCloseDetail} className="text-slate-400 p-1 bg-slate-50 rounded-full shrink-0">
                                 <XMarkIcon className="w-5 h-5" />
                             </button>
                         </div>
@@ -777,17 +992,33 @@ export default function Index({ outlets, auditReports = [] }) {
                                 <form onSubmit={submitAudit} className="bg-white rounded-xl p-4 border border-indigo-100 shadow-sm shadow-indigo-100/50 space-y-4">
                                     <div>
                                         <label className="block text-[10px] font-bold text-slate-700 mb-1">Nama Auditor *</label>
-                                        <select value={data.auditor} onChange={e => setData('auditor', e.target.value)} required className="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 bg-slate-50">
-                                            <option value="" disabled>Pilih nama auditor...</option>
-                                            <option value="Lisa">Lisa</option>
-                                            <option value="Juliana">Juliana</option>
-                                            <option value="Vera">Vera</option>
-                                        </select>
+                                        <input 
+                                            type="text" 
+                                            value={data.auditor} 
+                                            readOnly 
+                                            required 
+                                            className="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg outline-none bg-slate-100 text-slate-500 cursor-not-allowed font-bold" 
+                                        />
                                         {errors.auditor && <div className="text-[10px] text-rose-500 mt-1">{errors.auditor}</div>}
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-bold text-slate-700 mb-1">Keterangan Audit</label>
-                                        <textarea value={data.keterangan_hasil_audit} onChange={e => setData('keterangan_hasil_audit', e.target.value)} placeholder="Tuliskan keterangan jika ada..." rows="2" className="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 bg-slate-50"></textarea>
+                                        <textarea 
+                                            value={data.keterangan_hasil_audit || ''} 
+                                            onChange={e => {
+                                                setIsFormTouched(true);
+                                                setData('keterangan_hasil_audit', e.target.value);
+                                            }} 
+                                            maxLength={500}
+                                            placeholder="Tuliskan keterangan jika ada..." 
+                                            rows="2" 
+                                            className="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 bg-slate-50"
+                                        ></textarea>
+                                        <div className="flex justify-end mt-1">
+                                            <span className={`text-[9px] font-semibold ${(data.keterangan_hasil_audit || '').length > 480 ? 'text-rose-500' : (data.keterangan_hasil_audit || '').length > 400 ? 'text-amber-500' : 'text-slate-400'}`}>
+                                                {(data.keterangan_hasil_audit || '').length}/500
+                                            </span>
+                                        </div>
                                     </div>
                                     {/* Lokasi Koordinat */}
                                     <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl space-y-2">
@@ -822,13 +1053,18 @@ export default function Index({ outlets, auditReports = [] }) {
                                                 {data.foto_audit1 || detailOutlet?.foto_audit1 ? (
                                                     <>
                                                         <img src={data.foto_audit1 ? URL.createObjectURL(data.foto_audit1) : `/storage/${detailOutlet.foto_audit1}`} alt="Audit 1" className="absolute inset-0 w-full h-full object-cover" />
-                                                        <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center gap-3">
-                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(data.foto_audit1 ? URL.createObjectURL(data.foto_audit1) : `/storage/${detailOutlet.foto_audit1}`) }} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
-                                                                <EyeIcon className="w-4 h-4" />
+                                                        <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center gap-1.5 sm:gap-3">
+                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(data.foto_audit1 ? URL.createObjectURL(data.foto_audit1) : `/storage/${detailOutlet.foto_audit1}`) }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                                <EyeIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                             </button>
-                                                            <button type="button" onClick={(e) => { e.preventDefault(); fileInput1.current.click() }} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
-                                                                <PencilIcon className="w-4 h-4" />
+                                                            <button type="button" onClick={(e) => { e.preventDefault(); fileInput1.current.click() }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                                <PencilIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                             </button>
+                                                            {data.foto_audit1 && (
+                                                                <button type="button" onClick={(e) => { e.preventDefault(); setData('foto_audit1', null); if(fileInput1.current) fileInput1.current.value=''; }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-rose-500/80 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                                    <TrashIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </>
                                                 ) : (
@@ -837,7 +1073,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                                         <span className="text-[9px] font-semibold text-indigo-600">Foto 1</span>
                                                     </div>
                                                 )}
-                                                <input ref={fileInput1} type="file" onChange={e => setData('foto_audit1', e.target.files[0])} accept="image/*" capture="environment" className="hidden" />
+                                                <input ref={fileInput1} type="file" onChange={e => setData('foto_audit1', e.target.files[0])} accept="image/*" className="hidden" />
                                             </div>
                                             
                                             {/* Foto 2 */}
@@ -845,13 +1081,18 @@ export default function Index({ outlets, auditReports = [] }) {
                                                 {data.foto_audit2 || detailOutlet?.foto_audit2 ? (
                                                     <>
                                                         <img src={data.foto_audit2 ? URL.createObjectURL(data.foto_audit2) : `/storage/${detailOutlet.foto_audit2}`} alt="Audit 2" className="absolute inset-0 w-full h-full object-cover" />
-                                                        <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center gap-3">
-                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(data.foto_audit2 ? URL.createObjectURL(data.foto_audit2) : `/storage/${detailOutlet.foto_audit2}`) }} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
-                                                                <EyeIcon className="w-4 h-4" />
+                                                        <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center gap-1.5 sm:gap-3">
+                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(data.foto_audit2 ? URL.createObjectURL(data.foto_audit2) : `/storage/${detailOutlet.foto_audit2}`) }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                                <EyeIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                             </button>
-                                                            <button type="button" onClick={(e) => { e.preventDefault(); fileInput2.current.click() }} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
-                                                                <PencilIcon className="w-4 h-4" />
+                                                            <button type="button" onClick={(e) => { e.preventDefault(); fileInput2.current.click() }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                                <PencilIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                             </button>
+                                                            {data.foto_audit2 && (
+                                                                <button type="button" onClick={(e) => { e.preventDefault(); setData('foto_audit2', null); if(fileInput2.current) fileInput2.current.value=''; }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-rose-500/80 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                                    <TrashIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </>
                                                 ) : (
@@ -860,7 +1101,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                                         <span className="text-[9px] font-semibold text-indigo-600">Foto 2</span>
                                                     </div>
                                                 )}
-                                                <input ref={fileInput2} type="file" onChange={e => setData('foto_audit2', e.target.files[0])} accept="image/*" capture="environment" className="hidden" />
+                                                <input ref={fileInput2} type="file" onChange={e => setData('foto_audit2', e.target.files[0])} accept="image/*" className="hidden" />
                                             </div>
                                             
                                             {/* Foto 3 */}
@@ -868,13 +1109,18 @@ export default function Index({ outlets, auditReports = [] }) {
                                                 {data.foto_audit3 || detailOutlet?.foto_audit3 ? (
                                                     <>
                                                         <img src={data.foto_audit3 ? URL.createObjectURL(data.foto_audit3) : `/storage/${detailOutlet.foto_audit3}`} alt="Audit 3" className="absolute inset-0 w-full h-full object-cover" />
-                                                        <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center gap-3">
-                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(data.foto_audit3 ? URL.createObjectURL(data.foto_audit3) : `/storage/${detailOutlet.foto_audit3}`) }} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
-                                                                <EyeIcon className="w-4 h-4" />
+                                                        <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center gap-1.5 sm:gap-3">
+                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(data.foto_audit3 ? URL.createObjectURL(data.foto_audit3) : `/storage/${detailOutlet.foto_audit3}`) }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                                <EyeIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                             </button>
-                                                            <button type="button" onClick={(e) => { e.preventDefault(); fileInput3.current.click() }} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
-                                                                <PencilIcon className="w-4 h-4" />
+                                                            <button type="button" onClick={(e) => { e.preventDefault(); fileInput3.current.click() }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                                <PencilIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                             </button>
+                                                            {data.foto_audit3 && (
+                                                                <button type="button" onClick={(e) => { e.preventDefault(); setData('foto_audit3', null); if(fileInput3.current) fileInput3.current.value=''; }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-rose-500/80 flex items-center justify-center text-white backdrop-blur-sm transition-all">
+                                                                    <TrashIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </>
                                                 ) : (
@@ -883,12 +1129,30 @@ export default function Index({ outlets, auditReports = [] }) {
                                                         <span className="text-[9px] font-semibold text-indigo-600">Foto 3</span>
                                                     </div>
                                                 )}
-                                                <input ref={fileInput3} type="file" onChange={e => setData('foto_audit3', e.target.files[0])} accept="image/*" capture="environment" className="hidden" />
+                                                <input ref={fileInput3} type="file" onChange={e => setData('foto_audit3', e.target.files[0])} accept="image/*" className="hidden" />
                                             </div>
                                         </div>
                                     </div>
-                                    <button type="submit" disabled={processing || isGettingLocation} className="w-full h-10 bg-indigo-600 text-white rounded-lg text-xs font-bold shadow-md shadow-indigo-600/20 disabled:opacity-50 disabled:cursor-not-allowed">
-                                        {(processing || isGettingLocation) ? 'Menyimpan & Mengambil Lokasi...' : 'Simpan Hasil Audit'}
+                                    
+                                    {showNoPhotoWarning && (
+                                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex flex-col gap-2">
+                                            <div className="flex items-center gap-2 text-amber-700 font-bold text-[10px]">
+                                                <ShieldExclamationIcon className="w-4 h-4 shrink-0" />
+                                                <span>Belum ada foto audit yang dilampirkan.</span>
+                                            </div>
+                                            <p className="text-[9px] text-amber-600">Apakah Anda yakin ingin menyimpan tanpa melampirkan bukti dokumentasi audit satupun?</p>
+                                            <div className="flex gap-2 mt-1">
+                                                <button type="button" onClick={() => setShowNoPhotoWarning(false)} className="flex-1 h-8 bg-white border border-amber-200 text-amber-700 rounded-lg text-[9px] font-bold">Batal</button>
+                                                <button type="button" onClick={() => { setShowNoPhotoWarning(false); proceedSubmit(); }} className="flex-1 h-8 bg-amber-500 text-white rounded-lg text-[9px] font-bold shadow-sm hover:bg-amber-600">Ya, Tetap Simpan</button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <button type="submit" disabled={processing || isGettingLocation} className="w-full h-10 bg-indigo-600 text-white rounded-lg text-xs font-bold shadow-md shadow-indigo-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                        {(processing || isGettingLocation) && (
+                                            <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                                        )}
+                                        <span>{(processing || isGettingLocation) ? 'Menyimpan & Mengambil Lokasi...' : 'Simpan Hasil Audit'}</span>
                                     </button>
                                 </form>
                             </div>
@@ -912,11 +1176,58 @@ export default function Index({ outlets, auditReports = [] }) {
                         onClick={() => setActiveTab('report')}
                         className={`flex flex-col items-center justify-center w-full py-2 gap-1 rounded-xl transition-all ${activeTab === 'report' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
                     >
-                        <ChartPieIcon className={`w-6 h-6 ${activeTab === 'report' ? 'text-indigo-600 scale-110' : 'scale-100'} transition-transform`} />
+                        <div className="relative">
+                            <ChartPieIcon className={`w-6 h-6 ${activeTab === 'report' ? 'text-indigo-600 scale-110' : 'scale-100'} transition-transform`} />
+                            {allMyReports.length > 0 && (
+                                <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-sm">
+                                    {allMyReports.length > 99 ? '99+' : allMyReports.length}
+                                </span>
+                            )}
+                        </div>
                         <span className={`text-[10px] font-bold ${activeTab === 'report' ? 'text-indigo-600' : ''}`}>Laporan</span>
                     </button>
                 </div>
             </div>
+
+            {/* Discard Changes Modal */}
+            {showDiscardModal && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowDiscardModal(false)}></div>
+                    <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-xl flex flex-col items-center p-6 animate-fade-in z-[71]">
+                        <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 mb-4">
+                            <ShieldExclamationIcon className="w-8 h-8" />
+                        </div>
+                        <h4 className="text-sm font-black text-slate-800 text-center mb-2">Buang Perubahan?</h4>
+                        <p className="text-[11px] text-slate-500 text-center mb-6 leading-relaxed">
+                            Anda memiliki form yang belum disimpan. Yakin ingin membuang semua perubahan?
+                        </p>
+                        <div className="flex w-full gap-3">
+                            <button onClick={() => setShowDiscardModal(false)} className="flex-1 h-11 border border-slate-200 bg-white rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50">Lanjut Edit</button>
+                            <button onClick={() => { setShowDiscardModal(false); setDetailOutlet(null); setShowNoPhotoWarning(false); }} className="flex-1 h-11 bg-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/20 hover:bg-amber-600">Ya, Buang</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deletingReport && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setDeletingReport(null)}></div>
+                    <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-xl flex flex-col items-center p-6 animate-fade-in z-[71]">
+                        <div className="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 mb-4">
+                            <TrashIcon className="w-8 h-8" />
+                        </div>
+                        <h4 className="text-sm font-black text-slate-800 text-center mb-2">Hapus Hasil Audit?</h4>
+                        <p className="text-[11px] text-slate-500 text-center mb-6 leading-relaxed">
+                            Tindakan ini tidak dapat dibatalkan. Hasil audit untuk toko <br/><span className="font-bold text-slate-800">{deletingReport.customer_name}</span> akan dihapus permanen.
+                        </p>
+                        <div className="flex w-full gap-3">
+                            <button onClick={() => setDeletingReport(null)} className="flex-1 h-11 border border-slate-200 bg-white rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50">Batal</button>
+                            <button onClick={confirmDeleteReport} className="flex-1 h-11 bg-rose-600 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-600/20 hover:bg-rose-700">Ya, Hapus</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Image Zoom Modal */}
             {zoomedImage && (
@@ -939,6 +1250,26 @@ export default function Index({ outlets, auditReports = [] }) {
                 }}>
                     {toast.type === 'success' ? <CheckCircleIcon className="w-5 h-5" /> : <XCircleIcon className="w-5 h-5" />}
                     <span className="text-xs font-bold tracking-wide">{toast.message}</span>
+                </div>
+            )}
+
+            {/* Logout Modal */}
+            {showLogoutModal && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowLogoutModal(false)}></div>
+                    <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-xl flex flex-col items-center p-6 animate-fade-in z-[71]">
+                        <div className="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 mb-4">
+                            <ShieldExclamationIcon className="w-8 h-8" />
+                        </div>
+                        <h4 className="text-sm font-black text-slate-800 text-center mb-2">Ganti Auditor?</h4>
+                        <p className="text-[11px] text-slate-500 text-center mb-6 leading-relaxed">
+                            Apakah Anda yakin ingin keluar dari identitas auditor saat ini? Data yang belum tersimpan akan hilang.
+                        </p>
+                        <div className="flex w-full gap-3">
+                            <button onClick={() => setShowLogoutModal(false)} className="flex-1 h-11 border border-slate-200 bg-white rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50">Batal</button>
+                            <button onClick={confirmLogoutAuditor} className="flex-1 h-11 bg-rose-600 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-600/20 hover:bg-rose-700">Ya, Ganti</button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

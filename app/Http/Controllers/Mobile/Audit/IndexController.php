@@ -41,6 +41,10 @@ class IndexController extends Controller
                 ro.foto_toko2 AS tampak_depan,
                 ro.foto_toko3 AS tampak_dalam,
                 CASE
+                    WHEN ro.eskalink_code IS NOT NULL THEN 'RWO'
+                    ELSE 'Non RWO'
+                END AS rwo_status,
+                CASE
                     WHEN hat.customer_code IS NOT NULL THEN 'Sudah'
                     ELSE 'Belum'
                 END AS status_audit,
@@ -73,7 +77,8 @@ class IndexController extends Controller
                 hat.foto_audit1,
                 hat.foto_audit2,
                 hat.foto_audit3,
-                hat.keterangan_hasil_audit
+                hat.keterangan_hasil_audit,
+                hat.created_at
             ')
             ->leftJoin('master_distributors as md', 'hat.distributor_code', '=', 'md.distributor_code')
             ->get();
@@ -134,9 +139,10 @@ class IndexController extends Controller
         return redirect()->back()->with('success', 'Data audit berhasil disimpan.');
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        return Excel::download(new AuditExport, 'hasil_audit_' . date('Ymd_His') . '.xlsx');
+        $auditor = $request->query('auditor');
+        return Excel::download(new AuditExport($auditor), 'hasil_audit_' . date('Ymd_His') . '.xlsx');
     }
 
     public function destroy($customer_code)
@@ -156,9 +162,16 @@ class IndexController extends Controller
 
 class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColumnFormatting, ShouldAutoSize, WithStyles
 {
+    protected $auditor;
+
+    public function __construct($auditor = null)
+    {
+        $this->auditor = $auditor;
+    }
+
     public function collection()
     {
-        return DB::table('hasil_audit_toko as hat')
+        $query = DB::table('hasil_audit_toko as hat')
             ->selectRaw('
                 hat.created_at,
                 md.distributor_name,
@@ -170,8 +183,13 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
                 hat.longitude,
                 hat.keterangan_hasil_audit
             ')
-            ->leftJoin('master_distributors as md', 'hat.distributor_code', '=', 'md.distributor_code')
-            ->get();
+            ->leftJoin('master_distributors as md', 'hat.distributor_code', '=', 'md.distributor_code');
+
+        if (!empty($this->auditor)) {
+            $query->where('hat.auditor', $this->auditor);
+        }
+
+        return $query->get();
     }
 
     public function headings(): array
