@@ -67,17 +67,53 @@ export default function Index({ outlets, auditReports = [] }) {
             customer_address: outlet.customer_address,
             auditor: outlet.auditor || '',
             keterangan_hasil_audit: outlet.keterangan_hasil_audit || '',
-            latitude: '',
-            longitude: '',
+            latitude: outlet.latitude || '',
+            longitude: outlet.longitude || '',
             foto_audit1: null,
             foto_audit2: null,
             foto_audit3: null,
         });
     };
 
+    const fetchCurrentLocation = () => {
+        setIsGettingLocation(true);
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setData(prev => ({
+                        ...prev,
+                        latitude: position.coords.latitude.toString(),
+                        longitude: position.coords.longitude.toString()
+                    }));
+                    setIsGettingLocation(false);
+                    showToast('Lokasi GPS berhasil diambil!', 'success');
+                },
+                (error) => {
+                    console.error("GPS Error:", error);
+                    setIsGettingLocation(false);
+                    let errMsg = 'Gagal mengambil lokasi.';
+                    if (error.code === 1) errMsg = 'Izin GPS ditolak oleh perangkat.';
+                    else if (error.code === 2) errMsg = 'Posisi GPS tidak tersedia.';
+                    else if (error.code === 3) errMsg = 'Waktu pengambilan GPS habis.';
+                    showToast(errMsg, 'error');
+                },
+                { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
+            );
+        } else {
+            setIsGettingLocation(false);
+            showToast('Browser Anda tidak mendukung GPS.', 'error');
+        }
+    };
+
     const submitAudit = (e) => {
         e.preventDefault();
         
+        // If coordinate is already retrieved, submit directly
+        if (data.latitude && data.longitude && data.latitude !== '0' && data.longitude !== '0') {
+            executeSubmit(data.latitude, data.longitude);
+            return;
+        }
+
         setIsGettingLocation(true);
         let isSubmitted = false;
 
@@ -91,7 +127,7 @@ export default function Index({ outlets, auditReports = [] }) {
             const locationTimeout = setTimeout(() => {
                 console.warn("Manual Geolocation timeout hit");
                 safeExecuteSubmit(0, 0);
-            }, 3000); // 3 seconds max wait time
+            }, 5000);
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -100,10 +136,10 @@ export default function Index({ outlets, auditReports = [] }) {
                 },
                 (error) => {
                     clearTimeout(locationTimeout);
-                    console.warn("Geolocation failed or denied, continuing with 0", error);
+                    console.warn("Geolocation failed, continuing with 0", error);
                     safeExecuteSubmit(0, 0);
                 },
-                { enableHighAccuracy: false, timeout: 3000, maximumAge: 10000 }
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
             );
         } else {
             console.warn("Geolocation not supported by this browser, continuing with 0");
@@ -621,6 +657,31 @@ export default function Index({ outlets, auditReports = [] }) {
                                     <div>
                                         <label className="block text-[10px] font-bold text-slate-700 mb-1">Keterangan Audit</label>
                                         <textarea value={data.keterangan_hasil_audit} onChange={e => setData('keterangan_hasil_audit', e.target.value)} placeholder="Tuliskan keterangan jika ada..." rows="2" className="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 bg-slate-50"></textarea>
+                                    </div>
+                                    {/* Lokasi Koordinat */}
+                                    <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[10px] font-bold text-slate-700">Titik Koordinat (GPS)</span>
+                                            <button 
+                                                type="button" 
+                                                onClick={fetchCurrentLocation}
+                                                disabled={isGettingLocation}
+                                                className="text-[9px] text-indigo-600 hover:text-indigo-800 font-black uppercase tracking-wide flex items-center gap-1 disabled:opacity-50"
+                                            >
+                                                <MapPinIcon className="w-3.5 h-3.5" />
+                                                {isGettingLocation ? 'Mengambil...' : 'Ambil Lokasi'}
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="bg-white border border-slate-200/80 rounded-lg p-2 text-center shadow-sm">
+                                                <span className="text-[8px] font-extrabold text-slate-400 block mb-0.5 uppercase tracking-wider">Latitude</span>
+                                                <span className="text-[10px] font-mono font-bold text-slate-800">{data.latitude || 'Belum diambil'}</span>
+                                            </div>
+                                            <div className="bg-white border border-slate-200/80 rounded-lg p-2 text-center shadow-sm">
+                                                <span className="text-[8px] font-extrabold text-slate-400 block mb-0.5 uppercase tracking-wider">Longitude</span>
+                                                <span className="text-[10px] font-mono font-bold text-slate-800">{data.longitude || 'Belum diambil'}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-bold text-slate-700 mb-2">Foto Audit (Opsional)</label>
