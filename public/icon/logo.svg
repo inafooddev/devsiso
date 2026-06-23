@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80">
+  <defs>
+    <linearGradient id="gradDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+  </defs>
+  <rect x="10" y="15" width="50" height="50" rx="14" fill="url(#gradDark)" />
+  <text x="35" y="50" font-family="system-ui, sans-serif" font-size="34" font-weight="900" fill="#ffffff" text-anchor="middle">S</text>
+  
+  <text x="72" y="52" font-family="system-ui, sans-serif" font-size="38" font-weight="800" fill="#f8fafc" letter-spacing="-1">siso</text>
+</svg>

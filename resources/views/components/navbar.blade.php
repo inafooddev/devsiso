@@ -1,6 +1,6 @@
-<div class="navbar bg-base-200 sticky top-0 z-20 border-b border-primary/20 shadow-md backdrop-blur-sm">
+<div class="navbar h-16 min-h-[4rem] px-4 bg-base-200 sticky top-0 z-20 border-b border-base-content/10 shadow-sm backdrop-blur-sm shrink-0">
     {{-- Left: Hamburger (mobile) + Page Title --}}
-    <div class="navbar-start gap-2">
+    <div class="navbar-start gap-2 h-full flex items-center">
         <label for="sidebar-drawer" class="btn btn-ghost btn-sm lg:hidden">
             <x-heroicon-s-bars-3 class="w-5 h-5" />
         </label>
@@ -8,10 +8,12 @@
     </div>
 
     {{-- Right: Theme Toggle + User Dropdown --}}
-    <div class="navbar-end gap-1">
+    <div class="navbar-end gap-1 h-full flex items-center">
 
         {{-- Mapping Notifications --}}
-        @livewire('mapping-notification')
+        @hasanyrole('admin|user|edp')
+            @livewire('mapping-notification')
+        @endhasanyrole
 
         {{-- Theme Toggle --}}
         <label class="swap swap-rotate btn btn-ghost btn-sm" title="Toggle theme">

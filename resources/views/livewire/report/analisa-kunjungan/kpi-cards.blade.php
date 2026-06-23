@@ -1,26 +1,28 @@
         @php
-            $kpiTotalVisitTarget = $dataKunjungan->count();
-            $kpiTotalVisitActual = $dataKunjungan->where('flag_visit', 'Y')->count();
+            $stats = $this->kpiStats;
+            
+            $kpiTotalVisitTarget = $stats['total_visit_target'];
+            $kpiTotalVisitActual = $stats['total_visit_actual'];
             $kpiTotalVisitGap = max(0, $kpiTotalVisitTarget - $kpiTotalVisitActual);
             $kpiTotalVisitPercent = $kpiTotalVisitTarget > 0 ? round(($kpiTotalVisitActual / $kpiTotalVisitTarget) * 100) : 0;
 
-            $kpiTotalOrderTarget = $dataKunjungan->sum('target');
-            $kpiTotalOrderActual = $dataKunjungan->sum('val_order');
+            $kpiTotalOrderTarget = $stats['total_order_target'];
+            $kpiTotalOrderActual = $stats['total_order_actual'];
             $kpiTotalOrderGap = max(0, $kpiTotalOrderTarget - $kpiTotalOrderActual);
             $kpiTotalOrderPercent = $kpiTotalOrderTarget > 0 ? round(($kpiTotalOrderActual / $kpiTotalOrderTarget) * 100) : 0;
 
-            $kpiRwoTarget = $dataKunjungan->where('pilar', '1. RWO')->count();
-            $kpiRwoActual = $dataKunjungan->where('pilar', '1. RWO')->where('flag_visit', 'Y')->count();
+            $kpiRwoTarget = $stats['rwo_target'];
+            $kpiRwoActual = $stats['rwo_actual'];
             $kpiRwoGap = max(0, $kpiRwoTarget - $kpiRwoActual);
             $kpiRwoPercent = $kpiRwoTarget > 0 ? round(($kpiRwoActual / $kpiRwoTarget) * 100) : 0;
 
-            $kpiPnrTarget = $dataKunjungan->where('pilar', '2. PNR')->count();
-            $kpiPnrActual = $dataKunjungan->where('pilar', '2. PNR')->where('flag_visit', 'Y')->count();
+            $kpiPnrTarget = $stats['pnr_target'];
+            $kpiPnrActual = $stats['pnr_actual'];
             $kpiPnrGap = max(0, $kpiPnrTarget - $kpiPnrActual);
             $kpiPnrPercent = $kpiPnrTarget > 0 ? round(($kpiPnrActual / $kpiPnrTarget) * 100) : 0;
 
-            $kpiNgvoTarget = $dataKunjungan->where('pilar', '3. NGVO')->count();
-            $kpiNgvoActual = $dataKunjungan->where('pilar', '3. NGVO')->where('flag_visit', 'Y')->count();
+            $kpiNgvoTarget = $stats['ngvo_target'];
+            $kpiNgvoActual = $stats['ngvo_actual'];
             $kpiNgvoGap = max(0, $kpiNgvoTarget - $kpiNgvoActual);
             $kpiNgvoPercent = $kpiNgvoTarget > 0 ? round(($kpiNgvoActual / $kpiNgvoTarget) * 100) : 0;
         @endphp
