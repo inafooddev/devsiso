@@ -27,24 +27,15 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
     return d;
 };
 
-export default function Index({ outlets, auditReports = [] }) {
-    const [sessionAuditor, setSessionAuditor] = useState(null);
-    const [isSessionLoaded, setIsSessionLoaded] = useState(false);
+export default function Index({ outlets, auditReports = [], sessionAuditor }) {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [isFormTouched, setIsFormTouched] = useState(false);
 
-    useEffect(() => {
-        const stored = localStorage.getItem('selected_auditor');
-        if (stored) {
-            setSessionAuditor(stored);
-        }
-        setIsSessionLoaded(true);
-    }, []);
-
     const handleLoginAuditor = (name) => {
-        localStorage.setItem('selected_auditor', name);
-        setSessionAuditor(name);
-        showToast(`Selamat datang, ${name}!`, 'success');
+        router.post('/mobile/audit/login', { auditor: name }, {
+            preserveScroll: true,
+            onSuccess: () => showToast(`Selamat datang, ${name}!`, 'success')
+        });
     };
 
     const handleLogoutAuditor = () => {
@@ -52,14 +43,17 @@ export default function Index({ outlets, auditReports = [] }) {
     };
 
     const confirmLogoutAuditor = () => {
-        localStorage.removeItem('selected_auditor');
-        setSessionAuditor(null);
-        setShowLogoutModal(false);
-        showToast('Berhasil keluar dari sesi.', 'success');
+        router.post('/mobile/audit/logout', {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowLogoutModal(false);
+                showToast('Berhasil keluar dari sesi.', 'success');
+            }
+        });
     };
 
     const [reportSearch, setReportSearch] = useState('');
-    const allMyReports = (auditReports || []).filter(r => r.auditor?.toLowerCase().trim() === sessionAuditor?.toLowerCase().trim());
+    const allMyReports = auditReports || [];
     const filteredReports = allMyReports.filter(r => {
         if (!reportSearch) return true;
         const q = reportSearch.toLowerCase();
@@ -88,6 +82,7 @@ export default function Index({ outlets, auditReports = [] }) {
     const [userLocation, setUserLocation] = useState(null);
     const userLocationRef = useRef(null);
     const [gpsStatus, setGpsStatus] = useState('loading'); // 'loading', 'success', 'error'
+    const isSubmittingRef = useRef(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -156,12 +151,43 @@ export default function Index({ outlets, auditReports = [] }) {
         foto_audit2: null,
         foto_audit3: null,
     });
+
+    const [previewUrls, setPreviewUrls] = useState({
+        foto_audit1: null,
+        foto_audit2: null,
+        foto_audit3: null,
+    });
+
+    useEffect(() => {
+        const newUrls = {};
+        ['foto_audit1', 'foto_audit2', 'foto_audit3'].forEach(field => {
+            if (data[field] instanceof File) {
+                newUrls[field] = URL.createObjectURL(data[field]);
+            } else {
+                newUrls[field] = null;
+            }
+        });
+
+        setPreviewUrls(newUrls);
+
+        return () => {
+            Object.values(newUrls).forEach(url => {
+                if (url) URL.revokeObjectURL(url);
+            });
+        };
+    }, [data.foto_audit1, data.foto_audit2, data.foto_audit3]);
+
     const [showDiscardModal, setShowDiscardModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showNoPhotoWarning, setShowNoPhotoWarning] = useState(false);
     const [deletingReport, setDeletingReport] = useState(null);
     const [isDeletingCode, setIsDeletingCode] = useState(null);
     const [totalFilteredCount, setTotalFilteredCount] = useState(0);
     const [displayLimit, setDisplayLimit] = useState(30);
+    const [isExporting, setIsExporting] = useState(false);
+    const [gpsError, setGpsError] = useState(null);
+    
+    const isAnyProcessLoading = processing || isGettingLocation || isDeletingCode !== null || isExporting;
 
     useEffect(() => {
         if (sessionAuditor) {
@@ -185,6 +211,7 @@ export default function Index({ outlets, auditReports = [] }) {
             return;
         }
         
+        setIsFormTouched(true);
         setData(field, file);
     };
 
@@ -252,45 +279,54 @@ export default function Index({ outlets, auditReports = [] }) {
         }
 
         setIsGettingLocation(true);
+        setGpsError(null);
         let isSubmitted = false;
 
-        const safeExecuteSubmit = (lat, lng) => {
+        if (!navigator.geolocation) {
+            setIsGettingLocation(false);
+            setGpsError('unavailable');
+            isSubmittingRef.current = false;
+            return;
+        }
+
+        const locationTimeout = setTimeout(() => {
             if (isSubmitted) return;
             isSubmitted = true;
-            executeSubmit(lat, lng);
-        };
+            setIsGettingLocation(false);
+            setGpsError('timeout');
+            isSubmittingRef.current = false;
+        }, 5000);
 
-        if (navigator.geolocation) {
-            const locationTimeout = setTimeout(() => {
-                console.warn("Manual Geolocation timeout hit");
-                safeExecuteSubmit(0, 0);
-            }, 5000);
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    clearTimeout(locationTimeout);
-                    safeExecuteSubmit(position.coords.latitude, position.coords.longitude);
-                },
-                (error) => {
-                    clearTimeout(locationTimeout);
-                    console.warn("Geolocation failed, continuing with 0", error);
-                    safeExecuteSubmit(0, 0);
-                },
-                { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
-            );
-        } else {
-            console.warn("Geolocation not supported by this browser, continuing with 0");
-            safeExecuteSubmit(0, 0);
-        }
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                if (isSubmitted) return;
+                isSubmitted = true;
+                clearTimeout(locationTimeout);
+                executeSubmit(position.coords.latitude, position.coords.longitude);
+            },
+            (error) => {
+                if (isSubmitted) return;
+                isSubmitted = true;
+                clearTimeout(locationTimeout);
+                setIsGettingLocation(false);
+                setGpsError(error.code === 1 ? 'denied' : 'unavailable');
+                isSubmittingRef.current = false;
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
+        );
     };
 
     const submitAudit = (e) => {
         e.preventDefault();
         
+        if (isSubmittingRef.current || processing) return;
+        isSubmittingRef.current = true;
+        
         // Warning no photo
         const hasPhoto = data.foto_audit1 || data.foto_audit2 || data.foto_audit3 || detailOutlet?.foto_audit1 || detailOutlet?.foto_audit2 || detailOutlet?.foto_audit3;
         if (!hasPhoto && !showNoPhotoWarning) {
             setShowNoPhotoWarning(true);
+            isSubmittingRef.current = false;
             return;
         }
 
@@ -309,12 +345,15 @@ export default function Index({ outlets, auditReports = [] }) {
             onSuccess: () => {
                 setDetailOutlet(null);
                 reset();
+                setIsFormTouched(false);
                 setIsGettingLocation(false);
-                showToast('Data audit berhasil disimpan!', 'success');
+                isSubmittingRef.current = false;
+                setShowSuccessModal(true);
             },
-            onError: (errs) => {
-                console.error('Validation Error:', errs);
+            onError: (errors) => {
                 setIsGettingLocation(false);
+                isSubmittingRef.current = false;
+                console.error('Validation Error:', errors);
                 showToast('Gagal menyimpan. Pastikan semua data wajib telah diisi.', 'error');
             },
             onFinish: () => {
@@ -390,6 +429,9 @@ export default function Index({ outlets, auditReports = [] }) {
     const handleSearchSubmit = (e) => {
         e.preventDefault();
         setAppliedSearch(search);
+        if (document.activeElement) {
+            document.activeElement.blur();
+        }
     };
 
     const clearSearch = () => {
@@ -432,7 +474,7 @@ export default function Index({ outlets, auditReports = [] }) {
         if (!deletingReport) return;
         setIsDeletingCode(deletingReport.customer_code);
         
-        router.delete(`/mobile/audit/${deletingReport.customer_code}`, {
+        router.delete(`/mobile/audit/${deletingReport.id}`, {
             preserveScroll: true,
             onSuccess: () => {
                 showToast('Hasil audit berhasil dihapus!', 'success');
@@ -457,15 +499,8 @@ export default function Index({ outlets, auditReports = [] }) {
         }
     };
 
-    if (!isSessionLoaded) {
-        return (
-            <div className="w-full min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
-            </div>
-        );
-    }
 
-    if (isSessionLoaded && !sessionAuditor) {
+    if (!sessionAuditor) {
         return (
             <div className="w-full min-h-screen bg-gradient-to-br from-indigo-50 via-slate-50 to-indigo-100/50 flex items-center justify-center p-6">
                 <Head title="Pilih Auditor - Audit Toko" />
@@ -734,10 +769,40 @@ export default function Index({ outlets, auditReports = [] }) {
                                     Daftar Hasil Audit
                                 </h4>
                                 <a 
-                                    href={`/mobile/audit/export?auditor=${sessionAuditor}`}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wide hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-600/10"
+                                    onClick={async (e) => {
+                                        e.preventDefault();
+                                        setIsExporting(true);
+                                        try {
+                                            const response = await fetch(`/mobile/audit/export?auditor=${sessionAuditor}`);
+                                            const blob = await response.blob();
+                                            const url = window.URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = url;
+                                            
+                                            const disposition = response.headers.get('content-disposition');
+                                            let filename = `hasil_audit_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xlsx`;
+                                            if (disposition && disposition.indexOf('attachment') !== -1) {
+                                                const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                                                if (matches != null && matches[1]) {
+                                                    filename = matches[1].replace(/['"]/g, '');
+                                                }
+                                            }
+                                            
+                                            a.download = filename;
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            a.remove();
+                                            window.URL.revokeObjectURL(url);
+                                        } catch (error) {
+                                            console.error('Export failed:', error);
+                                            showToast('Gagal mengunduh file export', 'error');
+                                        } finally {
+                                            setIsExporting(false);
+                                        }
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-2.5 md:px-4 py-1.5 rounded-lg bg-emerald-600 text-white text-[10px] md:text-xs font-bold uppercase tracking-wide hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-600/10 cursor-pointer"
                                 >
-                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                    <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
                                     Export Excel
@@ -1057,8 +1122,8 @@ export default function Index({ outlets, auditReports = [] }) {
                                                 disabled={isGettingLocation}
                                                 className="text-[9px] text-indigo-600 hover:text-indigo-800 font-black uppercase tracking-wide flex items-center gap-1 disabled:opacity-50"
                                             >
-                                                <MapPinIcon className="w-3.5 h-3.5" />
-                                                {isGettingLocation ? 'Mengambil...' : 'Ambil Lokasi'}
+                                                <MapPinIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                                                Ambil Lokasi
                                             </button>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
@@ -1076,12 +1141,12 @@ export default function Index({ outlets, auditReports = [] }) {
                                         <label className="block text-[10px] font-bold text-slate-700 mb-2">Foto Audit (Opsional)</label>
                                         <div className="grid grid-cols-3 gap-2">
                                             {/* Foto 1 */}
-                                            <div className="relative aspect-square rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 flex flex-col items-center justify-center overflow-hidden transition-colors">
+                                            <div className="relative aspect-square rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 flex flex-col items-center justify-center overflow-hidden transition-colors group">
                                                 {data.foto_audit1 || detailOutlet?.foto_audit1 ? (
                                                     <>
-                                                        <img src={data.foto_audit1 ? URL.createObjectURL(data.foto_audit1) : `/storage/${detailOutlet.foto_audit1}`} alt="Audit 1" className="absolute inset-0 w-full h-full object-cover" />
-                                                        <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center gap-1.5 sm:gap-3">
-                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(data.foto_audit1 ? URL.createObjectURL(data.foto_audit1) : `/storage/${detailOutlet.foto_audit1}`) }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all">
+                                                        <img src={previewUrls.foto_audit1 ?? `/storage/${detailOutlet.foto_audit1}`} alt="Audit 1" className="absolute inset-0 w-full h-full object-cover" />
+                                                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 sm:gap-3 backdrop-blur-[2px]">
+                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(previewUrls.foto_audit1 ?? `/storage/${detailOutlet.foto_audit1}`) }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all">
                                                                 <EyeIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                             </button>
                                                             <button type="button" onClick={(e) => { e.preventDefault(); fileInput1.current.click() }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all">
@@ -1104,12 +1169,12 @@ export default function Index({ outlets, auditReports = [] }) {
                                             </div>
                                             
                                             {/* Foto 2 */}
-                                            <div className="relative aspect-square rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 flex flex-col items-center justify-center overflow-hidden transition-colors">
+                                            <div className="relative aspect-square rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 flex flex-col items-center justify-center overflow-hidden transition-colors group">
                                                 {data.foto_audit2 || detailOutlet?.foto_audit2 ? (
                                                     <>
-                                                        <img src={data.foto_audit2 ? URL.createObjectURL(data.foto_audit2) : `/storage/${detailOutlet.foto_audit2}`} alt="Audit 2" className="absolute inset-0 w-full h-full object-cover" />
-                                                        <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center gap-1.5 sm:gap-3">
-                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(data.foto_audit2 ? URL.createObjectURL(data.foto_audit2) : `/storage/${detailOutlet.foto_audit2}`) }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all">
+                                                        <img src={previewUrls.foto_audit2 ?? `/storage/${detailOutlet.foto_audit2}`} alt="Audit 2" className="absolute inset-0 w-full h-full object-cover" />
+                                                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 sm:gap-3 backdrop-blur-[2px]">
+                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(previewUrls.foto_audit2 ?? `/storage/${detailOutlet.foto_audit2}`) }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all">
                                                                 <EyeIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                             </button>
                                                             <button type="button" onClick={(e) => { e.preventDefault(); fileInput2.current.click() }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all">
@@ -1132,12 +1197,12 @@ export default function Index({ outlets, auditReports = [] }) {
                                             </div>
                                             
                                             {/* Foto 3 */}
-                                            <div className="relative aspect-square rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 flex flex-col items-center justify-center overflow-hidden transition-colors">
+                                            <div className="relative aspect-square rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 flex flex-col items-center justify-center overflow-hidden transition-colors group">
                                                 {data.foto_audit3 || detailOutlet?.foto_audit3 ? (
                                                     <>
-                                                        <img src={data.foto_audit3 ? URL.createObjectURL(data.foto_audit3) : `/storage/${detailOutlet.foto_audit3}`} alt="Audit 3" className="absolute inset-0 w-full h-full object-cover" />
-                                                        <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center gap-1.5 sm:gap-3">
-                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(data.foto_audit3 ? URL.createObjectURL(data.foto_audit3) : `/storage/${detailOutlet.foto_audit3}`) }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all">
+                                                        <img src={previewUrls.foto_audit3 ?? `/storage/${detailOutlet.foto_audit3}`} alt="Audit 3" className="absolute inset-0 w-full h-full object-cover" />
+                                                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 sm:gap-3 backdrop-blur-[2px]">
+                                                            <button type="button" onClick={(e) => { e.preventDefault(); setZoomedImage(previewUrls.foto_audit3 ?? `/storage/${detailOutlet.foto_audit3}`) }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all">
                                                                 <EyeIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                             </button>
                                                             <button type="button" onClick={(e) => { e.preventDefault(); fileInput3.current.click() }} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all">
@@ -1175,6 +1240,30 @@ export default function Index({ outlets, auditReports = [] }) {
                                         </div>
                                     )}
 
+                                    {gpsError && (
+                                        <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 flex flex-col gap-2">
+                                            <p className="text-[10px] font-bold text-rose-700">
+                                                ⚠️ {gpsError === 'denied'  ? 'Izin GPS ditolak.' :
+                                                    gpsError === 'timeout' ? 'GPS timeout.' : 'GPS tidak tersedia.'}
+                                            </p>
+                                            <p className="text-[9px] text-rose-600">
+                                                Pilih tindakan:
+                                            </p>
+                                            <div className="flex gap-2 mt-1">
+                                                <button type="button"
+                                                    onClick={() => { setGpsError(null); proceedSubmit(); }}
+                                                    className="flex-1 h-8 bg-white border border-rose-200 text-rose-700 rounded-lg text-[9px] font-bold">
+                                                    Coba Lagi
+                                                </button>
+                                                <button type="button"
+                                                    onClick={() => { setGpsError(null); executeSubmit(null, null); }}
+                                                    className="flex-1 h-8 bg-rose-600 text-white rounded-lg text-[9px] font-bold shadow-sm hover:bg-rose-700">
+                                                    Simpan Tanpa Koordinat
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <button type="submit" disabled={processing || isGettingLocation} className="w-full h-10 bg-indigo-600 text-white rounded-lg text-xs md:text-sm font-bold shadow-md shadow-indigo-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                                         {(processing || isGettingLocation) && (
                                             <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
@@ -1193,14 +1282,18 @@ export default function Index({ outlets, auditReports = [] }) {
             <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-100 shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)] pb-[env(safe-area-inset-bottom)]">
                 <div className="flex items-center justify-around p-2 max-w-2xl mx-auto">
                     <button 
-                        onClick={() => setActiveTab('list')}
+                        onClick={() => {
+                            setActiveTab('list');
+                        }}
                         className={`flex flex-col items-center justify-center w-full py-2 gap-1 rounded-xl transition-all ${activeTab === 'list' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
                     >
                         <ListBulletIcon className={`w-6 h-6 ${activeTab === 'list' ? 'text-indigo-600 scale-110' : 'scale-100'} transition-transform`} />
                         <span className={`text-[10px] font-bold ${activeTab === 'list' ? 'text-indigo-600' : ''}`}>Daftar Toko</span>
                     </button>
                     <button 
-                        onClick={() => setActiveTab('report')}
+                        onClick={() => {
+                            setActiveTab('report');
+                        }}
                         className={`flex flex-col items-center justify-center w-full py-2 gap-1 rounded-xl transition-all ${activeTab === 'report' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
                     >
                         <div className="relative">
@@ -1216,6 +1309,25 @@ export default function Index({ outlets, auditReports = [] }) {
                 </div>
             </div>
 
+            {/* Success Confirmation Modal */}
+            {showSuccessModal && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowSuccessModal(false)}></div>
+                    <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-xl flex flex-col items-center p-8 animate-fade-in z-[71]">
+                        <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 mb-6">
+                            <CheckCircleIcon className="w-12 h-12" />
+                        </div>
+                        <h4 className="text-lg font-black text-slate-800 text-center mb-2">Kerja Bagus!</h4>
+                        <p className="text-sm text-slate-500 text-center mb-8 leading-relaxed">
+                            Data audit toko berhasil disimpan dengan aman ke dalam sistem.
+                        </p>
+                        <button onClick={() => setShowSuccessModal(false)} className="w-full h-12 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition-colors">
+                            Lanjut Audit
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Discard Changes Modal */}
             {showDiscardModal && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
@@ -1230,7 +1342,7 @@ export default function Index({ outlets, auditReports = [] }) {
                         </p>
                         <div className="flex w-full gap-3">
                             <button onClick={() => setShowDiscardModal(false)} className="flex-1 h-11 border border-slate-200 bg-white rounded-xl text-xs md:text-sm font-bold text-slate-700 hover:bg-slate-50">Lanjut Edit</button>
-                            <button onClick={() => { setShowDiscardModal(false); setDetailOutlet(null); setShowNoPhotoWarning(false); }} className="flex-1 h-11 bg-amber-500 text-white rounded-xl text-xs md:text-sm font-bold shadow-md shadow-amber-500/20 hover:bg-amber-600">Ya, Buang</button>
+                            <button onClick={() => { setShowDiscardModal(false); setDetailOutlet(null); setShowNoPhotoWarning(false); setIsFormTouched(false); reset(); }} className="flex-1 h-11 bg-amber-500 text-white rounded-xl text-xs md:text-sm font-bold shadow-md shadow-amber-500/20 hover:bg-amber-600">Ya, Buang</button>
                         </div>
                     </div>
                 </div>
@@ -1296,6 +1408,17 @@ export default function Index({ outlets, auditReports = [] }) {
                             <button onClick={() => setShowLogoutModal(false)} className="flex-1 h-11 border border-slate-200 bg-white rounded-xl text-xs md:text-sm font-bold text-slate-700 hover:bg-slate-50">Batal</button>
                             <button onClick={confirmLogoutAuditor} className="flex-1 h-11 bg-rose-600 text-white rounded-xl text-xs md:text-sm font-bold shadow-md shadow-rose-600/20 hover:bg-rose-700">Ya, Ganti</button>
                         </div>
+                    </div>
+                </div>
+            )}
+            {/* Global Loading Overlay */}
+            {isAnyProcessLoading && (
+                <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 99999 }}>
+                    <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"></div>
+                    <div className="relative bg-white rounded-3xl p-6 shadow-2xl flex flex-col items-center animate-zoom-in">
+                        <div className="w-14 h-14 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin mb-4"></div>
+                        <h4 className="text-sm md:text-base font-black text-slate-800">Sedang Memproses...</h4>
+                        <p className="text-[11px] md:text-xs text-slate-500 mt-1">Mohon tunggu sebentar.</p>
                     </div>
                 </div>
             )}

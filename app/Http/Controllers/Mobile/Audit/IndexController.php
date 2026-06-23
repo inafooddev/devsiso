@@ -56,7 +56,8 @@ class IndexController extends Controller
                 l.latitude AS master_latitude,
                 l.longitude AS master_longitude,
                 hat.latitude AS audit_latitude,
-                hat.longitude AS audit_longitude
+                hat.longitude AS audit_longitude,
+                hat.id AS id
             ")
             ->leftJoin('master_distributors as md', 'l.distributor_code', '=', 'md.distributor_code')
             ->leftJoin('reward_outlet as ro', 'l.customer_code', '=', 'ro.eskalink_code')
@@ -79,15 +80,33 @@ class IndexController extends Controller
                 hat.foto_audit2,
                 hat.foto_audit3,
                 hat.keterangan_hasil_audit,
-                hat.created_at
+                hat.created_at,
+                hat.id
             ')
             ->leftJoin('master_distributors as md', 'hat.distributor_code', '=', 'md.distributor_code')
+            ->when(session('audit_user'), function ($q) {
+                $q->where('hat.auditor', session('audit_user'));
+            })
             ->get();
 
         return Inertia::render('Mobile/Audit/Index', [
             'outlets' => $outlets,
-            'auditReports' => $auditReports
+            'auditReports' => $auditReports,
+            'sessionAuditor' => session('audit_user'),
         ]);
+    }
+
+    public function loginAuditor(Request $request)
+    {
+        $request->validate(['auditor' => 'required|string']);
+        session(['audit_user' => $request->auditor]);
+        return redirect()->back();
+    }
+
+    public function logoutAuditor(Request $request)
+    {
+        session()->forget('audit_user');
+        return redirect()->back();
     }
 
     public function store(Request $request)
@@ -102,12 +121,12 @@ class IndexController extends Controller
         ]);
 
         $data = [
-            'auditor' => $request->auditor,
+            'auditor' => session('audit_user'),
             'distributor_code' => $request->distributor_code,
             'customer_name' => $request->customer_name,
             'customer_address' => $request->customer_address,
-            'latitude' => $request->latitude ?? '0',
-            'longitude' => $request->longitude ?? '0',
+            'latitude' => ($request->latitude && $request->latitude !== '0') ? $request->latitude : null,
+            'longitude' => ($request->longitude && $request->longitude !== '0') ? $request->longitude : null,
             'keterangan_hasil_audit' => $request->keterangan_hasil_audit,
             'updated_at' => now(),
         ];
@@ -146,16 +165,16 @@ class IndexController extends Controller
         return Excel::download(new AuditExport($auditor), 'hasil_audit_' . date('Ymd_His') . '.xlsx');
     }
 
-    public function destroy($customer_code)
+    public function destroy($id)
     {
-        $audit = DB::table('hasil_audit_toko')->where('customer_code', $customer_code)->first();
+        $audit = DB::table('hasil_audit_toko')->where('id', $id)->first();
         if ($audit) {
             foreach (['foto_audit1', 'foto_audit2', 'foto_audit3'] as $field) {
                 if (!empty($audit->$field)) {
                     \Illuminate\Support\Facades\Storage::disk('public')->delete($audit->$field);
                 }
             }
-            DB::table('hasil_audit_toko')->where('customer_code', $customer_code)->delete();
+            DB::table('hasil_audit_toko')->where('id', $id)->delete();
         }
         return redirect()->back()->with('success', 'Data audit berhasil dihapus.');
     }
