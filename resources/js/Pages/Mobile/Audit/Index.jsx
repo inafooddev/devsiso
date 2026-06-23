@@ -161,12 +161,32 @@ export default function Index({ outlets, auditReports = [] }) {
     const [deletingReport, setDeletingReport] = useState(null);
     const [isDeletingCode, setIsDeletingCode] = useState(null);
     const [totalFilteredCount, setTotalFilteredCount] = useState(0);
+    const [displayLimit, setDisplayLimit] = useState(30);
 
     useEffect(() => {
         if (sessionAuditor) {
             setData('auditor', sessionAuditor);
         }
     }, [sessionAuditor]);
+
+    const handleFileChange = (field, file) => {
+        if (!file) {
+            setData(field, null);
+            return;
+        }
+        
+        // Cek ukuran file max 5MB (5 * 1024 * 1024)
+        if (file.size > 5242880) {
+            showToast('Ukuran foto terlalu besar (Maks. 5MB)', 'error');
+            // Reset the file input visually
+            if (field === 'foto_audit1' && fileInput1.current) fileInput1.current.value = '';
+            if (field === 'foto_audit2' && fileInput2.current) fileInput2.current.value = '';
+            if (field === 'foto_audit3' && fileInput3.current) fileInput3.current.value = '';
+            return;
+        }
+        
+        setData(field, file);
+    };
 
     const openDetail = (outlet) => {
         setIsFormTouched(false);
@@ -330,6 +350,7 @@ export default function Index({ outlets, auditReports = [] }) {
                     })
                     .filter(o => o.distance <= 5) // Filter radius 5km
                     .sort((a, b) => a.distance - b.distance);
+                setDisplayLimit(30);
                 setFilteredOutlets(sorted);
             } else {
                 setFilteredOutlets([]);
@@ -352,9 +373,10 @@ export default function Index({ outlets, auditReports = [] }) {
             );
         }
         
-        // Membatasi hasil maksimal 150 agar browser tidak freeze saat render data terlalu banyak
+        // Simpan semua hasil, render dibatasi oleh displayLimit
+        setDisplayLimit(30);
         setTotalFilteredCount(result.length);
-        setFilteredOutlets(result.slice(0, 150));
+        setFilteredOutlets(result);
     }, [appliedSearch, appliedRegion, appliedArea, appliedDistributor, outlets, isFiltered, userLocation]);
 
     // Handlers
@@ -382,8 +404,7 @@ export default function Index({ outlets, auditReports = [] }) {
         setAppliedRegion('');
         setAppliedArea('');
         setAppliedDistributor('');
-        setSearch('');
-        setAppliedSearch('');
+        // Do not clear search text here, so search results are preserved
     };
 
     const openDetailFromReport = (report, scrollToForm = false) => {
@@ -453,7 +474,7 @@ export default function Index({ outlets, auditReports = [] }) {
                     <div className="w-14 h-14 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-600 shadow-sm shadow-indigo-600/10 mb-4 animate-bounce-slow">
                         <ShieldCheckIcon className="w-8 h-8" />
                     </div>
-                    <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 leading-tight text-center">Sistem Audit Toko</h2>
+                    <h2 className="text-sm md:text-base font-black uppercase tracking-wider text-slate-900 leading-tight text-center">Sistem Audit Toko</h2>
                     <p className="text-[10px] font-bold text-indigo-600 tracking-widest uppercase mb-6 leading-none text-center">Pilih Identitas Auditor</p>
                     
 
@@ -472,12 +493,12 @@ export default function Index({ outlets, auditReports = [] }) {
                                 <div className="flex items-center gap-3">
                                     <div 
                                         style={{ background: auditor.gradient }} 
-                                        className="w-10 h-10 rounded-xl text-white font-black flex items-center justify-center shadow-md shadow-slate-900/10 shrink-0 text-sm"
+                                        className="w-10 h-10 rounded-xl text-white font-black flex items-center justify-center shadow-md shadow-slate-900/10 shrink-0 text-sm md:text-base"
                                     >
                                         {auditor.name.charAt(0)}
                                     </div>
                                     <div className="text-left">
-                                        <h4 className="text-xs font-black text-slate-800 tracking-tight leading-snug group-hover:text-indigo-600 transition-colors">{auditor.name}</h4>
+                                        <h4 className="text-xs md:text-sm font-black text-slate-800 tracking-tight leading-snug group-hover:text-indigo-600 transition-colors">{auditor.name}</h4>
                                     </div>
                                 </div>
                                 <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
@@ -509,7 +530,7 @@ export default function Index({ outlets, auditReports = [] }) {
                             <ShieldCheckIcon className="w-5 h-5" />
                         </div>
                         <div>
-                            <h1 className="text-xs font-black uppercase tracking-wider text-slate-900 leading-tight">Audit Toko</h1>
+                            <h1 className="text-xs md:text-sm font-black uppercase tracking-wider text-slate-900 leading-tight">Audit Toko</h1>
                             <p className="text-[8px] font-bold text-indigo-600 tracking-widest uppercase leading-none">
                                 {activeTab === 'list' ? 'Daftar Outlet' : 'Hasil Laporan Audit'}
                             </p>
@@ -543,9 +564,9 @@ export default function Index({ outlets, auditReports = [] }) {
                             <MagnifyingGlassIcon className="w-5 h-5" />
                         </button>
                         <input value={search} onChange={(e) => setSearch(e.target.value)}
-                               type="text" 
+                               type="search" 
                                placeholder="Cari (Tekan Enter / Go)..." 
-                               className="block w-full pl-10 pr-8 py-2 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:border-indigo-500 outline-none text-slate-800" />
+                               className="block w-full pl-10 pr-8 py-2 text-sm md:text-base border border-slate-200 rounded-xl bg-slate-50 focus:border-indigo-500 outline-none text-slate-800" />
                         {search && (
                             <button type="button" onClick={clearSearch} className="absolute right-3 text-slate-400 hover:text-slate-600">
                                 <XMarkIcon className="w-4 h-4" />
@@ -580,7 +601,7 @@ export default function Index({ outlets, auditReports = [] }) {
                         </div>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {filteredOutlets.length > 0 ? filteredOutlets.map((outlet) => (
+                    {filteredOutlets.length > 0 ? filteredOutlets.slice(0, displayLimit).map((outlet) => (
                         <div key={outlet.customer_code} className={`border rounded-2xl p-4 shadow-sm flex flex-col gap-3.5 transition-all ${outlet.rwo_status === 'RWO' ? 'bg-purple-50/60 border-purple-200/80 shadow-purple-100/40' : 'bg-white border-slate-100'}`}>
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
@@ -611,7 +632,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                             </span>
                                         )}
                                     </div>
-                                    <h4 className="text-xs font-black text-slate-800 tracking-tight leading-snug truncate">{outlet.customer_name}</h4>
+                                    <h4 className="text-xs md:text-sm font-black text-slate-800 tracking-tight leading-snug truncate">{outlet.customer_name}</h4>
                                     
                                     <div className="flex flex-col gap-1 mt-2">
                                         <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium">
@@ -647,7 +668,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                     <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 mb-2">
                                         <ShieldExclamationIcon className="w-8 h-8" />
                                     </div>
-                                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">Tidak Ada Data</h4>
+                                    <h4 className="text-xs md:text-sm font-black uppercase tracking-wider text-slate-700">Tidak Ada Data</h4>
                                     <p className="text-[10px] text-slate-400 mt-2 font-medium">
                                         Kriteria pencarian Anda tidak cocok dengan toko mana pun.
                                     </p>
@@ -658,7 +679,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                         <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 mb-2">
                                             <div className="w-8 h-8 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
                                         </div>
-                                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">Mencari Toko Terdekat...</h4>
+                                        <h4 className="text-xs md:text-sm font-black uppercase tracking-wider text-slate-700">Mencari Toko Terdekat...</h4>
                                         <p className="text-[10px] text-slate-400 mt-2 font-medium">
                                             Mendeteksi lokasi GPS perangkat Anda.
                                         </p>
@@ -668,7 +689,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                         <div className="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 mb-2">
                                             <ShieldExclamationIcon className="w-8 h-8" />
                                         </div>
-                                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">Gagal Mendeteksi Lokasi</h4>
+                                        <h4 className="text-xs md:text-sm font-black uppercase tracking-wider text-slate-700">Gagal Mendeteksi Lokasi</h4>
                                         <p className="text-[10px] text-slate-400 mt-2 font-medium max-w-xs mx-auto leading-relaxed">
                                             Izin lokasi ditolak, waktu habis, atau GPS mati. <br />
                                             <span className="text-indigo-600 font-bold">Silakan nyalakan GPS Anda</span> atau terapkan filter wilayah di pojok kanan atas secara manual.
@@ -679,7 +700,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                         <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 mb-2">
                                             <MapPinIcon className="w-8 h-8" />
                                         </div>
-                                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">Tidak Ada Toko Terdekat</h4>
+                                        <h4 className="text-xs md:text-sm font-black uppercase tracking-wider text-slate-700">Tidak Ada Toko Terdekat</h4>
                                         <p className="text-[10px] text-slate-400 mt-2 font-medium max-w-xs mx-auto leading-relaxed">
                                             Lokasi Anda berhasil dideteksi, namun tidak ditemukan toko dalam <span className="font-bold">radius 5 km</span>. <br />
                                             Silakan terapkan filter wilayah di pojok kanan atas secara manual.
@@ -689,11 +710,15 @@ export default function Index({ outlets, auditReports = [] }) {
                             )}
                         </div>
                     )}
-                    {totalFilteredCount > 150 && (
-                        <div className="mt-4 text-center">
-                            <span className="inline-block px-3 py-1.5 bg-indigo-50 border border-indigo-100 text-indigo-600 text-[10px] font-bold rounded-lg shadow-sm">
-                                Menampilkan 150 dari {totalFilteredCount} hasil. Gunakan filter untuk mempersempit.
-                            </span>
+                    {filteredOutlets.length > displayLimit && (
+                        <div className="mt-6 mb-2 text-center">
+                            <button 
+                                onClick={() => setDisplayLimit(prev => prev + 30)}
+                                className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-indigo-600 text-[11px] font-bold rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2 mx-auto"
+                            >
+                                Muat Lebih Banyak 
+                                <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md text-[9px]">{filteredOutlets.length - displayLimit} tersisa</span>
+                            </button>
                         </div>
                     )}
                 </div>
@@ -720,7 +745,7 @@ export default function Index({ outlets, auditReports = [] }) {
                             </div>
 
                             <div className="relative mb-4">
-                                <input type="text" value={reportSearch} onChange={(e) => setReportSearch(e.target.value)} placeholder="Cari laporan (toko, kode, cabang)..." className="w-full h-10 pl-10 pr-10 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:border-indigo-500 outline-none" />
+                                <input type="search" value={reportSearch} onChange={(e) => setReportSearch(e.target.value)} placeholder="Cari laporan (toko, kode, cabang)..." className="w-full h-10 pl-10 pr-10 text-sm md:text-base border border-slate-200 rounded-xl bg-slate-50 focus:border-indigo-500 outline-none" />
                                 <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
                                 {reportSearch && (
                                     <button onClick={() => setReportSearch('')} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
@@ -736,7 +761,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                         <div className="flex justify-between items-start gap-2">
                                             <div className="flex-1 min-w-0">
                                                 <span className="text-[9px] px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 font-bold font-mono tracking-wider w-fit inline-block mb-1">{report.customer_code}</span>
-                                                <h5 className="text-xs font-black text-slate-800 tracking-tight leading-snug truncate">{report.customer_name}</h5>
+                                                <h5 className="text-xs md:text-sm font-black text-slate-800 tracking-tight leading-snug truncate">{report.customer_name}</h5>
                                             </div>
                                             <div className="flex flex-col items-end shrink-0">
                                                 <span className="text-[8px] uppercase tracking-wider font-extrabold text-slate-400 mb-0.5">Auditor</span>
@@ -793,7 +818,9 @@ export default function Index({ outlets, auditReports = [] }) {
                                 )) : (
                                     <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center col-span-full">
                                         <ShieldExclamationIcon className="w-8 h-8 text-slate-300 mb-2" />
-                                        <span className="text-[11px] font-bold text-slate-500">Belum ada hasil audit</span>
+                                        <span className="text-[11px] font-bold text-slate-500">
+                                            {allMyReports.length > 0 ? 'Laporan tidak ditemukan untuk pencarian tersebut' : 'Belum ada hasil audit'}
+                                        </span>
                                     </div>
                                 )}
                             </div>
@@ -811,7 +838,7 @@ export default function Index({ outlets, auditReports = [] }) {
                         <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto my-3 shrink-0"></div>
                         <div className="px-5 pb-3 pt-2 flex items-start justify-between border-b border-slate-100 shrink-0">
                             <div>
-                                <h4 className="text-sm font-black text-slate-900">Filter Data</h4>
+                                <h4 className="text-sm md:text-base font-black text-slate-900">Filter Data</h4>
                                 <p className="text-[10px] font-semibold text-slate-400">Pilih kriteria lalu tekan terapkan</p>
                             </div>
                             <button onClick={() => setShowFiltersSheet(false)} className="text-slate-400 p-1 bg-slate-50 rounded-full">
@@ -821,29 +848,29 @@ export default function Index({ outlets, auditReports = [] }) {
                         <div className="flex-1 overflow-y-auto p-5 space-y-4">
                             <div>
                                 <label className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mb-2">Region</label>
-                                <select value={selectedRegion} onChange={(e) => { setSelectedRegion(e.target.value); setSelectedArea(''); setSelectedDistributor(''); }} className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500 font-semibold text-slate-700">
+                                <select value={selectedRegion} onChange={(e) => { setSelectedRegion(e.target.value); setSelectedArea(''); setSelectedDistributor(''); }} className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm md:text-base outline-none focus:border-indigo-500 font-semibold text-slate-700">
                                     <option value="">Semua Region</option>
                                     {regions.map(r => <option key={r} value={r}>{r}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mb-2">Area</label>
-                                <select value={selectedArea} onChange={(e) => { setSelectedArea(e.target.value); setSelectedDistributor(''); }} disabled={!selectedRegion} className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500 font-semibold text-slate-700 disabled:opacity-50 disabled:bg-slate-100">
-                                    <option value="">Semua Area</option>
+                                <select value={selectedArea} onChange={(e) => { setSelectedArea(e.target.value); setSelectedDistributor(''); }} disabled={!selectedRegion} className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm md:text-base outline-none focus:border-indigo-500 font-semibold text-slate-700 disabled:opacity-60 disabled:bg-slate-200/50 disabled:text-slate-400 disabled:cursor-not-allowed">
+                                    <option value="">{!selectedRegion ? "Pilih Region dahulu..." : "Semua Area"}</option>
                                     {areas.map(a => <option key={a} value={a}>{a}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mb-2">Distributor</label>
-                                <select value={selectedDistributor} onChange={(e) => setSelectedDistributor(e.target.value)} disabled={!selectedArea} className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500 font-semibold text-slate-700 disabled:opacity-50 disabled:bg-slate-100">
-                                    <option value="">Semua Distributor</option>
+                                <select value={selectedDistributor} onChange={(e) => setSelectedDistributor(e.target.value)} disabled={!selectedArea} className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm md:text-base outline-none focus:border-indigo-500 font-semibold text-slate-700 disabled:opacity-60 disabled:bg-slate-200/50 disabled:text-slate-400 disabled:cursor-not-allowed">
+                                    <option value="">{!selectedArea ? "Pilih Area dahulu..." : "Semua Distributor"}</option>
                                     {distributors.map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                             </div>
                         </div>
                         <div className="p-5 border-t border-slate-100 bg-slate-50 flex gap-3">
-                            <button onClick={() => { resetFilters(); setShowFiltersSheet(false); }} className="flex-1 h-12 border border-slate-200 bg-white rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50">Kosongkan</button>
-                            <button onClick={applyFilters} className="flex-1 h-12 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20">Terapkan</button>
+                            <button onClick={() => { resetFilters(); setShowFiltersSheet(false); }} className="flex-1 h-12 border border-slate-200 bg-white rounded-xl text-xs md:text-sm font-bold text-slate-700 hover:bg-slate-50">Kosongkan</button>
+                            <button onClick={applyFilters} className="flex-1 h-12 bg-indigo-600 text-white rounded-xl text-xs md:text-sm font-bold shadow-md shadow-indigo-600/20">Terapkan</button>
                         </div>
                     </div>
                 </div>
@@ -865,7 +892,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                         </span>
                                     )}
                                 </div>
-                                <h4 className="text-sm font-black text-slate-900 leading-tight pr-2">{detailOutlet.customer_name}</h4>
+                                <h4 className="text-sm md:text-base font-black text-slate-900 leading-tight pr-2">{detailOutlet.customer_name}</h4>
                             </div>
                             <button onClick={handleCloseDetail} className="text-slate-400 p-1 bg-slate-50 rounded-full shrink-0">
                                 <XMarkIcon className="w-5 h-5" />
@@ -997,7 +1024,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                             value={data.auditor} 
                                             readOnly 
                                             required 
-                                            className="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg outline-none bg-slate-100 text-slate-500 cursor-not-allowed font-bold" 
+                                            className="w-full text-sm md:text-base px-3 py-2 border border-slate-200 rounded-lg outline-none bg-slate-100 text-slate-500 cursor-not-allowed font-bold" 
                                         />
                                         {errors.auditor && <div className="text-[10px] text-rose-500 mt-1">{errors.auditor}</div>}
                                     </div>
@@ -1012,7 +1039,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                             maxLength={500}
                                             placeholder="Tuliskan keterangan jika ada..." 
                                             rows="2" 
-                                            className="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 bg-slate-50"
+                                            className="w-full text-sm md:text-base px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 bg-slate-50"
                                         ></textarea>
                                         <div className="flex justify-end mt-1">
                                             <span className={`text-[9px] font-semibold ${(data.keterangan_hasil_audit || '').length > 480 ? 'text-rose-500' : (data.keterangan_hasil_audit || '').length > 400 ? 'text-amber-500' : 'text-slate-400'}`}>
@@ -1073,7 +1100,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                                         <span className="text-[9px] font-semibold text-indigo-600">Foto 1</span>
                                                     </div>
                                                 )}
-                                                <input ref={fileInput1} type="file" onChange={e => setData('foto_audit1', e.target.files[0])} accept="image/*" className="hidden" />
+                                                <input ref={fileInput1} type="file" onChange={e => handleFileChange('foto_audit1', e.target.files[0])} accept="image/*" className="hidden" />
                                             </div>
                                             
                                             {/* Foto 2 */}
@@ -1101,7 +1128,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                                         <span className="text-[9px] font-semibold text-indigo-600">Foto 2</span>
                                                     </div>
                                                 )}
-                                                <input ref={fileInput2} type="file" onChange={e => setData('foto_audit2', e.target.files[0])} accept="image/*" className="hidden" />
+                                                <input ref={fileInput2} type="file" onChange={e => handleFileChange('foto_audit2', e.target.files[0])} accept="image/*" className="hidden" />
                                             </div>
                                             
                                             {/* Foto 3 */}
@@ -1129,7 +1156,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                                         <span className="text-[9px] font-semibold text-indigo-600">Foto 3</span>
                                                     </div>
                                                 )}
-                                                <input ref={fileInput3} type="file" onChange={e => setData('foto_audit3', e.target.files[0])} accept="image/*" className="hidden" />
+                                                <input ref={fileInput3} type="file" onChange={e => handleFileChange('foto_audit3', e.target.files[0])} accept="image/*" className="hidden" />
                                             </div>
                                         </div>
                                     </div>
@@ -1148,7 +1175,7 @@ export default function Index({ outlets, auditReports = [] }) {
                                         </div>
                                     )}
 
-                                    <button type="submit" disabled={processing || isGettingLocation} className="w-full h-10 bg-indigo-600 text-white rounded-lg text-xs font-bold shadow-md shadow-indigo-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                    <button type="submit" disabled={processing || isGettingLocation} className="w-full h-10 bg-indigo-600 text-white rounded-lg text-xs md:text-sm font-bold shadow-md shadow-indigo-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                                         {(processing || isGettingLocation) && (
                                             <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
                                         )}
@@ -1197,13 +1224,13 @@ export default function Index({ outlets, auditReports = [] }) {
                         <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 mb-4">
                             <ShieldExclamationIcon className="w-8 h-8" />
                         </div>
-                        <h4 className="text-sm font-black text-slate-800 text-center mb-2">Buang Perubahan?</h4>
+                        <h4 className="text-sm md:text-base font-black text-slate-800 text-center mb-2">Buang Perubahan?</h4>
                         <p className="text-[11px] text-slate-500 text-center mb-6 leading-relaxed">
                             Anda memiliki form yang belum disimpan. Yakin ingin membuang semua perubahan?
                         </p>
                         <div className="flex w-full gap-3">
-                            <button onClick={() => setShowDiscardModal(false)} className="flex-1 h-11 border border-slate-200 bg-white rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50">Lanjut Edit</button>
-                            <button onClick={() => { setShowDiscardModal(false); setDetailOutlet(null); setShowNoPhotoWarning(false); }} className="flex-1 h-11 bg-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/20 hover:bg-amber-600">Ya, Buang</button>
+                            <button onClick={() => setShowDiscardModal(false)} className="flex-1 h-11 border border-slate-200 bg-white rounded-xl text-xs md:text-sm font-bold text-slate-700 hover:bg-slate-50">Lanjut Edit</button>
+                            <button onClick={() => { setShowDiscardModal(false); setDetailOutlet(null); setShowNoPhotoWarning(false); }} className="flex-1 h-11 bg-amber-500 text-white rounded-xl text-xs md:text-sm font-bold shadow-md shadow-amber-500/20 hover:bg-amber-600">Ya, Buang</button>
                         </div>
                     </div>
                 </div>
@@ -1217,13 +1244,13 @@ export default function Index({ outlets, auditReports = [] }) {
                         <div className="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 mb-4">
                             <TrashIcon className="w-8 h-8" />
                         </div>
-                        <h4 className="text-sm font-black text-slate-800 text-center mb-2">Hapus Hasil Audit?</h4>
+                        <h4 className="text-sm md:text-base font-black text-slate-800 text-center mb-2">Hapus Hasil Audit?</h4>
                         <p className="text-[11px] text-slate-500 text-center mb-6 leading-relaxed">
                             Tindakan ini tidak dapat dibatalkan. Hasil audit untuk toko <br/><span className="font-bold text-slate-800">{deletingReport.customer_name}</span> akan dihapus permanen.
                         </p>
                         <div className="flex w-full gap-3">
-                            <button onClick={() => setDeletingReport(null)} className="flex-1 h-11 border border-slate-200 bg-white rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50">Batal</button>
-                            <button onClick={confirmDeleteReport} className="flex-1 h-11 bg-rose-600 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-600/20 hover:bg-rose-700">Ya, Hapus</button>
+                            <button onClick={() => setDeletingReport(null)} className="flex-1 h-11 border border-slate-200 bg-white rounded-xl text-xs md:text-sm font-bold text-slate-700 hover:bg-slate-50">Batal</button>
+                            <button onClick={confirmDeleteReport} className="flex-1 h-11 bg-rose-600 text-white rounded-xl text-xs md:text-sm font-bold shadow-md shadow-rose-600/20 hover:bg-rose-700">Ya, Hapus</button>
                         </div>
                     </div>
                 </div>
@@ -1234,10 +1261,10 @@ export default function Index({ outlets, auditReports = [] }) {
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm" onClick={() => setZoomedImage(null)}></div>
                     <div className="relative w-full max-w-sm max-h-[80vh] flex flex-col items-center justify-center animate-fade-in z-[61]">
-                        <button onClick={() => setZoomedImage(null)} className="absolute -top-12 right-0 text-white/80 hover:text-white p-2 rounded-full bg-slate-800/50">
+                        <button onClick={() => setZoomedImage(null)} className="fixed top-4 right-4 md:top-6 md:right-6 text-white/80 hover:text-white p-2.5 rounded-full bg-slate-800/80 hover:bg-slate-700/80 backdrop-blur-sm z-[70] shadow-lg transition-colors">
                             <XMarkIcon className="w-6 h-6" />
                         </button>
-                        <img src={zoomedImage} alt="Zoomed" className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl ring-1 ring-white/10" />
+                        <img src={zoomedImage} alt="Zoomed" className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl ring-1 ring-white/10 relative z-[61]" />
                     </div>
                 </div>
             )}
@@ -1249,7 +1276,7 @@ export default function Index({ outlets, auditReports = [] }) {
                     color: 'white'
                 }}>
                     {toast.type === 'success' ? <CheckCircleIcon className="w-5 h-5" /> : <XCircleIcon className="w-5 h-5" />}
-                    <span className="text-xs font-bold tracking-wide">{toast.message}</span>
+                    <span className="text-xs md:text-sm font-bold tracking-wide">{toast.message}</span>
                 </div>
             )}
 
@@ -1261,13 +1288,13 @@ export default function Index({ outlets, auditReports = [] }) {
                         <div className="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 mb-4">
                             <ShieldExclamationIcon className="w-8 h-8" />
                         </div>
-                        <h4 className="text-sm font-black text-slate-800 text-center mb-2">Ganti Auditor?</h4>
+                        <h4 className="text-sm md:text-base font-black text-slate-800 text-center mb-2">Ganti Auditor?</h4>
                         <p className="text-[11px] text-slate-500 text-center mb-6 leading-relaxed">
                             Apakah Anda yakin ingin keluar dari identitas auditor saat ini? Data yang belum tersimpan akan hilang.
                         </p>
                         <div className="flex w-full gap-3">
-                            <button onClick={() => setShowLogoutModal(false)} className="flex-1 h-11 border border-slate-200 bg-white rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50">Batal</button>
-                            <button onClick={confirmLogoutAuditor} className="flex-1 h-11 bg-rose-600 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-600/20 hover:bg-rose-700">Ya, Ganti</button>
+                            <button onClick={() => setShowLogoutModal(false)} className="flex-1 h-11 border border-slate-200 bg-white rounded-xl text-xs md:text-sm font-bold text-slate-700 hover:bg-slate-50">Batal</button>
+                            <button onClick={confirmLogoutAuditor} className="flex-1 h-11 bg-rose-600 text-white rounded-xl text-xs md:text-sm font-bold shadow-md shadow-rose-600/20 hover:bg-rose-700">Ya, Ganti</button>
                         </div>
                     </div>
                 </div>

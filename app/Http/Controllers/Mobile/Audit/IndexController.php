@@ -61,6 +61,7 @@ class IndexController extends Controller
             ->leftJoin('master_distributors as md', 'l.distributor_code', '=', 'md.distributor_code')
             ->leftJoin('reward_outlet as ro', 'l.customer_code', '=', 'ro.eskalink_code')
             ->leftJoin('hasil_audit_toko as hat', 'hat.customer_code', '=', 'l.customer_code')
+            ->distinct()
             ->get();
 
         $auditReports = DB::table('hasil_audit_toko as hat')
