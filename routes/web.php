@@ -102,6 +102,13 @@ Route::delete('/mobile/audit/{id}', [\App\Http\Controllers\Mobile\Audit\IndexCon
 Route::get('/mobile/audit/export', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'export'])->name('mobile.audit.export');
 Route::post('/mobile/audit/login', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'loginAuditor'])->name('mobile.audit.login');
 Route::post('/mobile/audit/logout', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'logoutAuditor'])->name('mobile.audit.logout');
+
+Route::get('/mobile/perbaikan-tikor', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'index'])->name('mobile.perbaikan.tikor.index');
+Route::post('/mobile/perbaikan-tikor', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'store'])->name('mobile.perbaikan.tikor.store');
+Route::get('/mobile/perbaikan-tikor/search-sales', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'searchSales'])->name('mobile.perbaikan.tikor.search-sales');
+Route::post('/mobile/perbaikan-tikor/login', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'loginSales'])->name('mobile.perbaikan.tikor.login');
+Route::post('/mobile/perbaikan-tikor/logout', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'logoutSales'])->name('mobile.perbaikan.tikor.logout');
+
 Route::get('/mobile/monitoring-device', \App\Livewire\Mobile\MonitoringDeviceSe\Index::class)->name('mobile.monitoring-device.index');
 
 Route::middleware('guest')->group(function () {
