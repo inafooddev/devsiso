@@ -43,7 +43,8 @@ class IndexController extends Controller
                         WHEN ptt.customer_code IS NOT NULL THEN \'Sudah\'
                         ELSE \'Belum\'
                     END AS status_audit,
-                    ptt.status as status_perbaikan
+                    ptt.status as status_perbaikan,
+                    ptt.keterangan as keterangan_perbaikan
                 ')
                 ->leftJoin('distributor_implementasi_eskalink as die', 'die.eskalink_code', '=', 'f.kodecabang')
                 ->leftJoin('master_distributors as md', 'die.distributor_code', '=', 'md.distributor_code')

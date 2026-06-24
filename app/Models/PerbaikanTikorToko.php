@@ -31,6 +31,7 @@ class PerbaikanTikorToko extends Model
         'longitude',
         'status',
         'foto',
+        'keterangan',
         'timestamp',
     ];
 
