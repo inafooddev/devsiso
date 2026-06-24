@@ -5,6 +5,7 @@ namespace App\Livewire\Others\Perbaikantikor;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Url;
+use Livewire\Attributes\Computed;
 use App\Models\PerbaikanTikorToko;
 
 class Index extends Component
@@ -17,9 +18,24 @@ class Index extends Component
     #[Url]
     public $statusFilter = '';
 
+    #[Url]
+    public $dateStart = '';
+
+    #[Url]
+    public $dateEnd = '';
+
     public $keteranganReject = '';
     public $selectedId = null;
     public $selectedIds = [];
+
+    public $selectAll = false;
+
+    #[Computed]
+    public function selectedPendingCount()
+    {
+        if (empty($this->selectedIds)) return 0;
+        return PerbaikanTikorToko::whereIn('id', $this->selectedIds)->where('status', 'Pending')->count();
+    }
 
     public function updatingSearch()
     {
@@ -29,6 +45,30 @@ class Index extends Component
     public function updatingStatusFilter()
     {
         $this->resetPage();
+    }
+
+    public function updatingDateStart()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingDateEnd()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingSelectAll($value)
+    {
+        if ($value) {
+            $this->selectedIds = $this->filteredQuery->pluck('id')->map(fn($id) => (string) $id)->toArray();
+        } else {
+            $this->selectedIds = [];
+        }
+    }
+
+    public function updatingSelectedIds()
+    {
+        $this->selectAll = false;
     }
 
     public function approve($id)
@@ -59,6 +99,20 @@ class Index extends Component
         $this->selectedIds = [];
     }
 
+    public function export()
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\PerbaikanTikorExport(
+                $this->search, 
+                $this->statusFilter, 
+                $this->dateStart, 
+                $this->dateEnd, 
+                $this->selectedIds
+            ), 
+            'perbaikan_tikor_toko_' . now()->format('Ymd_His') . '.xlsx'
+        );
+    }
+
     public function promptReject($id)
     {
         $this->selectedId = $id;
@@ -85,9 +139,22 @@ class Index extends Component
         }
     }
 
-    public function render()
+    private function baseQuery()
     {
-        $query = PerbaikanTikorToko::query()
+        $query = PerbaikanTikorToko::query();
+        
+        $user = auth()->user();
+        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
+            $query->whereIn('region_code', is_array($user->region_code) ? $user->region_code : [$user->region_code]);
+        }
+
+        return $query;
+    }
+
+    #[Computed]
+    public function filteredQuery()
+    {
+        $query = $this->baseQuery()
             ->with(['customerPrcEska', 'distributorImplementasiEskalink']);
 
         if ($this->search) {
@@ -105,6 +172,14 @@ class Index extends Component
             $query->where('status', $this->statusFilter);
         }
 
+        if ($this->dateStart) {
+            $query->whereDate('created_at', '>=', $this->dateStart);
+        }
+
+        if ($this->dateEnd) {
+            $query->whereDate('created_at', '<=', $this->dateEnd);
+        }
+
         $query->orderByRaw("
             CASE 
                 WHEN status = 'Pending' THEN 1 
@@ -114,18 +189,35 @@ class Index extends Component
             END
         ")->orderBy('created_at', 'desc');
 
-        $data = $query->paginate(30);
+        return $query;
+    }
+
+    public function render()
+    {
+        $query = clone $this->filteredQuery;
+        
+        $data = $query->paginate(100);
 
         $kpi = [
-            'total' => PerbaikanTikorToko::count(),
-            'pending' => PerbaikanTikorToko::where('status', 'Pending')->count(),
-            'approved' => PerbaikanTikorToko::where('status', 'Approved')->count(),
-            'rejected' => PerbaikanTikorToko::where('status', 'Rejected')->count(),
+            'total' => $this->baseQuery()->count(),
+            'pending' => $this->baseQuery()->where('status', 'Pending')->count(),
+            'approved' => $this->baseQuery()->where('status', 'Approved')->count(),
+            'rejected' => $this->baseQuery()->where('status', 'Rejected')->count(),
         ];
+
+        $duplicates = PerbaikanTikorToko::selectRaw('distributor_code, customer_code')
+            ->groupBy('distributor_code', 'customer_code')
+            ->havingRaw('COUNT(*) > 1')
+            ->get()
+            ->map(function ($item) {
+                return $item->distributor_code . '_' . $item->customer_code;
+            })
+            ->toArray();
 
         return view('livewire.others.perbaikantikor.index', [
             'data' => $data,
-            'kpi' => $kpi
+            'kpi' => $kpi,
+            'duplicates' => $duplicates
         ])->layout('layouts.app');
     }
 }

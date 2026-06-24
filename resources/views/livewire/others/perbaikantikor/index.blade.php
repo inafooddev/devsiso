@@ -112,6 +112,13 @@
                     <x-heroicon-o-magnifying-glass class="w-4 h-4 absolute left-2.5 top-2.5 text-base-content/50" />
                 </div>
                 
+                {{-- Filter Date Range --}}
+                <div class="flex items-center gap-1">
+                    <input wire:model.live="dateStart" type="date" class="input input-sm input-bordered rounded-xl bg-base-100 border-base-300 w-[115px]" title="Mulai Tanggal" />
+                    <span class="text-xs font-bold text-base-content/40">-</span>
+                    <input wire:model.live="dateEnd" type="date" class="input input-sm input-bordered rounded-xl bg-base-100 border-base-300 w-[115px]" title="Sampai Tanggal" />
+                </div>
+
                 {{-- Filter Status --}}
                 <select wire:model.live="statusFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0">
                     <option value="">Semua Status</option>
@@ -122,12 +129,12 @@
 
                 {{-- Actions Button (Optional Export dll) --}}
                 <div class="flex flex-wrap items-center gap-1 md:gap-2">
-                    @if(count($selectedIds) > 0)
-                        <button type="button" wire:click="bulkApprove" wire:confirm="Setujui {{ count($selectedIds) }} usulan perbaikan terpilih?" class="btn btn-sm btn-success text-white shadow-sm">
-                            <x-heroicon-s-check-circle class="w-4 h-4" /> Terima Terpilih ({{ count($selectedIds) }})
+                    @if($this->selectedPendingCount > 0)
+                        <button type="button" wire:click="bulkApprove" wire:confirm="Setujui {{ $this->selectedPendingCount }} usulan perbaikan terpilih?" class="btn btn-sm btn-success text-white shadow-sm">
+                            <x-heroicon-s-check-circle class="w-4 h-4" /> Terima Terpilih ({{ $this->selectedPendingCount }})
                         </button>
                     @endif
-                    <x-ui.action-button type="export" />
+                    <x-ui.action-button type="export" wire:click="export" />
                 </div>
             </div>
         </div>
@@ -138,10 +145,10 @@
                 <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
                     <tr>
                         <th class="w-10 text-center px-2">
-                            <x-heroicon-o-check class="w-4 h-4 inline-block text-base-content/50" />
+                            <input type="checkbox" wire:model.live="selectAll" class="checkbox checkbox-sm checkbox-success rounded" title="Pilih Semua (Select All)" />
                         </th>
                         <th class="w-12">No</th>
-                        <th>Tanggal</th>
+
                         <th>Distributor</th>
                         <th>Kode Sales</th>
                         <th>Kode Toko</th>
@@ -149,6 +156,8 @@
                         <th>Koordinat</th>
                         <th>Map</th>
                         <th class="text-center">Status</th>
+                        <th>Waktu Pengajuan</th>
+                        <th>Waktu Proses</th>
                         <th class="text-center bg-base-200 shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] w-48">Aksi</th>
                     </tr>
                 </thead>
@@ -156,16 +165,19 @@
                     @forelse($data as $index => $item)
                     <tr class="hover:bg-base-200/50 transition-colors {{ in_array($item->id, $selectedIds) ? 'bg-success/5' : '' }}">
                         <th class="text-center px-2">
-                            @if($item->status == 'Pending')
-                                <input type="checkbox" wire:model.live="selectedIds" value="{{ $item->id }}" class="checkbox checkbox-sm checkbox-success rounded" />
-                            @endif
+                            <input type="checkbox" wire:model.live="selectedIds" value="{{ $item->id }}" class="checkbox checkbox-sm checkbox-success rounded" />
                         </th>
                         <th class="text-base-content/60">{{ $data->firstItem() + $index }}</th>
-                        <td>{{ $item->created_at->format('d M Y H:i') }}</td>
+
                         <td class="font-bold">{{ $item->distributorImplementasiEskalink->distributor_name ?? $item->distributor_code }}</td>
                         <td class="font-mono">{{ $item->sales_code }}</td>
                         <td class="font-mono">{{ $item->customer_code }}</td>
-                        <td class="font-bold">{{ $item->exact_customer->custname ?? 'N/A' }}</td>
+                        <td class="font-bold {{ in_array($item->distributor_code . '_' . $item->customer_code, $duplicates) ? 'text-rose-600' : '' }}">
+                            {{ $item->exact_customer->custname ?? 'N/A' }}
+                            @if(in_array($item->distributor_code . '_' . $item->customer_code, $duplicates))
+                                <span class="badge badge-[10px] badge-error text-[9px] text-white ml-1 px-1 py-0 h-4" title="Toko ini diajukan lebih dari sekali">Berulang</span>
+                            @endif
+                        </td>
                         <td class="font-mono">
                             <button type="button" @click="navigator.clipboard.writeText('{{ $item->latitude }}, {{ $item->longitude }}'); copyToast.message = 'Koordinat disalin!'; copyToast.show = true; setTimeout(() => copyToast.show = false, 2500);" class="hover:text-info flex items-center gap-1 group transition-colors" title="Klik untuk Copy Koordinat">
                                 {{ $item->latitude }}, {{ $item->longitude }}
@@ -205,6 +217,22 @@
                                 <button type="button" @click="reasonText = '{{ addslashes($item->keterangan ?? 'Tidak ada keterangan') }}'; showReasonModal = true;" class="badge badge-sm badge-outline badge-error cursor-pointer hover:bg-error/10 transition-colors" title="Klik untuk lihat alasan">Rejected</button>
                             @else
                                 <span class="badge badge-sm badge-outline badge-warning">Pending</span>
+                            @endif
+                        </td>
+                        <td>
+                            <div class="flex items-center gap-1 font-medium text-xs" title="Waktu Pengajuan (Sales)">
+                                <x-heroicon-s-arrow-up-circle class="w-3.5 h-3.5 text-base-content/40" />
+                                <span>{{ $item->created_at->format('d M Y H:i') }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            @if($item->status != 'Pending')
+                                <div class="flex items-center gap-1 text-xs text-base-content/60" title="Waktu Pengerjaan (Admin)">
+                                    <x-heroicon-s-check-circle class="w-3.5 h-3.5 {{ $item->status == 'Approved' ? 'text-success' : 'text-error' }}" />
+                                    <span>{{ $item->updated_at->format('d M Y H:i') }}</span>
+                                </div>
+                            @else
+                                <span class="text-base-content/30 italic text-[10px]">-</span>
                             @endif
                         </td>
                         <th class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">

@@ -13,6 +13,7 @@
         {{-- Mapping Notifications --}}
         @hasanyrole('admin|user|edp')
             @livewire('mapping-notification')
+            @livewire('perbaikan-tikor-notification')
         @endhasanyrole
 
         {{-- Theme Toggle --}}
