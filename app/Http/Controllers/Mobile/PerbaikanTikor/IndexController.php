@@ -160,6 +160,7 @@ class IndexController extends Controller
             'latitude' => ($request->latitude && $request->latitude !== '0') ? $request->latitude : null,
             'longitude' => ($request->longitude && $request->longitude !== '0') ? $request->longitude : null,
             'status' => 'Pending',
+            'keterangan' => null,
             'timestamp' => now(),
             'updated_at' => now(),
         ];

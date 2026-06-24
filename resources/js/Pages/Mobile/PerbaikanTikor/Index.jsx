@@ -318,7 +318,17 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                     clearInterval(intervalRef.current);
                     if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
                     setIsGettingLocation(false);
-                    showToast('Pencarian GPS selesai. Titik dikunci!', 'success');
+                    if (localBestAccuracy === Infinity) {
+                        showToast('Gagal mendapatkan sinyal GPS. Silakan coba lagi.', 'error');
+                        setData(d => ({ ...d, latitude: '', longitude: '' }));
+                        setBestAccuracy(null);
+                    } else if (localBestAccuracy > 15) {
+                        showToast(`Akurasi ditolak (${Math.round(localBestAccuracy)}m). Minimal akurasi 15m. Silakan ke area terbuka!`, 'error');
+                        setData(d => ({ ...d, latitude: '', longitude: '' }));
+                        setBestAccuracy(null);
+                    } else {
+                        showToast(`Pencarian selesai! Titik dikunci (Akurasi: ${Math.round(localBestAccuracy)}m)`, 'success');
+                    }
                     return 0;
                 }
                 return prev - 1;
@@ -649,10 +659,17 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                                         Map
                                     </a>
                                 )}
-                                <button onClick={() => openDetail(outlet)} className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 text-[10px] font-bold uppercase tracking-wide hover:bg-indigo-100">
-                                    <InformationCircleIcon className="w-3.5 h-3.5" />
-                                    Perbaiki Tikor
-                                </button>
+                                {outlet.status_perbaikan && outlet.status_perbaikan.toLowerCase() === 'pending' ? (
+                                    <button disabled className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-slate-100 text-slate-400 border border-slate-200 text-[10px] font-bold uppercase tracking-wide cursor-not-allowed opacity-75">
+                                        <InformationCircleIcon className="w-3.5 h-3.5" />
+                                        Menunggu ACC
+                                    </button>
+                                ) : (
+                                    <button onClick={() => openDetail(outlet)} className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 text-[10px] font-bold uppercase tracking-wide hover:bg-indigo-100">
+                                        <InformationCircleIcon className="w-3.5 h-3.5" />
+                                        Perbaiki Tikor
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )) : (
