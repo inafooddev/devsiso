@@ -18,10 +18,11 @@ class IndexController extends Controller
             $salesName = DB::table('fsalesman')->where('SLSNO', $salesCode)->value('SLSNAME') ?? $salesCode;
         }
         
-        $outlets = collect();
+        $tokoList = collect();
+        $riwayatPerbaikan = collect();
 
         if ($salesCode) {
-            $outlets = DB::table('frute as f')
+            $tokoList = DB::table('frute as f')
                 ->selectRaw('
                     f.region as region_code,
                     md.region_name,
@@ -36,15 +37,7 @@ class IndexController extends Controller
                     cpe.custadd1 as address,
                     cpe.la as latitude,
                     cpe.lg as longitude,
-                    ptt.latitude as audit_latitude,
-                    ptt.longitude as audit_longitude,
-                    ptt.foto as foto_audit,
-                    CASE
-                        WHEN ptt.customer_code IS NOT NULL THEN \'Sudah\'
-                        ELSE \'Belum\'
-                    END AS status_audit,
-                    ptt.status as status_perbaikan,
-                    ptt.keterangan as keterangan_perbaikan
+                    ptt.status as status_perbaikan
                 ')
                 ->leftJoin('distributor_implementasi_eskalink as die', 'die.eskalink_code', '=', 'f.kodecabang')
                 ->leftJoin('master_distributors as md', 'die.distributor_code', '=', 'md.distributor_code')
@@ -56,10 +49,19 @@ class IndexController extends Controller
                     $join->on('cpe.kodecabang', '=', 'f.kodecabang')
                          ->on('cpe.custno', '=', 'f.custno');
                 })
-                ->leftJoin('perbaikan_tikor_toko as ptt', function($join) {
-                    $join->on('ptt.distributor_code', '=', 'f.kodecabang')
-                         ->on('ptt.customer_code', '=', 'f.custno');
-                })
+                ->leftJoinSub(
+                    DB::table('perbaikan_tikor_toko')
+                        ->whereIn('id', function($q) {
+                            $q->select(DB::raw('MAX(id)'))
+                              ->from('perbaikan_tikor_toko')
+                              ->groupBy('distributor_code', 'customer_code');
+                        }),
+                    'ptt',
+                    function($join) {
+                        $join->on('ptt.distributor_code', '=', 'f.kodecabang')
+                             ->on('ptt.customer_code', '=', 'f.custno');
+                    }
+                )
                 ->where('md.is_active', true)
                 ->where('md.region_code', '<>', 'HOINA')
                 ->where('f.slsno', $salesCode)
@@ -67,10 +69,42 @@ class IndexController extends Controller
                 ->orderBy('f.custno')
                 ->limit(500)
                 ->get();
+
+            $riwayatPerbaikan = DB::table('perbaikan_tikor_toko as ptt')
+                ->selectRaw('
+                    ptt.id,
+                    ptt.region_code,
+                    ptt.area_code,
+                    ptt.distributor_code,
+                    ptt.sales_code,
+                    ptt.customer_code,
+                    ptt.latitude as audit_latitude,
+                    ptt.longitude as audit_longitude,
+                    ptt.foto as foto_audit,
+                    ptt.status as status_perbaikan,
+                    ptt.keterangan as keterangan_perbaikan,
+                    ptt.created_at,
+                    cpe.custname as customer_name,
+                    cpe.custadd1 as address,
+                    cpe.la as latitude,
+                    cpe.lg as longitude,
+                    md.distributor_name,
+                    md.area_name
+                ')
+                ->leftJoin('customer_prc_eska as cpe', function($join) {
+                    $join->on('cpe.kodecabang', '=', 'ptt.distributor_code')
+                         ->on('cpe.custno', '=', 'ptt.customer_code');
+                })
+                ->leftJoin('master_distributors as md', 'ptt.distributor_code', '=', 'md.distributor_code')
+                ->where('ptt.sales_code', $salesCode)
+                ->orderBy('ptt.created_at', 'desc')
+                ->limit(500)
+                ->get();
         }
 
         return Inertia::render('Mobile/PerbaikanTikor/Index', [
-            'outlets' => $outlets,
+            'tokoList' => $tokoList,
+            'riwayatPerbaikan' => $riwayatPerbaikan,
             'sessionSalesCode' => $salesCode,
             'sessionSalesName' => $salesName,
         ]);
@@ -194,22 +228,8 @@ class IndexController extends Controller
             $data['foto'] = $path;
         }
 
-        $existing = DB::table('perbaikan_tikor_toko')
-            ->where('distributor_code', $request->distributor_code)
-            ->where('customer_code', $request->customer_code)
-            ->first();
-
-        if (!$existing) {
-            $data['created_at'] = now();
-        }
-
-        DB::table('perbaikan_tikor_toko')->updateOrInsert(
-            [
-                'distributor_code' => $request->distributor_code,
-                'customer_code' => $request->customer_code
-            ],
-            $data
-        );
+        $data['created_at'] = now();
+        DB::table('perbaikan_tikor_toko')->insert($data);
 
         return redirect()->back()->with('success', 'Perbaikan koordinat toko berhasil disimpan.');
     }

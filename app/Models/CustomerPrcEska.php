@@ -45,7 +45,5 @@ class CustomerPrcEska extends Model
      */
     protected $casts = [
         'bln' => 'date',
-        'la' => 'decimal:8',
-        'lg' => 'decimal:8',
     ];
 }

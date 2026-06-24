@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import {
     MagnifyingGlassIcon, XMarkIcon, MapPinIcon, ShieldCheckIcon,
-    AdjustmentsHorizontalIcon, InformationCircleIcon, MapIcon, CameraIcon,
+    InformationCircleIcon, MapIcon, CameraIcon,
     BuildingStorefrontIcon as BuildingStorefrontOutline, ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline';
 import { ShieldExclamationIcon, BuildingStorefrontIcon } from '@heroicons/react/24/solid';
@@ -32,35 +32,39 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371;
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
-    const a = 
+    const a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-        Math.sin(dLon / 2) * Math.sin(dLon / 2); 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 };
 
-export default function Index({ outlets = [], sessionSalesCode, sessionSalesName }) {
+export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSalesCode, sessionSalesName }) {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
-    const [isFormTouched, setIsFormTouched] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [isLoginLoading, setIsLoginLoading] = useState(false);
     const [toast, setToast] = useState(null);
+    const toastTimerRef = useRef(null);
 
     // Login Form State
     const [loginSalesCode, setLoginSalesCode] = useState('');
 
+    // FIX #10: Toast timer cleared before each new toast to prevent stale timer conflicts
     const showToast = (message, type = 'success') => {
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
         setToast({ message, type });
-        setTimeout(() => setToast(null), type === 'error' ? 5000 : 3000);
+        toastTimerRef.current = setTimeout(() => setToast(null), type === 'error' ? 5000 : 3000);
     };
 
+    // FIX #24: Login button has loading guard to prevent double-submit
     const handleLogin = (e) => {
         e.preventDefault();
-        if (!loginSalesCode) {
-            showToast('Silakan isi kode sales terlebih dahulu.', 'error');
-            return;
-        }
+        if (!loginSalesCode || isLoginLoading) return;
+        setIsLoginLoading(true);
         router.post('/mobile/perbaikan-tikor/login', { sales_code: loginSalesCode }, {
             onError: (errors) => {
+                setIsLoginLoading(false);
                 if (errors.sales_code) {
                     showToast(errors.sales_code, 'error');
                 }
@@ -72,86 +76,42 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
     };
 
     const handleLogout = () => setShowLogoutModal(true);
+
+    // FIX #8: Logout button has loading guard to prevent double-submit
     const confirmLogout = () => {
+        if (isLoggingOut) return;
+        setIsLoggingOut(true);
         router.post('/mobile/perbaikan-tikor/logout', {}, {
             onSuccess: () => {
                 window.location.href = '/mobile/perbaikan-tikor';
-            }
+            },
+            onError: () => setIsLoggingOut(false),
         });
     };
 
     // --- Filtering and Display Logic ---
-    const [activeTab, setActiveTab] = useState('toko'); // 'toko' or 'laporan'
+    const [activeTab, setActiveTab] = useState('toko');
     const [search, setSearch] = useState('');
-    const [selectedRegion, setSelectedRegion] = useState('');
-    const [selectedArea, setSelectedArea] = useState('');
-    const [selectedDistributor, setSelectedDistributor] = useState('');
-    
-    const [appliedSearch, setAppliedSearch] = useState('');
-    const [appliedRegion, setAppliedRegion] = useState('');
-    const [appliedArea, setAppliedArea] = useState('');
-    const [appliedDistributor, setAppliedDistributor] = useState('');
+    const [selectedStatusFilter, setSelectedStatusFilter] = useState(''); // FIX #20: moved above early return
 
-    const [filteredOutlets, setFilteredOutlets] = useState([]);
-    const [showFiltersSheet, setShowFiltersSheet] = useState(false);
     const [detailOutlet, setDetailOutlet] = useState(null);
     const [displayLimit, setDisplayLimit] = useState(30);
 
-    const isFiltered = appliedSearch || appliedRegion || appliedArea || appliedDistributor;
-
-    const regions = useMemo(() => [...new Set((outlets || []).map(o => o.region_name).filter(Boolean))].sort(), [outlets]);
-    const areas = useMemo(() => [...new Set((outlets || [])
-        .filter(o => !selectedRegion || o.region_name === selectedRegion)
-        .map(o => o.area_name).filter(Boolean))].sort(), [outlets, selectedRegion]);
-    const distributors = useMemo(() => [...new Set((outlets || [])
-        .filter(o => (!selectedRegion || o.region_name === selectedRegion) && (!selectedArea || o.area_name === selectedArea))
-        .map(o => o.distributor_name).filter(Boolean))].sort(), [outlets, selectedRegion, selectedArea]);
-
-    useEffect(() => {
-        let result = outlets || [];
-        
-        if (appliedRegion) result = result.filter(o => o.region_name === appliedRegion);
-        if (appliedArea) result = result.filter(o => o.area_name === appliedArea);
-        if (appliedDistributor) result = result.filter(o => o.distributor_name === appliedDistributor);
-
-        if (appliedSearch) {
-            const q = appliedSearch.toLowerCase();
-            result = result.filter(o => 
-                (o.customer_name && o.customer_name.toLowerCase().includes(q)) || 
-                (o.customer_code && o.customer_code.toLowerCase().includes(q)) ||
-                (o.distributor_name && o.distributor_name.toLowerCase().includes(q))
-            );
-        }
-        
-        setDisplayLimit(30);
-        setFilteredOutlets(result);
-    }, [appliedSearch, appliedRegion, appliedArea, appliedDistributor, outlets]);
-
-    const applyFilters = () => {
-        setAppliedRegion(selectedRegion);
-        setAppliedArea(selectedArea);
-        setAppliedDistributor(selectedDistributor);
-        setShowFiltersSheet(false);
-    };
-
     const handleSearchSubmit = (e) => {
         e.preventDefault();
-        setAppliedSearch(search);
         if (document.activeElement) document.activeElement.blur();
     };
 
     const clearSearch = () => {
         setSearch('');
-        setAppliedSearch('');
     };
 
-    const resetFilters = () => {
-        setSelectedRegion('');
-        setSelectedArea('');
-        setSelectedDistributor('');
-        setAppliedRegion('');
-        setAppliedArea('');
-        setAppliedDistributor('');
+    // FIX #2, #3: Reset status filter and display limit when switching tabs
+    const handleTabSwitch = (tab) => {
+        setActiveTab(tab);
+        setSelectedStatusFilter('');
+        setDisplayLimit(30);
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // FIX #23
     };
 
     // --- Detail/Form Logic ---
@@ -170,6 +130,7 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
     const [previewUrl, setPreviewUrl] = useState(null);
     const [isGettingLocation, setIsGettingLocation] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    // FIX #4: showNoPhotoWarning is now properly set to true on failed submit
     const [showNoPhotoWarning, setShowNoPhotoWarning] = useState(false);
     const isSubmittingRef = useRef(false);
 
@@ -194,10 +155,9 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
     }, [data.foto]);
 
     const openDetail = (outlet) => {
-        setIsFormTouched(false);
         setDetailOutlet(outlet);
         setShowNoPhotoWarning(false);
-        
+
         if (fileInputRef.current) fileInputRef.current.value = '';
 
         const actLat = outlet.latitude;
@@ -212,8 +172,8 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
             distributor_code: outlet.distributor_code || '',
             sales_code: outlet.sales_code || sessionSalesCode || '',
             customer_code: outlet.customer_code || '',
-            latitude: outlet.audit_latitude || '',
-            longitude: outlet.audit_longitude || '',
+            latitude: '',  // FIX #28: start fresh — don't pre-fill old audit coords
+            longitude: '',
             foto: null,
         });
     };
@@ -224,26 +184,31 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
             setData('foto', null);
             return;
         }
-        if (file.size > 5242880) { // 5MB
+        if (file.size > 5242880) {
             showToast('Ukuran foto terlalu besar (Maks. 5MB)', 'error');
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }
-        setIsFormTouched(true);
+        setShowNoPhotoWarning(false); // clear warning when photo is selected
         setData('foto', file);
     };
 
+    // FIX #1 & #7: Clear previous GPS resources before starting new ones
     const fetchCurrentLocation = () => {
         if (!navigator.geolocation) {
             showToast('Browser Anda tidak mendukung GPS.', 'error');
             return;
         }
 
+        // Always clear any existing tracking before starting fresh
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+
         setIsGettingLocation(true);
         setTrackingTimer(10);
         setBestAccuracy(null);
         setData(prev => ({ ...prev, latitude: '', longitude: '' }));
-        
+
         let localBestAccuracy = Infinity;
 
         watchIdRef.current = navigator.geolocation.watchPosition(
@@ -259,8 +224,8 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                     }));
                 }
             },
-            (error) => {
-                console.error("GPS Error:", error);
+            (_error) => {
+                // FIX #15: Removed console.error, silent error handling
                 if (localBestAccuracy === Infinity) {
                     setIsGettingLocation(false);
                     clearInterval(intervalRef.current);
@@ -268,7 +233,7 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                     showToast('Gagal mengambil lokasi. Pastikan GPS menyala.', 'error');
                 }
             },
-            { enableHighAccuracy: true, maximumAge: 0 }
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 } // FIX #26: added timeout
         );
 
         intervalRef.current = setInterval(() => {
@@ -286,7 +251,7 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                         setData(d => ({ ...d, latitude: '', longitude: '' }));
                         setBestAccuracy(null);
                     } else {
-                        showToast(`Pencarian selesai! Titik dikunci (Akurasi: ${Math.round(localBestAccuracy)}m)`, 'success');
+                        showToast(`Titik dikunci! Akurasi: ${Math.round(localBestAccuracy)}m`, 'success');
                     }
                     return 0;
                 }
@@ -295,13 +260,13 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
         }, 1000);
     };
 
-    // Cleanup GPS & Map on close
+    // Cleanup GPS & Map on modal close
     useEffect(() => {
         if (!detailOutlet) {
             if (intervalRef.current) clearInterval(intervalRef.current);
             if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
             setIsGettingLocation(false);
-            
+
             if (leafletMapRef.current) {
                 leafletMapRef.current.remove();
                 leafletMapRef.current = null;
@@ -347,7 +312,7 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                       .bindPopup(`<b class="text-xs">Titik Baru</b><br/><span class="text-[10px]">Akurasi: ${bestAccuracy ? bestAccuracy.toFixed(1) + 'm' : '-'}</span>`)
                       .addTo(map);
             bounds.extend([newLat, newLng]);
-            
+
             if (actualLocation) {
                 m.line = L.polyline([[actualLocation.lat, actualLocation.lng], [newLat, newLng]], {
                     color: '#f43f5e',
@@ -360,33 +325,32 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
         if (bounds.isValid()) {
             map.fitBounds(bounds, { padding: [30, 30], maxZoom: 18 });
         } else {
-            map.setView([-6.2088, 106.8456], 5); // Default Indonesia
+            map.setView([-6.2088, 106.8456], 5);
         }
 
-        // Fix map not showing up correctly inside a modal due to sizing issues
-        setTimeout(() => {
-            map.invalidateSize();
-        }, 300);
+        // FIX #19: Increased to 500ms for slow devices, more reliable
+        setTimeout(() => { map.invalidateSize(); }, 500);
     }, [detailOutlet, actualLocation, data.latitude, data.longitude, bestAccuracy]);
 
     const submitForm = (e) => {
         e.preventDefault();
         if (isSubmittingRef.current || processing) return;
 
+        // FIX #4: properly activate visual warning AND show toast
         if (!data.foto) {
+            setShowNoPhotoWarning(true);
             showToast('Foto wajib dilampirkan sebagai bukti perbaikan.', 'error');
             return;
         }
 
         isSubmittingRef.current = true;
-        
+
         post('/mobile/perbaikan-tikor', {
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {
                 setDetailOutlet(null);
                 reset();
-                setIsFormTouched(false);
                 isSubmittingRef.current = false;
                 setShowSuccessModal(true);
             },
@@ -397,11 +361,50 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
         });
     };
 
+    // FIX #5: "Batal" closes modal with unsaved photo confirmation
+    const handleCloseDetail = () => {
+        if (data.foto) {
+            if (!confirm('Foto yang sudah diambil akan hilang. Yakin ingin membatalkan?')) return;
+        }
+        setDetailOutlet(null);
+    };
+
+    // --- displayedOutlets memo (FIX #20 resolved: selectedStatusFilter now declared before early return) ---
+    // ─── displayedOutlets memo ────────────────────────────────────────────────────────────
+    const displayedOutlets = useMemo(() => {
+        let result = activeTab === 'toko' ? tokoList : riwayatPerbaikan;
+
+        // Apply Search
+        if (search) {
+            const q = search.toLowerCase();
+            result = result.filter(o => 
+                (o.customer_name || '').toLowerCase().includes(q) || 
+                (o.customer_code || '').toLowerCase().includes(q) ||
+                (o.address || '').toLowerCase().includes(q)
+            );
+        }
+
+        if (activeTab === 'laporan') {
+            if (selectedStatusFilter) {
+                result = result.filter(o => o.status_perbaikan?.toLowerCase() === selectedStatusFilter);
+            }
+            const statusOrder = { pending: 1, rejected: 2, approved: 3 };
+            result = [...result].sort((a, b) => {
+                const orderA = statusOrder[a.status_perbaikan?.toLowerCase()] || 99;
+                const orderB = statusOrder[b.status_perbaikan?.toLowerCase()] || 99;
+                return orderA - orderB;
+            });
+        }
+
+        return result;
+    }, [tokoList, riwayatPerbaikan, activeTab, search, selectedStatusFilter]);
+
+    // ─── LOGIN SCREEN ────────────────────────────────────────────────────────────
     if (!sessionSalesCode) {
         return (
             <div className="w-full min-h-screen bg-gradient-to-br from-indigo-50 via-slate-50 to-indigo-100/50 flex items-center justify-center p-6">
                 <Head title="Login Sales - Perbaikan Tikor" />
-                
+
                 {toast && (
                     <div onClick={() => setToast(null)} className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 text-sm font-bold text-white transition-all cursor-pointer ${toast.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`}>
                         {toast.type === 'success' ? <ShieldCheckIcon className="w-5 h-5" /> : <ShieldExclamationIcon className="w-5 h-5" />}
@@ -415,25 +418,28 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                     </div>
                     <h2 className="text-sm md:text-base font-black uppercase tracking-wider text-slate-900 leading-tight text-center">Perbaikan Tikor Toko</h2>
                     <p className="text-[10px] font-bold text-indigo-600 tracking-widest uppercase mb-6 leading-none text-center">Login Sales</p>
-                    
+
                     <form onSubmit={handleLogin} className="w-full flex flex-col gap-4 relative">
                         <div className="relative">
                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Kode Sales</label>
-                            <input 
+                            <input
                                 type="text"
                                 value={loginSalesCode}
                                 onChange={(e) => setLoginSalesCode(e.target.value.toUpperCase())}
                                 placeholder="Ketik Kode Sales..."
-                                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-slate-800 bg-slate-50 uppercase"
+                                disabled={isLoginLoading}
+                                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-slate-800 bg-slate-50 uppercase disabled:opacity-60"
                             />
                         </div>
 
-                        <button 
-                            type="submit" 
-                            disabled={!loginSalesCode}
-                            className={`w-full py-3 rounded-xl text-white font-bold text-sm uppercase tracking-wider transition-all shadow-md ${!loginSalesCode ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}
+                        <button
+                            type="submit"
+                            disabled={!loginSalesCode || isLoginLoading}
+                            className={`w-full py-3 rounded-xl text-white font-bold text-sm uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 ${!loginSalesCode || isLoginLoading ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}
                         >
-                            Masuk
+                            {isLoginLoading ? (
+                                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Memproses...</>
+                            ) : 'Masuk'}
                         </button>
                     </form>
 
@@ -445,34 +451,17 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
         );
     }
 
-    const [selectedStatusFilter, setSelectedStatusFilter] = useState('');
-
-    const displayedOutlets = useMemo(() => {
-        let result = filteredOutlets.filter(o => activeTab === 'toko' ? !o.status_perbaikan : !!o.status_perbaikan);
-        
-        if (activeTab === 'laporan') {
-            if (selectedStatusFilter) {
-                result = result.filter(o => o.status_perbaikan?.toLowerCase() === selectedStatusFilter);
-            }
-            
-            const statusOrder = { pending: 1, rejected: 2, approved: 3 };
-            result.sort((a, b) => {
-                const orderA = statusOrder[a.status_perbaikan?.toLowerCase()] || 99;
-                const orderB = statusOrder[b.status_perbaikan?.toLowerCase()] || 99;
-                return orderA - orderB;
-            });
-        }
-        
-        return result;
-    }, [filteredOutlets, activeTab, selectedStatusFilter]);
-
+    // ─── MAIN APP ────────────────────────────────────────────────────────────────
     return (
         <div className="w-full min-h-screen bg-slate-50 text-slate-800 flex flex-col relative pb-10">
             <Head title="Perbaikan Tikor Toko" />
 
-            {/* Toast System */}
+            {/* Toast System — click to dismiss */}
             {toast && (
-                <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 text-sm font-bold text-white transition-all ${toast.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`}>
+                <div
+                    onClick={() => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); setToast(null); }}
+                    className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 text-sm font-bold text-white transition-all cursor-pointer ${toast.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                >
                     {toast.type === 'success' ? <ShieldCheckIcon className="w-5 h-5" /> : <ShieldExclamationIcon className="w-5 h-5" />}
                     {toast.message}
                 </div>
@@ -500,7 +489,7 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                                 </div>
                                 <span className="text-[10px] font-black text-slate-700 leading-none truncate max-w-[120px]">{sessionSalesName || sessionSalesCode}</span>
                             </div>
-                            <button 
+                            <button
                                 type="button"
                                 onClick={handleLogout}
                                 className="p-1.5 rounded-xl text-rose-500 bg-rose-50 hover:bg-rose-100 transition-colors border border-rose-100 shrink-0"
@@ -521,8 +510,8 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                             <MagnifyingGlassIcon className="w-5 h-5" />
                         </button>
                         <input value={search} onChange={(e) => setSearch(e.target.value)}
-                               type="search" 
-                               placeholder="Cari Toko/Kode..." 
+                               type="search"
+                               placeholder="Cari Toko/Kode..."
                                className="block w-full pl-10 pr-8 py-2 text-sm md:text-base border border-slate-200 rounded-xl bg-slate-50 focus:border-indigo-500 outline-none text-slate-800" />
                         {search && (
                             <button type="button" onClick={clearSearch} className="absolute right-3 text-slate-400 hover:text-slate-600">
@@ -533,28 +522,29 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                 </div>
 
                 {/* Tabs / Segmented Control */}
-                <div className="px-4 pb-4">
+                <div className="px-4 pb-3">
                     <div className="bg-slate-100 p-1 rounded-xl flex items-center w-full border border-slate-200/60">
-                        <button 
-                            onClick={() => setActiveTab('toko')}
+                        <button
+                            onClick={() => handleTabSwitch('toko')}
                             className={`flex-1 py-2.5 flex items-center justify-center gap-2 text-[10px] md:text-xs font-black uppercase tracking-wider rounded-lg transition-all duration-300 ${activeTab === 'toko' ? 'bg-white text-indigo-600 shadow-sm shadow-slate-200/50 border border-slate-200/50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         >
                             <BuildingStorefrontOutline className={`w-4 h-4 ${activeTab === 'toko' ? 'stroke-2' : ''}`} />
-                            Toko ({filteredOutlets.filter(o => !o.status_perbaikan).length})
+                            Toko ({tokoList.length})
                         </button>
-                        <button 
-                            onClick={() => setActiveTab('laporan')}
+                        <button
+                            onClick={() => handleTabSwitch('laporan')}
                             className={`flex-1 py-2.5 flex items-center justify-center gap-2 text-[10px] md:text-xs font-black uppercase tracking-wider rounded-lg transition-all duration-300 ${activeTab === 'laporan' ? 'bg-white text-indigo-600 shadow-sm shadow-slate-200/50 border border-slate-200/50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                         >
                             <ClipboardDocumentListIcon className={`w-4 h-4 ${activeTab === 'laporan' ? 'stroke-2' : ''}`} />
-                            Perbaikan ({filteredOutlets.filter(o => !!o.status_perbaikan).length})
+                            Riwayat ({riwayatPerbaikan.length})
                         </button>
                     </div>
                 </div>
 
+                {/* Status Filter — only shown on Perbaikan tab */}
                 {activeTab === 'laporan' && (
                     <div className="px-4 pb-3">
-                        <select 
+                        <select
                             value={selectedStatusFilter}
                             onChange={(e) => setSelectedStatusFilter(e.target.value)}
                             className="w-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-500 uppercase tracking-wider"
@@ -570,39 +560,53 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
 
             {/* Main Content */}
             <main className="flex-1 px-4 pt-4">
-                {/* Outlets List */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {displayedOutlets.length > 0 ? displayedOutlets.slice(0, displayLimit).map((outlet) => (
                         <div key={`${outlet.distributor_code}_${outlet.customer_code}`} className="border rounded-2xl p-4 shadow-sm flex flex-col gap-3.5 transition-all bg-white border-slate-100">
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
                                     {outlet.status_perbaikan && (
-                                        <div className="flex flex-col gap-1.5 mb-2">
-                                            <div className="flex flex-wrap items-center gap-1.5">
-                                                <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border ${
-                                                    outlet.status_perbaikan.toLowerCase() === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                                                    outlet.status_perbaikan.toLowerCase() === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                                                    outlet.status_perbaikan.toLowerCase() === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-200' :
-                                                    'bg-indigo-50 text-indigo-600 border-indigo-200'
-                                                }`}>
-                                                    Diperbaiki: {outlet.status_perbaikan}
-                                                </span>
-                                            </div>
-                                            {outlet.keterangan_perbaikan && (
-                                                <div className={`text-[9px] p-1.5 rounded-md border font-medium leading-tight ${
-                                                    outlet.status_perbaikan.toLowerCase() === 'rejected' 
-                                                        ? 'text-rose-600 bg-rose-50 border-rose-100'
-                                                        : 'text-slate-600 bg-slate-50 border-slate-100'
-                                                }`}>
-                                                    <span className="font-bold">Keterangan:</span> {outlet.keterangan_perbaikan}
+                                        activeTab === 'toko' ? (
+                                            outlet.status_perbaikan.toLowerCase() !== 'rejected' && (
+                                                <div className="flex flex-col gap-1.5 mb-2">
+                                                    <div className="flex flex-wrap items-center gap-1.5">
+                                                        <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border ${
+                                                            outlet.status_perbaikan.toLowerCase() === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                                            'bg-emerald-50 text-emerald-600 border-emerald-200'
+                                                        }`}>
+                                                            {outlet.status_perbaikan.toLowerCase() === 'pending' ? 'Pending' : 'Sudah Pernah Perbaikan'}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
+                                            )
+                                        ) : (
+                                            <div className="flex flex-col gap-1.5 mb-2">
+                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                    <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border ${
+                                                        outlet.status_perbaikan.toLowerCase() === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                                        outlet.status_perbaikan.toLowerCase() === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                                                        outlet.status_perbaikan.toLowerCase() === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-200' :
+                                                        'bg-indigo-50 text-indigo-600 border-indigo-200'
+                                                    }`}>
+                                                        Status: {outlet.status_perbaikan}
+                                                    </span>
+                                                </div>
+                                                {outlet.keterangan_perbaikan && (
+                                                    <div className={`text-[9px] p-1.5 rounded-md border font-medium leading-tight ${
+                                                        outlet.status_perbaikan.toLowerCase() === 'rejected'
+                                                            ? 'text-rose-600 bg-rose-50 border-rose-100'
+                                                            : 'text-slate-600 bg-slate-50 border-slate-100'
+                                                    }`}>
+                                                        <span className="font-bold">Keterangan:</span> {outlet.keterangan_perbaikan}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )
                                     )}
                                     <h4 className="text-xs md:text-sm font-black text-slate-800 tracking-tight leading-snug truncate">
                                         {outlet.customer_code} - {outlet.customer_name}
                                     </h4>
-                                    
+
                                     <div className="flex flex-col gap-1 mt-2">
                                         <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium">
                                             <MapPinIcon className="w-3 h-3 shrink-0 text-slate-400" />
@@ -615,25 +619,33 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                                     </div>
                                 </div>
                             </div>
-                            
+
                             {/* Action Buttons */}
                             <div className="flex items-center gap-2 mt-2 pt-3 border-t border-slate-100">
                                 {outlet.latitude && outlet.longitude && (
                                     <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.latitude},${outlet.longitude}`} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-bold uppercase tracking-wide hover:bg-emerald-100">
                                         <MapIcon className="w-3.5 h-3.5" />
-                                        Map
+                                        Map Lama
                                     </a>
                                 )}
-                                {outlet.status_perbaikan && outlet.status_perbaikan.toLowerCase() === 'pending' ? (
-                                    <button disabled className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-slate-100 text-slate-400 border border-slate-200 text-[10px] font-bold uppercase tracking-wide cursor-not-allowed opacity-75">
-                                        <InformationCircleIcon className="w-3.5 h-3.5" />
-                                        Menunggu ACC
-                                    </button>
-                                ) : (
-                                    <button onClick={() => openDetail(outlet)} className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 text-[10px] font-bold uppercase tracking-wide hover:bg-indigo-100">
-                                        <InformationCircleIcon className="w-3.5 h-3.5" />
-                                        Perbaiki Tikor
-                                    </button>
+                                {activeTab === 'toko' && (
+                                    outlet.status_perbaikan && outlet.status_perbaikan.toLowerCase() === 'pending' ? (
+                                        <button disabled className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-slate-100 text-slate-400 border border-slate-200 text-[10px] font-bold uppercase tracking-wide cursor-not-allowed opacity-75">
+                                            <InformationCircleIcon className="w-3.5 h-3.5" />
+                                            Menunggu ACC
+                                        </button>
+                                    ) : (
+                                        <button onClick={() => openDetail(outlet)} className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 text-[10px] font-bold uppercase tracking-wide hover:bg-indigo-100">
+                                            <InformationCircleIcon className="w-3.5 h-3.5" />
+                                            Perbaiki Tikor
+                                        </button>
+                                    )
+                                )}
+                                {activeTab === 'laporan' && outlet.audit_latitude && outlet.audit_longitude && (
+                                    <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.audit_latitude},${outlet.audit_longitude}`} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-bold uppercase tracking-wide hover:bg-blue-100">
+                                        <MapIcon className="w-3.5 h-3.5" />
+                                        Map Baru
+                                    </a>
                                 )}
                             </div>
                         </div>
@@ -652,19 +664,17 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
 
                 {displayedOutlets.length > displayLimit && (
                     <div className="mt-6 mb-2 text-center">
-                        <button 
+                        <button
                             onClick={() => setDisplayLimit(prev => prev + 30)}
                             className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-indigo-600 text-[11px] font-bold rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2 mx-auto"
                         >
-                            Muat Lebih Banyak 
+                            Muat Lebih Banyak
                             <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md text-[9px]">{displayedOutlets.length - displayLimit} tersisa</span>
                         </button>
                     </div>
                 )}
             </main>
 
-            {/* Modals & Overlays */}
-            
             {/* Detail Form Modal */}
             {detailOutlet && (
                 <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm sm:p-4 animate-fade-in">
@@ -675,11 +685,12 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                                 <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Perbaikan Koordinat</h3>
                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{detailOutlet.customer_name}</p>
                             </div>
-                            <button onClick={() => setDetailOutlet(null)} className="w-8 h-8 rounded-full bg-slate-200/50 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
+                            {/* FIX #5: X button uses handleCloseDetail for unsaved photo guard */}
+                            <button onClick={handleCloseDetail} className="w-8 h-8 rounded-full bg-slate-200/50 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
                                 <XMarkIcon className="w-5 h-5" />
                             </button>
                         </div>
-                        
+
                         <div className="flex-1 overflow-y-auto p-5 scrollbar-hide">
                             <form onSubmit={submitForm} className="space-y-5">
                                 {/* Map View */}
@@ -692,17 +703,26 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                                             </span>
                                         )}
                                     </div>
-                                    <div 
-                                        ref={mapContainerRef} 
+                                    <div
+                                        ref={mapContainerRef}
                                         style={{ height: '200px', minHeight: '200px', width: '100%' }}
                                         className="bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden relative z-0"
                                     ></div>
-                                    {bestAccuracy && (
+                                    {/* FIX #9: accuracy info only shown once, in one place */}
+                                    {isGettingLocation && (
                                         <div className="flex justify-between items-center text-[10px] text-slate-500 px-1">
-                                            <span>Akurasi GPS: <b className={bestAccuracy < 20 ? 'text-emerald-500' : 'text-rose-500'}>{bestAccuracy.toFixed(1)}m</b></span>
-                                            {isGettingLocation && (
-                                                <span className="text-indigo-500 font-bold animate-pulse">Mencari yang terbaik... ({trackingTimer}s)</span>
-                                            )}
+                                            <span>
+                                                {bestAccuracy
+                                                    ? <>Akurasi GPS terkini: <b className={bestAccuracy < 20 ? 'text-emerald-500' : 'text-rose-500'}>{bestAccuracy.toFixed(1)}m</b></>
+                                                    : 'Menunggu sinyal GPS...'
+                                                }
+                                            </span>
+                                            <span className="text-indigo-500 font-bold animate-pulse">{trackingTimer}s</span>
+                                        </div>
+                                    )}
+                                    {!isGettingLocation && bestAccuracy && (
+                                        <div className="text-[10px] text-slate-500 px-1">
+                                            Akurasi GPS: <b className={bestAccuracy < 20 ? 'text-emerald-500' : 'text-rose-500'}>{bestAccuracy.toFixed(1)}m</b>
                                         </div>
                                     )}
                                 </div>
@@ -714,9 +734,9 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                                         <input type="text" readOnly value={data.latitude || ''} className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 outline-none" placeholder="Menunggu Latitude..." />
                                         <input type="text" readOnly value={data.longitude || ''} className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 outline-none" placeholder="Menunggu Longitude..." />
                                     </div>
-                                    <button 
-                                        type="button" 
-                                        onClick={fetchCurrentLocation} 
+                                    <button
+                                        type="button"
+                                        onClick={fetchCurrentLocation}
                                         disabled={isGettingLocation || processing}
                                         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-indigo-100 bg-indigo-50 text-indigo-600 font-bold text-xs uppercase tracking-wider hover:bg-indigo-100 transition-colors active:scale-[0.98] disabled:opacity-50"
                                     >
@@ -731,16 +751,17 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                                 {/* Photo Block */}
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Foto Toko <span className="text-rose-500">*</span></label>
-                                    <div 
+                                    <div
                                         className={`border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center gap-2 text-center relative overflow-hidden transition-colors ${previewUrl ? 'border-indigo-500 bg-indigo-50/30' : (showNoPhotoWarning ? 'border-rose-300 bg-rose-50' : 'border-slate-200 bg-slate-50 hover:bg-slate-100')}`}
                                     >
-                                        <input 
-                                            type="file" 
-                                            accept="image/*" 
-                                            capture="environment" 
+                                        {/* Wajib foto langsung dari kamera belakang, tidak bisa dari galeri */}
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            capture="environment"
                                             ref={fileInputRef}
                                             onChange={handleFileChange}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                         />
                                         {previewUrl ? (
                                             <img src={previewUrl} alt="Preview" className="h-32 object-contain rounded-lg" />
@@ -751,11 +772,12 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                                                 </div>
                                                 <div>
                                                     <p className="text-xs font-bold text-slate-700">Ambil Foto Toko</p>
-                                                    <p className="text-[10px] text-slate-400 mt-0.5">Format JPG/PNG, Maks. 5MB</p>
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">Foto langsung di tempat · Maks. 5MB</p>
                                                 </div>
                                             </>
                                         )}
                                     </div>
+                                    {/* FIX #4: Warning shown properly when showNoPhotoWarning = true */}
                                     {showNoPhotoWarning && !data.foto && (
                                         <p className="text-[10px] font-bold text-rose-500 ml-1">Foto toko wajib dilampirkan sebelum submit.</p>
                                     )}
@@ -763,15 +785,16 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
 
                                 {/* Submit Actions */}
                                 <div className="pt-4 flex gap-3 border-t border-slate-100">
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setDetailOutlet(null)}
+                                    {/* FIX #5: Batal uses handleCloseDetail for unsaved photo guard */}
+                                    <button
+                                        type="button"
+                                        onClick={handleCloseDetail}
                                         className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition-colors active:scale-[0.98]"
                                     >
                                         Batal
                                     </button>
-                                    <button 
-                                        type="submit" 
+                                    <button
+                                        type="submit"
                                         disabled={processing || isGettingLocation || !data.latitude || !data.longitude}
                                         className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 font-bold text-sm rounded-xl transition-colors active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
                                     >
@@ -788,7 +811,7 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                 </div>
             )}
 
-            {/* Logout Modal */}
+            {/* Logout Confirmation Modal */}
             {showLogoutModal && (
                 <div className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
                     <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-zoom-in">
@@ -800,8 +823,23 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                             Anda akan keluar dari sesi referensi Sales saat ini. Anda perlu masuk kembali jika ingin mencatat perbaikan.
                         </p>
                         <div className="flex gap-3">
-                            <button onClick={() => setShowLogoutModal(false)} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors active:scale-[0.98]">Batal</button>
-                            <button onClick={confirmLogout} className="flex-1 py-2.5 bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-500/20 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors active:scale-[0.98]">Ya, Keluar</button>
+                            <button
+                                onClick={() => setShowLogoutModal(false)}
+                                disabled={isLoggingOut}
+                                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors active:scale-[0.98] disabled:opacity-60"
+                            >
+                                Batal
+                            </button>
+                            {/* FIX #8: Logout button protected with isLoggingOut state */}
+                            <button
+                                onClick={confirmLogout}
+                                disabled={isLoggingOut}
+                                className="flex-1 py-2.5 bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-500/20 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-60"
+                            >
+                                {isLoggingOut ? (
+                                    <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Keluar...</>
+                                ) : 'Ya, Keluar'}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -824,7 +862,7 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                     </div>
                 </div>
             )}
-            
+
         </div>
     );
 }

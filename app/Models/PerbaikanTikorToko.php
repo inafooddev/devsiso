@@ -41,8 +41,6 @@ class PerbaikanTikorToko extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'latitude' => 'decimal:8',
-        'longitude' => 'decimal:8',
         'timestamp' => 'datetime',
     ];
 
@@ -64,13 +62,18 @@ class PerbaikanTikorToko extends Model
     }
 
     /**
-     * Helper to query customer_prc_eska using both distributor_code and customer_code.
-     * cpe.kodecabang = distributor_code AND cpe.custno = customer_code
+     * Get the exact customer prc eska record using both distributor_code and customer_code.
+     * Use $item->exact_customer instead of $item->customerPrcEska to avoid wrong branch data.
      */
-    public function customerPrcEskaQuery()
+    public function getExactCustomerAttribute()
     {
-        return CustomerPrcEska::where('kodecabang', $this->distributor_code)
-            ->where('custno', $this->customer_code);
+        if (!array_key_exists('exact_customer', $this->relations)) {
+            $customer = CustomerPrcEska::where('kodecabang', $this->distributor_code)
+                ->where('custno', $this->customer_code)
+                ->first();
+            $this->setRelation('exact_customer', $customer);
+        }
+        return $this->getRelation('exact_customer');
     }
 
     /**
