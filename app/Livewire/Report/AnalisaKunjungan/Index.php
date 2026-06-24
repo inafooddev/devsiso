@@ -415,7 +415,7 @@ class Index extends Component
     public function dataKunjungan()
     {
         if (empty($this->appliedRegion) && empty($this->appliedArea) && empty($this->appliedSupervisor)) {
-            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, 250);
+            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, 300);
         }
 
         $query = $this->getBaseQuery()
@@ -466,7 +466,7 @@ class Index extends Component
         $query->orderBy(DB::raw('rvah."TANGGAL"::date'), 'asc')
               ->orderBy('rvah.ID', 'asc');
 
-        return $query->paginate(250);
+        return $query->paginate(300);
     }
 
     #[Computed]
