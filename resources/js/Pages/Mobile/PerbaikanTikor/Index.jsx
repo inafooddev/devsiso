@@ -391,6 +391,11 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
         } else {
             map.setView([-6.2088, 106.8456], 5); // Default Indonesia
         }
+
+        // Fix map not showing up correctly inside a modal due to sizing issues
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 300);
     }, [detailOutlet, actualLocation, data.latitude, data.longitude, bestAccuracy]);
 
     const submitForm = (e) => {
@@ -667,7 +672,8 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                                     </div>
                                     <div 
                                         ref={mapContainerRef} 
-                                        className="w-full h-48 bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden relative z-0"
+                                        style={{ height: '200px', minHeight: '200px', width: '100%' }}
+                                        className="bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden relative z-0"
                                     ></div>
                                     {bestAccuracy && (
                                         <div className="flex justify-between items-center text-[10px] text-slate-500 px-1">
