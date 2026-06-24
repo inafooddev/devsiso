@@ -563,46 +563,8 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {displayedOutlets.length > 0 ? displayedOutlets.slice(0, displayLimit).map((outlet) => (
                         <div key={`${outlet.distributor_code}_${outlet.customer_code}`} className="border rounded-2xl p-4 shadow-sm flex flex-col gap-3.5 transition-all bg-white border-slate-100">
-                            <div className="flex items-start justify-between gap-3">
-                                <div className="flex-1 min-w-0">
-                                    {outlet.status_perbaikan && (
-                                        activeTab === 'toko' ? (
-                                            outlet.status_perbaikan.toLowerCase() !== 'rejected' && (
-                                                <div className="flex flex-col gap-1.5 mb-2">
-                                                    <div className="flex flex-wrap items-center gap-1.5">
-                                                        <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border ${
-                                                            outlet.status_perbaikan.toLowerCase() === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                                                            'bg-emerald-50 text-emerald-600 border-emerald-200'
-                                                        }`}>
-                                                            {outlet.status_perbaikan.toLowerCase() === 'pending' ? 'Pending' : 'Sudah Pernah Perbaikan'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            )
-                                        ) : (
-                                            <div className="flex flex-col gap-1.5 mb-2">
-                                                <div className="flex flex-wrap items-center gap-1.5">
-                                                    <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border ${
-                                                        outlet.status_perbaikan.toLowerCase() === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                                                        outlet.status_perbaikan.toLowerCase() === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                                                        outlet.status_perbaikan.toLowerCase() === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-200' :
-                                                        'bg-indigo-50 text-indigo-600 border-indigo-200'
-                                                    }`}>
-                                                        Status: {outlet.status_perbaikan}
-                                                    </span>
-                                                </div>
-                                                {outlet.keterangan_perbaikan && (
-                                                    <div className={`text-[9px] p-1.5 rounded-md border font-medium leading-tight ${
-                                                        outlet.status_perbaikan.toLowerCase() === 'rejected'
-                                                            ? 'text-rose-600 bg-rose-50 border-rose-100'
-                                                            : 'text-slate-600 bg-slate-50 border-slate-100'
-                                                    }`}>
-                                                        <span className="font-bold">Keterangan:</span> {outlet.keterangan_perbaikan}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )
-                                    )}
+                            <div className="flex items-stretch justify-between gap-3">
+                                <div className="flex-1 min-w-0 pr-2">
                                     <h4 className="text-xs md:text-sm font-black text-slate-800 tracking-tight leading-snug truncate">
                                         {outlet.customer_code} - {outlet.customer_name}
                                     </h4>
@@ -617,19 +579,53 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                                             <span className="truncate flex-1">{outlet.distributor_name || '-'} (Cabang: {outlet.area_code || '-'})</span>
                                         </div>
                                     </div>
+
+                                    {outlet.status_perbaikan && activeTab === 'laporan' && outlet.keterangan_perbaikan && (
+                                        <div className={`mt-2.5 text-[9px] p-1.5 rounded-md border font-medium leading-tight ${
+                                            outlet.status_perbaikan.toLowerCase() === 'rejected'
+                                                ? 'text-rose-600 bg-rose-50 border-rose-100'
+                                                : 'text-slate-600 bg-slate-50 border-slate-100'
+                                        }`}>
+                                            <span className="font-bold">Keterangan:</span> {outlet.keterangan_perbaikan}
+                                        </div>
+                                    )}
                                 </div>
+                                
+                                {outlet.status_perbaikan && (
+                                    <div className="w-[20%] shrink-0 flex">
+                                        {activeTab === 'toko' ? (
+                                            outlet.status_perbaikan.toLowerCase() !== 'rejected' && (
+                                                <div className={`w-full h-full flex flex-col items-center justify-center rounded-xl p-2 font-black uppercase tracking-wider text-center leading-tight shadow-inner ${
+                                                    outlet.status_perbaikan.toLowerCase() === 'pending' ? 'bg-amber-500 bg-opacity-75 text-white shadow-amber-200' :
+                                                    'bg-emerald-500 bg-opacity-75 text-white shadow-emerald-200'
+                                                }`}>
+                                                    <span className="text-[9px]">{outlet.status_perbaikan.toLowerCase() === 'pending' ? 'Pending' : 'Pernah Perbaikan'}</span>
+                                                </div>
+                                            )
+                                        ) : (
+                                            <div className={`w-full h-full flex flex-col items-center justify-center rounded-xl p-2 font-black uppercase tracking-wider text-center leading-tight shadow-inner ${
+                                                outlet.status_perbaikan.toLowerCase() === 'pending' ? 'bg-amber-500 bg-opacity-75 text-white shadow-amber-200' :
+                                                outlet.status_perbaikan.toLowerCase() === 'approved' ? 'bg-emerald-500 bg-opacity-75 text-white shadow-emerald-200' :
+                                                outlet.status_perbaikan.toLowerCase() === 'rejected' ? 'bg-rose-500 bg-opacity-75 text-white shadow-rose-200' :
+                                                'bg-indigo-500 bg-opacity-75 text-white shadow-indigo-200'
+                                            }`}>
+                                                <span className="text-[9px]">{outlet.status_perbaikan}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex items-center gap-2 mt-2 pt-3 border-t border-slate-100">
-                                {outlet.latitude && outlet.longitude && (
-                                    <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.latitude},${outlet.longitude}`} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-bold uppercase tracking-wide hover:bg-emerald-100">
-                                        <MapIcon className="w-3.5 h-3.5" />
-                                        Map Lama
-                                    </a>
-                                )}
-                                {activeTab === 'toko' && (
-                                    outlet.status_perbaikan && outlet.status_perbaikan.toLowerCase() === 'pending' ? (
+                            {activeTab === 'toko' && (
+                                <div className="flex items-center gap-2 mt-2 pt-3 border-t border-slate-100">
+                                    {outlet.latitude && outlet.longitude && (
+                                        <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.latitude},${outlet.longitude}`} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-bold uppercase tracking-wide hover:bg-emerald-100">
+                                            <MapIcon className="w-3.5 h-3.5" />
+                                            Map Lama
+                                        </a>
+                                    )}
+                                    {outlet.status_perbaikan && outlet.status_perbaikan.toLowerCase() === 'pending' ? (
                                         <button disabled className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-slate-100 text-slate-400 border border-slate-200 text-[10px] font-bold uppercase tracking-wide cursor-not-allowed opacity-75">
                                             <InformationCircleIcon className="w-3.5 h-3.5" />
                                             Menunggu ACC
@@ -639,15 +635,9 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                                             <InformationCircleIcon className="w-3.5 h-3.5" />
                                             Perbaiki Tikor
                                         </button>
-                                    )
-                                )}
-                                {activeTab === 'laporan' && outlet.audit_latitude && outlet.audit_longitude && (
-                                    <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.audit_latitude},${outlet.audit_longitude}`} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-bold uppercase tracking-wide hover:bg-blue-100">
-                                        <MapIcon className="w-3.5 h-3.5" />
-                                        Map Baru
-                                    </a>
-                                )}
-                            </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )) : (
                         <div className="bg-white border border-slate-100 rounded-3xl py-12 px-6 text-center shadow-sm flex-1 flex flex-col items-center justify-center col-span-full">
