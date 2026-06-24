@@ -43,12 +43,13 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
 export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSalesCode, sessionSalesName }) {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [loginSalesCode, setLoginSalesCode] = useState('');
     const [isLoginLoading, setIsLoginLoading] = useState(false);
+    const [isGpsReady, setIsGpsReady] = useState(false);
+    const [checkingGps, setCheckingGps] = useState(true);
+    const [gpsBlockReason, setGpsBlockReason] = useState('');
     const [toast, setToast] = useState(null);
     const toastTimerRef = useRef(null);
-
-    // Login Form State
-    const [loginSalesCode, setLoginSalesCode] = useState('');
 
     // FIX #10: Toast timer cleared before each new toast to prevent stale timer conflicts
     const showToast = (message, type = 'success') => {
@@ -140,6 +141,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
     const [bestAccuracy, setBestAccuracy] = useState(null);
     const watchIdRef = useRef(null);
     const intervalRef = useRef(null);
+    const [gpsError, setGpsError] = useState(false);
     const mapContainerRef = useRef(null);
     const leafletMapRef = useRef(null);
     const markersRef = useRef({ actual: null, baru: null, line: null });
@@ -207,6 +209,8 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
         setIsGettingLocation(true);
         setTrackingTimer(10);
         setBestAccuracy(null);
+        setGpsError(false);
+        setPreviewUrl(null);
         setData(prev => ({ ...prev, latitude: '', longitude: '' }));
 
         let localBestAccuracy = Infinity;
@@ -224,13 +228,20 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                     }));
                 }
             },
-            (_error) => {
-                // FIX #15: Removed console.error, silent error handling
-                if (localBestAccuracy === Infinity) {
-                    setIsGettingLocation(false);
-                    clearInterval(intervalRef.current);
-                    if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
-                    showToast('Gagal mengambil lokasi. Pastikan GPS menyala.', 'error');
+            (error) => {
+                setIsGettingLocation(false);
+                setGpsError(true);
+                clearInterval(intervalRef.current);
+                if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+                
+                if (error.code === 1) { // PERMISSION_DENIED
+                    showToast('WAJIB: Akses Lokasi ditolak! Izinkan lokasi di pengaturan HP/Browser Anda.', 'error');
+                } else if (error.code === 2) { // POSITION_UNAVAILABLE
+                    showToast('WAJIB: GPS mati! Harap nyalakan fitur Lokasi (GPS) di HP Anda.', 'error');
+                } else if (error.code === 3) { // TIMEOUT
+                    showToast('Sinyal GPS lemah. Harap pindah ke area terbuka.', 'error');
+                } else {
+                    showToast('Gagal mengambil lokasi. Pastikan GPS menyala dan diizinkan.', 'error');
                 }
             },
             { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 } // FIX #26: added timeout
@@ -243,6 +254,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                     if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
                     setIsGettingLocation(false);
                     if (localBestAccuracy === Infinity) {
+                        setGpsError(true);
                         showToast('Gagal mendapatkan sinyal GPS. Silakan coba lagi.', 'error');
                         setData(d => ({ ...d, latitude: '', longitude: '' }));
                         setBestAccuracy(null);
@@ -399,6 +411,45 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
         return result;
     }, [tokoList, riwayatPerbaikan, activeTab, search, selectedStatusFilter]);
 
+    // ─── EFFECTS ─────────────────────────────────────────────────────────────────
+    
+    // Initial GPS Check before Login
+    useEffect(() => {
+        if (!sessionSalesCode) {
+            checkInitialGps();
+        }
+    }, [sessionSalesCode]);
+
+    const checkInitialGps = () => {
+        if (!navigator.geolocation) {
+            setCheckingGps(false);
+            setGpsBlockReason('Browser Anda tidak mendukung fitur GPS.');
+            return;
+        }
+        
+        setCheckingGps(true);
+        setGpsBlockReason('');
+        
+        navigator.geolocation.getCurrentPosition(
+            () => {
+                setIsGpsReady(true);
+                setCheckingGps(false);
+            },
+            (error) => {
+                setCheckingGps(false);
+                setIsGpsReady(false);
+                if (error.code === 1) { // PERMISSION_DENIED
+                    setGpsBlockReason('Akses Lokasi Ditolak. Harap izinkan akses lokasi di pengaturan browser Anda.');
+                } else if (error.code === 2) { // POSITION_UNAVAILABLE
+                    setGpsBlockReason('GPS mati. Harap nyalakan fitur Lokasi/GPS di HP Anda.');
+                } else {
+                    setGpsBlockReason('Gagal mendapatkan sinyal GPS. Pastikan berada di area terbuka.');
+                }
+            },
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+        );
+    };
+
     // ─── LOGIN SCREEN ────────────────────────────────────────────────────────────
     if (!sessionSalesCode) {
         return (
@@ -419,29 +470,50 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                     <h2 className="text-sm md:text-base font-black uppercase tracking-wider text-slate-900 leading-tight text-center">Perbaikan Tikor Toko</h2>
                     <p className="text-[10px] font-bold text-indigo-600 tracking-widest uppercase mb-6 leading-none text-center">Login Sales</p>
 
-                    <form onSubmit={handleLogin} className="w-full flex flex-col gap-4 relative">
-                        <div className="relative">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Kode Sales</label>
-                            <input
-                                type="text"
-                                value={loginSalesCode}
-                                onChange={(e) => setLoginSalesCode(e.target.value.toUpperCase())}
-                                placeholder="Ketik Kode Sales..."
-                                disabled={isLoginLoading}
-                                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-slate-800 bg-slate-50 uppercase disabled:opacity-60"
-                            />
+                    {checkingGps ? (
+                        <div className="flex flex-col items-center justify-center gap-3 py-6 w-full">
+                            <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider animate-pulse text-center">Memverifikasi GPS...</p>
                         </div>
+                    ) : !isGpsReady ? (
+                        <div className="flex flex-col items-center justify-center gap-4 w-full bg-rose-50 border border-rose-200 p-5 rounded-2xl">
+                            <ShieldExclamationIcon className="w-10 h-10 text-rose-500 animate-bounce-slow" />
+                            <p className="text-xs text-center text-rose-600 font-bold leading-relaxed">
+                                {gpsBlockReason}
+                            </p>
+                            <button
+                                type="button"
+                                onClick={checkInitialGps}
+                                className="w-full py-3 rounded-xl bg-rose-500 text-white font-black text-xs uppercase tracking-wider hover:bg-rose-600 transition-colors shadow-lg shadow-rose-500/30 active:scale-[0.98]"
+                            >
+                                Cek Ulang GPS
+                            </button>
+                        </div>
+                    ) : (
+                        <form onSubmit={handleLogin} className="w-full flex flex-col gap-4 relative animate-fade-in">
+                            <div className="relative">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Kode Sales</label>
+                                <input
+                                    type="text"
+                                    value={loginSalesCode}
+                                    onChange={(e) => setLoginSalesCode(e.target.value.toUpperCase())}
+                                    placeholder="Ketik Kode Sales..."
+                                    disabled={isLoginLoading}
+                                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-slate-800 bg-slate-50 uppercase disabled:opacity-60 font-bold"
+                                />
+                            </div>
 
-                        <button
-                            type="submit"
-                            disabled={!loginSalesCode || isLoginLoading}
-                            className={`w-full py-3 rounded-xl text-white font-bold text-sm uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 ${!loginSalesCode || isLoginLoading ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}
-                        >
-                            {isLoginLoading ? (
-                                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Memproses...</>
-                            ) : 'Masuk'}
-                        </button>
-                    </form>
+                            <button
+                                type="submit"
+                                disabled={!loginSalesCode || isLoginLoading}
+                                className={`w-full py-3 rounded-xl text-white font-bold text-sm uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 ${!loginSalesCode || isLoginLoading ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30 active:scale-[0.98]'}`}
+                            >
+                                {isLoginLoading ? (
+                                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Memproses...</>
+                                ) : 'Masuk'}
+                            </button>
+                        </form>
+                    )}
 
                     <div className="mt-8 text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
                         PT INAFOOD © {new Date().getFullYear()}
@@ -728,12 +800,16 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                                         type="button"
                                         onClick={fetchCurrentLocation}
                                         disabled={isGettingLocation || processing}
-                                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-indigo-100 bg-indigo-50 text-indigo-600 font-bold text-xs uppercase tracking-wider hover:bg-indigo-100 transition-colors active:scale-[0.98] disabled:opacity-50"
+                                        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 font-bold text-xs uppercase tracking-wider transition-colors active:scale-[0.98] disabled:opacity-50 ${
+                                            gpsError 
+                                                ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100' 
+                                                : 'border-indigo-100 bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                                        }`}
                                     >
                                         {isGettingLocation ? (
-                                            <><div className="w-3.5 h-3.5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div> Mengunci ({trackingTimer}s)...</>
+                                            <><div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"></div> Mengunci ({trackingTimer}s)...</>
                                         ) : (
-                                            <><MapPinIcon className="w-4 h-4" /> {data.latitude ? 'Deteksi Ulang Lokasi' : 'Deteksi Lokasi Saat Ini'}</>
+                                            <><MapPinIcon className="w-4 h-4" /> {gpsError ? 'Nyalakan GPS & Coba Lagi' : (data.latitude ? 'Deteksi Ulang Lokasi' : 'Deteksi Lokasi Saat Ini')}</>
                                         )}
                                     </button>
                                 </div>
