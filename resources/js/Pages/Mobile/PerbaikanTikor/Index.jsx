@@ -60,23 +60,22 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
             return;
         }
         router.post('/mobile/perbaikan-tikor/login', { sales_code: loginSalesCode }, {
-            preserveScroll: true,
             onError: (errors) => {
                 if (errors.sales_code) {
                     showToast(errors.sales_code, 'error');
                 }
             },
-            onSuccess: () => showToast(`Selamat datang, ${loginSalesCode}!`, 'success')
+            onSuccess: () => {
+                window.location.href = '/mobile/perbaikan-tikor';
+            }
         });
     };
 
     const handleLogout = () => setShowLogoutModal(true);
     const confirmLogout = () => {
         router.post('/mobile/perbaikan-tikor/logout', {}, {
-            preserveScroll: true,
             onSuccess: () => {
-                setShowLogoutModal(false);
-                showToast('Berhasil keluar dari sesi.', 'success');
+                window.location.href = '/mobile/perbaikan-tikor';
             }
         });
     };
