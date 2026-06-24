@@ -104,7 +104,7 @@
     <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
         
         {{-- Header Card & Actions --}}
-        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30 relative z-20">
+        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
             <div class="shrink-0 w-full sm:w-auto">
                 <h2 class="text-lg md:text-xl font-black tracking-tight text-base-content">Data Perbaikan Koordinat Toko</h2>
                 <p class="text-xs text-base-content/50 font-bold uppercase tracking-widest mt-1">Daftar usulan perbaikan tikor dari Sales</p>
