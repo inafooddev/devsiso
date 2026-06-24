@@ -137,7 +137,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
 
     // Map & Tracking State
     const [actualLocation, setActualLocation] = useState(null);
-    const [trackingTimer, setTrackingTimer] = useState(3);
+    const [trackingTimer, setTrackingTimer] = useState(5);
     const [bestAccuracy, setBestAccuracy] = useState(null);
     const watchIdRef = useRef(null);
     const intervalRef = useRef(null);
@@ -166,7 +166,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
         const actLng = outlet.longitude;
         setActualLocation(actLat && actLng ? { lat: parseFloat(actLat), lng: parseFloat(actLng) } : null);
         setBestAccuracy(null);
-        setTrackingTimer(3);
+        setTrackingTimer(5);
 
         setData({
             region_code: outlet.region_code || '',
@@ -207,7 +207,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
         if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
 
         setIsGettingLocation(true);
-        setTrackingTimer(3);
+        setTrackingTimer(5);
         setBestAccuracy(null);
         setGpsError(false);
         setPreviewUrl(null);
