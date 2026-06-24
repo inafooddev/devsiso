@@ -441,44 +441,13 @@
     <style>
         .leaflet-container { z-index: 10 !important; }
         
-        /* Vanilla JS Toast Container */
-        #vanilla-toast-container {
-            position: fixed;
-            top: 1rem;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            align-items: center;
-            pointer-events: none;
-        }
-        .v-toast {
-            background: hsl(var(--su));
-            color: white;
-            padding: 0.75rem 1.25rem;
-            border-radius: 1rem;
-            font-weight: bold;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            animation: toastIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-        .v-toast.error { background: hsl(var(--er)); }
-        .v-toast.fade-out {
+        .v-toast-fade-out {
             animation: toastOut 0.3s ease-in forwards;
-        }
-        @keyframes toastIn {
-            from { transform: translateY(-100%) scale(0.9); opacity: 0; }
-            to   { transform: translateY(0) scale(1); opacity: 1; }
         }
         @keyframes toastOut {
             from { transform: scale(1); opacity: 1; }
             to   { transform: scale(0.9); opacity: 0; }
         }
-
     </style>
     <script>
         // Vanilla JS Toast Handler
@@ -491,22 +460,26 @@
             if(!container) {
                 container = document.createElement('div');
                 container.id = 'vanilla-toast-container';
+                container.className = 'toast toast-top toast-center z-[9999] pt-4';
                 document.body.appendChild(container);
             }
             
             let toast = document.createElement('div');
-            toast.className = 'v-toast ' + (type === 'error' ? 'error' : '');
+            toast.className = 'flex items-start gap-3 px-5 py-4 mb-2 min-w-[280px] w-auto max-w-[90vw] sm:max-w-md whitespace-normal break-words rounded-2xl shadow-2xl backdrop-blur-md text-sm font-medium ' + 
+                (type === 'error' 
+                    ? 'bg-error/95 text-error-content shadow-error/20 border border-error/50' 
+                    : 'bg-success/95 text-success-content shadow-success/20 border border-success/50');
             
             // Ikon
             let iconSvg = type === 'success' 
-                ? '<svg xmlns="http://www.w3.org/2000/svg" style="width:20px;height:20px" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" /></svg>'
-                : '<svg xmlns="http://www.w3.org/2000/svg" style="width:20px;height:20px" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" clip-rule="evenodd" /></svg>';
+                ? '<svg xmlns="http://www.w3.org/2000/svg" class="shrink-0 w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" /></svg>'
+                : '<svg xmlns="http://www.w3.org/2000/svg" class="shrink-0 w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" clip-rule="evenodd" /></svg>';
             
-            toast.innerHTML = iconSvg + '<span>' + message + '</span>';
+            toast.innerHTML = iconSvg + '<div class="flex-1 pt-0.5 leading-snug tracking-wide">' + message + '</div>';
             container.appendChild(toast);
             
             setTimeout(() => {
-                toast.classList.add('fade-out');
+                toast.classList.add('v-toast-fade-out');
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         });
