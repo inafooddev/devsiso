@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import {
     MagnifyingGlassIcon, XMarkIcon, MapPinIcon, ShieldCheckIcon,
@@ -47,56 +47,16 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
 
     // Login Form State
     const [loginSalesCode, setLoginSalesCode] = useState('');
-    const [loginSalesName, setLoginSalesName] = useState('');
-    const [salesSuggestions, setSalesSuggestions] = useState([]);
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const [isSearchingSales, setIsSearchingSales] = useState(false);
-    const searchTimeout = useRef(null);
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
-        setTimeout(() => setToast(null), 3000);
-    };
-
-    // --- Login Autocomplete Logic ---
-    useEffect(() => {
-        if (!loginSalesCode || loginSalesCode.length < 2) {
-            setSalesSuggestions([]);
-            setShowSuggestions(false);
-            return;
-        }
-
-        if (searchTimeout.current) {
-            clearTimeout(searchTimeout.current);
-        }
-
-        searchTimeout.current = setTimeout(async () => {
-            setIsSearchingSales(true);
-            try {
-                const response = await fetch(`/mobile/perbaikan-tikor/search-sales?q=${encodeURIComponent(loginSalesCode)}`);
-                const data = await response.json();
-                setSalesSuggestions(data);
-                setShowSuggestions(true);
-            } catch (error) {
-                console.error("Failed to fetch sales suggestions", error);
-            } finally {
-                setIsSearchingSales(false);
-            }
-        }, 500);
-
-        return () => clearTimeout(searchTimeout.current);
-    }, [loginSalesCode]);
-
-    const selectSales = (sales) => {
-        setLoginSalesCode(sales.sales_code);
-        setLoginSalesName(sales.sales_name);
-        setShowSuggestions(false);
+        setTimeout(() => setToast(null), type === 'error' ? 5000 : 3000);
     };
 
     const handleLogin = (e) => {
         e.preventDefault();
         if (!loginSalesCode) {
-            showToast('Silakan pilih referensi kode sales terlebih dahulu.', 'error');
+            showToast('Silakan isi kode sales terlebih dahulu.', 'error');
             return;
         }
         router.post('/mobile/perbaikan-tikor/login', { sales_code: loginSalesCode }, {
@@ -106,7 +66,7 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                     showToast(errors.sales_code, 'error');
                 }
             },
-            onSuccess: () => showToast(`Selamat datang, ${loginSalesName || loginSalesCode}!`, 'success')
+            onSuccess: () => showToast(`Selamat datang, ${loginSalesCode}!`, 'success')
         });
     };
 
@@ -140,13 +100,13 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
 
     const isFiltered = appliedSearch || appliedRegion || appliedArea || appliedDistributor;
 
-    const regions = [...new Set((outlets || []).map(o => o.region_name).filter(Boolean))].sort();
-    const areas = [...new Set((outlets || [])
+    const regions = useMemo(() => [...new Set((outlets || []).map(o => o.region_name).filter(Boolean))].sort(), [outlets]);
+    const areas = useMemo(() => [...new Set((outlets || [])
         .filter(o => !selectedRegion || o.region_name === selectedRegion)
-        .map(o => o.area_name).filter(Boolean))].sort();
-    const distributors = [...new Set((outlets || [])
+        .map(o => o.area_name).filter(Boolean))].sort(), [outlets, selectedRegion]);
+    const distributors = useMemo(() => [...new Set((outlets || [])
         .filter(o => (!selectedRegion || o.region_name === selectedRegion) && (!selectedArea || o.area_name === selectedArea))
-        .map(o => o.distributor_name).filter(Boolean))].sort();
+        .map(o => o.distributor_name).filter(Boolean))].sort(), [outlets, selectedRegion, selectedArea]);
 
     useEffect(() => {
         let result = outlets || [];
@@ -414,8 +374,8 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
         e.preventDefault();
         if (isSubmittingRef.current || processing) return;
 
-        if (!data.foto && !showNoPhotoWarning) {
-            setShowNoPhotoWarning(true);
+        if (!data.foto) {
+            showToast('Foto wajib dilampirkan sebagai bukti perbaikan.', 'error');
             return;
         }
 
@@ -444,7 +404,7 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                 <Head title="Login Sales - Perbaikan Tikor" />
                 
                 {toast && (
-                    <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 text-sm font-bold text-white transition-all ${toast.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`}>
+                    <div onClick={() => setToast(null)} className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 text-sm font-bold text-white transition-all cursor-pointer ${toast.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`}>
                         {toast.type === 'success' ? <ShieldCheckIcon className="w-5 h-5" /> : <ShieldExclamationIcon className="w-5 h-5" />}
                         {toast.message}
                     </div>
@@ -462,45 +422,17 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Kode Sales</label>
                             <input 
                                 type="text"
-                                value={loginSalesName || loginSalesCode}
-                                onChange={(e) => {
-                                    setLoginSalesCode(e.target.value.toUpperCase());
-                                    setLoginSalesName(''); // Clear name if they start typing again
-                                }}
+                                value={loginSalesCode}
+                                onChange={(e) => setLoginSalesCode(e.target.value.toUpperCase())}
                                 placeholder="Ketik Kode Sales..."
-                                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-slate-800 bg-slate-50"
+                                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-slate-800 bg-slate-50 uppercase"
                             />
-                            {isSearchingSales && (
-                                <div className="absolute right-3 top-[28px] w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                            )}
-
-                            {showSuggestions && salesSuggestions.length > 0 && (
-                                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                                    {salesSuggestions.map(sales => (
-                                        <button 
-                                            key={sales.sales_code}
-                                            type="button"
-                                            onClick={() => selectSales(sales)}
-                                            className="w-full text-left px-4 py-2 hover:bg-indigo-50 hover:text-indigo-600 border-b border-slate-100 last:border-0 transition-colors"
-                                        >
-                                            <div className="font-bold text-sm">{sales.sales_code}</div>
-                                            <div className="text-[10px] text-slate-500">{sales.sales_name}</div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                            
-                            {showSuggestions && salesSuggestions.length === 0 && !isSearchingSales && (
-                                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-3 text-center">
-                                    <p className="text-xs text-slate-500">Tidak ada referensi sales ditemukan.</p>
-                                </div>
-                            )}
                         </div>
 
                         <button 
                             type="submit" 
-                            disabled={!loginSalesCode || isSearchingSales}
-                            className={`w-full py-3 rounded-xl text-white font-bold text-sm uppercase tracking-wider transition-all shadow-md ${!loginSalesCode || isSearchingSales ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}
+                            disabled={!loginSalesCode}
+                            className={`w-full py-3 rounded-xl text-white font-bold text-sm uppercase tracking-wider transition-all shadow-md ${!loginSalesCode ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}
                         >
                             Masuk
                         </button>
@@ -514,7 +446,26 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
         );
     }
 
-    const displayedOutlets = filteredOutlets.filter(o => activeTab === 'toko' ? !o.status_perbaikan : !!o.status_perbaikan);
+    const [selectedStatusFilter, setSelectedStatusFilter] = useState('');
+
+    const displayedOutlets = useMemo(() => {
+        let result = filteredOutlets.filter(o => activeTab === 'toko' ? !o.status_perbaikan : !!o.status_perbaikan);
+        
+        if (activeTab === 'laporan') {
+            if (selectedStatusFilter) {
+                result = result.filter(o => o.status_perbaikan?.toLowerCase() === selectedStatusFilter);
+            }
+            
+            const statusOrder = { pending: 1, rejected: 2, approved: 3 };
+            result.sort((a, b) => {
+                const orderA = statusOrder[a.status_perbaikan?.toLowerCase()] || 99;
+                const orderB = statusOrder[b.status_perbaikan?.toLowerCase()] || 99;
+                return orderA - orderB;
+            });
+        }
+        
+        return result;
+    }, [filteredOutlets, activeTab, selectedStatusFilter]);
 
     return (
         <div className="w-full min-h-screen bg-slate-50 text-slate-800 flex flex-col relative pb-10">
@@ -601,6 +552,21 @@ export default function Index({ outlets = [], sessionSalesCode, sessionSalesName
                         </button>
                     </div>
                 </div>
+
+                {activeTab === 'laporan' && (
+                    <div className="px-4 pb-3">
+                        <select 
+                            value={selectedStatusFilter}
+                            onChange={(e) => setSelectedStatusFilter(e.target.value)}
+                            className="w-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-500 uppercase tracking-wider"
+                        >
+                            <option value="">Semua Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="approved">Approved</option>
+                        </select>
+                    </div>
+                )}
             </div>
 
             {/* Main Content */}

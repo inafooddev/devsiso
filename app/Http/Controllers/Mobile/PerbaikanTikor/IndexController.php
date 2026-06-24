@@ -64,6 +64,8 @@ class IndexController extends Controller
                 ->where('md.region_code', '<>', 'HOINA')
                 ->where('f.slsno', $salesCode)
                 ->distinct()
+                ->orderBy('f.custno')
+                ->limit(500)
                 ->get();
         }
 
@@ -92,9 +94,10 @@ class IndexController extends Controller
             ->where('f.slsno', '<>', '');
 
         if ($q) {
+            $q = str_replace(['%', '_'], ['\%', '\_'], $q);
             $query->where(function($w) use ($q) {
-                $w->where(DB::raw('LOWER(f.slsno)'), 'like', "%$q%")
-                  ->orWhere(DB::raw('LOWER(fs."SLSNAME")'), 'like', "%$q%");
+                $w->where(DB::raw('f.slsno'), 'ILIKE', "%$q%")
+                  ->orWhere(DB::raw('fs."SLSNAME"'), 'ILIKE', "%$q%");
             });
         }
 
@@ -130,35 +133,53 @@ class IndexController extends Controller
 
         session([
             'sales_code' => strtoupper($request->sales_code),
-            'sales_name' => $sales->sales_name ?? strtoupper($request->sales_code)
+            'sales_name' => $sales?->sales_name ?? strtoupper($request->sales_code)
         ]);
-        return redirect()->back();
+        return redirect()->route('mobile.perbaikan.tikor.index');
     }
 
     public function logoutSales(Request $request)
     {
         session()->forget(['sales_code', 'sales_name']);
-        return redirect()->back();
+        return redirect()->route('mobile.perbaikan.tikor.index');
     }
 
     public function store(Request $request)
     {
+        $salesCode = session('sales_code');
+        if (!$salesCode) {
+            return redirect()->back()->withErrors(['error' => 'Sesi tidak valid. Harap login kembali.']);
+        }
+
         $request->validate([
             'customer_code' => 'required',
             'distributor_code' => 'required',
-            'latitude' => 'required',
-            'longitude' => 'required',
-            'foto' => 'nullable|image|max:5120',
+            'latitude' => 'required|numeric|between:-90,90|not_in:0',
+            'longitude' => 'required|numeric|between:-180,180|not_in:0',
+            'foto' => 'required|image|max:5120',
         ]);
+
+        $isOwner = DB::table('frute as f')
+            ->where('f.slsno', $salesCode)
+            ->where('f.custno', $request->customer_code)
+            ->where('f.kodecabang', DB::raw("(
+                SELECT die.eskalink_code FROM distributor_implementasi_eskalink die 
+                WHERE die.distributor_code = '{$request->distributor_code}' LIMIT 1
+            )"))
+            ->exists();
+
+        if (!$isOwner) {
+            return redirect()->back()->withErrors(['error' => 'Toko ini bukan milik Anda atau data tidak valid.']);
+        }
 
         $data = [
             'region_code' => $request->region_code,
             'area_code' => $request->area_code,
             'distributor_code' => $request->distributor_code,
-            'sales_code' => session('sales_code') ?? $request->sales_code,
+            'sales_code' => $salesCode,
             'customer_code' => $request->customer_code,
-            'latitude' => ($request->latitude && $request->latitude !== '0') ? $request->latitude : null,
-            'longitude' => ($request->longitude && $request->longitude !== '0') ? $request->longitude : null,
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
             'status' => 'Pending',
             'keterangan' => null,
             'timestamp' => now(),
@@ -167,7 +188,7 @@ class IndexController extends Controller
 
         // Handle File Uploads
         if ($request->hasFile('foto')) {
-            $extension = $request->file('foto')->getClientOriginalExtension();
+            $extension = $request->file('foto')->extension();
             $filename = "{$request->distributor_code}_{$request->customer_code}_foto_" . time() . ".{$extension}";
             $path = $request->file('foto')->storeAs('perbaikan_tikor', $filename, 'public');
             $data['foto'] = $path;
