@@ -226,6 +226,15 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                         latitude: position.coords.latitude.toString(),
                         longitude: position.coords.longitude.toString()
                     }));
+
+                    // Auto-lock instan jika akurasi sudah sangat baik (<= 15m)
+                    if (acc <= 15) {
+                        clearInterval(intervalRef.current);
+                        if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+                        setIsGettingLocation(false);
+                        setTrackingTimer(0);
+                        showToast(`Titik dikunci instan! Akurasi mantap: ${Math.round(acc)}m`, 'success');
+                    }
                 }
             },
             (error) => {
@@ -258,8 +267,8 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                         showToast('Gagal mendapatkan sinyal GPS. Silakan coba lagi.', 'error');
                         setData(d => ({ ...d, latitude: '', longitude: '' }));
                         setBestAccuracy(null);
-                    } else if (localBestAccuracy > 15) {
-                        showToast(`Akurasi ditolak (${Math.round(localBestAccuracy)}m). Minimal akurasi 15m. Silakan ke area terbuka!`, 'error');
+                    } else if (localBestAccuracy > 20) {
+                        showToast(`Akurasi ditolak (${Math.round(localBestAccuracy)}m). Minimal akurasi 20m. Silakan ke area terbuka!`, 'error');
                         setData(d => ({ ...d, latitude: '', longitude: '' }));
                         setBestAccuracy(null);
                     } else {
