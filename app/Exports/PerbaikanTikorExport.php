@@ -40,6 +40,10 @@ class PerbaikanTikorExport extends DefaultValueBinder implements FromQuery, With
                 $join->on('cpe.kodecabang', '=', 'p.distributor_code')
                      ->on('cpe.custno', '=', 'p.customer_code');
             })
+            ->leftJoin('fsalesman as fs', function ($join) {
+                $join->on('fs.SLSNO', '=', 'p.sales_code')
+                     ->on('fs.KD', '=', 'p.distributor_code');
+            })
             ->select(
                 'cpe.custno',
                 'cpe.custname',
@@ -52,6 +56,7 @@ class PerbaikanTikorExport extends DefaultValueBinder implements FromQuery, With
                 'cpe.flagpay',
                 'cpe.flagout',
                 'cpe.kodecabang',
+                'fs.SLSNAME as sales_name',
                 'p.latitude',
                 'p.longitude'
             );
@@ -73,10 +78,6 @@ class PerbaikanTikorExport extends DefaultValueBinder implements FromQuery, With
                 });
             }
 
-            if ($this->statusFilter && $this->statusFilter !== 'Semua Kategori' && $this->statusFilter !== 'Semua Status') {
-                $query->where('p.status', $this->statusFilter);
-            }
-
             if ($this->dateStart) {
                 $query->whereDate('p.created_at', '>=', $this->dateStart);
             }
@@ -85,6 +86,9 @@ class PerbaikanTikorExport extends DefaultValueBinder implements FromQuery, With
                 $query->whereDate('p.created_at', '<=', $this->dateEnd);
             }
         }
+
+        // Paksa HANYA mengekspor yang statusnya 'Approved'
+        $query->where('p.status', 'Approved');
 
         return $query->orderBy('p.created_at', 'desc');
     }
@@ -103,6 +107,7 @@ class PerbaikanTikorExport extends DefaultValueBinder implements FromQuery, With
             'FLAGPAY',
             'FLAGOUT',
             'KODECABANG',
+            'SALESNAME',
             'LATITUDE',
             'LONGITUDE'
         ];
@@ -122,6 +127,7 @@ class PerbaikanTikorExport extends DefaultValueBinder implements FromQuery, With
             $row->flagpay,
             $row->flagout,
             $row->kodecabang,
+            $row->sales_name ?? '-',
             str_replace(',', '.', (string) $row->latitude),
             str_replace(',', '.', (string) $row->longitude),
         ];
@@ -130,8 +136,8 @@ class PerbaikanTikorExport extends DefaultValueBinder implements FromQuery, With
     public function columnFormats(): array
     {
         return [
-            'L' => NumberFormat::FORMAT_TEXT,
             'M' => NumberFormat::FORMAT_TEXT,
+            'N' => NumberFormat::FORMAT_TEXT,
         ];
     }
 
@@ -139,8 +145,8 @@ class PerbaikanTikorExport extends DefaultValueBinder implements FromQuery, With
     {
         $column = $cell->getColumn();
 
-        // Paksa kolom L (Latitude) dan M (Longitude) menjadi String murni
-        if (in_array($column, ['L', 'M'])) {
+        // Paksa kolom M (LATITUDE) dan N (LONGITUDE) menjadi tipe text eksplisit
+        if (in_array($column, ['M', 'N'])) {
             $cell->setValueExplicit((string) $value, DataType::TYPE_STRING);
             return true;
         }

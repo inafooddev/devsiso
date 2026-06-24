@@ -101,15 +101,22 @@ class Index extends Component
 
     public function export()
     {
+        $exportData = new \App\Exports\PerbaikanTikorExport(
+            $this->search, 
+            $this->statusFilter, 
+            $this->dateStart, 
+            $this->dateEnd, 
+            $this->selectedIds
+        );
+
+        if ($exportData->query()->count() === 0) {
+            $this->dispatch('show-toast', type: 'error', message: 'Toko belum ada yang di-approve untuk dilakukan perubahan');
+            return;
+        }
+
         return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\PerbaikanTikorExport(
-                $this->search, 
-                $this->statusFilter, 
-                $this->dateStart, 
-                $this->dateEnd, 
-                $this->selectedIds
-            ), 
-            'perbaikan_tikor_toko_' . now()->format('Ymd_His') . '.xlsx'
+            $exportData, 
+            'perbaikan_tikor_toko_approved_' . now()->format('Ymd_His') . '.xlsx'
         );
     }
 
@@ -155,7 +162,12 @@ class Index extends Component
     public function filteredQuery()
     {
         $query = $this->baseQuery()
-            ->with(['customerPrcEska', 'distributorImplementasiEskalink']);
+            ->with(['customerPrcEska', 'distributorImplementasiEskalink'])
+            ->leftJoin('fsalesman', function($join) {
+                $join->on('perbaikan_tikor_toko.sales_code', '=', 'fsalesman.SLSNO')
+                     ->on('perbaikan_tikor_toko.distributor_code', '=', 'fsalesman.KD');
+            })
+            ->select('perbaikan_tikor_toko.*', 'fsalesman.SLSNAME as sales_name');
 
         if ($this->search) {
             $query->where(function ($q) {

@@ -1,10 +1,13 @@
 <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full" 
-    x-data="{ showPhotoModal: false, photoUrl: '', showRejectModal: false, showMapModal: false, mapDist: 0, showReasonModal: false, reasonText: '', copyToast: { show: false, message: '' } }"
-    x-on:open-map-modal.window="
+        x-data="{ showPhotoModal: false, photoUrl: '', showRejectModal: false, showMapModal: false, mapDist: 0, showReasonModal: false, reasonText: '', copyToast: { show: false, message: '' } }"
+        x-on:open-map-modal.window="
+        if (!window.L) {
+            window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'error', message: 'Pustaka Peta (Leaflet) sedang memuat. Coba lagi.' } }));
+            return;
+        }
         showMapModal = true; 
         mapDist = $event.detail.dist;
         setTimeout(() => {
-            if (!window.L) return;
             if (!window.leafletMap) {
                 window.leafletMap = L.map('leaflet-map-container').setView([$event.detail.lat2, $event.detail.lon2], 15);
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(window.leafletMap);
@@ -44,54 +47,56 @@
     {{-- Listen for Livewire events --}}
     <div x-on:open-reject-modal.window="showRejectModal = true" x-on:close-reject-modal.window="showRejectModal = false"></div>
 
+    {{-- Toast Notification sekarang menggunakan Vanilla JS --}}
+
     {{-- KPI Cards Section --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6 shrink-0">
         {{-- Total --}}
         <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
-            <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 transition-transform group-hover:scale-150"></div>
+            <div class="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-gradient-to-br from-primary/10 to-primary/5 transition-transform duration-500 group-hover:scale-150"></div>
             <div class="flex items-start justify-between relative z-10">
-                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate pr-2 mt-1">Total Pengajuan</h3>
-                <div class="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                    <x-heroicon-s-document-text class="w-4 h-4" />
+                <h3 class="text-xs font-bold text-base-content/60 uppercase tracking-widest truncate pr-2 mt-1">Total Pengajuan</h3>
+                <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 shadow-sm">
+                    <x-heroicon-s-document-text class="w-5 h-5 drop-shadow-sm" />
                 </div>
             </div>
-            <div class="text-lg md:text-xl font-bold leading-none mt-1 md:mt-2 truncate relative z-10 text-primary">{{ number_format($kpi['total']) }}</div>
+            <div class="text-2xl md:text-3xl font-black tracking-tight mt-2 relative z-10 text-primary drop-shadow-sm">{{ number_format($kpi['total']) }}</div>
         </div>
         
         {{-- Pending --}}
         <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
-            <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-warning/10 transition-transform group-hover:scale-150"></div>
+            <div class="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-gradient-to-br from-warning/10 to-warning/5 transition-transform duration-500 group-hover:scale-150"></div>
             <div class="flex items-start justify-between relative z-10">
-                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate pr-2 mt-1">Menunggu Persetujuan</h3>
-                <div class="w-8 h-8 rounded-xl bg-warning/10 flex items-center justify-center text-warning shrink-0">
-                    <x-heroicon-s-clock class="w-4 h-4" />
+                <h3 class="text-xs font-bold text-base-content/60 uppercase tracking-widest truncate pr-2 mt-1">Menunggu Persetujuan</h3>
+                <div class="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center text-warning shrink-0 shadow-sm">
+                    <x-heroicon-s-clock class="w-5 h-5 drop-shadow-sm" />
                 </div>
             </div>
-            <div class="text-lg md:text-xl font-bold leading-none mt-1 md:mt-2 truncate relative z-10 text-warning">{{ number_format($kpi['pending']) }}</div>
+            <div class="text-2xl md:text-3xl font-black tracking-tight mt-2 relative z-10 text-warning drop-shadow-sm">{{ number_format($kpi['pending']) }}</div>
         </div>
 
         {{-- Approved --}}
         <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
-            <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-success/10 transition-transform group-hover:scale-150"></div>
+            <div class="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-gradient-to-br from-success/10 to-success/5 transition-transform duration-500 group-hover:scale-150"></div>
             <div class="flex items-start justify-between relative z-10">
-                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate pr-2 mt-1">Telah Disetujui</h3>
-                <div class="w-8 h-8 rounded-xl bg-success/10 flex items-center justify-center text-success shrink-0">
-                    <x-heroicon-s-check-circle class="w-4 h-4" />
+                <h3 class="text-xs font-bold text-base-content/60 uppercase tracking-widest truncate pr-2 mt-1">Telah Disetujui</h3>
+                <div class="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center text-success shrink-0 shadow-sm">
+                    <x-heroicon-s-check-circle class="w-5 h-5 drop-shadow-sm" />
                 </div>
             </div>
-            <div class="text-lg md:text-xl font-bold leading-none mt-1 md:mt-2 truncate relative z-10 text-success">{{ number_format($kpi['approved']) }}</div>
+            <div class="text-2xl md:text-3xl font-black tracking-tight mt-2 relative z-10 text-success drop-shadow-sm">{{ number_format($kpi['approved']) }}</div>
         </div>
 
         {{-- Rejected --}}
         <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
-            <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-error/10 transition-transform group-hover:scale-150"></div>
+            <div class="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-gradient-to-br from-error/10 to-error/5 transition-transform duration-500 group-hover:scale-150"></div>
             <div class="flex items-start justify-between relative z-10">
-                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate pr-2 mt-1">Ditolak</h3>
-                <div class="w-8 h-8 rounded-xl bg-error/10 flex items-center justify-center text-error shrink-0">
-                    <x-heroicon-s-x-circle class="w-4 h-4" />
+                <h3 class="text-xs font-bold text-base-content/60 uppercase tracking-widest truncate pr-2 mt-1">Ditolak</h3>
+                <div class="w-10 h-10 rounded-xl bg-error/10 flex items-center justify-center text-error shrink-0 shadow-sm">
+                    <x-heroicon-s-x-circle class="w-5 h-5 drop-shadow-sm" />
                 </div>
             </div>
-            <div class="text-lg md:text-xl font-bold leading-none mt-1 md:mt-2 truncate relative z-10 text-error">{{ number_format($kpi['rejected']) }}</div>
+            <div class="text-2xl md:text-3xl font-black tracking-tight mt-2 relative z-10 text-error drop-shadow-sm">{{ number_format($kpi['rejected']) }}</div>
         </div>
     </div>
 
@@ -99,10 +104,10 @@
     <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
         
         {{-- Header Card & Actions --}}
-        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30 relative z-20">
             <div class="shrink-0 w-full sm:w-auto">
-                <h2 class="text-base md:text-lg font-bold">Data Perbaikan Koordinat Toko</h2>
-                <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Daftar usulan perbaikan tikor dari Sales</p>
+                <h2 class="text-lg md:text-xl font-black tracking-tight text-base-content">Data Perbaikan Koordinat Toko</h2>
+                <p class="text-xs text-base-content/50 font-bold uppercase tracking-widest mt-1">Daftar usulan perbaikan tikor dari Sales</p>
             </div>
             
             <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
@@ -130,8 +135,9 @@
                 {{-- Actions Button (Optional Export dll) --}}
                 <div class="flex flex-wrap items-center gap-1 md:gap-2">
                     @if($this->selectedPendingCount > 0)
-                        <button type="button" wire:click="bulkApprove" wire:confirm="Setujui {{ $this->selectedPendingCount }} usulan perbaikan terpilih?" class="btn btn-sm btn-success text-white shadow-sm">
-                            <x-heroicon-s-check-circle class="w-4 h-4" /> Terima Terpilih ({{ $this->selectedPendingCount }})
+                        <button type="button" wire:click="bulkApprove" wire:confirm="Setujui {{ $this->selectedPendingCount }} usulan perbaikan terpilih?" class="btn btn-sm btn-success text-white shadow-sm" wire:loading.attr="disabled" wire:target="bulkApprove">
+                            <span wire:loading wire:target="bulkApprove" class="loading loading-spinner loading-xs mr-1"></span>
+                            <x-heroicon-s-check-circle class="w-4 h-4" wire:loading.remove wire:target="bulkApprove" /> Terima Terpilih ({{ $this->selectedPendingCount }})
                         </button>
                     @endif
                     <x-ui.action-button type="export" wire:click="export" />
@@ -151,6 +157,7 @@
 
                         <th>Distributor</th>
                         <th>Kode Sales</th>
+                        <th>Nama Sales</th>
                         <th>Kode Toko</th>
                         <th>Nama Toko</th>
                         <th>Koordinat</th>
@@ -163,7 +170,7 @@
                 </thead>
                 <tbody class="text-sm">
                     @forelse($data as $index => $item)
-                    <tr class="hover:bg-base-200/50 transition-colors {{ in_array($item->id, $selectedIds) ? 'bg-success/5' : '' }}">
+                    <tr class="transition-colors {{ in_array($item->id, $selectedIds) ? 'bg-success/10 hover:bg-success/15' : 'hover:bg-base-200/50' }}">
                         <th class="text-center px-2">
                             <input type="checkbox" wire:model.live="selectedIds" value="{{ $item->id }}" class="checkbox checkbox-sm checkbox-success rounded" />
                         </th>
@@ -171,6 +178,7 @@
 
                         <td class="font-bold">{{ $item->distributorImplementasiEskalink->distributor_name ?? $item->distributor_code }}</td>
                         <td class="font-mono">{{ $item->sales_code }}</td>
+                        <td class="font-bold">{{ $item->sales_name ?? '-' }}</td>
                         <td class="font-mono">{{ $item->customer_code }}</td>
                         <td class="font-bold {{ in_array($item->distributor_code . '_' . $item->customer_code, $duplicates) ? 'text-rose-600' : '' }}">
                             {{ $item->exact_customer->custname ?? 'N/A' }}
@@ -179,7 +187,28 @@
                             @endif
                         </td>
                         <td class="font-mono">
-                            <button type="button" @click="navigator.clipboard.writeText('{{ $item->latitude }}, {{ $item->longitude }}'); copyToast.message = 'Koordinat disalin!'; copyToast.show = true; setTimeout(() => copyToast.show = false, 2500);" class="hover:text-info flex items-center gap-1 group transition-colors" title="Klik untuk Copy Koordinat">
+                            <button type="button" 
+                                @click="
+                                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                                        navigator.clipboard.writeText('{{ $item->latitude }}, {{ $item->longitude }}');
+                                    } else {
+                                        let textArea = document.createElement('textarea');
+                                        textArea.value = '{{ $item->latitude }}, {{ $item->longitude }}';
+                                        textArea.style.position = 'fixed';
+                                        textArea.style.left = '-999999px';
+                                        document.body.appendChild(textArea);
+                                        textArea.focus();
+                                        textArea.select();
+                                        try { document.execCommand('copy'); } catch (err) { console.error('Gagal menyalin: ', err); }
+                                        document.body.removeChild(textArea);
+                                    }
+                                    copyToast.message = 'Koordinat disalin!';
+                                    copyToast.show = true;
+                                    setTimeout(() => copyToast.show = false, 2500);
+                                " 
+                                class="hover:text-info flex items-center gap-1 group transition-colors" 
+                                title="Klik untuk Copy Koordinat"
+                            >
                                 {{ $item->latitude }}, {{ $item->longitude }}
                                 <x-heroicon-o-clipboard-document class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </button>
@@ -205,16 +234,35 @@
                                 }
                             @endphp
                             <div class="flex flex-col items-center justify-center gap-1 w-full min-w-[80px]">
-                                <button type="button" @click="$dispatch('open-map-modal', { lat1: '{{ $item->exact_customer->la ?? '' }}', lon1: '{{ $item->exact_customer->lg ?? '' }}', lat2: '{{ $item->latitude }}', lon2: '{{ $item->longitude }}', dist: '{{ $dist !== null ? number_format($dist, 0, '', '') : '' }}' })" class="btn btn-xs btn-outline btn-info w-full flex items-center justify-center whitespace-nowrap">
-                                    {{ $dist !== null ? number_format($dist, 0, ',', '.') . 'm' : 'Map' }}
-                                </button>
+                                @if($dist !== null)
+                                    @if($dist < 1)
+                                        <button type="button" @click="$dispatch('open-map-modal', { lat1: '{{ $item->exact_customer->la ?? '' }}', lon1: '{{ $item->exact_customer->lg ?? '' }}', lat2: '{{ $item->latitude }}', lon2: '{{ $item->longitude }}', dist: '{{ number_format($dist, 0, '', '') }}' })" class="btn btn-xs btn-warning w-full flex items-center justify-center whitespace-nowrap font-bold">
+                                            0m (Tetap)
+                                        </button>
+                                    @else
+                                        <button type="button" @click="$dispatch('open-map-modal', { lat1: '{{ $item->exact_customer->la ?? '' }}', lon1: '{{ $item->exact_customer->lg ?? '' }}', lat2: '{{ $item->latitude }}', lon2: '{{ $item->longitude }}', dist: '{{ number_format($dist, 0, '', '') }}' })" class="btn btn-xs btn-outline btn-info w-full flex items-center justify-center whitespace-nowrap">
+                                            {{ number_format($dist, 0, ',', '.') . 'm' }}
+                                        </button>
+                                    @endif
+                                @else
+                                    <button type="button" @click="$dispatch('open-map-modal', { lat1: '', lon1: '', lat2: '{{ $item->latitude }}', lon2: '{{ $item->longitude }}', dist: '' })" class="btn btn-xs btn-outline btn-info w-full flex items-center justify-center whitespace-nowrap">
+                                        Map
+                                    </button>
+                                @endif
                             </div>
                         </td>
                         <td class="text-center">
                             @if($item->status == 'Approved')
                                 <span class="badge badge-sm badge-outline badge-success">Approved</span>
                             @elseif($item->status == 'Rejected')
-                                <button type="button" @click="reasonText = '{{ addslashes($item->keterangan ?? 'Tidak ada keterangan') }}'; showReasonModal = true;" class="badge badge-sm badge-outline badge-error cursor-pointer hover:bg-error/10 transition-colors" title="Klik untuk lihat alasan">Rejected</button>
+                                <button type="button" 
+                                    @click="reasonText = $el.dataset.keterangan; showReasonModal = true;" 
+                                    data-keterangan="{{ $item->keterangan ?? 'Tidak ada keterangan' }}"
+                                    class="badge badge-sm badge-outline badge-error cursor-pointer hover:bg-error/10 transition-colors" 
+                                    title="Klik untuk lihat alasan"
+                                >
+                                    Rejected
+                                </button>
                             @else
                                 <span class="badge badge-sm badge-outline badge-warning">Pending</span>
                             @endif
@@ -246,12 +294,14 @@
 
                                 @if($item->status == 'Pending')
                                 {{-- Setujui --}}
-                                <button type="button" wire:click="approve({{ $item->id }})" wire:confirm="Yakin ingin menyetujui perubahan koordinat ini?" class="btn btn-sm btn-ghost text-success hover:bg-success/10 btn-square" title="Setujui">
-                                    <x-heroicon-o-check class="w-4 h-4" />
+                                <button type="button" wire:click="approve({{ $item->id }})" wire:confirm="Yakin ingin menyetujui perubahan koordinat ini?" class="btn btn-sm btn-ghost text-success hover:bg-success/10 btn-square" title="Setujui" wire:loading.attr="disabled" wire:target="approve({{ $item->id }})">
+                                    <x-heroicon-o-check class="w-4 h-4" wire:loading.remove wire:target="approve({{ $item->id }})" />
+                                    <span wire:loading wire:target="approve({{ $item->id }})" class="loading loading-spinner loading-xs text-success"></span>
                                 </button>
                                 {{-- Tolak --}}
-                                <button type="button" wire:click="promptReject({{ $item->id }})" class="btn btn-sm btn-ghost text-error hover:bg-error/10 btn-square" title="Tolak">
-                                    <x-heroicon-o-x-mark class="w-4 h-4" />
+                                <button type="button" wire:click="promptReject({{ $item->id }})" class="btn btn-sm btn-ghost text-error hover:bg-error/10 btn-square" title="Tolak" wire:loading.attr="disabled" wire:target="promptReject({{ $item->id }})">
+                                    <x-heroicon-o-x-mark class="w-4 h-4" wire:loading.remove wire:target="promptReject({{ $item->id }})" />
+                                    <span wire:loading wire:target="promptReject({{ $item->id }})" class="loading loading-spinner loading-xs text-error"></span>
                                 </button>
                                 @else
                                 <span class="text-[10px] text-base-content/50 italic font-normal">Selesai</span>
@@ -283,7 +333,7 @@
 
     {{-- MODAL PREVIEW FOTO --}}
     <div x-show="showPhotoModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
-        <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]" @click.outside="showPhotoModal = false">
             <div class="p-4 border-b border-base-300 flex items-center justify-between bg-base-200/50">
                 <h3 class="font-bold text-lg">Foto Bukti Perbaikan Tikor</h3>
                 <button type="button" @click="showPhotoModal = false" class="btn btn-sm btn-circle btn-ghost">
@@ -323,7 +373,10 @@
                 </div>
                 <div class="p-4 border-t border-base-300 bg-base-200/50 flex justify-end gap-2">
                     <button type="button" @click="showRejectModal = false" class="btn btn-ghost">Batal</button>
-                    <button type="submit" class="btn btn-error text-white">Konfirmasi Tolak</button>
+                    <button type="submit" class="btn btn-error text-white" wire:loading.attr="disabled" wire:target="reject">
+                        <span wire:loading wire:target="reject" class="loading loading-spinner loading-xs mr-1"></span>
+                        Konfirmasi Tolak
+                    </button>
                 </div>
             </form>
         </div>
@@ -352,7 +405,7 @@
 
     {{-- MODAL MAP --}}
     <div x-show="showMapModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
-        <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col h-[80vh]">
+        <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col h-[80vh]" @click.outside="showMapModal = false">
             <div class="p-4 border-b border-base-300 flex items-center justify-between bg-base-200/50">
                 <h3 class="font-bold text-lg flex items-center gap-2">
                     <x-heroicon-s-map class="w-5 h-5 text-info" /> Peta Perbandingan
@@ -379,12 +432,84 @@
         </div>
     </div>
 
-</div>
+    {{-- Deleted unused Alpine confirmModal store component --}}
 
-    {{-- Scripts and Styles inside root to prevent Multiple Root Elements Exception --}}
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    {{-- Block Vanilla JS, Map, dan Modal diproteksi dari Livewire DOM Morphing --}}
+    <div wire:ignore>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         .leaflet-container { z-index: 10 !important; }
+        
+        /* Vanilla JS Toast Container */
+        #vanilla-toast-container {
+            position: fixed;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: center;
+            pointer-events: none;
+        }
+        .v-toast {
+            background: hsl(var(--su));
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: 1rem;
+            font-weight: bold;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: toastIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .v-toast.error { background: hsl(var(--er)); }
+        .v-toast.fade-out {
+            animation: toastOut 0.3s ease-in forwards;
+        }
+        @keyframes toastIn {
+            from { transform: translateY(-100%) scale(0.9); opacity: 0; }
+            to   { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes toastOut {
+            from { transform: scale(1); opacity: 1; }
+            to   { transform: scale(0.9); opacity: 0; }
+        }
+
     </style>
+    <script>
+        // Vanilla JS Toast Handler
+        window.addEventListener('show-toast', (e) => {
+            let detail = Array.isArray(e.detail) ? e.detail[0] : e.detail;
+            let type = detail?.type || 'success';
+            let message = detail?.message || detail || 'Sukses';
+            
+            let container = document.getElementById('vanilla-toast-container');
+            if(!container) {
+                container = document.createElement('div');
+                container.id = 'vanilla-toast-container';
+                document.body.appendChild(container);
+            }
+            
+            let toast = document.createElement('div');
+            toast.className = 'v-toast ' + (type === 'error' ? 'error' : '');
+            
+            // Ikon
+            let iconSvg = type === 'success' 
+                ? '<svg xmlns="http://www.w3.org/2000/svg" style="width:20px;height:20px" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" /></svg>'
+                : '<svg xmlns="http://www.w3.org/2000/svg" style="width:20px;height:20px" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" clip-rule="evenodd" /></svg>';
+            
+            toast.innerHTML = iconSvg + '<span>' + message + '</span>';
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('fade-out');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        });
+    </script>
+    </div>{{-- END wire:ignore --}}
 </div>
