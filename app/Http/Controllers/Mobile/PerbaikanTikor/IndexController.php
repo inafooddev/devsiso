@@ -219,6 +219,7 @@ class IndexController extends Controller
             'status' => 'Pending',
             'keterangan' => null,
             'timestamp' => now(),
+            'source' => 'se',
             'updated_at' => now(),
         ];
 

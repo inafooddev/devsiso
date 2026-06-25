@@ -33,6 +33,7 @@ class PerbaikanTikorToko extends Model
         'foto',
         'keterangan',
         'timestamp',
+        'source',
     ];
 
     /**
@@ -71,6 +72,23 @@ class PerbaikanTikorToko extends Model
             $customer = CustomerPrcEska::where('kodecabang', $this->distributor_code)
                 ->where('custno', $this->customer_code)
                 ->first();
+            
+            if (!$customer) {
+                // Fallback to list_toko_pareto_team_elite for Tim Elite submissions
+                $eliteCustomer = \Illuminate\Support\Facades\DB::table('list_toko_pareto_team_elite')
+                    ->where('distributor_code', $this->distributor_code)
+                    ->where('customer_code_prc', $this->customer_code)
+                    ->first();
+                    
+                if ($eliteCustomer) {
+                    $customer = (object) [
+                        'custname' => $eliteCustomer->customer_name,
+                        'la' => $eliteCustomer->latitude,
+                        'lg' => $eliteCustomer->longitude,
+                    ];
+                }
+            }
+
             $this->setRelation('exact_customer', $customer);
         }
         return $this->getRelation('exact_customer');

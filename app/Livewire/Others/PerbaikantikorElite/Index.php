@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Others\Perbaikantikor;
+namespace App\Livewire\Others\PerbaikantikorElite;
 
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -148,7 +148,7 @@ class Index extends Component
 
     private function baseQuery()
     {
-        $query = PerbaikanTikorToko::query()->where('source', 'se');
+        $query = PerbaikanTikorToko::query()->where('source', 'elite');
         
         $user = auth()->user();
         if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
@@ -228,7 +228,7 @@ class Index extends Component
             })
             ->toArray();
 
-        return view('livewire.others.perbaikantikor.index', [
+        return view('livewire.others.perbaikantikorelite.index', [
             'data' => $data,
             'kpi' => $kpi,
             'duplicates' => $duplicates
