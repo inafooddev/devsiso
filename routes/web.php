@@ -42,6 +42,8 @@ use App\Livewire\Settings\MenuManagement;
 use App\Livewire\Pages\UnderBounce;
 use App\Livewire\Pages\UnderConstruction;
 use App\Livewire\JksTeamElite\Index as JksTeamEliteIndex;
+use App\Livewire\CallPlan\JksTeamElite\RouteEfficiency\Index as RouteEfficiencyIndex;
+use App\Livewire\CallPlan\JksTeamElite\Clustering\Index as ClusteringIndex;
 use App\Livewire\CallPlan\JksTeamElite\ListTokoPareto\Index as ListTokoPareto;
 use App\Livewire\CallPlan\JksTeamElite\SummaryKunjungan\Index as SummaryKunjunganIndex;
 use App\Livewire\CallPlan\JksTeamElite\SummaryVisitTeamElite\Index as SummaryVisitTeamEliteIndex;
@@ -232,6 +234,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/call-plan/jks-team-elite/monitoring-siso-vs-eska', MonitoringJksSisoVsEskaIndex::class)->name('call-plan.jks-team-elite.monitoring-siso-vs-eska');
     Route::get('/call-plan/jks-team-elite/master-customer', JksMasterCustomerIndex::class)->name('call-plan.jks-team-elite.master-customer');
     Route::get('/call-plan/jks-team-elite/monitoring-outlet-pareto', MonitoringOutletParetoIndex::class)->name('call-plan.jks-team-elite.monitoring-outlet-pareto');
+    Route::get('/call-plan/jks-team-elite/route-efficiency', RouteEfficiencyIndex::class)->name('call-plan.jks-team-elite.route-efficiency');
+    Route::get('/call-plan/jks-team-elite/clustering', ClusteringIndex::class)->name('call-plan.jks-team-elite.clustering');
+    Route::get('/call-plan/management-cluster', \App\Livewire\CallPlan\ClusterManagement\Index::class)->name('call-plan.cluster-management');
 
     // ==========================================
     // SELLING IN & OUT
