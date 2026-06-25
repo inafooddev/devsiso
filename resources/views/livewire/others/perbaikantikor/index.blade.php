@@ -45,9 +45,17 @@
     <x-slot name="title">Perbaikan Tikor Toko</x-slot>
 
     {{-- Listen for Livewire events --}}
-    <div x-on:open-reject-modal.window="showRejectModal = true" x-on:close-reject-modal.window="showRejectModal = false"></div>
+    <div class="hidden" x-on:open-reject-modal.window="showRejectModal = true" x-on:close-reject-modal.window="showRejectModal = false"></div>
 
     {{-- Toast Notification sekarang menggunakan Vanilla JS --}}
+
+    {{-- TABS --}}
+    <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex items-center shadow-sm relative z-10 -mb-1 md:-mb-2">
+        <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
+            <a href="{{ route('others.perbaikantikor') }}" class="tab tab-xs px-4 {{ request()->routeIs('others.perbaikantikor') ? 'tab-active font-bold shadow-sm bg-base-100' : 'text-base-content/70 hover:text-base-content transition-colors' }}" wire:navigate>SE (Reguler)</a>
+            <a href="{{ route('others.perbaikantikor.elite') }}" class="tab tab-xs px-4 {{ request()->routeIs('others.perbaikantikor.elite') ? 'tab-active font-bold shadow-sm bg-base-100' : 'text-base-content/70 hover:text-base-content transition-colors' }}" wire:navigate>SPV (Tim Elite)</a>
+        </div>
+    </div>
 
     {{-- KPI Cards Section --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6 shrink-0">
@@ -98,16 +106,6 @@
             </div>
             <div class="text-2xl md:text-3xl font-black tracking-tight mt-2 relative z-10 text-error drop-shadow-sm">{{ number_format($kpi['rejected']) }}</div>
         </div>
-    </div>
-
-    {{-- Tabs Pemisah Sumber Data --}}
-    <div class="flex items-center justify-center sm:justify-start gap-2 shrink-0">
-        <a href="{{ route('others.perbaikantikor') }}" wire:navigate class="btn btn-sm {{ request()->routeIs('others.perbaikantikor') ? 'btn-primary shadow-md' : 'btn-ghost bg-base-200 text-base-content/60 hover:bg-base-300' }} rounded-full px-6 font-bold transition-all">
-            <x-heroicon-s-user-group class="w-4 h-4 mr-1" /> SE (Reguler)
-        </a>
-        <a href="{{ route('others.perbaikantikor.elite') }}" wire:navigate class="btn btn-sm {{ request()->routeIs('others.perbaikantikor.elite') ? 'btn-primary shadow-md' : 'btn-ghost bg-base-200 text-base-content/60 hover:bg-base-300' }} rounded-full px-6 font-bold transition-all">
-            <x-heroicon-s-star class="w-4 h-4 mr-1" /> SPV (Tim Elite)
-        </a>
     </div>
 
     {{-- Main Card (Tabel) --}}

@@ -45,9 +45,17 @@
     <x-slot name="title">Perbaikan Tikor Toko</x-slot>
 
     {{-- Listen for Livewire events --}}
-    <div x-on:open-reject-modal.window="showRejectModal = true" x-on:close-reject-modal.window="showRejectModal = false"></div>
+    <div class="hidden" x-on:open-reject-modal.window="showRejectModal = true" x-on:close-reject-modal.window="showRejectModal = false"></div>
 
     {{-- Toast Notification sekarang menggunakan Vanilla JS --}}
+
+    {{-- TABS --}}
+    <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex items-center shadow-sm relative z-10 -mb-1 md:-mb-2">
+        <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
+            <a href="{{ route('others.perbaikantikor') }}" class="tab tab-xs px-4 {{ request()->routeIs('others.perbaikantikor') ? 'tab-active font-bold shadow-sm bg-base-100' : 'text-base-content/70 hover:text-base-content transition-colors' }}" wire:navigate>SE (Reguler)</a>
+            <a href="{{ route('others.perbaikantikor.elite') }}" class="tab tab-xs px-4 {{ request()->routeIs('others.perbaikantikor.elite') ? 'tab-active font-bold shadow-sm bg-base-100' : 'text-base-content/70 hover:text-base-content transition-colors' }}" wire:navigate>SPV (Tim Elite)</a>
+        </div>
+    </div>
 
     {{-- KPI Cards Section --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6 shrink-0">
@@ -98,16 +106,6 @@
             </div>
             <div class="text-2xl md:text-3xl font-black tracking-tight mt-2 relative z-10 text-error drop-shadow-sm">{{ number_format($kpi['rejected']) }}</div>
         </div>
-    </div>
-
-    {{-- Tabs Pemisah Sumber Data --}}
-    <div class="flex items-center justify-center sm:justify-start gap-2 shrink-0">
-        <a href="{{ route('others.perbaikantikor') }}" wire:navigate class="btn btn-sm {{ request()->routeIs('others.perbaikantikor') ? 'btn-primary shadow-md' : 'btn-ghost bg-base-200 text-base-content/60 hover:bg-base-300' }} rounded-full px-6 font-bold transition-all">
-            <x-heroicon-s-user-group class="w-4 h-4 mr-1" /> SE (Reguler)
-        </a>
-        <a href="{{ route('others.perbaikantikor.elite') }}" wire:navigate class="btn btn-sm {{ request()->routeIs('others.perbaikantikor.elite') ? 'btn-primary shadow-md' : 'btn-ghost bg-base-200 text-base-content/60 hover:bg-base-300' }} rounded-full px-6 font-bold transition-all">
-            <x-heroicon-s-star class="w-4 h-4 mr-1" /> SPV (Tim Elite)
-        </a>
     </div>
 
     {{-- Main Card (Tabel) --}}
@@ -192,7 +190,7 @@
                         <td class="font-bold">{{ $item->sales_name ?? '-' }}</td>
                         <td class="font-mono">{{ $item->customer_code }}</td>
                         <td class="font-bold {{ in_array($item->distributor_code . '_' . $item->customer_code, $duplicates) ? 'text-rose-600' : '' }}">
-                            {{ $item->exact_customer->custname ?? 'N/A' }}
+                            {{ $item->elite_customer_name ?? 'N/A' }}
                             @if(in_array($item->distributor_code . '_' . $item->customer_code, $duplicates))
                                 <span class="badge badge-[10px] badge-error text-[9px] text-white ml-1 px-1 py-0 h-4" title="Toko ini diajukan lebih dari sekali">Berulang</span>
                             @endif
@@ -236,9 +234,9 @@
                         <td class="text-center">
                             @php
                                 $dist = null;
-                                if(isset($item->exact_customer->la) && isset($item->exact_customer->lg) && $item->latitude && $item->longitude) {
-                                    $lat1 = $item->exact_customer->la;
-                                    $lon1 = $item->exact_customer->lg;
+                                if($item->elite_lat && $item->elite_long && $item->latitude && $item->longitude) {
+                                    $lat1 = $item->elite_lat;
+                                    $lon1 = $item->elite_long;
                                     $lat2 = $item->latitude;
                                     $lon2 = $item->longitude;
                                     
@@ -256,11 +254,11 @@
                             <div class="flex flex-col items-center justify-center gap-1 w-full min-w-[80px]">
                                 @if($dist !== null)
                                     @if($dist < 1)
-                                        <button type="button" @click="$dispatch('open-map-modal', { lat1: '{{ $item->exact_customer->la ?? '' }}', lon1: '{{ $item->exact_customer->lg ?? '' }}', lat2: '{{ $item->latitude }}', lon2: '{{ $item->longitude }}', dist: '{{ number_format($dist, 0, '', '') }}' })" class="btn btn-xs btn-warning w-full flex items-center justify-center whitespace-nowrap font-bold">
+                                        <button type="button" @click="$dispatch('open-map-modal', { lat1: '{{ $item->elite_lat ?? '' }}', lon1: '{{ $item->elite_long ?? '' }}', lat2: '{{ $item->latitude }}', lon2: '{{ $item->longitude }}', dist: '{{ number_format($dist, 0, '', '') }}' })" class="btn btn-xs btn-warning w-full flex items-center justify-center whitespace-nowrap font-bold">
                                             0m (Tetap)
                                         </button>
                                     @else
-                                        <button type="button" @click="$dispatch('open-map-modal', { lat1: '{{ $item->exact_customer->la ?? '' }}', lon1: '{{ $item->exact_customer->lg ?? '' }}', lat2: '{{ $item->latitude }}', lon2: '{{ $item->longitude }}', dist: '{{ number_format($dist, 0, '', '') }}' })" class="btn btn-xs btn-outline btn-info w-full flex items-center justify-center whitespace-nowrap">
+                                        <button type="button" @click="$dispatch('open-map-modal', { lat1: '{{ $item->elite_lat ?? '' }}', lon1: '{{ $item->elite_long ?? '' }}', lat2: '{{ $item->latitude }}', lon2: '{{ $item->longitude }}', dist: '{{ number_format($dist, 0, '', '') }}' })" class="btn btn-xs btn-outline btn-info w-full flex items-center justify-center whitespace-nowrap">
                                             {{ number_format($dist, 0, ',', '.') . 'm' }}
                                         </button>
                                     @endif

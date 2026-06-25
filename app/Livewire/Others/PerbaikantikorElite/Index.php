@@ -162,8 +162,17 @@ class Index extends Component
     public function filteredQuery()
     {
         $query = $this->baseQuery()
-            ->with(['customerPrcEska', 'distributorImplementasiEskalink'])
-            ->select('perbaikan_tikor_toko.*')
+            ->with(['distributorImplementasiEskalink'])
+            ->leftJoin('list_toko_pareto_team_elite as elite', function ($join) {
+                $join->on('perbaikan_tikor_toko.distributor_code', '=', 'elite.distributor_code')
+                     ->on('perbaikan_tikor_toko.customer_code', '=', 'elite.customer_code_prc');
+            })
+            ->select(
+                'perbaikan_tikor_toko.*', 
+                'elite.customer_name as elite_customer_name', 
+                'elite.latitude as elite_lat', 
+                'elite.longitude as elite_long'
+            )
             ->addSelect([
                 'sales_name' => \Illuminate\Support\Facades\DB::table('fsalesman')
                     ->select('SLSNAME')
@@ -173,12 +182,10 @@ class Index extends Component
 
         if ($this->search) {
             $query->where(function ($q) {
-                $q->where('customer_code', 'like', '%' . $this->search . '%')
-                  ->orWhere('distributor_code', 'like', '%' . $this->search . '%')
-                  ->orWhere('sales_code', 'like', '%' . $this->search . '%')
-                  ->orWhereHas('customerPrcEska', function($q2) {
-                      $q2->where('custname', 'like', '%' . $this->search . '%');
-                  });
+                $q->where('perbaikan_tikor_toko.customer_code', 'like', '%' . $this->search . '%')
+                  ->orWhere('perbaikan_tikor_toko.distributor_code', 'like', '%' . $this->search . '%')
+                  ->orWhere('perbaikan_tikor_toko.sales_code', 'like', '%' . $this->search . '%')
+                  ->orWhere('elite.customer_name', 'like', '%' . $this->search . '%');
             });
         }
 
