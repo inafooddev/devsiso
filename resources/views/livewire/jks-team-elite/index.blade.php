@@ -62,17 +62,17 @@
                             <div class="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center text-primary">
                                 <x-heroicon-s-building-storefront class="w-3 h-3" />
                             </div>
-                            <h3 class="text-[10px] font-bold text-base-content/60 uppercase tracking-widest">Total Toko</h3>
+                            <h3 class="text-[0.625rem] font-bold text-base-content/60 uppercase tracking-widest">Total Toko</h3>
                         </div>
                         <div class="flex items-baseline gap-1 flex-wrap mb-2 cursor-help" title="Format: Terjadwal (Semua Pilar) / Terjadwal (3 Pilar) / Target Pareto (3 Pilar)">
                             <span class="text-xl font-bold text-primary leading-none">{{ number_format($kpi['total_toko_all'] ?? 0) }}</span>
                             <span class="text-sm font-bold text-primary/70 leading-none">/ {{ number_format($kpi['total_toko']) }}</span>
-                            <span class="text-[10px] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_toko']) }}</span>
+                            <span class="text-[0.625rem] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_toko']) }}</span>
                         </div>
                         <div class="w-full bg-base-200 rounded-full h-1 mb-1.5 overflow-hidden">
                             <div class="bg-primary h-1 rounded-full transition-all duration-500" style="width: {{ min(100, $pctToko) }}%"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider">
+                        <div class="flex items-center justify-between text-[0.5625rem] font-bold uppercase tracking-wider">
                             <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapToko) }}</span></span>
                             <span class="text-primary">{{ $pctToko }}%</span>
                         </div>
@@ -93,16 +93,16 @@
                             <div class="w-6 h-6 rounded-md bg-success/10 flex items-center justify-center text-success">
                                 <x-heroicon-s-banknotes class="w-3 h-3" />
                             </div>
-                            <h3 class="text-[10px] font-bold text-base-content/60 uppercase tracking-widest">Total Target</h3>
+                            <h3 class="text-[0.625rem] font-bold text-base-content/60 uppercase tracking-widest">Total Target</h3>
                         </div>
                         <div class="flex items-baseline gap-1.5 mb-2">
                             <span class="text-xl font-bold text-success leading-none">{{ number_format($kpi['total_target']) }}</span>
-                            <span class="text-[10px] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_target']) }}</span>
+                            <span class="text-[0.625rem] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_target']) }}</span>
                         </div>
                         <div class="w-full bg-base-200 rounded-full h-1 mb-1.5 overflow-hidden">
                             <div class="bg-success h-1 rounded-full transition-all duration-500" style="width: {{ min(100, $pctTarget) }}%"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider">
+                        <div class="flex items-center justify-between text-[0.5625rem] font-bold uppercase tracking-wider">
                             <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapTarget) }}</span></span>
                             <span class="text-success">{{ $pctTarget }}%</span>
                         </div>
@@ -123,16 +123,16 @@
                             <div class="w-6 h-6 rounded-md bg-info/10 flex items-center justify-center text-info">
                                 <x-heroicon-s-shopping-bag class="w-3 h-3" />
                             </div>
-                            <h3 class="text-[10px] font-bold text-base-content/60 uppercase tracking-widest">Total RWO</h3>
+                            <h3 class="text-[0.625rem] font-bold text-base-content/60 uppercase tracking-widest">Total RWO</h3>
                         </div>
                         <div class="flex items-baseline gap-1.5 mb-2">
                             <span class="text-xl font-bold text-info leading-none">{{ number_format($kpi['total_rwo']) }}</span>
-                            <span class="text-[10px] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_rwo']) }}</span>
+                            <span class="text-[0.625rem] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_rwo']) }}</span>
                         </div>
                         <div class="w-full bg-base-200 rounded-full h-1 mb-1.5 overflow-hidden">
                             <div class="bg-info h-1 rounded-full transition-all duration-500" style="width: {{ min(100, $pctRwo) }}%"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider">
+                        <div class="flex items-center justify-between text-[0.5625rem] font-bold uppercase tracking-wider">
                             <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapRwo) }}</span></span>
                             <span class="text-info">{{ $pctRwo }}%</span>
                         </div>
@@ -153,16 +153,16 @@
                             <div class="w-6 h-6 rounded-md bg-secondary/10 flex items-center justify-center text-secondary">
                                 <x-heroicon-s-archive-box class="w-3 h-3" />
                             </div>
-                            <h3 class="text-[10px] font-bold text-base-content/60 uppercase tracking-widest">Total PNR</h3>
+                            <h3 class="text-[0.625rem] font-bold text-base-content/60 uppercase tracking-widest">Total PNR</h3>
                         </div>
                         <div class="flex items-baseline gap-1.5 mb-2">
                             <span class="text-xl font-bold text-secondary leading-none">{{ number_format($kpi['total_pnr']) }}</span>
-                            <span class="text-[10px] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_pnr']) }}</span>
+                            <span class="text-[0.625rem] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_pnr']) }}</span>
                         </div>
                         <div class="w-full bg-base-200 rounded-full h-1 mb-1.5 overflow-hidden">
                             <div class="bg-secondary h-1 rounded-full transition-all duration-500" style="width: {{ min(100, $pctPnr) }}%"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider">
+                        <div class="flex items-center justify-between text-[0.5625rem] font-bold uppercase tracking-wider">
                             <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapPnr) }}</span></span>
                             <span class="text-secondary">{{ $pctPnr }}%</span>
                         </div>
@@ -183,16 +183,16 @@
                             <div class="w-6 h-6 rounded-md bg-warning/10 flex items-center justify-center text-warning">
                                 <x-heroicon-s-sparkles class="w-3 h-3" />
                             </div>
-                            <h3 class="text-[10px] font-bold text-base-content/60 uppercase tracking-widest">Total NGVO</h3>
+                            <h3 class="text-[0.625rem] font-bold text-base-content/60 uppercase tracking-widest">Total NGVO</h3>
                         </div>
                         <div class="flex items-baseline gap-1.5 mb-2">
                             <span class="text-xl font-bold text-warning leading-none">{{ number_format($kpi['total_ngvo']) }}</span>
-                            <span class="text-[10px] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_ngvo']) }}</span>
+                            <span class="text-[0.625rem] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_ngvo']) }}</span>
                         </div>
                         <div class="w-full bg-base-200 rounded-full h-1 mb-1.5 overflow-hidden">
                             <div class="bg-warning h-1 rounded-full transition-all duration-500" style="width: {{ min(100, $pctNgvo) }}%"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider">
+                        <div class="flex items-center justify-between text-[0.5625rem] font-bold uppercase tracking-wider">
                             <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapNgvo) }}</span></span>
                             <span class="text-warning">{{ $pctNgvo }}%</span>
                         </div>
@@ -207,7 +207,7 @@
             <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
                 <div class="shrink-0 w-full sm:w-auto">
                     <h2 class="text-base md:text-lg font-bold">JKS Team Elite</h2>
-                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Kelola data JKS Team Elite</p>
+                    <p class="text-[0.625rem] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Kelola data JKS Team Elite</p>
                 </div>
                 
                 {{-- Menggunakan flex-wrap agar barisan aksi jatuh secara responsif --}}
@@ -311,7 +311,7 @@
 
             {{-- Body Card (Tabel Scrollable area) --}}
             <div class="flex-1 overflow-auto bg-base-100 w-full relative">
-                <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap text-[11px] [&_th]:text-[11px] [&_td]:text-[11px]">
+                <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap text-[0.6875rem] [&_th]:text-[0.6875rem] [&_td]:text-[0.6875rem]">
                     <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
                         <tr>
                             <th>No</th>
@@ -592,7 +592,7 @@
                                                 <div class="flex-1">
                                                     <div class="font-bold text-sm">{{ $cust->custno }} - {{ $cust->custname }}</div>
                                                     <div class="text-xs opacity-70 truncate">{{ $cust->distributor_name }} ({{ $cust->distributor_code }})</div>
-                                                    <div class="text-[10px] opacity-50 truncate">{{ $cust->addres }}</div>
+                                                    <div class="text-[0.625rem] opacity-50 truncate">{{ $cust->addres }}</div>
                                                 </div>
                                                 <button type="button" wire:click="addCustomerToCart('{{ $cust->custno }}')" class="btn btn-xs btn-primary btn-square opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <x-heroicon-s-plus class="w-4 h-4" />
@@ -644,7 +644,7 @@
                                                 <span class="flex items-center gap-1"><x-heroicon-s-building-storefront class="w-3 h-3"/> {{ $cartItem['distributor_code'] }}</span>
                                                 <span class="flex items-center gap-1"><x-heroicon-s-map-pin class="w-3 h-3"/> {{ $cartItem['nama_area'] }}, {{ $cartItem['nama_region'] }}</span>
                                             </div>
-                                            <div class="text-[10px] text-base-content/50 mt-1 truncate">{{ $cartItem['addres'] }}</div>
+                                            <div class="text-[0.625rem] text-base-content/50 mt-1 truncate">{{ $cartItem['addres'] }}</div>
                                         </div>
                                         <button type="button" wire:click="removeCustomerFromCart('{{ $cartItem['custno'] }}')" class="btn btn-xs btn-ghost btn-circle text-error hover:bg-error hover:text-white shrink-0">
                                             <x-heroicon-s-trash class="w-4 h-4" />
@@ -1062,10 +1062,10 @@
                             let lat = parseFloat(store.latitude);
                             let lng = parseFloat(store.longitude);
                             
-                            let popupHtml = `<b>${store.custname}</b><br>${store.customer_address || ''}<br><span class="text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${lat},${lng}', '_blank');" title="Buka di Google Maps">📍 ${lat}, ${lng}</span><div class="mt-2 flex flex-col gap-1">`;
+                            let popupHtml = `<b>${store.custname}</b><br>${store.customer_address || ''}<br><span class="text-[0.625rem] text-gray-500 font-mono cursor-pointer hover:text-primary" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${lat},${lng}', '_blank');" title="Buka di Google Maps">📍 ${lat}, ${lng}</span><div class="mt-2 flex flex-col gap-1">`;
                             if (store.tgl_format) {
-                                popupHtml += `<span class="text-[11px] font-bold text-gray-700 flex items-center gap-1">🕒 ${store.tgl_format} (${store.hari}) - W${store.minggu}</span>`;
-                                popupHtml += `<span class="text-[11px] font-bold text-gray-700 flex items-center gap-1">👤 ${store.nama_team}</span>`;
+                                popupHtml += `<span class="text-[0.6875rem] font-bold text-gray-700 flex items-center gap-1">🕒 ${store.tgl_format} (${store.hari}) - W${store.minggu}</span>`;
+                                popupHtml += `<span class="text-[0.6875rem] font-bold text-gray-700 flex items-center gap-1">👤 ${store.nama_team}</span>`;
                             }
                             if (store.pilar) {
                                 popupHtml += `<span class="badge badge-outline badge-sm font-bold border-gray-300 text-gray-600 shadow-sm mt-1 w-max">Pilar: ${store.pilar}</span>`;
@@ -1077,11 +1077,11 @@
                                 popupHtml += `
                                     <div class="mt-2 border-t border-gray-200 pt-2">
                                         <div class="form-control w-full">
-                                            <label class="label p-0 pb-1"><span class="label-text text-[10px]">Pindah Tanggal</span></label>
+                                            <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Pindah Tanggal</span></label>
                                             <input type="date" id="edit_date_${store.custno}" value="${store.tanggal_ymd}" class="input input-xs input-bordered w-full bg-white text-gray-900 border-gray-300" />
                                         </div>
                                         <div class="form-control w-full mt-1">
-                                            <label class="label p-0 pb-1"><span class="label-text text-[10px]">Pindah Team</span></label>
+                                            <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Pindah Team</span></label>
                                             <select id="edit_team_${store.custno}" class="select select-xs select-bordered w-full bg-white text-gray-900 border-gray-300">
                                                 ${teamOptions}
                                             </select>
@@ -1122,7 +1122,7 @@
                             let lat = parseFloat(store.latitude);
                             let lng = parseFloat(store.longitude);
                             
-                            let popupContent = `<b>${store.custname}</b><br>${store.customer_address || ''}<br><span class="text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${lat},${lng}', '_blank');" title="Buka di Google Maps">📍 ${lat}, ${lng}</span><div class="mt-2 flex flex-col gap-1">`;
+                            let popupContent = `<b>${store.custname}</b><br>${store.customer_address || ''}<br><span class="text-[0.625rem] text-gray-500 font-mono cursor-pointer hover:text-primary" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${lat},${lng}', '_blank');" title="Buka di Google Maps">📍 ${lat}, ${lng}</span><div class="mt-2 flex flex-col gap-1">`;
                             if (store.pilar) {
                                 popupContent += `<span class="badge badge-outline badge-sm font-bold border-gray-300 text-gray-600 shadow-sm w-max">Pilar: ${store.pilar}</span>`;
                             }
@@ -1134,11 +1134,11 @@
                                 let teamOptions = data.availableTeams.map(t => `<option value="${t.kode_team}">${t.nama_team}</option>`).join('');
                                 popupContent += `
                                     <div class="form-control w-full">
-                                        <label class="label p-0 pb-1"><span class="label-text text-[10px]">Tanggal</span></label>
+                                        <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Tanggal</span></label>
                                         <input type="date" id="date_${store.custno}" class="input input-xs input-bordered w-full bg-white text-gray-900 border-gray-300" />
                                     </div>
                                     <div class="form-control w-full mt-1">
-                                        <label class="label p-0 pb-1"><span class="label-text text-[10px]">Team</span></label>
+                                        <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Team</span></label>
                                         <select id="team_${store.custno}" class="select select-xs select-bordered w-full bg-white text-gray-900 border-gray-300">
                                             ${teamOptions}
                                         </select>

@@ -20,6 +20,11 @@
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <style>
+         /* Responsive UI Scaling */
+         html { font-size: 100%; } /* 1rem = 16px at >=1536px */
+         @media (max-width: 1536px) { html { font-size: 87.5%; } } /* 1rem = 14px at <1536px */
+         @media (max-width: 1280px) { html { font-size: 75%; } } /* 1rem = 12px at <1280px */
+         
          [x-cloak] { display: none !important; }
          /* Fix konflik CSS transition antara Tailwind/DaisyUI dan Leaflet saat zoom/pan/cluster */
          .leaflet-container * { transition: none; }
