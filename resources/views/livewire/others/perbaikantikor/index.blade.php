@@ -161,6 +161,7 @@
                         <th>Kode Toko</th>
                         <th>Nama Toko</th>
                         <th>Koordinat</th>
+                        <th class="text-center">Akurasi</th>
                         <th>Map</th>
                         <th class="text-center">Status</th>
                         <th>Waktu Pengajuan</th>
@@ -212,6 +213,15 @@
                                 {{ $item->latitude }}, {{ $item->longitude }}
                                 <x-heroicon-o-clipboard-document class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </button>
+                        </td>
+                        <td class="text-center font-bold">
+                            @if($item->accuracy)
+                                <span class="{{ $item->accuracy <= 15 ? 'text-success' : ($item->accuracy > 100 ? 'text-error' : 'text-warning') }}">
+                                    {{ rtrim(rtrim(number_format($item->accuracy, 2, ',', '.'), '0'), ',') }}m
+                                </span>
+                            @else
+                                <span class="text-base-content/40">-</span>
+                            @endif
                         </td>
                         <td class="text-center">
                             @php

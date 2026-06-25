@@ -190,6 +190,7 @@ class IndexController extends Controller
             'distributor_code' => 'required',
             'latitude' => 'required|numeric|between:-90,90|not_in:0',
             'longitude' => 'required|numeric|between:-180,180|not_in:0',
+            'accuracy' => 'nullable|numeric',
             'foto' => 'required|image|max:5120',
         ]);
 
@@ -214,6 +215,7 @@ class IndexController extends Controller
             'customer_code' => $request->customer_code,
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
+            'accuracy' => $request->accuracy,
             'status' => 'Pending',
             'keterangan' => null,
             'timestamp' => now(),
