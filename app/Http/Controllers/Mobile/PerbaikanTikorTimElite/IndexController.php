@@ -22,33 +22,26 @@ class IndexController extends Controller
         $riwayatPerbaikan = collect();
 
         if ($salesCode) {
-            $tokoList = DB::table('frute as f')
+            $tokoList = DB::table('list_toko_pareto_team_elite as l')
                 ->selectRaw('
-                    f.region as region_code,
+                    md.region_code,
                     md.region_name,
-                    f.cabang as area_code,
+                    md.area_code,
                     md.area_name,
-                    f.kodecabang as distributor_code,
+                    l.distributor_code,
                     md.distributor_name,
-                    f.slsno as sales_code,
-                    fs."SLSNAME" as sales_name,
-                    f.custno as customer_code,
-                    cpe.custname as customer_name,
-                    cpe.custadd1 as address,
-                    cpe.la as latitude,
-                    cpe.lg as longitude,
+                    t.team_elite_code as sales_code,
+                    f."SLSNAME" as sales_name,
+                    l.customer_code_prc as customer_code,
+                    l.customer_name,
+                    l.customer_address as address,
+                    l.latitude,
+                    l.longitude,
                     ptt.status as status_perbaikan
                 ')
-                ->leftJoin('distributor_implementasi_eskalink as die', 'die.eskalink_code', '=', 'f.kodecabang')
-                ->leftJoin('master_distributors as md', 'die.distributor_code', '=', 'md.distributor_code')
-                ->leftJoin('fsalesman as fs', function($join) {
-                    $join->on('fs.SLSNO', '=', 'f.slsno')
-                         ->on('fs.KD', '=', 'f.kodecabang');
-                })
-                ->leftJoin('customer_prc_eska as cpe', function($join) {
-                    $join->on('cpe.kodecabang', '=', 'f.kodecabang')
-                         ->on('cpe.custno', '=', 'f.custno');
-                })
+                ->leftJoin('master_distributors as md', 'l.distributor_code', '=', 'md.distributor_code')
+                ->leftJoin('team_elite_code_mappings as t', 'md.supervisor_code', '=', 't.siso_code')
+                ->leftJoin('fsalesman as f', 't.team_elite_code', '=', 'f.SLSNO')
                 ->leftJoinSub(
                     DB::table('perbaikan_tikor_toko')
                         ->whereIn('id', function($q) {
@@ -58,15 +51,14 @@ class IndexController extends Controller
                         }),
                     'ptt',
                     function($join) {
-                        $join->on('ptt.distributor_code', '=', 'f.kodecabang')
-                             ->on('ptt.customer_code', '=', 'f.custno');
+                        $join->on('ptt.distributor_code', '=', 'l.distributor_code')
+                             ->on('ptt.customer_code', '=', 'l.customer_code_prc');
                     }
                 )
                 ->where('md.is_active', true)
-                ->where('md.region_code', 'HOINA')
-                ->where('f.slsno', $salesCode)
+                ->where('t.team_elite_code', $salesCode)
                 ->distinct()
-                ->orderBy('f.custno')
+                ->orderBy('l.customer_code_prc')
                 ->limit(500)
                 ->get();
 
@@ -84,16 +76,16 @@ class IndexController extends Controller
                     ptt.status as status_perbaikan,
                     ptt.keterangan as keterangan_perbaikan,
                     ptt.created_at,
-                    cpe.custname as customer_name,
-                    cpe.custadd1 as address,
-                    cpe.la as latitude,
-                    cpe.lg as longitude,
+                    l.customer_name as customer_name,
+                    l.customer_address as address,
+                    l.latitude as latitude,
+                    l.longitude as longitude,
                     md.distributor_name,
                     md.area_name
                 ')
-                ->leftJoin('customer_prc_eska as cpe', function($join) {
-                    $join->on('cpe.kodecabang', '=', 'ptt.distributor_code')
-                         ->on('cpe.custno', '=', 'ptt.customer_code');
+                ->leftJoin('list_toko_pareto_team_elite as l', function($join) {
+                    $join->on('l.distributor_code', '=', 'ptt.distributor_code')
+                         ->on('l.customer_code_prc', '=', 'ptt.customer_code');
                 })
                 ->leftJoin('master_distributors as md', 'ptt.distributor_code', '=', 'md.distributor_code')
                 ->where('ptt.sales_code', $salesCode)
@@ -114,28 +106,23 @@ class IndexController extends Controller
     {
         $q = strtolower($request->query('q', ''));
         
-        $query = DB::table('frute as f')
-            ->selectRaw('f.slsno as sales_code, max(fs."SLSNAME") as sales_name')
-            ->leftJoin('distributor_implementasi_eskalink as die', 'die.eskalink_code', '=', 'f.kodecabang')
-            ->leftJoin('master_distributors as md', 'die.distributor_code', '=', 'md.distributor_code')
-            ->leftJoin('fsalesman as fs', function($join) {
-                $join->on('fs.SLSNO', '=', 'f.slsno')
-                     ->on('fs.KD', '=', 'f.kodecabang');
-            })
+        $query = DB::table('team_elite_code_mappings as t')
+            ->selectRaw('t.team_elite_code as sales_code, max(f."SLSNAME") as sales_name')
+            ->leftJoin('master_distributors as md', 'md.supervisor_code', '=', 't.siso_code')
+            ->leftJoin('fsalesman as f', 't.team_elite_code', '=', 'f.SLSNO')
             ->where('md.is_active', true)
-            ->where('md.region_code', 'HOINA')
-            ->whereNotNull('f.slsno')
-            ->where('f.slsno', '<>', '');
+            ->whereNotNull('t.team_elite_code')
+            ->where('t.team_elite_code', '<>', '');
 
         if ($q) {
             $q = str_replace(['%', '_'], ['\%', '\_'], $q);
             $query->where(function($w) use ($q) {
-                $w->where(DB::raw('f.slsno'), 'ILIKE', "%$q%")
-                  ->orWhere(DB::raw('fs."SLSNAME"'), 'ILIKE', "%$q%");
+                $w->where(DB::raw('t.team_elite_code'), 'ILIKE', "%$q%")
+                  ->orWhere(DB::raw('f."SLSNAME"'), 'ILIKE', "%$q%");
             });
         }
 
-        $sales = $query->groupBy('f.slsno')->limit(15)->get();
+        $sales = $query->groupBy('t.team_elite_code')->limit(15)->get();
         
         return response()->json($sales);
     }
@@ -144,24 +131,18 @@ class IndexController extends Controller
     {
         $request->validate(['sales_code' => 'required|string']);
         
-        $sales = DB::table('frute as f')
-            ->selectRaw('max(fs."SLSNAME") as sales_name')
-            ->leftJoin('distributor_implementasi_eskalink as die', 'die.eskalink_code', '=', 'f.kodecabang')
-            ->leftJoin('master_distributors as md', 'die.distributor_code', '=', 'md.distributor_code')
-            ->leftJoin('fsalesman as fs', function($join) {
-                $join->on('fs.SLSNO', '=', 'f.slsno')
-                     ->on('fs.KD', '=', 'f.kodecabang');
-            })
+        $sales = DB::table('team_elite_code_mappings as t')
+            ->selectRaw('max(f."SLSNAME") as sales_name')
+            ->leftJoin('master_distributors as md', 'md.supervisor_code', '=', 't.siso_code')
+            ->leftJoin('fsalesman as f', 't.team_elite_code', '=', 'f.SLSNO')
             ->where('md.is_active', true)
-            ->where('md.region_code', 'HOINA')
-            ->where(DB::raw('LOWER(f.slsno)'), strtolower($request->sales_code))
+            ->where(DB::raw('LOWER(t.team_elite_code)'), strtolower($request->sales_code))
             ->first();
 
         if (!$sales || !$sales->sales_name) {
-            // Also accept if they just exist in fsalesman but maybe not correctly joined yet
-            $exists = DB::table('frute as f')->where(DB::raw('LOWER(f.slsno)'), strtolower($request->sales_code))->exists();
+            $exists = DB::table('team_elite_code_mappings as t')->where(DB::raw('LOWER(t.team_elite_code)'), strtolower($request->sales_code))->exists();
             if (!$exists) {
-                return redirect()->back()->withErrors(['sales_code' => 'Kode sales tidak ditemukan atau tidak aktif.']);
+                return redirect()->back()->withErrors(['sales_code' => 'Kode tim elite tidak ditemukan atau tidak aktif.']);
             }
         }
 
@@ -190,16 +171,16 @@ class IndexController extends Controller
             'distributor_code' => 'required',
             'latitude' => 'required|numeric|between:-90,90|not_in:0',
             'longitude' => 'required|numeric|between:-180,180|not_in:0',
+            'accuracy' => 'nullable|numeric',
             'foto' => 'required|image|max:5120',
         ]);
 
-        $isOwner = DB::table('frute as f')
-            ->where('f.slsno', $salesCode)
-            ->where('f.custno', $request->customer_code)
-            ->where('f.kodecabang', DB::raw("(
-                SELECT die.eskalink_code FROM distributor_implementasi_eskalink die 
-                WHERE die.distributor_code = '{$request->distributor_code}' LIMIT 1
-            )"))
+        $isOwner = DB::table('list_toko_pareto_team_elite as l')
+            ->leftJoin('master_distributors as md', 'l.distributor_code', '=', 'md.distributor_code')
+            ->leftJoin('team_elite_code_mappings as t', 'md.supervisor_code', '=', 't.siso_code')
+            ->where('t.team_elite_code', $salesCode)
+            ->where('l.customer_code_prc', $request->customer_code)
+            ->where('l.distributor_code', $request->distributor_code)
             ->exists();
 
         if (!$isOwner) {
@@ -214,6 +195,7 @@ class IndexController extends Controller
             'customer_code' => $request->customer_code,
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
+            'accuracy' => $request->accuracy,
             'status' => 'Pending',
             'keterangan' => null,
             'timestamp' => now(),

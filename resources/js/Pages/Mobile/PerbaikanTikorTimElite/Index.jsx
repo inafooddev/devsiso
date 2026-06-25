@@ -125,6 +125,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
         customer_code: '',
         latitude: '',
         longitude: '',
+        accuracy: '',
         foto: null,
     });
 
@@ -166,7 +167,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
         const actLng = outlet.longitude;
         setActualLocation(actLat && actLng ? { lat: parseFloat(actLat), lng: parseFloat(actLng) } : null);
         setBestAccuracy(null);
-        setTrackingTimer(5);
+        setTrackingTimer(30);
 
         setData({
             region_code: outlet.region_code || '',
@@ -176,6 +177,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
             customer_code: outlet.customer_code || '',
             latitude: '',  // FIX #28: start fresh — don't pre-fill old audit coords
             longitude: '',
+            accuracy: '',
             foto: null,
         });
     };
@@ -207,11 +209,11 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
         if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
 
         setIsGettingLocation(true);
-        setTrackingTimer(5);
+        setTrackingTimer(30);
         setBestAccuracy(null);
         setGpsError(false);
         setPreviewUrl(null);
-        setData(prev => ({ ...prev, latitude: '', longitude: '' }));
+        setData(prev => ({ ...prev, latitude: '', longitude: '', accuracy: '' }));
 
         let localBestAccuracy = Infinity;
 
@@ -224,7 +226,8 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                     setData(prev => ({
                         ...prev,
                         latitude: position.coords.latitude.toString(),
-                        longitude: position.coords.longitude.toString()
+                        longitude: position.coords.longitude.toString(),
+                        accuracy: acc.toString()
                     }));
 
                     // Auto-lock instan jika akurasi sudah sangat baik (<= 15m)
@@ -253,7 +256,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                     showToast('Gagal mengambil lokasi. Pastikan GPS menyala dan diizinkan.', 'error');
                 }
             },
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 } // FIX #26: added timeout
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 }
         );
 
         intervalRef.current = setInterval(() => {
@@ -265,14 +268,14 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                     if (localBestAccuracy === Infinity) {
                         setGpsError(true);
                         showToast('Gagal mendapatkan sinyal GPS. Silakan coba lagi.', 'error');
-                        setData(d => ({ ...d, latitude: '', longitude: '' }));
+                        setData(d => ({ ...d, latitude: '', longitude: '', accuracy: '' }));
                         setBestAccuracy(null);
-                    } else if (localBestAccuracy > 20) {
-                        showToast(`Akurasi ditolak (${Math.round(localBestAccuracy)}m). Minimal akurasi 20m. Silakan ke area terbuka!`, 'error');
-                        setData(d => ({ ...d, latitude: '', longitude: '' }));
+                    } else if (localBestAccuracy > 100) {
+                        showToast(`Akurasi ditolak (${Math.round(localBestAccuracy)}m). Minimal akurasi 100m. Silakan cari titik ulang!`, 'error');
+                        setData(d => ({ ...d, latitude: '', longitude: '', accuracy: '' }));
                         setBestAccuracy(null);
                     } else {
-                        showToast(`Titik dikunci! Akurasi: ${Math.round(localBestAccuracy)}m`, 'success');
+                        showToast(`Waktu habis. Titik dikunci dengan akurasi: ${Math.round(localBestAccuracy)}m`, 'success');
                     }
                     return 0;
                 }
