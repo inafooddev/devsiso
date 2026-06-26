@@ -52,6 +52,7 @@ class Index extends Component
     // Properti Form Create/Edit
     public $distributor_code, $customer_code_prc, $customer_name, $uniq_kd, $customer_address;
     public $kecamatan, $desa, $latitude, $longitude, $pilar, $target, $keterangan;
+    public $pilar_q1, $pilar_q2, $pilar_q3, $pilar_q4;
     
     // State Edit & Delete
     public $isEditModalOpen = false;
@@ -60,6 +61,8 @@ class Index extends Component
     public $original_uniq_kd;
     public $delete_distributor_code;
     public $delete_uniq_kd;
+    public $isDetailModalOpen = false;
+    public $detailData = null;
 
     // State Map Modal
 
@@ -224,6 +227,10 @@ class Index extends Component
                 'l.latitude',
                 'l.longitude',
                 'l.pilar',
+                'l.pilar_q1',
+                'l.pilar_q2',
+                'l.pilar_q3',
+                'l.pilar_q4',
                 'l.target',
                 'l.keterangan',
                 DB::raw("case when j.custno is null then 'N' else 'Y' end as on_plan"),
@@ -420,7 +427,7 @@ class Index extends Component
 
     public function openCreateModal()
     {
-        $this->reset(['distributor_code', 'customer_code_prc', 'customer_name', 'uniq_kd', 'customer_address', 'kecamatan', 'desa', 'latitude', 'longitude', 'pilar', 'target', 'keterangan', 'searchDistributor']);
+        $this->reset(['distributor_code', 'customer_code_prc', 'customer_name', 'uniq_kd', 'customer_address', 'kecamatan', 'desa', 'latitude', 'longitude', 'pilar', 'target', 'keterangan', 'searchDistributor', 'pilar_q1', 'pilar_q2', 'pilar_q3', 'pilar_q4']);
         $this->isCreateModalOpen = true;
     }
 
@@ -437,7 +444,7 @@ class Index extends Component
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'target' => 'required|numeric',
-            'keterangan' => 'required|string',
+            'keterangan' => 'nullable|string',
         ]);
 
         // Security Check: Pastikan user berhak menambah data di distributor ini
@@ -475,6 +482,10 @@ class Index extends Component
                 'pilar' => $this->pilar,
                 'target' => $this->target ?? 0,
                 'keterangan' => $this->keterangan,
+                'pilar_q1' => $this->pilar_q1,
+                'pilar_q2' => $this->pilar_q2,
+                'pilar_q3' => $this->pilar_q3,
+                'pilar_q4' => $this->pilar_q4,
             ]
         );
 
@@ -492,6 +503,28 @@ class Index extends Component
         \App\Helpers\ActivityLogger::log('Export Master Customer JKS', "Mengekspor data Master Customer JKS Team Elite.");
         $filename = 'Master_Customer_JKS_Team_Elite_' . date('Ymd_His') . '.xlsx';
         return Excel::download(new JksMasterCustomerExport($this->getBaseQuery()), $filename);
+    }
+
+    public function openDetailModal($distributorCode, $uniqKd)
+    {
+        $this->detailData = DB::table('list_toko_pareto_team_elite as l')
+            ->leftJoin('master_distributors as md', 'md.distributor_code', '=', 'l.distributor_code')
+            ->leftJoin('team_elite_code_mappings as t', 't.siso_code', '=', 'md.supervisor_code')
+            ->leftJoin('fsalesman as f', 'f.SLSNO', '=', 't.team_elite_code')
+            ->select(
+                'md.region_name',
+                'md.area_name',
+                'f.SLSNAME as supervisor_name',
+                'md.distributor_name',
+                'l.*'
+            )
+            ->where('l.distributor_code', $distributorCode)
+            ->where('l.uniq_kd', $uniqKd)
+            ->first();
+
+        if ($this->detailData) {
+            $this->isDetailModalOpen = true;
+        }
     }
 
     public function openEditModal($distributorCode, $uniqKd)
@@ -519,6 +552,10 @@ class Index extends Component
             $this->pilar = $record->pilar;
             $this->target = $record->target;
             $this->keterangan = $record->keterangan;
+            $this->pilar_q1 = $record->pilar_q1;
+            $this->pilar_q2 = $record->pilar_q2;
+            $this->pilar_q3 = $record->pilar_q3;
+            $this->pilar_q4 = $record->pilar_q4;
             
             $this->searchDistributor = $record->distributor_code;
             $this->isEditModalOpen = true;
@@ -538,7 +575,7 @@ class Index extends Component
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'target' => 'required|numeric',
-            'keterangan' => 'required|string',
+            'keterangan' => 'nullable|string',
         ], [
             'distributor_code.required' => 'Distributor Code wajib diisi',
             'distributor_code.exists' => 'Distributor Code tidak valid',
@@ -547,7 +584,6 @@ class Index extends Component
             'uniq_kd.required' => 'Uniq KD wajib diisi',
             'pilar.required' => 'Pilar wajib diisi',
             'target.required' => 'Target wajib diisi',
-            'keterangan.required' => 'Keterangan wajib diisi',
         ]);
 
         // Cek duplikasi uniq_kd jika diubah
@@ -580,6 +616,10 @@ class Index extends Component
                 'pilar' => $this->pilar,
                 'target' => $this->target ?? 0,
                 'keterangan' => $this->keterangan,
+                'pilar_q1' => $this->pilar_q1,
+                'pilar_q2' => $this->pilar_q2,
+                'pilar_q3' => $this->pilar_q3,
+                'pilar_q4' => $this->pilar_q4,
             ]);
 
             \App\Helpers\ActivityLogger::log('Edit Master Customer JKS', "Mengedit Customer: {$this->customer_name} ({$this->uniq_kd})");

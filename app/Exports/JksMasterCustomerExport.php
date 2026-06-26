@@ -5,14 +5,28 @@ namespace App\Exports;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 
-class JksMasterCustomerExport implements FromCollection, WithHeadings, WithMapping
+class JksMasterCustomerExport extends DefaultValueBinder implements FromCollection, WithHeadings, WithMapping, WithCustomValueBinder
 {
     protected $query;
 
     public function __construct($query)
     {
         $this->query = $query;
+    }
+
+    public function bindValue(Cell $cell, $value)
+    {
+        if (in_array($cell->getColumn(), ['O', 'P'])) {
+            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING);
+            return true;
+        }
+
+        return parent::bindValue($cell, $value);
     }
 
     public function collection()
@@ -43,6 +57,10 @@ class JksMasterCustomerExport implements FromCollection, WithHeadings, WithMappi
             'Latitude',
             'Longitude',
             'Pilar',
+            'Pilar Q1',
+            'Pilar Q2',
+            'Pilar Q3',
+            'Pilar Q4',
             'Target',
             'Keterangan',
             'On Plan',
@@ -67,9 +85,13 @@ class JksMasterCustomerExport implements FromCollection, WithHeadings, WithMappi
             $row->customer_address,
             $row->kecamatan,
             $row->desa,
-            $row->latitude,
-            $row->longitude,
+            $row->latitude !== null ? str_replace(',', '.', (string) $row->latitude) : null,
+            $row->longitude !== null ? str_replace(',', '.', (string) $row->longitude) : null,
             $row->pilar,
+            $row->pilar_q1,
+            $row->pilar_q2,
+            $row->pilar_q3,
+            $row->pilar_q4,
             $row->target,
             $row->keterangan,
             $row->on_plan,

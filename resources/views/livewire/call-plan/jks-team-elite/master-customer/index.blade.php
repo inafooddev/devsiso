@@ -11,6 +11,14 @@
         };
     @endphp
 
+    {{-- TABS --}}
+    <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex items-center shadow-sm relative z-10 -mb-1 md:-mb-2">
+        <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
+            <a href="{{ route('call-plan.jks-team-elite.master-customer') }}" class="tab tab-xs px-4 tab-active font-bold shadow-sm bg-base-100" wire:navigate>Detail</a>
+            <a href="{{ route('call-plan.jks-team-elite.master-customer.monitoring-customer-pareto') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Monitoring Customer Pareto</a>
+        </div>
+    </div>
+
     <!-- Notifikasi -->
     @if (session()->has('message'))
         <x-ui.notif type="success" dismissible class="shrink-0 mb-0">
@@ -238,6 +246,13 @@
                             </div>
                         </th>
                         
+                        <th wire:click="sortBy('l.keterangan')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Keterangan</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.keterangan')" class="{{ $getSortClass('l.keterangan') }}" />
+                            </div>
+                        </th>
+                        
                         <th class="text-center bg-base-200 shadow-[inset_1px_0_0_rgba(0,0,0,0.1)]">Aksi</th>
                     </tr>
                 </thead>
@@ -270,8 +285,13 @@
                             <span class="badge badge-sm badge-outline badge-{{ $badgeColor }}">{{ $item->pilar ?? '-' }}</span>
                         </td>
                         <td class="text-right font-mono text-xs">Rp {{ number_format((float)($item->target ?? 0), 0, ',', '.') }}</td>
+                        <td class="text-xs text-base-content/70 max-w-[150px] truncate" title="{{ $item->keterangan }}">{{ $item->keterangan ?? '-' }}</td>
                         <th class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
                             <div class="flex items-center justify-center gap-1">
+                                <button type="button" class="btn btn-sm btn-square btn-ghost text-info hover:bg-info/10" title="Detail" wire:click="openDetailModal('{{ $item->distributor_code }}', '{{ $item->uniq_kd }}')">
+                                    <x-heroicon-o-eye class="w-4 h-4" />
+                                </button>
+                                
                                 @canEdit('call-plan.jks-team-elite.master-customer')
                                 <x-ui.action-button type="edit" class="btn-square" title="Edit" wire:click="openEditModal('{{ $item->distributor_code }}', '{{ $item->uniq_kd }}')" />
                                 @endcanEdit
@@ -284,7 +304,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="13" class="text-center py-8 text-base-content/50">Tidak ada data ditemukan.</td>
+                        <td colspan="14" class="text-center py-8 text-base-content/50">Tidak ada data ditemukan.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -461,7 +481,53 @@
                     </select>
                 </div>
                 <x-input-text label="Target *" wire:model="target" type="number" step="0.01" />
-                <x-input-text label="Keterangan *" wire:model="keterangan" />
+                <x-input-text label="Keterangan" wire:model="keterangan" />
+                
+                <div class="md:col-span-2 form-control mt-2 pt-2 border-t border-base-200">
+                    <label class="label pb-2"><span class="label-text text-xs font-bold text-base-content/70 uppercase tracking-wider">Histori Pilar</span></label>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <div class="form-control">
+                            <label class="label pb-1"><span class="label-text text-xs text-base-content/85">Q1</span></label>
+                            <select wire:model="pilar_q1" class="select select-sm select-bordered w-full focus:select-primary text-xs">
+                                <option value="">-</option>
+                                <option value="1. RWO">1. RWO</option>
+                                <option value="2. PNR">2. PNR</option>
+                                <option value="3. NGVO">3. NGVO</option>
+                                <option value="4. GRO">4. GRO</option>
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label pb-1"><span class="label-text text-xs text-base-content/85">Q2</span></label>
+                            <select wire:model="pilar_q2" class="select select-sm select-bordered w-full focus:select-primary text-xs">
+                                <option value="">-</option>
+                                <option value="1. RWO">1. RWO</option>
+                                <option value="2. PNR">2. PNR</option>
+                                <option value="3. NGVO">3. NGVO</option>
+                                <option value="4. GRO">4. GRO</option>
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label pb-1"><span class="label-text text-xs text-base-content/85">Q3</span></label>
+                            <select wire:model="pilar_q3" class="select select-sm select-bordered w-full focus:select-primary text-xs">
+                                <option value="">-</option>
+                                <option value="1. RWO">1. RWO</option>
+                                <option value="2. PNR">2. PNR</option>
+                                <option value="3. NGVO">3. NGVO</option>
+                                <option value="4. GRO">4. GRO</option>
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label pb-1"><span class="label-text text-xs text-base-content/85">Q4</span></label>
+                            <select wire:model="pilar_q4" class="select select-sm select-bordered w-full focus:select-primary text-xs">
+                                <option value="">-</option>
+                                <option value="1. RWO">1. RWO</option>
+                                <option value="2. PNR">2. PNR</option>
+                                <option value="3. NGVO">3. NGVO</option>
+                                <option value="4. GRO">4. GRO</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="flex justify-end gap-2 mt-4">
                 <x-ui.button type="button" variant="neutral" outline wire:click="$set('isCreateModalOpen', false)">Batal</x-ui.button>
@@ -514,7 +580,53 @@
                     </select>
                 </div>
                 <x-input-text label="Target *" wire:model="target" type="number" step="0.01" />
-                <x-input-text label="Keterangan *" wire:model="keterangan" />
+                <x-input-text label="Keterangan" wire:model="keterangan" />
+                
+                <div class="md:col-span-2 form-control mt-2 pt-2 border-t border-base-200">
+                    <label class="label pb-2"><span class="label-text text-xs font-bold text-base-content/70 uppercase tracking-wider">Histori Pilar</span></label>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <div class="form-control">
+                            <label class="label pb-1"><span class="label-text text-xs text-base-content/85">Q1</span></label>
+                            <select wire:model="pilar_q1" class="select select-sm select-bordered w-full focus:select-primary text-xs">
+                                <option value="">-</option>
+                                <option value="1. RWO">1. RWO</option>
+                                <option value="2. PNR">2. PNR</option>
+                                <option value="3. NGVO">3. NGVO</option>
+                                <option value="4. GRO">4. GRO</option>
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label pb-1"><span class="label-text text-xs text-base-content/85">Q2</span></label>
+                            <select wire:model="pilar_q2" class="select select-sm select-bordered w-full focus:select-primary text-xs">
+                                <option value="">-</option>
+                                <option value="1. RWO">1. RWO</option>
+                                <option value="2. PNR">2. PNR</option>
+                                <option value="3. NGVO">3. NGVO</option>
+                                <option value="4. GRO">4. GRO</option>
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label pb-1"><span class="label-text text-xs text-base-content/85">Q3</span></label>
+                            <select wire:model="pilar_q3" class="select select-sm select-bordered w-full focus:select-primary text-xs">
+                                <option value="">-</option>
+                                <option value="1. RWO">1. RWO</option>
+                                <option value="2. PNR">2. PNR</option>
+                                <option value="3. NGVO">3. NGVO</option>
+                                <option value="4. GRO">4. GRO</option>
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label pb-1"><span class="label-text text-xs text-base-content/85">Q4</span></label>
+                            <select wire:model="pilar_q4" class="select select-sm select-bordered w-full focus:select-primary text-xs">
+                                <option value="">-</option>
+                                <option value="1. RWO">1. RWO</option>
+                                <option value="2. PNR">2. PNR</option>
+                                <option value="3. NGVO">3. NGVO</option>
+                                <option value="4. GRO">4. GRO</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="flex justify-end gap-2 mt-4">
                 <x-ui.button type="button" variant="neutral" outline wire:click="$set('isEditModalOpen', false)">Batal</x-ui.button>
@@ -571,6 +683,110 @@
                     <span class="loading loading-spinner loading-xs"></span> Memproses...
                 </span>
             </x-ui.button>
+        </x-slot:footer>
+    </x-ui.modal>
+
+    <!-- MODAL DETAIL CUSTOMER -->
+    <x-ui.modal wire:key="modal-detail-key" id="modal-detail" title="Detail Customer" icon="eye" size="lg" :open="$isDetailModalOpen" wire:close="$set('isDetailModalOpen', false)">
+        @if($detailData)
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <div>
+                <span class="block text-xs font-semibold text-base-content/50">Region</span>
+                <span class="block font-medium">{{ $detailData->region_name ?? '-' }}</span>
+            </div>
+            <div>
+                <span class="block text-xs font-semibold text-base-content/50">Area</span>
+                <span class="block font-medium">{{ $detailData->area_name ?? '-' }}</span>
+            </div>
+            <div>
+                <span class="block text-xs font-semibold text-base-content/50">Supervisor</span>
+                <span class="block font-medium">{{ $detailData->supervisor_name ?? '-' }}</span>
+            </div>
+            <div>
+                <span class="block text-xs font-semibold text-base-content/50">Distributor</span>
+                <span class="block font-medium">{{ $detailData->distributor_name ?? '-' }} ({{ $detailData->distributor_code }})</span>
+            </div>
+            <div>
+                <span class="block text-xs font-semibold text-base-content/50">Customer Code</span>
+                <span class="block font-mono text-xs">{{ $detailData->customer_code_prc ?? '-' }}</span>
+            </div>
+            <div>
+                <span class="block text-xs font-semibold text-base-content/50">Uniq Kd</span>
+                <span class="block font-mono text-xs">{{ $detailData->uniq_kd ?? '-' }}</span>
+            </div>
+            <div class="sm:col-span-2">
+                <span class="block text-xs font-semibold text-base-content/50">Nama Toko</span>
+                <span class="block font-bold">{{ $detailData->customer_name ?? '-' }}</span>
+            </div>
+            <div class="sm:col-span-2">
+                <span class="block text-xs font-semibold text-base-content/50">Alamat</span>
+                <span class="block">{{ $detailData->customer_address ?? '-' }}</span>
+            </div>
+            <div>
+                <span class="block text-xs font-semibold text-base-content/50">Kecamatan</span>
+                <span class="block">{{ $detailData->kecamatan ?? '-' }}</span>
+            </div>
+            <div>
+                <span class="block text-xs font-semibold text-base-content/50">Desa</span>
+                <span class="block">{{ $detailData->desa ?? '-' }}</span>
+            </div>
+            <div>
+                <span class="block text-xs font-semibold text-base-content/50">Latitude</span>
+                <span class="block font-mono text-xs">{{ $detailData->latitude ?? '-' }}</span>
+            </div>
+            <div>
+                <span class="block text-xs font-semibold text-base-content/50">Longitude</span>
+                <span class="block font-mono text-xs">{{ $detailData->longitude ?? '-' }}</span>
+            </div>
+            <div>
+                <span class="block text-xs font-semibold text-base-content/50">Pilar</span>
+                <span class="block">
+                    @php
+                        $badgeColor = match($detailData->pilar) { 
+                            '1. RWO' => 'error', 
+                            '2. PNR' => 'warning', 
+                            '3. NGVO' => 'success', 
+                            '4. GRO' => 'info', 
+                            default => 'neutral' 
+                        };
+                    @endphp
+                    <span class="badge badge-sm badge-outline badge-{{ $badgeColor }}">{{ $detailData->pilar ?? '-' }}</span>
+                </span>
+            </div>
+            <div>
+                <span class="block text-xs font-semibold text-base-content/50">Target</span>
+                <span class="block font-mono">Rp {{ number_format((float)($detailData->target ?? 0), 0, ',', '.') }}</span>
+            </div>
+            <div class="sm:col-span-2">
+                <span class="block text-xs font-semibold text-base-content/50">Keterangan</span>
+                <span class="block">{{ $detailData->keterangan ?? '-' }}</span>
+            </div>
+            
+            <div class="sm:col-span-2 mt-2 pt-4 border-t border-base-300">
+                <h4 class="text-xs font-bold text-base-content/70 mb-3 uppercase tracking-wider">Histori Pilar</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="bg-base-200/50 p-2 rounded-lg border border-base-300">
+                        <span class="block text-[10px] font-semibold text-base-content/50 uppercase">Q1</span>
+                        <span class="block font-medium text-sm mt-0.5">{{ $detailData->pilar_q1 ?? '-' }}</span>
+                    </div>
+                    <div class="bg-base-200/50 p-2 rounded-lg border border-base-300">
+                        <span class="block text-[10px] font-semibold text-base-content/50 uppercase">Q2</span>
+                        <span class="block font-medium text-sm mt-0.5">{{ $detailData->pilar_q2 ?? '-' }}</span>
+                    </div>
+                    <div class="bg-base-200/50 p-2 rounded-lg border border-base-300">
+                        <span class="block text-[10px] font-semibold text-base-content/50 uppercase">Q3</span>
+                        <span class="block font-medium text-sm mt-0.5">{{ $detailData->pilar_q3 ?? '-' }}</span>
+                    </div>
+                    <div class="bg-base-200/50 p-2 rounded-lg border border-base-300">
+                        <span class="block text-[10px] font-semibold text-base-content/50 uppercase">Q4</span>
+                        <span class="block font-medium text-sm mt-0.5">{{ $detailData->pilar_q4 ?? '-' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+        <x-slot:footer>
+            <x-ui.button type="button" variant="neutral" outline wire:click="$set('isDetailModalOpen', false)">Tutup</x-ui.button>
         </x-slot:footer>
     </x-ui.modal>
 

@@ -148,11 +148,11 @@ class Index extends Component
 
     private function baseQuery()
     {
-        $query = PerbaikanTikorToko::query()->where('source', 'se');
+        $query = PerbaikanTikorToko::query()->where('perbaikan_tikor_toko.source', 'se');
         
         $user = auth()->user();
         if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereIn('region_code', is_array($user->region_code) ? $user->region_code : [$user->region_code]);
+            $query->whereIn('perbaikan_tikor_toko.region_code', is_array($user->region_code) ? $user->region_code : [$user->region_code]);
         }
 
         return $query;
@@ -173,35 +173,44 @@ class Index extends Component
 
         if ($this->search) {
             $query->where(function ($q) {
-                $q->where('customer_code', 'like', '%' . $this->search . '%')
-                  ->orWhere('distributor_code', 'like', '%' . $this->search . '%')
-                  ->orWhere('sales_code', 'like', '%' . $this->search . '%')
+                $q->where('perbaikan_tikor_toko.customer_code', 'ilike', '%' . $this->search . '%')
+                  ->orWhere('perbaikan_tikor_toko.distributor_code', 'ilike', '%' . $this->search . '%')
+                  ->orWhere('perbaikan_tikor_toko.sales_code', 'ilike', '%' . $this->search . '%')
                   ->orWhereHas('customerPrcEska', function($q2) {
-                      $q2->where('custname', 'like', '%' . $this->search . '%');
+                      $q2->where('custname', 'ilike', '%' . $this->search . '%');
+                  })
+                  ->orWhereHas('distributorImplementasiEskalink', function($q3) {
+                      $q3->where('distributor_name', 'ilike', '%' . $this->search . '%');
+                  })
+                  ->orWhereExists(function ($sub) {
+                      $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                          ->from('fsalesman')
+                          ->whereColumn('SLSNO', 'perbaikan_tikor_toko.sales_code')
+                          ->where('SLSNAME', 'ilike', '%' . $this->search . '%');
                   });
             });
         }
 
         if ($this->statusFilter && $this->statusFilter !== 'Semua Kategori' && $this->statusFilter !== 'Semua Status') {
-            $query->where('status', $this->statusFilter);
+            $query->where('perbaikan_tikor_toko.status', $this->statusFilter);
         }
 
         if ($this->dateStart) {
-            $query->whereDate('created_at', '>=', $this->dateStart);
+            $query->whereDate('perbaikan_tikor_toko.created_at', '>=', $this->dateStart);
         }
 
         if ($this->dateEnd) {
-            $query->whereDate('created_at', '<=', $this->dateEnd);
+            $query->whereDate('perbaikan_tikor_toko.created_at', '<=', $this->dateEnd);
         }
 
         $query->orderByRaw("
             CASE 
-                WHEN status = 'Pending' THEN 1 
-                WHEN status = 'Rejected' THEN 2 
-                WHEN status = 'Approved' THEN 3 
+                WHEN perbaikan_tikor_toko.status = 'Pending' THEN 1 
+                WHEN perbaikan_tikor_toko.status = 'Rejected' THEN 2 
+                WHEN perbaikan_tikor_toko.status = 'Approved' THEN 3 
                 ELSE 4 
             END
-        ")->orderBy('created_at', 'desc');
+        ")->orderBy('perbaikan_tikor_toko.created_at', 'desc');
 
         return $query;
     }
@@ -214,9 +223,9 @@ class Index extends Component
 
         $kpi = [
             'total' => $this->baseQuery()->count(),
-            'pending' => $this->baseQuery()->where('status', 'Pending')->count(),
-            'approved' => $this->baseQuery()->where('status', 'Approved')->count(),
-            'rejected' => $this->baseQuery()->where('status', 'Rejected')->count(),
+            'pending' => $this->baseQuery()->where('perbaikan_tikor_toko.status', 'Pending')->count(),
+            'approved' => $this->baseQuery()->where('perbaikan_tikor_toko.status', 'Approved')->count(),
+            'rejected' => $this->baseQuery()->where('perbaikan_tikor_toko.status', 'Rejected')->count(),
         ];
 
         $duplicates = PerbaikanTikorToko::selectRaw('distributor_code, customer_code')

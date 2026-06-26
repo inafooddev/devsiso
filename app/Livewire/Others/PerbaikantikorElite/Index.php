@@ -182,10 +182,19 @@ class Index extends Component
 
         if ($this->search) {
             $query->where(function ($q) {
-                $q->where('perbaikan_tikor_toko.customer_code', 'like', '%' . $this->search . '%')
-                  ->orWhere('perbaikan_tikor_toko.distributor_code', 'like', '%' . $this->search . '%')
-                  ->orWhere('perbaikan_tikor_toko.sales_code', 'like', '%' . $this->search . '%')
-                  ->orWhere('elite.customer_name', 'like', '%' . $this->search . '%');
+                $q->where('perbaikan_tikor_toko.customer_code', 'ilike', '%' . $this->search . '%')
+                  ->orWhere('perbaikan_tikor_toko.distributor_code', 'ilike', '%' . $this->search . '%')
+                  ->orWhere('perbaikan_tikor_toko.sales_code', 'ilike', '%' . $this->search . '%')
+                  ->orWhere('elite.customer_name', 'ilike', '%' . $this->search . '%')
+                  ->orWhereHas('distributorImplementasiEskalink', function($q3) {
+                      $q3->where('distributor_name', 'ilike', '%' . $this->search . '%');
+                  })
+                  ->orWhereExists(function ($sub) {
+                      $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                          ->from('fsalesman')
+                          ->whereColumn('SLSNO', 'perbaikan_tikor_toko.sales_code')
+                          ->where('SLSNAME', 'ilike', '%' . $this->search . '%');
+                  });
             });
         }
 

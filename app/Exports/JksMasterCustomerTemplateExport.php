@@ -26,6 +26,10 @@ class JksMasterCustomerTemplateExport implements FromArray, WithHeadings
             'Latitude',
             'Longitude',
             'Pilar',
+            'Pilar Q1',
+            'Pilar Q2',
+            'Pilar Q3',
+            'Pilar Q4',
             'Target',
             'Keterangan',
         ];
