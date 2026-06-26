@@ -168,6 +168,7 @@
                         <th>Nama Sales</th>
                         <th>Kode Toko</th>
                         <th>Nama Toko</th>
+                        <th>Alamat</th>
                         <th>Koordinat</th>
                         <th class="text-center">Akurasi</th>
                         <th>Map</th>
@@ -185,9 +186,17 @@
                         </th>
                         <th class="text-base-content/60">{{ $data->firstItem() + $index }}</th>
 
-                        <td class="font-bold">{{ $item->distributorImplementasiEskalink->distributor_name ?? $item->distributor_code }}</td>
+                        <td>
+                            <div class="font-bold text-xs truncate max-w-[150px]" title="{{ $item->distributorImplementasiEskalink->distributor_name ?? $item->distributor_code }}">
+                                {{ $item->distributorImplementasiEskalink->distributor_name ?? $item->distributor_code }}
+                            </div>
+                        </td>
                         <td class="font-mono">{{ $item->sales_code }}</td>
-                        <td class="font-bold">{{ $item->sales_name ?? '-' }}</td>
+                        <td>
+                            <div class="font-bold truncate max-w-[150px]" title="{{ $item->sales_name ?? '-' }}">
+                                {{ $item->sales_name ?? '-' }}
+                            </div>
+                        </td>
                         <td class="font-mono">{{ $item->customer_code }}</td>
                         <td class="font-bold {{ in_array($item->distributor_code . '_' . $item->customer_code, $duplicates) ? 'text-rose-600' : '' }}">
                             {{ $item->elite_customer_name ?? 'N/A' }}
@@ -195,32 +204,40 @@
                                 <span class="badge badge-[10px] badge-error text-[9px] text-white ml-1 px-1 py-0 h-4" title="Toko ini diajukan lebih dari sekali">Berulang</span>
                             @endif
                         </td>
+                        <td class="text-xs max-w-[200px] truncate" title="{{ $item->elite_customer_address ?? '-' }}">
+                            {{ $item->elite_customer_address ?? '-' }}
+                        </td>
                         <td class="font-mono">
-                            <button type="button" 
-                                @click="
-                                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                                        navigator.clipboard.writeText('{{ $item->latitude }}, {{ $item->longitude }}');
-                                    } else {
-                                        let textArea = document.createElement('textarea');
-                                        textArea.value = '{{ $item->latitude }}, {{ $item->longitude }}';
-                                        textArea.style.position = 'fixed';
-                                        textArea.style.left = '-999999px';
-                                        document.body.appendChild(textArea);
-                                        textArea.focus();
-                                        textArea.select();
-                                        try { document.execCommand('copy'); } catch (err) { console.error('Gagal menyalin: ', err); }
-                                        document.body.removeChild(textArea);
-                                    }
-                                    copyToast.message = 'Koordinat disalin!';
-                                    copyToast.show = true;
-                                    setTimeout(() => copyToast.show = false, 2500);
-                                " 
-                                class="hover:text-info flex items-center gap-1 group transition-colors" 
-                                title="Klik untuk Copy Koordinat"
-                            >
-                                {{ $item->latitude }}, {{ $item->longitude }}
-                                <x-heroicon-o-clipboard-document class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <button type="button" 
+                                    @click="
+                                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                                            navigator.clipboard.writeText('{{ $item->latitude }}, {{ $item->longitude }}');
+                                        } else {
+                                            let textArea = document.createElement('textarea');
+                                            textArea.value = '{{ $item->latitude }}, {{ $item->longitude }}';
+                                            textArea.style.position = 'fixed';
+                                            textArea.style.left = '-999999px';
+                                            document.body.appendChild(textArea);
+                                            textArea.focus();
+                                            textArea.select();
+                                            try { document.execCommand('copy'); } catch (err) { console.error('Gagal menyalin: ', err); }
+                                            document.body.removeChild(textArea);
+                                        }
+                                        copyToast.message = 'Koordinat disalin!';
+                                        copyToast.show = true;
+                                        setTimeout(() => copyToast.show = false, 2500);
+                                    " 
+                                    class="hover:text-info flex items-center gap-1 group transition-colors" 
+                                    title="Klik untuk Copy Koordinat"
+                                >
+                                    {{ $item->latitude }}, {{ $item->longitude }}
+                                    <x-heroicon-o-clipboard-document class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </button>
+                                <a href="https://www.google.com/maps?q={{ $item->latitude }},{{ $item->longitude }}" target="_blank" class="text-error hover:text-error/70 transition-colors" title="Buka di Google Maps">
+                                    <x-heroicon-s-map-pin class="w-4 h-4" />
+                                </a>
+                            </div>
                         </td>
                         <td class="text-center font-bold">
                             @if($item->accuracy)
@@ -438,7 +455,10 @@
             <div class="p-0 relative bg-base-300 w-full" style="height: 60vh; min-height: 400px;">
                 <div id="leaflet-map-container" class="w-full h-full z-0"></div>
             </div>
-            <div class="p-4 border-t border-base-300 bg-base-200/50 text-right">
+            <div class="p-4 border-t border-base-300 bg-base-200/50 flex justify-end gap-2">
+                <button type="button" @click="setTimeout(() => { if(window.leafletMap) { window.leafletMap.invalidateSize(); let group = L.featureGroup(window.mapLayers); if(group.getBounds().isValid()) { window.leafletMap.fitBounds(group.getBounds(), { padding: [40, 40], maxZoom: 18 }); } } }, 100);" class="btn btn-outline btn-info">
+                    <x-heroicon-o-arrow-path class="w-4 h-4" /> Refresh Map
+                </button>
                 <button type="button" @click="showMapModal = false" class="btn btn-outline">Tutup</button>
             </div>
         </div>

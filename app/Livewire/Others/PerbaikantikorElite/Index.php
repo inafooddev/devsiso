@@ -78,7 +78,16 @@ class Index extends Component
             $record->status = 'Approved';
             $record->keterangan = null;
             $record->save();
-            $this->dispatch('show-toast', type: 'success', message: 'Tikor Toko berhasil disetujui');
+
+            \Illuminate\Support\Facades\DB::table('list_toko_pareto_team_elite')
+                ->where('distributor_code', $record->distributor_code)
+                ->where('customer_code_prc', $record->customer_code)
+                ->update([
+                    'latitude' => $record->latitude,
+                    'longitude' => $record->longitude,
+                ]);
+
+            $this->dispatch('show-toast', type: 'success', message: 'Tikor Toko berhasil disetujui dan list toko pareto diupdate');
         }
     }
 
@@ -86,15 +95,29 @@ class Index extends Component
     {
         if (empty($this->selectedIds)) return;
         
-        $count = PerbaikanTikorToko::whereIn('id', $this->selectedIds)
+        $records = PerbaikanTikorToko::whereIn('id', $this->selectedIds)
             ->where('status', 'Pending')
-            ->update([
-                'status' => 'Approved',
-                'keterangan' => null
-            ]);
+            ->get();
+            
+        $count = 0;
+        foreach ($records as $record) {
+            $record->status = 'Approved';
+            $record->keterangan = null;
+            $record->save();
+            
+            \Illuminate\Support\Facades\DB::table('list_toko_pareto_team_elite')
+                ->where('distributor_code', $record->distributor_code)
+                ->where('customer_code_prc', $record->customer_code)
+                ->update([
+                    'latitude' => $record->latitude,
+                    'longitude' => $record->longitude,
+                ]);
+                
+            $count++;
+        }
             
         if ($count > 0) {
-            $this->dispatch('show-toast', type: 'success', message: $count . ' Tikor Toko berhasil disetujui secara massal');
+            $this->dispatch('show-toast', type: 'success', message: $count . ' Tikor Toko berhasil disetujui secara massal dan list toko pareto diupdate');
         }
         $this->selectedIds = [];
     }
@@ -170,6 +193,7 @@ class Index extends Component
             ->select(
                 'perbaikan_tikor_toko.*', 
                 'elite.customer_name as elite_customer_name', 
+                'elite.customer_address as elite_customer_address',
                 'elite.latitude as elite_lat', 
                 'elite.longitude as elite_long'
             )

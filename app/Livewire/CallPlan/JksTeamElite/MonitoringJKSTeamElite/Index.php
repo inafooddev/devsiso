@@ -138,6 +138,7 @@ class Index extends Component
         $jksData = [];
         $monthDates = [];
         $weekSpans = [];
+        $totalTokoPerTeam = [];
         if ($this->filterMonth) {
             $year = substr($this->filterMonth, 0, 4);
             $month = substr($this->filterMonth, 5, 2);
@@ -162,8 +163,17 @@ class Index extends Component
                 ];
             }
 
+            $totalTokoPerTeam = DB::table('jks_team_elite')
+                ->select('kode_team', DB::raw("COUNT(DISTINCT CASE WHEN custno NOT ILIKE '%BRI%' AND custno NOT ILIKE '%EVA%' THEN custno END) as total"))
+                ->whereYear('tanggal', $year)
+                ->whereMonth('tanggal', $month)
+                ->whereIn('kode_team', $teams->pluck('kode_team'))
+                ->groupBy('kode_team')
+                ->pluck('total', 'kode_team')
+                ->toArray();
+
             $datesRaw = DB::table('master_calender')
-                ->select('date', 'week_month')
+                ->select('date', 'week_month', 'libur_nasional')
                 ->where('month', $month)
                 ->where('year', $year)
                 ->orderBy('date', 'asc')
@@ -181,6 +191,7 @@ class Index extends Component
                     'is_saturday' => $parsedDate->isSaturday(),
                     'is_weekday' => $parsedDate->isWeekday(),
                     'week_month' => $dt->week_month,
+                    'is_libur_nasional' => (bool)$dt->libur_nasional,
                     'is_end_of_week' => false,
                 ];
                 
@@ -209,7 +220,8 @@ class Index extends Component
             'regions' => $regions,
             'jksData' => $jksData,
             'monthDates' => $monthDates,
-            'weekSpans' => $weekSpans
+            'weekSpans' => $weekSpans,
+            'totalTokoPerTeam' => $totalTokoPerTeam
         ])->layout('layouts.app');
     }
 
