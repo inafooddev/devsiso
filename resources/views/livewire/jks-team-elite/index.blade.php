@@ -4,11 +4,11 @@
     {{-- TABS --}}
     <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex items-center shadow-sm relative z-10 -mb-1 md:-mb-2">
         <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
-            <a href="{{ route('call-plan.jks-team-elite.monitoring') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Summary</a>
-            <a href="{{ route('jks-team-elite.index') }}" class="tab tab-xs px-4 tab-active font-bold shadow-sm bg-base-100" wire:navigate>Detail</a>
-            <a href="{{ route('call-plan.jks-team-elite.monitoring-siso-vs-eska') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>SISO vs ESKA</a>
-            <a href="{{ route('call-plan.jks-team-elite.route-efficiency') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Route Efficiency</a>
-            <a href="{{ route('call-plan.jks-team-elite.clustering') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Clustering</a>
+            <a href="{{ route('call-plan.jks-team-elite.monitoring') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors">Summary</a>
+            <a href="{{ route('jks-team-elite.index') }}" class="tab tab-xs px-4 tab-active font-bold shadow-sm bg-base-100">Detail</a>
+            <a href="{{ route('call-plan.jks-team-elite.monitoring-siso-vs-eska') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors">SISO vs ESKA</a>
+            <a href="{{ route('call-plan.jks-team-elite.route-efficiency') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors">Route Efficiency</a>
+            <a href="{{ route('call-plan.jks-team-elite.clustering') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors">Clustering</a>
         </div>
     </div>
 

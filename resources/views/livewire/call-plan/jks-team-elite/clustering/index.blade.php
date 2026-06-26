@@ -4,11 +4,11 @@
     {{-- TABS --}}
     <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex items-center shadow-sm relative z-10 -mb-1 md:-mb-2">
         <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
-            <a href="{{ route('call-plan.jks-team-elite.monitoring') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Summary</a>
-            <a href="{{ route('jks-team-elite.index') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Detail</a>
-            <a href="{{ route('call-plan.jks-team-elite.monitoring-siso-vs-eska') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>SISO vs ESKA</a>
-            <a href="{{ route('call-plan.jks-team-elite.route-efficiency') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Route Efficiency</a>
-            <a href="{{ route('call-plan.jks-team-elite.clustering') }}" class="tab tab-xs px-4 tab-active font-bold shadow-sm bg-base-100" wire:navigate>Clustering</a>
+            <a href="{{ route('call-plan.jks-team-elite.monitoring') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors">Summary</a>
+            <a href="{{ route('jks-team-elite.index') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors">Detail</a>
+            <a href="{{ route('call-plan.jks-team-elite.monitoring-siso-vs-eska') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors">SISO vs ESKA</a>
+            <a href="{{ route('call-plan.jks-team-elite.route-efficiency') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors">Route Efficiency</a>
+            <a href="{{ route('call-plan.jks-team-elite.clustering') }}" class="tab tab-xs px-4 tab-active font-bold shadow-sm bg-base-100">Clustering</a>
         </div>
     </div>
 
@@ -236,16 +236,40 @@
 </div>
 
 @push('styles')
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <style>
+        .store-marker-label {
+            background-color: #22c55e;
+            color: white;
+            font-weight: bold;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .maplibregl-popup-content {
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+    </style>
 @endpush
 
 @push('scripts')
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script>
         document.addEventListener('livewire:init', () => {
             let map;
             let markers = [];
-            let currentRouteLayer = null;
+            let currentRouteSourceId = 'cluster-route-source';
+            let currentRouteLayerId = 'cluster-route-layer';
+            let resizeObserver = null;
 
             function initMap() {
                 if (!document.getElementById('route-map')) return;
@@ -254,102 +278,167 @@
                     map.remove();
                 }
 
-                // Center Indonesia
-                map = L.map('route-map').setView([-2.5489, 118.0149], 5);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                    attribution: '&copy; OpenStreetMap',
-                    maxZoom: 19
-                }).addTo(map);
+                map = new maplibregl.Map({
+                    container: 'route-map',
+                    style: {
+                        'version': 8,
+                        'sources': {
+                            'raster-tiles': {
+                                'type': 'raster',
+                                'tiles': [
+                                    'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                                    'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                                    'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                                    'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+                                ],
+                                'tileSize': 256,
+                                'attribution': '© OpenStreetMap contributors, © CARTO'
+                            }
+                        },
+                        'layers': [
+                            {
+                                'id': 'simple-tiles',
+                                'type': 'raster',
+                                'source': 'raster-tiles',
+                                'minzoom': 0,
+                                'maxzoom': 19
+                            }
+                        ]
+                    },
+                    center: [118.0149, -2.5489],
+                    zoom: 5
+                });
+
+                map.addControl(new maplibregl.NavigationControl());
+
+                if (resizeObserver) resizeObserver.disconnect();
+                resizeObserver = new ResizeObserver(() => {
+                    if (map) map.resize();
+                });
+                resizeObserver.observe(document.getElementById('route-map'));
             }
 
             function clearMap() {
                 if (markers.length > 0) {
-                    markers.forEach(m => map.removeLayer(m));
+                    markers.forEach(m => m.remove());
                     markers = [];
                 }
-                if (currentRouteLayer) {
-                    map.removeLayer(currentRouteLayer);
-                    currentRouteLayer = null;
+                if (map && map.getStyle()) {
+                    if (map.getLayer(currentRouteLayerId)) {
+                        map.removeLayer(currentRouteLayerId);
+                    }
+                    if (map.getSource(currentRouteSourceId)) {
+                        map.removeSource(currentRouteSourceId);
+                    }
                 }
             }
 
             function drawRoute(routeData, geometry) {
-                clearMap();
-                if (!map || routeData.length === 0) return;
-
-                let latlngs = [];
+                if (!map || !map.isStyleLoaded()) {
+                    setTimeout(() => drawRoute(routeData, geometry), 200);
+                    return;
+                }
                 
+                clearMap();
+                if (!routeData || routeData.length === 0) return;
+
+                let bounds = new maplibregl.LngLatBounds();
+                let coordinates = [];
+                let hasPoints = false;
+
                 routeData.forEach((store, index) => {
                     const lat = parseFloat(store.latitude);
                     const lng = parseFloat(store.longitude);
-                    latlngs.push([lat, lng]);
-
-                    // Marker custom style
-                    const isFirst = index === 0;
-                    const isLast = index === routeData.length - 1;
-                    let markerColor = '#3b82f6'; // blue default
-                    let zIndex = 1000;
                     
-                    if (isFirst) { markerColor = '#22c55e'; zIndex = 2000; } // green first
-                    else if (isLast) { markerColor = '#ef4444'; zIndex = 2000; } // red last
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        let point = [lng, lat]; // MapLibre uses [lng, lat]
+                        coordinates.push(point);
+                        bounds.extend(point);
+                        hasPoints = true;
 
-                    const markerHtml = `
-                        <div class="relative w-8 h-8 flex items-center justify-center">
-                            <div class="absolute inset-0 rounded-full opacity-20" style="background-color: ${markerColor}; transform: scale(1.2);"></div>
-                            <div class="relative bg-white rounded-full shadow-md border-2 w-7 h-7 flex items-center justify-center" style="border-color: ${markerColor}">
-                                <span class="text-[0.65rem] font-bold" style="color: ${markerColor}">${index + 1}</span>
-                            </div>
-                        </div>
-                    `;
-
-                    const icon = L.divIcon({
-                        html: markerHtml,
-                        className: 'custom-marker',
-                        iconSize: [32, 32],
-                        iconAnchor: [16, 16]
-                    });
-
-                    const popupContent = `
-                        <div class="p-1 min-w-[150px]">
-                            <div class="font-bold text-sm mb-1">${index + 1}. ${store.customer_name}</div>
-                            <div class="text-xs text-gray-500 mb-1">${store.customer_code_prc}</div>
-                            <div class="text-xs font-semibold text-blue-600 border-t pt-1 mt-1">Ke toko selanjutnya: ${store.distance_to_next || 0} Km</div>
-                        </div>
-                    `;
-
-                    const marker = L.marker([lat, lng], {icon: icon, zIndexOffset: zIndex})
-                        .bindPopup(popupContent)
-                        .addTo(map);
+                        const isFirst = index === 0;
+                        const isLast = index === routeData.length - 1;
+                        let markerColor = '#3b82f6'; // blue default
+                        let zIndex = 1;
                         
-                    markers.push(marker);
-                });
+                        if (isFirst) { markerColor = '#22c55e'; zIndex = 2; } // green first
+                        else if (isLast) { markerColor = '#ef4444'; zIndex = 2; } // red last
 
-                // Auto fit bounds
-                if (latlngs.length > 0) {
-                    const bounds = L.latLngBounds(latlngs);
-                    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-                }
+                        const el = document.createElement('div');
+                        el.className = 'store-marker-label';
+                        el.style.backgroundColor = markerColor;
+                        if (zIndex === 2) el.style.zIndex = '999';
+                        el.innerHTML = index + 1;
+
+                        const popupContent = `
+                            <div class="text-xs min-w-[150px]">
+                                <div class="font-bold text-sm mb-1 text-base-content">${index + 1}. ${store.customer_name}</div>
+                                <div class="text-xs text-base-content/60 mb-1">${store.customer_code_prc}</div>
+                                <div class="text-xs font-semibold text-blue-600 border-t border-base-200 pt-1 mt-1">
+                                    Ke toko selanjutnya: ${store.distance_to_next || 0} Km
+                                </div>
+                            </div>
+                        `;
+
+                        let popup = new maplibregl.Popup({ offset: 15, closeButton: false }).setHTML(popupContent);
+
+                        let marker = new maplibregl.Marker({ element: el })
+                            .setLngLat(point)
+                            .setPopup(popup)
+                            .addTo(map);
+                            
+                        markers.push(marker);
+                    }
+                });
 
                 // Draw line
                 if (geometry) {
-                    // API GeoJSON
-                    currentRouteLayer = L.geoJSON(geometry, {
-                        style: {
-                            color: '#3b82f6',
-                            weight: 5,
-                            opacity: 0.7,
-                            lineCap: 'round',
-                            lineJoin: 'round'
+                    let geojsonData = geometry;
+                    if (geometry.type !== 'Feature' && geometry.type !== 'FeatureCollection') {
+                        geojsonData = {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": geometry
+                        };
+                    }
+                    map.addSource(currentRouteSourceId, {
+                        'type': 'geojson',
+                        'data': geojsonData
+                    });
+                } else if (coordinates.length > 1) {
+                    map.addSource(currentRouteSourceId, {
+                        'type': 'geojson',
+                        'data': {
+                            'type': 'Feature',
+                            'properties': {},
+                            'geometry': {
+                                'type': 'LineString',
+                                'coordinates': coordinates
+                            }
                         }
-                    }).addTo(map);
-                } else if (latlngs.length > 1) {
-                    // Manual Haversine Line
-                    currentRouteLayer = L.polyline(latlngs, {
-                        color: '#22c55e',
-                        weight: 4,
-                        opacity: 0.6,
-                        dashArray: '10, 10'
-                    }).addTo(map);
+                    });
+                }
+
+                if (map.getSource(currentRouteSourceId)) {
+                    map.addLayer({
+                        'id': currentRouteLayerId,
+                        'type': 'line',
+                        'source': currentRouteSourceId,
+                        'layout': {
+                            'line-join': 'round',
+                            'line-cap': 'round'
+                        },
+                        'paint': {
+                            'line-color': geometry ? '#3b82f6' : '#22c55e',
+                            'line-width': geometry ? 5 : 4,
+                            'line-opacity': 0.7,
+                            'line-dasharray': geometry ? [1] : [2, 2]
+                        }
+                    });
+                }
+
+                if (hasPoints) {
+                    map.fitBounds(bounds, { padding: 50, duration: 1000 });
                 }
             }
 
@@ -358,8 +447,8 @@
 
             // Listen from Livewire Event
             Livewire.on('route-analyzed', (data) => {
-                const routeData = data.route;
-                const geometry = data.geometry;
+                const routeData = data[0]?.route || data.route;
+                const geometry = data[0]?.geometry || data.geometry;
                 
                 // Jika belum inisialisasi, paksa
                 if (!map && document.getElementById('route-map')) {

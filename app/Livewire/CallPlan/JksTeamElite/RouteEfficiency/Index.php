@@ -15,26 +15,28 @@ class Index extends Component
     protected string $menuRoute = 'jks-team-elite.route-efficiency'; 
 
     public $filterTeam = '';
-    public $filterDate = '';
+    public $filterStartDate = '';
+    public $filterEndDate = '';
     public $teams = [];
 
     // Map and Analysis Data
-    public $optimalRoute = [];
+    public $routesByDate = [];
     public $totalDistance = 0;
     public $averageDistance = 0;
     public $efficiencyStatus = '';
     public $drivingDurationFormatted = '-';
     public $visitDurationFormatted = '-';
     public $totalDurationFormatted = '-';
-    public $apiGeometry = null;
 
     public function mount()
     {
         $this->loadTeams();
-        $this->filterDate = Carbon::now()->format('Y-m-d');
+        $this->filterStartDate = Carbon::now()->format('Y-m-d');
+        $this->filterEndDate = Carbon::now()->format('Y-m-d');
         if (count($this->teams) > 0) {
             $this->filterTeam = $this->teams[0]->kode_team;
         }
+        $this->analyzeRoute();
     }
 
     private function loadTeams()
@@ -68,51 +70,109 @@ class Index extends Component
     }
 
     public function updatedFilterTeam() { $this->analyzeRoute(); }
-    public function updatedFilterDate() { $this->analyzeRoute(); }
+    public function updatedFilterStartDate() { $this->analyzeRoute(); }
+    public function updatedFilterEndDate() { $this->analyzeRoute(); }
 
     public function analyzeRoute()
     {
-        if (empty($this->filterTeam) || empty($this->filterDate)) {
+        if (empty($this->filterTeam) || empty($this->filterStartDate) || empty($this->filterEndDate)) {
             $this->resetAnalysis();
             return;
         }
 
         $stores = JksTeamElite::query()
-            ->select('jks_team_elite.custno', 'jks_team_elite.custname', 'jks_team_elite.distributor_code', 'l.latitude', 'l.longitude', 'l.customer_address')
+            ->select('jks_team_elite.tanggal', 'jks_team_elite.custno', 'jks_team_elite.custname', 'jks_team_elite.distributor_code', 'l.latitude', 'l.longitude', 'l.customer_address')
             ->leftJoin('list_toko_pareto_team_elite as l', function($join) {
                 $join->on('jks_team_elite.custno', '=', 'l.customer_code_prc')
                      ->on('jks_team_elite.distributor_code', '=', 'l.distributor_code');
             })
-            ->where('jks_team_elite.tanggal', $this->filterDate)
+            ->whereBetween('jks_team_elite.tanggal', [$this->filterStartDate, $this->filterEndDate])
             ->where('jks_team_elite.kode_team', $this->filterTeam)
             ->whereNotNull('l.latitude')
             ->whereNotNull('l.longitude')
             ->where('l.latitude', '!=', 0)
             ->where('l.longitude', '!=', 0)
+            ->orderBy('jks_team_elite.tanggal', 'asc')
             ->get()
+            ->groupBy('tanggal')
             ->toArray();
 
-        if (count($stores) < 2) {
+        if (empty($stores)) {
             $this->resetAnalysis();
-            $this->optimalRoute = $stores;
-            $this->dispatch('route-analyzed', route: $this->optimalRoute, geometry: null);
             return;
         }
 
-        $this->fetchRealRouteData($stores);
+        $this->routesByDate = [];
+        $totalDistAll = 0;
+        $totalVisitMinutesAll = 0;
+        $totalDrivingMinutesAll = 0;
+        $routeSegments = 0;
+
+        $palette = ['#3b82f6', '#22c55e', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'];
+        $colorIndex = 0;
+
+        foreach ($stores as $date => $dayStores) {
+            if (count($dayStores) < 2) {
+                $this->routesByDate[] = [
+                    'date' => $date,
+                    'color' => $palette[$colorIndex % count($palette)],
+                    'route' => $dayStores,
+                    'geometry' => null,
+                    'distance' => 0,
+                    'visitMinutes' => count($dayStores) * 30,
+                    'drivingMinutes' => 0,
+                ];
+                $colorIndex++;
+                continue;
+            }
+
+            $result = $this->fetchRealRouteData($dayStores);
+            
+            $result['date'] = $date;
+            $result['color'] = $palette[$colorIndex % count($palette)];
+            $this->routesByDate[] = $result;
+            
+            $totalDistAll += $result['distance'];
+            $totalVisitMinutesAll += count($result['route']) * 30;
+            $totalDrivingMinutesAll += $result['drivingMinutes'];
+            $routeSegments += count($result['route']) - 1;
+
+            $colorIndex++;
+        }
+
+        $this->totalDistance = round($totalDistAll, 2);
+        $this->averageDistance = $routeSegments > 0 ? round($totalDistAll / $routeSegments, 2) : 0;
+        
+        $daysCount = count($this->routesByDate);
+        $avgDailyDist = $daysCount > 0 ? ($this->totalDistance / $daysCount) : 0;
+
+        if ($avgDailyDist > 80) {
+            $this->efficiencyStatus = 'Terlalu Tersebar (> 80 Km/Hari)';
+        } elseif ($avgDailyDist > 40) {
+            $this->efficiencyStatus = 'Wajar (40-80 Km/Hari)';
+        } else {
+            $this->efficiencyStatus = 'Sangat Efisien (< 40 Km/Hari)';
+        }
+
+        $totalMinutesAll = $totalVisitMinutesAll + $totalDrivingMinutesAll;
+        
+        $this->drivingDurationFormatted = $this->formatMinutesToHours($totalDrivingMinutesAll);
+        $this->visitDurationFormatted = $this->formatMinutesToHours($totalVisitMinutesAll);
+        $this->totalDurationFormatted = $this->formatMinutesToHours($totalMinutesAll);
+
+        $this->dispatch('route-analyzed', routesByDate: $this->routesByDate);
     }
 
     private function resetAnalysis()
     {
-        $this->optimalRoute = [];
+        $this->routesByDate = [];
         $this->totalDistance = 0;
         $this->averageDistance = 0;
         $this->efficiencyStatus = '-';
         $this->drivingDurationFormatted = '-';
         $this->visitDurationFormatted = '-';
         $this->totalDurationFormatted = '-';
-        $this->apiGeometry = null;
-        $this->dispatch('route-analyzed', route: [], geometry: null);
+        $this->dispatch('route-analyzed', routesByDate: []);
     }
 
     private function calculateTSP($stores)
@@ -158,31 +218,13 @@ class Index extends Component
         $route[count($route) - 1]['distance_to_next'] = 0;
         $route[count($route) - 1]['duration_to_next'] = 0;
 
-        $this->optimalRoute = $route;
-        $this->totalDistance = round($totalDist, 2);
-        
-        $numEdges = count($route) - 1;
-        $this->averageDistance = $numEdges > 0 ? round($totalDist / $numEdges, 2) : 0;
-
-        if ($this->totalDistance > 80) {
-            $this->efficiencyStatus = 'Terlalu Tersebar (> 80 Km)';
-        } elseif ($this->totalDistance > 40) {
-            $this->efficiencyStatus = 'Wajar (40-80 Km)';
-        } else {
-            $this->efficiencyStatus = 'Sangat Efisien (< 40 Km)';
-        }
-
-        $drivingMinutes = round(($this->totalDistance / 40 * 60) * 1.30);
-        $visitMinutes = count($route) * 30;
-        $totalMinutes = $drivingMinutes + $visitMinutes;
-        
-        $this->drivingDurationFormatted = $this->formatMinutesToHours($drivingMinutes) . ' (Manual)';
-        $this->visitDurationFormatted = $this->formatMinutesToHours($visitMinutes);
-        $this->totalDurationFormatted = $this->formatMinutesToHours($totalMinutes);
-        
-        $this->apiGeometry = null;
-
-        $this->dispatch('route-analyzed', route: $this->optimalRoute, geometry: null);
+        $dist = round($totalDist, 2);
+        return [
+            'route' => $route,
+            'geometry' => null,
+            'distance' => $dist,
+            'drivingMinutes' => round(($dist / 40 * 60) * 1.30)
+        ];
     }
 
     private function formatMinutesToHours($totalMinutes)
@@ -206,8 +248,7 @@ class Index extends Component
         $coordsString = implode(';', $coords);
 
         if (count($stores) > 80) {
-            $this->calculateTSP($stores);
-            return;
+            return $this->calculateTSP($stores);
         }
 
         try {
@@ -245,40 +286,21 @@ class Index extends Component
                         }
                     }
 
-                    $this->optimalRoute = $orderedStores;
-                    $this->totalDistance = round($trip['distance'] / 1000, 2); 
+                    $dist = round($trip['distance'] / 1000, 2);
                     
-                    $drivingMinutes = round(($this->totalDistance / 40 * 60) * 1.30);
-                    $visitMinutes = count($orderedStores) * 30;
-                    $totalMinutes = $drivingMinutes + $visitMinutes;
-                    
-                    $this->drivingDurationFormatted = $this->formatMinutesToHours($drivingMinutes);
-                    $this->visitDurationFormatted = $this->formatMinutesToHours($visitMinutes);
-                    $this->totalDurationFormatted = $this->formatMinutesToHours($totalMinutes);
-                    
-                    $numEdges = count($orderedStores) - 1;
-                    $this->averageDistance = $numEdges > 0 ? round($this->totalDistance / $numEdges, 2) : 0;
-
-                    if ($this->totalDistance > 80) {
-                        $this->efficiencyStatus = 'Terlalu Tersebar (> 80 Km)';
-                    } elseif ($this->totalDistance > 40) {
-                        $this->efficiencyStatus = 'Wajar (40-80 Km)';
-                    } else {
-                        $this->efficiencyStatus = 'Sangat Efisien (< 40 Km)';
-                    }
-
-                    $this->apiGeometry = $trip['geometry'];
-
-                    $this->dispatch('route-analyzed', route: $this->optimalRoute, geometry: $this->apiGeometry);
-                } else {
-                    $this->calculateTSP($stores);
+                    return [
+                        'route' => $orderedStores,
+                        'geometry' => $trip['geometry'],
+                        'distance' => $dist,
+                        'drivingMinutes' => round(($dist / 40 * 60) * 1.30)
+                    ];
                 }
-            } else {
-                $this->calculateTSP($stores);
             }
         } catch (\Exception $e) {
-            $this->calculateTSP($stores);
+            // fallback handled below
         }
+
+        return $this->calculateTSP($stores);
     }
 
     private function haversineGreatCircleDistance($latFrom, $lonFrom, $latTo, $lonTo, $earthRadius = 6371)
