@@ -138,12 +138,12 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
     const fileInput2 = useRef(null);
     const fileInput3 = useRef(null);
 
-    const { data, setData, post, processing, errors, reset, isDirty } = useForm({
+    const { data, setData, post, processing, errors, reset, isDirty, transform } = useForm({
         customer_code: '',
         distributor_code: '',
         customer_name: '',
         customer_address: '',
-        auditor: '',
+        auditor: sessionAuditor || '',
         keterangan_hasil_audit: '',
         latitude: '',
         longitude: '',
@@ -204,6 +204,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
         // Cek ukuran file max 5MB (5 * 1024 * 1024)
         if (file.size > 5242880) {
             showToast('Ukuran foto terlalu besar (Maks. 5MB)', 'error');
+            setData(field, null);
             // Reset the file input visually
             if (field === 'foto_audit1' && fileInput1.current) fileInput1.current.value = '';
             if (field === 'foto_audit2' && fileInput2.current) fileInput2.current.value = '';
@@ -334,12 +335,13 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
     };
 
     const executeSubmit = (lat, lng) => {
+        transform((currentData) => ({
+            ...currentData,
+            latitude: lat || currentData.latitude,
+            longitude: lng || currentData.longitude,
+        }));
+
         post('/mobile/audit', {
-            data: {
-                ...data,
-                latitude: lat,
-                longitude: lng,
-            },
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {
@@ -685,7 +687,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                             {/* Action Buttons */}
                             <div className="flex items-center gap-2 mt-2 pt-3 border-t border-slate-100">
                                 {outlet.master_latitude && outlet.master_longitude && (
-                                    <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.master_latitude},${outlet.master_longitude}`} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-bold uppercase tracking-wide hover:bg-emerald-100">
+                                    <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.master_latitude},${outlet.master_longitude}${userLocation ? `&origin=${userLocation.latitude},${userLocation.longitude}` : ''}`} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-bold uppercase tracking-wide hover:bg-emerald-100">
                                         <MapIcon className="w-3.5 h-3.5" />
                                         Direction
                                     </a>
@@ -768,7 +770,8 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                     <ListBulletIcon className="w-4 h-4 text-indigo-500" />
                                     Daftar Hasil Audit
                                 </h4>
-                                <a 
+                                <button 
+                                    type="button"
                                     onClick={async (e) => {
                                         e.preventDefault();
                                         setIsExporting(true);
@@ -806,7 +809,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
                                     Export Excel
-                                </a>
+                                </button>
                             </div>
 
                             <div className="relative mb-4">

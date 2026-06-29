@@ -2,9 +2,7 @@
     <x-slot name="title">Analisa Kunjungan</x-slot>
 
     @push('styles')
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
     <style>
 
         #visit-map {
@@ -476,8 +474,6 @@
     {{-- Modal Map --}}
     <div x-data="{ 
             open: false,
-            mapInstance: null,
-            markersLayer: null,
             mapData: null,
             initMap(data) {
                 if(data) this.mapData = data;
@@ -485,30 +481,31 @@
                 
                 this.open = true;
 
-                if (typeof L === 'undefined') {
+                if (typeof maplibregl === 'undefined') {
                     const script = document.createElement('script');
-                    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                    script.src = 'https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js';
                     script.onload = () => this.initMap(data);
                     document.head.appendChild(script);
 
                     const css = document.createElement('link');
                     css.rel = 'stylesheet';
-                    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+                    css.href = 'https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css';
                     document.head.appendChild(css);
                     return;
                 }
 
                 setTimeout(() => {
                     if (this.mapInstance) {
-                        this.mapInstance.off();
                         this.mapInstance.remove();
                         this.mapInstance = null;
                     }
-                    this.mapInstance = L.map('visit-map');
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '&copy; OpenStreetMap contributors'
-                    }).addTo(this.mapInstance);
-                    this.markersLayer = L.layerGroup().addTo(this.mapInstance);
+                    
+                    this.mapInstance = new maplibregl.Map({
+                        container: 'visit-map',
+                        style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+                        center: [118.0148, -2.5489],
+                        zoom: 5
+                    });
 
                     let mLat = parseFloat(data.masterLat);
                     let mLon = parseFloat(data.masterLon);
@@ -524,34 +521,70 @@
                         const temp = vLat; vLat = vLon; vLon = temp;
                     }
 
-                    const bounds = [];
-                    const iconBaseUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-';
-                    const iconProps = { iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] };
+                    const bounds = new maplibregl.LngLatBounds();
 
-                    const redIcon = L.icon({ ...iconProps, iconUrl: `${iconBaseUrl}red.png` });
-                    const blueIcon = L.icon({ ...iconProps, iconUrl: `${iconBaseUrl}blue.png` });
+                    let hasMaster = !isNaN(mLat) && !isNaN(mLon);
+                    let hasVisit = !isNaN(vLat) && !isNaN(vLon);
 
-                    if (!isNaN(mLat) && !isNaN(mLon)) {
-                        L.marker([mLat, mLon], {icon: redIcon}).bindPopup(`<strong>Master Point</strong><br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open(\`https://www.google.com/maps/search/?api=1&query=${mLat},${mLon}\`, \`_blank\`);' title='Buka di Google Maps'>📍 ${mLat}, ${mLon}</span>`).addTo(this.markersLayer);
-                        bounds.push([mLat, mLon]);
+                    if (hasMaster) {
+                        new maplibregl.Marker({ color: '#ef4444' })
+                            .setLngLat([mLon, mLat])
+                            .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<strong>Master Point</strong><br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open(\`https://www.google.com/maps/search/?api=1&query=${mLat},${mLon}\`, \`_blank\`);' title='Buka di Google Maps'>📍 ${mLat}, ${mLon}</span>`))
+                            .addTo(this.mapInstance);
+                        bounds.extend([mLon, mLat]);
                     }
 
-                    if (!isNaN(vLat) && !isNaN(vLon)) {
-                        L.marker([vLat, vLon], {icon: blueIcon}).bindPopup(`<strong>Visit Point</strong><br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open(\`https://www.google.com/maps/search/?api=1&query=${vLat},${vLon}\`, \`_blank\`);' title='Buka di Google Maps'>📍 ${vLat}, ${vLon}</span>`).addTo(this.markersLayer);
-                        bounds.push([vLat, vLon]);
+                    if (hasVisit) {
+                        new maplibregl.Marker({ color: '#3b82f6' })
+                            .setLngLat([vLon, vLat])
+                            .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<strong>Visit Point</strong><br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open(\`https://www.google.com/maps/search/?api=1&query=${vLat},${vLon}\`, \`_blank\`);' title='Buka di Google Maps'>📍 ${vLat}, ${vLon}</span>`))
+                            .addTo(this.mapInstance);
+                        bounds.extend([vLon, vLat]);
                     }
 
-                    if (bounds.length === 2) {
-                        L.polyline(bounds, {color: 'green', weight: 3, dashArray: '5, 5'}).addTo(this.markersLayer);
+                    if (!bounds.isEmpty()) {
+                        this.mapInstance.fitBounds(bounds, { padding: 50, maxZoom: 18, animate: false });
                     }
 
-                    if (bounds.length > 0) {
-                        this.mapInstance.fitBounds(bounds, { padding: [50, 50] });
+                    const initRoute = () => {
+                        if (hasMaster && hasVisit) {
+                            this.mapInstance.addSource('route', {
+                                'type': 'geojson',
+                                'data': {
+                                    'type': 'Feature',
+                                    'geometry': {
+                                        'type': 'LineString',
+                                        'coordinates': [
+                                            [mLon, mLat],
+                                            [vLon, vLat]
+                                        ]
+                                    }
+                                }
+                            });
+                            this.mapInstance.addLayer({
+                                'id': 'route',
+                                'type': 'line',
+                                'source': 'route',
+                                'layout': {
+                                    'line-join': 'round',
+                                    'line-cap': 'round'
+                                },
+                                'paint': {
+                                    'line-color': '#22c55e',
+                                    'line-width': 3,
+                                    'line-dasharray': [2, 2]
+                                }
+                            });
+                        }
+                    };
+
+                    if (this.mapInstance.loaded()) {
+                        initRoute();
                     } else {
-                        this.mapInstance.setView([-2.5489, 118.0148], 5); // Default Indonesia
+                        this.mapInstance.on('load', initRoute);
                     }
                     
-                    this.mapInstance.invalidateSize();
+                    setTimeout(() => { if (this.mapInstance) this.mapInstance.resize(); }, 300);
                 }, 300);
             }
          }"
@@ -578,8 +611,6 @@
     {{-- Modal All Maps --}}
     <div x-data="{ 
             open: false,
-            mapInstance: null,
-            markersLayer: null,
             mapPoints: null,
             initMap(points) {
                 if(points) this.mapPoints = points;
@@ -587,83 +618,184 @@
                 
                 this.open = true;
 
-                if (typeof L === 'undefined' || typeof L.markerClusterGroup === 'undefined') {
+                if (typeof maplibregl === 'undefined') {
                     const script = document.createElement('script');
-                    script.src = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+                    script.src = 'https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js';
                     script.onload = () => this.initMap(points);
                     document.head.appendChild(script);
 
-                    const css1 = document.createElement('link');
-                    css1.rel = 'stylesheet';
-                    css1.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css';
-                    document.head.appendChild(css1);
-
-                    const css2 = document.createElement('link');
-                    css2.rel = 'stylesheet';
-                    css2.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css';
-                    document.head.appendChild(css2);
+                    const css = document.createElement('link');
+                    css.rel = 'stylesheet';
+                    css.href = 'https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css';
+                    document.head.appendChild(css);
                     return;
                 }
 
                 setTimeout(() => {
                     try {
-                        if (this.mapInstance) {
-                            this.mapInstance.off();
-                            this.mapInstance.remove();
-                            this.mapInstance = null;
+                        if (window.allVisitMapInstance) {
+                            window.allVisitMapInstance.remove();
+                            window.allVisitMapInstance = null;
                         }
-                        this.mapInstance = L.map('all-visit-map');
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            attribution: '&copy; OpenStreetMap contributors'
-                        }).addTo(this.mapInstance);
-                        this.markersLayer = L.markerClusterGroup({
-                            maxClusterRadius: function(zoom) {
-                                // 1 piksel layar dalam meter pada ekuator = 156543 / 2^zoom
-                                let radius = 50 / (156543 / Math.pow(2, zoom));
-                                // Membulatkan dan memastikan minimal 1px agar tidak crash
-                                return Math.max(1, Math.round(radius));
-                            },
-                            spiderfyOnMaxZoom: true,
-                            showCoverageOnHover: true,
-                            zoomToBoundsOnClick: true,
-                            disableClusteringAtZoom: 18
-                        });
-                        this.mapInstance.addLayer(this.markersLayer);
-
-                    const bounds = [];
-                    const iconBaseUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-';
-                    const iconProps = { iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] };
-                    const blueIcon = L.icon({ ...iconProps, iconUrl: `${iconBaseUrl}blue.png` });
-
-                    const pointsArray = Array.isArray(points) ? points : (points ? Object.values(points) : []);
-                    pointsArray.forEach(pt => {
-                        let lat = parseFloat(pt.lat);
-                        let lon = parseFloat(pt.lon);
                         
-                        // Fix jika koordinat terbalik (latitute tidak boleh lebih dari 90)
-                        if (Math.abs(lat) > 90) {
-                            const temp = lat;
-                            lat = lon;
-                            lon = temp;
+                        const pointsArray = Array.isArray(points) ? points : (points ? Object.values(points) : []);
+                        
+                        const features = pointsArray.map(pt => {
+                            let lat = parseFloat(pt.lat);
+                            let lon = parseFloat(pt.lon);
+                            
+                            if (Math.abs(lat) > 90) {
+                                const temp = lat;
+                                lat = lon;
+                                lon = temp;
+                            }
+
+                            if (isNaN(lat) || isNaN(lon)) return null;
+                            
+                            return {
+                                'type': 'Feature',
+                                'properties': {
+                                    'description': `<strong>${pt.name}</strong><br>Tgl: ${pt.date}<br>SPV: ${pt.spv}<br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open(\`https://www.google.com/maps/search/?api=1&query=${lat},${lon}\`, \`_blank\`);' title='Buka di Google Maps'>📍 ${lat}, ${lon}</span>`
+                                },
+                                'geometry': {
+                                    'type': 'Point',
+                                    'coordinates': [lon, lat]
+                                }
+                            };
+                        }).filter(f => f !== null);
+
+                        window.allVisitMapInstance = new maplibregl.Map({
+                            container: 'all-visit-map',
+                            style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+                            center: [118.0148, -2.5489],
+                            zoom: 5
+                        });
+
+                        const initSimpleCluster = () => {
+                            try {
+                                if (!window.allVisitMapInstance.getSource('visits')) {
+                                    window.allVisitMapInstance.addSource('visits', {
+                                        type: 'geojson',
+                                        data: {
+                                            type: 'FeatureCollection',
+                                            features: features
+                                        },
+                                        cluster: true,
+                                        clusterMaxZoom: 14,
+                                        clusterRadius: 50
+                                    });
+                                }
+
+                                if (!window.allVisitMapInstance.getLayer('clusters')) {
+                                    window.allVisitMapInstance.addLayer({
+                                        id: 'clusters',
+                                        type: 'circle',
+                                        source: 'visits',
+                                        filter: ['has', 'point_count'],
+                                        paint: {
+                                            'circle-color': [
+                                                'step',
+                                                ['get', 'point_count'],
+                                                '#51bbd6',
+                                                10,
+                                                '#f59e0b',
+                                                20,
+                                                '#ef4444'
+                                            ],
+                                            'circle-radius': [
+                                                'step',
+                                                ['get', 'point_count'],
+                                                20,
+                                                10,
+                                                25,
+                                                20,
+                                                30
+                                            ],
+                                            'circle-stroke-width': 2,
+                                            'circle-stroke-color': '#fff'
+                                        }
+                                    });
+                                }
+
+                                if (!window.allVisitMapInstance.getLayer('cluster-count')) {
+                                    window.allVisitMapInstance.addLayer({
+                                        id: 'cluster-count',
+                                        type: 'symbol',
+                                        source: 'visits',
+                                        filter: ['has', 'point_count'],
+                                        layout: {
+                                            'text-field': '{point_count_abbreviated}',
+                                            'text-font': ['Open Sans Regular'],
+                                            'text-size': 12,
+                                            'text-allow-overlap': true
+                                        }
+                                    });
+                                }
+
+                                if (!window.allVisitMapInstance.getLayer('unclustered-point')) {
+                                    window.allVisitMapInstance.addLayer({
+                                        id: 'unclustered-point',
+                                        type: 'circle',
+                                        source: 'visits',
+                                        filter: ['!', ['has', 'point_count']],
+                                        paint: {
+                                            'circle-color': '#3b82f6',
+                                            'circle-radius': 8,
+                                            'circle-stroke-width': 2,
+                                            'circle-stroke-color': '#ffffff'
+                                        }
+                                    });
+                                }
+                            } catch(err) {
+                                console.error('Cluster Error:', err);
+                            }
+                        };
+
+                        if (window.allVisitMapInstance.loaded()) {
+                            initSimpleCluster();
+                        } else {
+                            window.allVisitMapInstance.on('load', initSimpleCluster);
                         }
 
-                        if (!isNaN(lat) && !isNaN(lon)) {
-                            const m = L.marker([lat, lon], {icon: blueIcon})
-                                .bindPopup(`<strong>${pt.name}</strong><br>Tgl: ${pt.date}<br>SPV: ${pt.spv}<br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open(\`https://www.google.com/maps/search/?api=1&query=${lat},${lon}\`, \`_blank\`);' title='Buka di Google Maps'>📍 ${lat}, ${lon}</span>`);
-                            this.markersLayer.addLayer(m);
-                            bounds.push([lat, lon]);
-                        }
-                    });
+                        const bounds = new maplibregl.LngLatBounds();
+                        features.forEach(f => bounds.extend(f.geometry.coordinates));
 
-                    if (bounds.length > 0) {
-                        this.mapInstance.fitBounds(bounds, { padding: [50, 50] });
-                    } else {
-                        this.mapInstance.setView([-2.5489, 118.0148], 5); // Default Indonesia
-                    }
-                    
-                    this.mapInstance.invalidateSize();
-                    setTimeout(() => { if (this.mapInstance) this.mapInstance.invalidateSize(); }, 300);
-                    
+                        if (!bounds.isEmpty()) {
+                            window.allVisitMapInstance.fitBounds(bounds, { padding: 50, maxZoom: 18, animate: false });
+                        }
+
+                        window.allVisitMapInstance.on('click', 'clusters', (e) => {
+                            const mapFeatures = window.allVisitMapInstance.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+                            const clusterId = mapFeatures[0].properties.cluster_id;
+                            window.allVisitMapInstance.getSource('visits').getClusterExpansionZoom(clusterId).then((zoom) => {
+                                window.allVisitMapInstance.easeTo({
+                                    center: mapFeatures[0].geometry.coordinates,
+                                    zoom: zoom
+                                });
+                            });
+                        });
+
+                        window.allVisitMapInstance.on('click', 'unclustered-point', (e) => {
+                            const coordinates = e.features[0].geometry.coordinates.slice();
+                            const description = e.features[0].properties.description;
+                            
+                            while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                                coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+                            }
+
+                            new maplibregl.Popup({ offset: 10 })
+                                .setLngLat(coordinates)
+                                .setHTML(description)
+                                .addTo(window.allVisitMapInstance);
+                        });
+
+                        window.allVisitMapInstance.on('mouseenter', 'clusters', () => { window.allVisitMapInstance.getCanvas().style.cursor = 'pointer'; });
+                        window.allVisitMapInstance.on('mouseleave', 'clusters', () => { window.allVisitMapInstance.getCanvas().style.cursor = ''; });
+                        window.allVisitMapInstance.on('mouseenter', 'unclustered-point', () => { window.allVisitMapInstance.getCanvas().style.cursor = 'pointer'; });
+                        window.allVisitMapInstance.on('mouseleave', 'unclustered-point', () => { window.allVisitMapInstance.getCanvas().style.cursor = ''; });
+
+                        setTimeout(() => { if (window.allVisitMapInstance) window.allVisitMapInstance.resize(); }, 300);
+                        
                     } catch (e) {
                         console.error(e);
                         alert('Terjadi kesalahan saat memuat peta: ' + e.message);
