@@ -404,7 +404,7 @@
                     let lat = parseFloat(store.latitude);
                     let lng = parseFloat(store.longitude);
 
-                    if (!isNaN(lat) && !isNaN(lng)) {
+                    if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
                         let point = [lng, lat]; // MapLibre uses [lng, lat]
                         coordinates.push(point);
                         bounds.extend(point);

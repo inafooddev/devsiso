@@ -250,7 +250,7 @@
                                 @php
                                     $filteredTeams = empty($searchTeamFilter) 
                                         ? collect($teams) 
-                                        : collect($teams)->filter(fn($t) => stripos($t->nama_team, $searchTeamFilter) !== false || stripos($t->kode_team, $searchTeamFilter) !== false);
+                                        : collect($teams)->filter(fn($t) => stripos($t->nama_team ?? '', $searchTeamFilter) !== false || stripos($t->kode_team ?? '', $searchTeamFilter) !== false);
                                 @endphp
 
                                 @forelse($filteredTeams as $team)
@@ -292,7 +292,9 @@
                         <x-ui.action-button type="add" label="Tambah" wire:click="openCreateModal" />
                         @endcanAdd
 
-                        <x-ui.action-button type="default" icon="map" label="Maps" class="text-info bg-info/10 hover:bg-info hover:text-white border-0 shadow-sm" wire:click="showGlobalMap" />
+                        <div class="tooltip tooltip-bottom" data-tip="{{ !$canExportBtn ? 'Pilih Team dan tanggal terlebih dahulu' : 'Lihat Peta' }}">
+                            <x-ui.action-button type="default" icon="map" label="Maps" class="text-info bg-info/10 hover:bg-info hover:text-white border-0 shadow-sm" wire:click="showGlobalMap" :disabled="!$canExportBtn" />
+                        </div>
 
                         {{-- Separator 2 --}}
                         <div class="w-[1px] h-6 bg-base-300 hidden sm:block mx-1"></div>
@@ -321,7 +323,9 @@
                                 <div class="flex items-center gap-1">
                                     Tanggal
                                     @if($sortField === 'tanggal')
-                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3 text-primary" />
+                                    @else
+                                        <x-heroicon-o-arrows-up-down class="w-3 h-3 opacity-30" />
                                     @endif
                                 </div>
                             </th>
@@ -329,7 +333,9 @@
                                 <div class="flex items-center gap-1">
                                     Region
                                     @if($sortField === 'nama_region')
-                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3 text-primary" />
+                                    @else
+                                        <x-heroicon-o-arrows-up-down class="w-3 h-3 opacity-30" />
                                     @endif
                                 </div>
                             </th>
@@ -337,7 +343,9 @@
                                 <div class="flex items-center gap-1">
                                     Kode Team
                                     @if($sortField === 'kode_team')
-                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3 text-primary" />
+                                    @else
+                                        <x-heroicon-o-arrows-up-down class="w-3 h-3 opacity-30" />
                                     @endif
                                 </div>
                             </th>
@@ -345,7 +353,9 @@
                                 <div class="flex items-center gap-1">
                                     Nama Team
                                     @if($sortField === 'nama_team')
-                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3 text-primary" />
+                                    @else
+                                        <x-heroicon-o-arrows-up-down class="w-3 h-3 opacity-30" />
                                     @endif
                                 </div>
                             </th>
@@ -354,7 +364,9 @@
                                 <div class="flex items-center justify-center gap-1">
                                     Week
                                     @if($sortField === 'week_month')
-                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3 text-primary" />
+                                    @else
+                                        <x-heroicon-o-arrows-up-down class="w-3 h-3 opacity-30" />
                                     @endif
                                 </div>
                             </th>
@@ -362,7 +374,9 @@
                                 <div class="flex items-center justify-center gap-1">
                                     Total Toko
                                     @if($sortField === 'total_toko')
-                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3 text-primary" />
+                                    @else
+                                        <x-heroicon-o-arrows-up-down class="w-3 h-3 opacity-30" />
                                     @endif
                                 </div>
                             </th>
@@ -370,7 +384,9 @@
                                 <div class="flex items-center justify-center gap-1">
                                     Total RWO
                                     @if($sortField === 'total_rwo')
-                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3 text-primary" />
+                                    @else
+                                        <x-heroicon-o-arrows-up-down class="w-3 h-3 opacity-30" />
                                     @endif
                                 </div>
                             </th>
@@ -378,7 +394,9 @@
                                 <div class="flex items-center justify-center gap-1">
                                     Total PNR
                                     @if($sortField === 'total_pnr')
-                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3 text-primary" />
+                                    @else
+                                        <x-heroicon-o-arrows-up-down class="w-3 h-3 opacity-30" />
                                     @endif
                                 </div>
                             </th>
@@ -386,7 +404,9 @@
                                 <div class="flex items-center justify-center gap-1">
                                     Total NGVO
                                     @if($sortField === 'total_ngvo')
-                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3" />
+                                        <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3 text-primary" />
+                                    @else
+                                        <x-heroicon-o-arrows-up-down class="w-3 h-3 opacity-30" />
                                     @endif
                                 </div>
                             </th>
@@ -398,7 +418,7 @@
                             <tr>
                                 <td colspan="13" class="text-center py-8 text-base-content/50">
                                     <x-heroicon-o-funnel class="w-12 h-12 mx-auto mb-3 opacity-30" />
-                                    Silakan pilih **Team** dan **Range Tanggal** terlebih dahulu untuk menampilkan data.
+                                    Silakan pilih <strong>Team</strong> dan <strong>Range Tanggal</strong> terlebih dahulu untuk menampilkan data.
                                 </td>
                             </tr>
                         @else
@@ -429,22 +449,22 @@
                                         }
                                     @endphp
                                     <td class="text-center">
-                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}')" class="badge {{ $badgeClass }} font-bold cursor-pointer transition-colors">
+                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}')" wire:loading.attr="disabled" class="badge {{ $badgeClass }} font-bold cursor-pointer transition-colors">
                                             {{ $record->total_toko }}
                                         </button>
                                     </td>
                                     <td class="text-center">
-                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}', 'RWO')" class="badge badge-info badge-outline font-bold cursor-pointer hover:bg-info hover:text-white transition-colors">
+                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}', 'RWO')" wire:loading.attr="disabled" class="badge badge-info badge-outline font-bold cursor-pointer hover:bg-info hover:text-white transition-colors">
                                             {{ $record->total_rwo ?? 0 }}
                                         </button>
                                     </td>
                                     <td class="text-center">
-                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}', 'PNR')" class="badge badge-secondary badge-outline font-bold cursor-pointer hover:bg-secondary hover:text-white transition-colors">
+                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}', 'PNR')" wire:loading.attr="disabled" class="badge badge-secondary badge-outline font-bold cursor-pointer hover:bg-secondary hover:text-white transition-colors">
                                             {{ $record->total_pnr ?? 0 }}
                                         </button>
                                     </td>
                                     <td class="text-center">
-                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}', 'NGVO')" class="badge badge-warning badge-outline font-bold cursor-pointer hover:bg-warning hover:text-white transition-colors">
+                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}', 'NGVO')" wire:loading.attr="disabled" class="badge badge-warning badge-outline font-bold cursor-pointer hover:bg-warning hover:text-white transition-colors">
                                             {{ $record->total_ngvo ?? 0 }}
                                         </button>
                                     </td>
@@ -483,332 +503,8 @@
         </div>
     </div>
 
-    {{-- Modal Form (Create/Edit) --}}
-    <div x-data="{ open: @entangle('isFormModalOpen') }" 
-         x-show="open" 
-         x-cloak 
-         class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        
-        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-             class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
-
-        <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
-             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-             class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-5xl max-h-[90vh] overflow-hidden ring-1 ring-base-content/5 flex flex-col">
-            
-            <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30">
-                <div class="flex items-center gap-3">
-                    <div class="p-2.5 rounded-2xl bg-primary/10 text-primary">
-                        @if($isEditing)
-                            <x-heroicon-s-pencil-square class="w-6 h-6" />
-                        @else
-                            <x-heroicon-s-plus-circle class="w-6 h-6" />
-                        @endif
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-lg text-base-content">{{ $isEditing ? 'Edit Grup JKS' : 'Tambah JKS Multiple Customer' }}</h3>
-                    </div>
-                </div>
-                <button @click="open = false" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300 transition-all duration-200">
-                    <x-heroicon-s-x-mark class="w-5 h-5" />
-                </button>
-            </div>
-
-            <div class="flex-1 overflow-hidden flex flex-col md:flex-row bg-base-100">
-                {{-- Kiri: Form Input & Search --}}
-                <div class="w-full md:w-1/2 p-6 border-r border-base-300 overflow-y-auto">
-                    @if($formError)
-                        <div class="alert alert-error shadow-sm rounded-xl border-none bg-error/10 text-error mb-4 flex items-start gap-3">
-                            <x-heroicon-s-x-circle class="w-5 h-5 shrink-0 mt-0.5" />
-                            <div class="text-sm font-medium">{{ $formError }}</div>
-                        </div>
-                    @endif
-                    <form id="form-jks" class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            {{-- Tanggal --}}
-                            <div class="space-y-1.5">
-                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Tanggal</label>
-                                <input wire:model.blur="tanggal" type="date" class="input input-sm input-bordered w-full rounded-xl">
-                                @error('tanggal') <span class="text-error text-xs">{{ $message }}</span> @enderror
-                            </div>
-
-                            {{-- Team (fsalesman) --}}
-                            <div class="space-y-1.5">
-                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Pilih Team</label>
-                                <select wire:model.live="selectedTeamCode" class="select select-sm select-bordered w-full rounded-xl">
-                                    <option value="">-- Pilih Team --</option>
-                                    @foreach($teams as $team)
-                                        <option value="{{ $team->kode_team }}">{{ $team->nama_team }}</option>
-                                    @endforeach
-                                </select>
-                                @error('selectedTeamCode') <span class="text-error text-xs">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
-
-                        <hr class="my-4 border-base-300">
-
-                        {{-- Search Distributor --}}
-                        <div class="space-y-1.5 relative">
-                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Cari Distributor (Opsional)</label>
-                            @if($selectedDistributorCode)
-                                <div class="flex items-center gap-2 p-2 border border-primary/30 bg-primary/5 rounded-xl text-sm">
-                                    <div class="flex-1 font-semibold text-primary">{{ $selectedDistributorCode }} - {{ $searchDistributor }}</div>
-                                    <button type="button" wire:click="clearDistributor" class="btn btn-xs btn-ghost btn-circle text-error hover:bg-error hover:text-white">
-                                        <x-heroicon-s-x-mark class="w-4 h-4" />
-                                    </button>
-                                </div>
-                            @else
-                                <input wire:model.live.debounce.300ms="searchDistributor" type="text" placeholder="Ketik nama atau kode distributor..." class="input input-sm input-bordered w-full rounded-xl">
-                                
-                                @if(count($distributorOptions) > 0)
-                                    <ul class="absolute z-10 w-full mt-1 bg-base-100 border border-base-300 rounded-xl shadow-lg p-1">
-                                        @foreach($distributorOptions as $dist)
-                                            <li>
-                                                <button type="button" wire:click="selectDistributor('{{ $dist->distributor_code }}', '{{ addslashes($dist->distributor_name) }}')" class="w-full text-left px-3 py-2 text-sm hover:bg-base-200 rounded-lg">
-                                                    <div class="font-bold">{{ $dist->distributor_code }}</div>
-                                                    <div class="text-xs opacity-70">{{ $dist->distributor_name }}</div>
-                                                </button>
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                @endif
-                            @endif
-                        </div>
-
-                        {{-- Search Customer --}}
-                        <div class="space-y-1.5 relative">
-                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Cari Customer</label>
-                            <div class="relative">
-                                <input wire:model.live.debounce.500ms="searchCustomer" type="text" placeholder="Ketik kode, nama, atau alamat..." class="input input-sm input-bordered w-full rounded-xl pr-10">
-                                <div wire:loading wire:target="searchCustomer" class="absolute right-3 top-2">
-                                    <span class="loading loading-spinner loading-xs text-primary"></span>
-                                </div>
-                            </div>
-                            
-                            @if(count($customerOptions) > 0)
-                                <ul class="absolute z-10 w-full mt-1 bg-base-100 border border-base-300 rounded-xl shadow-lg p-1">
-                                    @foreach($customerOptions as $cust)
-                                        <li>
-                                            <div class="w-full text-left px-3 py-2 hover:bg-base-200 rounded-lg flex justify-between items-center group cursor-default">
-                                                <div class="flex-1">
-                                                    <div class="font-bold text-sm">{{ $cust->custno }} - {{ $cust->custname }}</div>
-                                                    <div class="text-xs opacity-70 truncate">{{ $cust->distributor_name }} ({{ $cust->distributor_code }})</div>
-                                                    <div class="text-[0.625rem] opacity-50 truncate">{{ $cust->addres }}</div>
-                                                </div>
-                                                <button type="button" wire:click="addCustomerToCart('{{ $cust->custno }}')" class="btn btn-xs btn-primary btn-square opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <x-heroicon-s-plus class="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            @elseif(strlen($searchCustomer) >= 3)
-                                <div class="absolute z-10 w-full mt-1 bg-base-100 border border-base-300 rounded-xl shadow-lg p-3 text-center text-xs text-base-content/50">
-                                    <span wire:loading.remove wire:target="searchCustomer">Tidak ditemukan customer yang sesuai.</span>
-                                    <span wire:loading wire:target="searchCustomer">Mencari...</span>
-                                </div>
-                            @endif
-                        </div>
-
-                        @error('selectedCustomers') 
-                            <div class="alert alert-error bg-error/10 text-error text-xs p-2 rounded-lg mt-4 border-none">
-                                <x-heroicon-s-exclamation-triangle class="w-4 h-4" />
-                                {{ $message }}
-                            </div>
-                        @enderror
-                    </form>
-                </div>
-
-                {{-- Kanan: Daftar Customer (Cart) --}}
-                <div class="w-full md:w-1/2 p-0 flex flex-col bg-base-200/20 overflow-y-auto">
-                    <div class="p-4 border-b border-base-300 flex justify-between items-center bg-base-100 sticky top-0 z-10">
-                        <h4 class="font-bold text-sm uppercase tracking-wide">Daftar Customer Terpilih</h4>
-                        <span class="badge badge-primary">{{ count($selectedCustomers) }} Toko</span>
-                    </div>
-                    
-                    <div class="p-4 flex-1">
-                        @if(count($selectedCustomers) == 0)
-                            <div class="h-full flex flex-col items-center justify-center text-base-content/30 space-y-3">
-                                <x-heroicon-o-shopping-bag class="w-16 h-16" />
-                                <p class="text-sm">Belum ada customer yang dipilih.</p>
-                            </div>
-                        @else
-                            <div class="space-y-3">
-                                @foreach($selectedCustomers as $idx => $cartItem)
-                                    <div class="bg-base-100 border border-base-300 rounded-xl p-3 shadow-sm flex items-start gap-3 relative">
-                                        <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
-                                            {{ $idx + 1 }}
-                                        </div>
-                                        <div class="flex-1 overflow-hidden">
-                                            <div class="font-bold text-sm">{{ $cartItem['custno'] }} - {{ $cartItem['custname'] }}</div>
-                                            <div class="text-xs text-base-content/70 mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                                                <span class="flex items-center gap-1"><x-heroicon-s-building-storefront class="w-3 h-3"/> {{ $cartItem['distributor_code'] }}</span>
-                                                <span class="flex items-center gap-1"><x-heroicon-s-map-pin class="w-3 h-3"/> {{ $cartItem['nama_area'] }}, {{ $cartItem['nama_region'] }}</span>
-                                            </div>
-                                            <div class="text-[0.625rem] text-base-content/50 mt-1 truncate">{{ $cartItem['addres'] }}</div>
-                                        </div>
-                                        <button type="button" wire:click="removeCustomerFromCart('{{ $cartItem['custno'] }}')" class="btn btn-xs btn-ghost btn-circle text-error hover:bg-error hover:text-white shrink-0">
-                                            <x-heroicon-s-trash class="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex items-center justify-end gap-3 px-6 py-5 border-t border-base-300 bg-base-200/50 mt-auto">
-                <button type="button" @click="open = false" class="btn btn-ghost rounded-xl normal-case">Batal</button>
-                <button wire:click="save" type="button" class="btn btn-primary rounded-xl px-8 normal-case shadow-sm shadow-primary/20 gap-2">
-                    <span wire:loading.remove wire:target="save">Simpan Daftar ({{ count($selectedCustomers) }})</span>
-                    <span wire:loading wire:target="save" class="loading loading-spinner loading-xs"></span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    {{-- Modal Import Excel --}}
-    <div x-data="{ open: @entangle('isImportModalOpen') }" 
-         x-show="open" 
-         x-cloak 
-         class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        
-        <div x-show="open" class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
-
-        <div x-show="open" class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-lg overflow-hidden flex flex-col">
-            <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30">
-                <h3 class="font-bold text-lg text-base-content">Import Data Excel</h3>
-                <button @click="open = false" class="btn btn-sm btn-circle btn-ghost">
-                    <x-heroicon-s-x-mark class="w-5 h-5" />
-                </button>
-            </div>
-            <form wire:submit.prevent="import">
-                <div class="p-6">
-                    @if($importStep === 1)
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div class="space-y-1.5">
-                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Start Date</label>
-                                <input type="date" wire:model="importStartDate" class="input input-bordered input-sm w-full rounded-xl">
-                                @error('importStartDate') <span class="text-error text-xs">{{ $message }}</span> @enderror
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">End Date</label>
-                                <input type="date" wire:model="importEndDate" class="input input-bordered input-sm w-full rounded-xl">
-                                @error('importEndDate') <span class="text-error text-xs">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
-
-                        <div class="space-y-1.5 mb-4">
-                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Import Method</label>
-                            <select wire:model="importMethod" class="select select-bordered select-sm w-full rounded-xl">
-                                <option value="full_sync">Full Sync (Hapus & Timpa Data Terkait)</option>
-                                <option value="partial_update">Partial Update (Hanya Tambah/Update Data Baru)</option>
-                            </select>
-                            @error('importMethod') <span class="text-error text-xs">{{ $message }}</span> @enderror
-                        </div>
-                        
-                        <div class="space-y-1.5">
-                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">File Excel (xls, xlsx, csv)</label>
-                            <input type="file" wire:model="excel_file" class="file-input file-input-bordered file-input-sm w-full rounded-xl" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
-                            @error('excel_file') <span class="text-error text-xs">{{ $message }}</span> @enderror
-                            
-                            <div wire:loading wire:target="excel_file" class="text-xs text-info mt-2">Mengunggah...</div>
-                        </div>
-
-                        @if(count($importErrors) > 0)
-                            <div class="mt-4 bg-error/10 border border-error/20 rounded-xl p-4">
-                                <div class="flex items-start gap-3">
-                                    <x-heroicon-s-exclamation-triangle class="w-5 h-5 text-error shrink-0 mt-0.5" />
-                                    <div>
-                                        <h4 class="font-bold text-sm text-error mb-1">Import Gagal</h4>
-                                        <p class="text-xs text-base-content/70 mb-3">
-                                            Terdapat <strong>{{ count($importErrors) }}</strong> baris data yang bermasalah (kode tidak ditemukan di database atau kosong). Import dibatalkan untuk mencegah data tidak lengkap.
-                                        </p>
-                                        <button type="button" wire:click="downloadErrorLog" class="btn btn-sm btn-error text-white rounded-lg text-xs gap-2 shadow-sm">
-                                            <x-heroicon-s-document-text class="w-4 h-4" />
-                                            Download Log Error (.txt)
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-                    @endif
-
-                    @if($importStep === 2)
-                        <div class="mb-5 bg-warning/10 p-4 rounded-xl border border-warning/20">
-                            <h4 class="font-bold text-sm text-warning-content mb-3 flex items-center gap-2">
-                                <x-heroicon-s-eye class="w-5 h-5 text-warning" />
-                                Preview Import
-                            </h4>
-                            
-                            <div class="grid grid-cols-2 gap-y-3 gap-x-6 text-sm text-base-content/80 mb-4">
-                                <div>
-                                    <span class="block text-xs font-semibold text-base-content/50 uppercase tracking-wider">Method</span>
-                                    <span class="font-medium text-base-content">{{ $importMethod === 'full_sync' ? 'Full Sync' : 'Partial Update' }}</span>
-                                </div>
-                                <div>
-                                    <span class="block text-xs font-semibold text-base-content/50 uppercase tracking-wider">Date Range</span>
-                                    <span class="font-medium text-base-content">{{ Carbon\Carbon::parse($importStartDate)->format('d M Y') }} - {{ Carbon\Carbon::parse($importEndDate)->format('d M Y') }}</span>
-                                </div>
-                            </div>
-
-                            <div class="bg-base-100 rounded-lg p-4 border border-base-200 grid grid-cols-3 gap-4 text-center divide-x divide-base-200 mb-4">
-                                <div>
-                                    <span class="block text-xs text-base-content/50 mb-1">Upload Rows</span>
-                                    <span class="text-xl font-bold text-primary">{{ number_format($previewTotalRows) }}</span>
-                                </div>
-                                <div>
-                                    <span class="block text-xs text-base-content/50 mb-1">Affected Teams</span>
-                                    <span class="text-xl font-bold text-secondary">{{ number_format($previewTotalTeams) }}</span>
-                                </div>
-                                <div>
-                                    <span class="block text-xs text-base-content/50 mb-1">Existing DB Rows</span>
-                                    <span class="text-xl font-bold text-neutral">{{ number_format($previewExistingRows) }}</span>
-                                </div>
-                            </div>
-
-                            @if($importMethod === 'full_sync')
-                                <div class="flex items-start gap-2 text-xs text-error font-medium bg-error/10 p-3 rounded-lg">
-                                    <x-heroicon-s-exclamation-triangle class="w-4 h-4 shrink-0" />
-                                    <p><strong>Warning:</strong> Existing schedule data in selected scope will be replaced!</p>
-                                </div>
-                            @endif
-                        </div>
-                    @endif
-                </div>
-
-                <div class="flex items-center justify-between px-6 py-5 border-t border-base-300 bg-base-200/50">
-                    <div>
-                        @if($importStep === 1)
-                            <button type="button" wire:click="downloadTemplate" class="btn btn-ghost rounded-xl normal-case text-info hover:bg-info/10">
-                                <x-heroicon-s-arrow-down-tray class="w-4 h-4 mr-1" />
-                                Download Template
-                            </button>
-                        @endif
-                    </div>
-                    <div class="flex gap-3">
-                        @if($importStep === 1)
-                            <button type="button" @click="open = false" class="btn btn-ghost rounded-xl normal-case">Batal</button>
-                            <button type="button" wire:click="previewImport" class="btn btn-primary rounded-xl px-8 normal-case text-white" wire:loading.attr="disabled" wire:target="previewImport, excel_file">
-                                <span wire:loading.remove wire:target="previewImport">Preview Import</span>
-                                <span wire:loading wire:target="previewImport" class="loading loading-spinner loading-xs"></span>
-                            </button>
-                        @endif
-
-                        @if($importStep === 2)
-                            <button type="button" wire:click="$set('importStep', 1)" class="btn btn-ghost rounded-xl normal-case">Kembali</button>
-                            <button type="button" wire:click="executeImport" class="btn btn-success rounded-xl px-8 normal-case text-white" wire:loading.attr="disabled">
-                                <span wire:loading.remove wire:target="executeImport">Execute Import</span>
-                                <span wire:loading wire:target="executeImport" class="loading loading-spinner loading-xs"></span>
-                            </button>
-                        @endif
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
+    <livewire:jks-team-elite.form-modal :teams="$teams" wire:key="form-modal" />
+    <livewire:jks-team-elite.import-modal wire:key="import-modal" />
 
     {{-- Modal Konfirmasi Hapus --}}
     <div x-data="{ open: @entangle('isDeleteModalOpen') }" 
@@ -828,7 +524,7 @@
             </div>
             <div class="flex justify-center gap-3 px-6 pb-8">
                 <button type="button" @click="open = false" class="btn btn-ghost flex-1 rounded-xl">Batal</button>
-                <button wire:click="delete" class="btn btn-error flex-1 rounded-xl text-white">
+                <button wire:click="delete" wire:loading.attr="disabled" wire:target="delete" class="btn btn-error flex-1 rounded-xl text-white">
                     <span wire:loading.remove wire:target="delete">Ya, Hapus</span>
                     <span wire:loading wire:target="delete" class="loading loading-spinner loading-sm"></span>
                 </button>
@@ -942,7 +638,7 @@
         </div>
     </div>
 
-    <!-- Map Modal -->
+    {{-- Map Modal --}}
     <div x-data="{
             map: null,
             markers: [],
@@ -950,10 +646,50 @@
                 if (this.map) {
                     this.map.remove();
                 }
-                this.map = L.map('store-map').setView([-6.200000, 106.816666], 10);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OpenStreetMap contributors'
-                }).addTo(this.map);
+                
+                // If maplibregl is not loaded yet, wait a bit
+                if (typeof maplibregl === 'undefined') {
+                    setTimeout(() => this.initMap(), 200);
+                    return;
+                }
+                
+                this.map = new maplibregl.Map({
+                    container: 'store-map',
+                    style: {
+                        'version': 8,
+                        'sources': {
+                            'raster-tiles': {
+                                'type': 'raster',
+                                'tiles': [
+                                    'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                                    'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                                    'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                                    'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+                                ],
+                                'tileSize': 256,
+                                'attribution': '© OpenStreetMap contributors, © CARTO'
+                            }
+                        },
+                        'layers': [
+                            {
+                                'id': 'simple-tiles',
+                                'type': 'raster',
+                                'source': 'raster-tiles',
+                                'minzoom': 0,
+                                'maxzoom': 19
+                            }
+                        ]
+                    },
+                    center: [106.816666, -6.200000],
+                    zoom: 10
+                });
+
+                this.map.addControl(new maplibregl.NavigationControl());
+                
+                // Add resize listener to fix modal sizing issue
+                this.map.on('load', () => {
+                    this.map.resize();
+                });
             },
             updateMarkers(data) {
                 if (window.renderMapMarkers) {
@@ -970,7 +706,7 @@
     >
         <div class="modal" :class="{ 'modal-open': $wire.isMapModalOpen }">
             <div class="modal-box max-w-5xl p-0 overflow-hidden bg-base-100 rounded-2xl shadow-xl flex flex-col h-[90vh] md:h-[80vh] w-[95%] md:w-full">
-                <!-- Header -->
+                {{-- Header --}}
                 <div class="flex items-center justify-between px-6 py-4 border-b border-base-200 bg-base-100/50 backdrop-blur z-10 shrink-0">
                     <h3 class="text-lg font-black text-base-content tracking-tight flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center text-info shadow-inner">
@@ -979,7 +715,7 @@
                         {{ $mapModalTitle }}
                     </h3>
                     <div class="flex items-center gap-2">
-                        <button type="button" @click="initMap(); updateMarkers($wire.mapModalData);" class="btn btn-info btn-sm text-white rounded-xl" title="Klik jika peta tidak sejajar/blank">
+                        <button type="button" @click="if(map) { map.resize(); updateMarkers($wire.mapModalData); }" class="btn btn-info btn-sm text-white rounded-xl" title="Klik jika peta tidak sejajar/blank">
                             <x-heroicon-o-arrow-path class="w-4 h-4" /> Refresh
                         </button>
                         <button wire:click="$set('isMapModalOpen', false)" class="btn btn-ghost btn-sm btn-square rounded-xl hover:bg-error/10 hover:text-error transition-colors">
@@ -987,7 +723,7 @@
                         </button>
                     </div>
                 </div>
-                <!-- Content -->
+                {{-- Content --}}
                 <div class="flex-1 w-full bg-base-200 relative">
                     <div id="store-map" wire:ignore style="height: 100%; width: 100%; z-index: 1;"></div>
                 </div>
@@ -996,78 +732,185 @@
         </div>
     </div>
 
+@once
+    @push('styles')
+        <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+        <style>
+            .maplibregl-popup-content {
+                padding: 12px;
+                border-radius: 12px;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            }
+        </style>
+    @endpush
+
     @push('scripts')
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
         <script>
+            function escHtml(str) {
+                if (!str) return '';
+                return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+            }
+
             window.renderMapMarkers = function(map, markers, data) {
+                // Wait for map to load
+                if (!map || !map.isStyleLoaded()) {
+                    setTimeout(() => window.renderMapMarkers(map, markers, data), 200);
+                    return;
+                }
+
                 // clear old markers
-                markers.forEach(m => map.removeLayer(m));
+                markers.forEach(m => m.remove());
                 markers.length = 0; // empty array safely
                 
                 if (!data) return;
 
-                let bounds = L.latLngBounds();
+                let bounds = new maplibregl.LngLatBounds();
                 let hasValidMarker = false;
 
-                let iconBaseUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-';
-                let iconShadowUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png';
-                
-                function getIcon(color) {
-                    return new L.Icon({
-                        iconUrl: iconBaseUrl + color + '.png',
-                        shadowUrl: iconShadowUrl,
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41],
-                        popupAnchor: [1, -34],
-                        shadowSize: [41, 41]
-                    });
-                }
-
-                let icons = {
-                    'blue': getIcon('blue'),
-                    'green': getIcon('green'),
-                    'orange': getIcon('orange'),
-                    'red': getIcon('red'),
-                    'violet': getIcon('violet'),
-                    'grey': getIcon('grey'),
-                    'black': getIcon('black'),
-                    'gold': getIcon('gold'),
-                    'yellow': getIcon('yellow')
-                };
-                
                 // Add Legend once
                 if (!map.customLegend) {
-                    let legend = L.control({position: 'bottomleft'});
-                    legend.onAdd = function (map) {
-                        let div = L.DomUtil.create('div', 'info legend bg-white p-3 rounded-xl shadow-lg border border-gray-200 text-xs z-[1000] relative');
-                        div.innerHTML = `
-                            <div class="font-bold mb-2 pb-1 border-b border-gray-200 text-gray-800 tracking-wide">Keterangan Warna</div>
-                            <div class="flex flex-col gap-1.5">
-                                <div class="flex items-center gap-2"><img src="${iconBaseUrl}green.png" class="h-4"> <span class="text-gray-700 font-medium">Sudah Terjadwal (JKS)</span></div>
-                                <div class="flex items-center gap-2 mt-2 pt-2 border-t border-gray-200"><span class="font-bold text-gray-800">Pareto (Belum Terjadwal)</span></div>
-                                <div class="flex items-center gap-2 mt-1"><img src="${iconBaseUrl}blue.png" class="h-4 opacity-80"> <span class="text-gray-600 font-medium italic">Pilar 1 (RWO)</span></div>
-                                <div class="flex items-center gap-2 mt-1"><img src="${iconBaseUrl}violet.png" class="h-4 opacity-80"> <span class="text-gray-600 font-medium italic">Pilar 2 (PNR)</span></div>
-                                <div class="flex items-center gap-2 mt-1"><img src="${iconBaseUrl}orange.png" class="h-4 opacity-80"> <span class="text-gray-600 font-medium italic">Pilar 3 (NGVO)</span></div>
-                                <div class="flex items-center gap-2 mt-1"><img src="${iconBaseUrl}grey.png" class="h-4 opacity-80"> <span class="text-gray-600 font-medium italic">Lainnya</span></div>
-                            </div>
-                        `;
-                        return div;
-                    };
-                    legend.addTo(map);
-                    map.customLegend = legend;
+                    class LegendControl {
+                        onAdd(map) {
+                            this._map = map;
+                            this._container = document.createElement('div');
+                            this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group info legend bg-white p-3 rounded-xl shadow-lg border border-gray-200 text-xs';
+                            this._container.style.margin = '10px';
+                            this._container.innerHTML = `
+                                <div class="font-bold mb-2 pb-1 border-b border-gray-200 text-gray-800 tracking-wide">Keterangan Warna</div>
+                                <div class="flex flex-col gap-1.5">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-3 h-3 rounded-full shadow-sm" style="background-color: #22c55e;"></div>
+                                        <span class="text-gray-700 font-medium">Sudah Terjadwal (JKS)</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-2 pt-2 border-t border-gray-200">
+                                        <span class="font-bold text-gray-800">Pareto (Belum Terjadwal)</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <div class="w-3 h-3 rounded-full shadow-sm" style="background-color: #3b82f6;"></div>
+                                        <span class="text-gray-600 font-medium italic">Pilar 1 (RWO)</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <div class="w-3 h-3 rounded-full shadow-sm" style="background-color: #8b5cf6;"></div>
+                                        <span class="text-gray-600 font-medium italic">Pilar 2 (PNR)</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <div class="w-3 h-3 rounded-full shadow-sm" style="background-color: #f97316;"></div>
+                                        <span class="text-gray-600 font-medium italic">Pilar 3 (NGVO)</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <div class="w-3 h-3 rounded-full shadow-sm" style="background-color: #6b7280;"></div>
+                                        <span class="text-gray-600 font-medium italic">Lainnya</span>
+                                    </div>
+                                </div>
+                            `;
+                            return this._container;
+                        }
+                        onRemove() {
+                            this._container.parentNode.removeChild(this._container);
+                            this._map = undefined;
+                        }
+                    }
+                    map.addControl(new LegendControl(), 'bottom-left');
+                    map.customLegend = true;
                 }
                 
+                function getPilarPriority(store) {
+                    if (!store.pilar) return 1; // Lainnya
+                    if (store.pilar.includes('1. RWO')) return 4; // Paling atas
+                    if (store.pilar.includes('2. PNR')) return 3;
+                    if (store.pilar.includes('3. NGVO')) return 2;
+                    return 1;
+                }
+
+                // Gambar Pareto terlebih dahulu agar ada di lapisan bawah
+                if (data.pareto) {
+                    // Sortir berdasar prioritas (nilai terkecil digambar duluan, nilai terbesar digambar terakhir agar di atas)
+                    data.pareto.sort((a, b) => getPilarPriority(a) - getPilarPriority(b));
+                    
+                    data.pareto.forEach(store => {
+                        if(store.latitude && store.longitude) {
+                            let lat = parseFloat(store.latitude);
+                            let lng = parseFloat(store.longitude);
+                            
+                            // Abaikan koordinat 0,0 (di laut)
+                            if (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng)) {
+                            
+                            let popupContent = `<b>${escHtml(store.custname)}</b><br>${escHtml(store.customer_address || '')}<br><span class="text-[0.625rem] text-gray-500 font-mono cursor-pointer hover:text-primary" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${lat},${lng}', '_blank');" title="Buka di Google Maps">📍 ${lat}, ${lng}</span><div class="mt-2 flex flex-col gap-1">`;
+                            if (store.pilar) {
+                                popupContent += `<span class="badge badge-outline badge-sm font-bold border-gray-300 text-gray-600 shadow-sm w-max">Pilar: ${store.pilar}</span>`;
+                            }
+                            popupContent += `<span class="badge badge-ghost badge-sm border-none bg-base-300 text-base-content font-semibold shadow-sm w-max mt-1 mb-1">Belum Dijadwalkan</span>`;
+                            
+                            if (!data.isGlobal) {
+                                popupContent += `<button type="button" onclick="window.dispatchEvent(new CustomEvent('map-add-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}' } }))" class="btn btn-primary btn-xs text-white">Tambahkan Jadwal</button>`;
+                            } else {
+                                let teamOptions = data.availableTeams.map(t => `<option value="${escHtml(t.kode_team)}">${escHtml(t.nama_team)}</option>`).join('');
+                                popupContent += `
+                                    <div class="form-control w-full">
+                                        <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Tanggal</span></label>
+                                        <input type="date" id="date_${store.custno}" class="input input-xs input-bordered w-full bg-white text-gray-900 border-gray-300" />
+                                    </div>
+                                    <div class="form-control w-full mt-1">
+                                        <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Team</span></label>
+                                        <select id="team_${store.custno}" class="select select-xs select-bordered w-full bg-white text-gray-900 border-gray-300">
+                                            ${teamOptions}
+                                        </select>
+                                    </div>
+                                    <div id="popup_err_${store.custno}" style="display:none;color:#ef4444;font-size:0.75rem;margin-top:4px;">⚠️ Tanggal dan Team wajib diisi!</div>
+                                    <button type="button" onclick="
+                                        let d = document.getElementById('date_${store.custno}').value;
+                                        let t = document.getElementById('team_${store.custno}').value;
+                                        if(!d || !t) { 
+                                            let errEl = document.getElementById('popup_err_${store.custno}');
+                                            if(errEl) { errEl.style.display='block'; setTimeout(()=>errEl.style.display='none',3000); }
+                                            return; 
+                                        }
+                                        window.dispatchEvent(new CustomEvent('global-map-add-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}', date: d, team: t } }))
+                                    " class="btn btn-primary btn-xs text-white mt-1">Simpan Jadwal</button>
+                                `;
+                            }
+                            
+                            popupContent += `</div>`;
+                            
+                            let markerColor = '#6b7280'; // grey
+                            if (store.pilar) {
+                                if (store.pilar.includes('1. RWO')) markerColor = '#3b82f6'; // blue
+                                else if (store.pilar.includes('2. PNR')) markerColor = '#8b5cf6'; // violet
+                                else if (store.pilar.includes('3. NGVO')) markerColor = '#f97316'; // orange
+                            }
+                            
+                            let popup = new maplibregl.Popup({ offset: 25, maxWidth: '300px' }).setHTML(popupContent);
+                            let m = new maplibregl.Marker({ color: markerColor })
+                                .setLngLat([lng, lat])
+                                .setPopup(popup)
+                                .addTo(map);
+                                
+                            markers.push(m);
+                            bounds.extend([lng, lat]);
+                            hasValidMarker = true;
+                            }
+                        }
+                    });
+                }
+                
+                // Gambar Scheduled setelah Pareto agar ada di paling atas
                 if (data.scheduled) {
+                    // Sortir juga agar yg penting di atas (walau sama-sama hijau)
+                    data.scheduled.sort((a, b) => getPilarPriority(a) - getPilarPriority(b));
+                    
                     data.scheduled.forEach(store => {
                         if(store.latitude && store.longitude) {
                             let lat = parseFloat(store.latitude);
                             let lng = parseFloat(store.longitude);
                             
-                            let popupHtml = `<b>${store.custname}</b><br>${store.customer_address || ''}<br><span class="text-[0.625rem] text-gray-500 font-mono cursor-pointer hover:text-primary" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${lat},${lng}', '_blank');" title="Buka di Google Maps">📍 ${lat}, ${lng}</span><div class="mt-2 flex flex-col gap-1">`;
+                            // Abaikan koordinat 0,0 (di laut)
+                            if (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng)) {
+                            
+                            let popupHtml = `<b>${escHtml(store.custname)}</b><br>${escHtml(store.customer_address || '')}<br><span class="text-[0.625rem] text-gray-500 font-mono cursor-pointer hover:text-primary" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${lat},${lng}', '_blank');" title="Buka di Google Maps">📍 ${lat}, ${lng}</span><div class="mt-2 flex flex-col gap-1">`;
                             if (store.tgl_format) {
-                                popupHtml += `<span class="text-[0.6875rem] font-bold text-gray-700 flex items-center gap-1">🕒 ${store.tgl_format} (${store.hari}) - W${store.minggu}</span>`;
-                                popupHtml += `<span class="text-[0.6875rem] font-bold text-gray-700 flex items-center gap-1">👤 ${store.nama_team}</span>`;
+                                popupHtml += `<span class="text-[0.6875rem] font-bold text-gray-700 flex items-center gap-1">🕒 ${escHtml(store.tgl_format)} (${escHtml(store.hari)}) - W${escHtml(store.minggu)}</span>`;
+                                popupHtml += `<span class="text-[0.6875rem] font-bold text-gray-700 flex items-center gap-1">👤 ${escHtml(store.nama_team)}</span>`;
                             }
                             if (store.pilar) {
                                 popupHtml += `<span class="badge badge-outline badge-sm font-bold border-gray-300 text-gray-600 shadow-sm mt-1 w-max">Pilar: ${store.pilar}</span>`;
@@ -1075,7 +918,7 @@
                             popupHtml += `<span class="badge badge-primary badge-sm font-bold border-none text-white shadow-sm mt-1 w-max">Dijadwalkan JKS</span>`;
                             
                             if (data.isGlobal) {
-                                let teamOptions = (data.availableTeams || []).map(t => `<option value="${t.kode_team}" ${t.kode_team == store.kode_team ? 'selected' : ''}>${t.nama_team}</option>`).join('');
+                                let teamOptions = (data.availableTeams || []).map(t => `<option value="${escHtml(t.kode_team)}" ${t.kode_team == store.kode_team ? 'selected' : ''}>${escHtml(t.nama_team)}</option>`).join('');
                                 popupHtml += `
                                     <div class="mt-2 border-t border-gray-200 pt-2">
                                         <div class="form-control w-full">
@@ -1088,11 +931,16 @@
                                                 ${teamOptions}
                                             </select>
                                         </div>
+                                        <div id="popup_err_edit_${store.custno}" style="display:none;color:#ef4444;font-size:0.75rem;margin-top:4px;width:100%;">⚠️ Tanggal dan Team wajib diisi!</div>
                                         <div class="flex gap-1 mt-2">
                                             <button type="button" onclick="
                                                 let d = document.getElementById('edit_date_${store.custno}').value;
                                                 let t = document.getElementById('edit_team_${store.custno}').value;
-                                                if(!d || !t) { alert('Tanggal dan Team harus diisi!'); return; }
+                                                if(!d || !t) { 
+                                                    let errEl = document.getElementById('popup_err_edit_${store.custno}');
+                                                    if(errEl) { errEl.style.display='block'; setTimeout(()=>errEl.style.display='none',3000); }
+                                                    return; 
+                                                }
                                                 window.dispatchEvent(new CustomEvent('global-map-update-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}', oldDate: '${store.tanggal_ymd}', oldTeam: '${store.kode_team}', newDate: d, newTeam: t } }))
                                             " class="btn btn-warning btn-xs flex-1">Update</button>
                                             
@@ -1109,72 +957,177 @@
                             }
                             popupHtml += `</div>`;
                             
-                            let markerIcon = icons['green'];
-                            let m = L.marker([lat, lng], {icon: markerIcon}).addTo(map).bindPopup(popupHtml);
+                            let popup = new maplibregl.Popup({ offset: 25, maxWidth: '300px' }).setHTML(popupHtml);
+                            let m = new maplibregl.Marker({ color: '#22c55e' }) // green
+                                .setLngLat([lng, lat])
+                                .setPopup(popup)
+                                .addTo(map);
+                                
                             markers.push(m);
-                            bounds.extend([lat, lng]);
+                            bounds.extend([lng, lat]);
                             hasValidMarker = true;
-                        }
-                    });
-                }
-
-                if (data.pareto) {
-                    data.pareto.forEach(store => {
-                        if(store.latitude && store.longitude) {
-                            let lat = parseFloat(store.latitude);
-                            let lng = parseFloat(store.longitude);
-                            
-                            let popupContent = `<b>${store.custname}</b><br>${store.customer_address || ''}<br><span class="text-[0.625rem] text-gray-500 font-mono cursor-pointer hover:text-primary" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${lat},${lng}', '_blank');" title="Buka di Google Maps">📍 ${lat}, ${lng}</span><div class="mt-2 flex flex-col gap-1">`;
-                            if (store.pilar) {
-                                popupContent += `<span class="badge badge-outline badge-sm font-bold border-gray-300 text-gray-600 shadow-sm w-max">Pilar: ${store.pilar}</span>`;
                             }
-                            popupContent += `<span class="badge badge-ghost badge-sm border-none bg-base-300 text-base-content font-semibold shadow-sm w-max mt-1 mb-1">Belum Dijadwalkan</span>`;
-                            
-                            if (!data.isGlobal) {
-                                popupContent += `<button type="button" onclick="window.dispatchEvent(new CustomEvent('map-add-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}' } }))" class="btn btn-primary btn-xs text-white">Tambahkan Jadwal</button>`;
-                            } else {
-                                let teamOptions = data.availableTeams.map(t => `<option value="${t.kode_team}">${t.nama_team}</option>`).join('');
-                                popupContent += `
-                                    <div class="form-control w-full">
-                                        <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Tanggal</span></label>
-                                        <input type="date" id="date_${store.custno}" class="input input-xs input-bordered w-full bg-white text-gray-900 border-gray-300" />
-                                    </div>
-                                    <div class="form-control w-full mt-1">
-                                        <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Team</span></label>
-                                        <select id="team_${store.custno}" class="select select-xs select-bordered w-full bg-white text-gray-900 border-gray-300">
-                                            ${teamOptions}
-                                        </select>
-                                    </div>
-                                    <button type="button" onclick="
-                                        let d = document.getElementById('date_${store.custno}').value;
-                                        let t = document.getElementById('team_${store.custno}').value;
-                                        if(!d || !t) { alert('Tanggal dan Team harus diisi!'); return; }
-                                        window.dispatchEvent(new CustomEvent('global-map-add-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}', date: d, team: t } }))
-                                    " class="btn btn-primary btn-xs text-white mt-1">Simpan Jadwal</button>
-                                `;
-                            }
-                            
-                            popupContent += `</div>`;
-                            
-                            let paretoIcon = icons['grey'];
-                            if (store.pilar) {
-                                if (store.pilar.includes('1. RWO')) paretoIcon = icons['blue'];
-                                else if (store.pilar.includes('2. PNR')) paretoIcon = icons['violet'];
-                                else if (store.pilar.includes('3. NGVO')) paretoIcon = icons['orange'];
-                            }
-                            
-                            let m = L.marker([lat, lng], {icon: paretoIcon}).addTo(map).bindPopup(popupContent);
-                            markers.push(m);
-                            bounds.extend([lat, lng]);
-                            hasValidMarker = true;
                         }
                     });
                 }
 
                 if (hasValidMarker) {
-                    map.fitBounds(bounds, {padding: [50, 50]});
+                    map.fitBounds(bounds, {padding: 50, duration: 1000});
+                    setTimeout(() => map.resize(), 500); // Fix rendering after fitBounds
+                }
+            }
+
+            // Form Map Logic
+            window.formMap = null;
+            window.formMarkers = [];
+
+            function initFormMap() {
+                try {
+                    if (window.formMap) {
+                        return;
+                    }
+                    
+                    let mapContainer = document.getElementById('form-map');
+                    if (!mapContainer) {
+                        console.error('form-map container not found!');
+                        return;
+                    }
+                    
+                    window.formMap = new maplibregl.Map({
+                        container: mapContainer,
+                        style: {
+                            'version': 8,
+                            'sources': {
+                                'raster-tiles': {
+                                    'type': 'raster',
+                                    'tiles': [
+                                        'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                                        'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                                        'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                                        'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+                                    ],
+                                    'tileSize': 256,
+                                    'attribution': '© OpenStreetMap contributors, © CARTO'
+                                }
+                            },
+                            'layers': [
+                                {
+                                    'id': 'simple-tiles',
+                                    'type': 'raster',
+                                    'source': 'raster-tiles',
+                                    'minzoom': 0,
+                                    'maxzoom': 19
+                                }
+                            ]
+                        },
+                        center: [113.9213, -0.7893],
+                        zoom: 4,
+                        attributionControl: false
+                    });
+
+                    window.formMap.addControl(new maplibregl.NavigationControl(), 'top-right');
+                } catch (e) {
+                    console.error('Error initializing formMap:', e);
+                    let mapEl = document.getElementById('form-map');
+                    if (mapEl) {
+                        mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444;font-size:0.8rem;padding:1rem;text-align:center;">⚠️ Gagal memuat peta. Coba tutup dan buka kembali form.</div>';
+                    }
+                }
+            }
+
+            function updateFormMapMarkers(selectedCustomers, recommendedStores) {
+                if (!window.formMap) {
+                    initFormMap();
+                }
+                
+                // Clear old markers
+                window.formMarkers.forEach(m => m.remove());
+                window.formMarkers = [];
+                
+                let bounds = new maplibregl.LngLatBounds();
+                let hasValidMarker = false;
+
+                try {
+                    // Selected stores (Green) - Render first so they are at the bottom layer
+                    if (selectedCustomers) {
+                        let selArray = Array.isArray(selectedCustomers) ? selectedCustomers : Object.values(selectedCustomers);
+                        selArray.forEach(store => {
+                            let lat = parseFloat(store?.latitude);
+                            let lng = parseFloat(store?.longitude);
+                            if (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng)) {
+                                let popup = new maplibregl.Popup({ offset: 25 }).setHTML(`<div class="text-xs"><b>${escHtml(store.custno)}</b><br>${escHtml(store.custname)}<br>${escHtml(store.distributor_code)}</div>`);
+                                let m = new maplibregl.Marker({ color: '#22c55e' })
+                                    .setLngLat([lng, lat])
+                                    .setPopup(popup)
+                                    .addTo(window.formMap);
+                                m.custno = store.custno;
+                                window.formMarkers.push(m);
+                                bounds.extend([lng, lat]);
+                                hasValidMarker = true;
+                            }
+                        });
+                    }
+
+                    function getPilarColor(pilar) {
+                        if (!pilar) return '#6b7280';
+                        if (pilar.includes('1. RWO')) return '#3b82f6';
+                        if (pilar.includes('2. PNR')) return '#8b5cf6';
+                        if (pilar.includes('3. NGVO')) return '#f97316';
+                        return '#6b7280';
+                    }
+
+                    // Recommended stores (By Pilar) - Render last so they are on top
+                    if (recommendedStores) {
+                        let recArray = Array.isArray(recommendedStores) ? recommendedStores : Object.values(recommendedStores);
+                        // Reverse array so Pilar 1 (which comes first alphabetically from DB) is rendered LAST (on top of others)
+                        recArray.slice().reverse().forEach(store => {
+                            let lat = parseFloat(store?.latitude);
+                            let lng = parseFloat(store?.longitude);
+                            if (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng)) {
+                                let pilarColor = getPilarColor(store.pilar);
+                                let popupContent = `<div class="text-xs"><b>${escHtml(store.custno)}</b><br>${escHtml(store.custname)}<br>${escHtml(store.distributor_code)}`;
+                                if (store.pilar) popupContent += `<br><span class="font-bold text-gray-500">Pilar: ${escHtml(store.pilar)}</span>`;
+                                popupContent += `</div>`;
+                                
+                                let popup = new maplibregl.Popup({ offset: 25 }).setHTML(popupContent);
+                                let m = new maplibregl.Marker({ color: pilarColor })
+                                    .setLngLat([lng, lat])
+                                    .setPopup(popup)
+                                    .addTo(window.formMap);
+                                m.custno = store.custno;
+                                window.formMarkers.push(m);
+                                bounds.extend([lng, lat]);
+                                hasValidMarker = true;
+                            }
+                        });
+                    }
+
+                    if (hasValidMarker) {
+                        window.formMap.fitBounds(bounds, {padding: 30, maxZoom: 15, duration: 1000});
+                    } else {
+                        window.formMap.jumpTo({center: [113.9213, -0.7893], zoom: 4});
+                    }
+                    setTimeout(() => window.formMap.resize(), 500);
+                } catch (e) {
+                    console.error('Error in updateFormMapMarkers:', e);
+                }
+            }
+
+            function focusFormMap(lat, lng, custno) {
+                if (window.formMap && lat !== 0 && lng !== 0) {
+                    window.formMap.flyTo({ center: [lng, lat], zoom: 16, duration: 1500 });
+                    
+                    if (custno) {
+                        let marker = window.formMarkers.find(m => m.custno === custno);
+                        if (marker) {
+                            if (!marker.getPopup().isOpen()) {
+                                marker.togglePopup();
+                            }
+                        }
+                    }
                 }
             }
         </script>
     @endpush
+@endonce
 </div>

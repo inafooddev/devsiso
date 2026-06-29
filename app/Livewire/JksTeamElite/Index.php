@@ -9,17 +9,15 @@ use App\Models\JksTeamElite;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\JksTeamEliteExport;
 use App\Exports\JksTeamEliteEskaExport;
-use App\Exports\JksTeamEliteTemplateExport;
-use App\Imports\JksTeamEliteImport;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Livewire\Attributes\On;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
     use WithPagination;
-    use WithFileUploads;
     use EnforcesMenuPermissions;
 
     protected string $menuRoute = 'jks-team-elite.index';
@@ -37,52 +35,15 @@ class Index extends Component
     public $sortDirection = 'asc';
 
     // Modal & Form States
-    public $isFormModalOpen = false;
-    public $isEditing = false;
-    public $formError = null;
     public $isDeleteModalOpen = false;
-    public $isImportModalOpen = false;
     public $isExportEskaModalOpen = false;
     public $selectedFlagDelete = 'Y';
     
-    // Common Fields
-    public $tanggal;
-    
     // Team Fields
     public $teams = [];
-    public $selectedTeamCode = '';
-    public $selectedTeamName = '';
-
-    // Search Distributor
-    public $searchDistributor = '';
-    public $distributorOptions = [];
-    public $selectedDistributorCode = '';
-    
-    // Search Customer
-    public $searchCustomer = '';
-    public $customerOptions = [];
-    
-    // Cart for multiple customers
-    public $selectedCustomers = [];
-
-    // Edit Target (Grouping)
-    public $oldGroupParams = [];
 
     // Delete Target (Grouping)
     public $dataIdToDelete = [];
-
-    // Import Field
-    public $excel_file;
-    public $importErrors = [];
-    public $importStep = 1;
-    public $importMethod = 'full_sync';
-    public $importStartDate = '';
-    public $importEndDate = '';
-
-    // Preview Metrics
-    public $previewTotalRows = 0;
-    public $previewTotalTeams = 0;
-    public $previewExistingRows = 0;
 
     // Detail Toko Modal
     public $isStoreModalOpen = false;
@@ -189,10 +150,10 @@ class Index extends Component
                 }
             }
 
-            $this->teams = $query->get()->toArray();
+            $this->teams = $query->get()->unique('kode_team')->values()->toArray();
 
             if (count($this->teams) === 1) {
-                $this->filterTeam = [$this->teams[0]->kode_team];
+                $this->filterTeam = [$this->teams[0]->kode_team ?? $this->teams[0]['kode_team']];
             }
         } catch (\Exception $e) {
             $this->teams = [];
@@ -205,10 +166,6 @@ class Index extends Component
         if (empty($this->filterEndDate)) {
             $this->filterEndDate = Carbon::now()->endOfMonth()->format('Y-m-d');
         }
-
-        // Set default import dates
-        $this->importStartDate = Carbon::now()->startOfMonth()->format('Y-m-d');
-        $this->importEndDate = Carbon::now()->endOfMonth()->format('Y-m-d');
     }
 
     public function updatedFilterTeam() { $this->resetPage(); }
@@ -244,294 +201,29 @@ class Index extends Component
         $this->filterTeam = [];
     }
 
+    #[On('refresh-jks-data')]
+    public function handleRefreshData($message = null)
+    {
+        if ($message) {
+            session()->flash('message', $message);
+        }
+        $this->resetPage();
+    }
+
     /**
-     * Membuka modal untuk tambah data.
+     * Membuka modal untuk tambah data. (Memicu child component)
      */
     public function openCreateModal()
     {
-        $this->resetValidation();
-        $this->resetForm();
-        $this->isEditing = false;
-        $this->isFormModalOpen = true;
+        $this->dispatch('open-create-modal');
     }
 
     /**
-     * Membuka modal untuk edit grup customer.
+     * Membuka modal untuk edit grup customer. (Memicu child component)
      */
     public function openEditModal($tanggal, $kode_team, $kode_region)
     {
-        $this->resetValidation();
-        $this->resetForm();
-        
-        // Simpan param lama agar nanti bisa dihapus saat simpan
-        $this->oldGroupParams = [
-            'tanggal' => $tanggal,
-            'kode_team' => $kode_team,
-            'kode_region' => $kode_region
-        ];
-        
-        $customers = JksTeamElite::whereDate('tanggal', $tanggal)
-            ->where('kode_team', $kode_team)
-            ->where('kode_region', $kode_region)
-            ->get();
-            
-        if ($customers->count() > 0) {
-            $first = $customers->first();
-            $this->tanggal = $first->tanggal ? $first->tanggal->format('Y-m-d') : null;
-            $this->selectedTeamCode = $first->kode_team;
-            $this->selectedTeamName = $first->nama_team;
-            
-            foreach ($customers as $cust) {
-                $this->selectedCustomers[] = [
-                    'kode_region' => $cust->kode_region,
-                    'nama_region' => $cust->nama_region,
-                    'kode_area' => $cust->kode_area,
-                    'nama_area' => $cust->nama_area,
-                    'distributor_code' => $cust->distributor_code,
-                    'distributor_name' => $cust->distributor_name,
-                    'custno' => $cust->custno,
-                    'custname' => $cust->custname,
-                    'addres' => $cust->addres,
-                ];
-            }
-        }
-        
-        $this->isEditing = true;
-        $this->isFormModalOpen = true;
-    }
-
-    /**
-     * Set Nama Team saat dropdown berubah
-     */
-    public function updatedSelectedTeamCode($value)
-    {
-        $team = collect($this->teams)->firstWhere('kode_team', $value);
-        if ($team) {
-            $this->selectedTeamName = $team->nama_team;
-        } else {
-            $this->selectedTeamName = '';
-        }
-    }
-
-    /**
-     * Pencarian Distributor (Real-time)
-     */
-    public function updatedSearchDistributor()
-    {
-        if (strlen($this->searchDistributor) >= 2) {
-            $query = DB::table('master_distributors')
-                ->where('is_active', true)
-                ->where(function($q) {
-                    $q->where('distributor_code', 'ilike', '%' . $this->searchDistributor . '%')
-                      ->orWhere('distributor_name', 'ilike', '%' . $this->searchDistributor . '%');
-                });
-            
-            $this->applyHierarchyAccess($query, 'distributor_code');
-
-            $this->distributorOptions = $query->select('distributor_code', 'distributor_name')
-                ->limit(20)
-                ->get()
-                ->toArray();
-        } else {
-            $this->distributorOptions = [];
-        }
-    }
-
-    /**
-     * Pilih Distributor
-     */
-    public function selectDistributor($code, $name)
-    {
-        $this->selectedDistributorCode = $code;
-        $this->searchDistributor = $code . ' - ' . $name;
-        $this->distributorOptions = [];
-        
-        // Reset customer search
-        $this->searchCustomer = '';
-        $this->customerOptions = [];
-    }
-
-    /**
-     * Kosongkan distributor yang dipilih
-     */
-    public function clearDistributor()
-    {
-        $this->selectedDistributorCode = '';
-        $this->searchDistributor = '';
-        $this->distributorOptions = [];
-        $this->searchCustomer = '';
-        $this->customerOptions = [];
-    }
-
-    /**
-     * Pencarian Customer (Real-time) berdasarkan distributor yg dipilih
-     */
-    public function updatedSearchCustomer()
-    {
-        if (strlen($this->searchCustomer) >= 3) {
-            $query = DB::table('list_toko_pareto_team_elite as l')
-                ->leftJoin('master_distributors as md', 'l.distributor_code', '=', 'md.distributor_code')
-                ->where('md.is_active', true);
-            
-            $this->applyHierarchyAccess($query, 'l.distributor_code');
-
-            // Jika ada distributor yang dipilih, batasi pencarian
-            if (!empty($this->selectedDistributorCode)) {
-                $query->where('md.distributor_code', $this->selectedDistributorCode);
-            }
-
-            $query->where(function($q) {
-                $q->where('l.customer_code_prc', 'ilike', '%' . $this->searchCustomer . '%')
-                  ->orWhere('l.customer_name', 'ilike', '%' . $this->searchCustomer . '%')
-                  ->orWhere('l.customer_address', 'ilike', '%' . $this->searchCustomer . '%');
-            });
-
-            $this->customerOptions = $query->select(
-                    'md.region_code as kode_region',
-                    'md.region_name as nama_region',
-                    'md.area_code as kode_area',
-                    'md.area_name as nama_area',
-                    'l.distributor_code',
-                    'md.distributor_name',
-                    'l.customer_code_prc as custno',
-                    'l.customer_name as custname',
-                    'l.customer_address as addres'
-                )
-                ->limit(20)
-                ->get()
-                ->toArray();
-        } else {
-            $this->customerOptions = [];
-        }
-    }
-
-    /**
-     * Menambahkan Customer ke "Cart" (Daftar Customer Terpilih)
-     */
-    public function addCustomerToCart($custno)
-    {
-        $customer = collect($this->customerOptions)->firstWhere('custno', $custno);
-        
-        if ($customer) {
-            // Cek apakah sudah ada di cart
-            $exists = collect($this->selectedCustomers)->contains('custno', $custno);
-            
-            if (!$exists) {
-                $this->selectedCustomers[] = (array) $customer;
-            }
-        }
-        
-        // Reset input customer search
-        $this->searchCustomer = '';
-        $this->customerOptions = [];
-    }
-
-    /**
-     * Menghapus Customer dari "Cart"
-     */
-    public function removeCustomerFromCart($custno)
-    {
-        $this->selectedCustomers = collect($this->selectedCustomers)
-            ->filter(function ($item) use ($custno) {
-                return $item['custno'] !== $custno;
-            })
-            ->values()
-            ->toArray();
-    }
-
-    /**
-     * Reset form fields.
-     */
-    private function resetForm()
-    {
-        $this->tanggal          = null;
-        $this->selectedTeamCode = '';
-        $this->selectedTeamName = '';
-        $this->formError        = null;
-        
-        $this->searchDistributor = '';
-        $this->distributorOptions = [];
-        $this->selectedDistributorCode = '';
-        
-        $this->searchCustomer = '';
-        $this->customerOptions = [];
-        
-        $this->selectedCustomers = [];
-        $this->oldGroupParams = [];
-        $this->dataIdToDelete = [];
-    }
-
-    /**
-     * Menyimpan data.
-     */
-    public function save()
-    {
-        try {
-            $this->authorizeAction('can_edit');
-
-            $this->validate([
-                'tanggal' => 'required|date',
-                'selectedTeamCode' => 'required|string',
-                'selectedTeamName' => 'required|string',
-                'selectedCustomers' => 'required|array|min:1',
-            ], [
-                'tanggal.required' => 'Tanggal harus diisi.',
-                'selectedTeamCode.required' => 'Team harus dipilih.',
-                'selectedCustomers.required' => 'Minimal pilih 1 customer untuk disimpan.',
-            ]);
-
-        if ($this->isEditing && !empty($this->oldGroupParams)) {
-            // Hapus data grup yang lama
-            JksTeamElite::whereDate('tanggal', $this->oldGroupParams['tanggal'])
-                ->where('kode_team', $this->oldGroupParams['kode_team'])
-                ->where('kode_region', $this->oldGroupParams['kode_region'])
-                ->delete();
-        }
-
-        // Tambah Multiple Customer sekaligus
-        $inserts = [];
-        foreach ($this->selectedCustomers as $cust) {
-            $inserts[] = [
-                'tanggal'          => $this->tanggal,
-                'kode_team'        => $this->selectedTeamCode,
-                'nama_team'        => $this->selectedTeamName,
-                'kode_region'      => $cust['kode_region'],
-                'nama_region'      => $cust['nama_region'],
-                'kode_area'        => $cust['kode_area'],
-                'nama_area'        => $cust['nama_area'],
-                'distributor_code' => $cust['distributor_code'],
-                'distributor_name' => $cust['distributor_name'],
-                'custno'           => $cust['custno'],
-                'custname'         => $cust['custname'],
-                'addres'           => $cust['addres'],
-                'created_at'       => Carbon::now(),
-                'updated_at'       => Carbon::now(),
-            ];
-        }
-        
-        JksTeamElite::insert($inserts);
-        
-        if ($this->isEditing) {
-            \App\Helpers\ActivityLogger::log('Update JKS Team Elite', "Memperbarui grup customer JKS untuk team: {$this->selectedTeamName} ({$this->tanggal})");
-            session()->flash('message', 'Grup customer berhasil diperbarui.');
-        } else {
-            \App\Helpers\ActivityLogger::log('Create JKS Team Elite', "Membuat grup customer JKS baru untuk team: {$this->selectedTeamName} ({$this->tanggal}) sejumlah " . count($inserts) . " data");
-            session()->flash('message', count($inserts) . ' Data customer berhasil disimpan.');
-        }
-
-            $this->isFormModalOpen = false;
-            $this->resetForm();
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            throw $e;
-        } catch (\Illuminate\Database\QueryException $e) {
-            if ($e->getCode() == '23505') {
-                $this->formError = 'Gagal menyimpan. Jadwal JKS untuk toko tersebut sudah dibuat pada tanggal yang sama. Silakan cek kembali.';
-                return;
-            }
-            return $this->downloadExceptionLog($e, 'Menyimpan Data Grup JKS');
-        } catch (\Exception $e) {
-            return $this->downloadExceptionLog($e, 'Menyimpan Data Grup JKS');
-        }
+        $this->dispatch('open-edit-modal', tanggal: $tanggal, kode_team: $kode_team, kode_region: $kode_region);
     }
 
     /**
@@ -644,115 +336,11 @@ class Index extends Component
     }
 
     /**
-     * Download Template Import Excel
-     */
-    public function downloadTemplate()
-    {
-        return Excel::download(new JksTeamEliteTemplateExport, 'template_import_jks_team_elite_' . date('Ymd_His') . '.xlsx');
-    }
-
-    /**
-     * Buka modal import
+     * Buka modal import (Memicu child component)
      */
     public function openImportModal()
     {
-        $this->resetValidation();
-        $this->excel_file = null;
-        $this->importErrors = [];
-        $this->importStep = 1;
-        $this->isImportModalOpen = true;
-    }
-
-    /**
-     * Preview Import Excel (Step 1)
-     */
-    public function previewImport()
-    {
-        $this->authorizeAction('can_import');
-
-        $this->validate([
-            'excel_file' => 'required|mimes:xls,xlsx,csv|max:10240', // Maks 10MB
-            'importStartDate' => 'required|date',
-            'importEndDate' => 'required|date|after_or_equal:importStartDate',
-            'importMethod' => 'required|in:full_sync,partial_update',
-        ]);
-
-        try {
-            $import = new JksTeamEliteImport();
-            Excel::import($import, $this->excel_file->getRealPath());
-
-            if (count($import->errors) > 0) {
-                $this->importErrors = $import->errors;
-                session()->flash('error', 'Terdapat ' . count($import->errors) . ' baris data yang bermasalah. Silakan download Log Error untuk melihat detailnya.');
-                // Jangan reset excel_file atau tutup modal, agar user bisa download error log
-            } else {
-                $this->importErrors = [];
-                $this->previewTotalRows = $import->successCount;
-                $this->previewTotalTeams = count($import->distinctTeams);
-                
-                $this->previewExistingRows = JksTeamElite::whereBetween('tanggal', [$this->importStartDate, $this->importEndDate])
-                    ->whereIn('kode_team', $import->distinctTeams)
-                    ->count();
-
-                $this->importStep = 2;
-            }
-        } catch (\Exception $e) {
-            session()->flash('error', 'Gagal memproses file: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Execute Import (Step 2)
-     */
-    public function executeImport()
-    {
-        $this->authorizeAction('can_import');
-
-        $this->validate([
-            'excel_file' => 'required|mimes:xls,xlsx,csv|max:10240',
-        ]);
-
-        try {
-            $import = new JksTeamEliteImport();
-            Excel::import($import, $this->excel_file->getRealPath());
-
-            if (count($import->errors) > 0) {
-                $this->importErrors = $import->errors;
-                $this->importStep = 1;
-                session()->flash('error', 'Terdapat error saat membaca ulang file.');
-                return;
-            }
-
-            if ($this->importMethod === 'full_sync') {
-                JksTeamElite::whereBetween('tanggal', [$this->importStartDate, $this->importEndDate])
-                    ->whereIn('kode_team', $import->distinctTeams)
-                    ->delete();
-                
-                foreach (array_chunk($import->validInserts, 500) as $chunk) {
-                    JksTeamElite::insert($chunk);
-                }
-            } else {
-                foreach (array_chunk($import->validInserts, 500) as $chunk) {
-                    JksTeamElite::upsert(
-                        $chunk, 
-                        ['tanggal', 'kode_team', 'distributor_code', 'custno'], 
-                        ['nama_team', 'kode_region', 'nama_region', 'kode_area', 'nama_area', 'distributor_name', 'custname', 'addres', 'updated_at']
-                    );
-                }
-            }
-
-            \App\Helpers\ActivityLogger::log('Import JKS Team Elite', "Mengimpor " . $import->successCount . " data JKS. Metode: {$this->importMethod}");
-
-            session()->flash('message', $import->successCount . ' Data berhasil diimport (Metode: ' . strtoupper(str_replace('_', ' ', $this->importMethod)) . ').');
-            $this->isImportModalOpen = false;
-            $this->excel_file = null;
-            $this->importStep = 1;
-            $this->importErrors = [];
-            $this->resetPage();
-
-        } catch (\Exception $e) {
-            session()->flash('error', 'Gagal mengeksekusi import: ' . $e->getMessage());
-        }
+        $this->dispatch('open-import-modal');
     }
 
     public function showStoreDetails($tanggal, $kodeTeam, $pilar = null)
@@ -1087,29 +675,6 @@ class Index extends Component
                 $this->showMap($this->mapTanggal, $this->mapKodeTeam, false);
             }
         }
-    }
-
-    /**
-     * Download Error Log (TXT)
-     */
-    public function downloadErrorLog()
-    {
-        $errorText = "LAPORAN ERROR IMPORT JKS TEAM ELITE\n";
-        $errorText .= "Tanggal Cetak: " . now()->format('Y-m-d H:i:s') . "\n";
-        $errorText .= str_repeat("=", 80) . "\n\n";
-
-        foreach ($this->importErrors as $err) {
-            $errorText .= "- " . $err . "\n";
-        }
-
-        $errorText .= "\n" . str_repeat("=", 80) . "\n";
-        $errorText .= "Silakan perbaiki data pada Excel Anda lalu lakukan import ulang.\n";
-
-        $fileName = 'Error_Import_JKS_Team_Elite_' . now()->format('Ymd_His') . '.txt';
-
-        return response()->streamDownload(function () use ($errorText) {
-            echo $errorText;
-        }, $fileName);
     }
 
     /**

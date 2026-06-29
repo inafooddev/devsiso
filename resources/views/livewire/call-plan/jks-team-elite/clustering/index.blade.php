@@ -14,27 +14,67 @@
 
     {{-- Header / Filter Bar --}}
     @if (session()->has('message'))
-        <div class="alert alert-success shadow-sm mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <span>{{ session('message') }}</span>
+        <div x-data="{ show: true }" x-show="show" class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success mb-4 flex justify-between items-start">
+            <div class="flex items-start gap-3">
+                <x-heroicon-s-check-circle class="w-6 h-6 shrink-0 mt-0.5" />
+                <div>
+                    <h3 class="font-bold text-xs uppercase tracking-wider">Sukses</h3>
+                    <div class="text-sm">{{ session('message') }}</div>
+                </div>
+            </div>
+            <button type="button" @click="show = false" class="btn btn-ghost btn-sm btn-circle shrink-0 hover:bg-success/20">
+                <x-heroicon-s-x-mark class="w-5 h-5" />
+            </button>
         </div>
     @endif
 
     @if (session()->has('error'))
-        <div class="alert alert-error shadow-sm mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <span>{{ session('error') }}</span>
+        <div x-data="{ show: true }" x-show="show" class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error mb-4 flex justify-between items-start">
+            <div class="flex items-start gap-3">
+                <x-heroicon-s-x-circle class="w-6 h-6 shrink-0 mt-0.5" />
+                <div>
+                    <h3 class="font-bold text-xs uppercase tracking-wider">Error</h3>
+                    <div class="text-sm">{{ session('error') }}</div>
+                </div>
+            </div>
+            <button type="button" @click="show = false" class="btn btn-ghost btn-sm btn-circle shrink-0 hover:bg-error/20">
+                <x-heroicon-s-x-mark class="w-5 h-5" />
+            </button>
         </div>
     @endif
 
     <div class="bg-base-100 rounded-xl shadow-sm border border-base-200 p-4 shrink-0 flex flex-col gap-4">
-        <div>
-            <h2 class="text-lg font-bold">Pembuatan Cluster Toko</h2>
-            <p class="text-xs text-base-content/60">Buat grup rute efisien berdasarkan titik tengah (Center Store)</p>
+        <div class="flex justify-between items-start">
+            <div>
+                <h2 class="text-lg font-bold">Pembuatan Cluster Toko</h2>
+                <p class="text-xs text-base-content/60">Buat grup rute efisien berdasarkan titik tengah (Center Store)</p>
+            </div>
+            <button onclick="document.getElementById('modal_panduan').showModal()" class="btn btn-sm btn-ghost text-info hover:bg-info/10">
+                <x-heroicon-o-information-circle class="w-5 h-5" />
+                <span class="hidden sm:inline">Panduan & Info</span>
+            </button>
         </div>
         
         <div class="flex flex-col sm:flex-row items-end gap-3 w-full">
-            <div class="w-full sm:w-1/2 relative">
+            <div class="w-full sm:w-[35%] relative">
+                <label class="label py-1"><span class="label-text text-xs">Filter Distributor (Opsional)</span></label>
+                <div class="relative">
+                    <input wire:model.live.debounce.300ms="searchDistributor" type="text" class="input input-sm input-bordered w-full rounded-xl bg-base-100 pr-8" placeholder="Ketik Kode/Nama Distributor...">
+                    @if(!empty($selectedDistributorCode))
+                        <button wire:click="clearDistributor" class="absolute right-1 top-1 btn btn-xs btn-circle btn-ghost text-base-content/50 hover:bg-base-200">✕</button>
+                    @endif
+                </div>
+                
+                @if(count($distributorOptions) > 0)
+                <ul class="menu bg-base-100 border border-base-200 rounded-box mt-1 max-h-60 overflow-y-auto absolute w-full z-50 shadow-lg top-full left-0">
+                    @foreach($distributorOptions as $res)
+                        <li><a wire:click="selectDistributor('{{ $res['distributor_code'] }}', '{{ addslashes($res['distributor_name']) }}')">{{ $res['distributor_code'] }} - {{ $res['distributor_name'] }}</a></li>
+                    @endforeach
+                </ul>
+                @endif
+            </div>
+
+            <div class="w-full sm:w-[35%] relative">
                 <label class="label py-1"><span class="label-text text-xs">Cari Center Store (Titik Pusat)</span></label>
                 <input wire:model.live.debounce.300ms="searchCenterText" type="text" class="input input-sm input-bordered w-full rounded-xl bg-base-100" placeholder="Ketik Kode/Nama Toko...">
                 
@@ -53,8 +93,9 @@
             </div>
 
             <div class="w-full sm:w-auto">
-                <button wire:click="generateCluster" class="btn btn-sm btn-primary rounded-xl w-full" @if(!$centerStore) disabled @endif>
-                    Generate Route
+                <button wire:click="generateCluster" wire:loading.attr="disabled" wire:target="generateCluster" class="btn btn-sm btn-primary rounded-xl w-full" @if(!$centerStore) disabled @endif>
+                    <span wire:loading.remove wire:target="generateCluster">Generate Route</span>
+                    <span wire:loading wire:target="generateCluster" class="loading loading-spinner loading-xs"></span>
                 </button>
             </div>
         </div>
@@ -171,10 +212,50 @@
                             <th class="w-10">Act</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody x-data="{
+                        draggingIndex: null,
+                        dragstart(event, index) {
+                            this.draggingIndex = index;
+                            event.dataTransfer.effectAllowed = 'move';
+                            event.target.classList.add('opacity-50');
+                        },
+                        dragenter(event) {
+                            let tr = event.target.closest('tr');
+                            if(tr) tr.classList.add('bg-base-300');
+                        },
+                        dragleave(event) {
+                            let tr = event.target.closest('tr');
+                            if(tr) tr.classList.remove('bg-base-300');
+                        },
+                        drop(event, dropIndex) {
+                            let tr = event.target.closest('tr');
+                            if(tr) tr.classList.remove('bg-base-300');
+                            
+                            if (this.draggingIndex !== null && this.draggingIndex !== dropIndex) {
+                                @this.call('reorderStore', this.draggingIndex, dropIndex);
+                            }
+                            this.draggingIndex = null;
+                            document.querySelectorAll('.route-row').forEach(el => el.classList.remove('opacity-50', 'bg-base-300'));
+                        },
+                        dragend(event) {
+                            this.draggingIndex = null;
+                            document.querySelectorAll('.route-row').forEach(el => el.classList.remove('opacity-50', 'bg-base-300'));
+                        }
+                    }">
                         @forelse($clusterStores as $index => $store)
-                            <tr>
-                                <td class="font-bold">{{ $index + 1 }}</td>
+                            <tr wire:key="cluster-store-{{ $index }}-{{ $store['id'] ?? $index }}"
+                                class="route-row cursor-grab active:cursor-grabbing hover:bg-base-200 transition-colors duration-150"
+                                draggable="true"
+                                @dragstart="dragstart($event, {{ $index }})"
+                                @dragover.prevent=""
+                                @dragenter.prevent="dragenter($event)"
+                                @dragleave.prevent="dragleave($event)"
+                                @drop.prevent="drop($event, {{ $index }})"
+                                @dragend="dragend($event)">
+                                <td class="font-bold flex items-center gap-1">
+                                    <x-heroicon-o-bars-3 class="w-4 h-4 text-base-content/30" />
+                                    {{ $index + 1 }}
+                                </td>
                                 <td>
                                     <div class="font-semibold text-primary truncate max-w-[120px]" title="{{ $store['customer_name'] }}">
                                         {{ $store['customer_name'] }}
@@ -188,9 +269,19 @@
                                     <div class="font-bold">{{ $store['distance_to_next'] ?? 0 }}</div>
                                 </td>
                                 <td>
-                                    <button wire:click="removeStore({{ $index }})" class="btn btn-xs btn-ghost btn-circle text-error hover:bg-error/20">
-                                        <x-heroicon-o-trash class="w-4 h-4" />
-                                    </button>
+                                    <div class="flex gap-1">
+                                        <div class="flex flex-col gap-0.5">
+                                            <button wire:click="moveStoreUp({{ $index }})" class="btn btn-xs btn-ghost btn-circle {{ $index == 0 ? 'opacity-30 cursor-not-allowed' : '' }}" {{ $index == 0 ? 'disabled' : '' }} title="Geser ke Atas (Lebih Awal)">
+                                                <x-heroicon-o-arrow-up class="w-3 h-3" />
+                                            </button>
+                                            <button wire:click="moveStoreDown({{ $index }})" class="btn btn-xs btn-ghost btn-circle {{ $index == count($clusterStores) - 1 ? 'opacity-30 cursor-not-allowed' : '' }}" {{ $index == count($clusterStores) - 1 ? 'disabled' : '' }} title="Geser ke Bawah (Lebih Akhir)">
+                                                <x-heroicon-o-arrow-down class="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                        <button wire:click="removeStore({{ $index }})" class="btn btn-xs btn-ghost btn-circle text-error hover:bg-error/20" title="Hapus dari Rute">
+                                            <x-heroicon-o-trash class="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -206,14 +297,56 @@
 
     {{-- Save Modal --}}
     <div class="modal {{ $isSaveModalOpen ? 'modal-open' : '' }} z-[999]">
-        <div class="modal-box rounded-2xl relative">
+        <div class="modal-backdrop bg-base-300/80 backdrop-blur-sm fixed inset-0" wire:click="closeSaveModal"></div>
+        <div class="modal-box rounded-2xl relative z-10 shadow-2xl">
             <button wire:click="closeSaveModal" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-            <h3 class="font-bold text-lg mb-4">Simpan Cluster</h3>
+            <h3 class="font-bold text-lg mb-4">Simpan Rute</h3>
             
+            <div class="form-control w-full mb-4">
+                <label class="label"><span class="label-text">Tipe Penyimpanan</span></label>
+                <div class="flex gap-4">
+                    <label class="cursor-pointer flex items-center gap-2">
+                        <input type="radio" wire:model.live="saveType" value="clustering" class="radio radio-primary radio-sm" />
+                        <span class="label-text">Master Clustering</span>
+                    </label>
+                    <label class="cursor-pointer flex items-center gap-2">
+                        <input type="radio" wire:model.live="saveType" value="jks" class="radio radio-primary radio-sm" />
+                        <span class="label-text">Jadwalkan ke JKS</span>
+                    </label>
+                </div>
+            </div>
+
+            @if($saveType === 'clustering')
             <div class="form-control w-full mb-3">
                 <label class="label"><span class="label-text">Nama Cluster</span></label>
                 <input wire:model="clusterName" type="text" class="input input-bordered w-full" placeholder="Contoh: Cluster Pare 1" />
             </div>
+            @else
+            <div class="form-control w-full mb-3">
+                <label class="label"><span class="label-text">Tanggal Kunjungan JKS</span></label>
+                <input wire:model="jksDate" type="date" class="input input-bordered w-full" />
+            </div>
+            
+            <div class="form-control w-full mb-3">
+                <label class="label"><span class="label-text">Metode Sinkronisasi</span></label>
+                <div class="flex flex-col gap-2 bg-base-200/50 p-3 rounded-lg border border-base-300">
+                    <label class="cursor-pointer flex items-start gap-3">
+                        <input type="radio" wire:model="jksSyncMethod" value="skip" class="radio radio-primary radio-sm mt-1" />
+                        <div>
+                            <span class="label-text font-bold">Skip if Exists (Aman)</span>
+                            <div class="text-[0.65rem] text-base-content/60 leading-tight mt-0.5">Abaikan toko jika sudah terdaftar di jadwal tim ini pada tanggal tersebut.</div>
+                        </div>
+                    </label>
+                    <label class="cursor-pointer flex items-start gap-3 mt-1">
+                        <input type="radio" wire:model="jksSyncMethod" value="sync" class="radio radio-error radio-sm mt-1" />
+                        <div>
+                            <span class="label-text font-bold text-error">Full Sync (Hapus & Timpa Semua)</span>
+                            <div class="text-[0.65rem] text-error/80 leading-tight mt-0.5">Semua rute jadwal tim ini pada tanggal tersebut akan <b>dihapus bersih</b> dan diganti penuh dengan daftar rute di atas.</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            @endif
 
             <div class="form-control w-full mb-4">
                 <label class="label"><span class="label-text">Pilih Team Sales</span></label>
@@ -229,12 +362,66 @@
 
             <div class="modal-action mt-6">
                 <button wire:click="closeSaveModal" class="btn btn-ghost rounded-xl">Batal</button>
-                <button wire:click="confirmSaveCluster" class="btn btn-success rounded-xl text-white">Konfirmasi Simpan</button>
+                <button wire:click="confirmSaveCluster" wire:loading.attr="disabled" wire:target="confirmSaveCluster" class="btn btn-success rounded-xl text-white">
+                    <span wire:loading.remove wire:target="confirmSaveCluster">Konfirmasi Simpan</span>
+                    <span wire:loading wire:target="confirmSaveCluster" class="loading loading-spinner loading-xs"></span>
+                </button>
             </div>
         </div>
     </div>
+
+    {{-- Modal Panduan --}}
+    <dialog id="modal_panduan" class="modal z-[999]">
+        <div class="modal-box rounded-2xl relative w-11/12 max-w-2xl shadow-2xl">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            </form>
+            <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                <x-heroicon-o-information-circle class="w-6 h-6 text-info" />
+                Panduan & Metode Clustering
+            </h3>
+            
+            <div class="space-y-4 text-sm max-h-[60vh] overflow-y-auto pr-2">
+                <div class="bg-base-200/50 p-4 rounded-xl">
+                    <h4 class="font-bold mb-2">Panduan Penggunaan:</h4>
+                    <ol class="list-decimal list-inside space-y-2">
+                        <li><strong>Filter Distributor (Opsional):</strong> Pilih distributor jika Anda ingin membatasi pencarian toko hanya pada satu distributor tertentu.</li>
+                        <li><strong>Pilih Center Store:</strong> Cari dan pilih toko yang akan menjadi titik pusat <i>(center)</i> dari rute yang akan dibuat.</li>
+                        <li><strong>Tentukan Jumlah Toko:</strong> Masukkan estimasi berapa banyak toko yang ingin dikunjungi (maksimal 80 toko).</li>
+                        <li><strong>Generate Route:</strong> Klik tombol ini, sistem akan mencari titik-titik terdekat dan menyusun rute paling efisien.</li>
+                        <li><strong>Simpan:</strong> Klik tombol "Simpan Cluster" dan pilih apakah akan disimpan sebagai Master Clustering atau dijadwalkan langsung ke JKS.</li>
+                    </ol>
+                </div>
+
+                <div class="bg-base-200/50 p-4 rounded-xl">
+                    <h4 class="font-bold mb-2">Metode Kalkulasi Rute (Algoritma yang Digunakan):</h4>
+                    <p class="mb-2">Pembuatan rute dan penentuan titik pada halaman ini menggunakan pendekatan hibrida dalam tiga tahap:</p>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><strong>Tahap 1 - Pemfilteran Awal (Haversine Formula):</strong> <br/>
+                            <span class="ml-5 text-base-content/80 text-xs block mt-1">Sistem mencari toko-toko kandidat dari database dengan menghitung jarak lurus (jarak udara) menggunakan rumus matematika Haversine dari <i>Center Store</i>. Ini untuk menyaring ribuan toko menjadi radius wajar.</span>
+                        </li>
+                        <li><strong>Tahap 2 - Seleksi Akurat (OSRM Distance Matrix):</strong> <br/>
+                            <span class="ml-5 text-base-content/80 text-xs block mt-1">Kandidat dari Tahap 1 dikirim ke server pemetaan OSRM untuk mendapatkan jarak jalan raya nyata. Sistem lalu memilih jumlah toko sesuai yang Anda minta (misal: 10 toko) yang benar-benar memiliki <b>jarak tempuh jalan terdekat</b>, bukan sekadar jarak lurus.</span>
+                        </li>
+                        <li><strong>Tahap 3 - Pengurutan Rute (TSP & OSRM API):</strong> <br/>
+                            <span class="ml-5 text-base-content/80 text-xs block mt-1">Sistem memecahkan masalah rute antar titik (Traveling Salesperson Problem / TSP) dengan mempertimbangkan arah jalan dan larangan putar balik untuk mendapatkan urutan kunjungan optimal.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn btn-primary rounded-xl text-white">Mengerti</button>
+                </form>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop bg-base-300/80 backdrop-blur-sm">
+            <button>close</button>
+        </form>
+    </dialog>
 </div>
 
+@once
 @push('styles')
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
     <style>
@@ -264,6 +451,11 @@
 @push('scripts')
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script>
+        function escHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+        }
+
         document.addEventListener('livewire:init', () => {
             let map;
             let markers = [];
@@ -368,14 +560,14 @@
                         el.className = 'store-marker-label';
                         el.style.backgroundColor = markerColor;
                         if (zIndex === 2) el.style.zIndex = '999';
-                        el.innerHTML = index + 1;
+                        el.textContent = index + 1;
 
                         const popupContent = `
                             <div class="text-xs min-w-[150px]">
-                                <div class="font-bold text-sm mb-1 text-base-content">${index + 1}. ${store.customer_name}</div>
-                                <div class="text-xs text-base-content/60 mb-1">${store.customer_code_prc}</div>
+                                <div class="font-bold text-sm mb-1 text-base-content">${index + 1}. ${escHtml(store.customer_name)}</div>
+                                <div class="text-xs text-base-content/60 mb-1">${escHtml(store.customer_code_prc)}</div>
                                 <div class="text-xs font-semibold text-blue-600 border-t border-base-200 pt-1 mt-1">
-                                    Ke toko selanjutnya: ${store.distance_to_next || 0} Km
+                                    Ke toko selanjutnya: ${escHtml(String(store.distance_to_next || 0))} Km
                                 </div>
                             </div>
                         `;
@@ -460,3 +652,4 @@
         });
     </script>
 @endpush
+@endonce
