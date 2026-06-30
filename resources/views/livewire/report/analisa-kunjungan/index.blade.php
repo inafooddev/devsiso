@@ -77,7 +77,6 @@
                 </div>
                 <div id="map-points-data" data-points="{{ json_encode($this->mapPointsData) }}"></div>
                 <div class="flex items-center gap-2">
-                    <x-ui.button class="rounded-xl" variant="neutral" icon="arrow-path" size="sm" wire:click="resetFilter" spinner="resetFilter">Reset</x-ui.button>
                     @if(empty($selectedSupervisor))
                         <div class="tooltip tooltip-bottom" data-tip="Pilih Supervisor terlebih dahulu">
                             <x-ui.button class="rounded-xl" variant="primary" icon="magnifying-glass" size="sm" disabled>Terapkan</x-ui.button>
@@ -85,12 +84,23 @@
                     @else
                         <x-ui.button class="rounded-xl" variant="primary" icon="magnifying-glass" size="sm" wire:click="applyFilter" spinner="applyFilter">Terapkan</x-ui.button>
                     @endif
+                    <div class="tooltip tooltip-bottom" data-tip="Reset Filter">
+                        <x-ui.button class="rounded-xl" variant="neutral" icon="arrow-path" size="sm" wire:click="resetFilter" spinner="resetFilter"></x-ui.button>
+                    </div>
                     <button type="button" x-data @click="$dispatch('open-all-maps-modal', JSON.parse(document.getElementById('map-points-data').dataset.points))" class="btn btn-sm btn-info rounded-xl text-white" @if(empty($this->mapPointsData)) disabled @endif>
                         <x-heroicon-o-map class="w-4 h-4" /> Maps
                     </button>
                     @if($canExport)
-                        <div class="tooltip tooltip-left" data-tip="Export ke Excel">
-                            <x-ui.button variant="success" size="sm" class="rounded-xl text-white" wire:click="export" spinner="export" icon="arrow-down-tray">
+                        @php
+                            $isDetailExportDisabled = empty($appliedRegion) && empty($appliedArea) && empty($appliedSupervisor);
+                            $hasPendingDetailFilters = $selectedRegion !== $appliedRegion || 
+                                                       $selectedArea !== $appliedArea || 
+                                                       $selectedSupervisor !== $appliedSupervisor || 
+                                                       $startDate !== $appliedStartDate || 
+                                                       $endDate !== $appliedEndDate;
+                        @endphp
+                        <div class="tooltip tooltip-left" data-tip="{{ $isDetailExportDisabled || $hasPendingDetailFilters ? 'Klik Terapkan terlebih dahulu' : 'Export ke Excel' }}">
+                            <x-ui.button variant="success" size="sm" class="rounded-xl text-white" wire:click="export" spinner="export" icon="arrow-down-tray" :disabled="$isDetailExportDisabled || $hasPendingDetailFilters">
                                 Export
                             </x-ui.button>
                         </div>
@@ -115,11 +125,19 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <x-ui.button class="rounded-xl" variant="neutral" icon="arrow-path" size="sm" wire:click="resetFilter" spinner="resetFilter">Reset</x-ui.button>
                     <x-ui.button class="rounded-xl" variant="primary" icon="magnifying-glass" size="sm" wire:click="applyFilter" spinner="applyFilter">Terapkan</x-ui.button>
+                    <div class="tooltip tooltip-bottom" data-tip="Reset Filter">
+                        <x-ui.button class="rounded-xl" variant="neutral" icon="arrow-path" size="sm" wire:click="resetFilter" spinner="resetFilter"></x-ui.button>
+                    </div>
                     @if($canExport)
-                        <div class="tooltip tooltip-left" data-tip="Export Summary ke Excel">
-                            <x-ui.button variant="success" size="sm" class="rounded-xl text-white" wire:click="exportSummary" spinner="exportSummary" icon="arrow-down-tray">
+                        @php
+                            $isSummaryExportDisabled = empty($appliedSummaryRegion) && empty($appliedSummaryStartDate) && empty($appliedSummaryEndDate);
+                            $hasPendingSummaryFilters = $summaryRegion !== $appliedSummaryRegion || 
+                                                        $summaryStartDate !== $appliedSummaryStartDate || 
+                                                        $summaryEndDate !== $appliedSummaryEndDate;
+                        @endphp
+                        <div class="tooltip tooltip-left" data-tip="{{ $isSummaryExportDisabled || $hasPendingSummaryFilters ? 'Klik Terapkan terlebih dahulu' : 'Export Summary ke Excel' }}">
+                            <x-ui.button variant="success" size="sm" class="rounded-xl text-white" wire:click="exportSummary" spinner="exportSummary" icon="arrow-down-tray" :disabled="$isSummaryExportDisabled || $hasPendingSummaryFilters">
                                 Export
                             </x-ui.button>
                         </div>
@@ -823,4 +841,29 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     @endpush
+
+    @script
+    <script>
+        $wire.on('notify', (event) => {
+            // Handle differences between Livewire 2 (Array) and Livewire 3 (Object) payload
+            const data = Array.isArray(event) ? event[0] : event;
+            const msg = data?.msg || data?.message || (typeof data === 'string' ? data : JSON.stringify(data));
+            const type = data?.type || 'info';
+            
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: type === 'error' ? 'error' : (type === 'success' ? 'success' : 'info'),
+                    title: msg,
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                });
+            } else {
+                alert(msg);
+            }
+        });
+    </script>
+    @endscript
 </div>

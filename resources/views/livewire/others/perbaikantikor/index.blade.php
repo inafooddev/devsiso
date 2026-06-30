@@ -1,5 +1,6 @@
 <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full" 
-        x-data="{ showPhotoModal: false, photoUrl: '', showRejectModal: false, showMapModal: false, mapDist: 0, showReasonModal: false, reasonText: '', copyToast: { show: false, message: '' } }"
+        x-data="{ showPhotoModal: false, photoUrl: '', showRejectModal: false, showMapModal: false, mapDist: 0, showReasonModal: false, reasonText: '', copyToast: { show: false, message: '' }, showSummaryModal: false }"
+        x-on:open-summary-modal.window="showSummaryModal = true"
         x-on:open-map-modal.window="
         if (!window.L) {
             window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'error', message: 'Pustaka Peta (Leaflet) sedang memuat. Coba lagi.' } }));
@@ -149,6 +150,10 @@
                         </button>
                     @endif
                     <x-ui.action-button type="export" wire:click="export" />
+                    <button type="button" wire:click="loadSummary" class="btn btn-sm btn-info text-white shadow-sm" wire:loading.attr="disabled" wire:target="loadSummary">
+                        <span wire:loading wire:target="loadSummary" class="loading loading-spinner loading-xs mr-1"></span>
+                        <x-heroicon-s-chart-bar class="w-4 h-4" wire:loading.remove wire:target="loadSummary" /> Summary
+                    </button>
                 </div>
             </div>
         </div>
@@ -434,6 +439,83 @@
             </div>
             <div class="p-4 border-t border-base-300 bg-base-200/50 text-right">
                 <button type="button" @click="showReasonModal = false" class="btn btn-outline btn-sm">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    {{-- MODAL SUMMARY --}}
+    <div x-show="showSummaryModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
+        <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-[95vw] overflow-hidden flex flex-col max-h-[90vh]" @click.outside="showSummaryModal = false">
+            <div class="p-4 border-b border-base-300 flex items-center justify-between bg-base-200/50">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <x-heroicon-s-chart-bar class="w-5 h-5 text-info" /> Summary Perbaikan Tikor
+                </h3>
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <input wire:model.live.debounce.500ms="summarySearch" type="text" placeholder="Cari..." class="input input-sm input-bordered rounded-xl bg-base-100 border-base-300 pl-8 w-48" />
+                        <x-heroicon-o-magnifying-glass class="w-4 h-4 absolute left-2.5 top-2.5 text-base-content/50" />
+                    </div>
+                    <button type="button" @click="showSummaryModal = false" class="btn btn-sm btn-circle btn-ghost">
+                        <x-heroicon-o-x-mark class="w-5 h-5" />
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-0 overflow-auto flex-1 bg-base-100 w-full relative">
+                <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
+                    <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
+                        <tr>
+                            <th>No</th>
+                            <th>Region</th>
+                            <th>Area</th>
+                            <th>Distributor</th>
+                            <th>Kode Sales</th>
+                            <th>Nama Sales</th>
+                            <th class="text-center">Total Pengajuan</th>
+                            <th class="text-center">Pending</th>
+                            <th class="text-center">Rejected</th>
+                            <th class="text-center">Approved</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm relative">
+                        <!-- Loading Overlay -->
+                        <div wire:loading wire:target="summarySearch" class="absolute inset-0 z-10 bg-base-100/50 backdrop-blur-[1px] flex items-center justify-center">
+                            <span class="loading loading-spinner loading-md text-info"></span>
+                        </div>
+                        
+                        @forelse($summaryData as $index => $summary)
+                        <tr class="hover:bg-base-200/50 transition-colors">
+                            <td class="text-base-content/60">{{ $index + 1 }}</td>
+                            <td>{{ $summary->region_name ?? $summary->region_code ?? '-' }}</td>
+                            <td>{{ $summary->area_name ?? $summary->area_code ?? '-' }}</td>
+                            <td class="font-bold text-xs truncate max-w-[150px]" title="{{ $summary->distributor_name ?? '-' }}">{{ $summary->distributor_name ?? '-' }}</td>
+                            <td class="font-mono">{{ $summary->sales_code }}</td>
+                            <td class="font-bold">{{ $summary->sales_name ?? '-' }}</td>
+                            <td class="text-center font-bold text-base-content">{{ $summary->total_pengajuan }}</td>
+                            <td class="text-center font-bold text-warning">{{ $summary->pending }}</td>
+                            <td class="text-center font-bold text-error">{{ $summary->rejected }}</td>
+                            <td class="text-center font-bold text-success">{{ $summary->approved }}</td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="10" class="text-center py-8 text-base-content/50">Tidak ada data summary.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                    <tfoot class="text-sm font-bold bg-base-200/80 border-t-2 border-base-300">
+                        <tr>
+                            <td colspan="6" class="text-right uppercase tracking-wider">Total Keseluruhan</td>
+                            <td class="text-center text-base-content">{{ collect($summaryData)->sum('total_pengajuan') }}</td>
+                            <td class="text-center text-warning">{{ collect($summaryData)->sum('pending') }}</td>
+                            <td class="text-center text-error">{{ collect($summaryData)->sum('rejected') }}</td>
+                            <td class="text-center text-success">{{ collect($summaryData)->sum('approved') }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="p-4 border-t border-base-300 bg-base-200/50 flex justify-end gap-2">
+                <button type="button" @click="showSummaryModal = false" class="btn btn-outline">Tutup</button>
             </div>
         </div>
     </div>

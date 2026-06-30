@@ -112,8 +112,8 @@ class Index extends Component
             'customer_name' => 'required|string|max:100',
             'alamat' => 'required|string',
             'no_hp' => 'nullable|string|max:20',
-            'latitude' => 'nullable|string|max:50',
-            'longitude' => 'nullable|string|max:50',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'nama_pemilik_toko' => 'nullable|string|max:100',
             'nama_ktp' => 'nullable|string|max:100',
             'nik_ktp' => 'nullable|string|max:50',
@@ -378,6 +378,14 @@ class Index extends Component
     }
 
     /**
+     * Handler when branch_name is updated
+     */
+    public function updatedBranchName($value)
+    {
+        // empty handler to sync state
+    }
+
+    /**
      * Get standard Indonesian banks list
      */
     public function getBanksList()
@@ -487,6 +495,14 @@ class Index extends Component
         $this->isDetailModalOpen = true;
     }
 
+    public function closeFormModal()
+    {
+        $this->resetValidation();
+        $this->resetForm();
+        $this->isFormModalOpen = false;
+        $this->isEditing = false;
+    }
+
     private function resetForm()
     {
         $this->outletId = null;
@@ -592,15 +608,38 @@ class Index extends Component
             $outlet = RewardOutlet::findOrFail($this->outletId);
             $outlet->update($data);
             \App\Helpers\ActivityLogger::log('Update RWO', "Memperbarui data RWO: {$this->customer_code}");
-            session()->flash('message', 'Data RWO berhasil diperbarui.');
+            $this->dispatch('notify', type: 'success', message: 'Data RWO berhasil diperbarui.');
         } else {
             RewardOutlet::create($data);
             \App\Helpers\ActivityLogger::log('Create RWO', "Menambahkan data RWO baru: {$this->customer_code}");
-            session()->flash('message', 'Data RWO baru berhasil ditambahkan.');
+            $this->dispatch('notify', type: 'success', message: 'Data RWO baru berhasil ditambahkan.');
         }
 
         $this->isFormModalOpen = false;
         $this->resetForm();
+    }
+
+    public function removePhoto($field)
+    {
+        $validFields = ['foto_ktp', 'foto_toko', 'foto_toko2', 'foto_toko3'];
+        if (!in_array($field, $validFields)) return;
+
+        // Reset the livewire properties
+        $this->$field = null;
+        $existingField = 'existing_' . $field;
+        
+        // Delete from storage and database if editing
+        if ($this->isEditing && $this->$existingField) {
+            Storage::disk('public')->delete($this->$existingField);
+            
+            $outlet = RewardOutlet::findOrFail($this->outletId);
+            $outlet->update([$field => null]);
+            
+            \App\Helpers\ActivityLogger::log('Update RWO', "Menghapus foto {$field} dari data RWO: {$this->customer_code}");
+        }
+        
+        $this->$existingField = null;
+        $this->dispatch('notify', type: 'success', message: 'Foto berhasil dihapus.');
     }
 
     public function confirmDelete($id)
@@ -635,7 +674,7 @@ class Index extends Component
         $outletCode = $outlet->customer_code;
         $outlet->delete();
         \App\Helpers\ActivityLogger::log('Delete RWO', "Menghapus data RWO: {$outletCode}");
-        session()->flash('message', 'Data RWO berhasil dihapus.');
+        $this->dispatch('notify', type: 'success', message: 'Data RWO berhasil dihapus.');
         $this->isDeleteModalOpen = false;
     }
 
@@ -662,9 +701,9 @@ class Index extends Component
 
             \App\Helpers\ActivityLogger::log('Import RWO', "Mengimpor {$importer->importedCount} data RWO secara massal.");
 
-            session()->flash('message', "Berhasil mengimpor {$importer->importedCount} data RWO. (Lewat: {$importer->skippedCount} baris).");
+            $this->dispatch('notify', type: 'success', message: "Berhasil mengimpor {$importer->importedCount} data RWO. (Lewat: {$importer->skippedCount} baris).");
         } catch (\Exception $e) {
-            session()->flash('error', 'Gagal mengimpor file: ' . $e->getMessage());
+            $this->dispatch('notify', type: 'error', message: 'Gagal mengimpor file: ' . $e->getMessage());
         }
 
         $this->isImportModalOpen = false;

@@ -55,72 +55,48 @@
             </button>
         </div>
         
-        <div class="w-full sm:w-[50%] relative mb-2">
-            <label class="label py-1"><span class="label-text text-xs">Filter Distributor (Opsional - Berlaku untuk ke-3 Titik)</span></label>
-            <div class="relative">
-                <input wire:model.live.debounce.300ms="searchDistributor" type="text" class="input input-sm input-bordered w-full rounded-xl bg-base-100 pr-8" placeholder="Ketik Kode/Nama Distributor...">
-                @if(!empty($selectedDistributorCode))
-                    <button wire:click="clearDistributor" class="absolute right-1 top-1 btn btn-xs btn-circle btn-ghost text-base-content/50 hover:bg-base-200">✕</button>
-                @endif
-            </div>
-            
-            @if(count($distributorOptions) > 0)
-            <ul class="menu bg-base-100 border border-base-200 rounded-box mt-1 max-h-60 overflow-y-auto absolute w-full z-50 shadow-lg top-full left-0">
-                @foreach($distributorOptions as $res)
-                    <li><a wire:click="selectDistributor('{{ $res['distributor_code'] }}', '{{ addslashes($res['distributor_name']) }}')">{{ $res['distributor_code'] }} - {{ $res['distributor_name'] }}</a></li>
-                @endforeach
-            </ul>
-            @endif
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 w-full items-start">
-            <div class="w-full relative">
-                <label class="label py-1"><span class="label-text text-xs font-bold text-primary">1. Titik Berangkat</span></label>
-                <input wire:model.live.debounce.300ms="searchStartText" type="text" class="input input-sm input-bordered w-full rounded-xl bg-base-100" placeholder="Ketik Kode/Nama Toko...">
-                @if(count($searchStartResults) > 0)
-                <ul class="menu bg-base-100 border border-base-200 rounded-box mt-1 max-h-60 overflow-y-auto absolute w-full z-50 shadow-lg top-full left-0">
-                    @foreach($searchStartResults as $res)
-                        <li><a wire:click="selectStartStore({{ $res->id }})">{{ $res->customer_code_prc }} - {{ $res->customer_name }}</a></li>
-                    @endforeach
-                </ul>
-                @endif
-            </div>
-
-            <div class="w-full relative">
-                <label class="label py-1"><span class="label-text text-xs font-bold text-accent">2. Toko Pertama (Anchor)</span></label>
-                <input wire:model.live.debounce.300ms="searchAnchorText" type="text" class="input input-sm input-bordered w-full rounded-xl bg-base-100" placeholder="Ketik Kode/Nama Toko...">
-                @if(count($searchAnchorResults) > 0)
-                <ul class="menu bg-base-100 border border-base-200 rounded-box mt-1 max-h-60 overflow-y-auto absolute w-full z-50 shadow-lg top-full left-0">
-                    @foreach($searchAnchorResults as $res)
-                        <li><a wire:click="selectAnchorStore({{ $res->id }})">{{ $res->customer_code_prc }} - {{ $res->customer_name }}</a></li>
-                    @endforeach
-                </ul>
-                @endif
-            </div>
-
-            <div class="w-full relative">
-                <label class="label py-1"><span class="label-text text-xs font-bold text-error">3. Titik Pulang (Akhir)</span></label>
-                <input wire:model.live.debounce.300ms="searchEndText" type="text" class="input input-sm input-bordered w-full rounded-xl bg-base-100" placeholder="Ketik Kode/Nama Toko...">
-                @if(count($searchEndResults) > 0)
-                <ul class="menu bg-base-100 border border-base-200 rounded-box mt-1 max-h-60 overflow-y-auto absolute w-full z-50 shadow-lg top-full left-0">
-                    @foreach($searchEndResults as $res)
-                        <li><a wire:click="selectEndStore({{ $res->id }})">{{ $res->customer_code_prc }} - {{ $res->customer_name }}</a></li>
-                    @endforeach
-                </ul>
-                @endif
-            </div>
-
-            <div class="w-full relative flex gap-2 h-full">
-                <div class="w-1/2">
-                    <label class="label py-1"><span class="label-text text-xs">Jml Toko</span></label>
-                    <input wire:model="candidateCount" type="number" class="input input-sm input-bordered w-full rounded-xl bg-base-100" min="3" max="80">
+        <div class="flex flex-col sm:flex-row items-end gap-3 w-full">
+            <div class="w-full sm:w-[35%] relative">
+                <label class="label py-1"><span class="label-text text-xs">Filter Distributor (Opsional)</span></label>
+                <div class="relative">
+                    <input wire:model.live.debounce.300ms="searchDistributor" type="text" class="input input-sm input-bordered w-full rounded-xl bg-base-100 pr-8" placeholder="Ketik Kode/Nama Distributor...">
+                    @if(!empty($selectedDistributorCode))
+                        <button wire:click="clearDistributor" class="absolute right-1 top-1 btn btn-xs btn-circle btn-ghost text-base-content/50 hover:bg-base-200">✕</button>
+                    @endif
                 </div>
-                <div class="w-1/2 flex items-end">
-                    <button wire:click="generateCluster" wire:loading.attr="disabled" wire:target="generateCluster" class="btn btn-sm btn-primary rounded-xl w-full h-[32px]" @if(!$startStore || !$anchorStore || !$endStore) disabled @endif>
-                        <span wire:loading.remove wire:target="generateCluster">Generate</span>
-                        <span wire:loading wire:target="generateCluster" class="loading loading-spinner loading-xs"></span>
-                    </button>
-                </div>
+                
+                @if(count($distributorOptions) > 0)
+                <ul class="menu bg-base-100 border border-base-200 rounded-box mt-1 max-h-60 overflow-y-auto absolute w-full z-50 shadow-lg top-full left-0">
+                    @foreach($distributorOptions as $res)
+                        <li><a wire:click="selectDistributor('{{ $res['distributor_code'] }}', '{{ addslashes($res['distributor_name']) }}')">{{ $res['distributor_code'] }} - {{ $res['distributor_name'] }}</a></li>
+                    @endforeach
+                </ul>
+                @endif
+            </div>
+
+            <div class="w-full sm:w-[35%] relative">
+                <label class="label py-1"><span class="label-text text-xs">Cari Center Store (Titik Pusat)</span></label>
+                <input wire:model.live.debounce.300ms="searchCenterText" type="text" class="input input-sm input-bordered w-full rounded-xl bg-base-100" placeholder="Ketik Kode/Nama Toko...">
+                
+                @if(count($searchCenterResults) > 0)
+                <ul class="menu bg-base-100 border border-base-200 rounded-box mt-1 max-h-60 overflow-y-auto absolute w-full z-50 shadow-lg top-full left-0">
+                    @foreach($searchCenterResults as $res)
+                        <li><a wire:click="selectCenterStore({{ $res->id }})">{{ $res->customer_code_prc }} - {{ $res->customer_name }}</a></li>
+                    @endforeach
+                </ul>
+                @endif
+            </div>
+
+            <div class="w-full sm:w-24">
+                <label class="label py-1"><span class="label-text text-xs">Jumlah Toko</span></label>
+                <input wire:model="candidateCount" type="number" class="input input-sm input-bordered w-full rounded-xl bg-base-100" min="2" max="80">
+            </div>
+
+            <div class="w-full sm:w-auto">
+                <button wire:click="generateCluster" wire:loading.attr="disabled" wire:target="generateCluster" class="btn btn-sm btn-primary rounded-xl w-full" @if(!$centerStore) disabled @endif>
+                    <span wire:loading.remove wire:target="generateCluster">Generate Route</span>
+                    <span wire:loading wire:target="generateCluster" class="loading loading-spinner loading-xs"></span>
+                </button>
             </div>
         </div>
     </div>
@@ -409,26 +385,26 @@
                 <div class="bg-base-200/50 p-4 rounded-xl">
                     <h4 class="font-bold mb-2">Panduan Penggunaan:</h4>
                     <ol class="list-decimal list-inside space-y-2">
-                        <li><strong>Filter Distributor:</strong> Anda bisa membatasi pencarian area hanya pada distributor tertentu.</li>
-                        <li><strong>Tentukan 3 Titik:</strong> Pilih Titik Berangkat (Start), Toko Pertama yang akan dikunjungi (Anchor), dan Titik Pulang (End).</li>
-                        <li><strong>Tentukan Jumlah Toko:</strong> Masukkan estimasi berapa banyak toko total yang ingin dikunjungi (termasuk start/end).</li>
-                        <li><strong>Generate Route:</strong> Sistem akan mencari titik-titik terbaik di area antara Toko Pertama hingga arah Pulang.</li>
-                        <li><strong>Simpan:</strong> Klik tombol "Simpan Cluster" jika rute sudah sesuai.</li>
+                        <li><strong>Filter Distributor (Opsional):</strong> Pilih distributor jika Anda ingin membatasi pencarian toko hanya pada satu distributor tertentu.</li>
+                        <li><strong>Pilih Center Store:</strong> Cari dan pilih toko yang akan menjadi titik pusat <i>(center)</i> dari rute yang akan dibuat.</li>
+                        <li><strong>Tentukan Jumlah Toko:</strong> Masukkan estimasi berapa banyak toko yang ingin dikunjungi (maksimal 80 toko).</li>
+                        <li><strong>Generate Route:</strong> Klik tombol ini, sistem akan mencari titik-titik terdekat dan menyusun rute paling efisien.</li>
+                        <li><strong>Simpan:</strong> Klik tombol "Simpan Cluster" dan pilih apakah akan disimpan sebagai Master Clustering atau dijadwalkan langsung ke JKS.</li>
                     </ol>
                 </div>
 
                 <div class="bg-base-200/50 p-4 rounded-xl">
-                    <h4 class="font-bold mb-2">Metode 3-Point Routing & Clustering:</h4>
-                    <p class="mb-2">Pembuatan rute ini menggunakan pendekatan hibrida elips yang sangat presisi berdasarkan pergerakan rute Anda:</p>
+                    <h4 class="font-bold mb-2">Metode Kalkulasi Rute (Algoritma yang Digunakan):</h4>
+                    <p class="mb-2">Pembuatan rute dan penentuan titik pada halaman ini menggunakan pendekatan hibrida dalam tiga tahap:</p>
                     <ul class="list-disc list-inside space-y-2">
-                        <li><strong>Tahap 1 - Elliptical Search Area:</strong> <br/>
-                            <span class="ml-5 text-base-content/80 text-xs block mt-1">Daripada menggunakan 1 titik tengah melingkar, sistem menggunakan Titik Toko Pertama dan Titik Pulang sebagai 2 titik fokus. Toko kandidat hanya akan dicari di sepanjang area (koridor elips) yang mengarah dari Toko Pertama menuju jalan Pulang.</span>
+                        <li><strong>Tahap 1 - Pemfilteran Awal (Haversine Formula):</strong> <br/>
+                            <span class="ml-5 text-base-content/80 text-xs block mt-1">Sistem mencari toko-toko kandidat dari database dengan menghitung jarak lurus (jarak udara) menggunakan rumus matematika Haversine dari <i>Center Store</i>. Ini untuk menyaring ribuan toko menjadi radius wajar.</span>
                         </li>
-                        <li><strong>Tahap 2 - Seleksi Jarak Riil (OSRM):</strong> <br/>
-                            <span class="ml-5 text-base-content/80 text-xs block mt-1">Kandidat dari Tahap 1 dikirim ke server pemetaan OSRM untuk mendapatkan jarak jalan raya nyata. Sistem menggugurkan kandidat yang secara posisi terlihat dekat tapi terhalang sungai atau gunung.</span>
+                        <li><strong>Tahap 2 - Seleksi Akurat (OSRM Distance Matrix):</strong> <br/>
+                            <span class="ml-5 text-base-content/80 text-xs block mt-1">Kandidat dari Tahap 1 dikirim ke server pemetaan OSRM untuk mendapatkan jarak jalan raya nyata. Sistem lalu memilih jumlah toko sesuai yang Anda minta (misal: 10 toko) yang benar-benar memiliki <b>jarak tempuh jalan terdekat</b>, bukan sekadar jarak lurus.</span>
                         </li>
-                        <li><strong>Tahap 3 - Open TSP Routing:</strong> <br/>
-                            <span class="ml-5 text-base-content/80 text-xs block mt-1">Sistem melakukan pengurutan ulang toko (TSP) namun mengunci Titik Berangkat sebagai jalur awal, dan memaksa rute berakhir secara sempurna di Titik Pulang.</span>
+                        <li><strong>Tahap 3 - Pengurutan Rute (TSP & OSRM API):</strong> <br/>
+                            <span class="ml-5 text-base-content/80 text-xs block mt-1">Sistem memecahkan masalah rute antar titik (Traveling Salesperson Problem / TSP) dengan mempertimbangkan arah jalan dan larangan putar balik untuk mendapatkan urutan kunjungan optimal.</span>
                         </li>
                     </ul>
                 </div>

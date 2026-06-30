@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use App\Traits\EnforcesMenuPermissions;
 use Livewire\WithPagination;
 use App\Models\RemarkAnalisaKunjungan;
+use Maatwebsite\Excel\Facades\Excel;
 
 class Index extends Component
 {
@@ -169,6 +170,21 @@ class Index extends Component
     public function applyFilter()
     {
         if ($this->activeTab === 'detail') {
+            if ($this->startDate && $this->endDate) {
+                $start = \Carbon\Carbon::parse($this->startDate);
+                $end = \Carbon\Carbon::parse($this->endDate);
+                
+                if ($start->gt($end)) {
+                    $this->dispatch('notify', msg: 'Tanggal mulai tidak boleh lebih besar dari tanggal akhir.', type: 'error');
+                    return;
+                }
+                
+                if ($start->diffInDays($end) > 31) {
+                    $this->dispatch('notify', msg: 'Rentang waktu maksimal adalah 1 bulan (31 hari).', type: 'error');
+                    return;
+                }
+            }
+
             $this->appliedRegion = $this->selectedRegion;
             $this->appliedArea = $this->selectedArea;
             $this->appliedSupervisor = $this->selectedSupervisor;
@@ -176,6 +192,21 @@ class Index extends Component
             $this->appliedEndDate = $this->endDate;
             $this->resetPage();
         } else {
+            if ($this->summaryStartDate && $this->summaryEndDate) {
+                $start = \Carbon\Carbon::parse($this->summaryStartDate);
+                $end = \Carbon\Carbon::parse($this->summaryEndDate);
+                
+                if ($start->gt($end)) {
+                    $this->dispatch('notify', msg: 'Tanggal mulai tidak boleh lebih besar dari tanggal akhir.', type: 'error');
+                    return;
+                }
+                
+                if ($start->diffInDays($end) > 31) {
+                    $this->dispatch('notify', msg: 'Rentang waktu maksimal adalah 1 bulan (31 hari).', type: 'error');
+                    return;
+                }
+            }
+
             $this->appliedSummaryStartDate = $this->summaryStartDate;
             $this->appliedSummaryEndDate = $this->summaryEndDate;
             $this->appliedSummaryRegion = $this->summaryRegion;
@@ -303,6 +334,8 @@ class Index extends Component
                 'rvah.FLAG_EC as flag_ec',
                 'rvah.FLAG_BUY as flag_buy',
                 'rvah.FLAG_PAUSE as flag_pause',
+                'rvah.M_LA as master_lat',
+                'rvah.M_LG as master_lon',
                 'rvah.V_LA as visit_lat',
                 'rvah.V_LG as visit_lon',
                 'rvar.REASON_TYPE as reason_type',
@@ -326,7 +359,7 @@ class Index extends Component
         $query->orderBy(DB::raw('rvah."TANGGAL"::date'), 'asc')
               ->orderBy('rvah.ID', 'asc');
 
-        return Excel::download(new \App\Exports\AnalisaKunjunganExport($query), 'analisa_kunjungan_' . date('Ymd_His') . '.xlsx');
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\AnalisaKunjunganExport($query), 'analisa_kunjungan_' . date('Ymd_His') . '.xlsx');
     }
 
     public function exportSummary()
@@ -338,7 +371,7 @@ class Index extends Component
             return;
         }
 
-        return Excel::download(new \App\Exports\AnalisaKunjunganSummaryExport($this->summaryData), 'summary_analisa_kunjungan_' . date('Ymd_His') . '.xlsx');
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\AnalisaKunjunganSummaryExport($this->summaryData), 'summary_analisa_kunjungan_' . date('Ymd_His') . '.xlsx');
     }
 
     public function getDistance($lat1, $lon1, $lat2, $lon2)

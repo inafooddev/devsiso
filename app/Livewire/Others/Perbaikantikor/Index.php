@@ -27,6 +27,8 @@ class Index extends Component
     public $keteranganReject = '';
     public $selectedId = null;
     public $selectedIds = [];
+    public $summaryData = [];
+    public $summarySearch = '';
 
     public $selectAll = false;
 
@@ -66,6 +68,11 @@ class Index extends Component
         }
     }
 
+    public function updatingSummarySearch()
+    {
+        $this->loadSummary();
+    }
+
     public function updatingSelectedIds()
     {
         $this->selectAll = false;
@@ -97,6 +104,56 @@ class Index extends Component
             $this->dispatch('show-toast', type: 'success', message: $count . ' Tikor Toko berhasil disetujui secara massal');
         }
         $this->selectedIds = [];
+    }
+
+    public function loadSummary()
+    {
+        $query = $this->baseQuery()
+            ->leftJoin('fsalesman as f', function($join) {
+                $join->on('perbaikan_tikor_toko.sales_code', '=', 'f.SLSNO')
+                     ->on('perbaikan_tikor_toko.distributor_code', '=', 'f.KD');
+            })
+            ->leftJoin('distributor_implementasi_eskalink as die', 'die.eskalink_code', '=', 'perbaikan_tikor_toko.distributor_code')
+            ->leftJoin('master_distributors as md', 'md.distributor_code', '=', 'die.distributor_code')
+            ->selectRaw('
+                md.region_code,
+                md.region_name,
+                md.area_code,
+                md.area_name,
+                md.distributor_name,
+                perbaikan_tikor_toko.sales_code,
+                UPPER(f."SLSNAME") AS sales_name,
+                COUNT(DISTINCT perbaikan_tikor_toko.id) AS total_pengajuan,
+                COUNT(DISTINCT CASE WHEN perbaikan_tikor_toko.status = \'Pending\' THEN perbaikan_tikor_toko.id END) AS pending,
+                COUNT(DISTINCT CASE WHEN perbaikan_tikor_toko.status = \'Rejected\' THEN perbaikan_tikor_toko.id END) AS rejected,
+                COUNT(DISTINCT CASE WHEN perbaikan_tikor_toko.status = \'Approved\' THEN perbaikan_tikor_toko.id END) AS approved
+            ')
+            ->groupBy(
+                'md.region_code',
+                'md.region_name',
+                'md.area_code',
+                'md.area_name',
+                'md.distributor_name',
+                'perbaikan_tikor_toko.sales_code',
+                'f.SLSNAME'
+            );
+
+        if ($this->summarySearch) {
+            $query->where(function ($q) {
+                $q->where('md.distributor_name', 'ilike', '%' . $this->summarySearch . '%')
+                  ->orWhere('f.SLSNAME', 'ilike', '%' . $this->summarySearch . '%')
+                  ->orWhere('perbaikan_tikor_toko.sales_code', 'ilike', '%' . $this->summarySearch . '%')
+                  ->orWhere('md.region_name', 'ilike', '%' . $this->summarySearch . '%')
+                  ->orWhere('md.area_name', 'ilike', '%' . $this->summarySearch . '%');
+            });
+        }
+
+        $this->summaryData = $query->orderBy('md.region_code')
+            ->orderBy('md.area_code')
+            ->orderBy('perbaikan_tikor_toko.sales_code')
+            ->get();
+        
+        $this->dispatch('open-summary-modal');
     }
 
     public function export()
@@ -168,6 +225,7 @@ class Index extends Component
                 'sales_name' => \Illuminate\Support\Facades\DB::table('fsalesman')
                     ->select('SLSNAME')
                     ->whereColumn('SLSNO', 'perbaikan_tikor_toko.sales_code')
+                    ->whereColumn('KD', 'perbaikan_tikor_toko.distributor_code')
                     ->limit(1)
             ]);
 
@@ -186,6 +244,7 @@ class Index extends Component
                       $sub->select(\Illuminate\Support\Facades\DB::raw(1))
                           ->from('fsalesman')
                           ->whereColumn('SLSNO', 'perbaikan_tikor_toko.sales_code')
+                          ->whereColumn('KD', 'perbaikan_tikor_toko.distributor_code')
                           ->where('SLSNAME', 'ilike', '%' . $this->search . '%');
                   });
             });

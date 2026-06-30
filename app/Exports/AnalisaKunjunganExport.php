@@ -2,7 +2,7 @@
 
 namespace App\Exports;
 
-use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\FromGenerator;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -10,7 +10,7 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class AnalisaKunjunganExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize, WithStyles
+class AnalisaKunjunganExport implements FromGenerator, WithHeadings, WithMapping, ShouldAutoSize, WithStyles
 {
     use Exportable;
 
@@ -21,9 +21,11 @@ class AnalisaKunjunganExport implements FromQuery, WithHeadings, WithMapping, Sh
         $this->query = $query;
     }
 
-    public function query()
+    public function generator(): \Generator
     {
-        return $this->query;
+        foreach ($this->query->cursor() as $row) {
+            yield $row;
+        }
     }
 
     public function headings(): array
@@ -52,6 +54,7 @@ class AnalisaKunjunganExport implements FromQuery, WithHeadings, WithMapping, Sh
             'Flag Pause',
             'Visit Lat',
             'Visit Lon',
+            'Distance (m)',
             'Reason Type',
             'Reason Desc',
             'Action Remark',
@@ -87,6 +90,7 @@ class AnalisaKunjunganExport implements FromQuery, WithHeadings, WithMapping, Sh
             $row->flag_pause,
             $row->visit_lat,
             $row->visit_lon,
+            $this->getDistance($row->master_lat ?? null, $row->master_lon ?? null, $row->visit_lat ?? null, $row->visit_lon ?? null),
             $row->reason_type,
             $row->reason_desc,
             $row->action_remark,
@@ -98,5 +102,23 @@ class AnalisaKunjunganExport implements FromQuery, WithHeadings, WithMapping, Sh
         return [
             1 => ['font' => ['bold' => true]],
         ];
+    }
+
+    public function getDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        if (!$lat1 || !$lon1 || !$lat2 || !$lon2) return 0;
+        
+        $earthRadius = 6371000; // in meters
+        $latFrom = deg2rad((float)$lat1);
+        $lonFrom = deg2rad((float)$lon1);
+        $latTo = deg2rad((float)$lat2);
+        $lonTo = deg2rad((float)$lon2);
+
+        $latDelta = $latTo - $latFrom;
+        $lonDelta = $lonTo - $lonFrom;
+
+        $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
+            cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
+        return round($angle * $earthRadius); // in meters
     }
 }

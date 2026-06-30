@@ -22,20 +22,10 @@ class Index extends Component
     public $jksSyncMethod = 'skip';
     public $teams = [];
     
-    public $searchStartText = '';
-    public $searchStartResults = [];
-    public $startStoreId = null;
-    public $startStore = null;
-    
-    public $searchAnchorText = '';
-    public $searchAnchorResults = [];
-    public $anchorStoreId = null;
-    public $anchorStore = null;
-    
-    public $searchEndText = '';
-    public $searchEndResults = [];
-    public $endStoreId = null;
-    public $endStore = null;
+    public $searchCenterText = '';
+    public $searchCenterResults = [];
+    public $centerStoreId = null;
+    public $centerStore = null;
     
     public $searchDistributor = '';
     public $distributorOptions = [];
@@ -121,20 +111,10 @@ class Index extends Component
         $this->searchDistributor = $code . ' - ' . $name;
         $this->distributorOptions = [];
         
-        $this->searchStartText = '';
-        $this->searchStartResults = [];
-        $this->startStoreId = null;
-        $this->startStore = null;
-        
-        $this->searchAnchorText = '';
-        $this->searchAnchorResults = [];
-        $this->anchorStoreId = null;
-        $this->anchorStore = null;
-        
-        $this->searchEndText = '';
-        $this->searchEndResults = [];
-        $this->endStoreId = null;
-        $this->endStore = null;
+        $this->searchCenterText = '';
+        $this->searchCenterResults = [];
+        $this->centerStoreId = null;
+        $this->centerStore = null;
     }
 
     public function clearDistributor()
@@ -144,29 +124,19 @@ class Index extends Component
         $this->searchDistributor = '';
         $this->distributorOptions = [];
         
-        $this->searchStartText = '';
-        $this->searchStartResults = [];
-        $this->startStoreId = null;
-        $this->startStore = null;
-        
-        $this->searchAnchorText = '';
-        $this->searchAnchorResults = [];
-        $this->anchorStoreId = null;
-        $this->anchorStore = null;
-        
-        $this->searchEndText = '';
-        $this->searchEndResults = [];
-        $this->endStoreId = null;
-        $this->endStore = null;
+        $this->searchCenterText = '';
+        $this->searchCenterResults = [];
+        $this->centerStoreId = null;
+        $this->centerStore = null;
     }
 
-    public function updatedSearchStartText()
+    public function updatedSearchCenterText()
     {
-        if (strlen($this->searchStartText) > 2) {
+        if (strlen($this->searchCenterText) > 2) {
             $query = DB::table('list_toko_pareto_team_elite')
                 ->where(function($q) {
-                    $q->where('customer_name', 'ilike', '%' . $this->searchStartText . '%')
-                      ->orWhere('customer_code_prc', 'ilike', '%' . $this->searchStartText . '%');
+                    $q->where('customer_name', 'ilike', '%' . $this->searchCenterText . '%')
+                      ->orWhere('customer_code_prc', 'ilike', '%' . $this->searchCenterText . '%');
                 })
                 ->whereNotNull('latitude')
                 ->whereNotNull('longitude')
@@ -177,86 +147,20 @@ class Index extends Component
                 $query->where('distributor_code', $this->selectedDistributorCode);
             }
             
-            $this->searchStartResults = $query->take(10)->get()->toArray();
+            $this->searchCenterResults = $query->take(10)->get()->toArray();
         } else {
-            $this->searchStartResults = [];
+            $this->searchCenterResults = [];
         }
     }
 
-    public function selectStartStore($id)
+    public function selectCenterStore($id)
     {
-        $this->startStoreId = $id;
-        $this->startStore = DB::table('list_toko_pareto_team_elite')->where('id', $id)->first();
-        if ($this->startStore) {
-            $this->searchStartText = $this->startStore->customer_code_prc . ' - ' . $this->startStore->customer_name;
+        $this->centerStoreId = $id;
+        $this->centerStore = DB::table('list_toko_pareto_team_elite')->where('id', $id)->first();
+        if ($this->centerStore) {
+            $this->searchCenterText = $this->centerStore->customer_code_prc . ' - ' . $this->centerStore->customer_name;
         }
-        $this->searchStartResults = [];
-    }
-    
-    public function updatedSearchAnchorText()
-    {
-        if (strlen($this->searchAnchorText) > 2) {
-            $query = DB::table('list_toko_pareto_team_elite')
-                ->where(function($q) {
-                    $q->where('customer_name', 'ilike', '%' . $this->searchAnchorText . '%')
-                      ->orWhere('customer_code_prc', 'ilike', '%' . $this->searchAnchorText . '%');
-                })
-                ->whereNotNull('latitude')
-                ->whereNotNull('longitude')
-                ->where('latitude', '!=', 0)
-                ->where('longitude', '!=', 0);
-                
-            if (!empty($this->selectedDistributorCode)) {
-                $query->where('distributor_code', $this->selectedDistributorCode);
-            }
-            
-            $this->searchAnchorResults = $query->take(10)->get()->toArray();
-        } else {
-            $this->searchAnchorResults = [];
-        }
-    }
-
-    public function selectAnchorStore($id)
-    {
-        $this->anchorStoreId = $id;
-        $this->anchorStore = DB::table('list_toko_pareto_team_elite')->where('id', $id)->first();
-        if ($this->anchorStore) {
-            $this->searchAnchorText = $this->anchorStore->customer_code_prc . ' - ' . $this->anchorStore->customer_name;
-        }
-        $this->searchAnchorResults = [];
-    }
-
-    public function updatedSearchEndText()
-    {
-        if (strlen($this->searchEndText) > 2) {
-            $query = DB::table('list_toko_pareto_team_elite')
-                ->where(function($q) {
-                    $q->where('customer_name', 'ilike', '%' . $this->searchEndText . '%')
-                      ->orWhere('customer_code_prc', 'ilike', '%' . $this->searchEndText . '%');
-                })
-                ->whereNotNull('latitude')
-                ->whereNotNull('longitude')
-                ->where('latitude', '!=', 0)
-                ->where('longitude', '!=', 0);
-                
-            if (!empty($this->selectedDistributorCode)) {
-                $query->where('distributor_code', $this->selectedDistributorCode);
-            }
-            
-            $this->searchEndResults = $query->take(10)->get()->toArray();
-        } else {
-            $this->searchEndResults = [];
-        }
-    }
-
-    public function selectEndStore($id)
-    {
-        $this->endStoreId = $id;
-        $this->endStore = DB::table('list_toko_pareto_team_elite')->where('id', $id)->first();
-        if ($this->endStore) {
-            $this->searchEndText = $this->endStore->customer_code_prc . ' - ' . $this->endStore->customer_name;
-        }
-        $this->searchEndResults = [];
+        $this->searchCenterResults = [];
     }
 
     public function updatedSearchAddText()
@@ -327,10 +231,7 @@ class Index extends Component
 
     public function generateCluster()
     {
-        if (!$this->startStore || !$this->anchorStore || !$this->endStore) {
-            session()->flash('error', 'Pilih Titik Berangkat, Toko Pertama, dan Titik Pulang terlebih dahulu.');
-            return;
-        }
+        if (!$this->centerStore) return;
 
         $allStores = DB::table('list_toko_pareto_team_elite')
             ->whereNotNull('latitude')
@@ -341,36 +242,28 @@ class Index extends Component
 
         $distances = [];
         foreach ($allStores as $store) {
-            $distToAnchor = $this->haversineGreatCircleDistance($this->anchorStore->latitude, $this->anchorStore->longitude, $store->latitude, $store->longitude);
-            $distToEnd = $this->haversineGreatCircleDistance($this->endStore->latitude, $this->endStore->longitude, $store->latitude, $store->longitude);
-            $ellipticalDist = $distToAnchor + $distToEnd;
-
+            $dist = $this->haversineGreatCircleDistance($this->centerStore->latitude, $this->centerStore->longitude, $store->latitude, $store->longitude);
             $distances[] = [
                 'store' => $store,
-                'distance' => $ellipticalDist,
-                'dist_to_anchor' => $distToAnchor
+                'distance' => $dist
             ];
         }
 
-        // 1. Sort by elliptical distance to get the "Local Area Pool" (stores that are within the ellipse)
+        // 1. Sort by purely distance to get the "Local Area Pool"
         usort($distances, function($a, $b) {
             return $a['distance'] <=> $b['distance'];
         });
 
-        // 2. Define the Local Area Pool (radius geografis wajar, max 90 toko untuk OSRM)
-        $poolSize = min(90, max(50, $this->candidateCount * 3));
+        // 2. Define the Local Area Pool (radius geografis wajar, max 99 toko untuk OSRM)
+        $poolSize = min(99, max(50, $this->candidateCount * 3));
         $localPool = array_slice($distances, 0, $poolSize);
 
         // 3. Ambil jarak asli via OSRM Distance Matrix (Table API)
-        // From Anchor Store to all stores in pool
-        $coords = [$this->anchorStore->longitude . ',' . $this->anchorStore->latitude];
+        $coords = [$this->centerStore->longitude . ',' . $this->centerStore->latitude];
         $poolStores = [];
         
         foreach ($localPool as $item) {
-            // Exclude start, anchor, end from the pool to avoid duplication
-            if ($item['store']->id != $this->startStore->id && 
-                $item['store']->id != $this->anchorStore->id && 
-                $item['store']->id != $this->endStore->id) {
+            if ($item['store']->id != $this->centerStore->id) {
                 $coords[] = $item['store']->longitude . ',' . $item['store']->latitude;
                 $poolStores[] = $item;
             }
@@ -381,11 +274,11 @@ class Index extends Component
         
         try {
             $response = \Illuminate\Support\Facades\Http::timeout(10)->get("http://router.project-osrm.org/table/v1/driving/{$coordsString}", [
-                'sources' => '0' // From Anchor to everywhere else
+                'sources' => '0'
             ]);
             
             if ($response->successful() && isset($response->json()['distances'][0])) {
-                $osrmDistances = $response->json()['distances'][0]; // index 0 is anchor, index 1..N is poolStores
+                $osrmDistances = $response->json()['distances'][0]; // index 0 is center, index 1..N is poolStores
             }
         } catch (\Exception $e) {
             // fallback to haversine if OSRM fails
@@ -393,9 +286,10 @@ class Index extends Component
 
         $otherCandidates = [];
         foreach ($poolStores as $idx => $item) {
+            // index in OSRM response is $idx + 1 because $idx 0 in OSRM is the center store itself
             $realDistance = (isset($osrmDistances[$idx + 1]) && $osrmDistances[$idx + 1] !== null) 
                             ? ($osrmDistances[$idx + 1] / 1000) // convert meters to km
-                            : $item['dist_to_anchor']; // fallback to haversine to anchor
+                            : $item['distance']; // fallback to haversine
                             
             $otherCandidates[] = [
                 'store' => $item['store'],
@@ -403,28 +297,30 @@ class Index extends Component
             ];
         }
 
-        // 4. Sort Other Candidates by Pilar Priority, then Real Road Distance from Anchor
+        // 4. Sort Other Candidates by Pilar Priority, then Real Road Distance
         usort($otherCandidates, function($a, $b) {
             $pilarA = $a['store']->pilar ?? 'Z';
             $pilarB = $b['store']->pilar ?? 'Z';
             
+            // Prioritas: '1. RWO' < '2. PNR' < '3. NGVO' < '4. GRO' < 'Z'
             if ($pilarA !== $pilarB) {
                 return strcmp($pilarA, $pilarB); 
             }
+            // Jika Pilar sama, ambil yang terdekat jarak jalannya
             return $a['distance'] <=> $b['distance'];
         });
 
-        // 5. Gabungkan Start, Anchor, Candidates, End
-        $needed = max(0, $this->candidateCount - 3); // Because Start, Anchor, End already take 3 spots
-        $candidatesSlice = array_slice($otherCandidates, 0, $needed);
-
-        $this->clusterStores = [];
-        $this->clusterStores[] = (array) $this->startStore;
-        $this->clusterStores[] = (array) $this->anchorStore;
-        foreach ($candidatesSlice as $cand) {
-            $this->clusterStores[] = (array) $cand['store'];
+        // 5. Gabungkan Center Store dengan N-1 kandidat teratas berdasarkan prioritas
+        $topCandidates = [ ['store' => $this->centerStore] ];
+        
+        $needed = $this->candidateCount - 1;
+        if ($needed > 0) {
+            $topCandidates = array_merge($topCandidates, array_slice($otherCandidates, 0, $needed));
         }
-        $this->clusterStores[] = (array) $this->endStore;
+
+        $this->clusterStores = array_map(function($item) {
+            return (array) $item['store'];
+        }, $topCandidates);
 
         $this->analyzeRoute();
     }
@@ -454,26 +350,16 @@ class Index extends Component
 
     private function calculateTSP($stores)
     {
-        foreach ($stores as &$s) {
-            $s['latitude'] = (float) $s['latitude'];
-            $s['longitude'] = (float) $s['longitude'];
+        foreach ($stores as &$store) {
+            $store['latitude'] = (float) $store['latitude'];
+            $store['longitude'] = (float) $store['longitude'];
         }
-        unset($s);
+        unset($store);
 
-        if (count($stores) < 3) {
-            $this->clusterStores = $stores;
-            $this->calculateStraightLinesFallback();
-            return;
-        }
-
-        $startStore = $stores[0];
-        $anchorStore = $stores[1];
-        $endStore = $stores[count($stores) - 1];
-        
-        $unvisited = array_slice($stores, 2, count($stores) - 3);
-        
-        $route = [$startStore, $anchorStore];
-        $currentStore = $anchorStore;
+        $unvisited = $stores;
+        $currentStore = array_shift($unvisited);
+        $route = [$currentStore];
+        $totalDist = 0;
 
         while (count($unvisited) > 0) {
             $nearestIdx = -1;
@@ -492,14 +378,44 @@ class Index extends Component
             }
 
             $currentStore = $unvisited[$nearestIdx];
+            $distKm = round($minDist, 2);
+            $route[count($route) - 1]['distance_to_next'] = $distKm;
+            $route[count($route) - 1]['duration_to_next'] = round(($distKm / 40 * 60) * 1.30);
+            
             $route[] = $currentStore;
+            $totalDist += $minDist;
+
             array_splice($unvisited, $nearestIdx, 1);
         }
 
-        $route[] = $endStore;
+        $route[count($route) - 1]['distance_to_next'] = 0;
+        $route[count($route) - 1]['duration_to_next'] = 0;
 
         $this->clusterStores = $route;
-        $this->calculateStraightLinesFallback(); 
+        $this->totalDistance = round($totalDist, 2);
+        
+        $numEdges = count($route) - 1;
+        $this->averageDistance = $numEdges > 0 ? round($totalDist / $numEdges, 2) : 0;
+
+        if ($this->totalDistance > 80) {
+            $this->efficiencyStatus = 'Terlalu Tersebar (> 80 Km)';
+        } elseif ($this->totalDistance > 40) {
+            $this->efficiencyStatus = 'Wajar (40-80 Km)';
+        } else {
+            $this->efficiencyStatus = 'Sangat Efisien (< 40 Km)';
+        }
+
+        $drivingMinutes = round(($this->totalDistance / 40 * 60) * 1.30);
+        $visitMinutes = count($route) * 30;
+        $totalMinutes = $drivingMinutes + $visitMinutes;
+        
+        $this->drivingDurationFormatted = $this->formatMinutesToHours($drivingMinutes) . ' (Manual)';
+        $this->visitDurationFormatted = $this->formatMinutesToHours($visitMinutes);
+        $this->totalDurationFormatted = $this->formatMinutesToHours($totalMinutes);
+        
+        $this->apiGeometry = null;
+
+        $this->dispatch('route-analyzed', route: $this->clusterStores, geometry: null);
     }
 
     private function formatMinutesToHours($totalMinutes)
@@ -516,28 +432,22 @@ class Index extends Component
 
     private function fetchRealRouteData($stores)
     {
-        $n = count($stores);
-        if ($n < 3 || $n > 80) {
-            $this->calculateTSP($stores);
-            return;
-        }
-
-        $startStore = $stores[0];
-        // TSP only for Anchor ... End
-        $tspStores = array_slice($stores, 1, $n - 1);
-        
         $coords = [];
-        foreach ($tspStores as $store) {
+        foreach ($stores as $store) {
             $coords[] = $store['longitude'] . ',' . $store['latitude'];
         }
         $coordsString = implode(';', $coords);
 
+        if (count($stores) > 80) {
+            $this->calculateTSP($stores);
+            return;
+        }
+
         try {
-            // source=first, destination=last for Open TSP
+            // Gunakan algoritma bawaan OSRM Trip API untuk mencari rute TSP terbaik
             $response = \Illuminate\Support\Facades\Http::timeout(10)->get("http://router.project-osrm.org/trip/v1/driving/{$coordsString}", [
-                'roundtrip' => 'false',
+                'roundtrip' => 'true',
                 'source' => 'first',
-                'destination' => 'last',
                 'geometries' => 'geojson'
             ]);
 
@@ -547,21 +457,17 @@ class Index extends Component
                 if ($data['code'] === 'Ok') {
                     $waypoints = $data['waypoints']; 
                     
-                    $orderedTspStores = [];
+                    $orderedStores = [];
                     foreach ($waypoints as $originalIndex => $wp) {
                         $newPosition = $wp['waypoint_index'];
-                        $orderedTspStores[$newPosition] = $tspStores[$originalIndex];
+                        $orderedStores[$newPosition] = $stores[$originalIndex];
                     }
                     
-                    ksort($orderedTspStores);
-                    $orderedTspStores = array_values($orderedTspStores); 
+                    ksort($orderedStores);
+                    $orderedStores = array_values($orderedStores); 
 
-                    // Gabungkan Start + [TSP Result]
-                    $finalStores = [$startStore];
-                    $finalStores = array_merge($finalStores, $orderedTspStores);
-
-                    $this->clusterStores = $finalStores;
-                    // Minta gambar jalur total dan hitung jarak detailnya via fetchGeometryOnly
+                    $this->clusterStores = $orderedStores;
+                    // Minta gambar jalur dan hitung jarak detailnya via fetchGeometryOnly
                     $this->fetchGeometryOnly();
                 } else {
                     $this->calculateTSP($stores);
@@ -732,7 +638,7 @@ class Index extends Component
                 'clusterName' => 'required|string|max:255',
                 'filterTeam' => 'required|string',
             ]);
-            $centerId = $this->anchorStoreId ?: ($this->clusterStores[1]['id'] ?? ($this->clusterStores[0]['id'] ?? null));
+            $centerId = $this->centerStoreId ?: ($this->clusterStores[0]['id'] ?? null);
         } else {
             $this->validate([
                 'jksDate' => 'required|date',
