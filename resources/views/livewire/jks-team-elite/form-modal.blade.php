@@ -152,10 +152,10 @@
                                     @foreach($customerOptions as $cust)
                                         <li>
                                             <div class="w-full text-left px-3 py-2 hover:bg-base-200 rounded-lg flex justify-between items-center group cursor-default">
-                                                <div class="flex-1">
-                                                    <div class="font-bold text-sm">{{ $cust['custno'] }} - {{ $cust['custname'] }}</div>
-                                                    <div class="text-xs opacity-70 truncate">{{ $cust['distributor_name'] }} ({{ $cust['distributor_code'] }})</div>
-                                                    <div class="text-[0.625rem] opacity-50 truncate">{{ $cust['addres'] }}</div>
+                                                <div class="flex-1 min-w-0 pr-2">
+                                                    <div class="font-bold text-sm truncate" title="{{ $cust['custname'] }}">{{ $cust['custno'] }} - {{ $cust['custname'] }}</div>
+                                                    <div class="text-xs opacity-70 truncate" title="{{ $cust['distributor_name'] }}">{{ $cust['distributor_name'] }} ({{ $cust['distributor_code'] }})</div>
+                                                    <div class="text-[0.625rem] opacity-50 truncate" title="{{ $cust['addres'] }}">{{ $cust['addres'] }}</div>
                                                 </div>
                                                 <button type="button" wire:click="addCustomerToCart('{{ $cust['custno'] }}', '{{ $cust['distributor_code'] }}')" class="btn btn-xs btn-primary btn-square opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <x-heroicon-s-plus class="w-4 h-4" />
@@ -192,11 +192,11 @@
                                     <div class="space-y-2">
                                         @foreach($recommendedStores as $rec)
                                             <div class="bg-base-100 border border-base-300 rounded-lg p-2.5 shadow-sm hover:border-primary/50 transition-colors group flex items-start gap-2 cursor-pointer" onclick="focusFormMap({{ $rec['latitude'] ?? 0 }}, {{ $rec['longitude'] ?? 0 }}, '{{ $rec['custno'] }}')">
-                                                <div class="flex-1 overflow-hidden">
-                                                    <div class="font-bold text-xs">{{ $rec['custno'] }} - {{ $rec['custname'] }}</div>
+                                                <div class="flex-1 min-w-0 pr-2">
+                                                    <div class="font-bold text-xs truncate" title="{{ $rec['custname'] }}">{{ $rec['custno'] }} - {{ $rec['custname'] }}</div>
                                                     <div class="text-[0.6rem] text-base-content/70 flex flex-wrap gap-x-2 mt-0.5 mb-1">
-                                                        <span><x-heroicon-s-building-storefront class="w-2.5 h-2.5 inline"/> {{ $rec['distributor_code'] }}</span>
-                                                        <span><x-heroicon-s-map-pin class="w-2.5 h-2.5 inline"/> {{ $rec['nama_area'] }}</span>
+                                                        <span class="truncate" title="{{ $rec['distributor_code'] }}"><x-heroicon-s-building-storefront class="w-2.5 h-2.5 inline"/> {{ $rec['distributor_code'] }}</span>
+                                                        <span class="truncate" title="{{ $rec['nama_area'] }}"><x-heroicon-s-map-pin class="w-2.5 h-2.5 inline"/> {{ $rec['nama_area'] }}</span>
                                                     </div>
                                                     @if(!empty($rec['pilar']))
                                                         <span class="badge badge-outline badge-sm text-[0.6rem] border-gray-300 text-gray-600 font-bold py-0 h-4">Pilar: {{ $rec['pilar'] }}</span>
@@ -239,13 +239,13 @@
                                         <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
                                             {{ $idx + 1 }}
                                         </div>
-                                        <div class="flex-1 overflow-hidden">
-                                            <div class="font-bold text-sm">{{ $cartItem['custno'] }} - {{ $cartItem['custname'] }}</div>
+                                        <div class="flex-1 min-w-0 pr-2">
+                                            <div class="font-bold text-sm truncate" title="{{ $cartItem['custname'] }}">{{ $cartItem['custno'] }} - {{ $cartItem['custname'] }}</div>
                                             <div class="text-xs text-base-content/70 mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                                                <span class="flex items-center gap-1"><x-heroicon-s-building-storefront class="w-3 h-3"/> {{ $cartItem['distributor_code'] }}</span>
-                                                <span class="flex items-center gap-1"><x-heroicon-s-map-pin class="w-3 h-3"/> {{ $cartItem['nama_area'] }}, {{ $cartItem['nama_region'] }}</span>
+                                                <span class="flex items-center gap-1 truncate" title="{{ $cartItem['distributor_code'] }}"><x-heroicon-s-building-storefront class="w-3 h-3 shrink-0"/> <span class="truncate">{{ $cartItem['distributor_code'] }}</span></span>
+                                                <span class="flex items-center gap-1 truncate" title="{{ $cartItem['nama_area'] }}, {{ $cartItem['nama_region'] }}"><x-heroicon-s-map-pin class="w-3 h-3 shrink-0"/> <span class="truncate">{{ $cartItem['nama_area'] }}, {{ $cartItem['nama_region'] }}</span></span>
                                             </div>
-                                            <div class="text-[0.625rem] text-base-content/50 mt-1 truncate">{{ $cartItem['addres'] }}</div>
+                                            <div class="text-[0.625rem] text-base-content/50 mt-1 truncate" title="{{ $cartItem['addres'] }}">{{ $cartItem['addres'] }}</div>
                                         </div>
                                         <button type="button" wire:click="removeCustomerFromCart('{{ $cartItem['custno'] }}', '{{ $cartItem['distributor_code'] }}')" class="btn btn-xs btn-ghost btn-circle text-error hover:bg-error hover:text-white shrink-0">
                                             <x-heroicon-s-trash class="w-4 h-4" />
