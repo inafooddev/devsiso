@@ -392,6 +392,8 @@ class Index extends Component
             ) * 6371000)
         ";
 
+        $custnameFilter = "UPPER(rvah.\"CUSTNAME\") NOT LIKE '%BRIFING%' AND UPPER(rvah.\"CUSTNAME\") NOT LIKE '%BRIEFING%' AND UPPER(rvah.\"CUSTNAME\") NOT LIKE '%EVALUASI%' AND UPPER(rvah.\"CUSTNAME\") NOT LIKE '%MEETING%' AND UPPER(rvah.\"CUSTNAME\") NOT LIKE '%PERJALANAN%' AND UPPER(rvah.\"CUSTNAME\") NOT LIKE '%BLITZ%'";
+
         $query = $this->getBaseQuery()
             ->leftJoin('list_toko_pareto_team_elite as l', 'l.customer_code_prc', '=', 'rvah.CUSTNO')
             ->leftJoin('master_regions as mr', 't.region_code', '=', 'mr.region_code')
@@ -402,20 +404,20 @@ class Index extends Component
                 'ma.area_name',
                 'rvah.MUNAME as supervisor_name',
                 't.team_elite_code as supervisor_code',
-                DB::raw('COUNT(*) as pc'),
-                DB::raw("SUM(CASE WHEN rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as ac"),
-                DB::raw("SUM(CASE WHEN rvah.\"FLAG_BUY\" = 'Y' THEN 1 ELSE 0 END) as ec"),
+                DB::raw("COUNT(DISTINCT CASE WHEN $custnameFilter THEN rvah.\"CUSTNO\" ELSE NULL END) as pc"),
+                DB::raw("COUNT(DISTINCT CASE WHEN rvah.\"FLAG_VISIT\" = 'Y' AND $custnameFilter THEN rvah.\"CUSTNO\" ELSE NULL END) as ac"),
+                DB::raw("COUNT(DISTINCT CASE WHEN rvah.\"FLAG_BUY\" = 'Y' AND $custnameFilter THEN rvah.\"CUSTNO\" ELSE NULL END) as ec"),
                 DB::raw('SUM(COALESCE(l.target, 0)) as target'),
                 DB::raw('SUM(COALESCE(rvah."ORDER_VAL", 0)) as order_val'),
-                DB::raw("SUM(CASE WHEN l.pilar = '1. RWO' AND rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as rwo"),
-                DB::raw("SUM(CASE WHEN l.pilar = '2. PNR' AND rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as pnr"),
-                DB::raw("SUM(CASE WHEN l.pilar = '3. NGVO' AND rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as ngvo"),
-                DB::raw("SUM(
+                DB::raw("COUNT(DISTINCT CASE WHEN l.pilar = '1. RWO' AND rvah.\"FLAG_VISIT\" = 'Y' THEN rvah.\"CUSTNO\" ELSE NULL END) as rwo"),
+                DB::raw("COUNT(DISTINCT CASE WHEN l.pilar = '2. PNR' AND rvah.\"FLAG_VISIT\" = 'Y' THEN rvah.\"CUSTNO\" ELSE NULL END) as pnr"),
+                DB::raw("COUNT(DISTINCT CASE WHEN l.pilar = '3. NGVO' AND rvah.\"FLAG_VISIT\" = 'Y' THEN rvah.\"CUSTNO\" ELSE NULL END) as ngvo"),
+                DB::raw("COUNT(DISTINCT 
                     CASE WHEN rvah.\"FLAG_VISIT\" = 'Y' 
                           AND rvah.\"V_LA\" IS NOT NULL AND rvah.\"V_LA\" != 0
                           AND rvah.\"M_LA\" IS NOT NULL AND rvah.\"M_LA\" != 0
                           AND $distanceSql > 50
-                         THEN 1 ELSE 0 
+                         THEN rvah.\"CUSTNO\" ELSE NULL 
                     END
                 ) as out_of_area")
             )
@@ -631,6 +633,8 @@ class Index extends Component
             ) * 6371000)
         ";
 
+        $custnameFilter = "UPPER(rvah.\"CUSTNAME\") NOT LIKE '%BRIFING%' AND UPPER(rvah.\"CUSTNAME\") NOT LIKE '%BRIEFING%' AND UPPER(rvah.\"CUSTNAME\") NOT LIKE '%EVALUASI%' AND UPPER(rvah.\"CUSTNAME\") NOT LIKE '%MEETING%' AND UPPER(rvah.\"CUSTNAME\") NOT LIKE '%PERJALANAN%' AND UPPER(rvah.\"CUSTNAME\") NOT LIKE '%BLITZ%'";
+
         $query = $this->getBaseQuery()
             ->leftJoin('list_toko_pareto_team_elite as l', 'l.customer_code_prc', '=', 'rvah.CUSTNO')
             ->leftJoin('master_regions as mr', 't.region_code', '=', 'mr.region_code')
@@ -640,20 +644,20 @@ class Index extends Component
                 'ma.area_name',
                 'rvah.MUNAME as supervisor_name',
                 't.team_elite_code as supervisor_code',
-                DB::raw('COUNT(*) as pc'),
-                DB::raw("SUM(CASE WHEN rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as ac"),
-                DB::raw("SUM(CASE WHEN rvah.\"FLAG_BUY\" = 'Y' THEN 1 ELSE 0 END) as ec"),
+                DB::raw("COUNT(DISTINCT CASE WHEN $custnameFilter THEN rvah.\"CUSTNO\" ELSE NULL END) as pc"),
+                DB::raw("COUNT(DISTINCT CASE WHEN rvah.\"FLAG_VISIT\" = 'Y' AND $custnameFilter THEN rvah.\"CUSTNO\" ELSE NULL END) as ac"),
+                DB::raw("COUNT(DISTINCT CASE WHEN rvah.\"FLAG_BUY\" = 'Y' AND $custnameFilter THEN rvah.\"CUSTNO\" ELSE NULL END) as ec"),
                 DB::raw('SUM(COALESCE(l.target, 0)) as target'),
                 DB::raw('SUM(COALESCE(rvah."ORDER_VAL", 0)) as order_val'),
-                DB::raw("SUM(CASE WHEN l.pilar = '1. RWO' AND rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as rwo"),
-                DB::raw("SUM(CASE WHEN l.pilar = '2. PNR' AND rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as pnr"),
-                DB::raw("SUM(CASE WHEN l.pilar = '3. NGVO' AND rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as ngvo"),
-                DB::raw("SUM(
+                DB::raw("COUNT(DISTINCT CASE WHEN l.pilar = '1. RWO' AND rvah.\"FLAG_VISIT\" = 'Y' THEN rvah.\"CUSTNO\" ELSE NULL END) as rwo"),
+                DB::raw("COUNT(DISTINCT CASE WHEN l.pilar = '2. PNR' AND rvah.\"FLAG_VISIT\" = 'Y' THEN rvah.\"CUSTNO\" ELSE NULL END) as pnr"),
+                DB::raw("COUNT(DISTINCT CASE WHEN l.pilar = '3. NGVO' AND rvah.\"FLAG_VISIT\" = 'Y' THEN rvah.\"CUSTNO\" ELSE NULL END) as ngvo"),
+                DB::raw("COUNT(DISTINCT 
                     CASE WHEN rvah.\"FLAG_VISIT\" = 'Y' 
                           AND rvah.\"V_LA\" IS NOT NULL AND rvah.\"V_LA\" != 0
                           AND rvah.\"M_LA\" IS NOT NULL AND rvah.\"M_LA\" != 0
                           AND $distanceSql > 50
-                         THEN 1 ELSE 0 
+                         THEN rvah.\"CUSTNO\" ELSE NULL 
                     END
                 ) as out_of_area")
             )
