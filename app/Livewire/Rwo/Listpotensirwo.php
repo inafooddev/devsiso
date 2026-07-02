@@ -9,10 +9,20 @@ use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\ListPotensiRwoImport;
 use Illuminate\Support\Facades\Storage;
+use App\Traits\EnforcesMenuPermissions;
 
 class Listpotensirwo extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'rwo.listpotensirwo';
+
+    // Permissions
+    public $canAdd = true;
+    public $canEdit = true;
+    public $canDelete = true;
+    public $canImport = true;
+    public $canExport = true;
 
     public $search = '';
 
@@ -57,6 +67,15 @@ class Listpotensirwo extends Component
 
     public function mount()
     {
+        $user = auth()->user();
+        if ($user) {
+            $this->canAdd = $user->hasMenuAccess($this->menuRoute, 'can_add');
+            $this->canEdit = $user->hasMenuAccess($this->menuRoute, 'can_edit');
+            $this->canDelete = $user->hasMenuAccess($this->menuRoute, 'can_delete');
+            $this->canImport = $user->hasMenuAccess($this->menuRoute, 'can_import');
+            $this->canExport = $user->hasMenuAccess($this->menuRoute, 'can_export');
+        }
+
         $this->kuartals = DB::table('master_calender')->select('quarter')->whereNotNull('quarter')->distinct()->orderBy('quarter')->get();
         $this->regions = DB::table('master_regions')->orderBy('region_name')->get();
     }
@@ -170,12 +189,13 @@ class Listpotensirwo extends Component
 
     public function downloadTemplate()
     {
-        $fileName = 'Template_Import_Potensi_RWO_' . date('Ymd_His') . '.xlsx';
-        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ListPotensiRwoTemplateExport(), $fileName);
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ListPotensiRwoTemplateExport(), 'Template_Import_Potensi_RWO_' . date('Ymd_His') . '.xlsx');
     }
 
     public function importData()
     {
+        $this->authorizeAction('can_import');
+        
         $this->validate(['importFile' => 'required|mimes:xlsx,xls,csv|max:10240']);
 
         try {
@@ -273,6 +293,8 @@ class Listpotensirwo extends Component
 
     public function exportData()
     {
+        $this->authorizeAction('can_export');
+        
         $query = $this->getBaseQuery()->select([
             'l.kuartal',
             'md.region_code',
@@ -364,6 +386,8 @@ class Listpotensirwo extends Component
 
     public function updateData()
     {
+        $this->authorizeAction('can_edit');
+        
         $this->validate([
             'editCustomerName' => 'required|string|max:255',
             'editAlamat' => 'nullable|string',
@@ -402,6 +426,8 @@ class Listpotensirwo extends Component
 
     public function destroyData()
     {
+        $this->authorizeAction('can_delete');
+        
         if ($this->deleteCustomerCode && $this->deleteKuartal) {
             DB::table('list_potensi_rwo')
                 ->where('customer_code', $this->deleteCustomerCode)

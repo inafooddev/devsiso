@@ -90,12 +90,16 @@
                     <span onclick="filter_modal.showModal()">
                         <x-ui.action-button type="filter" />
                     </span>
+                    @if($canImport)
                     <span onclick="import_modal.showModal()">
                         <x-ui.action-button type="import" />
                     </span>
+                    @endif
+                    @if($canExport)
                     <span wire:click="exportData">
                         <x-ui.action-button type="export" />
                     </span>
+                    @endif
                 </div>
             </div>
         </div>
@@ -401,6 +405,7 @@
                                         wire:click="showDetail('{{ $item->customer_code }}', '{{ $item->kuartal }}')"
                                     />
                                 </div>
+                                @if($canEdit)
                                 <div wire:loading.class="opacity-50 pointer-events-none" wire:target="editData('{{ $item->customer_code }}', '{{ $item->kuartal }}')">
                                     <x-ui.action-button 
                                         type="edit" 
@@ -409,6 +414,8 @@
                                         wire:click="editData('{{ $item->customer_code }}', '{{ $item->kuartal }}')"
                                     />
                                 </div>
+                                @endif
+                                @if($canDelete)
                                 <div wire:loading.class="opacity-50 pointer-events-none" wire:target="deleteData('{{ $item->customer_code }}', '{{ $item->kuartal }}')">
                                     <x-ui.action-button 
                                         type="delete" 
@@ -417,6 +424,7 @@
                                         wire:click="deleteData('{{ $item->customer_code }}', '{{ $item->kuartal }}')"
                                     />
                                 </div>
+                                @endif
                             </div>
                         </td>
                     </tr>
