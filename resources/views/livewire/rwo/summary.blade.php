@@ -14,6 +14,7 @@
         <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
             <a href="{{ route('rwo.summary') }}" class="tab tab-xs px-4 tab-active font-bold shadow-sm bg-base-100" wire:navigate>Summary</a>
             <a href="{{ route('rwo.index') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Detail</a>
+            <a href="{{ route('rwo.plan-kunjungan') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Cek Plan Kunjungan</a>
         </div>
     </div>
 
@@ -62,6 +63,32 @@
                             <th rowspan="2" class="align-middle border-b border-r border-base-200">Supervisor</th>
                             <th rowspan="2" class="align-middle border-b border-r border-base-200">Branch</th>
                             <th rowspan="2" class="align-middle border-b border-r border-base-200 text-center font-bold text-primary">Total<br>Toko (RWO)</th>
+                            <th rowspan="2" class="align-middle border-b border-r border-base-200 text-center font-bold text-success">
+                                Total<br>Toko Lengkap
+                                <div class="dropdown dropdown-hover dropdown-bottom dropdown-end lg:dropdown-center">
+                                    <div tabindex="0" class="inline-block cursor-help opacity-70 hover:opacity-100 transition-opacity ml-1 align-middle">
+                                        <x-heroicon-s-information-circle class="w-4 h-4 text-success" />
+                                    </div>
+                                    <div tabindex="0" class="dropdown-content z-50 card card-compact w-48 p-0 shadow-lg bg-base-100 text-base-content font-normal text-left text-xs border border-base-300 mt-1">
+                                        <div class="card-body p-3">
+                                            <div class="font-bold border-b border-base-200 pb-1 mb-1 text-[11px] text-base-content/70 uppercase">Syarat Lengkap:</div>
+                                            <ol class="list-decimal pl-4 space-y-0.5 m-0 leading-tight">
+                                                <li>No HP</li>
+                                                <li>Nama Pemilik</li>
+                                                <li>Nama KTP</li>
+                                                <li>NIK KTP</li>
+                                                <li>Foto KTP</li>
+                                                <li>No Rekening</li>
+                                                <li>Nama Bank</li>
+                                                <li>Pemilik Rekening</li>
+                                                <li>Foto Depan & Dalam</li>
+                                                <li>Lat & Long</li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                </div>
+                            </th>
+                            <th rowspan="2" class="align-middle border-b border-r border-base-200 text-center font-bold text-warning">Total<br>Toko Belum<br>Lengkap</th>
                             <th colspan="10" class="text-center border-b border-base-200 bg-error/10 text-error">Data Yang Belum Ada / Kosong</th>
                         </tr>
                         <tr>
@@ -84,6 +111,8 @@
 
                             $grandTotals = [
                                 'total_customer' => collect($records)->sum('total_customer'),
+                                'total_lengkap' => collect($records)->sum('total_lengkap'),
+                                'total_belum_lengkap' => collect($records)->sum('total_belum_lengkap'),
                                 'missing_no_hp' => collect($records)->sum('missing_no_hp'),
                                 'missing_nama_pemilik_toko' => collect($records)->sum('missing_nama_pemilik_toko'),
                                 'missing_nama_ktp' => collect($records)->sum('missing_nama_ktp'),
@@ -101,6 +130,8 @@
                             @php
                                 $regionSubtotals = [
                                     'total_customer' => $areas->sum('total_customer'),
+                                    'total_lengkap' => $areas->sum('total_lengkap'),
+                                    'total_belum_lengkap' => $areas->sum('total_belum_lengkap'),
                                     'missing_no_hp' => $areas->sum('missing_no_hp'),
                                     'missing_nama_pemilik_toko' => $areas->sum('missing_nama_pemilik_toko'),
                                     'missing_nama_ktp' => $areas->sum('missing_nama_ktp'),
@@ -119,6 +150,8 @@
                                 @php
                                     $areaSubtotals = [
                                         'total_customer' => $supervisors->sum('total_customer'),
+                                        'total_lengkap' => $supervisors->sum('total_lengkap'),
+                                        'total_belum_lengkap' => $supervisors->sum('total_belum_lengkap'),
                                         'missing_no_hp' => $supervisors->sum('missing_no_hp'),
                                         'missing_nama_pemilik_toko' => $supervisors->sum('missing_nama_pemilik_toko'),
                                         'missing_nama_ktp' => $supervisors->sum('missing_nama_ktp'),
@@ -138,6 +171,8 @@
                                         $supervisorName = $branches->first()->supervisor_name;
                                         $spvSubtotals = [
                                             'total_customer' => $branches->sum('total_customer'),
+                                            'total_lengkap' => $branches->sum('total_lengkap'),
+                                            'total_belum_lengkap' => $branches->sum('total_belum_lengkap'),
                                             'missing_no_hp' => $branches->sum('missing_no_hp'),
                                             'missing_nama_pemilik_toko' => $branches->sum('missing_nama_pemilik_toko'),
                                             'missing_nama_ktp' => $branches->sum('missing_nama_ktp'),
@@ -160,6 +195,8 @@
                                             <td class="max-w-[120px] truncate" title="{{ $supervisorName ?? '-' }}">{{ $supervisorName ?? '-' }}</td>
                                             <td class="font-bold max-w-[120px] truncate" title="{{ $row->branch_name ?? '-' }}">{{ $row->branch_name ?? '-' }}</td>
                                             <td class="text-center font-bold text-primary bg-primary/5">{{ number_format($row->total_customer) }}</td>
+                                            <td class="text-center font-bold text-success bg-success/5">{{ number_format($row->total_lengkap) }}</td>
+                                            <td class="text-center font-bold text-warning bg-warning/5">{{ number_format($row->total_belum_lengkap) }}</td>
                                             
                                             <td class="text-center {{ $row->missing_no_hp > 0 ? 'text-error font-bold' : 'text-success' }}">{{ number_format($row->missing_no_hp) }}</td>
                                             <td class="text-center {{ $row->missing_nama_pemilik_toko > 0 ? 'text-error font-bold' : 'text-success' }}">{{ number_format($row->missing_nama_pemilik_toko) }}</td>
@@ -178,6 +215,8 @@
                                     <tr style="background-color: #dbeafe !important; color: #1e3a8a !important; font-weight: bold;">
                                         <td colspan="5" class="text-right uppercase tracking-wider pr-4">Subtotal SPV: {{ $supervisorName ?? '-' }}</td>
                                         <td class="text-center">{{ number_format($spvSubtotals['total_customer']) }}</td>
+                                        <td class="text-center">{{ number_format($spvSubtotals['total_lengkap']) }}</td>
+                                        <td class="text-center">{{ number_format($spvSubtotals['total_belum_lengkap']) }}</td>
                                         <td class="text-center">{{ number_format($spvSubtotals['missing_no_hp']) }}</td>
                                         <td class="text-center">{{ number_format($spvSubtotals['missing_nama_pemilik_toko']) }}</td>
                                         <td class="text-center">{{ number_format($spvSubtotals['missing_nama_ktp']) }}</td>
@@ -195,6 +234,8 @@
                                 <tr style="background-color: #fef3c7 !important; color: #92400e !important; font-weight: bold;">
                                     <td colspan="5" class="text-right uppercase tracking-wider pr-4">Subtotal Area: {{ $areaName ?? '-' }}</td>
                                     <td class="text-center">{{ number_format($areaSubtotals['total_customer']) }}</td>
+                                    <td class="text-center">{{ number_format($areaSubtotals['total_lengkap']) }}</td>
+                                    <td class="text-center">{{ number_format($areaSubtotals['total_belum_lengkap']) }}</td>
                                     <td class="text-center">{{ number_format($areaSubtotals['missing_no_hp']) }}</td>
                                     <td class="text-center">{{ number_format($areaSubtotals['missing_nama_pemilik_toko']) }}</td>
                                     <td class="text-center">{{ number_format($areaSubtotals['missing_nama_ktp']) }}</td>
@@ -212,6 +253,8 @@
                             <tr style="background-color: #d1fae5 !important; color: #065f46 !important; font-weight: bold;">
                                 <td colspan="5" class="text-right uppercase tracking-wider pr-4">Subtotal Region: {{ $regionName ?? '-' }}</td>
                                 <td class="text-center">{{ number_format($regionSubtotals['total_customer']) }}</td>
+                                <td class="text-center">{{ number_format($regionSubtotals['total_lengkap']) }}</td>
+                                <td class="text-center">{{ number_format($regionSubtotals['total_belum_lengkap']) }}</td>
                                 <td class="text-center">{{ number_format($regionSubtotals['missing_no_hp']) }}</td>
                                 <td class="text-center">{{ number_format($regionSubtotals['missing_nama_pemilik_toko']) }}</td>
                                 <td class="text-center">{{ number_format($regionSubtotals['missing_nama_ktp']) }}</td>
@@ -225,7 +268,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="16" class="text-center py-8 text-base-content/50">
+                                <td colspan="18" class="text-center py-8 text-base-content/50">
                                     <x-heroicon-o-document-magnifying-glass class="w-12 h-12 mx-auto mb-3 opacity-30" />
                                     Tidak ada data summary yang ditemukan.
                                 </td>
@@ -237,6 +280,8 @@
                         <tr class="text-base-content/80 text-[10px]" style="background-color: #e5e7eb !important;">
                             <td colspan="5" class="text-right font-black uppercase tracking-wider pr-4 py-3">GRAND TOTAL KESELURUHAN</td>
                             <td class="text-center font-black py-3 text-primary">{{ number_format($grandTotals['total_customer']) }}</td>
+                            <td class="text-center font-black py-3 text-success">{{ number_format($grandTotals['total_lengkap']) }}</td>
+                            <td class="text-center font-black py-3 text-warning">{{ number_format($grandTotals['total_belum_lengkap']) }}</td>
                             <td class="text-center font-black py-3 {{ $grandTotals['missing_no_hp'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_no_hp']) }}</td>
                             <td class="text-center font-black py-3 {{ $grandTotals['missing_nama_pemilik_toko'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_nama_pemilik_toko']) }}</td>
                             <td class="text-center font-black py-3 {{ $grandTotals['missing_nama_ktp'] > 0 ? 'text-error' : 'text-success' }}">{{ number_format($grandTotals['missing_nama_ktp']) }}</td>

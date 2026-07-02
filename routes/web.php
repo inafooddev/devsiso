@@ -278,6 +278,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/monitoring-device', MonitoringDeviceIndex::class)->name('monitoring-device.index');
     Route::get('/rwo', RwoIndex::class)->name('rwo.index');
     Route::get('/rwo/summary', \App\Livewire\Rwo\Summary::class)->name('rwo.summary');
+    Route::get('/rwo/plan-kunjungan', \App\Livewire\Rwo\PlanKunjungan::class)->name('rwo.plan-kunjungan');
+    Route::get('/rwo/listpotensirwo', \App\Livewire\Rwo\Listpotensirwo::class)->name('rwo.listpotensirwo');
     Route::get('/under-construction', UnderConstruction::class)->name('under-construction');
     Route::get('/under-bounce', UnderBounce::class)->name('under-bounce');
 

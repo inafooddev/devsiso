@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('surat_kesepakatan_bersama_rwo', function (Blueprint $table) {
             $table->id();
-            $table->string('kuartal')->index();
+            $table->integer('kuartal')->index();
             $table->string('distributor_code')->index();
             $table->string('customer_code')->index();
             $table->string('foto_skb')->nullable();
