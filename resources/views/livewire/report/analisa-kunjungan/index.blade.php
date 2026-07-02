@@ -295,7 +295,7 @@
                         <th class="align-middle" rowspan="2">Region</th>
                         <th class="align-middle" rowspan="2">Area</th>
                         <th class="align-middle border-r border-base-300" rowspan="2">Supervisor</th>
-                        <th class="align-middle text-center border-b-0 border-r border-base-300" colspan="3">Kunjungan (Visit)</th>
+                        <th class="align-middle text-center border-b-0 border-r border-base-300" colspan="5">Kunjungan (Visit)</th>
                         <th class="align-middle text-center border-b-0 border-r border-base-300 bg-base-200/50" colspan="3">Order (Value)</th>
                         <th class="align-middle text-center border-b-0 border-r border-base-300" colspan="8">Pilar Actual</th>
                         <th class="align-middle text-center border-b-0 border-base-300 bg-base-200/50" colspan="2">Out of Area <span class="text-[9px] font-normal opacity-75">(> 50m)</span></th>
@@ -303,6 +303,8 @@
                     <tr>
                         <th class="align-middle text-center bg-base-200/90">PC</th>
                         <th class="align-middle text-center bg-base-200/90">AC</th>
+                        <th class="align-middle text-center bg-base-200/90">%</th>
+                        <th class="align-middle text-center bg-base-200/90">EC</th>
                         <th class="align-middle text-center bg-base-200/90 border-r border-base-300">%</th>
                         <th class="align-middle text-center bg-base-200/70">Target</th>
                         <th class="align-middle text-center bg-base-200/70">Order</th>
@@ -323,13 +325,14 @@
                 @php
                     $sumData = $this->summaryData;
                     
-                    $totPc = 0; $totAc = 0; $totTarget = 0; $totOrder = 0;
+                    $totPc = 0; $totAc = 0; $totEc = 0; $totTarget = 0; $totOrder = 0;
                     $totRwo = 0; $totPnr = 0; $totNgvo = 0; $totOoa = 0;
                 @endphp
                 @forelse($sumData as $i => $row)
                     @php
                         $totPc += $row['pc'];
                         $totAc += $row['ac'];
+                        $totEc += $row['ec'];
                         $totTarget += $row['target'];
                         $totOrder += $row['order'];
                         $totRwo += $row['rwo'];
@@ -346,10 +349,16 @@
                         </td>
                         <td class="text-center font-medium">{{ number_format($row['pc'], 0, ',', '.') }}</td>
                         <td class="text-center font-medium">{{ number_format($row['ac'], 0, ',', '.') }}</td>
-                        <td class="text-center border-r border-base-300">
+                        <td class="text-center">
                             @if($row['pc_ac_pct'] < 50) <span class="text-error font-bold">{{ number_format($row['pc_ac_pct'], 1, ',', '.') }}%</span>
                             @elseif($row['pc_ac_pct'] < 80) <span class="text-warning font-bold">{{ number_format($row['pc_ac_pct'], 1, ',', '.') }}%</span>
                             @else <span class="text-success font-bold">{{ number_format($row['pc_ac_pct'], 1, ',', '.') }}%</span> @endif
+                        </td>
+                        <td class="text-center font-medium">{{ number_format($row['ec'], 0, ',', '.') }}</td>
+                        <td class="text-center border-r border-base-300">
+                            @if($row['ec_pct'] < 50) <span class="text-error font-bold">{{ number_format($row['ec_pct'], 1, ',', '.') }}%</span>
+                            @elseif($row['ec_pct'] < 80) <span class="text-warning font-bold">{{ number_format($row['ec_pct'], 1, ',', '.') }}%</span>
+                            @else <span class="text-success font-bold">{{ number_format($row['ec_pct'], 1, ',', '.') }}%</span> @endif
                         </td>
                         <td class="text-right text-base-content/80 bg-base-200/20">Rp {{ number_format($row['target'], 0, ',', '.') }}</td>
                         <td class="text-right font-medium bg-base-200/20">Rp {{ number_format($row['order'], 0, ',', '.') }}</td>
@@ -391,7 +400,9 @@
                         <td colspan="4" class="text-right uppercase tracking-wider text-[11px] border-r border-base-300">Total Kumulatif</td>
                         <td class="text-center">{{ number_format($totPc, 0, ',', '.') }}</td>
                         <td class="text-center">{{ number_format($totAc, 0, ',', '.') }}</td>
-                        <td class="text-center text-primary text-[11px] border-r border-base-300">{{ $totPc > 0 ? number_format(($totAc / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
+                        <td class="text-center text-primary text-[11px]">{{ $totPc > 0 ? number_format(($totAc / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
+                        <td class="text-center">{{ number_format($totEc, 0, ',', '.') }}</td>
+                        <td class="text-center text-primary text-[11px] border-r border-base-300">{{ $totPc > 0 ? number_format(($totEc / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
                         <td class="text-right bg-base-200/50">Rp {{ number_format($totTarget, 0, ',', '.') }}</td>
                         <td class="text-right text-primary text-[11px] bg-base-200/50">Rp {{ number_format($totOrder, 0, ',', '.') }}</td>
                         <td class="text-center text-primary text-[11px] border-r border-base-300 bg-base-200/50">{{ $totTarget > 0 ? number_format(($totOrder / $totTarget) * 100, 1, ',', '.') : '0,0' }}%</td>

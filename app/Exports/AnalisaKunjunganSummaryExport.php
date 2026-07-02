@@ -22,18 +22,63 @@ class AnalisaKunjunganSummaryExport implements FromArray, WithHeadings, ShouldAu
         $exportData = [];
         $no = 1;
 
-        $totPc = 0; $totAc = 0; $totTarget = 0; $totOrder = 0;
+        $totPc = 0; $totAc = 0; $totEc = 0; $totTarget = 0; $totOrder = 0;
         $totRwo = 0; $totPnr = 0; $totNgvo = 0; $totOoa = 0;
 
+        $currentSupervisor = null;
+        $currentSupervisorName = null;
+        $subPc = 0; $subAc = 0; $subEc = 0; $subTarget = 0; $subOrder = 0;
+        $subRwo = 0; $subPnr = 0; $subNgvo = 0; $subOoa = 0;
+
         foreach ($this->data as $row) {
+            $rowSupervisor = $row['supervisor_code'] ?? null;
+            $rowSupervisorName = $row['supervisor_name'] ?? null;
+
+            if ($currentSupervisor !== null && $currentSupervisor !== $rowSupervisor) {
+                $subPareto = $subRwo + $subPnr + $subNgvo;
+                $exportData[] = [
+                    'No' => '',
+                    'Region' => '',
+                    'Area' => '',
+                    'Supervisor' => 'SUBTOTAL ' . $currentSupervisorName,
+                    'Tanggal' => '',
+                    'PC' => $subPc,
+                    'AC' => $subAc,
+                    'Visit %' => ($subPc > 0 ? round(($subAc / $subPc) * 100, 1) : 0) . '%',
+                    'EC' => $subEc,
+                    'EC %' => ($subPc > 0 ? round(($subEc / $subPc) * 100, 1) : 0) . '%',
+                    'Target' => $subTarget,
+                    'Order' => $subOrder,
+                    'Order %' => ($subTarget > 0 ? round(($subOrder / $subTarget) * 100, 1) : 0) . '%',
+                    'RWO' => $subRwo,
+                    'RWO %' => ($subPc > 0 ? round(($subRwo / $subPc) * 100, 1) : 0) . '%',
+                    'PNR' => $subPnr,
+                    'PNR %' => ($subPc > 0 ? round(($subPnr / $subPc) * 100, 1) : 0) . '%',
+                    'NGVO' => $subNgvo,
+                    'NGVO %' => ($subPc > 0 ? round(($subNgvo / $subPc) * 100, 1) : 0) . '%',
+                    'Pareto' => $subPareto,
+                    'Pareto %' => ($subPc > 0 ? round(($subPareto / $subPc) * 100, 1) : 0) . '%',
+                    'Out of Area' => $subOoa,
+                    'Out of Area %' => ($subAc > 0 ? round(($subOoa / $subAc) * 100, 1) : 0) . '%'
+                ];
+
+                $subPc = 0; $subAc = 0; $subEc = 0; $subTarget = 0; $subOrder = 0;
+                $subRwo = 0; $subPnr = 0; $subNgvo = 0; $subOoa = 0;
+            }
+
+            $currentSupervisor = $rowSupervisor;
+            $currentSupervisorName = $rowSupervisorName;
             $exportData[] = [
                 'No' => $no++,
                 'Region' => $row['region_name'],
                 'Area' => $row['area_name'],
                 'Supervisor' => $row['supervisor_name'],
+                'Tanggal' => $row['tanggal'] ?? '',
                 'PC' => $row['pc'],
                 'AC' => $row['ac'],
                 'Visit %' => $row['pc_ac_pct'] . '%',
+                'EC' => $row['ec'],
+                'EC %' => $row['ec_pct'] . '%',
                 'Target' => $row['target'],
                 'Order' => $row['order'],
                 'Order %' => $row['target_order_pct'] . '%',
@@ -51,12 +96,52 @@ class AnalisaKunjunganSummaryExport implements FromArray, WithHeadings, ShouldAu
 
             $totPc += $row['pc'];
             $totAc += $row['ac'];
+            $totEc += $row['ec'];
             $totTarget += $row['target'];
             $totOrder += $row['order'];
             $totRwo += $row['rwo'];
             $totPnr += $row['pnr'];
             $totNgvo += $row['ngvo'];
             $totOoa += $row['out_of_area'];
+
+            $subPc += $row['pc'];
+            $subAc += $row['ac'];
+            $subEc += $row['ec'];
+            $subTarget += $row['target'];
+            $subOrder += $row['order'];
+            $subRwo += $row['rwo'];
+            $subPnr += $row['pnr'];
+            $subNgvo += $row['ngvo'];
+            $subOoa += $row['out_of_area'];
+        }
+
+        if ($currentSupervisor !== null) {
+            $subPareto = $subRwo + $subPnr + $subNgvo;
+            $exportData[] = [
+                'No' => '',
+                'Region' => '',
+                'Area' => '',
+                'Supervisor' => 'SUBTOTAL ' . $currentSupervisorName,
+                'Tanggal' => '',
+                'PC' => $subPc,
+                'AC' => $subAc,
+                'Visit %' => ($subPc > 0 ? round(($subAc / $subPc) * 100, 1) : 0) . '%',
+                'EC' => $subEc,
+                'EC %' => ($subPc > 0 ? round(($subEc / $subPc) * 100, 1) : 0) . '%',
+                'Target' => $subTarget,
+                'Order' => $subOrder,
+                'Order %' => ($subTarget > 0 ? round(($subOrder / $subTarget) * 100, 1) : 0) . '%',
+                'RWO' => $subRwo,
+                'RWO %' => ($subPc > 0 ? round(($subRwo / $subPc) * 100, 1) : 0) . '%',
+                'PNR' => $subPnr,
+                'PNR %' => ($subPc > 0 ? round(($subPnr / $subPc) * 100, 1) : 0) . '%',
+                'NGVO' => $subNgvo,
+                'NGVO %' => ($subPc > 0 ? round(($subNgvo / $subPc) * 100, 1) : 0) . '%',
+                'Pareto' => $subPareto,
+                'Pareto %' => ($subPc > 0 ? round(($subPareto / $subPc) * 100, 1) : 0) . '%',
+                'Out of Area' => $subOoa,
+                'Out of Area %' => ($subAc > 0 ? round(($subOoa / $subAc) * 100, 1) : 0) . '%'
+            ];
         }
 
         if (count($exportData) > 0) {
@@ -66,9 +151,12 @@ class AnalisaKunjunganSummaryExport implements FromArray, WithHeadings, ShouldAu
                 'Region' => '',
                 'Area' => '',
                 'Supervisor' => 'TOTAL KUMULATIF',
+                'Tanggal' => '',
                 'PC' => $totPc,
                 'AC' => $totAc,
                 'Visit %' => ($totPc > 0 ? round(($totAc / $totPc) * 100, 1) : 0) . '%',
+                'EC' => $totEc,
+                'EC %' => ($totPc > 0 ? round(($totEc / $totPc) * 100, 1) : 0) . '%',
                 'Target' => $totTarget,
                 'Order' => $totOrder,
                 'Order %' => ($totTarget > 0 ? round(($totOrder / $totTarget) * 100, 1) : 0) . '%',
@@ -95,9 +183,12 @@ class AnalisaKunjunganSummaryExport implements FromArray, WithHeadings, ShouldAu
             'Region',
             'Area',
             'Supervisor',
+            'Tanggal',
             'PC',
             'AC',
             'Visit %',
+            'EC',
+            'EC %',
             'Target',
             'Order',
             'Order %',

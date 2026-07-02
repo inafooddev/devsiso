@@ -371,7 +371,117 @@ class Index extends Component
             return;
         }
 
-        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\AnalisaKunjunganSummaryExport($this->summaryData), 'summary_analisa_kunjungan_' . date('Ymd_His') . '.xlsx');
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\AnalisaKunjunganSummaryExport($this->summaryDataForExport()), 'summary_analisa_kunjungan_' . date('Ymd_His') . '.xlsx');
+    }
+
+    public function summaryDataForExport()
+    {
+        if (empty($this->appliedSummaryRegion) && empty($this->appliedSummaryStartDate) && empty($this->appliedSummaryEndDate)) {
+            return [];
+        }
+
+        $distanceSql = "
+            (ACOS(
+                LEAST(1.0, GREATEST(-1.0, 
+                    SIN(RADIANS(rvah.\"V_LA\")) * 
+                    SIN(RADIANS(rvah.\"M_LA\")) + 
+                    COS(RADIANS(rvah.\"V_LA\")) * 
+                    COS(RADIANS(rvah.\"M_LA\")) * 
+                    COS(RADIANS(rvah.\"V_LG\" - rvah.\"M_LG\"))
+                ))
+            ) * 6371000)
+        ";
+
+        $query = $this->getBaseQuery()
+            ->leftJoin('list_toko_pareto_team_elite as l', 'l.customer_code_prc', '=', 'rvah.CUSTNO')
+            ->leftJoin('master_regions as mr', 't.region_code', '=', 'mr.region_code')
+            ->leftJoin('master_areas as ma', 't.area_code', '=', 'ma.area_code')
+            ->select(
+                DB::raw('rvah."TANGGAL"::date as tanggal'),
+                'mr.region_name',
+                'ma.area_name',
+                'rvah.MUNAME as supervisor_name',
+                't.team_elite_code as supervisor_code',
+                DB::raw('COUNT(*) as pc'),
+                DB::raw("SUM(CASE WHEN rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as ac"),
+                DB::raw("SUM(CASE WHEN rvah.\"FLAG_BUY\" = 'Y' THEN 1 ELSE 0 END) as ec"),
+                DB::raw('SUM(COALESCE(l.target, 0)) as target'),
+                DB::raw('SUM(COALESCE(rvah."ORDER_VAL", 0)) as order_val'),
+                DB::raw("SUM(CASE WHEN l.pilar = '1. RWO' AND rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as rwo"),
+                DB::raw("SUM(CASE WHEN l.pilar = '2. PNR' AND rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as pnr"),
+                DB::raw("SUM(CASE WHEN l.pilar = '3. NGVO' AND rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as ngvo"),
+                DB::raw("SUM(
+                    CASE WHEN rvah.\"FLAG_VISIT\" = 'Y' 
+                          AND rvah.\"V_LA\" IS NOT NULL AND rvah.\"V_LA\" != 0
+                          AND rvah.\"M_LA\" IS NOT NULL AND rvah.\"M_LA\" != 0
+                          AND $distanceSql > 50
+                         THEN 1 ELSE 0 
+                    END
+                ) as out_of_area")
+            )
+            ->groupBy(
+                DB::raw('rvah."TANGGAL"::date'),
+                'mr.region_name',
+                'ma.area_name',
+                'rvah.MUNAME',
+                't.team_elite_code'
+            );
+            
+        $rows = $query->get();
+        
+        $grouped = $rows->map(function($row) {
+            $pc = (int) $row->pc;
+            $ac = (int) $row->ac;
+            $ec = (int) $row->ec;
+            $rwo = (int) $row->rwo;
+            $pnr = (int) $row->pnr;
+            $ngvo = (int) $row->ngvo;
+            $pareto = $rwo + $pnr + $ngvo;
+            $outOfArea = (int) $row->out_of_area;
+
+            return [
+                'tanggal' => $row->tanggal,
+                'region_name' => $row->region_name,
+                'area_name' => $row->area_name,
+                'supervisor_code' => $row->supervisor_code,
+                'supervisor_name' => $row->supervisor_name,
+                'pc' => $pc,
+                'ac' => $ac,
+                'pc_ac_pct' => $pc > 0 ? round(($ac / $pc) * 100, 1) : 0,
+                'ec' => $ec,
+                'ec_pct' => $pc > 0 ? round(($ec / $pc) * 100, 1) : 0,
+                'target' => (float) $row->target,
+                'order' => (float) $row->order_val,
+                'target_order_pct' => $row->target > 0 ? round(($row->order_val / $row->target) * 100, 1) : 0,
+                'rwo' => $rwo,
+                'rwo_pct' => $pc > 0 ? round(($rwo / $pc) * 100, 1) : 0,
+                'pnr' => $pnr,
+                'pnr_pct' => $pc > 0 ? round(($pnr / $pc) * 100, 1) : 0,
+                'ngvo' => $ngvo,
+                'ngvo_pct' => $pc > 0 ? round(($ngvo / $pc) * 100, 1) : 0,
+                'pareto' => $pareto,
+                'pareto_pct' => $pc > 0 ? round(($pareto / $pc) * 100, 1) : 0,
+                'out_of_area' => $outOfArea,
+                'out_of_area_pct' => $ac > 0 ? round(($outOfArea / $ac) * 100, 1) : 0
+            ];
+        })->toArray();
+
+        // Sort by tanggal -> region -> area -> supervisor
+        usort($grouped, function($a, $b) {
+            $cmp = strcmp($a['region_name'] ?? '', $b['region_name'] ?? '');
+            if ($cmp === 0) {
+                $cmp = strcmp($a['area_name'] ?? '', $b['area_name'] ?? '');
+                if ($cmp === 0) {
+                    $cmp = strcmp($a['supervisor_name'] ?? '', $b['supervisor_name'] ?? '');
+                    if ($cmp === 0) {
+                        $cmp = strcmp($a['tanggal'] ?? '', $b['tanggal'] ?? '');
+                    }
+                }
+            }
+            return $cmp;
+        });
+
+        return $grouped;
     }
 
     public function getDistance($lat1, $lon1, $lat2, $lon2)
@@ -532,6 +642,7 @@ class Index extends Component
                 't.team_elite_code as supervisor_code',
                 DB::raw('COUNT(*) as pc'),
                 DB::raw("SUM(CASE WHEN rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as ac"),
+                DB::raw("SUM(CASE WHEN rvah.\"FLAG_BUY\" = 'Y' THEN 1 ELSE 0 END) as ec"),
                 DB::raw('SUM(COALESCE(l.target, 0)) as target'),
                 DB::raw('SUM(COALESCE(rvah."ORDER_VAL", 0)) as order_val'),
                 DB::raw("SUM(CASE WHEN l.pilar = '1. RWO' AND rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as rwo"),
@@ -558,6 +669,7 @@ class Index extends Component
         $grouped = $rows->map(function($row) {
             $pc = (int) $row->pc;
             $ac = (int) $row->ac;
+            $ec = (int) $row->ec;
             $rwo = (int) $row->rwo;
             $pnr = (int) $row->pnr;
             $ngvo = (int) $row->ngvo;
@@ -572,6 +684,8 @@ class Index extends Component
                 'pc' => $pc,
                 'ac' => $ac,
                 'pc_ac_pct' => $pc > 0 ? round(($ac / $pc) * 100, 1) : 0,
+                'ec' => $ec,
+                'ec_pct' => $pc > 0 ? round(($ec / $pc) * 100, 1) : 0,
                 'target' => (float) $row->target,
                 'order' => (float) $row->order_val,
                 'target_order_pct' => $row->target > 0 ? round(($row->order_val / $row->target) * 100, 1) : 0,

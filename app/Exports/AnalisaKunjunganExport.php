@@ -5,12 +5,11 @@ namespace App\Exports;
 use Maatwebsite\Excel\Concerns\FromGenerator;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class AnalisaKunjunganExport implements FromGenerator, WithHeadings, WithMapping, ShouldAutoSize, WithStyles
+class AnalisaKunjunganExport implements FromGenerator, WithHeadings, ShouldAutoSize, WithStyles
 {
     use Exportable;
 
@@ -23,8 +22,74 @@ class AnalisaKunjunganExport implements FromGenerator, WithHeadings, WithMapping
 
     public function generator(): \Generator
     {
+        $currentDate = null;
+        $rowNumber = 0;
+        $subtotalTarget = 0;
+        $subtotalOrder = 0;
+
         foreach ($this->query->cursor() as $row) {
-            yield $row;
+            $rowDate = $row->tanggal;
+
+            if ($currentDate !== null && $currentDate !== $rowDate) {
+                yield [
+                    '', '', '', '', '', '', '', '', '', '', '', '',
+                    'Subtotal Tanggal ' . \Carbon\Carbon::parse($currentDate)->format('d-m-Y') . ':',
+                    $subtotalTarget,
+                    '',
+                    $subtotalOrder,
+                    '', '', '', '', '', '', '', '', '', '', ''
+                ];
+                
+                $subtotalTarget = 0;
+                $subtotalOrder = 0;
+            }
+
+            $currentDate = $rowDate;
+            $rowNumber++;
+            
+            $subtotalTarget += (float) $row->target;
+            $subtotalOrder += (float) $row->val_order;
+
+            yield [
+                $rowNumber,
+                $row->tanggal,
+                $row->time_in,
+                $row->time_out,
+                $row->time_consume,
+                $row->time_travel,
+                $row->time_pause,
+                $row->supervisor_code,
+                $row->supervisor_name,
+                $row->custno,
+                $row->custname,
+                $row->address,
+                $row->pilar,
+                $row->target,
+                $row->qty_order,
+                $row->val_order,
+                $row->flag_pjp,
+                $row->flag_visit,
+                $row->flag_ec,
+                $row->flag_buy,
+                $row->flag_pause,
+                $row->visit_lat,
+                $row->visit_lon,
+                $this->getDistance($row->master_lat ?? null, $row->master_lon ?? null, $row->visit_lat ?? null, $row->visit_lon ?? null),
+                $row->reason_type,
+                $row->reason_desc,
+                $row->action_remark,
+            ];
+        }
+
+        if ($currentDate !== null) {
+            yield [
+                '', '', '', '', '', '', '', '', '', '', '', '',
+                'Subtotal Tanggal ' . \Carbon\Carbon::parse($currentDate)->format('d-m-Y') . ':',
+                $subtotalTarget,
+                '',
+                $subtotalOrder,
+                '', '', '', '', '', '', '', '', '', '', ''
+            ];
         }
     }
 
@@ -61,41 +126,6 @@ class AnalisaKunjunganExport implements FromGenerator, WithHeadings, WithMapping
         ];
     }
 
-    public function map($row): array
-    {
-        static $rowNumber = 0;
-        $rowNumber++;
-
-        return [
-            $rowNumber,
-            $row->tanggal,
-            $row->time_in,
-            $row->time_out,
-            $row->time_consume,
-            $row->time_travel,
-            $row->time_pause,
-            $row->supervisor_code,
-            $row->supervisor_name,
-            $row->custno,
-            $row->custname,
-            $row->address,
-            $row->pilar,
-            $row->target,
-            $row->qty_order,
-            $row->val_order,
-            $row->flag_pjp,
-            $row->flag_visit,
-            $row->flag_ec,
-            $row->flag_buy,
-            $row->flag_pause,
-            $row->visit_lat,
-            $row->visit_lon,
-            $this->getDistance($row->master_lat ?? null, $row->master_lon ?? null, $row->visit_lat ?? null, $row->visit_lon ?? null),
-            $row->reason_type,
-            $row->reason_desc,
-            $row->action_remark,
-        ];
-    }
 
     public function styles(Worksheet $sheet)
     {
