@@ -101,6 +101,16 @@ Route::get('/mobile/rwo-inertia', [\App\Http\Controllers\Mobile\Rwo\IndexControl
 Route::post('/mobile/rwo-inertia/upload', [\App\Http\Controllers\Mobile\Rwo\IndexController::class, 'upload'])->name('mobile.rwo.inertia.upload');
 Route::post('/mobile/rwo-inertia/edit', [\App\Http\Controllers\Mobile\Rwo\IndexController::class, 'edit'])->name('mobile.rwo.inertia.edit');
 
+Route::inertia('/mobile/ui-preview', 'mobile/Pages/UIPreview')->name('mobile.ui-preview');
+
+// Mock Mobile Routes
+Route::inertia('/mobile/login', 'mobile/Pages/Auth/Login')->name('mobile.login');
+Route::inertia('/mobile/home', 'mobile/Pages/Home')->name('mobile.home');
+Route::inertia('/mobile/menu', 'mobile/Pages/Menu')->name('mobile.menu');
+Route::inertia('/mobile/master-customer', 'mobile/Pages/MasterCustomer/Index')->name('mobile.master-customer');
+Route::inertia('/mobile/profile', 'mobile/Pages/Profile')->name('mobile.profile');
+
+
 Route::get('/mobile/audit', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'index'])->name('mobile.audit.index');
 Route::post('/mobile/audit', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'store'])->name('mobile.audit.store');
 Route::delete('/mobile/audit/{id}', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'destroy'])->name('mobile.audit.destroy');
@@ -280,6 +290,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/rwo/summary', \App\Livewire\Rwo\Summary::class)->name('rwo.summary');
     Route::get('/rwo/plan-kunjungan', \App\Livewire\Rwo\PlanKunjungan::class)->name('rwo.plan-kunjungan');
     Route::get('/rwo/listpotensirwo', \App\Livewire\Rwo\Listpotensirwo::class)->name('rwo.listpotensirwo');
+    Route::get('/rwo/surat-kesepakatan-bersama', \App\Livewire\Rwo\SuratKesepakatanBersama::class)->name('rwo.surat-kesepakatan-bersama');
     Route::get('/under-construction', UnderConstruction::class)->name('under-construction');
     Route::get('/under-bounce', UnderBounce::class)->name('under-bounce');
 

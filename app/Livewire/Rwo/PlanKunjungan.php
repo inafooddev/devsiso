@@ -12,7 +12,7 @@ class PlanKunjungan extends Component
     use WithPagination;
     use EnforcesMenuPermissions;
 
-    protected string $menuRoute = 'rwo.index'; 
+    protected string $menuRoute = 'rwo.listpotensirwo'; 
 
     public $dateStart = '';
     public $dateEnd = '';
@@ -112,15 +112,36 @@ class PlanKunjungan extends Component
         $this->resetPage();
     }
 
+    private function applyAccessScope($query, $alias = '')
+    {
+        $user = auth()->user();
+        if (!$user || $user->hasRole('admin')) {
+            return $query;
+        }
+
+        $prefix = $alias ? $alias . '.' : '';
+
+        if (!empty($user->supervisor_code)) {
+            $query->where($prefix . 'kode_team', $user->supervisor_code);
+        } elseif (!empty($user->area_code)) {
+            $query->whereIn($prefix . 'kode_area', (array) $user->area_code);
+        } elseif (!empty($user->region_code)) {
+            $query->whereIn($prefix . 'kode_region', (array) $user->region_code);
+        }
+
+        return $query;
+    }
+
     public function getRegionOptions()
     {
-        return DB::table('jks_team_elite')
+        $query = DB::table('jks_team_elite')
             ->select('nama_region')
             ->whereNotNull('nama_region')
-            ->where('nama_region', '!=', '')
-            ->distinct()
-            ->orderBy('nama_region')
-            ->pluck('nama_region');
+            ->where('nama_region', '!=', '');
+            
+        $this->applyAccessScope($query);
+
+        return $query->distinct()->orderBy('nama_region')->pluck('nama_region');
     }
 
     public function getAreaOptions()
@@ -130,6 +151,8 @@ class PlanKunjungan extends Component
             ->whereNotNull('nama_area')
             ->where('nama_area', '!=', '');
             
+        $this->applyAccessScope($query);
+
         if (!empty($this->selectedRegions)) {
             $query->whereIn('nama_region', $this->selectedRegions);
         }
@@ -144,6 +167,8 @@ class PlanKunjungan extends Component
             ->whereNotNull('nama_team')
             ->where('nama_team', '!=', '');
             
+        $this->applyAccessScope($query);
+
         if (!empty($this->selectedRegions)) {
             $query->whereIn('nama_region', $this->selectedRegions);
         }
@@ -163,6 +188,8 @@ class PlanKunjungan extends Component
             })
             ->leftJoin('reward_outlet as r', 'r.eskalink_code', '=', 'j.custno')
             ->where('l.pilar', '1. RWO');
+
+        $this->applyAccessScope($query, 'j');
 
         if (!empty($this->dateStart) && !empty($this->dateEnd)) {
             $query->whereBetween('j.tanggal', [$this->dateStart, $this->dateEnd]);

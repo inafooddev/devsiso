@@ -283,13 +283,13 @@
                 </div>
 
                 {{-- Tambah --}}
-                @canEdit('rwo.index')
+                @canAdd('rwo.index')
                 <button wire:click="openCreateModal"
                         class="btn btn-sm btn-primary rounded-xl normal-case gap-2 shadow-sm shadow-primary/20 w-full sm:w-auto">
                     <x-heroicon-s-plus class="w-4 h-4" />
                     Tambah
                 </button>
-                @endcanEdit
+                @endcanAdd
             </div>
         </div>
 
@@ -452,11 +452,13 @@
                                         class="btn btn-ghost btn-xs btn-square rounded-lg text-primary hover:bg-primary/10 transition-all duration-200" title="Edit">
                                     <x-heroicon-s-pencil-square class="w-4 h-4" />
                                 </button>
+                                @endcanEdit
+                                @canDelete('rwo.index')
                                 <button wire:click="confirmDelete({{ $row->id }})" 
                                         class="btn btn-ghost btn-xs btn-square rounded-lg text-error hover:bg-error/10 transition-all duration-200" title="Hapus">
                                     <x-heroicon-s-trash class="w-4 h-4" />
                                 </button>
-                                @endcanEdit
+                                @endcanDelete
                             </div>
                         </td>
                     </tr>

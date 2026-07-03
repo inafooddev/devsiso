@@ -13,5 +13,7 @@ class SuratKesepakatanBersamaRwo extends Model
         'distributor_code',
         'customer_code',
         'foto_skb',
+        'is_approved',
+        'reason',
     ];
 }

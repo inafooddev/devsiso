@@ -24,7 +24,17 @@ const appName = import.meta.env.VITE_APP_NAME || 'DevSiso';
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
-    resolve: (name) => resolvePageComponent(`./Pages/${name}.jsx`, import.meta.glob('./Pages/**/*.jsx')),
+    resolve: (name) => {
+        const pages = import.meta.glob([
+            './Pages/**/*.jsx', 
+            './Pages/**/*.tsx', 
+            './mobile/Pages/**/*.jsx', 
+            './mobile/Pages/**/*.tsx'
+        ]);
+        let path = name.startsWith('mobile/') ? `./${name}` : `./Pages/${name}`;
+        if (pages[`${path}.tsx`]) return pages[`${path}.tsx`]();
+        return pages[`${path}.jsx`]();
+    },
     setup({ el, App, props }) {
         const root = createRoot(el);
         root.render(<App {...props} />);

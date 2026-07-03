@@ -62,6 +62,24 @@ class Listpotensirwo extends Component
     public $editTotalTarget = 0;
     public $editDistributorName = '';
 
+    public $isApprovalModalOpen = false;
+    public $approvalCustomerCode = '';
+    public $approvalKuartal = '';
+    public $approvalDistributorCode = '';
+    public $approvalCustomerName = '';
+    public $approvalStatus = ''; // 'approve' or 'reject'
+    public $rejectReason = '';
+    public $fotoSkb;
+    public $existingFotoSkb = null;
+    public $approvalError = '';
+
+    public $filterTargetMin = null;
+    public $filterTargetMax = null;
+    
+    // State for Status Data Modal
+    public $isStatusModalOpen = false;
+    public $activeStatusData = null;
+
     public $isDetailModalOpen = false;
     public $detailData = [];
 
@@ -77,7 +95,12 @@ class Listpotensirwo extends Component
         }
 
         $this->kuartals = DB::table('master_calender')->select('quarter')->whereNotNull('quarter')->distinct()->orderBy('quarter')->get();
-        $this->regions = DB::table('master_regions')->orderBy('region_name')->get();
+        
+        $regionQuery = DB::table('master_regions')->orderBy('region_name');
+        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
+            $regionQuery->whereIn('region_code', (array) $user->region_code);
+        }
+        $this->regions = $regionQuery->get();
     }
 
     public function updatedKuartal($value)
@@ -257,6 +280,8 @@ class Listpotensirwo extends Component
                      ->on('skb.kuartal', '=', 'l.kuartal');
             });
 
+        $this->applyAccessScope($baseQuery, 'md');
+
         if (!empty($this->search)) {
             $baseQuery->where(function ($q) {
                 $q->where('l.customer_name', 'ilike', '%' . $this->search . '%')
@@ -291,6 +316,27 @@ class Listpotensirwo extends Component
         return $baseQuery;
     }
 
+    /**
+     * Filter Query berdasarkan hak akses (Regional, Area, Supervisor) user.
+     */
+    private function applyAccessScope($query, $distributorAlias = 'md')
+    {
+        $user = auth()->user();
+        if (!$user || $user->hasRole('admin')) {
+            return $query;
+        }
+
+        if (!empty($user->supervisor_code)) {
+            $query->where("$distributorAlias.supervisor_code", $user->supervisor_code);
+        } elseif (!empty($user->area_code)) {
+            $query->whereIn("$distributorAlias.area_code", (array) $user->area_code);
+        } elseif (!empty($user->region_code)) {
+            $query->whereIn("$distributorAlias.region_code", (array) $user->region_code);
+        }
+
+        return $query;
+    }
+
     public function exportData()
     {
         $this->authorizeAction('can_export');
@@ -323,7 +369,8 @@ class Listpotensirwo extends Component
             DB::raw("CASE
                 WHEN skb.customer_code IS NOT NULL THEN 'Sudah'
                 ELSE 'Belum'
-            END AS status_skb")
+            END AS status_skb"),
+            'skb.is_approved'
         ])
         ->orderBy('md.region_name', 'asc')
         ->orderBy('md.area_name', 'asc')
@@ -352,13 +399,34 @@ class Listpotensirwo extends Component
                 'md.distributor_name', 'md.region_name', 'md.area_name',
                 'f.SLSNAME as supervisor_name',
                 'r.eskalink_code as customer_prc',
-                DB::raw("CASE WHEN skb.customer_code IS NOT NULL THEN 'Sudah' ELSE 'Belum' END AS status_skb")
+                'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
+                'r.nama_bank', 'r.no_rekening', 'r.nama_pemilik_norek', 'r.latitude', 'r.longitude',
+                'r.foto_toko2', 'r.foto_toko3',
+                DB::raw("CASE WHEN skb.customer_code IS NOT NULL THEN 'Sudah' ELSE 'Belum' END AS status_skb"),
+                'skb.is_approved',
+                'skb.foto_skb'
             )
             ->first();
 
         if ($item) {
             $this->detailData = (array) $item;
             $this->isDetailModalOpen = true;
+        }
+    }
+
+    public function showStatusData($customerCode)
+    {
+        $item = DB::table('reward_outlet as r')
+            ->where('r.customer_code', $customerCode)
+            ->first();
+            
+        if ($item) {
+            $this->activeStatusData = (array) $item;
+            $this->isStatusModalOpen = true;
+        } else {
+            // Handle if not found in reward_outlet (should not happen if joined, but just in case)
+            $this->activeStatusData = [];
+            $this->isStatusModalOpen = true;
         }
     }
 
@@ -433,13 +501,98 @@ class Listpotensirwo extends Component
                 ->where('customer_code', $this->deleteCustomerCode)
                 ->where('kuartal', $this->deleteKuartal)
                 ->delete();
-                
+
             $this->isDeleteModalOpen = false;
             $this->reset(['deleteCustomerCode', 'deleteKuartal', 'deleteCustomerName']);
-            $this->dispatch('notify', type: 'success', message: 'Data toko berhasil dihapus.');
+            $this->dispatch('notify', type: 'success', message: 'Data berhasil dihapus.');
         } else {
             $this->isDeleteModalOpen = false;
-            $this->dispatch('notify', type: 'error', message: 'Gagal menghapus: Data tidak valid.');
+            $this->dispatch('notify', type: 'error', message: 'Gagal menghapus. Data tidak ditemukan.');
+        }
+    }
+
+    public function openApprovalModal($customerCode, $kuartal, $distributorCode, $customerName)
+    {
+        // Require can_edit permission for approval? Let's use canEdit for now, or assume if they see it they can.
+        // Actually, we'll guard in submitApproval.
+        $this->resetValidation();
+        $this->approvalCustomerCode = $customerCode;
+        $this->approvalKuartal = $kuartal;
+        $this->approvalDistributorCode = $distributorCode;
+        $this->approvalCustomerName = $customerName;
+        
+        // Fetch existing SKB data if exists
+        $existing = \App\Models\SuratKesepakatanBersamaRwo::where('customer_code', $customerCode)
+                        ->where('distributor_code', $distributorCode)
+                        ->where('kuartal', $kuartal === '' ? null : $kuartal)
+                        ->first();
+                        
+        if ($existing) {
+            $this->approvalStatus = $existing->is_approved === true ? 'approve' : ($existing->is_approved === false ? 'reject' : '');
+            $this->rejectReason = $existing->reason;
+            $this->existingFotoSkb = $existing->foto_skb;
+        } else {
+            $this->approvalStatus = '';
+            $this->rejectReason = '';
+            $this->existingFotoSkb = null;
+        }
+        
+        $this->fotoSkb = null;
+        $this->approvalError = '';
+        $this->isApprovalModalOpen = true;
+    }
+
+    public function submitApproval()
+    {
+        $this->authorizeAction('can_edit');
+        
+        $this->validate([
+            'approvalStatus' => 'required|in:approve,reject',
+            'fotoSkb' => 'nullable|image|max:2048', // optional if already exists, but let's make it optional and handle it
+            'rejectReason' => 'required_if:approvalStatus,reject|max:500'
+        ], [
+            'approvalStatus.required' => 'Pilih status approval (Approve/Reject).',
+            'rejectReason.required_if' => 'Alasan wajib diisi jika status Reject.',
+            'fotoSkb.image' => 'File harus berupa gambar.',
+            'fotoSkb.max' => 'Ukuran gambar maksimal 2MB.'
+        ]);
+
+        $this->approvalError = '';
+
+        try {
+            $skb = \App\Models\SuratKesepakatanBersamaRwo::firstOrNew([
+                'customer_code' => $this->approvalCustomerCode,
+                'distributor_code' => $this->approvalDistributorCode,
+                'kuartal' => $this->approvalKuartal === '' ? null : $this->approvalKuartal,
+            ]);
+
+            $skb->is_approved = ($this->approvalStatus === 'approve');
+            
+            if ($this->approvalStatus === 'reject') {
+                $skb->reason = $this->rejectReason;
+            } else {
+                $skb->reason = null;
+            }
+
+            if ($this->fotoSkb) {
+                $path = $this->fotoSkb->store('skb_photos', 'public');
+                $skb->foto_skb = $path;
+            } elseif (!$skb->exists) {
+                // If it's a new record and no photo uploaded, we should probably require it, 
+                // but based on instruction "inputannya nanti dari tabel list , lalu foto lalu approve sama reject"
+                // Let's enforce photo if it's new.
+                $this->validate(['fotoSkb' => 'required|image|max:2048'], ['fotoSkb.required' => 'Foto SKB wajib diunggah.']);
+                $path = $this->fotoSkb->store('skb_photos', 'public');
+                $skb->foto_skb = $path;
+            }
+
+            $skb->save();
+
+            $this->isApprovalModalOpen = false;
+            $this->dispatch('notify', type: 'success', message: 'Data approval berhasil disimpan.');
+
+        } catch (\Exception $e) {
+            $this->approvalError = 'Terjadi kesalahan: ' . $e->getMessage();
         }
     }
 
@@ -489,7 +642,34 @@ class Listpotensirwo extends Component
             DB::raw("CASE
                 WHEN skb.customer_code IS NOT NULL THEN 'Sudah'
                 ELSE 'Belum'
-            END AS status_skb")
+            END AS status_skb"),
+            'skb.is_approved',
+            'r.no_hp',
+            'r.nama_pemilik_toko',
+            'r.nik_ktp',
+            'r.nama_ktp',
+            'r.foto_ktp',
+            'r.nama_bank',
+            'r.no_rekening',
+            'r.nama_pemilik_norek',
+            'r.latitude',
+            'r.longitude',
+            'r.foto_toko2',
+            'r.foto_toko3',
+            DB::raw("CASE WHEN 
+                NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_pemilik_toko), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nik_ktp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_ktp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.foto_ktp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_bank), '') IS NOT NULL AND
+                NULLIF(TRIM(r.no_rekening), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_pemilik_norek), '') IS NOT NULL AND
+                NULLIF(TRIM(r.latitude), '') IS NOT NULL AND
+                NULLIF(TRIM(r.longitude), '') IS NOT NULL AND
+                NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND
+                NULLIF(TRIM(r.foto_toko3), '') IS NOT NULL
+                THEN 'Lengkap' ELSE 'Belum' END AS status_data_lengkap")
         ])
         ->orderBy('md.region_name', 'asc')
         ->orderBy('md.area_name', 'asc')
