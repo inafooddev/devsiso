@@ -10,7 +10,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 const actualIcon = L.divIcon({
-    html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8 text-slate-500 drop-shadow-md"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>`,
+    html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8 text-slate-500"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>`,
     className: 'bg-transparent border-0',
     iconSize: [32, 32],
     iconAnchor: [16, 32],
@@ -18,7 +18,7 @@ const actualIcon = L.divIcon({
 });
 
 const newIcon = L.divIcon({
-    html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8 text-rose-500 drop-shadow-md"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>`,
+    html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8 text-rose-500"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>`,
     className: 'bg-transparent border-0',
     iconSize: [32, 32],
     iconAnchor: [16, 32],
@@ -246,6 +246,12 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                 clearInterval(intervalRef.current);
                 if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
                 
+                // Cegah bypass akurasi buruk jika GPS terputus sebelum timer habis
+                if (localBestAccuracy > 100) {
+                    setData(d => ({ ...d, latitude: '', longitude: '', accuracy: '' }));
+                    setBestAccuracy(null);
+                }
+
                 if (error.code === 1) { // PERMISSION_DENIED
                     showToast('WAJIB: Akses Lokasi ditolak! Izinkan lokasi di pengaturan HP/Browser Anda.', 'error');
                 } else if (error.code === 2) { // POSITION_UNAVAILABLE
@@ -259,28 +265,31 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
             { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 }
         );
 
+        let currentTimer = 30;
+        setTrackingTimer(currentTimer);
+
         intervalRef.current = setInterval(() => {
-            setTrackingTimer(prev => {
-                if (prev <= 1) {
-                    clearInterval(intervalRef.current);
-                    if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
-                    setIsGettingLocation(false);
-                    if (localBestAccuracy === Infinity) {
-                        setGpsError(true);
-                        showToast('Gagal mendapatkan sinyal GPS. Silakan coba lagi.', 'error');
-                        setData(d => ({ ...d, latitude: '', longitude: '', accuracy: '' }));
-                        setBestAccuracy(null);
-                    } else if (localBestAccuracy > 100) {
-                        showToast(`Akurasi ditolak (${Math.round(localBestAccuracy)}m). Minimal akurasi 100m. Silakan cari titik ulang!`, 'error');
-                        setData(d => ({ ...d, latitude: '', longitude: '', accuracy: '' }));
-                        setBestAccuracy(null);
-                    } else {
-                        showToast(`Waktu habis. Titik dikunci dengan akurasi: ${Math.round(localBestAccuracy)}m`, 'success');
-                    }
-                    return 0;
+            currentTimer -= 1;
+            setTrackingTimer(currentTimer);
+            
+            if (currentTimer <= 0) {
+                clearInterval(intervalRef.current);
+                if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+                setIsGettingLocation(false);
+                
+                if (localBestAccuracy === Infinity) {
+                    setGpsError(true);
+                    showToast('Gagal mendapatkan sinyal GPS. Silakan coba lagi.', 'error');
+                    setData(d => ({ ...d, latitude: '', longitude: '', accuracy: '' }));
+                    setBestAccuracy(null);
+                } else if (localBestAccuracy > 100) {
+                    showToast(`Akurasi ditolak (${Math.round(localBestAccuracy)}m). Minimal akurasi 100m. Silakan cari titik ulang!`, 'error');
+                    setData(d => ({ ...d, latitude: '', longitude: '', accuracy: '' }));
+                    setBestAccuracy(null);
+                } else {
+                    showToast(`Waktu habis. Titik dikunci dengan akurasi: ${Math.round(localBestAccuracy)}m`, 'success');
                 }
-                return prev - 1;
-            });
+            }
         }, 1000);
     };
 
@@ -307,6 +316,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
             leafletMapRef.current = L.map(mapContainerRef.current, {
                 attributionControl: false,
                 zoomControl: true,
+                preferCanvas: true,
             });
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 maxZoom: 20
@@ -814,12 +824,11 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                                         style={{ height: '200px', minHeight: '200px', width: '100%' }}
                                         className="bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden relative z-0"
                                     ></div>
-                                    {/* FIX #9: accuracy info only shown once, in one place */}
                                     {isGettingLocation && (
                                         <div className="flex justify-between items-center text-[10px] text-slate-500 px-1">
                                             <span>
                                                 {bestAccuracy
-                                                    ? <>Akurasi GPS terkini: <b className={bestAccuracy < 20 ? 'text-emerald-500' : 'text-rose-500'}>{bestAccuracy.toFixed(1)}m</b></>
+                                                    ? <>Akurasi GPS terkini: <b className={bestAccuracy <= 15 ? 'text-emerald-500' : (bestAccuracy <= 100 ? 'text-amber-500' : 'text-rose-500')}>{bestAccuracy.toFixed(1)}m</b></>
                                                     : 'Menunggu sinyal GPS...'
                                                 }
                                             </span>
@@ -828,7 +837,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                                     )}
                                     {!isGettingLocation && bestAccuracy && (
                                         <div className="text-[10px] text-slate-500 px-1">
-                                            Akurasi GPS: <b className={bestAccuracy < 20 ? 'text-emerald-500' : 'text-rose-500'}>{bestAccuracy.toFixed(1)}m</b>
+                                            Akurasi GPS: <b className={bestAccuracy <= 15 ? 'text-emerald-500' : (bestAccuracy <= 100 ? 'text-amber-500' : 'text-rose-500')}>{bestAccuracy.toFixed(1)}m</b>
                                         </div>
                                     )}
                                 </div>
@@ -905,7 +914,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={processing || isGettingLocation || !data.latitude || !data.longitude}
+                                        disabled={processing || !data.latitude || !data.longitude || bestAccuracy > 100}
                                         className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 font-bold text-sm rounded-xl transition-colors active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
                                     >
                                         {processing ? (
