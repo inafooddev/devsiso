@@ -165,12 +165,28 @@ export default function DetailModal({ data, onClose, showToast }) {
         });
     };
 
+    const getInputClass = (field, isError = false, isReadOnlyAlways = false) => {
+        const isLocked = !!data[field];
+        const isEmpty = !formData[field];
+        
+        if (isLocked) {
+            return "w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-slate-100 text-slate-500 cursor-not-allowed outline-none transition-colors";
+        }
+        
+        if (isEmpty || isError) {
+            return `w-full border border-rose-400 focus:border-rose-500 focus:ring-rose-500 rounded-xl px-3 py-2 text-xs bg-rose-50 ${isReadOnlyAlways ? 'text-rose-500 cursor-not-allowed' : 'text-slate-800'} focus:ring-1 outline-none transition-colors`;
+        }
+        
+        return `w-full border border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-xl px-3 py-2 text-xs ${isReadOnlyAlways ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50 text-slate-800'} focus:ring-1 outline-none transition-colors`;
+    };
+
     const renderFileInput = (field, label, ref, acceptGallery = false) => {
         const isLocked = !!data[field];
+        const isEmpty = !previews[field];
         return (
         <div>
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">{label}</label>
-            <div className="border border-dashed border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-slate-50 relative overflow-hidden">
+            <div className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 relative overflow-hidden transition-colors ${isLocked ? 'border-slate-200 bg-slate-50' : (isEmpty ? 'border-rose-400 bg-rose-50/50' : 'border-indigo-300 bg-indigo-50/30')}`}>
                 {previews[field] ? (
                     <>
                         <img src={previews[field]} alt={label} className="max-h-32 rounded-lg object-contain" />
@@ -395,11 +411,11 @@ export default function DetailModal({ data, onClose, showToast }) {
                                     <h5 className="text-[11px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-1">Data Pemilik</h5>
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nama Pemilik Toko {data.nama_pemilik_toko && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
-                                        <input type="text" disabled={!!data.nama_pemilik_toko} value={formData.nama_pemilik_toko} onChange={e => handleTextChange('nama_pemilik_toko', e.target.value)} className={`w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none ${data.nama_pemilik_toko ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50 text-slate-800'}`} placeholder="Ketik nama pemilik" />
+                                        <input type="text" disabled={!!data.nama_pemilik_toko} value={formData.nama_pemilik_toko} onChange={e => handleTextChange('nama_pemilik_toko', e.target.value)} className={getInputClass('nama_pemilik_toko')} placeholder="Ketik nama pemilik" />
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">No Handphone (WA) {data.no_hp && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
-                                        <input type="tel" disabled={!!data.no_hp} value={formData.no_hp} onChange={e => handleTextChange('no_hp', e.target.value)} className={`w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none ${data.no_hp ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50 text-slate-800'}`} placeholder="08xxxxxxxxxx" />
+                                        <input type="tel" disabled={!!data.no_hp} value={formData.no_hp} onChange={e => handleTextChange('no_hp', e.target.value)} className={getInputClass('no_hp')} placeholder="08xxxxxxxxxx" />
                                     </div>
                                 </div>
 
@@ -408,14 +424,14 @@ export default function DetailModal({ data, onClose, showToast }) {
                                     <h5 className="text-[11px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-1 mt-2">Data Identitas (KTP)</h5>
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">NIK KTP {data.nik_ktp && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
-                                        <input type="text" inputMode="numeric" maxLength={16} disabled={!!data.nik_ktp} value={formData.nik_ktp} onChange={e => handleTextChange('nik_ktp', e.target.value)} className={`w-full border ${formData.nik_ktp && formData.nik_ktp.toString().length !== 16 ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500'} rounded-xl px-3 py-2 text-xs focus:ring-1 outline-none ${data.nik_ktp ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50 text-slate-800'}`} placeholder="16 Digit NIK" />
+                                        <input type="text" inputMode="numeric" maxLength={16} disabled={!!data.nik_ktp} value={formData.nik_ktp} onChange={e => handleTextChange('nik_ktp', e.target.value)} className={getInputClass('nik_ktp', formData.nik_ktp && formData.nik_ktp.toString().length !== 16)} placeholder="16 Digit NIK" />
                                         {formData.nik_ktp && formData.nik_ktp.toString().length !== 16 && (
                                             <span className="text-[9px] font-medium text-rose-500 mt-1 block">NIK harus 16 digit. Saat ini: {formData.nik_ktp.toString().length} digit</span>
                                         )}
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nama Sesuai KTP {data.nama_ktp && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
-                                        <input type="text" disabled={!!data.nama_ktp} value={formData.nama_ktp} onChange={e => handleTextChange('nama_ktp', e.target.value)} className={`w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none ${data.nama_ktp ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50 text-slate-800'}`} placeholder="Ketik nama di KTP" />
+                                        <input type="text" disabled={!!data.nama_ktp} value={formData.nama_ktp} onChange={e => handleTextChange('nama_ktp', e.target.value)} className={getInputClass('nama_ktp')} placeholder="Ketik nama di KTP" />
                                     </div>
                                     {renderFileInput('foto_ktp', 'Foto KTP', ktpRef, true)}
                                 </div>
@@ -425,7 +441,7 @@ export default function DetailModal({ data, onClose, showToast }) {
                                     <h5 className="text-[11px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-1 mt-2">Data Rekening</h5>
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nama Bank {data.nama_bank && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
-                                        <select disabled={!!data.nama_bank} value={formData.nama_bank} onChange={e => handleTextChange('nama_bank', e.target.value)} className={`w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none ${data.nama_bank ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50 text-slate-800'}`}>
+                                        <select disabled={!!data.nama_bank} value={formData.nama_bank} onChange={e => handleTextChange('nama_bank', e.target.value)} className={getInputClass('nama_bank')}>
                                             <option value="">Pilih Bank</option>
                                             <optgroup label="Bank Nasional (Himbara & Swasta)">
                                                 <option value="BCA">BCA (Bank Central Asia)</option>
@@ -501,11 +517,11 @@ export default function DetailModal({ data, onClose, showToast }) {
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nomor Rekening {data.no_rekening && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
-                                        <input type="number" disabled={!!data.no_rekening} value={formData.no_rekening} onChange={e => handleTextChange('no_rekening', e.target.value)} className={`w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none ${data.no_rekening ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50 text-slate-800'}`} placeholder="Ketik nomor rekening" />
+                                        <input type="number" disabled={!!data.no_rekening} value={formData.no_rekening} onChange={e => handleTextChange('no_rekening', e.target.value)} className={getInputClass('no_rekening')} placeholder="Ketik nomor rekening" />
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nama Pemilik Rekening {data.nama_pemilik_norek && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
-                                        <input type="text" disabled={!!data.nama_pemilik_norek} value={formData.nama_pemilik_norek} onChange={e => handleTextChange('nama_pemilik_norek', e.target.value)} className={`w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none ${data.nama_pemilik_norek ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50 text-slate-800'}`} placeholder="Ketik nama di buku tabungan" />
+                                        <input type="text" disabled={!!data.nama_pemilik_norek} value={formData.nama_pemilik_norek} onChange={e => handleTextChange('nama_pemilik_norek', e.target.value)} className={getInputClass('nama_pemilik_norek')} placeholder="Ketik nama di buku tabungan" />
                                     </div>
                                 </div>
 
@@ -515,11 +531,11 @@ export default function DetailModal({ data, onClose, showToast }) {
                                     <div className="flex gap-2">
                                         <div className="flex-1">
                                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Latitude {data.latitude && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
-                                            <input type="text" readOnly value={formData.latitude} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-slate-100 text-slate-500 cursor-not-allowed outline-none" placeholder="Otomatis" />
+                                            <input type="text" readOnly value={formData.latitude} className={getInputClass('latitude', false, true)} placeholder="Otomatis" />
                                         </div>
                                         <div className="flex-1">
                                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Longitude {data.longitude && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
-                                            <input type="text" readOnly value={formData.longitude} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-slate-100 text-slate-500 cursor-not-allowed outline-none" placeholder="Otomatis" />
+                                            <input type="text" readOnly value={formData.longitude} className={getInputClass('longitude', false, true)} placeholder="Otomatis" />
                                         </div>
                                     </div>
                                     {!(data.latitude && data.longitude) && (
