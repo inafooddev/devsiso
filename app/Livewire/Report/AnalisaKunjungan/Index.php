@@ -25,6 +25,7 @@ class Index extends Component
     public $summaryStartDate;
     public $summaryEndDate;
     public $summaryRegion = '';
+    public $summaryLevels = [];
 
     public $regions = [];
     public $areas = [];
@@ -47,6 +48,7 @@ class Index extends Component
     public $appliedSummaryStartDate;
     public $appliedSummaryEndDate;
     public $appliedSummaryRegion;
+    public $appliedSummaryLevels = [];
 
     #[Locked]
     public $modalRemarkVisitId = '';
@@ -210,6 +212,7 @@ class Index extends Component
             $this->appliedSummaryStartDate = $this->summaryStartDate;
             $this->appliedSummaryEndDate = $this->summaryEndDate;
             $this->appliedSummaryRegion = $this->summaryRegion;
+            $this->appliedSummaryLevels = $this->summaryLevels;
         }
     }
 
@@ -230,10 +233,12 @@ class Index extends Component
         $this->summaryStartDate = '';
         $this->summaryEndDate = '';
         $this->summaryRegion = '';
+        $this->summaryLevels = [];
 
         $this->appliedSummaryStartDate = '';
         $this->appliedSummaryEndDate = '';
         $this->appliedSummaryRegion = '';
+        $this->appliedSummaryLevels = [];
 
         $this->areas = [];
         $this->supervisors = [];
@@ -402,6 +407,7 @@ class Index extends Component
                 DB::raw('rvah."TANGGAL"::date as tanggal'),
                 'mr.region_name',
                 'ma.area_name',
+                't.level',
                 'rvah.MUNAME as supervisor_name',
                 't.team_elite_code as supervisor_code',
                 DB::raw("COUNT(DISTINCT CASE WHEN $custnameFilter THEN rvah.\"CUSTNO\" ELSE NULL END) as pc"),
@@ -425,6 +431,7 @@ class Index extends Component
                 DB::raw('rvah."TANGGAL"::date'),
                 'mr.region_name',
                 'ma.area_name',
+                't.level',
                 'rvah.MUNAME',
                 't.team_elite_code'
             );
@@ -432,6 +439,9 @@ class Index extends Component
         $rows = $query->get();
         
         $grouped = $rows->map(function($row) {
+            $levelMap = ['region' => 'RSM', 'area' => 'ASM', 'supervisor' => 'SPV'];
+            $levelName = $levelMap[$row->level] ?? strtoupper($row->level ?? '');
+
             $pc = (int) $row->pc;
             $ac = (int) $row->ac;
             $ec = (int) $row->ec;
@@ -445,6 +455,7 @@ class Index extends Component
                 'tanggal' => $row->tanggal,
                 'region_name' => $row->region_name,
                 'area_name' => $row->area_name,
+                'level' => $levelName,
                 'supervisor_code' => $row->supervisor_code,
                 'supervisor_name' => $row->supervisor_name,
                 'pc' => $pc,
@@ -468,15 +479,22 @@ class Index extends Component
             ];
         })->toArray();
 
-        // Sort by tanggal -> region -> area -> supervisor
+        // Sort by region -> area -> level -> supervisor -> tanggal
         usort($grouped, function($a, $b) {
             $cmp = strcmp($a['region_name'] ?? '', $b['region_name'] ?? '');
             if ($cmp === 0) {
                 $cmp = strcmp($a['area_name'] ?? '', $b['area_name'] ?? '');
                 if ($cmp === 0) {
-                    $cmp = strcmp($a['supervisor_name'] ?? '', $b['supervisor_name'] ?? '');
+                    $levelOrder = ['RSM' => 1, 'ASM' => 2, 'SPV' => 3];
+                    $rankA = $levelOrder[$a['level'] ?? ''] ?? 99;
+                    $rankB = $levelOrder[$b['level'] ?? ''] ?? 99;
+                    $cmp = $rankA <=> $rankB;
+                    
                     if ($cmp === 0) {
-                        $cmp = strcmp($a['tanggal'] ?? '', $b['tanggal'] ?? '');
+                        $cmp = strcmp($a['supervisor_name'] ?? '', $b['supervisor_name'] ?? '');
+                        if ($cmp === 0) {
+                            $cmp = strcmp($a['tanggal'] ?? '', $b['tanggal'] ?? '');
+                        }
                     }
                 }
             }
@@ -522,6 +540,10 @@ class Index extends Component
         if ($this->activeTab === 'summary') {
             if ($this->appliedSummaryRegion) {
                 $query->where('t.region_code', $this->appliedSummaryRegion);
+            }
+
+            if (!empty($this->appliedSummaryLevels)) {
+                $query->whereIn('t.level', $this->appliedSummaryLevels);
             }
 
             if ($this->appliedSummaryStartDate && $this->appliedSummaryEndDate) {
@@ -642,6 +664,7 @@ class Index extends Component
             ->select(
                 'mr.region_name',
                 'ma.area_name',
+                't.level',
                 'rvah.MUNAME as supervisor_name',
                 't.team_elite_code as supervisor_code',
                 DB::raw("COUNT(DISTINCT CASE WHEN $custnameFilter THEN rvah.\"CUSTNO\" ELSE NULL END) as pc"),
@@ -664,6 +687,7 @@ class Index extends Component
             ->groupBy(
                 'mr.region_name',
                 'ma.area_name',
+                't.level',
                 'rvah.MUNAME',
                 't.team_elite_code'
             );
@@ -671,6 +695,9 @@ class Index extends Component
         $rows = $query->get();
         
         $grouped = $rows->map(function($row) {
+            $levelMap = ['region' => 'RSM', 'area' => 'ASM', 'supervisor' => 'SPV'];
+            $levelName = $levelMap[$row->level] ?? strtoupper($row->level ?? '');
+
             $pc = (int) $row->pc;
             $ac = (int) $row->ac;
             $ec = (int) $row->ec;
@@ -683,6 +710,7 @@ class Index extends Component
             return [
                 'region_name' => $row->region_name,
                 'area_name' => $row->area_name,
+                'level' => $levelName,
                 'supervisor_code' => $row->supervisor_code,
                 'supervisor_name' => $row->supervisor_name,
                 'pc' => $pc,
@@ -706,13 +734,20 @@ class Index extends Component
             ];
         })->toArray();
 
-        // Sort by region -> area -> supervisor
+        // Sort by region -> area -> level -> supervisor
         usort($grouped, function($a, $b) {
             $cmp = strcmp($a['region_name'] ?? '', $b['region_name'] ?? '');
             if ($cmp === 0) {
                 $cmp = strcmp($a['area_name'] ?? '', $b['area_name'] ?? '');
                 if ($cmp === 0) {
-                    $cmp = strcmp($a['supervisor_name'] ?? '', $b['supervisor_name'] ?? '');
+                    $levelOrder = ['RSM' => 1, 'ASM' => 2, 'SPV' => 3];
+                    $rankA = $levelOrder[$a['level'] ?? ''] ?? 99;
+                    $rankB = $levelOrder[$b['level'] ?? ''] ?? 99;
+                    $cmp = $rankA <=> $rankB;
+                    
+                    if ($cmp === 0) {
+                        $cmp = strcmp($a['supervisor_name'] ?? '', $b['supervisor_name'] ?? '');
+                    }
                 }
             }
             return $cmp;

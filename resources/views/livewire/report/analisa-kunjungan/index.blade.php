@@ -122,6 +122,39 @@
                             <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
                         @endforeach
                     </select>
+
+                    <div class="dropdown">
+                        <div tabindex="0" role="button" class="btn btn-sm btn-outline border-base-300 hover:bg-base-200 hover:text-base-content rounded-xl bg-base-100 font-normal w-[140px] flex justify-between px-3">
+                            <span class="truncate">
+                                @if(count($summaryLevels) === 0)
+                                    Semua Level
+                                @else
+                                    {{ count($summaryLevels) }} Dipilih
+                                @endif
+                            </span>
+                            <x-heroicon-o-chevron-down class="w-3.5 h-3.5 opacity-60 shrink-0" />
+                        </div>
+                        <ul tabindex="0" class="dropdown-content z-[50] menu p-2 shadow-lg bg-base-100 rounded-xl w-48 mt-1 border border-base-300">
+                            <li>
+                                <label class="label cursor-pointer justify-start gap-3 px-2 py-1.5">
+                                    <input type="checkbox" wire:model="summaryLevels" value="region" class="checkbox checkbox-sm checkbox-primary rounded-md" />
+                                    <span class="label-text">Region</span>
+                                </label>
+                            </li>
+                            <li>
+                                <label class="label cursor-pointer justify-start gap-3 px-2 py-1.5">
+                                    <input type="checkbox" wire:model="summaryLevels" value="area" class="checkbox checkbox-sm checkbox-primary rounded-md" />
+                                    <span class="label-text">Area</span>
+                                </label>
+                            </li>
+                            <li>
+                                <label class="label cursor-pointer justify-start gap-3 px-2 py-1.5">
+                                    <input type="checkbox" wire:model="summaryLevels" value="supervisor" class="checkbox checkbox-sm checkbox-primary rounded-md" />
+                                    <span class="label-text">Supervisor</span>
+                                </label>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
 
                 <div class="flex items-center gap-2">
@@ -131,10 +164,11 @@
                     </div>
                     @if($canExport)
                         @php
-                            $isSummaryExportDisabled = empty($appliedSummaryRegion) && empty($appliedSummaryStartDate) && empty($appliedSummaryEndDate);
+                            $isSummaryExportDisabled = empty($appliedSummaryRegion) && empty($appliedSummaryStartDate) && empty($appliedSummaryEndDate) && empty($appliedSummaryLevels);
                             $hasPendingSummaryFilters = $summaryRegion !== $appliedSummaryRegion || 
                                                         $summaryStartDate !== $appliedSummaryStartDate || 
-                                                        $summaryEndDate !== $appliedSummaryEndDate;
+                                                        $summaryEndDate !== $appliedSummaryEndDate ||
+                                                        $summaryLevels !== $appliedSummaryLevels;
                         @endphp
                         <div class="tooltip tooltip-left" data-tip="{{ $isSummaryExportDisabled || $hasPendingSummaryFilters ? 'Klik Terapkan terlebih dahulu' : 'Export Summary ke Excel' }}">
                             <x-ui.button variant="success" size="sm" class="rounded-xl text-white" wire:click="exportSummary" spinner="exportSummary" icon="arrow-down-tray" :disabled="$isSummaryExportDisabled || $hasPendingSummaryFilters">
@@ -294,6 +328,7 @@
                         <th class="align-middle text-center" rowspan="2">No</th>
                         <th class="align-middle" rowspan="2">Region</th>
                         <th class="align-middle" rowspan="2">Area</th>
+                        <th class="align-middle" rowspan="2">Level</th>
                         <th class="align-middle border-r border-base-300" rowspan="2">Supervisor</th>
                         <th class="align-middle text-center border-b-0 border-r border-base-300" colspan="5">Kunjungan (Visit)</th>
                         <th class="align-middle text-center border-b-0 border-r border-base-300 bg-base-200/50" colspan="3">Order (Value)</th>
@@ -344,8 +379,9 @@
                         <td class="text-center">{{ $i + 1 }}</td>
                         <td>{{ $row['region_name'] }}</td>
                         <td>{{ $row['area_name'] }}</td>
+                        <td class="font-semibold">{{ $row['level'] }}</td>
                         <td class="border-r border-base-300">
-                            <div class="font-bold">{{ $row['supervisor_name'] }}</div>
+                            <div class="font-bold uppercase">{{ $row['supervisor_name'] }}</div>
                         </td>
                         <td class="text-center font-medium">{{ number_format($row['pc'], 0, ',', '.') }}</td>
                         <td class="text-center font-medium">{{ number_format($row['ac'], 0, ',', '.') }}</td>
@@ -397,7 +433,7 @@
                 @if(count($sumData) > 0)
                 <tfoot class="bg-base-200/80 text-base-content font-bold sticky bottom-0 z-10">
                     <tr>
-                        <td colspan="4" class="text-right uppercase tracking-wider text-[11px] border-r border-base-300">Total Kumulatif</td>
+                        <td colspan="5" class="text-right uppercase tracking-wider text-[11px] border-r border-base-300">Total Kumulatif</td>
                         <td class="text-center">{{ number_format($totPc, 0, ',', '.') }}</td>
                         <td class="text-center">{{ number_format($totAc, 0, ',', '.') }}</td>
                         <td class="text-center text-primary text-[11px]">{{ $totPc > 0 ? number_format(($totAc / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
@@ -558,7 +594,7 @@
                     if (hasMaster) {
                         new maplibregl.Marker({ color: '#ef4444' })
                             .setLngLat([mLon, mLat])
-                            .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<strong>Master Point</strong><br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open(\`https://www.google.com/maps/search/?api=1&query=${mLat},${mLon}\`, \`_blank\`);' title='Buka di Google Maps'>📍 ${mLat}, ${mLon}</span>`))
+                            .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<div class='text-black'><strong>Master Point</strong><br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open(\`https://www.google.com/maps/search/?api=1&query=${mLat},${mLon}\`, \`_blank\`);' title='Buka di Google Maps'>📍 ${mLat}, ${mLon}</span></div>`))
                             .addTo(this.mapInstance);
                         bounds.extend([mLon, mLat]);
                     }
@@ -566,7 +602,7 @@
                     if (hasVisit) {
                         new maplibregl.Marker({ color: '#3b82f6' })
                             .setLngLat([vLon, vLat])
-                            .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<strong>Visit Point</strong><br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open(\`https://www.google.com/maps/search/?api=1&query=${vLat},${vLon}\`, \`_blank\`);' title='Buka di Google Maps'>📍 ${vLat}, ${vLon}</span>`))
+                            .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<div class='text-black'><strong>Visit Point</strong><br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open(\`https://www.google.com/maps/search/?api=1&query=${vLat},${vLon}\`, \`_blank\`);' title='Buka di Google Maps'>📍 ${vLat}, ${vLon}</span></div>`))
                             .addTo(this.mapInstance);
                         bounds.extend([vLon, vLat]);
                     }
@@ -684,7 +720,7 @@
                             return {
                                 'type': 'Feature',
                                 'properties': {
-                                    'description': `<strong>${pt.name}</strong><br>Tgl: ${pt.date}<br>SPV: ${pt.spv}<br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open(\`https://www.google.com/maps/search/?api=1&query=${lat},${lon}\`, \`_blank\`);' title='Buka di Google Maps'>📍 ${lat}, ${lon}</span>`
+                                    'description': `<div class='text-black'><strong>${pt.name}</strong><br>Tgl: ${pt.date}<br>SPV: ${pt.spv}<br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open(\`https://www.google.com/maps/search/?api=1&query=${lat},${lon}\`, \`_blank\`);' title='Buka di Google Maps'>📍 ${lat}, ${lon}</span></div>`
                                 },
                                 'geometry': {
                                     'type': 'Point',
