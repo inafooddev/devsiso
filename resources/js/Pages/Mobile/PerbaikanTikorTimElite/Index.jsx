@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, Link } from '@inertiajs/react';
 import {
     MagnifyingGlassIcon, XMarkIcon, MapPinIcon, ShieldCheckIcon,
-    InformationCircleIcon, MapIcon, CameraIcon,
+    InformationCircleIcon, MapIcon, CameraIcon, ArrowLeftIcon,
     BuildingStorefrontIcon as BuildingStorefrontOutline, ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline';
 import { ShieldExclamationIcon, BuildingStorefrontIcon } from '@heroicons/react/24/solid';
@@ -555,7 +555,10 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
             <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm shrink-0">
                 <header className="px-4 py-3 flex items-center justify-between" style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
                     <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-indigo-600/10 flex items-center justify-center text-indigo-600 shadow-sm shadow-indigo-600/10">
+                        <Link href="/mobile/portal" className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors border border-slate-200 shrink-0">
+                            <ArrowLeftIcon className="w-4 h-4 stroke-[2.5]" />
+                        </Link>
+                        <div className="w-8 h-8 rounded-xl bg-indigo-600/10 flex items-center justify-center text-indigo-600 shadow-sm shadow-indigo-600/10 shrink-0 hidden sm:flex">
                             <MapPinIcon className="w-5 h-5" />
                         </div>
                         <div>

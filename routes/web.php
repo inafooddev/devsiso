@@ -101,7 +101,13 @@ Route::get('/mobile/rwo-inertia', [\App\Http\Controllers\Mobile\Rwo\IndexControl
 Route::post('/mobile/rwo-inertia/upload', [\App\Http\Controllers\Mobile\Rwo\IndexController::class, 'upload'])->name('mobile.rwo.inertia.upload');
 Route::post('/mobile/rwo-inertia/edit', [\App\Http\Controllers\Mobile\Rwo\IndexController::class, 'edit'])->name('mobile.rwo.inertia.edit');
 
+Route::get('/mobile/skb-rwo', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'index'])->name('mobile.skb-rwo.index');
+Route::post('/mobile/skb-rwo/login', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'loginSupervisor'])->name('mobile.skb-rwo.login');
+Route::post('/mobile/skb-rwo/logout', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'logoutSupervisor'])->name('mobile.skb-rwo.logout');
+Route::post('/mobile/skb-rwo/submit-skb', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'submitSkb'])->name('mobile.skb-rwo.submit-skb');
+Route::post('/mobile/skb-rwo/submit-data', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'submitData'])->name('mobile.skb-rwo.submit-data');
 Route::inertia('/mobile/ui-preview', 'mobile/Pages/UIPreview')->name('mobile.ui-preview');
+Route::inertia('/mobile/portal', 'Mobile/Portal/Index')->name('mobile.portal');
 
 // Mock Mobile Routes
 Route::inertia('/mobile/login', 'mobile/Pages/Auth/Login')->name('mobile.login');
