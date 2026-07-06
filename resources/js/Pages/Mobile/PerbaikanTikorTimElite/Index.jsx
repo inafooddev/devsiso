@@ -332,12 +332,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
 
         const bounds = L.latLngBounds([]);
 
-        if (actualLocation) {
-            m.actual = L.marker([actualLocation.lat, actualLocation.lng], { icon: actualIcon })
-                        .bindPopup('<b class="text-xs">Titik Lama</b>')
-                        .addTo(map);
-            bounds.extend([actualLocation.lat, actualLocation.lng]);
-        }
+        // Titik lama (actualLocation) tidak lagi ditampilkan di peta agar fokus ke titik baru
 
         if (data.latitude && data.longitude) {
             const newLat = parseFloat(data.latitude);
@@ -348,14 +343,6 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                           .bindPopup(`<b class="text-xs">Titik Baru</b><br/><span class="text-[10px]">Akurasi: ${bestAccuracy ? bestAccuracy.toFixed(1) + 'm' : '-'}</span>`)
                           .addTo(map);
                 bounds.extend([newLat, newLng]);
-
-                if (actualLocation && !isNaN(actualLocation.lat) && !isNaN(actualLocation.lng)) {
-                    m.line = L.polyline([[actualLocation.lat, actualLocation.lng], [newLat, newLng]], {
-                        color: '#f43f5e',
-                        dashArray: '5, 5',
-                        weight: 2
-                    }).addTo(map);
-                }
             }
         }
 
