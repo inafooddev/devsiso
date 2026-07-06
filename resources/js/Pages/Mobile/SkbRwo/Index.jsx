@@ -254,7 +254,7 @@ export default function Index({ listPotensi = [], listSkb = [], listPlan = [], s
                     <div className="bg-white pt-2 pb-2 border-t border-slate-100 flex flex-col gap-3 px-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-base font-black text-slate-800">
-                                {selectedDate.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+                                {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}
                             </h2>
                             <div className="flex gap-2">
                                 <button onClick={handlePrevMonth} className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors shadow-sm border border-slate-200/50">
@@ -277,7 +277,7 @@ export default function Index({ listPotensi = [], listSkb = [], listPlan = [], s
                                         className={`flex flex-col items-center justify-center min-w-[3rem] p-2 rounded-xl transition-all snap-center border ${isSelected ? 'bg-indigo-600 border-indigo-600 shadow-md shadow-indigo-200/50' : 'bg-transparent border-transparent hover:bg-slate-50'}`}
                                     >
                                         <span className={`text-[9px] font-bold uppercase tracking-widest mb-0.5 ${isSelected ? 'text-indigo-100' : 'text-slate-400'}`}>
-                                            {day.toLocaleString('en-US', { weekday: 'short' })}
+                                            {day.toLocaleString('id-ID', { weekday: 'short' })}
                                         </span>
                                         <span className={`text-base font-black ${isSelected ? 'text-white' : 'text-slate-700'}`}>
                                             {day.getDate()}
@@ -336,8 +336,8 @@ export default function Index({ listPotensi = [], listSkb = [], listPlan = [], s
                                     <div className="mb-4 text-slate-300">
                                         <DocumentCheckIcon className="w-16 h-16 mx-auto stroke-1" />
                                     </div>
-                                    <h4 className="text-sm font-black text-slate-700">No Schedule</h4>
-                                    <p className="text-xs text-slate-400 mt-2 font-medium">Looks like no schedule has been found.</p>
+                                    <h4 className="text-sm font-black text-slate-700">Tidak Ada Jadwal</h4>
+                                    <p className="text-xs text-slate-400 mt-2 font-medium">Belum ada jadwal kunjungan untuk tanggal ini.</p>
                                 </>
                             ) : (
                                 <>

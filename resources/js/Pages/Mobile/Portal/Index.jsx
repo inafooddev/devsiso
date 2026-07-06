@@ -4,7 +4,9 @@ import {
     BuildingStorefrontIcon, 
     MapPinIcon, 
     SparklesIcon,
-    ArrowRightIcon
+    ArrowRightIcon,
+    CalendarDaysIcon,
+    ChartBarIcon
 } from '@heroicons/react/24/solid';
 
 export default function MobilePortal() {
@@ -84,6 +86,54 @@ export default function MobilePortal() {
                                 <span className="text-[10px] font-bold text-slate-400">Khusus Elite</span>
                                 <div className="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
                                     <ArrowRightIcon className="w-3 h-3 text-slate-300 group-hover:text-emerald-600 transition-colors" />
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+                    
+                    {/* Card 3: Call Plan */}
+                    <Link href="/mobile/call-plan" className="group block h-full">
+                        <div className="bg-white p-5 rounded-[28px] h-full shadow-lg shadow-sky-100/50 hover:shadow-xl border border-slate-100 transition-all duration-300 transform active:scale-95 flex flex-col justify-between relative overflow-hidden group-hover:-translate-y-1">
+                            {/* Decorative gradient blob */}
+                            <div className="absolute -right-6 -top-6 w-24 h-24 bg-sky-50 rounded-full blur-2xl group-hover:bg-sky-100 transition-colors"></div>
+                            
+                            <div className="relative z-10 mb-6">
+                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center shadow-md shadow-sky-200 text-white mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                                    <CalendarDaysIcon className="w-6 h-6" />
+                                </div>
+                                <h2 className="text-[13px] font-black text-slate-800 uppercase tracking-wide leading-snug">
+                                    Call <br/>Plan
+                                </h2>
+                            </div>
+                            
+                            <div className="relative z-10 flex items-center justify-between mt-auto">
+                                <span className="text-[10px] font-bold text-slate-400">Akses Modul</span>
+                                <div className="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-sky-50 transition-colors">
+                                    <ArrowRightIcon className="w-3 h-3 text-slate-300 group-hover:text-sky-600 transition-colors" />
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+
+                    {/* Card 4: Report */}
+                    <Link href="#" className="group block h-full">
+                        <div className="bg-white p-5 rounded-[28px] h-full shadow-lg shadow-amber-100/50 hover:shadow-xl border border-slate-100 transition-all duration-300 transform active:scale-95 flex flex-col justify-between relative overflow-hidden group-hover:-translate-y-1">
+                            {/* Decorative gradient blob */}
+                            <div className="absolute -right-6 -top-6 w-24 h-24 bg-amber-50 rounded-full blur-2xl group-hover:bg-amber-100 transition-colors"></div>
+                            
+                            <div className="relative z-10 mb-6">
+                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md shadow-amber-200 text-white mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                                    <ChartBarIcon className="w-6 h-6" />
+                                </div>
+                                <h2 className="text-[13px] font-black text-slate-800 uppercase tracking-wide leading-snug">
+                                    Modul <br/>Report
+                                </h2>
+                            </div>
+                            
+                            <div className="relative z-10 flex items-center justify-between mt-auto">
+                                <span className="text-[10px] font-bold text-slate-400">Segera Hadir</span>
+                                <div className="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-amber-50 transition-colors">
+                                    <ArrowRightIcon className="w-3 h-3 text-slate-300 group-hover:text-amber-600 transition-colors" />
                                 </div>
                             </div>
                         </div>

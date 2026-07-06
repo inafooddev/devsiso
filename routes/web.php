@@ -106,6 +106,12 @@ Route::post('/mobile/skb-rwo/login', [\App\Http\Controllers\Mobile\SkbRwo\IndexC
 Route::post('/mobile/skb-rwo/logout', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'logoutSupervisor'])->name('mobile.skb-rwo.logout');
 Route::post('/mobile/skb-rwo/submit-skb', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'submitSkb'])->name('mobile.skb-rwo.submit-skb');
 Route::post('/mobile/skb-rwo/submit-data', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'submitData'])->name('mobile.skb-rwo.submit-data');
+
+// MOBILE CALL PLAN
+Route::get('/mobile/call-plan', [\App\Http\Controllers\Mobile\CallPlan\IndexController::class, 'index'])->name('mobile.call-plan.index');
+Route::post('/mobile/call-plan/login', [\App\Http\Controllers\Mobile\CallPlan\IndexController::class, 'loginSupervisor'])->name('mobile.call-plan.login');
+Route::post('/mobile/call-plan/logout', [\App\Http\Controllers\Mobile\CallPlan\IndexController::class, 'logoutSupervisor'])->name('mobile.call-plan.logout');
+
 Route::inertia('/mobile/ui-preview', 'mobile/Pages/UIPreview')->name('mobile.ui-preview');
 Route::inertia('/mobile/portal', 'Mobile/Portal/Index')->name('mobile.portal');
 
