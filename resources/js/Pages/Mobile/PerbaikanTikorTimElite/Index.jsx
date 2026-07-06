@@ -163,9 +163,9 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
 
         if (fileInputRef.current) fileInputRef.current.value = '';
 
-        const actLat = outlet.latitude;
-        const actLng = outlet.longitude;
-        setActualLocation(actLat && actLng ? { lat: parseFloat(actLat), lng: parseFloat(actLng) } : null);
+        const actLat = parseFloat(outlet.latitude);
+        const actLng = parseFloat(outlet.longitude);
+        setActualLocation(!isNaN(actLat) && !isNaN(actLng) ? { lat: actLat, lng: actLng } : null);
         setBestAccuracy(null);
         setTrackingTimer(30);
 
@@ -332,17 +332,20 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
         if (data.latitude && data.longitude) {
             const newLat = parseFloat(data.latitude);
             const newLng = parseFloat(data.longitude);
-            m.baru = L.marker([newLat, newLng], { icon: newIcon })
-                      .bindPopup(`<b class="text-xs">Titik Baru</b><br/><span class="text-[10px]">Akurasi: ${bestAccuracy ? bestAccuracy.toFixed(1) + 'm' : '-'}</span>`)
-                      .addTo(map);
-            bounds.extend([newLat, newLng]);
+            
+            if (!isNaN(newLat) && !isNaN(newLng)) {
+                m.baru = L.marker([newLat, newLng], { icon: newIcon })
+                          .bindPopup(`<b class="text-xs">Titik Baru</b><br/><span class="text-[10px]">Akurasi: ${bestAccuracy ? bestAccuracy.toFixed(1) + 'm' : '-'}</span>`)
+                          .addTo(map);
+                bounds.extend([newLat, newLng]);
 
-            if (actualLocation) {
-                m.line = L.polyline([[actualLocation.lat, actualLocation.lng], [newLat, newLng]], {
-                    color: '#f43f5e',
-                    dashArray: '5, 5',
-                    weight: 2
-                }).addTo(map);
+                if (actualLocation && !isNaN(actualLocation.lat) && !isNaN(actualLocation.lng)) {
+                    m.line = L.polyline([[actualLocation.lat, actualLocation.lng], [newLat, newLng]], {
+                        color: '#f43f5e',
+                        dashArray: '5, 5',
+                        weight: 2
+                    }).addTo(map);
+                }
             }
         }
 
@@ -402,9 +405,9 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
         if (search) {
             const q = search.toLowerCase();
             result = result.filter(o => 
-                (o.customer_name || '').toLowerCase().includes(q) || 
-                (o.customer_code || '').toLowerCase().includes(q) ||
-                (o.address || '').toLowerCase().includes(q)
+                String(o.customer_name || '').toLowerCase().includes(q) || 
+                String(o.customer_code || '').toLowerCase().includes(q) ||
+                String(o.address || '').toLowerCase().includes(q)
             );
         }
 
