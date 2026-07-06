@@ -72,12 +72,40 @@ export default function DetailModal({ data, onClose, showToast }) {
 
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
+    // Hardware Back Button Intercept
+    const isEditingRef = useRef(isEditing);
+    const previewImageRef = useRef(previewImage);
+    
+    useEffect(() => { isEditingRef.current = isEditing; }, [isEditing]);
+    useEffect(() => { previewImageRef.current = previewImage; }, [previewImage]);
+
+    useEffect(() => {
+        if (!data) return;
+        window.history.pushState({ modal: 'DetailModal' }, '');
+
+        const handlePopState = (e) => {
+            if (previewImageRef.current) {
+                window.history.pushState({ modal: 'DetailModal' }, '');
+                setPreviewImage(null);
+            } else if (isEditingRef.current) {
+                window.history.pushState({ modal: 'DetailModal' }, '');
+                setShowCloseConfirm(true);
+            } else {
+                onClose();
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [data]);
+
     if (!data) return null;
 
     const handleClose = () => {
         if (isEditing) {
             setShowCloseConfirm(true);
         } else {
+            window.history.back(); // Pop the trap state
             onClose();
         }
     };
@@ -595,7 +623,7 @@ export default function DetailModal({ data, onClose, showToast }) {
                         </p>
                         <div className="flex gap-2">
                             <button onClick={() => setShowCloseConfirm(false)} className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-colors">Kembali Edit</button>
-                            <button onClick={() => { setShowCloseConfirm(false); onClose(); }} className="flex-1 py-2 bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-500/20 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-colors">Ya, Keluar</button>
+                            <button onClick={() => { setShowCloseConfirm(false); window.history.back(); onClose(); }} className="flex-1 py-2 bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-500/20 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-colors">Ya, Keluar</button>
                         </div>
                     </div>
                 </div>

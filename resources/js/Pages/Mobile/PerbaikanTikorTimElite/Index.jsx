@@ -389,11 +389,37 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
     };
 
     // FIX #5: "Batal" closes modal with unsaved photo confirmation
+    const dataFotoRef = useRef(data.foto);
+    useEffect(() => { dataFotoRef.current = data.foto; }, [data.foto]);
+
+    useEffect(() => {
+        if (detailOutlet) {
+            window.history.pushState({ modal: 'detailOutlet' }, '');
+            
+            const handlePopState = (e) => {
+                if (dataFotoRef.current) {
+                    if (!confirm('Foto yang sudah diambil akan hilang. Yakin ingin membatalkan?')) {
+                        // User cancelled the back action, we must push the state back to intercept again
+                        window.history.pushState({ modal: 'detailOutlet' }, '');
+                        return;
+                    }
+                }
+                setDetailOutlet(null);
+            };
+            
+            window.addEventListener('popstate', handlePopState);
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [detailOutlet]);
+
     const handleCloseDetail = () => {
         if (data.foto) {
             if (!confirm('Foto yang sudah diambil akan hilang. Yakin ingin membatalkan?')) return;
         }
         setDetailOutlet(null);
+        window.history.back(); // Remove the pushed state since we close manually
     };
 
     // --- displayedOutlets memo (FIX #20 resolved: selectedStatusFilter now declared before early return) ---

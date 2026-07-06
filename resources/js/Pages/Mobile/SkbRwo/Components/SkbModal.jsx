@@ -21,7 +21,46 @@ export default function SkbModal({ data, onClose, showToast }) {
         }
     }, [data]);
 
+    const skbFormRef = useRef(skbForm);
+    useEffect(() => { skbFormRef.current = skbForm; }, [skbForm]);
+
+    useEffect(() => {
+        if (!data) return;
+        window.history.pushState({ modal: 'SkbModal' }, '');
+
+        const handlePopState = (e) => {
+            const currentForm = skbFormRef.current;
+            const originalApproval = data.is_approved === true ? 'approve' : (data.is_approved === false ? 'reject' : '');
+            const isChanged = currentForm.approval_status !== originalApproval || currentForm.foto_skb || (currentForm.reject_reason !== (data.skb_reason || data.reason || ''));
+            
+            if (isChanged) {
+                if (confirm('Aksi SKB belum disimpan. Yakin ingin keluar?')) {
+                    onClose();
+                } else {
+                    window.history.pushState({ modal: 'SkbModal' }, '');
+                }
+            } else {
+                onClose();
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [data]);
+
     if (!data) return null;
+
+    const handleClose = () => {
+        const currentForm = skbForm;
+        const originalApproval = data.is_approved === true ? 'approve' : (data.is_approved === false ? 'reject' : '');
+        const isChanged = currentForm.approval_status !== originalApproval || currentForm.foto_skb || (currentForm.reject_reason !== (data.skb_reason || data.reason || ''));
+        
+        if (isChanged) {
+            if (!confirm('Aksi SKB belum disimpan. Yakin ingin keluar?')) return;
+        }
+        window.history.back();
+        onClose();
+    };
 
     const handlePhotoChange = (e) => {
         const file = e.target.files[0];
@@ -71,7 +110,7 @@ export default function SkbModal({ data, onClose, showToast }) {
             <div className="bg-white w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl max-h-[95vh] flex flex-col shadow-2xl animate-slide-up">
                 <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur z-10 rounded-t-3xl">
                     <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Aksi SKB</h3>
-                    <button onClick={onClose} disabled={isSubmitting} className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-full transition-colors disabled:opacity-50">
+                    <button onClick={handleClose} disabled={isSubmitting} className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-full transition-colors disabled:opacity-50">
                         <XMarkIcon className="w-5 h-5" />
                     </button>
                 </div>
