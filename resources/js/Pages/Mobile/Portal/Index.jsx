@@ -6,13 +6,15 @@ import {
     SparklesIcon,
     ArrowRightIcon,
     CalendarDaysIcon,
-    ChartBarIcon
+    ChartBarIcon,
+    UserCircleIcon,
+    ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/solid';
 
 export default function MobilePortal() {
     return (
         <div className="min-h-screen bg-[#F8FAFC] font-sans pb-10 selection:bg-indigo-500 selection:text-white">
-            <Head title="Mobile Portal - SISO" />
+            <Head title="SISO Workspace" />
 
             {/* Header / Hero Section */}
             <div className="bg-slate-900 px-6 pt-12 pb-24 rounded-b-[40px] relative overflow-hidden shadow-2xl">
@@ -22,15 +24,23 @@ export default function MobilePortal() {
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay pointer-events-none"></div>
                 
                 <div className="relative z-10">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 mb-6">
-                        <SparklesIcon className="w-4 h-4 text-amber-400" />
-                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">SISO Workspace</span>
+                    {/* Top Navbar */}
+                    <div className="flex items-center justify-end mb-6">
+                        
+                        <div className="flex items-center gap-3">
+                            <Link href="/mobile/profile" className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
+                                <UserCircleIcon className="w-6 h-6" />
+                            </Link>
+                            <Link href="/mobile/logout" method="post" as="button" className="w-10 h-10 rounded-full bg-rose-500/20 backdrop-blur-md border border-rose-500/30 flex items-center justify-center text-rose-200 hover:bg-rose-500/40 hover:text-white transition-colors">
+                                <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                            </Link>
+                        </div>
                     </div>
                     
                     <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight mb-2">
-                        Mobile <br/>
+                        SISO <br/>
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">
-                            Portal
+                            Workspace
                         </span>
                     </h1>
                     <p className="text-sm text-slate-400 font-medium max-w-[280px] leading-relaxed">

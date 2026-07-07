@@ -94,7 +94,7 @@ class IndexController extends Controller
                 ->get();
         }
 
-        return Inertia::render('Mobile/PerbaikanTikorTimElite/Index', [
+        return Inertia::render('mobile/Pages/PerbaikanTikorTimElite/Index', [
             'tokoList' => $tokoList,
             'riwayatPerbaikan' => $riwayatPerbaikan,
             'sessionSalesCode' => $salesCode,

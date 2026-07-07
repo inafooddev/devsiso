@@ -16,11 +16,7 @@ export default function BottomMenu() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
         ),
-        Menu: (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-        ),
+
         Profile: (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -53,15 +49,7 @@ export default function BottomMenu() {
                     <span className="text-[10px] font-semibold tracking-wide">Explore</span>
                 </Link>
 
-                <Link 
-                    href="/mobile/menu" 
-                    className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${isActive('/mobile/menu') ? 'text-indigo-600' : 'text-gray-400 hover:text-indigo-500'}`}
-                >
-                    <div className={`${isActive('/mobile/menu') ? 'bg-indigo-50' : 'bg-transparent'} p-1.5 rounded-2xl transition-all duration-300`}>
-                        {icons.Menu}
-                    </div>
-                    <span className="text-[10px] font-semibold tracking-wide">Menu</span>
-                </Link>
+
 
                 <Link 
                     href="/mobile/profile" 

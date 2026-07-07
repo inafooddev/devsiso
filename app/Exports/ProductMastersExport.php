@@ -43,13 +43,17 @@ class ProductMastersExport implements FromQuery, WithHeadings, WithMapping, Shou
     {
         // [PERUBAHAN] Gabungkan heading statis dengan nama-nama kategori
         $baseHeadings = [
+            'line_id',
             'Line Name',
+            'brand_id',
             'Brand Name',
-            'Group Name', // (brand_unit_name)
+            'group_id',
+            'Group Name',
+            'sub_brand_id',
             'Sub-Brand Name',
             'Product ID',
             'Nama Produk',
-            'Status', // (is_active)
+            'Status',
             'Base Unit',
             'UOM 1',
             'UOM 2',
@@ -62,10 +66,17 @@ class ProductMastersExport implements FromQuery, WithHeadings, WithMapping, Shou
             'Price Zone 3',
             'Price Zone 4',
             'Price Zone 5',
+            'NPD',
+            'TOP ITEM',
+            'VTKP',
+            'category_ids_comma_separated',
         ];
 
-        // Ambil nama kategori sebagai array
-        $categoryHeadings = $this->allCategories->pluck('category_name')->toArray();
+        // Ambil nama kategori sebagai array (kecualikan yang sudah di-hardcode)
+        $categoryHeadings = $this->allCategories
+            ->whereNotIn('category_name', ['NPD', 'TOP ITEM', 'VTKP'])
+            ->pluck('category_name')
+            ->toArray();
 
         // Gabungkan kedua array
         return array_merge($baseHeadings, $categoryHeadings);
@@ -78,14 +89,21 @@ class ProductMastersExport implements FromQuery, WithHeadings, WithMapping, Shou
     public function map($product): array
     {
         // [PERUBAHAN] Tambahkan logika 'Y' / 'N' untuk setiap kategori
+        $productCategoryNames = $product->categories->pluck('category_name')->toArray();
+        $productCategoryIds = $product->categories->pluck('category_id')->flip();
+
         $baseMapping = [
+            $product->line_id,
             $product->line_name,
+            $product->brand_id,
             $product->brand_name,
-            $product->brand_unit_name, // Group Name
+            $product->product_group_id,
+            $product->brand_unit_name,
+            $product->sub_brand_id,
             $product->sub_brand_name,
             $product->product_id,
             $product->product_name,
-            $product->is_active ? 'Aktif' : 'Tidak Aktif',
+            $product->is_active ? 1 : 0, // Menggunakan 1/0 agar sesuai import
             $product->base_unit,
             $product->uom1,
             $product->uom2,
@@ -98,16 +116,15 @@ class ProductMastersExport implements FromQuery, WithHeadings, WithMapping, Shou
             $product->price_zone3,
             $product->price_zone4,
             $product->price_zone5,
+            in_array('NPD', $productCategoryNames) ? 'Y' : 'N',
+            in_array('TOP ITEM', $productCategoryNames) ? 'Y' : 'N',
+            in_array('VTKP', $productCategoryNames) ? 'Y' : 'N',
+            $product->categories->pluck('category_id')->implode(','),
         ];
 
-        // Buat lookup yang efisien untuk kategori milik produk ini
-        // Ini cepat karena relasi 'categories' sudah di-eager-load di query()
-        $productCategoryIds = $product->categories->pluck('category_id')->flip();
-
         $categoryMapping = [];
-        // Loop melalui SEMUA kategori yang ada
-        foreach ($this->allCategories as $category) {
-            // Cek apakah produk ini memiliki kategori tersebut
+        // Loop melalui SEMUA kategori yang ada (kecuali yang di-hardcode)
+        foreach ($this->allCategories->whereNotIn('category_name', ['NPD', 'TOP ITEM', 'VTKP']) as $category) {
             if (isset($productCategoryIds[$category->category_id])) {
                 $categoryMapping[] = 'Y';
             } else {
@@ -115,7 +132,6 @@ class ProductMastersExport implements FromQuery, WithHeadings, WithMapping, Shou
             }
         }
 
-        // Gabungkan data dasar dengan data kategori Y/N
         return array_merge($baseMapping, $categoryMapping);
     }
 
@@ -126,15 +142,15 @@ class ProductMastersExport implements FromQuery, WithHeadings, WithMapping, Shou
     {
         // Format kolom statis (tidak perlu diubah)
         return [
-            'L' => NumberFormat::FORMAT_NUMBER, // Conv 1
-            'M' => NumberFormat::FORMAT_NUMBER, // Conv 2
-            'N' => NumberFormat::FORMAT_NUMBER, // Conv 3
-            'O' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Price Zone 1
-            'P' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Price Zone 2
-            'Q' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Price Zone 3
-            'R' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Price Zone 4
-            'S' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Price Zone 5
-            // Kolom T, U, V, dst (kategori) tidak memerlukan format khusus (akan jadi 'Y'/'N')
+            'P' => NumberFormat::FORMAT_NUMBER, // Conv 1
+            'Q' => NumberFormat::FORMAT_NUMBER, // Conv 2
+            'R' => NumberFormat::FORMAT_NUMBER, // Conv 3
+            'S' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Price Zone 1
+            'T' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Price Zone 2
+            'U' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Price Zone 3
+            'V' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Price Zone 4
+            'W' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1, // Price Zone 5
+            // Kolom X dst tidak memerlukan format khusus
         ];
     }
 }

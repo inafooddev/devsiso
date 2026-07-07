@@ -16,7 +16,34 @@
             <p class="text-base-content/60 mt-2 text-sm">Welcome back! Please enter your details.</p>
         </div>
 
-        <form wire:submit.prevent="authenticate" class="space-y-6 relative z-10">
+        <form wire:submit.prevent="authenticate"
+            x-data="{
+                secs: 0,
+                timer: null,
+                init() {
+                    this.secs = $wire.lockoutSeconds;
+                    if (this.secs > 0) this.startCountdown();
+                    $wire.$watch('lockoutSeconds', (val) => {
+                        if (val > 0) {
+                            this.secs = val;
+                            this.startCountdown();
+                        }
+                    });
+                },
+                startCountdown() {
+                    if (this.timer) clearInterval(this.timer);
+                    this.timer = setInterval(() => {
+                        if (this.secs > 0) {
+                            this.secs--;
+                        } else {
+                            clearInterval(this.timer);
+                            this.timer = null;
+                        }
+                    }, 1000);
+                }
+            }"
+            class="space-y-6 relative z-10">
+
             <!-- User ID Field -->
             <div class="form-control">
                 <label class="label pb-1"><span class="label-text text-base-content/60 font-medium">User ID</span></label>
@@ -34,6 +61,14 @@
                         {{ $message }}
                     </span> 
                 @enderror
+
+                {{-- Countdown Rate Limit --}}
+                <div x-show="secs > 0" x-cloak class="mt-2 flex items-center gap-1 text-warning text-xs font-medium">
+                    <x-heroicon-s-clock class="w-3 h-3 shrink-0" />
+                    <span>Terlalu banyak percobaan. Coba lagi dalam</span>
+                    <span class="font-bold tabular-nums" x-text="secs"></span>
+                    <span>detik.</span>
+                </div>
             </div>
 
             <!-- Password Field -->
@@ -66,10 +101,17 @@
             </div>
 
             <!-- Submit Button -->
-            <button type="submit" 
-                class="btn btn-primary w-full h-12 rounded-xl shadow-lg shadow-primary/20 normal-case text-base border-none relative overflow-hidden group">
+            <button type="submit"
+                :disabled="secs > 0"
+                :class="secs > 0 ? 'opacity-50 cursor-not-allowed' : 'group'"
+                class="btn btn-primary w-full h-12 rounded-xl shadow-lg shadow-primary/20 normal-case text-base border-none relative overflow-hidden">
                 <span class="relative z-10 flex items-center justify-center gap-2">
-                    <span wire:loading.remove wire:target="authenticate">Sign In</span>
+                    <span wire:loading.remove wire:target="authenticate">
+                        <span x-show="secs <= 0">Sign In</span>
+                        <span x-show="secs > 0" x-cloak>
+                            Tunggu <span class="tabular-nums font-bold" x-text="secs"></span>s...
+                        </span>
+                    </span>
                     <span wire:loading wire:target="authenticate" class="flex items-center">
                         <span class="loading loading-spinner loading-sm mr-2"></span>
                         Authenticating...

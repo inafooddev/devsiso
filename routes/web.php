@@ -8,7 +8,6 @@ use App\Http\Controllers\ConfigSalesInvoiceDistributorController;
 
 // Livewire Components (Alphabetically ordered)
 use App\Livewire\Auth\Login;
-use App\Livewire\Auth\Register;
 use App\Livewire\CallPlan\Index as CallPlanIndex;
 
 use App\Livewire\Eskalink\CustomerEska\Index as CustomerEskaIndex;
@@ -96,61 +95,59 @@ use App\Livewire\MonitoringDevice\Index as MonitoringDeviceIndex;
 |--------------------------------------------------------------------------
 */
 
-Route::get('/mobile/rwo', \App\Livewire\Rwo\MobileUpdate::class)->name('mobile.rwo.update');
-Route::get('/mobile/rwo-inertia', [\App\Http\Controllers\Mobile\Rwo\IndexController::class, 'index'])->name('mobile.rwo.inertia');
-Route::post('/mobile/rwo-inertia/upload', [\App\Http\Controllers\Mobile\Rwo\IndexController::class, 'upload'])->name('mobile.rwo.inertia.upload');
-Route::post('/mobile/rwo-inertia/edit', [\App\Http\Controllers\Mobile\Rwo\IndexController::class, 'edit'])->name('mobile.rwo.inertia.edit');
-
-Route::get('/mobile/skb-rwo', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'index'])->name('mobile.skb-rwo.index');
-Route::post('/mobile/skb-rwo/login', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'loginSupervisor'])->name('mobile.skb-rwo.login');
-Route::post('/mobile/skb-rwo/logout', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'logoutSupervisor'])->name('mobile.skb-rwo.logout');
-Route::post('/mobile/skb-rwo/submit-skb', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'submitSkb'])->name('mobile.skb-rwo.submit-skb');
-Route::post('/mobile/skb-rwo/submit-data', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'submitData'])->name('mobile.skb-rwo.submit-data');
-
-// MOBILE CALL PLAN
-Route::get('/mobile/call-plan', [\App\Http\Controllers\Mobile\CallPlan\IndexController::class, 'index'])->name('mobile.call-plan.index');
-Route::post('/mobile/call-plan/login', [\App\Http\Controllers\Mobile\CallPlan\IndexController::class, 'loginSupervisor'])->name('mobile.call-plan.login');
-Route::post('/mobile/call-plan/logout', [\App\Http\Controllers\Mobile\CallPlan\IndexController::class, 'logoutSupervisor'])->name('mobile.call-plan.logout');
-
-Route::inertia('/mobile/ui-preview', 'mobile/Pages/UIPreview')->name('mobile.ui-preview');
-Route::inertia('/mobile/portal', 'Mobile/Portal/Index')->name('mobile.portal');
-
-// Mock Mobile Routes
-Route::inertia('/mobile/login', 'mobile/Pages/Auth/Login')->name('mobile.login');
-Route::inertia('/mobile/home', 'mobile/Pages/Home')->name('mobile.home');
-Route::inertia('/mobile/menu', 'mobile/Pages/Menu')->name('mobile.menu');
-Route::inertia('/mobile/master-customer', 'mobile/Pages/MasterCustomer/Index')->name('mobile.master-customer');
-Route::inertia('/mobile/profile', 'mobile/Pages/Profile')->name('mobile.profile');
-
-
-Route::get('/mobile/audit', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'index'])->name('mobile.audit.index');
-Route::post('/mobile/audit', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'store'])->name('mobile.audit.store');
-Route::delete('/mobile/audit/{id}', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'destroy'])->name('mobile.audit.destroy');
-Route::get('/mobile/audit/export', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'export'])->name('mobile.audit.export');
-Route::post('/mobile/audit/login', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'loginAuditor'])->name('mobile.audit.login');
-Route::post('/mobile/audit/logout', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'logoutAuditor'])->name('mobile.audit.logout');
-
-Route::get('/mobile/perbaikan-tikor', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'index'])->name('mobile.perbaikan.tikor.index');
-Route::post('/mobile/perbaikan-tikor', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'store'])->name('mobile.perbaikan.tikor.store');
-Route::middleware('throttle:30,1')->group(function () {
-    Route::get('/mobile/perbaikan-tikor/search-sales', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'searchSales'])->name('mobile.perbaikan.tikor.search-sales');
-    Route::post('/mobile/perbaikan-tikor/login', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'loginSales'])->name('mobile.perbaikan.tikor.login');
+// ==========================================
+// MOBILE ROUTES
+// ==========================================
+Route::middleware('guest')->group(function () {
+    Route::get('/mobile/login', [\App\Http\Controllers\Mobile\AuthController::class, 'showLogin'])->name('mobile.login');
+    Route::post('/mobile/login', [\App\Http\Controllers\Mobile\AuthController::class, 'login']);
 });
-Route::post('/mobile/perbaikan-tikor/logout', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'logoutSales'])->name('mobile.perbaikan.tikor.logout');
 
-Route::get('/mobile/perbaikan-tikor-tim-elite', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'index'])->name('mobile.perbaikan.tikor-tim-elite.index');
-Route::post('/mobile/perbaikan-tikor-tim-elite', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'store'])->name('mobile.perbaikan.tikor-tim-elite.store');
-Route::middleware('throttle:30,1')->group(function () {
-    Route::get('/mobile/perbaikan-tikor-tim-elite/search-sales', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'searchSales'])->name('mobile.perbaikan.tikor-tim-elite.search-sales');
-    Route::post('/mobile/perbaikan-tikor-tim-elite/login', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'loginSales'])->name('mobile.perbaikan.tikor-tim-elite.login');
+Route::middleware('auth')->group(function () {
+    Route::post('/mobile/logout', [\App\Http\Controllers\Mobile\AuthController::class, 'logout'])->name('mobile.logout');
+    Route::inertia('/mobile/portal', 'Mobile/Portal/Index')->name('mobile.portal');
+    Route::inertia('/mobile/home', 'mobile/Pages/Home')->name('mobile.home');
+    Route::inertia('/mobile/profile', 'mobile/Pages/Profile')->name('mobile.profile');
+
+    Route::get('/mobile/rwo', \App\Livewire\Rwo\MobileUpdate::class)->name('mobile.rwo.update');
+    Route::get('/mobile/rwo-inertia', [\App\Http\Controllers\Mobile\Rwo\IndexController::class, 'index'])->name('mobile.rwo.inertia');
+    Route::post('/mobile/rwo-inertia/upload', [\App\Http\Controllers\Mobile\Rwo\IndexController::class, 'upload'])->name('mobile.rwo.inertia.upload');
+    Route::post('/mobile/rwo-inertia/edit', [\App\Http\Controllers\Mobile\Rwo\IndexController::class, 'edit'])->name('mobile.rwo.inertia.edit');
+
+    Route::get('/mobile/skb-rwo', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'index'])->name('mobile.skb-rwo.index');
+    Route::post('/mobile/skb-rwo/login', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'loginSupervisor'])->name('mobile.skb-rwo.login');
+    Route::post('/mobile/skb-rwo/logout', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'logoutSupervisor'])->name('mobile.skb-rwo.logout');
+    Route::post('/mobile/skb-rwo/submit-skb', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'submitSkb'])->name('mobile.skb-rwo.submit-skb');
+    Route::post('/mobile/skb-rwo/submit-data', [\App\Http\Controllers\Mobile\SkbRwo\IndexController::class, 'submitData'])->name('mobile.skb-rwo.submit-data');
+
+    Route::get('/mobile/call-plan', [\App\Http\Controllers\Mobile\CallPlan\IndexController::class, 'index'])->name('mobile.call-plan.index');
+    Route::post('/mobile/call-plan/login', [\App\Http\Controllers\Mobile\CallPlan\IndexController::class, 'loginSupervisor'])->name('mobile.call-plan.login');
+    Route::post('/mobile/call-plan/logout', [\App\Http\Controllers\Mobile\CallPlan\IndexController::class, 'logoutSupervisor'])->name('mobile.call-plan.logout');
+
+    Route::get('/mobile/audit', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'index'])->name('mobile.audit.index');
+    Route::post('/mobile/audit', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'store'])->name('mobile.audit.store');
+    Route::delete('/mobile/audit/{id}', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'destroy'])->name('mobile.audit.destroy');
+    Route::get('/mobile/audit/export', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'export'])->name('mobile.audit.export');
+    Route::post('/mobile/audit/login', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'loginAuditor'])->name('mobile.audit.login');
+    Route::post('/mobile/audit/logout', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'logoutAuditor'])->name('mobile.audit.logout');
+
+    Route::get('/mobile/perbaikan-tikor', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'index'])->name('mobile.perbaikan.tikor.index');
+    Route::post('/mobile/perbaikan-tikor', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'store'])->name('mobile.perbaikan.tikor.store');
+    Route::get('/mobile/perbaikan-tikor/search-sales', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'searchSales'])->name('mobile.perbaikan.tikor.search-sales')->middleware('throttle:30,1');
+    Route::post('/mobile/perbaikan-tikor/login', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'loginSales'])->name('mobile.perbaikan.tikor.login')->middleware('throttle:30,1');
+    Route::post('/mobile/perbaikan-tikor/logout', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'logoutSales'])->name('mobile.perbaikan.tikor.logout');
+
+    Route::get('/mobile/perbaikan-tikor-tim-elite', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'index'])->name('mobile.perbaikan.tikor-tim-elite.index');
+    Route::post('/mobile/perbaikan-tikor-tim-elite', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'store'])->name('mobile.perbaikan.tikor-tim-elite.store');
+    Route::get('/mobile/perbaikan-tikor-tim-elite/search-sales', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'searchSales'])->name('mobile.perbaikan.tikor-tim-elite.search-sales')->middleware('throttle:30,1');
+    Route::post('/mobile/perbaikan-tikor-tim-elite/login', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'loginSales'])->name('mobile.perbaikan.tikor-tim-elite.login')->middleware('throttle:30,1');
+    Route::post('/mobile/perbaikan-tikor-tim-elite/logout', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'logoutSales'])->name('mobile.perbaikan.tikor-tim-elite.logout');
+
+    Route::get('/mobile/monitoring-device', \App\Livewire\Mobile\MonitoringDeviceSe\Index::class)->name('mobile.monitoring-device.index');
 });
-Route::post('/mobile/perbaikan-tikor-tim-elite/logout', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'logoutSales'])->name('mobile.perbaikan.tikor-tim-elite.logout');
-
-Route::get('/mobile/monitoring-device', \App\Livewire\Mobile\MonitoringDeviceSe\Index::class)->name('mobile.monitoring-device.index');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', Login::class)->name('login');
-    Route::get('/register', Register::class)->name('register');
 });
 
 Route::middleware(['auth'])->group(function () {

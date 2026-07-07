@@ -19,14 +19,5 @@
 <body class="bg-animated min-h-screen flex items-center justify-center p-4 font-sans">
     {{ $slot }}
 
- <script>
-        // Simple script to toggle checkbox icon for preview
-        const checkbox = document.getElementById('remember');
-        const checkIcon = document.getElementById('check-icon');
-        checkbox.addEventListener('change', () => {
-            if(checkbox.checked) checkIcon.classList.remove('hidden');
-            else checkIcon.classList.add('hidden');
-        });
-    </script>
 </body>
 </html>

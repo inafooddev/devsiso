@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import React from 'react';
+import { Head, useForm } from '@inertiajs/react';
 import Button from '../../Components/UI/Button';
 
 export default function Login() {
-    const [isLoading, setIsLoading] = useState(false);
+    const { data, setData, post, processing, errors } = useForm({
+        user_id: '',
+        password: '',
+        remember: false,
+    });
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoading(true);
-        // Mocking a network request
-        setTimeout(() => {
-            router.get('/mobile/home');
-        }, 1000);
+        post('/mobile/login');
     };
 
     return (
@@ -55,9 +55,13 @@ export default function Login() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                     </svg>
                                 </div>
-                                <input id="user_id" name="user_id" type="text" required defaultValue="SLS-001" placeholder="Masukkan User ID Anda"
-                                    className="block w-full pl-11 pr-4 py-4 bg-white/70 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all" />
+                                <input id="user_id" name="user_id" type="text" required 
+                                    value={data.user_id}
+                                    onChange={e => setData('user_id', e.target.value)}
+                                    placeholder="Masukkan User ID Anda"
+                                    className={`block w-full pl-11 pr-4 py-4 bg-white/70 text-slate-800 placeholder-slate-400 border ${errors.user_id ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'} rounded-2xl focus:ring-2 sm:text-sm transition-all`} />
                             </div>
+                            {errors.user_id && <p className="mt-2 text-xs text-red-600 ml-1 font-semibold">{errors.user_id}</p>}
                         </div>
 
                         {/* Password Input */}
@@ -69,15 +73,22 @@ export default function Login() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                     </svg>
                                 </div>
-                                <input id="password" name="password" type="password" autoComplete="current-password" required defaultValue="password"
-                                    className="block w-full pl-11 pr-4 py-4 bg-white/70 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all" />
+                                <input id="password" name="password" type="password" autoComplete="current-password" required 
+                                    value={data.password}
+                                    onChange={e => setData('password', e.target.value)}
+                                    placeholder="Masukkan Password Anda"
+                                    className={`block w-full pl-11 pr-4 py-4 bg-white/70 text-slate-800 placeholder-slate-400 border ${errors.password ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'} rounded-2xl focus:ring-2 sm:text-sm transition-all`} />
                             </div>
+                            {errors.password && <p className="mt-2 text-xs text-red-600 ml-1 font-semibold">{errors.password}</p>}
                         </div>
 
                         {/* Remember & Forgot Password */}
                         <div className="flex items-center justify-between pt-1">
                             <div className="flex items-center">
-                                <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded" />
+                                <input id="remember-me" name="remember-me" type="checkbox" 
+                                    checked={data.remember}
+                                    onChange={e => setData('remember', e.target.checked)}
+                                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded" />
                                 <label htmlFor="remember-me" className="ml-2 block text-sm font-medium text-slate-600"> Ingat saya </label>
                             </div>
                             <div className="text-sm">
@@ -87,7 +98,7 @@ export default function Login() {
 
                         {/* Submit Button */}
                         <div className="pt-5">
-                            <Button type="submit" fullWidth isLoading={isLoading} size="lg" className="py-3.5 text-base font-bold tracking-wide rounded-2xl shadow-md shadow-indigo-200/50">
+                            <Button type="submit" fullWidth isLoading={processing} disabled={processing} size="lg" className="py-3.5 text-base font-bold tracking-wide rounded-2xl shadow-md shadow-indigo-200/50">
                                 Masuk
                             </Button>
                         </div>
