@@ -9,6 +9,7 @@ import { ShieldExclamationIcon, BuildingStorefrontIcon } from '@heroicons/react/
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import MobileLayout from '../../Layouts/MobileLayout';
+import SearchBar from '../../Components/UI/SearchBar';
 
 const actualIcon = L.divIcon({
     html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8 text-slate-500"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>`,
@@ -66,12 +67,14 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
         toastTimerRef.current = setTimeout(() => setToast(null), type === 'error' ? 5000 : 3000);
     };
 
-    const handleSearchSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    const handleSearchSubmit = () => {
+        setDisplayLimit(30);
     };
 
-    const clearSearch = () => setSearch('');
+    const clearSearch = () => {
+        setSearch('');
+        setDisplayLimit(30);
+    };
 
     const handleTabSwitch = (tab: string) => {
         setActiveTab(tab);
@@ -406,7 +409,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
     // }
 
     return (
-        <MobileLayout user={user} title="Perbaikan Tikor Tim Elite">
+        <MobileLayout user={user} title="Perbaikan Tikor Tim Elite" backUrl="/mobile/home">
             <Head title="Perbaikan Tikor Tim Elite" />
             
             <div className="flex flex-col relative pb-20 w-full animate-fade-in">
@@ -422,22 +425,14 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                 )}
 
                 {/* Tabs & Search Area */}
-                <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm shrink-0">
+                <div className="sticky top-16 md:top-20 z-30 bg-gray-50/80 backdrop-blur-lg pt-2 pb-1 shrink-0">
                     <div className="px-4 py-3 pb-2 flex items-center gap-2">
-                        <form onSubmit={handleSearchSubmit} className="relative flex-1 flex items-center">
-                            <button type="submit" className="absolute left-3 text-gray-400 hover:text-indigo-600 transition-colors">
-                                <MagnifyingGlassIcon className="w-5 h-5" />
-                            </button>
-                            <input value={search} onChange={(e) => setSearch(e.target.value)}
-                                   type="search"
-                                   placeholder="Cari Toko/Kode..."
-                                   className="block w-full pl-10 pr-8 py-2.5 text-sm border border-gray-200 rounded-2xl bg-gray-50 focus:border-indigo-500 focus:bg-white outline-none text-gray-800 transition-all shadow-inner" />
-                            {search && (
-                                <button type="button" onClick={clearSearch} className="absolute right-3 text-gray-400 hover:text-gray-600 bg-gray-200 rounded-full p-0.5">
-                                    <XMarkIcon className="w-3 h-3" />
-                                </button>
-                            )}
-                        </form>
+                        <SearchBar 
+                            value={search} 
+                            onChange={(val) => { setSearch(val); setDisplayLimit(30); }} 
+                            placeholder="Cari Toko / Kode..." 
+                            onSubmit={handleSearchSubmit} 
+                        />
                     </div>
 
                     <div className="px-4 pb-3 pt-1">
@@ -534,18 +529,18 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                                 {activeTab === 'toko' && (
                                     <div className="flex items-center gap-2 mt-2 pt-3 border-t border-gray-50">
                                         {outlet.latitude && outlet.longitude && (
-                                            <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.latitude},${outlet.longitude}`} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-gray-50 text-gray-600 border border-gray-200 text-[10px] font-bold uppercase tracking-wider hover:bg-gray-100 transition-colors">
+                                            <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.latitude},${outlet.longitude}`} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg bg-gray-50 text-gray-600 border border-gray-200 text-[10px] font-bold uppercase tracking-wider hover:bg-gray-100 transition-colors">
                                                 <MapIcon className="w-3.5 h-3.5" />
                                                 Map Lama
                                             </a>
                                         )}
                                         {outlet.status_perbaikan && outlet.status_perbaikan.toLowerCase() === 'pending' ? (
-                                            <button disabled className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-gray-100 text-gray-400 border border-gray-200 text-[10px] font-bold uppercase tracking-wider cursor-not-allowed opacity-75">
+                                            <button disabled className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg bg-gray-100 text-gray-400 border border-gray-200 text-[10px] font-bold uppercase tracking-wider cursor-not-allowed opacity-75">
                                                 <InformationCircleIcon className="w-3.5 h-3.5" />
                                                 Menunggu ACC
                                             </button>
                                         ) : (
-                                            <button onClick={() => openDetail(outlet)} className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 text-[10px] font-black uppercase tracking-wider hover:bg-indigo-100 transition-colors active:scale-95">
+                                            <button onClick={() => openDetail(outlet)} className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 text-[10px] font-black uppercase tracking-wider hover:bg-indigo-100 transition-colors active:scale-95">
                                                 <MapPinIcon className="w-3.5 h-3.5" />
                                                 Perbaiki
                                             </button>
@@ -569,7 +564,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                         <div className="mt-8 mb-4 text-center">
                             <button
                                 onClick={() => setDisplayLimit(prev => prev + 30)}
-                                className="px-6 py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-indigo-600 text-[11px] font-black uppercase tracking-wider rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-all flex items-center justify-center gap-2 mx-auto active:scale-95"
+                                className="px-6 py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-indigo-600 text-[11px] font-black uppercase tracking-wider rounded-xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-all flex items-center justify-center gap-2 mx-auto active:scale-95"
                             >
                                 Muat Lebih Banyak
                                 <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-md text-[9px] font-bold">{displayedOutlets.length - displayLimit} tersisa</span>
@@ -645,7 +640,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                                     type="button"
                                     onClick={fetchCurrentLocation}
                                     disabled={isGettingLocation || processing}
-                                    className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border-2 font-black text-[11px] uppercase tracking-wider transition-all active:scale-[0.98] disabled:opacity-60 shadow-sm mt-1 ${
+                                    className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-lg border-2 font-black text-[11px] uppercase tracking-wider transition-all active:scale-[0.98] disabled:opacity-60 shadow-sm mt-1 ${
                                         gpsError 
                                             ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100' 
                                             : 'border-indigo-100 bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
@@ -695,14 +690,14 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                                 <button
                                     type="button"
                                     onClick={handleCloseDetail}
-                                    className="flex-[0.8] py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-xs uppercase tracking-wider rounded-2xl transition-colors active:scale-95"
+                                    className="flex-[0.8] py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-xs uppercase tracking-wider rounded-lg transition-colors active:scale-95"
                                 >
                                     Batal
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={processing || !data.latitude || !data.longitude || (bestAccuracy !== null && bestAccuracy > 100)}
-                                    className="flex-[1.2] py-4 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/30 font-black text-xs uppercase tracking-wider rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60 disabled:shadow-none"
+                                    className="flex-[1.2] py-4 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/30 font-black text-xs uppercase tracking-wider rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60 disabled:shadow-none"
                                 >
                                     {processing ? (
                                         <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Menyimpan...</>

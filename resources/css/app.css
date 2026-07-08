@@ -9,23 +9,41 @@ html, body, aside, header, footer, main, nav,
     transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease;
 }
 
-/* Custom scrollbar styles */
+/* Native App Feel Enhancements */
+html, body {
+    /* Prevent rubber-banding pull-to-refresh effect on whole document */
+    overscroll-behavior-y: none;
+    /* Remove blue tap highlight on iOS/Android */
+    -webkit-tap-highlight-color: transparent;
+    /* Prevent text selection everywhere */
+    -webkit-user-select: none;
+    user-select: none;
+    /* Prevent context menu on long press */
+    -webkit-touch-callout: none;
+}
+
+/* Allow text selection ONLY on input forms */
+input, textarea {
+    -webkit-user-select: auto;
+    user-select: auto;
+}
+
+/* Hide native clear button on search inputs */
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+    display: none;
+    -webkit-appearance: none;
+}
+
+/* Hide scrollbars completely for native app illusion */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    display: none;
 }
-
-::-webkit-scrollbar-track {
-    background: oklch(var(--b2));
-}
-
-::-webkit-scrollbar-thumb {
-    background: oklch(var(--bc) / 0.2);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: oklch(var(--bc) / 0.4);
+* {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
 }
 
 /* Smooth transitions for sidebar */

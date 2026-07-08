@@ -35,9 +35,12 @@ class IndexController extends Controller
                      ->on('skb.distributor_code', '=', 'l.distributor_code')
                      ->on('skb.kuartal', '=', 'l.kuartal');
             })
+            ->leftJoin('list_toko_pareto_team_elite as lt', 'lt.uniq_kd', '=', 'l.customer_code')
             ->where('l.kuartal', $currentQuarter)
             ->select(
                 'l.*', 
+                'lt.customer_code_prc as customer_prc',
+                'md.region_name', 'md.area_name', 'md.supervisor_name', 'md.distributor_name',
                 'l.alamat as address',
                 'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
                 'r.nama_bank', 'r.no_rekening', 'r.nama_pemilik_norek', 'r.latitude', 'r.longitude',
@@ -70,11 +73,14 @@ class IndexController extends Controller
                      ->on('l.distributor_code', '=', 'skb.distributor_code');
             })
             ->leftJoin('reward_outlet as r', 'r.customer_code', '=', 'skb.customer_code')
+            ->leftJoin('list_toko_pareto_team_elite as lt', 'lt.uniq_kd', '=', 'skb.customer_code')
             ->where('skb.kuartal', $currentQuarter)
             ->select(
                 'skb.*', 
                 'skb.foto_skb as skb_foto',
                 'l.customer_name', 
+                'lt.customer_code_prc as customer_prc',
+                'md.region_name', 'md.area_name', 'md.supervisor_name', 'md.distributor_name',
                 'l.alamat as address',
                 'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
                 'r.nama_bank', 'r.no_rekening', 'r.nama_pemilik_norek', 'r.latitude', 'r.longitude',
@@ -116,6 +122,8 @@ class IndexController extends Controller
                 'j.tanggal',
                 'j.distributor_code',
                 'l.uniq_kd as customer_code',
+                'l.customer_code_prc as customer_prc',
+                'md.region_name', 'md.area_name', 'md.supervisor_name', 'md.distributor_name',
                 'j.custname as customer_name',
                 'j.addres as address',
                 'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 

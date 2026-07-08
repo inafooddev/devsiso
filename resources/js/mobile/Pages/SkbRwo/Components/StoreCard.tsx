@@ -70,15 +70,15 @@ export default function StoreCard({ item, onOpenDetail, onOpenSkb }: StoreCardPr
             
             {/* Baris Ketiga: Action Buttons */}
             <div className="pt-3 border-t border-slate-100 flex gap-2">
-                <button onClick={() => onOpenDetail(item)} className="flex-1 py-2 flex items-center justify-center gap-1.5 rounded-xl text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-bold text-[11px] uppercase tracking-wider transition-colors border border-indigo-100">
+                <button onClick={() => onOpenDetail(item)} className="flex-1 py-2 flex items-center justify-center gap-1.5 rounded-lg text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-bold text-[11px] uppercase tracking-wider transition-colors border border-indigo-100">
                     <InformationCircleIcon className="w-4 h-4" /> Detail
                 </button>
                 {isApproved ? (
-                    <button onClick={() => onOpenSkb(item)} className="flex-1 py-2 flex items-center justify-center gap-1.5 rounded-xl text-emerald-600 bg-emerald-50 hover:bg-emerald-100 font-bold text-[11px] uppercase tracking-wider transition-colors border border-emerald-100">
+                    <button onClick={() => onOpenSkb(item)} className="flex-1 py-2 flex items-center justify-center gap-1.5 rounded-lg text-emerald-600 bg-emerald-50 hover:bg-emerald-100 font-bold text-[11px] uppercase tracking-wider transition-colors border border-emerald-100">
                         <ShieldCheckIcon className="w-4 h-4" /> Lihat SKB
                     </button>
                 ) : (
-                    <button onClick={() => onOpenSkb(item)} className="flex-1 py-2 flex items-center justify-center gap-1.5 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-bold text-[11px] uppercase tracking-wider shadow-sm shadow-indigo-200 transition-colors">
+                    <button onClick={() => onOpenSkb(item)} className="flex-1 py-2 flex items-center justify-center gap-1.5 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 font-bold text-[11px] uppercase tracking-wider shadow-sm shadow-indigo-200 transition-colors">
                         <ClipboardDocumentCheckIcon className="w-4 h-4" /> Form SKB
                     </button>
                 )}

@@ -17,13 +17,13 @@ export default function Home() {
             <Head title="SISO Workspace" />
 
             {/* Header / Hero Section */}
-            <div className="bg-slate-900 px-6 pt-12 pb-24 rounded-b-[40px] relative overflow-hidden shadow-2xl">
+            <div className="bg-slate-900 pt-12 pb-24 rounded-b-[2.5rem] relative overflow-hidden shadow-2xl">
                 {/* Abstract Background Shapes */}
                 <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-indigo-500/30 rounded-full blur-3xl mix-blend-screen"></div>
                 <div className="absolute bottom-[-20%] left-[-10%] w-64 h-64 bg-emerald-500/20 rounded-full blur-3xl mix-blend-screen"></div>
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay pointer-events-none"></div>
                 
-                <div className="relative z-10">
+                <div className="relative z-10 px-6 max-w-lg mx-auto">
                     {/* Top Navbar */}
                     <div className="flex items-center justify-end mb-6">
                         
@@ -44,7 +44,7 @@ export default function Home() {
                             Workspace
                         </span>
                     </h1>
-                    <p className="text-sm text-slate-400 font-medium max-w-[280px] leading-relaxed">
+                    <p className="text-sm text-slate-400 font-medium max-w-xs leading-relaxed">
                         Pilih modul aplikasi untuk mengelola operasional lapangan Anda.
                     </p>
                 </div>
@@ -64,13 +64,13 @@ export default function Home() {
                                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-200 text-white mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                                     <BuildingStorefrontIcon className="w-6 h-6" />
                                 </div>
-                                <h2 className="text-[13px] font-black text-slate-800 uppercase tracking-wide leading-snug">
-                                    Reward <br/>Outlet
+                                <h2 className="text-sm font-black text-slate-800 uppercase tracking-wide leading-snug">
+                                    Reward Outlet
                                 </h2>
                             </div>
                             
                             <div className="relative z-10 flex items-center justify-between mt-auto">
-                                <span className="text-[10px] font-bold text-slate-400">Akses Modul</span>
+                                <span className="text-xs font-bold text-slate-400">Akses Modul</span>
                                 <div className="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
                                     <ArrowRightIcon className="w-3 h-3 text-slate-300 group-hover:text-indigo-600 transition-colors" />
                                 </div>
@@ -88,13 +88,13 @@ export default function Home() {
                                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-200 text-white mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                                     <MapPinIcon className="w-6 h-6" />
                                 </div>
-                                <h2 className="text-[13px] font-black text-slate-800 uppercase tracking-wide leading-snug">
-                                    Perbaikan <br/>Tikor
+                                <h2 className="text-sm font-black text-slate-800 uppercase tracking-wide leading-snug">
+                                    Perbaikan Tikor
                                 </h2>
                             </div>
                             
                             <div className="relative z-10 flex items-center justify-between mt-auto">
-                                <span className="text-[10px] font-bold text-slate-400">Khusus Elite</span>
+                                <span className="text-xs font-bold text-slate-400">Khusus Elite</span>
                                 <div className="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
                                     <ArrowRightIcon className="w-3 h-3 text-slate-300 group-hover:text-emerald-600 transition-colors" />
                                 </div>
@@ -112,13 +112,13 @@ export default function Home() {
                                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center shadow-md shadow-sky-200 text-white mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                                     <CalendarDaysIcon className="w-6 h-6" />
                                 </div>
-                                <h2 className="text-[13px] font-black text-slate-800 uppercase tracking-wide leading-snug">
-                                    Call <br/>Plan
+                                <h2 className="text-sm font-black text-slate-800 uppercase tracking-wide leading-snug">
+                                    Call Plan
                                 </h2>
                             </div>
                             
                             <div className="relative z-10 flex items-center justify-between mt-auto">
-                                <span className="text-[10px] font-bold text-slate-400">Akses Modul</span>
+                                <span className="text-xs font-bold text-slate-400">Akses Modul</span>
                                 <div className="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-sky-50 transition-colors">
                                     <ArrowRightIcon className="w-3 h-3 text-slate-300 group-hover:text-sky-600 transition-colors" />
                                 </div>
@@ -136,13 +136,13 @@ export default function Home() {
                                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md shadow-amber-200 text-white mb-4">
                                     <ChartBarIcon className="w-6 h-6" />
                                 </div>
-                                <h2 className="text-[13px] font-black text-slate-800 uppercase tracking-wide leading-snug">
-                                    Modul <br/>Report
+                                <h2 className="text-sm font-black text-slate-800 uppercase tracking-wide leading-snug">
+                                    Modul Report
                                 </h2>
                             </div>
                             
                             <div className="relative z-10 flex items-center justify-between mt-auto">
-                                <span className="text-[10px] font-bold text-slate-400">Segera Hadir</span>
+                                <span className="text-xs font-bold text-slate-400">Segera Hadir</span>
                                 <div className="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center">
                                     <ArrowRightIcon className="w-3 h-3 text-slate-300" />
                                 </div>
@@ -155,7 +155,7 @@ export default function Home() {
 
             {/* Footer Text */}
             <div className="mt-16 text-center">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
                     System Online
                 </p>

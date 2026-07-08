@@ -108,6 +108,8 @@ Route::middleware('auth')->group(function () {
     Route::inertia('/mobile/portal', 'Mobile/Portal/Index')->name('mobile.portal');
     Route::inertia('/mobile/home', 'mobile/Pages/Home')->name('mobile.home');
     Route::inertia('/mobile/profile', 'mobile/Pages/Profile')->name('mobile.profile');
+    Route::post('/mobile/profile/update', [\App\Http\Controllers\Mobile\ProfileController::class, 'updateProfile'])->name('mobile.profile.update');
+    Route::post('/mobile/profile/password', [\App\Http\Controllers\Mobile\ProfileController::class, 'updatePassword'])->name('mobile.profile.password');
 
     Route::get('/mobile/rwo', \App\Livewire\Rwo\MobileUpdate::class)->name('mobile.rwo.update');
     Route::get('/mobile/rwo-inertia', [\App\Http\Controllers\Mobile\Rwo\IndexController::class, 'index'])->name('mobile.rwo.inertia');

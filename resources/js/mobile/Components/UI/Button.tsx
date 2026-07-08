@@ -17,8 +17,8 @@ export default function Button({
     disabled,
     ...props
 }: ButtonProps) {
-    // Base styles for mobile feel: rounded corners, smooth transition, scale down on tap
-    const baseStyle = "inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-70 disabled:pointer-events-none";
+    // Base styles for mobile feel: slightly sharper corners (rounded-lg) for premium feel, smooth transition, scale down on tap
+    const baseStyle = "inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 active:scale-95 disabled:opacity-70 disabled:pointer-events-none";
     
     const variants = {
         primary: "bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-200",

@@ -5,6 +5,7 @@ export interface User {
     email?: string;
     avatar?: string;
     role?: string;
+    userid?: string;
 }
 
 interface UserInfoProps {
@@ -48,12 +49,9 @@ export default function UserInfo({ user, compact = false }: UserInfoProps) {
             </div>
             
             <div className="flex-1 z-10">
-                <h3 className="text-lg font-bold text-gray-900 leading-tight">{user.name || 'Guest User'}</h3>
-                <p className="text-sm text-gray-500 mb-1">{user.email || 'No email provided'}</p>
-                {user.role && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
-                        {user.role}
-                    </span>
+                <h3 className="text-lg font-bold text-black uppercase leading-tight">{user.name || 'Guest User'}</h3>
+                {user.userid && (
+                    <p className="text-sm font-medium text-black uppercase mt-0.5">{user.userid}</p>
                 )}
             </div>
         </div>
