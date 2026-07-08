@@ -55,7 +55,9 @@ class IndexController extends Controller
                          ->on('ptt.customer_code', '=', 'l.customer_code_prc');
                 }
             )
-            ->where('md.is_active', true);
+            ->where('md.is_active', true)
+            ->whereRaw("UPPER(l.customer_name) NOT LIKE '%BRIEFING%'")
+            ->whereRaw("UPPER(l.customer_name) NOT LIKE '%EVALUASI%'");
 
         // ==== APLIKASI HAK AKSES (FILTERING) ====
         if ($user->supervisor_code) {
@@ -89,6 +91,11 @@ class IndexController extends Controller
                 ptt.area_code,
                 ptt.distributor_code,
                 ptt.sales_code,
+                CASE 
+                    WHEN ptt.source = \'se\' THEN f_se."SLSNAME"
+                    WHEN ptt.source = \'elite\' THEN f_elite."SLSNAME"
+                    ELSE u.name 
+                END as sales_name,
                 ptt.customer_code,
                 ptt.latitude as audit_latitude,
                 ptt.longitude as audit_longitude,
@@ -118,7 +125,21 @@ class IndexController extends Controller
                 $join->on('c.kodecabang', '=', 'ptt.distributor_code')
                      ->on('c.custno', '=', 'ptt.customer_code');
             })
-            ->leftJoin('master_distributors as md', 'ptt.distributor_code', '=', 'md.distributor_code');
+            ->leftJoin('master_distributors as md', 'ptt.distributor_code', '=', 'md.distributor_code')
+            ->leftJoin('users as u', 'ptt.sales_code', '=', 'u.userid')
+            ->leftJoin('fsalesman as f_se', function($join) {
+                $join->on('f_se.SLSNO', '=', 'ptt.sales_code')
+                     ->on('f_se.KD', '=', 'ptt.distributor_code');
+            })
+            ->leftJoin('fsalesman as f_elite', 'f_elite.SLSNO', '=', 'ptt.sales_code')
+            ->where(function($q) {
+                $q->whereRaw("COALESCE(UPPER(l.customer_name), '') NOT LIKE '%BRIEFING%'")
+                  ->whereRaw("COALESCE(UPPER(c.custname), '') NOT LIKE '%BRIEFING%'");
+            })
+            ->where(function($q) {
+                $q->whereRaw("COALESCE(UPPER(l.customer_name), '') NOT LIKE '%EVALUASI%'")
+                  ->whereRaw("COALESCE(UPPER(c.custname), '') NOT LIKE '%EVALUASI%'");
+            });
 
         if ($user->supervisor_code) {
             $queryRiwayat->where(function($q) use ($user) {
@@ -182,6 +203,8 @@ class IndexController extends Controller
                     }
                 )
                 ->where('md.is_active', true)
+                ->whereRaw("UPPER(l.customer_name) NOT LIKE '%BRIEFING%'")
+                ->whereRaw("UPPER(l.customer_name) NOT LIKE '%EVALUASI%'")
                 ->whereRaw('UPPER(j.kode_team) = ?', [strtoupper($user->userid)]);
                 
             $listPlan = $queryPlan->get();

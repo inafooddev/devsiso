@@ -43,6 +43,16 @@ export default function StoreCard({ outlet, activeTab, onPerbaikiClick }: StoreC
                         <BuildingStorefrontOutline className="w-3.5 h-3.5 shrink-0 text-gray-400" />
                         <span className="truncate">{outlet.distributor_name || '-'}</span>
                     </div>
+                    {activeTab === 'laporan' && (outlet.sales_code || outlet.sales_name) && (
+                        <div className="flex items-center gap-1.5 text-xs text-blue-600 font-bold">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5 shrink-0 text-blue-500">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                            </svg>
+                            <span className="truncate">
+                                {outlet.sales_name || '-'} {outlet.sales_code ? `(${outlet.sales_code})` : ''}
+                            </span>
+                        </div>
+                    )}
                     {outlet.status_perbaikan && (activeTab === 'laporan' || outlet.status_perbaikan.toLowerCase() === 'rejected') && outlet.keterangan_perbaikan && (
                         <div className={`mt-2 text-xs p-2 rounded-lg border font-medium leading-relaxed ${
                             outlet.status_perbaikan.toLowerCase() === 'rejected'
@@ -56,10 +66,14 @@ export default function StoreCard({ outlet, activeTab, onPerbaikiClick }: StoreC
             </div>
             {activeTab === 'toko' && (
                 <div className="flex items-center gap-2 mt-2 pt-3 border-t border-gray-50">
-                    {outlet.latitude && outlet.longitude && (
+                    {outlet.latitude && outlet.longitude ? (
                         <a href={`https://www.google.com/maps/dir/?api=1&destination=${outlet.latitude},${outlet.longitude}`} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg bg-gray-50 text-gray-600 border border-gray-200 text-xs font-bold uppercase tracking-wider hover:bg-gray-100 transition-colors">
                             <MapPinIcon className="w-4 h-4" /> Navigasi
                         </a>
+                    ) : (
+                        <button disabled className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg bg-gray-50/50 text-gray-400 border border-gray-100 text-xs font-bold uppercase tracking-wider cursor-not-allowed">
+                            <MapPinIcon className="w-4 h-4 opacity-50" /> Navigasi
+                        </button>
                     )}
                     <button onClick={() => onPerbaikiClick(outlet)} className="flex-1 inline-flex items-center justify-center h-9 rounded-lg bg-indigo-600 text-white text-xs font-bold uppercase tracking-wider shadow-sm hover:bg-indigo-700 transition-colors">
                         PERBAIKI
