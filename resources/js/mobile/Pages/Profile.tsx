@@ -4,7 +4,7 @@ import MobileLayout from '../Layouts/MobileLayout';
 import Card from '../Components/UI/Card';
 import UserInfo from '../Components/UserInfo';
 import Button from '../Components/UI/Button';
-import { ShieldCheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ShieldCheckIcon, XMarkIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 // Modal component wrapper
 const BottomModal = ({ isOpen, onClose, title, children }: any) => {
@@ -35,6 +35,9 @@ export default function Profile() {
 
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     // Profile Form
     const profileForm = useForm({
@@ -164,32 +167,59 @@ export default function Profile() {
                 <form onSubmit={submitPassword} className="space-y-4">
                     <div>
                         <label className="block text-xs font-bold text-slate-600 mb-1">Password Saat Ini</label>
-                        <input 
-                            type="password" 
-                            value={passwordForm.data.current_password} 
-                            onChange={e => passwordForm.setData('current_password', e.target.value)} 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 transition-colors"
-                        />
+                        <div className="relative">
+                            <input 
+                                type={showCurrentPassword ? "text" : "password"} 
+                                value={passwordForm.data.current_password} 
+                                onChange={e => passwordForm.setData('current_password', e.target.value)} 
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-3 text-sm text-black focus:border-indigo-500 focus:ring focus:ring-indigo-200 transition-colors"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-indigo-600 transition-colors"
+                            >
+                                {showCurrentPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                            </button>
+                        </div>
                         {passwordForm.errors.current_password && <p className="text-rose-500 text-xs mt-1 font-medium">{passwordForm.errors.current_password}</p>}
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-slate-600 mb-1">Password Baru</label>
-                        <input 
-                            type="password" 
-                            value={passwordForm.data.password} 
-                            onChange={e => passwordForm.setData('password', e.target.value)} 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 transition-colors"
-                        />
+                        <div className="relative">
+                            <input 
+                                type={showNewPassword ? "text" : "password"} 
+                                value={passwordForm.data.password} 
+                                onChange={e => passwordForm.setData('password', e.target.value)} 
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-3 text-sm text-black focus:border-indigo-500 focus:ring focus:ring-indigo-200 transition-colors"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowNewPassword(!showNewPassword)}
+                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-indigo-600 transition-colors"
+                            >
+                                {showNewPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                            </button>
+                        </div>
                         {passwordForm.errors.password && <p className="text-rose-500 text-xs mt-1 font-medium">{passwordForm.errors.password}</p>}
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-slate-600 mb-1">Konfirmasi Password Baru</label>
-                        <input 
-                            type="password" 
-                            value={passwordForm.data.password_confirmation} 
-                            onChange={e => passwordForm.setData('password_confirmation', e.target.value)} 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 transition-colors"
-                        />
+                        <div className="relative">
+                            <input 
+                                type={showConfirmPassword ? "text" : "password"} 
+                                value={passwordForm.data.password_confirmation} 
+                                onChange={e => passwordForm.setData('password_confirmation', e.target.value)} 
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-3 text-sm text-black focus:border-indigo-500 focus:ring focus:ring-indigo-200 transition-colors"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-indigo-600 transition-colors"
+                            >
+                                {showConfirmPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                            </button>
+                        </div>
                     </div>
                     <div className="pt-3">
                         <Button type="submit" fullWidth disabled={passwordForm.processing}>

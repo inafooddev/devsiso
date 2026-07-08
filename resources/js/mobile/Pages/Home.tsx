@@ -102,14 +102,14 @@ export default function Home() {
                         </div>
                     </Link>
                     
-                    {/* Card 3: Call Plan */}
-                    <Link href="/mobile/call-plan" className="group block h-full">
-                        <div className="bg-white p-5 rounded-[28px] h-full shadow-lg shadow-sky-100/50 hover:shadow-xl border border-slate-100 transition-all duration-300 transform active:scale-95 flex flex-col justify-between relative overflow-hidden group-hover:-translate-y-1">
+                    {/* Card 3: Call Plan - Disabled for now */}
+                    <a href="#" onClick={(e) => e.preventDefault()} className="group block h-full cursor-default">
+                        <div className="bg-white p-5 rounded-[28px] h-full shadow-lg shadow-sky-100/50 hover:shadow-xl border border-slate-100 transition-all duration-300 flex flex-col justify-between relative overflow-hidden">
                             {/* Decorative gradient blob */}
                             <div className="absolute -right-6 -top-6 w-24 h-24 bg-sky-50 rounded-full blur-2xl group-hover:bg-sky-100 transition-colors"></div>
                             
                             <div className="relative z-10 mb-6">
-                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center shadow-md shadow-sky-200 text-white mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center shadow-md shadow-sky-200 text-white mb-4">
                                     <CalendarDaysIcon className="w-6 h-6" />
                                 </div>
                                 <h2 className="text-sm font-black text-slate-800 uppercase tracking-wide leading-snug">
@@ -118,13 +118,13 @@ export default function Home() {
                             </div>
                             
                             <div className="relative z-10 flex items-center justify-between mt-auto">
-                                <span className="text-xs font-bold text-slate-400">Akses Modul</span>
-                                <div className="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-sky-50 transition-colors">
-                                    <ArrowRightIcon className="w-3 h-3 text-slate-300 group-hover:text-sky-600 transition-colors" />
+                                <span className="text-xs font-bold text-slate-400">Segera Hadir</span>
+                                <div className="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center">
+                                    <ArrowRightIcon className="w-3 h-3 text-slate-300" />
                                 </div>
                             </div>
                         </div>
-                    </Link>
+                    </a>
 
                     {/* Card 4: Report */}
                     <div onClick={(e) => e.preventDefault()} className="group block h-full cursor-default">

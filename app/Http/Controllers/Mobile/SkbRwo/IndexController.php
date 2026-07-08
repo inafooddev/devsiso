@@ -20,7 +20,6 @@ class IndexController extends Controller
         $sessionSupervisorName = $user->name;
 
         $listPotensi = [];
-        $listSkb = [];
         $listPlan = [];
 
         $currentQuarter = ceil(date('n') / 3);
@@ -64,44 +63,7 @@ class IndexController extends Controller
             )
             ->distinct();
 
-        // 2. Data SKB
-        $querySkb = DB::table('surat_kesepakatan_bersama_rwo as skb')
-            ->leftJoin('master_distributors as md', 'md.distributor_code', '=', 'skb.distributor_code')
-            ->leftJoin('team_elite_code_mappings as te', 'te.siso_code', '=', 'md.supervisor_code')
-            ->leftJoin('list_potensi_rwo as l', function($join) {
-                $join->on('l.customer_code', '=', 'skb.customer_code')
-                     ->on('l.distributor_code', '=', 'skb.distributor_code');
-            })
-            ->leftJoin('reward_outlet as r', 'r.customer_code', '=', 'skb.customer_code')
-            ->leftJoin('list_toko_pareto_team_elite as lt', 'lt.uniq_kd', '=', 'skb.customer_code')
-            ->where('skb.kuartal', $currentQuarter)
-            ->select(
-                'skb.*', 
-                'skb.foto_skb as skb_foto',
-                'l.customer_name', 
-                'lt.customer_code_prc as customer_prc',
-                'md.region_name', 'md.area_name', 'md.supervisor_name', 'md.distributor_name',
-                'l.alamat as address',
-                'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
-                'r.nama_bank', 'r.no_rekening', 'r.nama_pemilik_norek', 'r.latitude', 'r.longitude',
-                'r.foto_toko2', 'r.foto_toko3',
-                DB::raw("'Sudah' AS status_skb"),
-                DB::raw("CASE WHEN 
-                    NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_pemilik_toko), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nik_ktp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_ktp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.foto_ktp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_bank), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.no_rekening), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_pemilik_norek), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.latitude), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.longitude), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.foto_toko3), '') IS NOT NULL
-                    THEN 'Lengkap' ELSE 'Belum' END AS status_data_lengkap")
-            )
-            ->distinct();
+
 
         // 3. Data Plan Kunjungan (jks_team_elite)
         $queryPlan = DB::table('jks_team_elite as j')
@@ -150,19 +112,14 @@ class IndexController extends Controller
 
         // ==== APLIKASI HAK AKSES (FILTERING) ====
         if ($user->supervisor_code) {
-            // Level SPV: Potensi & SKB filter dengan supervisor_code (bisa fallback)
+            // Level SPV: Potensi filter dengan supervisor_code (bisa fallback)
             $queryPotensi->where(function($q) use ($user) {
-                $q->where('te.team_elite_code', $user->supervisor_code)
-                  ->orWhere('md.supervisor_code', $user->supervisor_code);
-            });
-            $querySkb->where(function($q) use ($user) {
                 $q->where('te.team_elite_code', $user->supervisor_code)
                   ->orWhere('md.supervisor_code', $user->supervisor_code);
             });
         } elseif ($user->area_code) {
             // Level Area Manager
             $queryPotensi->where('md.area_code', $user->area_code);
-            $querySkb->where('md.area_code', $user->area_code);
         } elseif ($user->region_code) {
             // Level Region Manager (JSON Array of Region Codes)
             $regions = is_string($user->region_code) ? json_decode($user->region_code, true) : $user->region_code;
@@ -170,13 +127,11 @@ class IndexController extends Controller
             
             if (!in_array('HOINA', $regions)) {
                 $queryPotensi->whereIn('md.region_code', $regions);
-                $querySkb->whereIn('md.region_code', $regions);
             }
             // Jika ada 'HOINA', maka ia bisa melihat semuanya secara nasional.
         }
 
         $listPotensi = $queryPotensi->get();
-        $listSkb = $querySkb->get();
         
         try {
             $listPlan = $queryPlan->get();
@@ -186,7 +141,6 @@ class IndexController extends Controller
 
         return Inertia::render('mobile/Pages/SkbRwo/Index', [
             'listPotensi' => $listPotensi,
-            'listSkb' => $listSkb,
             'listPlan' => $listPlan,
             'sessionSupervisorCode' => $sessionSupervisorCode,
             'sessionSupervisorName' => $sessionSupervisorName,

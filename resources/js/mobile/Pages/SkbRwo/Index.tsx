@@ -16,13 +16,13 @@ import {
 
 import MobileLayout from '../../Layouts/MobileLayout';
 import SearchBar from '../../Components/UI/SearchBar';
+import ScrollCalendar from '../../Components/UI/ScrollCalendar';
 import StoreCard, { SkbRwoItem } from './Components/StoreCard';
 import SkbModal from './Components/SkbModal';
 import DetailModal from './Components/DetailModal';
 
 interface SkbRwoIndexProps {
     listPotensi?: SkbRwoItem[];
-    listSkb?: SkbRwoItem[];
     listPlan?: SkbRwoItem[];
     sessionSupervisorCode?: string;
     sessionSupervisorName?: string;
@@ -30,7 +30,6 @@ interface SkbRwoIndexProps {
 
 export default function Index({ 
     listPotensi = [], 
-    listSkb = [], 
     listPlan = [], 
     sessionSupervisorCode = 'USER', 
     sessionSupervisorName = 'User SSO' 
@@ -50,7 +49,7 @@ export default function Index({
         };
     }, []);
 
-    const [activeTab, setActiveTab] = useState<'summary'|'potensi'|'skb'|'plan'>('summary');
+    const [activeTab, setActiveTab] = useState<'summary'|'potensi'|'plan'>('summary');
     const [search, setSearch] = useState('');
     const [filterSkbStatus, setFilterSkbStatus] = useState<'Semua'|'Sudah'|'Belum'>('Semua');
     const [displayLimit, setDisplayLimit] = useState(30);
@@ -63,30 +62,6 @@ export default function Index({
         return `${y}-${m}-${d}`;
     };
 
-    const getDaysInMonth = (date: Date) => {
-        const year = date.getFullYear();
-        const month = date.getMonth();
-        const days = [];
-        const dateCount = new Date(year, month + 1, 0).getDate();
-        for (let i = 1; i <= dateCount; i++) {
-            days.push(new Date(year, month, i));
-        }
-        return days;
-    };
-
-    const daysInMonth = useMemo(() => getDaysInMonth(selectedDate), [selectedDate.getFullYear(), selectedDate.getMonth()]);
-
-    const handlePrevMonth = () => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1));
-    const handleNextMonth = () => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 1));
-
-    useEffect(() => {
-        if (activeTab === 'plan') {
-            setTimeout(() => {
-                const el = document.getElementById('selected-date-btn');
-                if (el) el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-            }, 50);
-        }
-    }, [activeTab, selectedDate]);
 
     // States for Modals
     const [detailModalData, setDetailModalData] = useState<SkbRwoItem | null>(null);
@@ -99,7 +74,7 @@ export default function Index({
         setSearch('');
         setDisplayLimit(30);
     };
-    const handleTabSwitch = (tab: 'summary'|'potensi'|'skb'|'plan') => {
+    const handleTabSwitch = (tab: 'summary'|'potensi'|'plan') => {
         setActiveTab(tab);
         setDisplayLimit(30);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -113,7 +88,6 @@ export default function Index({
                 result = result.filter(item => item.status_skb === filterSkbStatus);
             }
         }
-        else if (activeTab === 'skb') result = listSkb;
         else if (activeTab === 'plan') {
             const selectedYMD = formatYMD(selectedDate);
             result = listPlan.filter(item => item.tanggal === selectedYMD);
@@ -127,7 +101,7 @@ export default function Index({
             );
         }
         return result;
-    }, [listPotensi, listSkb, listPlan, activeTab, search, selectedDate, filterSkbStatus]);
+    }, [listPotensi, listPlan, activeTab, search, selectedDate, filterSkbStatus]);
 
     const openDetailModal = (item: SkbRwoItem) => setDetailModalData(item);
     const closeDetailModal = () => setDetailModalData(null);
@@ -162,25 +136,18 @@ export default function Index({
                     <span className={`text-[10px] tracking-wide ${activeTab === 'summary' ? 'font-bold' : 'font-medium'}`}>Summary</span>
                 </button>
                 <button
-                    onClick={() => handleTabSwitch('potensi')}
-                    className={`flex flex-col items-center justify-center gap-1 w-full transition-colors ${activeTab === 'potensi' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
-                >
-                    {activeTab === 'potensi' ? <BuildingStorefrontSolid className="w-[22px] h-[22px]" /> : <BuildingStorefrontOutline className="w-[22px] h-[22px]" />}
-                    <span className={`text-[10px] tracking-wide ${activeTab === 'potensi' ? 'font-bold' : 'font-medium'}`}>Potensi</span>
-                </button>
-                <button
-                    onClick={() => handleTabSwitch('skb')}
-                    className={`flex flex-col items-center justify-center gap-1 w-full transition-colors ${activeTab === 'skb' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
-                >
-                    {activeTab === 'skb' ? <ClipboardDocumentListSolid className="w-[22px] h-[22px]" /> : <ClipboardDocumentListIcon className="w-[22px] h-[22px]" />}
-                    <span className={`text-[10px] tracking-wide ${activeTab === 'skb' ? 'font-bold' : 'font-medium'}`}>SKB</span>
-                </button>
-                <button
                     onClick={() => handleTabSwitch('plan')}
                     className={`flex flex-col items-center justify-center gap-1 w-full transition-colors ${activeTab === 'plan' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
                 >
                     {activeTab === 'plan' ? <CalendarSolid className="w-[22px] h-[22px]" /> : <CalendarIcon className="w-[22px] h-[22px]" />}
                     <span className={`text-[10px] tracking-wide ${activeTab === 'plan' ? 'font-bold' : 'font-medium'}`}>Visit</span>
+                </button>
+                <button
+                    onClick={() => handleTabSwitch('potensi')}
+                    className={`flex flex-col items-center justify-center gap-1 w-full transition-colors ${activeTab === 'potensi' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                    {activeTab === 'potensi' ? <BuildingStorefrontSolid className="w-[22px] h-[22px]" /> : <BuildingStorefrontOutline className="w-[22px] h-[22px]" />}
+                    <span className={`text-[10px] tracking-wide ${activeTab === 'potensi' ? 'font-bold' : 'font-medium'}`}>Potensi</span>
                 </button>
             </div>
         </div>
@@ -232,42 +199,11 @@ export default function Index({
                 )}
 
                 {activeTab === 'plan' && (
-                    <div className="bg-white pt-2 pb-2 border-t border-slate-100 flex flex-col gap-3 px-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-base font-black text-slate-800">
-                                {selectedDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}
-                            </h2>
-                            <div className="flex gap-2">
-                                <button onClick={handlePrevMonth} className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors shadow-sm border border-slate-200/50">
-                                    <span className="font-bold text-xs">&lt;</span>
-                                </button>
-                                <button onClick={handleNextMonth} className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors shadow-sm border border-slate-200/50">
-                                    <span className="font-bold text-xs">&gt;</span>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div className="flex overflow-x-auto gap-2.5 pb-2 no-scrollbar snap-x">
-                            {daysInMonth.map(day => {
-                                const isSelected = day.getDate() === selectedDate.getDate() && day.getMonth() === selectedDate.getMonth();
-                                return (
-                                    <button
-                                        id={isSelected ? 'selected-date-btn' : undefined}
-                                        key={day.toISOString()}
-                                        onClick={() => setSelectedDate(day)}
-                                        className={`flex flex-col items-center justify-center min-w-[3rem] p-2 rounded-xl transition-all snap-center border ${isSelected ? 'bg-indigo-600 border-indigo-600 shadow-md shadow-indigo-200/50' : 'bg-transparent border-transparent hover:bg-slate-50'}`}
-                                    >
-                                        <span className={`text-[9px] font-bold uppercase tracking-widest mb-0.5 ${isSelected ? 'text-indigo-100' : 'text-slate-400'}`}>
-                                            {day.toLocaleString('id-ID', { weekday: 'short' })}
-                                        </span>
-                                        <span className={`text-base font-black ${isSelected ? 'text-white' : 'text-slate-700'}`}>
-                                            {day.getDate()}
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
+                    <ScrollCalendar 
+                        selectedDate={selectedDate} 
+                        setSelectedDate={setSelectedDate} 
+                        markedDates={listPlan.map(p => p.tanggal).filter(Boolean) as string[]} 
+                    />
                 )}
             </div>
 
@@ -328,7 +264,6 @@ export default function Index({
                                     <h4 className="text-xs md:text-sm font-black uppercase tracking-wider text-slate-700">Tidak Ada Data</h4>
                                     <p className="text-[10px] text-slate-400 mt-2 font-medium">
                                         {activeTab === 'potensi' && 'Belum ada data potensi RWO.'}
-                                        {activeTab === 'skb' && 'Belum ada data Surat Kesepakatan Bersama.'}
                                     </p>
                                 </>
                             )}

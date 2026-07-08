@@ -141,9 +141,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/mobile/perbaikan-tikor-tim-elite', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'index'])->name('mobile.perbaikan.tikor-tim-elite.index');
     Route::post('/mobile/perbaikan-tikor-tim-elite', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'store'])->name('mobile.perbaikan.tikor-tim-elite.store');
-    Route::get('/mobile/perbaikan-tikor-tim-elite/search-sales', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'searchSales'])->name('mobile.perbaikan.tikor-tim-elite.search-sales')->middleware('throttle:30,1');
-    Route::post('/mobile/perbaikan-tikor-tim-elite/login', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'loginSales'])->name('mobile.perbaikan.tikor-tim-elite.login')->middleware('throttle:30,1');
-    Route::post('/mobile/perbaikan-tikor-tim-elite/logout', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'logoutSales'])->name('mobile.perbaikan.tikor-tim-elite.logout');
+
 
     Route::get('/mobile/monitoring-device', \App\Livewire\Mobile\MonitoringDeviceSe\Index::class)->name('mobile.monitoring-device.index');
 });

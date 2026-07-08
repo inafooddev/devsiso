@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, useForm } from '@inertiajs/react';
 import Button from '../../Components/UI/Button';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
@@ -8,6 +9,8 @@ export default function Login() {
         password: '',
         remember: false,
     });
+    
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
@@ -57,7 +60,7 @@ export default function Login() {
                                 </div>
                                 <input id="user_id" name="user_id" type="text" required 
                                     value={data.user_id}
-                                    onChange={e => setData('user_id', e.target.value)}
+                                    onChange={e => setData('user_id', e.target.value.toLowerCase())}
                                     placeholder="Masukkan User ID Anda"
                                     className={`block w-full pl-11 pr-4 py-4 bg-white/70 text-slate-800 placeholder-slate-400 border ${errors.user_id ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'} rounded-2xl focus:ring-2 sm:text-sm transition-all`} />
                             </div>
@@ -73,11 +76,22 @@ export default function Login() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                     </svg>
                                 </div>
-                                <input id="password" name="password" type="password" autoComplete="current-password" required 
+                                <input id="password" name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" required 
                                     value={data.password}
                                     onChange={e => setData('password', e.target.value)}
                                     placeholder="Masukkan Password Anda"
-                                    className={`block w-full pl-11 pr-4 py-4 bg-white/70 text-slate-800 placeholder-slate-400 border ${errors.password ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'} rounded-2xl focus:ring-2 sm:text-sm transition-all`} />
+                                    className={`block w-full pl-11 pr-12 py-4 bg-white/70 text-slate-800 placeholder-slate-400 border ${errors.password ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'} rounded-2xl focus:ring-2 sm:text-sm transition-all`} />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-indigo-600 focus:outline-none transition-colors"
+                                >
+                                    {showPassword ? (
+                                        <EyeSlashIcon className="h-5 w-5" />
+                                    ) : (
+                                        <EyeIcon className="h-5 w-5" />
+                                    )}
+                                </button>
                             </div>
                             {errors.password && <p className="mt-2 text-xs text-red-600 ml-1 font-semibold">{errors.password}</p>}
                         </div>
