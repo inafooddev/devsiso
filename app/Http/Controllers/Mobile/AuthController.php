@@ -47,7 +47,7 @@ class AuthController extends Controller
             
             \App\Helpers\ActivityLogger::log('Mobile Login', 'User berhasil login ke sistem mobile.');
 
-            return redirect()->intended('/mobile/home');
+            return redirect('/mobile/home');
         }
 
         RateLimiter::hit($throttleKey, 60);

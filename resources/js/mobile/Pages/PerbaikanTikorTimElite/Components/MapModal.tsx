@@ -273,10 +273,11 @@ export default function MapModal({ detailOutlet, setDetailOutlet, showToast }: M
 
         if (actualLocation) {
             actualLatLng = L.latLng(actualLocation.lat, actualLocation.lng);
-            m.actual = L.marker(actualLatLng, { icon: actualIcon })
-                        .bindPopup(`<b class="text-xs">Titik Awal</b>`)
-                        .addTo(map);
-            bounds.extend(actualLatLng);
+            // Disabled master marker as requested
+            // m.actual = L.marker(actualLatLng, { icon: actualIcon })
+            //             .bindPopup(`<b class="text-xs">Titik Awal</b>`)
+            //             .addTo(map);
+            // bounds.extend(actualLatLng);
         }
 
         if (data.latitude && data.longitude) {
@@ -292,9 +293,10 @@ export default function MapModal({ detailOutlet, setDetailOutlet, showToast }: M
             }
         }
 
-        if (actualLatLng && newLatLng) {
-            m.line = L.polyline([actualLatLng, newLatLng], { color: '#6366f1', weight: 2, dashArray: '5, 5' }).addTo(map);
-        }
+        // Disabled polyline
+        // if (actualLatLng && newLatLng) {
+        //     m.line = L.polyline([actualLatLng, newLatLng], { color: '#6366f1', weight: 2, dashArray: '5, 5' }).addTo(map);
+        // }
 
         if (bounds.isValid()) {
             map.fitBounds(bounds, { padding: [30, 30], maxZoom: 18 });
