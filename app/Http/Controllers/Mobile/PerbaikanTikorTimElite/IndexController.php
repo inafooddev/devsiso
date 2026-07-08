@@ -96,8 +96,15 @@ class IndexController extends Controller
                 ptt.status as status_perbaikan,
                 ptt.keterangan as keterangan_perbaikan,
                 ptt.created_at,
-                l.customer_name as customer_name,
-                l.customer_address as address,
+                ptt.source,
+                CASE 
+                    WHEN ptt.source = \'se\' THEN c.custname
+                    ELSE l.customer_name 
+                END as customer_name,
+                CASE 
+                    WHEN ptt.source = \'se\' THEN c.custadd1
+                    ELSE l.customer_address 
+                END as address,
                 l.latitude as latitude,
                 l.longitude as longitude,
                 md.distributor_name,
@@ -106,6 +113,10 @@ class IndexController extends Controller
             ->leftJoin('list_toko_pareto_team_elite as l', function($join) {
                 $join->on('l.distributor_code', '=', 'ptt.distributor_code')
                      ->on('l.customer_code_prc', '=', 'ptt.customer_code');
+            })
+            ->leftJoin('customer_prc_eska as c', function($join) {
+                $join->on('c.kodecabang', '=', 'ptt.distributor_code')
+                     ->on('c.custno', '=', 'ptt.customer_code');
             })
             ->leftJoin('master_distributors as md', 'ptt.distributor_code', '=', 'md.distributor_code');
 

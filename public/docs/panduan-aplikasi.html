@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panduan Penggunaan Aplikasi Mobile SISO</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            font-size: 12pt;
+            color: #1e293b;
+            background: white;
+            line-height: 1.6;
+        }
+
+        /* ======= COVER PAGE ======= */
+        .cover-page {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #2563eb 100%);
+            color: white;
+            text-align: center;
+            padding: 60px 40px;
+            page-break-after: always;
+        }
+
+        .cover-logo {
+            width: 90px;
+            height: 90px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 32px;
+            border: 2px solid rgba(255,255,255,0.3);
+            font-size: 40px;
+        }
+
+        .cover-title {
+            font-size: 32pt;
+            font-weight: 900;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+            line-height: 1.2;
+        }
+
+        .cover-subtitle {
+            font-size: 14pt;
+            font-weight: 400;
+            opacity: 0.85;
+            margin-bottom: 48px;
+            max-width: 480px;
+        }
+
+        .cover-badges {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 60px;
+        }
+
+        .badge {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 50px;
+            padding: 8px 20px;
+            font-size: 10pt;
+            font-weight: 600;
+        }
+
+        .cover-footer {
+            opacity: 0.7;
+            font-size: 10pt;
+            margin-top: auto;
+        }
+
+        .cover-divider {
+            width: 80px;
+            height: 4px;
+            background: rgba(255,255,255,0.4);
+            border-radius: 2px;
+            margin: 0 auto 48px;
+        }
+
+        /* ======= TOC PAGE ======= */
+        .toc-page {
+            padding: 60px 60px;
+            page-break-after: always;
+        }
+
+        .page-label {
+            font-size: 9pt;
+            font-weight: 700;
+            color: #6366f1;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .page-title {
+            font-size: 24pt;
+            font-weight: 900;
+            color: #1e293b;
+            margin-bottom: 32px;
+            letter-spacing: -0.5px;
+        }
+
+        .toc-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .toc-number {
+            width: 36px;
+            height: 36px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11pt;
+            font-weight: 800;
+            color: #6366f1;
+            flex-shrink: 0;
+            margin-right: 16px;
+        }
+
+        .toc-text {
+            flex: 1;
+            font-size: 12pt;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .toc-sub {
+            font-size: 10pt;
+            color: #94a3b8;
+            font-weight: 400;
+            margin-top: 2px;
+        }
+
+        .toc-section-header {
+            font-size: 9pt;
+            font-weight: 700;
+            color: #94a3b8;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 20px 0 8px;
+        }
+
+        /* ======= CONTENT PAGES ======= */
+        .section-cover {
+            width: 100%;
+            padding: 60px;
+            background: #f8fafc;
+            border-left: 6px solid #6366f1;
+            margin-bottom: 40px;
+            page-break-before: always;
+        }
+
+        .section-cover.green {
+            border-left-color: #10b981;
+        }
+
+        .section-number {
+            font-size: 80pt;
+            font-weight: 900;
+            color: #e2e8f0;
+            line-height: 1;
+            margin-bottom: -8px;
+        }
+
+        .section-title {
+            font-size: 22pt;
+            font-weight: 900;
+            color: #1e293b;
+            letter-spacing: -0.5px;
+        }
+
+        .section-desc {
+            font-size: 12pt;
+            color: #64748b;
+            margin-top: 8px;
+            max-width: 500px;
+        }
+
+        /* ======= CONTENT STYLES ======= */
+        .content-page {
+            padding: 0 60px 40px;
+        }
+
+        .step-container {
+            margin-bottom: 32px;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        .step-num {
+            width: 40px;
+            height: 40px;
+            background: #6366f1;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14pt;
+            font-weight: 900;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .step-num.green {
+            background: #10b981;
+        }
+
+        .step-num.amber {
+            background: #f59e0b;
+        }
+
+        .step-num.rose {
+            background: #f43f5e;
+        }
+
+        .step-num.sky {
+            background: #0ea5e9;
+        }
+
+        .step-title {
+            font-size: 14pt;
+            font-weight: 800;
+            color: #1e293b;
+            padding-top: 6px;
+        }
+
+        .step-body {
+            margin-left: 56px;
+        }
+
+        .step-body p {
+            font-size: 11pt;
+            color: #475569;
+            margin-bottom: 10px;
+            line-height: 1.7;
+        }
+
+        .step-body ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .step-body ul li {
+            font-size: 11pt;
+            color: #475569;
+            padding: 6px 0 6px 20px;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .step-body ul li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: #6366f1;
+            font-weight: 700;
+        }
+
+        .step-body ul.green li::before {
+            color: #10b981;
+        }
+
+        .callout {
+            background: #fef9c3;
+            border: 1px solid #fde047;
+            border-left: 4px solid #eab308;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin: 12px 0;
+            font-size: 10.5pt;
+            color: #713f12;
+            line-height: 1.6;
+        }
+
+        .callout.info {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            border-left-color: #3b82f6;
+            color: #1e40af;
+        }
+
+        .callout.success {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            border-left-color: #22c55e;
+            color: #14532d;
+        }
+
+        .callout.danger {
+            background: #fff1f2;
+            border-color: #fecdd3;
+            border-left-color: #f43f5e;
+            color: #881337;
+        }
+
+        .callout strong {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 800;
+        }
+
+        /* Tabs illustration */
+        .tab-strip {
+            display: flex;
+            gap: 8px;
+            padding: 10px 16px;
+            background: #f8fafc;
+            border-radius: 12px;
+            margin: 12px 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .tab-item {
+            flex: 1;
+            text-align: center;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 9pt;
+            font-weight: 700;
+            color: #94a3b8;
+        }
+
+        .tab-item.active {
+            background: #6366f1;
+            color: white;
+        }
+
+        .tab-item.active.green {
+            background: #10b981;
+        }
+
+        /* Status pills */
+        .pill-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 8px 0;
+        }
+
+        .pill {
+            padding: 4px 14px;
+            border-radius: 50px;
+            font-size: 9pt;
+            font-weight: 700;
+        }
+
+        .pill.green { background: #dcfce7; color: #166534; }
+        .pill.red { background: #fee2e2; color: #991b1b; }
+        .pill.blue { background: #dbeafe; color: #1e40af; }
+        .pill.gray { background: #f1f5f9; color: #475569; }
+
+        /* Card */
+        .info-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 18px 20px;
+            margin: 12px 0;
+        }
+
+        .info-card-title {
+            font-size: 10pt;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid #f1f5f9;
+            margin: 24px 0;
+        }
+
+        .chapter-title {
+            font-size: 16pt;
+            font-weight: 900;
+            color: #1e293b;
+            margin: 32px 0 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        /* Flowchart */
+        .flow-row {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin: 16px 0;
+            flex-wrap: wrap;
+        }
+
+        .flow-box {
+            background: #eff6ff;
+            border: 1.5px solid #bfdbfe;
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-size: 9.5pt;
+            font-weight: 700;
+            color: #1e40af;
+            text-align: center;
+        }
+
+        .flow-box.green {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #166534;
+        }
+
+        .flow-box.amber {
+            background: #fffbeb;
+            border-color: #fde68a;
+            color: #92400e;
+        }
+
+        .flow-arrow {
+            font-size: 16pt;
+            color: #94a3b8;
+            padding: 0 8px;
+        }
+
+        /* Page break */
+        .page-break {
+            page-break-before: always;
+        }
+
+        /* Footer */
+        @page {
+            margin: 15mm 15mm 20mm;
+            @bottom-center {
+                content: "Panduan Aplikasi Mobile SISO  •  Halaman " counter(page);
+                font-size: 9pt;
+                color: #94a3b8;
+                font-family: 'Inter', Arial, sans-serif;
+            }
+        }
+
+        @media print {
+            .cover-page { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .section-cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .step-num { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .tab-item.active { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .callout { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .flow-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== COVER PAGE ==================== -->
+<div class="cover-page">
+    <div class="cover-logo">📱</div>
+    <div class="cover-title">Panduan<br>Penggunaan Aplikasi</div>
+    <div class="cover-subtitle">Panduan lengkap pengoperasian Aplikasi Mobile SISO untuk tim Sales, SPV, dan RWO</div>
+    <div class="cover-divider"></div>
+    <div class="cover-badges">
+        <span class="badge">📦 Modul SKB RWO</span>
+        <span class="badge">📍 Modul Perbaikan Titik Koordinat</span>
+    </div>
+    <div class="cover-footer">
+        <div style="margin-bottom:6px;">PT. Distribusi Nusantara · Divisi IT</div>
+        <div>Versi 1.0 · Juli 2025</div>
+    </div>
+</div>
+
+<!-- ==================== DAFTAR ISI ==================== -->
+<div class="toc-page">
+    <div class="page-label">Navigasi Dokumen</div>
+    <div class="page-title">Daftar Isi</div>
+
+    <div class="toc-section-header">Bagian 1 — Modul SKB RWO (Reward Outlet)</div>
+
+    <div class="toc-item">
+        <div class="toc-number">1</div>
+        <div class="toc-text">
+            Pengenalan Modul SKB RWO
+            <div class="toc-sub">Tujuan, manfaat, dan peran pengguna</div>
+        </div>
+    </div>
+    <div class="toc-item">
+        <div class="toc-number">2</div>
+        <div class="toc-text">
+            Cara Mengakses Modul
+            <div class="toc-sub">Login SPV dan navigasi ke modul</div>
+        </div>
+    </div>
+    <div class="toc-item">
+        <div class="toc-number">3</div>
+        <div class="toc-text">
+            Menu Summary
+            <div class="toc-sub">Membaca ringkasan KPI dan progress SKB</div>
+        </div>
+    </div>
+    <div class="toc-item">
+        <div class="toc-number">4</div>
+        <div class="toc-text">
+            Menu Visit (Jadwal Kunjungan)
+            <div class="toc-sub">Melihat jadwal kunjungan berdasarkan tanggal</div>
+        </div>
+    </div>
+    <div class="toc-item">
+        <div class="toc-number">5</div>
+        <div class="toc-text">
+            Menu Potensi (Daftar Toko)
+            <div class="toc-sub">Filter, cari, dan proses pengajuan SKB</div>
+        </div>
+    </div>
+    <div class="toc-item">
+        <div class="toc-number">6</div>
+        <div class="toc-text">
+            Proses Pengajuan & Verifikasi SKB
+            <div class="toc-sub">Langkah-langkah input dan submit data SKB</div>
+        </div>
+    </div>
+
+    <div class="toc-section-header" style="margin-top:20px;">Bagian 2 — Modul Perbaikan Titik Koordinat</div>
+
+    <div class="toc-item">
+        <div class="toc-number">7</div>
+        <div class="toc-text">
+            Pengenalan Modul Perbaikan Titik
+            <div class="toc-sub">Tujuan, manfaat, dan alur kerja</div>
+        </div>
+    </div>
+    <div class="toc-item">
+        <div class="toc-number">8</div>
+        <div class="toc-text">
+            Cara Mengakses Modul
+            <div class="toc-sub">Login Sales dan navigasi ke modul</div>
+        </div>
+    </div>
+    <div class="toc-item">
+        <div class="toc-number">9</div>
+        <div class="toc-text">
+            Pengambilan Lokasi GPS
+            <div class="toc-sub">Cara mengunci koordinat dan memahami akurasi</div>
+        </div>
+    </div>
+    <div class="toc-item">
+        <div class="toc-number">10</div>
+        <div class="toc-text">
+            Pengambilan Foto Bukti
+            <div class="toc-sub">Aturan foto dan fitur stempel otomatis</div>
+        </div>
+    </div>
+    <div class="toc-item">
+        <div class="toc-number">11</div>
+        <div class="toc-text">
+            Submit & Konfirmasi Data
+            <div class="toc-sub">Mengirim data perbaikan dan melihat hasilnya</div>
+        </div>
+    </div>
+    <div class="toc-item">
+        <div class="toc-number">12</div>
+        <div class="toc-text">
+            Tips & Troubleshooting
+            <div class="toc-sub">Solusi masalah umum di lapangan</div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ==================== BAGIAN 1: SKB RWO ==================== -->
+<div class="section-cover">
+    <div class="section-number">01</div>
+    <div class="section-title">Modul SKB RWO</div>
+    <div class="section-desc">Reward Outlet — Pengelolaan pengajuan dan verifikasi Surat Keterangan Berlangganan untuk toko-toko potensial</div>
+</div>
+
+<div class="content-page">
+
+    <div class="chapter-title">1. Pengenalan Modul SKB RWO</div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num">!</div>
+            <div class="step-title">Apa itu Modul SKB RWO?</div>
+        </div>
+        <div class="step-body">
+            <p>Modul <strong>SKB RWO (Reward Outlet)</strong> adalah fitur khusus yang digunakan oleh Supervisor (SPV) untuk mengelola pengajuan dan verifikasi <em>Surat Keterangan Berlangganan (SKB)</em> bagi toko-toko yang masuk dalam kategori potensi RWO pada kuartal berjalan.</p>
+            <p>Dengan modul ini, SPV dapat memantau status SKB setiap toko secara real-time tanpa perlu laporan manual.</p>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num sky">👤</div>
+            <div class="step-title">Siapa yang Menggunakan?</div>
+        </div>
+        <div class="step-body">
+            <ul>
+                <li><strong>Supervisor (SPV) / RWO</strong> — Pengguna utama yang login dan mengajukan serta memverifikasi SKB toko</li>
+                <li><strong>Tim Admin</strong> — Memantau data dari sisi back-office (dashboard web)</li>
+            </ul>
+        </div>
+    </div>
+
+    <hr class="divider">
+    <div class="chapter-title">2. Cara Mengakses Modul</div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num">1</div>
+            <div class="step-title">Buka Aplikasi & Login</div>
+        </div>
+        <div class="step-body">
+            <p>Buka browser HP Anda lalu ketuk alamat aplikasi mobile pada URL. Anda akan diarahkan ke halaman login aplikasi.</p>
+            <ul>
+                <li>Isi <strong>User ID</strong> Anda (otomatis diubah menjadi huruf kecil)</li>
+                <li>Isi <strong>Password</strong> Anda (ketuk ikon mata 👁 untuk melihat password)</li>
+                <li>Ketuk tombol <strong>Masuk</strong></li>
+            </ul>
+            <div class="callout info">
+                <strong>ℹ️ Info:</strong>
+                Jika salah memasukkan password lebih dari 5 kali, akun akan terkunci sementara selama 60 detik untuk keamanan.
+            </div>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num">2</div>
+            <div class="step-title">Pilih Modul di Halaman Home</div>
+        </div>
+        <div class="step-body">
+            <p>Setelah berhasil login, Anda akan masuk ke <strong>Halaman Home</strong>. Ketuk kartu <strong>"Reward Outlet"</strong> untuk membuka modul SKB RWO.</p>
+            <div class="callout">
+                <strong>⚠️ Perlu Login SPV:</strong>
+                Saat pertama kali membuka modul Reward Outlet, sistem akan meminta Anda memasukkan <strong>Kode Supervisor</strong> dan <strong>Password SPV</strong> untuk verifikasi identitas. Ini berbeda dengan login utama aplikasi.
+            </div>
+        </div>
+    </div>
+
+    <hr class="divider">
+    <div class="chapter-title">3. Menu Summary</div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">📊</div>
+            <div class="step-title">Memahami Tampilan Summary</div>
+        </div>
+        <div class="step-body">
+            <p>Menu <strong>Summary</strong> adalah tampilan pertama yang muncul saat modul dibuka. Menu ini menampilkan ringkasan performa kuartal Anda secara sekilas.</p>
+            <div class="tab-strip">
+                <div class="tab-item active">Summary</div>
+                <div class="tab-item">Visit</div>
+                <div class="tab-item">Potensi</div>
+            </div>
+            <div class="info-card">
+                <div class="info-card-title">Indikator yang Ditampilkan</div>
+                <ul>
+                    <li><strong>Total Toko (Potensi)</strong> — Jumlah total toko yang masuk kuartal ini</li>
+                    <li><strong>Total Target</strong> — Akumulasi nilai target dalam Rupiah dari semua toko</li>
+                    <li><strong>SKB Approve</strong> — Jumlah SKB yang sudah diajukan dan disetujui (hijau)</li>
+                    <li><strong>SKB Reject</strong> — Jumlah SKB yang diajukan namun ditolak (merah)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <hr class="divider">
+    <div class="chapter-title">4. Menu Visit — Jadwal Kunjungan</div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num">📅</div>
+            <div class="step-title">Melihat Jadwal Kunjungan Harian</div>
+        </div>
+        <div class="step-body">
+            <p>Menu <strong>Visit</strong> menampilkan daftar toko yang dijadwalkan untuk dikunjungi pada tanggal tertentu.</p>
+            <ul>
+                <li>Geser <strong>kalender horizontal</strong> di bagian atas untuk berpindah tanggal</li>
+                <li>Tanggal yang memiliki jadwal kunjungan ditandai dengan <strong>titik indikator berwarna</strong> di bawah angka tanggal</li>
+                <li>Pilih tanggal yang ingin dilihat — daftar toko akan otomatis diperbarui</li>
+            </ul>
+            <div class="callout success">
+                <strong>✅ Tips:</strong>
+                Gunakan kolom pencarian di atas daftar untuk mencari toko berdasarkan nama atau kode toko secara cepat.
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="page-break"></div>
+<div class="content-page">
+
+    <div class="chapter-title">5. Menu Potensi — Daftar Toko</div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num">🏪</div>
+            <div class="step-title">Melihat & Memfilter Daftar Toko</div>
+        </div>
+        <div class="step-body">
+            <p>Menu <strong>Potensi</strong> menampilkan seluruh daftar toko yang menjadi target SKB di kuartal berjalan.</p>
+            <ul>
+                <li>Gunakan <strong>kolom pencarian</strong> untuk mencari toko berdasarkan nama atau kode toko</li>
+                <li>Gunakan tombol filter status untuk menyaring tampilan:</li>
+            </ul>
+            <div class="pill-row">
+                <span class="pill gray">Semua — Tampilkan semua toko</span>
+                <span class="pill green">Sudah — Sudah diajukan SKB</span>
+                <span class="pill red">Belum — Belum ada pengajuan</span>
+            </div>
+            <p>Setiap kartu toko menampilkan informasi: nama toko, kode, nama distributor, target SKB, dan status SKB saat ini.</p>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num">👁</div>
+            <div class="step-title">Melihat Detail Toko</div>
+        </div>
+        <div class="step-body">
+            <p>Ketuk kartu toko untuk membuka <strong>Detail Modal</strong> yang menampilkan informasi lengkap toko, termasuk:</p>
+            <ul>
+                <li>Nama pemilik, alamat, nomor telepon</li>
+                <li>Riwayat pengajuan SKB sebelumnya</li>
+                <li>Status approve/reject dari setiap pengajuan</li>
+            </ul>
+        </div>
+    </div>
+
+    <hr class="divider">
+    <div class="chapter-title">6. Proses Pengajuan SKB</div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">1</div>
+            <div class="step-title">Buka Formulir SKB</div>
+        </div>
+        <div class="step-body">
+            <p>Dari menu <strong>Potensi</strong>, cari toko yang akan diajukan SKB-nya. Pada kartu toko, ketuk tombol <strong>"Ajukan SKB"</strong> untuk membuka formulir pengajuan.</p>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">2</div>
+            <div class="step-title">Isi Data Formulir</div>
+        </div>
+        <div class="step-body">
+            <p>Lengkapi semua data yang diminta pada formulir SKB:</p>
+            <ul class="green">
+                <li>Pilih <strong>periode/kuartal</strong> yang akan diajukan</li>
+                <li>Isi <strong>nilai target</strong> sesuai kesepakatan dengan toko</li>
+                <li>Pilih <strong>jenis produk</strong> yang menjadi target</li>
+                <li>Tambahkan <strong>catatan/keterangan</strong> jika diperlukan</li>
+            </ul>
+            <div class="callout danger">
+                <strong>🚫 Penting:</strong>
+                Pastikan semua data terisi dengan benar sebelum submit. Data yang sudah disubmit tidak dapat diedit kembali tanpa persetujuan admin.
+            </div>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">3</div>
+            <div class="step-title">Submit Pengajuan</div>
+        </div>
+        <div class="step-body">
+            <p>Setelah semua data terisi, ketuk tombol <strong>"Submit SKB"</strong>. Sistem akan memproses pengajuan dan menampilkan notifikasi keberhasilan.</p>
+            <div class="flow-row">
+                <div class="flow-box">Isi Formulir</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box">Cek Ulang Data</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box amber">Submit</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box green">Pengajuan Terkirim</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">4</div>
+            <div class="step-title">Pantau Status Pengajuan</div>
+        </div>
+        <div class="step-body">
+            <p>Setelah submit, status toko di menu Potensi akan berubah menjadi <strong>"Sudah"</strong>. Anda dapat memantau apakah pengajuan disetujui atau ditolak melalui:</p>
+            <ul class="green">
+                <li><strong>Menu Summary</strong> — Lihat jumlah SKB Approve dan Reject secara keseluruhan</li>
+                <li><strong>Detail toko</strong> — Ketuk kartu toko untuk melihat status detail pengajuan</li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- ==================== BAGIAN 2: PERBAIKAN TITIK ==================== -->
+<div class="section-cover green">
+    <div class="section-number">02</div>
+    <div class="section-title">Modul Perbaikan Titik Koordinat</div>
+    <div class="section-desc">Memperbaiki dan memperbarui koordinat GPS toko untuk akurasi data geolokasi</div>
+</div>
+
+<div class="content-page">
+
+    <div class="chapter-title">7. Pengenalan Modul Perbaikan Titik</div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">📍</div>
+            <div class="step-title">Apa itu Modul Perbaikan Titik Koordinat?</div>
+        </div>
+        <div class="step-body">
+            <p>Modul <strong>Perbaikan Titik Koordinat</strong> digunakan oleh Tim Elite (Sales) untuk memperbarui koordinat GPS toko yang ada di database. Koordinat yang akurat sangat penting agar data lokasi toko valid dan dapat diverifikasi secara visual.</p>
+            <p>Dengan modul ini, Sales dapat langsung melaporkan koordinat GPS terbaru beserta foto bukti keberadaan toko secara real-time dari lapangan.</p>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">🔄</div>
+            <div class="step-title">Alur Kerja Modul</div>
+        </div>
+        <div class="step-body">
+            <div class="flow-row">
+                <div class="flow-box">Buka Toko</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box">Ambil GPS</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box">Foto Bukti</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box green">Submit</div>
+            </div>
+        </div>
+    </div>
+
+    <hr class="divider">
+    <div class="chapter-title">8. Cara Mengakses Modul</div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">1</div>
+            <div class="step-title">Login ke Aplikasi</div>
+        </div>
+        <div class="step-body">
+            <p>Buka browser HP dan akses URL aplikasi mobile. Masukkan <strong>User ID</strong> dan <strong>Password</strong> Anda, lalu ketuk <strong>Masuk</strong>.</p>
+            <div class="callout info">
+                <strong>ℹ️ Info:</strong>
+                User ID bersifat tidak case-sensitive, sistem otomatis mengubahnya menjadi huruf kecil. Contoh: "SALES01" akan diproses sebagai "sales01".
+            </div>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">2</div>
+            <div class="step-title">Pilih Modul Perbaikan Tikor</div>
+        </div>
+        <div class="step-body">
+            <p>Dari halaman <strong>Home</strong>, ketuk kartu <strong>"Perbaikan Tikor"</strong> untuk masuk ke modul. Sistem akan meminta login Sales tambahan untuk verifikasi.</p>
+            <ul>
+                <li>Masukkan <strong>Kode Sales</strong> Anda</li>
+                <li>Masukkan <strong>Password Sales</strong></li>
+                <li>Ketuk <strong>Masuk</strong></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">3</div>
+            <div class="step-title">Pilih Toko yang Akan Diperbaiki</div>
+        </div>
+        <div class="step-body">
+            <p>Setelah masuk, Anda akan melihat daftar toko yang ditugaskan kepada Anda. Gunakan <strong>kolom pencarian</strong> untuk mencari toko, lalu ketuk toko yang koordinatnya akan diperbaiki.</p>
+        </div>
+    </div>
+
+    <hr class="divider">
+    <div class="chapter-title">9. Pengambilan Lokasi GPS</div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num amber">⚠️</div>
+            <div class="step-title">Syarat Sebelum Mengambil GPS</div>
+        </div>
+        <div class="step-body">
+            <p>Pastikan kondisi berikut terpenuhi sebelum menekan tombol ambil lokasi:</p>
+            <ul>
+                <li><strong>Posisi di luar ruangan atau dekat jendela</strong> — GPS bekerja paling baik di tempat terbuka</li>
+                <li><strong>GPS HP sudah aktif</strong> — Periksa ikon GPS di status bar HP Anda</li>
+                <li><strong>Izin lokasi sudah diberikan</strong> — Aplikasi browser harus mendapat izin akses lokasi</li>
+            </ul>
+            <div class="callout danger">
+                <strong>🚫 Jangan Palsukan Lokasi!</strong>
+                Sistem mencatat dan memverifikasi koordinat GPS yang masuk. Penggunaan aplikasi palsu lokasi dapat terdeteksi dan akan berdampak pada penilaian kinerja.
+            </div>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">1</div>
+            <div class="step-title">Ketuk Tombol "Ambil Lokasi"</div>
+        </div>
+        <div class="step-body">
+            <p>Setelah memilih toko, akan muncul modal peta. Ketuk tombol <strong>"Ambil Lokasi GPS"</strong> untuk memulai pencarian sinyal satelit.</p>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">2</div>
+            <div class="step-title">Tunggu Proses Pencarian Sinyal</div>
+        </div>
+        <div class="step-body">
+            <p>Sistem akan mencari sinyal GPS selama <strong>maksimal 30 detik</strong>. Selama proses ini, Anda akan melihat:</p>
+            <ul>
+                <li><strong>Bar progress</strong> yang menghitung mundur waktu tersisa</li>
+                <li><strong>Akurasi real-time</strong> yang semakin kecil nilainya = semakin akurat</li>
+            </ul>
+            <div class="info-card">
+                <div class="info-card-title">Standar Akurasi GPS</div>
+                <div class="pill-row">
+                    <span class="pill green">≤ 15 meter — Sangat Baik (Terkunci Otomatis)</span>
+                    <span class="pill blue">15–100 meter — Cukup Baik</span>
+                    <span class="pill red">> 100 meter — Kurang Akurat</span>
+                </div>
+                <p style="font-size:10pt; color:#475569; margin-top:10px;">Sistem akan <strong>otomatis mengunci</strong> koordinat jika akurasi mencapai 15 meter atau lebih baik sebelum 30 detik habis.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">3</div>
+            <div class="step-title">Titik Terkunci — Peta Menampilkan Lokasi</div>
+        </div>
+        <div class="step-body">
+            <p>Setelah proses selesai, peta akan menampilkan <strong>satu pin marker</strong> yang menunjukkan titik koordinat GPS Anda saat ini. Info koordinat (Latitude & Longitude) juga akan tampil di bawah peta.</p>
+            <div class="callout success">
+                <strong>✅ Berhasil Dikunci!</strong>
+                Jika muncul notifikasi "Titik Dikunci" dengan ikon perisai hijau, artinya koordinat sudah berhasil tercatat dan siap disubmit bersama foto.
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="page-break"></div>
+<div class="content-page">
+
+    <div class="chapter-title">10. Pengambilan Foto Bukti</div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num amber">📸</div>
+            <div class="step-title">Aturan Pengambilan Foto</div>
+        </div>
+        <div class="step-body">
+            <p>Foto bukti adalah <strong>wajib</strong> dan tidak bisa digantikan oleh foto dari galeri HP. Berikut aturan foto yang berlaku:</p>
+            <ul>
+                <li>Foto <strong>harus diambil langsung dari kamera HP</strong> (bukan dari galeri/album)</li>
+                <li>Pastikan <strong>tampak depan toko terlihat jelas</strong> dalam foto</li>
+                <li>Ukuran foto <strong>maksimal 5 MB</strong></li>
+                <li>Sebaiknya foto diambil <strong>siang hari</strong> dengan pencahayaan yang baik</li>
+            </ul>
+            <div class="callout">
+                <strong>⚠️ Sebaiknya ambil GPS terlebih dahulu sebelum foto!</strong>
+                Stempel koordinat pada foto diambil dari data GPS yang sudah terkunci. Jika foto diambil sebelum GPS dikunci, stempel koordinat pada foto akan menampilkan "Lokasi belum dikunci".
+            </div>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">1</div>
+            <div class="step-title">Ketuk Tombol Kamera / Unggah Foto</div>
+        </div>
+        <div class="step-body">
+            <p>Setelah GPS terkunci, gulir ke bawah pada halaman form dan ketuk tombol <strong>"Ambil Foto"</strong>. HP Anda akan langsung membuka kamera.</p>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">2</div>
+            <div class="step-title">Ambil Foto Toko</div>
+        </div>
+        <div class="step-body">
+            <p>Arahkan kamera ke tampak depan toko, pastikan nama toko (jika ada papan nama) terlihat jelas, lalu tekan tombol rana untuk memfoto.</p>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">3</div>
+            <div class="step-title">Stempel Otomatis Disisipkan</div>
+        </div>
+        <div class="step-body">
+            <p>Setelah foto diambil, sistem secara otomatis akan <strong>menyisipkan stempel (watermark)</strong> pada foto dalam waktu 1–2 detik. Stempel ini berisi:</p>
+            <div class="info-card">
+                <div class="info-card-title">Isi Stempel Foto Otomatis</div>
+                <ul>
+                    <li><strong>Waktu</strong> — Tanggal dan jam saat foto diambil (format Indonesia)</li>
+                    <li><strong>Tikor</strong> — Koordinat GPS latitude & longitude yang sudah dikunci</li>
+                    <li><strong>Toko</strong> — Nama toko dan kode toko yang sedang diproses</li>
+                </ul>
+            </div>
+            <div class="callout info">
+                <strong>ℹ️ Info Teknis:</strong>
+                Stempel disisipkan langsung di perangkat HP sebelum foto dikirim ke server, sehingga tidak membutuhkan internet untuk proses ini. Foto juga otomatis dikompres ke resolusi maksimal 1280px agar hemat kuota.
+            </div>
+        </div>
+    </div>
+
+    <hr class="divider">
+    <div class="chapter-title">11. Submit & Konfirmasi Data</div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">1</div>
+            <div class="step-title">Periksa Kembali Data</div>
+        </div>
+        <div class="step-body">
+            <p>Sebelum mengirim, pastikan semua data sudah benar:</p>
+            <ul class="green">
+                <li>Koordinat GPS sudah terkunci (ada ikon perisai hijau)</li>
+                <li>Foto sudah diambil dan tersimpan (tampil preview foto)</li>
+                <li>Nama toko dan kode toko sudah sesuai</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">2</div>
+            <div class="step-title">Ketuk Tombol Submit</div>
+        </div>
+        <div class="step-body">
+            <p>Ketuk tombol <strong>"Simpan Perbaikan"</strong> di bagian bawah form. Sistem akan mengirim data koordinat dan foto ke server.</p>
+            <div class="callout info">
+                <strong>ℹ️ Info:</strong>
+                Proses pengiriman memerlukan koneksi internet aktif. Pastikan sinyal data Anda stabil sebelum submit.
+            </div>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num green">3</div>
+            <div class="step-title">Konfirmasi Berhasil</div>
+        </div>
+        <div class="step-body">
+            <p>Jika pengiriman berhasil, akan muncul <strong>modal sukses</strong> dengan informasi ringkasan data yang telah disimpan. Toko tersebut akan ditandai sudah diperbaiki di dalam daftar.</p>
+            <div class="flow-row">
+                <div class="flow-box">Kunci GPS</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box">Foto Toko</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box amber">Submit</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box green">✅ Berhasil</div>
+            </div>
+        </div>
+    </div>
+
+    <hr class="divider">
+    <div class="chapter-title">12. Tips & Troubleshooting</div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num rose">❌</div>
+            <div class="step-title">GPS Tidak Dapat Dikunci</div>
+        </div>
+        <div class="step-body">
+            <p>Jika setelah 30 detik GPS masih belum terkunci atau akurasinya buruk:</p>
+            <ul>
+                <li>Pindah ke <strong>tempat yang lebih terbuka</strong>, jauh dari gedung tinggi atau pohon rimbun</li>
+                <li>Matikan lalu nyalakan kembali <strong>fitur GPS</strong> di pengaturan HP</li>
+                <li>Tutup dan buka kembali <strong>tab browser</strong>, lalu izinkan akses lokasi ulang</li>
+                <li>Tunggu beberapa saat, GPS HP perlu waktu "pemanasan" setelah lama tidak digunakan</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num rose">❌</div>
+            <div class="step-title">Izin Lokasi Ditolak</div>
+        </div>
+        <div class="step-body">
+            <p>Jika muncul pesan izin lokasi ditolak:</p>
+            <ul>
+                <li>Buka <strong>Pengaturan Browser</strong> di HP Anda (mis. Chrome: Pengaturan → Privasi & Keamanan → Izin Situs)</li>
+                <li>Cari alamat aplikasi ini dan ubah izin <strong>Lokasi</strong> menjadi <strong>"Izinkan"</strong></li>
+                <li>Refresh halaman dan coba kembali</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num rose">❌</div>
+            <div class="step-title">Submit Gagal / Error</div>
+        </div>
+        <div class="step-body">
+            <p>Jika muncul pesan error saat submit:</p>
+            <ul>
+                <li>Periksa koneksi internet Anda, coba beralih antara WiFi dan data seluler</li>
+                <li>Jangan tekan submit berulang kali, tunggu hingga ada respons dari sistem</li>
+                <li>Jika masalah berlanjut, screenshot pesan error dan laporkan ke admin/IT</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-header">
+            <div class="step-num amber">💡</div>
+            <div class="step-title">Tips Efisiensi di Lapangan</div>
+        </div>
+        <div class="step-body">
+            <ul>
+                <li>Buka aplikasi dan <strong>biarkan beberapa detik</strong> agar GPS HP "memanas" sebelum menekan tombol ambil lokasi</li>
+                <li>Gunakan <strong>WiFi atau sinyal 4G</strong> untuk submit foto agar lebih cepat</li>
+                <li>Jika banyak toko yang dikunjungi, selesaikan satu toko penuh (GPS + Foto + Submit) sebelum beralih ke toko berikutnya</li>
+                <li>Selalu pastikan <strong>baterai HP di atas 20%</strong> sebelum mulai bekerja di lapangan</li>
+            </ul>
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="callout success" style="margin-top: 24px; text-align:center; padding: 24px;">
+        <strong style="font-size: 14pt;">📞 Butuh Bantuan?</strong>
+        <p style="color: #14532d; margin-top: 8px;">Hubungi Tim IT / Admin melalui saluran komunikasi internal perusahaan.<br>Sertakan screenshot layar beserta keterangan masalah yang Anda alami.</p>
+    </div>
+
+</div>
+
+</body>
+</html>
