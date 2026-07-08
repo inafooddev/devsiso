@@ -307,7 +307,82 @@ export default function MapModal({ detailOutlet, setDetailOutlet, showToast }: M
         setTimeout(() => { map.invalidateSize(); }, 500);
     }, [detailOutlet, actualLocation, data.latitude, data.longitude, bestAccuracy]);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const processImageWithWatermark = (file: File): Promise<File> => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) return resolve(file);
+                    
+                    let width = img.width;
+                    let height = img.height;
+                    const maxSize = 1280;
+                    
+                    if (width > height && width > maxSize) {
+                        height = Math.round((height * maxSize) / width);
+                        width = maxSize;
+                    } else if (height > maxSize) {
+                        width = Math.round((width * maxSize) / height);
+                        height = maxSize;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    const padding = 15;
+                    const boxHeight = 110;
+                    const textYStart = height - boxHeight + 30;
+                    
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.fillRect(0, height - boxHeight, width, boxHeight);
+                    
+                    ctx.font = 'bold 20px Arial';
+                    ctx.fillStyle = 'white';
+                    
+                    const now = new Date();
+                    const timestamp = now.toLocaleString('id-ID');
+                    
+                    const coords = data.latitude && data.longitude ? 
+                        `${parseFloat(data.latitude).toFixed(6)}, ${parseFloat(data.longitude).toFixed(6)}` : 
+                        'Lokasi belum dikunci';
+                        
+                    const storeInfo = detailOutlet ? `${detailOutlet.customer_name} (${detailOutlet.customer_code})` : '';
+
+                    ctx.fillText(`Waktu: ${timestamp}`, padding, textYStart);
+                    ctx.fillText(`Tikor: ${coords}`, padding, textYStart + 30);
+                    if(storeInfo) ctx.fillText(`Toko: ${storeInfo}`, padding, textYStart + 60);
+                    
+                    canvas.toBlob(
+                        (blob) => {
+                            if (blob) {
+                                const watermarkedFile = new File([blob], file.name, {
+                                    type: 'image/jpeg',
+                                    lastModified: Date.now(),
+                                });
+                                resolve(watermarkedFile);
+                            } else {
+                                resolve(file);
+                            }
+                        },
+                        'image/jpeg',
+                        0.85
+                    );
+                };
+                img.onerror = () => resolve(file);
+                if (e.target?.result) img.src = e.target.result as string;
+            };
+            reader.onerror = () => resolve(file);
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) {
             setData('foto', null);
@@ -319,7 +394,14 @@ export default function MapModal({ detailOutlet, setDetailOutlet, showToast }: M
             return;
         }
         setShowNoPhotoWarning(false);
-        setData('foto', file);
+        
+        displayLocalToast('Menyisipkan koordinat ke foto...', 'success');
+        try {
+            const watermarkedFile = await processImageWithWatermark(file);
+            setData('foto', watermarkedFile);
+        } catch (error) {
+            setData('foto', file);
+        }
     };
 
     const submitForm = (e: React.FormEvent) => {
