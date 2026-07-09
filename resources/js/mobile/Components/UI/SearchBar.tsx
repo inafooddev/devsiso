@@ -6,9 +6,10 @@ interface SearchBarProps {
     onChange: (value: string) => void;
     placeholder?: string;
     onSubmit?: () => void;
+    onClear?: () => void;
 }
 
-export default function SearchBar({ value, onChange, placeholder = "Cari...", onSubmit }: SearchBarProps) {
+export default function SearchBar({ value, onChange, placeholder = "Cari...", onSubmit, onClear }: SearchBarProps) {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (onSubmit) {
@@ -41,8 +42,12 @@ export default function SearchBar({ value, onChange, placeholder = "Cari...", on
                 <button
                     type="button"
                     onClick={() => {
-                        onChange('');
-                        if (onSubmit) onSubmit();
+                        if (onClear) {
+                            onClear();
+                        } else {
+                            onChange('');
+                            if (onSubmit) onSubmit();
+                        }
                     }}
                     className="w-7 h-7 flex items-center justify-center bg-slate-200 text-slate-500 hover:bg-slate-300 hover:text-slate-700 rounded-full transition-colors active:scale-95"
                 >
