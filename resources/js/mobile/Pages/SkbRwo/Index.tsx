@@ -3,7 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import {
     MagnifyingGlassIcon, XMarkIcon, ShieldCheckIcon,
     BuildingStorefrontIcon as BuildingStorefrontOutline, ClipboardDocumentListIcon,
-    CalendarIcon, DocumentCheckIcon, Squares2X2Icon, ArrowLeftIcon, HomeIcon
+    CalendarIcon, DocumentCheckIcon, Squares2X2Icon, ArrowLeftIcon, HomeIcon, ChartBarIcon, AdjustmentsHorizontalIcon
 } from '@heroicons/react/24/outline';
 import { 
     ShieldExclamationIcon,
@@ -11,7 +11,8 @@ import {
     Squares2X2Icon as Squares2X2Solid,
     BuildingStorefrontIcon as BuildingStorefrontSolid,
     ClipboardDocumentListIcon as ClipboardDocumentListSolid,
-    CalendarIcon as CalendarSolid
+    CalendarIcon as CalendarSolid,
+    ChartBarIcon as ChartBarSolid
 } from '@heroicons/react/24/solid';
 
 import MobileLayout from '../../Layouts/MobileLayout';
@@ -19,10 +20,13 @@ import SearchBar from '../../Components/UI/SearchBar';
 import ScrollCalendar from '../../Components/UI/ScrollCalendar';
 import StoreCard, { SkbRwoItem } from './Components/StoreCard';
 import SkbModal from './Components/SkbModal';
+import SummaryDashboard from './Components/SummaryDashboard';
 import DetailModal from './Components/DetailModal';
+import KuartalFilterSheet from './Components/KuartalFilterSheet';
 
 interface SkbRwoIndexProps {
     listPotensi?: SkbRwoItem[];
+    listMonitoring?: SkbRwoItem[];
     listPlan?: SkbRwoItem[];
     sessionSupervisorCode?: string;
     sessionSupervisorName?: string;
@@ -30,6 +34,7 @@ interface SkbRwoIndexProps {
 
 export default function Index({ 
     listPotensi = [], 
+    listMonitoring = [],
     listPlan = [], 
     sessionSupervisorCode = 'USER', 
     sessionSupervisorName = 'User SSO' 
@@ -49,9 +54,19 @@ export default function Index({
         };
     }, []);
 
-    const [activeTab, setActiveTab] = useState<'summary'|'potensi'|'plan'>('summary');
+    const [activeTab, setActiveTab] = useState<'summary'|'potensi'|'plan'|'monitoring'>(() => {
+        return (sessionStorage.getItem('skbRwoActiveTab') as 'summary'|'potensi'|'plan'|'monitoring') || 'summary';
+    });
+    
+    useEffect(() => {
+        sessionStorage.setItem('skbRwoActiveTab', activeTab);
+    }, [activeTab]);
+
     const [search, setSearch] = useState('');
     const [filterSkbStatus, setFilterSkbStatus] = useState<'Semua'|'Sudah'|'Belum'>('Semua');
+    const [filterKuartal, setFilterKuartal] = useState<string>(Math.ceil((new Date().getMonth() + 1) / 3).toString());
+    const [filterStatus, setFilterStatus] = useState<string>('Semua');
+    const [isKuartalSheetOpen, setIsKuartalSheetOpen] = useState(false);
     const [displayLimit, setDisplayLimit] = useState(30);
     const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -65,6 +80,7 @@ export default function Index({
 
     // States for Modals
     const [detailModalData, setDetailModalData] = useState<SkbRwoItem | null>(null);
+    const [isDetailModalActual, setIsDetailModalActual] = useState(false);
     const [skbModalData, setSkbModalData] = useState<SkbRwoItem | null>(null);
 
     const handleSearchSubmit = () => {
@@ -74,7 +90,7 @@ export default function Index({
         setSearch('');
         setDisplayLimit(30);
     };
-    const handleTabSwitch = (tab: 'summary'|'potensi'|'plan') => {
+    const handleTabSwitch = (tab: 'summary'|'potensi'|'plan'|'monitoring') => {
         setActiveTab(tab);
         setDisplayLimit(30);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -86,6 +102,23 @@ export default function Index({
             result = listPotensi;
             if (filterSkbStatus !== 'Semua') {
                 result = result.filter(item => item.status_skb === filterSkbStatus);
+            }
+        }
+        else if (activeTab === 'monitoring') {
+            result = listMonitoring;
+            if (filterKuartal !== 'Semua') {
+                result = result.filter(item => String(item.kuartal) === filterKuartal);
+            }
+            if (filterStatus !== 'Semua') {
+                result = result.filter(item => {
+                    const target = item.total_target || 0;
+                    const achievement = item.total_achievement || 0;
+                    const percent = target > 0 ? (achievement / target) * 100 : 0;
+                    if (filterStatus === 'Hijau') return percent >= 100;
+                    if (filterStatus === 'Kuning') return percent >= 80 && percent < 100;
+                    if (filterStatus === 'Merah') return percent < 80;
+                    return true;
+                });
             }
         }
         else if (activeTab === 'plan') {
@@ -101,9 +134,24 @@ export default function Index({
             );
         }
         return result;
-    }, [listPotensi, listPlan, activeTab, search, selectedDate, filterSkbStatus]);
+    }, [listPotensi, listMonitoring, listPlan, activeTab, search, selectedDate, filterSkbStatus, filterKuartal, filterStatus]);
 
-    const openDetailModal = (item: SkbRwoItem) => setDetailModalData(item);
+    const filteredSummaryData = useMemo(() => {
+        let result = listMonitoring;
+        if (filterKuartal !== 'Semua') {
+            result = result.filter(item => String(item.kuartal) === filterKuartal);
+        }
+        return result;
+    }, [listMonitoring, filterKuartal]);
+
+    const openDetailModal = (item: SkbRwoItem) => {
+        setDetailModalData(item);
+        setIsDetailModalActual(activeTab === 'monitoring');
+    };
+    const openActualModal = (item: SkbRwoItem) => {
+        setDetailModalData(item);
+        setIsDetailModalActual(true);
+    };
     const closeDetailModal = () => setDetailModalData(null);
 
     const openSkbModal = (item: SkbRwoItem) => setSkbModalData(item);
@@ -143,11 +191,18 @@ export default function Index({
                     <span className={`text-[10px] tracking-wide ${activeTab === 'plan' ? 'font-bold' : 'font-medium'}`}>Visit</span>
                 </button>
                 <button
+                    onClick={() => handleTabSwitch('monitoring')}
+                    className={`flex flex-col items-center justify-center gap-1 w-full transition-colors ${activeTab === 'monitoring' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                    {activeTab === 'monitoring' ? <ChartBarSolid className="w-[22px] h-[22px]" /> : <ChartBarIcon className="w-[22px] h-[22px]" />}
+                    <span className={`text-[10px] tracking-wide ${activeTab === 'monitoring' ? 'font-bold' : 'font-medium'}`}>Monitoring</span>
+                </button>
+                <button
                     onClick={() => handleTabSwitch('potensi')}
                     className={`flex flex-col items-center justify-center gap-1 w-full transition-colors ${activeTab === 'potensi' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
                 >
                     {activeTab === 'potensi' ? <BuildingStorefrontSolid className="w-[22px] h-[22px]" /> : <BuildingStorefrontOutline className="w-[22px] h-[22px]" />}
-                    <span className={`text-[10px] tracking-wide ${activeTab === 'potensi' ? 'font-bold' : 'font-medium'}`}>Potensi</span>
+                    <span className={`text-[10px] tracking-wide ${activeTab === 'potensi' ? 'font-bold' : 'font-medium'}`}>SKB</span>
                 </button>
             </div>
         </div>
@@ -176,7 +231,16 @@ export default function Index({
                             value={search} 
                             onChange={(val) => { setSearch(val); setDisplayLimit(30); }} 
                             placeholder="Cari Toko / Kode..." 
-                            onSubmit={handleSearchSubmit} 
+                            onSubmit={handleSearchSubmit}
+                            rightAction={activeTab === 'monitoring' ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsKuartalSheetOpen(true)}
+                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-50 transition-colors ml-1"
+                                >
+                                    <AdjustmentsHorizontalIcon className="w-5 h-5" />
+                                </button>
+                            ) : undefined}
                         />
                         {activeTab === 'potensi' && (
                             <div className="flex items-center justify-between pb-1 pt-1">
@@ -187,7 +251,26 @@ export default function Index({
                                             key={status}
                                             type="button"
                                             onClick={() => { setFilterSkbStatus(status as 'Semua'|'Sudah'|'Belum'); setDisplayLimit(30); }}
-                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider shrink-0 transition-colors border ${filterSkbStatus === status ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-200' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+                                            className={`px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider shrink-0 transition-colors border ${filterSkbStatus === status ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-200' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+                                        >
+                                            {status}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {activeTab === 'monitoring' && (
+                            <div className="flex items-center justify-between pb-1 pt-1">
+                                <span className="text-[11px] font-black text-slate-700 tracking-wider ml-3">
+                                    {filterStatus === 'Semua' ? 'Semua' : filterStatus} ({displayedData.length})
+                                </span>
+                                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar mr-3">
+                                    {['Semua', 'Hijau', 'Kuning', 'Merah'].map(status => (
+                                        <button
+                                            key={status}
+                                            type="button"
+                                            onClick={() => { setFilterStatus(status); setDisplayLimit(30); }}
+                                            className={`px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider shrink-0 transition-colors border ${filterStatus === status ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-200' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
                                         >
                                             {status}
                                         </button>
@@ -209,43 +292,25 @@ export default function Index({
 
             <main className="flex-1 flex flex-col pt-1">
                 {activeTab === 'summary' ? (
-                    <div className="px-4 flex flex-col gap-4 animate-fade-in pb-6">
-                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500"></div>
-                            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Toko (Potensi)</h3>
-                            <p className="text-4xl font-black text-indigo-600 mb-2">{totalToko}</p>
-                        </div>
-                        
-                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-1 bg-amber-500"></div>
-                            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Target</h3>
-                            <p className="text-2xl font-black text-slate-800 mb-2">Rp {new Intl.NumberFormat('id-ID').format(totalTarget)}</p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-emerald-50 rounded-3xl p-5 shadow-sm border border-emerald-100 flex flex-col items-center justify-center text-center relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500"></div>
-                                <h3 className="text-[10px] font-bold text-emerald-600/70 uppercase tracking-widest mb-1">SKB Approve</h3>
-                                <p className="text-3xl font-black text-emerald-600">{skbApprove}</p>
-                            </div>
-                            <div className="bg-rose-50 rounded-3xl p-5 shadow-sm border border-rose-100 flex flex-col items-center justify-center text-center relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full h-1 bg-rose-500"></div>
-                                <h3 className="text-[10px] font-bold text-rose-600/70 uppercase tracking-widest mb-1">SKB Reject</h3>
-                                <p className="text-3xl font-black text-rose-600">{skbReject}</p>
-                            </div>
-                        </div>
-
-                        {totalToko === 0 && (
-                            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center shadow-sm">
-                                <p className="text-sm font-bold text-slate-500">Belum ada data potensi RWO untuk kuartal ini.</p>
-                            </div>
-                        )}
-                    </div>
+                    <SummaryDashboard 
+                        data={filteredSummaryData} 
+                        filterKuartal={filterKuartal}
+                        onOpenFilter={() => setIsKuartalSheetOpen(true)}
+                    />
                 ) : (
                 <>
-                <div className="grid grid-cols-1 gap-4 px-4">
+                <div className="grid grid-cols-1 gap-2.5 px-4">
                     {displayedData.length > 0 ? displayedData.slice(0, displayLimit).map((item) => (
-                        <StoreCard key={item.customer_code} item={item} onOpenDetail={openDetailModal} onOpenSkb={openSkbModal} />
+                        <StoreCard 
+                            key={item.customer_code} 
+                            item={item} 
+                            showProgress={activeTab === 'monitoring' || activeTab === 'plan'} 
+                            showSkbAction={activeTab !== 'monitoring'}
+                            showActualAction={activeTab === 'plan'}
+                            onOpenDetail={openDetailModal} 
+                            onOpenActual={openActualModal}
+                            onOpenSkb={openSkbModal} 
+                        />
                     )) : (
                         <div className="bg-white border border-slate-100 rounded-3xl py-12 px-6 text-center shadow-sm flex-1 flex flex-col items-center justify-center col-span-full">
                             {activeTab === 'plan' ? (
@@ -286,11 +351,20 @@ export default function Index({
             </main>
 
             {/* Detail Modal */}
-            <DetailModal data={detailModalData} onClose={closeDetailModal} showToast={showToast} />
+            <DetailModal data={detailModalData} isMonitoring={isDetailModalActual} onClose={closeDetailModal} showToast={showToast} />
 
             {/* Aksi SKB Modal */}
             <SkbModal data={skbModalData} onClose={closeSkbModal} showToast={showToast} />
 
+            <KuartalFilterSheet 
+                isOpen={isKuartalSheetOpen}
+                onClose={() => setIsKuartalSheetOpen(false)}
+                selectedKuartal={filterKuartal}
+                onSelect={(val) => {
+                    setFilterKuartal(val);
+                    setDisplayLimit(30);
+                }}
+            />
         </MobileLayout>
     );
 }

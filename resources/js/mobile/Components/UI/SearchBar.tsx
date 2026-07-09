@@ -7,9 +7,10 @@ interface SearchBarProps {
     placeholder?: string;
     onSubmit?: () => void;
     onClear?: () => void;
+    rightAction?: React.ReactNode;
 }
 
-export default function SearchBar({ value, onChange, placeholder = "Cari...", onSubmit, onClear }: SearchBarProps) {
+export default function SearchBar({ value, onChange, placeholder = "Cari...", onSubmit, onClear, rightAction }: SearchBarProps) {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (onSubmit) {
@@ -33,26 +34,36 @@ export default function SearchBar({ value, onChange, placeholder = "Cari...", on
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="block w-full pl-11 pr-10 py-3 text-[15px] bg-white border border-slate-200/70 shadow-[0_4px_16px_rgb(0,0,0,0.04)] rounded-xl text-slate-800 placeholder-slate-400 focus:border-indigo-300 focus:ring-4 focus:ring-indigo-500/15 transition-all outline-none"
+                className={`block w-full pl-11 py-3 text-[15px] bg-white border border-slate-200/70 shadow-[0_4px_16px_rgb(0,0,0,0.04)] rounded-xl text-slate-800 placeholder-slate-400 focus:border-indigo-300 focus:ring-4 focus:ring-indigo-500/15 transition-all outline-none ${rightAction ? 'pr-20' : 'pr-10'}`}
                 style={{ WebkitAppearance: 'none' }} // removes default webkit search cancel button
             />
             
-            {/* Clear Button */}
-            <div className={`absolute right-2 transition-all duration-200 ${value ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'}`}>
-                <button
-                    type="button"
-                    onClick={() => {
-                        if (onClear) {
-                            onClear();
-                        } else {
-                            onChange('');
-                            if (onSubmit) onSubmit();
-                        }
-                    }}
-                    className="w-7 h-7 flex items-center justify-center bg-slate-200 text-slate-500 hover:bg-slate-300 hover:text-slate-700 rounded-full transition-colors active:scale-95"
-                >
-                    <XMarkIcon className="w-4 h-4 stroke-[2.5]" />
-                </button>
+            {/* Action Buttons Container */}
+            <div className="absolute right-2 flex items-center gap-1.5">
+                {/* Clear Button */}
+                <div className={`transition-all duration-200 ${value ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'}`}>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (onClear) {
+                                onClear();
+                            } else {
+                                onChange('');
+                                if (onSubmit) onSubmit();
+                            }
+                        }}
+                        className="w-7 h-7 flex items-center justify-center bg-slate-200 text-slate-500 hover:bg-slate-300 hover:text-slate-700 rounded-full transition-colors active:scale-95"
+                    >
+                        <XMarkIcon className="w-4 h-4 stroke-[2.5]" />
+                    </button>
+                </div>
+
+                {/* Right Action */}
+                {rightAction && (
+                    <div className="flex items-center justify-center shrink-0">
+                        {rightAction}
+                    </div>
+                )}
             </div>
         </form>
     );

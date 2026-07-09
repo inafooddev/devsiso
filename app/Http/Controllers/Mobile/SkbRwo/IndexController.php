@@ -116,6 +116,67 @@ class IndexController extends Controller
                 DB::raw("$currentQuarter as kuartal")
             );
 
+        // ==== QUERY MONITORING ====
+        $queryMonitoring = DB::table('list_potensi_rwo as l')
+            ->leftJoin('master_distributors as md', 'md.distributor_code', '=', 'l.distributor_code')
+            ->leftJoin('team_elite_code_mappings as te', 'te.siso_code', '=', 'md.supervisor_code')
+            ->leftJoin('reward_outlet as r', 'r.customer_code', '=', 'l.customer_code')
+            ->leftJoin('surat_kesepakatan_bersama_rwo as skb', function($join) {
+                $join->on('skb.customer_code', '=', 'l.customer_code')
+                     ->on('skb.distributor_code', '=', 'l.distributor_code')
+                     ->on('skb.kuartal', '=', 'l.kuartal');
+            })
+            ->leftJoin('list_toko_pareto_team_elite as lt', 'lt.uniq_kd', '=', 'l.customer_code')
+            ->leftJoinSub(
+                DB::table('zv_so_per_toko_2026')
+                    ->select(
+                        'kd_dist', 
+                        'uniq_kd', 
+                        DB::raw('EXTRACT(QUARTER FROM bulan) as kuartal'),
+                        DB::raw('SUM(neto) as total_achievement'),
+                        DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 1 THEN neto ELSE 0 END) as month_1_value'),
+                        DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 2 THEN neto ELSE 0 END) as month_2_value'),
+                        DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 0 THEN neto ELSE 0 END) as month_3_value')
+                    )
+                    ->groupBy('kd_dist', 'uniq_kd', DB::raw('EXTRACT(QUARTER FROM bulan)')),
+                'zv',
+                function($join) {
+                    $join->on('zv.kd_dist', '=', 'l.distributor_code')
+                         ->on('zv.uniq_kd', '=', 'l.customer_code')
+                         ->on('zv.kuartal', '=', 'l.kuartal');
+                }
+            )
+            ->select(
+                'l.*', 
+                'lt.customer_code_prc as customer_prc',
+                'md.region_name', 'md.area_name', 'md.supervisor_name', 'md.distributor_name',
+                'l.alamat as address',
+                'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
+                'r.nama_bank', 'r.no_rekening', 'r.nama_pemilik_norek', 'r.latitude', 'r.longitude',
+                'r.foto_toko2', 'r.foto_toko3',
+                'skb.is_approved', 'skb.foto_skb as skb_foto', 'skb.reason as skb_reason',
+                DB::raw("CASE WHEN skb.customer_code IS NOT NULL THEN 'Sudah' ELSE 'Belum' END AS status_skb"),
+                DB::raw("CASE WHEN 
+                    NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.nama_pemilik_toko), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.nik_ktp), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.nama_ktp), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.foto_ktp), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.nama_bank), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.no_rekening), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.nama_pemilik_norek), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.latitude), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.longitude), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.foto_toko3), '') IS NOT NULL
+                    THEN 'Lengkap' ELSE 'Belum' END AS status_data_lengkap"),
+                'zv.total_achievement',
+                'zv.month_1_value',
+                'zv.month_2_value',
+                'zv.month_3_value'
+            )
+            ->distinct();
+
         // ==== APLIKASI HAK AKSES (FILTERING) ====
         if ($user->supervisor_code) {
             // Level SPV: Potensi filter dengan supervisor_code (bisa fallback)
@@ -123,9 +184,14 @@ class IndexController extends Controller
                 $q->where('te.team_elite_code', $user->supervisor_code)
                   ->orWhere('md.supervisor_code', $user->supervisor_code);
             });
+            $queryMonitoring->where(function($q) use ($user) {
+                $q->where('te.team_elite_code', $user->supervisor_code)
+                  ->orWhere('md.supervisor_code', $user->supervisor_code);
+            });
         } elseif ($user->area_code) {
             // Level Area Manager
             $queryPotensi->where('md.area_code', $user->area_code);
+            $queryMonitoring->where('md.area_code', $user->area_code);
         } elseif ($user->region_code) {
             // Level Region Manager (JSON Array of Region Codes)
             $regions = is_string($user->region_code) ? json_decode($user->region_code, true) : $user->region_code;
@@ -133,11 +199,13 @@ class IndexController extends Controller
             
             if (!in_array('HOINA', $regions)) {
                 $queryPotensi->whereIn('md.region_code', $regions);
+                $queryMonitoring->whereIn('md.region_code', $regions);
             }
             // Jika ada 'HOINA', maka ia bisa melihat semuanya secara nasional.
         }
 
         $listPotensi = $queryPotensi->get();
+        $listMonitoring = $queryMonitoring->get();
         
         try {
             $listPlan = $queryPlan->get();
@@ -147,6 +215,7 @@ class IndexController extends Controller
 
         return Inertia::render('mobile/Pages/SkbRwo/Index', [
             'listPotensi' => $listPotensi,
+            'listMonitoring' => $listMonitoring,
             'listPlan' => $listPlan,
             'sessionSupervisorCode' => $sessionSupervisorCode,
             'sessionSupervisorName' => $sessionSupervisorName,

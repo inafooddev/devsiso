@@ -1,17 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import {
-    XMarkIcon, PhotoIcon, ArrowPathIcon, MapPinIcon, PencilSquareIcon, ShieldCheckIcon, MagnifyingGlassIcon
+    XMarkIcon, PhotoIcon, ArrowPathIcon, MapPinIcon, PencilSquareIcon, ShieldCheckIcon, MagnifyingGlassIcon, ChartPieIcon
 } from '@heroicons/react/24/outline';
 import { SkbRwoItem } from './StoreCard';
 
 interface DetailModalProps {
     data: SkbRwoItem | null;
+    isMonitoring?: boolean;
     onClose: () => void;
     showToast: (message: string, type: 'success' | 'error') => void;
 }
 
-export default function DetailModal({ data, onClose, showToast }: DetailModalProps) {
+export default function DetailModal({ data, isMonitoring, onClose, showToast }: DetailModalProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
@@ -301,8 +302,48 @@ export default function DetailModal({ data, onClose, showToast }: DetailModalPro
 
                         {!isEditing ? (
                             <div className="animate-fade-in">
-                                {/* Alamat & Kode PRC */}
-                                <div className="flex flex-col gap-6 mb-6">
+                                {/* Monitoring Achievement Section */}
+                                {isMonitoring && (
+                                    <div className="mb-6 bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <ChartPieIcon className="w-4 h-4 text-indigo-600" />
+                                            <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-700">Detail Pencapaian {data.kuartal ? `(Kuartal ${data.kuartal})` : ''}</h4>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-2 mb-4">
+                                            <div className="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-100 shadow-sm">
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Target Kuartal</span>
+                                                <span className="text-xs font-black text-slate-800">Rp {new Intl.NumberFormat('id-ID').format(data.total_target || 0)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-100 shadow-sm">
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Bulan 1</span>
+                                                <span className="text-xs font-bold text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(data.month_1_value || 0)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-100 shadow-sm">
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Bulan 2</span>
+                                                <span className="text-xs font-bold text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(data.month_2_value || 0)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-100 shadow-sm">
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Bulan 3</span>
+                                                <span className="text-xs font-bold text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(data.month_3_value || 0)}</span>
+                                            </div>
+                                        </div>
+                                        <div className="pt-3 border-t border-slate-200">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-[11px] font-black text-slate-600 uppercase tracking-wider">Total Actual</span>
+                                                <span className="text-sm font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(data.total_achievement || 0)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center mt-1">
+                                                <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">Sisa Gap</span>
+                                                <span className="text-[11px] font-black text-rose-600">Rp {new Intl.NumberFormat('id-ID').format(Math.max(0, (data.total_target || 0) - (data.total_achievement || 0)))}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!isMonitoring && (
+                                    <>
+                                        {/* Alamat & Kode PRC */}
+                                        <div className="flex flex-col gap-6 mb-6">
                                     <div>
                                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-3">Identitas Outlet</p>
                                         <div className="flex flex-col gap-3">
@@ -441,6 +482,8 @@ export default function DetailModal({ data, onClose, showToast }: DetailModalPro
                                         ))}
                                     </div>
                                 </div>
+                                    </>
+                                )}
                             </div>
                         ) : (
                             <form id="dataForm" onSubmit={handleSubmit} className="flex flex-col gap-5 animate-fade-in pt-4 border-t border-slate-100">
