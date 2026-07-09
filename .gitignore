@@ -20,3 +20,10 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+/public/hot
+/public/storage
+/storage/framework/cache/data/*.php
+/storage/framework/cache/data/**/*.php
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
