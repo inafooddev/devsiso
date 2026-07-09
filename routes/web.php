@@ -103,6 +103,12 @@ Route::middleware('guest')->group(function () {
     Route::post('/mobile/login', [\App\Http\Controllers\Mobile\AuthController::class, 'login']);
 });
 
+Route::get('/mobile/perbaikan-tikor', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'index'])->name('mobile.perbaikan.tikor.index');
+Route::post('/mobile/perbaikan-tikor', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'store'])->name('mobile.perbaikan.tikor.store');
+Route::get('/mobile/perbaikan-tikor/search-sales', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'searchSales'])->name('mobile.perbaikan.tikor.search-sales')->middleware('throttle:30,1');
+Route::post('/mobile/perbaikan-tikor/login', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'loginSales'])->name('mobile.perbaikan.tikor.login')->middleware('throttle:30,1');
+Route::post('/mobile/perbaikan-tikor/logout', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'logoutSales'])->name('mobile.perbaikan.tikor.logout');
+
 Route::middleware('auth')->group(function () {
     Route::post('/mobile/logout', [\App\Http\Controllers\Mobile\AuthController::class, 'logout'])->name('mobile.logout');
     Route::inertia('/mobile/portal', 'Mobile/Portal/Index')->name('mobile.portal');
@@ -133,15 +139,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/mobile/audit/login', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'loginAuditor'])->name('mobile.audit.login');
     Route::post('/mobile/audit/logout', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'logoutAuditor'])->name('mobile.audit.logout');
 
-    Route::get('/mobile/perbaikan-tikor', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'index'])->name('mobile.perbaikan.tikor.index');
-    Route::post('/mobile/perbaikan-tikor', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'store'])->name('mobile.perbaikan.tikor.store');
-    Route::get('/mobile/perbaikan-tikor/search-sales', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'searchSales'])->name('mobile.perbaikan.tikor.search-sales')->middleware('throttle:30,1');
-    Route::post('/mobile/perbaikan-tikor/login', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'loginSales'])->name('mobile.perbaikan.tikor.login')->middleware('throttle:30,1');
-    Route::post('/mobile/perbaikan-tikor/logout', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'logoutSales'])->name('mobile.perbaikan.tikor.logout');
-
     Route::get('/mobile/perbaikan-tikor-tim-elite', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'index'])->name('mobile.perbaikan.tikor-tim-elite.index');
     Route::post('/mobile/perbaikan-tikor-tim-elite', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'store'])->name('mobile.perbaikan.tikor-tim-elite.store');
-
 
     Route::get('/mobile/monitoring-device', \App\Livewire\Mobile\MonitoringDeviceSe\Index::class)->name('mobile.monitoring-device.index');
 });
