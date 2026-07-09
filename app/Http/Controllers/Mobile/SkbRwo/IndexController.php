@@ -78,6 +78,11 @@ class IndexController extends Controller
                      ->on('skb.distributor_code', '=', 'j.distributor_code')
                      ->on('skb.kuartal', '=', DB::raw($currentQuarter));
             })
+            ->leftJoin('list_potensi_rwo as lp', function($join) use ($currentQuarter) {
+                $join->on('lp.customer_code', '=', 'l.uniq_kd')
+                     ->on('lp.distributor_code', '=', 'j.distributor_code')
+                     ->on('lp.kuartal', '=', DB::raw($currentQuarter));
+            })
             ->where('l.pilar', '1. RWO')
             ->whereRaw('UPPER(j.kode_team) = ?', [strtoupper($user->userid)])
             ->select(
@@ -86,6 +91,7 @@ class IndexController extends Controller
                 'l.uniq_kd as customer_code',
                 'l.customer_code_prc as customer_prc',
                 'md.region_name', 'md.area_name', 'md.supervisor_name', 'md.distributor_name',
+                'lp.total_target',
                 'j.custname as customer_name',
                 'j.addres as address',
                 'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
