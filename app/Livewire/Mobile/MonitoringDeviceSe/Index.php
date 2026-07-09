@@ -198,9 +198,11 @@ class Index extends Component
 
         if ($this->foto_tampak_depan) {
             $data['foto_tampak_depan'] = $this->foto_tampak_depan->store('monitoring_device', 'public');
+            $this->addTimestampWatermark($data['foto_tampak_depan']);
         }
         if ($this->foto_tampak_belakang) {
             $data['foto_tampak_belakang'] = $this->foto_tampak_belakang->store('monitoring_device', 'public');
+            $this->addTimestampWatermark($data['foto_tampak_belakang']);
         }
 
         if ($this->editId) {
@@ -385,5 +387,113 @@ class Index extends Component
             'monitoringData' => $monitoringData,
             'months' => $months,
         ])->title('Mobile Monitoring Device')->layout('layouts.mobile-guest');
+    }
+
+    private function addTimestampWatermark($path)
+    {
+        try {
+            $fullPath = \Illuminate\Support\Facades\Storage::disk('public')->path($path);
+            if (!file_exists($fullPath)) return;
+
+            $info = getimagesize($fullPath);
+            if (!$info) return;
+
+            $mime = $info['mime'];
+            $image = null;
+
+            if ($mime == 'image/jpeg') {
+                $image = imagecreatefromjpeg($fullPath);
+            } elseif ($mime == 'image/png') {
+                $image = imagecreatefrompng($fullPath);
+            }
+
+            if (!$image) return;
+
+            $width = imagesx($image);
+            $height = imagesy($image);
+
+            // Resize if too large (e.g. > 1280px) to save space and processing
+            $maxSize = 1280;
+            if ($width > $height && $width > $maxSize) {
+                $newWidth = $maxSize;
+                $newHeight = (int) round(($height * $maxSize) / $width);
+            } elseif ($height > $maxSize) {
+                $newHeight = $maxSize;
+                $newWidth = (int) round(($width * $maxSize) / $height);
+            } else {
+                $newWidth = $width;
+                $newHeight = $height;
+            }
+
+            if ($newWidth != $width || $newHeight != $height) {
+                $resized = imagecreatetruecolor($newWidth, $newHeight);
+                imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+                imagedestroy($image);
+                $image = $resized;
+                $width = $newWidth;
+                $height = $newHeight;
+            }
+
+            // Draw a semi-transparent black background box at the bottom
+            $boxHeight = max(70, (int) round($height * 0.08));
+            $padding = 15;
+            
+            $blackAlpha = imagecolorallocatealpha($image, 0, 0, 0, 60); 
+            imagefilledrectangle($image, 0, $height - $boxHeight, $width, $height, $blackAlpha);
+
+            $timestamp = 'Waktu: ' . Carbon::now()->translatedFormat('d/m/Y H:i:s');
+            $appText = 'Monitoring Device SE';
+
+            // Scale text size
+            $font = 5;
+            $charWidth = imagefontwidth($font);
+            $charHeight = imagefontheight($font);
+            $scale = max(1, (int) round($width / 500)); 
+
+            // Draw timestamp text (scaled)
+            $textImg1 = imagecreatetruecolor(strlen($timestamp) * $charWidth, $charHeight);
+            imagecolortransparent($textImg1, imagecolorallocate($textImg1, 0, 0, 0));
+            $whiteText1 = imagecolorallocate($textImg1, 255, 255, 255);
+            imagestring($textImg1, $font, 0, 0, $timestamp, $whiteText1);
+
+            imagecopyresized($image, $textImg1, 
+                $padding, 
+                $height - $boxHeight + ($boxHeight / 2) - ($charHeight * $scale) - 5, 
+                0, 0, 
+                strlen($timestamp) * $charWidth * $scale, 
+                $charHeight * $scale, 
+                strlen($timestamp) * $charWidth, 
+                $charHeight
+            );
+            imagedestroy($textImg1);
+
+            // Draw app text (scaled)
+            $textImg2 = imagecreatetruecolor(strlen($appText) * $charWidth, $charHeight);
+            imagecolortransparent($textImg2, imagecolorallocate($textImg2, 0, 0, 0));
+            $whiteText2 = imagecolorallocate($textImg2, 255, 255, 255);
+            imagestring($textImg2, $font, 0, 0, $appText, $whiteText2);
+
+            imagecopyresized($image, $textImg2, 
+                $padding, 
+                $height - $boxHeight + ($boxHeight / 2) + 5, 
+                0, 0, 
+                strlen($appText) * $charWidth * $scale, 
+                $charHeight * $scale, 
+                strlen($appText) * $charWidth, 
+                $charHeight
+            );
+            imagedestroy($textImg2);
+
+            if ($mime == 'image/jpeg') {
+                imagejpeg($image, $fullPath, 85);
+            } elseif ($mime == 'image/png') {
+                imagepng($image, $fullPath);
+            }
+            
+            imagedestroy($image);
+
+        } catch (\Exception $e) {
+            // Silently fail if GD fails
+        }
     }
 }
