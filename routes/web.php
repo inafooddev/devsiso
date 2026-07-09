@@ -110,7 +110,7 @@ Route::get('/mobile/audit/export', [\App\Http\Controllers\Mobile\Audit\IndexCont
 Route::post('/mobile/audit/login', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'loginAuditor'])->name('mobile.audit.login');
 Route::post('/mobile/audit/logout', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'logoutAuditor'])->name('mobile.audit.logout');
 
-Route::get('/mobile/monitoring-device', \App\Livewire\Mobile\MonitoringDeviceSe\Index::class)->name('mobile.monitoring-device.index');
+Route::redirect('/mobile/monitoring-device', '/app/monitoring-device')->name('mobile.monitoring-device.index');
 
 Route::get('/mobile/perbaikan-tikor', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'index'])->name('mobile.perbaikan.tikor.index');
 Route::post('/mobile/perbaikan-tikor', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'store'])->name('mobile.perbaikan.tikor.store');
