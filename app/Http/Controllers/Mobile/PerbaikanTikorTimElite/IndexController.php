@@ -59,6 +59,16 @@ class IndexController extends Controller
             ->whereRaw("UPPER(l.customer_name) NOT LIKE '%BRIEFING%'")
             ->whereRaw("UPPER(l.customer_name) NOT LIKE '%EVALUASI%'");
 
+        $search = $request->input('search');
+        if ($search) {
+            $searchUpper = strtoupper($search);
+            $queryToko->where(function($q) use ($searchUpper) {
+                $q->whereRaw("UPPER(l.customer_name) LIKE ?", ["%{$searchUpper}%"])
+                  ->orWhereRaw("UPPER(l.customer_code_prc) LIKE ?", ["%{$searchUpper}%"])
+                  ->orWhereRaw("UPPER(md.distributor_name) LIKE ?", ["%{$searchUpper}%"]);
+            });
+        }
+
         // ==== APLIKASI HAK AKSES (FILTERING) ====
         if ($user->supervisor_code) {
             // Level SPV / Sales
@@ -141,6 +151,16 @@ class IndexController extends Controller
                   ->whereRaw("COALESCE(UPPER(c.custname), '') NOT LIKE '%EVALUASI%'");
             });
 
+        if ($search) {
+            $searchUpper = strtoupper($search);
+            $queryRiwayat->where(function($q) use ($searchUpper) {
+                $q->whereRaw("COALESCE(UPPER(l.customer_name), '') LIKE ?", ["%{$searchUpper}%"])
+                  ->orWhereRaw("COALESCE(UPPER(c.custname), '') LIKE ?", ["%{$searchUpper}%"])
+                  ->orWhereRaw("UPPER(ptt.customer_code) LIKE ?", ["%{$searchUpper}%"])
+                  ->orWhereRaw("UPPER(md.distributor_name) LIKE ?", ["%{$searchUpper}%"]);
+            });
+        }
+
         if ($user->supervisor_code) {
             $queryRiwayat->where(function($q) use ($user) {
                 $q->where('ptt.sales_code', $user->supervisor_code)
@@ -207,6 +227,15 @@ class IndexController extends Controller
                 ->whereRaw("UPPER(l.customer_name) NOT LIKE '%EVALUASI%'")
                 ->whereRaw('UPPER(j.kode_team) = ?', [strtoupper($user->userid)]);
                 
+            if ($search) {
+                $searchUpper = strtoupper($search);
+                $queryPlan->where(function($q) use ($searchUpper) {
+                    $q->whereRaw("UPPER(l.customer_name) LIKE ?", ["%{$searchUpper}%"])
+                      ->orWhereRaw("UPPER(l.customer_code_prc) LIKE ?", ["%{$searchUpper}%"])
+                      ->orWhereRaw("UPPER(md.distributor_name) LIKE ?", ["%{$searchUpper}%"]);
+                });
+            }
+
             $listPlan = $queryPlan->get();
         } catch (\Exception $e) {
             $listPlan = [];
@@ -216,6 +245,9 @@ class IndexController extends Controller
             'tokoList' => $tokoList,
             'riwayatPerbaikan' => $riwayatPerbaikan,
             'listPlan' => $listPlan,
+            'filters' => [
+                'search' => $search
+            ],
             'user' => [
                 'name' => $sessionSupervisorName,
                 'role' => $user->supervisor_code ? 'SPV/Sales' : ($user->area_code ? 'Area Manager' : 'Region Manager'),

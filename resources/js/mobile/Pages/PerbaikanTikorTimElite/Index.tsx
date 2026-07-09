@@ -20,14 +20,14 @@ interface IndexProps {
     user: any;
 }
 
-export default function Index({ tokoList = [], riwayatPerbaikan = [], listPlan = [], user }: IndexProps) {
+export default function Index({ tokoList = [], riwayatPerbaikan = [], listPlan = [], user, filters }: IndexProps & { filters?: any }) {
 
     // --- State Management ---
     const [toast, setToast] = useState<{message: string, type: string} | null>(null);
     const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
     const [activeTab, setActiveTab] = useState('laporan');
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(filters?.search || '');
     const [selectedStatusFilter, setSelectedStatusFilter] = useState('');
     const [detailOutlet, setDetailOutlet] = useState<any>(null);
     const [displayLimit, setDisplayLimit] = useState(30);
@@ -45,12 +45,22 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], listPlan =
     };
 
     const handleSearchSubmit = () => {
-        setDisplayLimit(30);
+        router.get(window.location.pathname, { search: search }, {
+            preserveState: true,
+            replace: true,
+            only: ['tokoList', 'riwayatPerbaikan', 'listPlan', 'filters'],
+            onSuccess: () => setDisplayLimit(30)
+        });
     };
 
     const clearSearch = () => {
         setSearch('');
-        setDisplayLimit(30);
+        router.get(window.location.pathname, { search: '' }, {
+            preserveState: true,
+            replace: true,
+            only: ['tokoList', 'riwayatPerbaikan', 'listPlan', 'filters'],
+            onSuccess: () => setDisplayLimit(30)
+        });
     };
 
     const handleTabSwitch = (tab: string) => {
@@ -85,15 +95,6 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], listPlan =
 
     const getDisplayedOutlets = () => {
         let result = activeTab === 'visit' ? displayedPlan : (activeTab === 'toko' ? tokoList : riwayatPerbaikan);
-
-        if (search) {
-            const q = search.toLowerCase();
-            result = result.filter(o => 
-                String(o.customer_name || '').toLowerCase().includes(q) || 
-                String(o.customer_code || '').toLowerCase().includes(q) ||
-                String(o.address || '').toLowerCase().includes(q)
-            );
-        }
 
         if (activeTab === 'laporan' && selectedStatusFilter) {
             result = result.filter(o => o.status_perbaikan?.toLowerCase() === selectedStatusFilter);
