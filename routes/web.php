@@ -117,6 +117,11 @@ Route::post('/mobile/perbaikan-tikor', [\App\Http\Controllers\Mobile\PerbaikanTi
 Route::get('/mobile/perbaikan-tikor/search-sales', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'searchSales'])->name('mobile.perbaikan.tikor.search-sales')->middleware('throttle:30,1');
 Route::post('/mobile/perbaikan-tikor/login', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'loginSales'])->name('mobile.perbaikan.tikor.login')->middleware('throttle:30,1');
 Route::post('/mobile/perbaikan-tikor/logout', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'logoutSales'])->name('mobile.perbaikan.tikor.logout');
+Route::get('/app/monitoring-device', [\App\Http\Controllers\Mobile\MonitoringDeviceController::class, 'index'])->name('mobile.app.monitoring-device.index');
+Route::post('/app/monitoring-device', [\App\Http\Controllers\Mobile\MonitoringDeviceController::class, 'store'])->name('mobile.app.monitoring-device.store');
+Route::post('/app/monitoring-device/login', [\App\Http\Controllers\Mobile\MonitoringDeviceController::class, 'loginSales'])->name('mobile.app.monitoring-device.login')->middleware('throttle:30,1');
+Route::post('/app/monitoring-device/logout', [\App\Http\Controllers\Mobile\MonitoringDeviceController::class, 'logoutSales'])->name('mobile.app.monitoring-device.logout');
+Route::post('/app/monitoring-device/destroy-image', [\App\Http\Controllers\Mobile\MonitoringDeviceController::class, 'destroyImage'])->name('mobile.app.monitoring-device.destroy-image');
 
 Route::middleware('auth')->group(function () {
     Route::post('/mobile/logout', [\App\Http\Controllers\Mobile\AuthController::class, 'logout'])->name('mobile.logout');

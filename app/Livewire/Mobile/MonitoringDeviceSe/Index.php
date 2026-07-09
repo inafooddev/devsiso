@@ -196,13 +196,19 @@ class Index extends Component
             'updated_at' => now(),
         ];
 
+        $salesName = \DB::table('fsalesman')
+            ->where('SLSNO', $this->form_sales_code)
+            ->where('TEAM', 'SEI')
+            ->value('SLSNAME') ?? $this->form_sales_code;
+        $salesInfo = $this->form_sales_code . ' - ' . $salesName;
+
         if ($this->foto_tampak_depan) {
             $data['foto_tampak_depan'] = $this->foto_tampak_depan->store('monitoring_device', 'public');
-            $this->addTimestampWatermark($data['foto_tampak_depan']);
+            $this->addTimestampWatermark($data['foto_tampak_depan'], $salesInfo);
         }
         if ($this->foto_tampak_belakang) {
             $data['foto_tampak_belakang'] = $this->foto_tampak_belakang->store('monitoring_device', 'public');
-            $this->addTimestampWatermark($data['foto_tampak_belakang']);
+            $this->addTimestampWatermark($data['foto_tampak_belakang'], $salesInfo);
         }
 
         if ($this->editId) {
@@ -389,7 +395,7 @@ class Index extends Component
         ])->title('Mobile Monitoring Device')->layout('layouts.mobile-guest');
     }
 
-    private function addTimestampWatermark($path)
+    private function addTimestampWatermark($path, $salesInfo)
     {
         try {
             $fullPath = \Illuminate\Support\Facades\Storage::disk('public')->path($path);
@@ -435,54 +441,53 @@ class Index extends Component
             }
 
             // Draw a semi-transparent black background box at the bottom
-            $boxHeight = max(70, (int) round($height * 0.08));
-            $padding = 15;
+            $boxHeight = max(110, (int) round($height * 0.12));
+            $padding = 20;
             
-            $blackAlpha = imagecolorallocatealpha($image, 0, 0, 0, 60); 
+            $blackAlpha = imagecolorallocatealpha($image, 0, 0, 0, 50); 
             imagefilledrectangle($image, 0, $height - $boxHeight, $width, $height, $blackAlpha);
 
             $timestamp = 'Waktu: ' . Carbon::now()->translatedFormat('d/m/Y H:i:s');
-            $appText = 'Monitoring Device SE';
+            $seText = 'Sales: ' . $salesInfo;
+            $appText = 'Aplikasi: Monitoring Device SE';
 
-            // Scale text size
-            $font = 5;
-            $charWidth = imagefontwidth($font);
-            $charHeight = imagefontheight($font);
-            $scale = max(1, (int) round($width / 500)); 
+            $white = imagecolorallocate($image, 255, 255, 255);
 
-            // Draw timestamp text (scaled)
-            $textImg1 = imagecreatetruecolor(strlen($timestamp) * $charWidth, $charHeight);
-            imagecolortransparent($textImg1, imagecolorallocate($textImg1, 0, 0, 0));
-            $whiteText1 = imagecolorallocate($textImg1, 255, 255, 255);
-            imagestring($textImg1, $font, 0, 0, $timestamp, $whiteText1);
+            // Fetch or use TTF Font
+            $fontPath = storage_path('app/public/Roboto-Medium.ttf');
+            if (!file_exists($fontPath)) {
+                try {
+                    $fontData = @file_get_contents('https://github.com/googlefonts/roboto/raw/main/src/hinted/Roboto-Medium.ttf');
+                    if ($fontData) {
+                        file_put_contents($fontPath, $fontData);
+                    } else {
+                        $fontPath = 'C:\\Windows\\Fonts\\segoeui.ttf';
+                        if (!file_exists($fontPath)) $fontPath = 'C:\\Windows\\Fonts\\arial.ttf';
+                    }
+                } catch (\Exception $e) {
+                    $fontPath = 'C:\\Windows\\Fonts\\segoeui.ttf';
+                    if (!file_exists($fontPath)) $fontPath = 'C:\\Windows\\Fonts\\arial.ttf';
+                }
+            }
 
-            imagecopyresized($image, $textImg1, 
-                $padding, 
-                $height - $boxHeight + ($boxHeight / 2) - ($charHeight * $scale) - 5, 
-                0, 0, 
-                strlen($timestamp) * $charWidth * $scale, 
-                $charHeight * $scale, 
-                strlen($timestamp) * $charWidth, 
-                $charHeight
-            );
-            imagedestroy($textImg1);
+            // Calculate Font Size
+            $fontSize = max(14, (int) round($height * 0.016));
+            $lineHeight = $fontSize * 1.8;
+            $startY = $height - $boxHeight + ($fontSize * 1.5) + 5;
 
-            // Draw app text (scaled)
-            $textImg2 = imagecreatetruecolor(strlen($appText) * $charWidth, $charHeight);
-            imagecolortransparent($textImg2, imagecolorallocate($textImg2, 0, 0, 0));
-            $whiteText2 = imagecolorallocate($textImg2, 255, 255, 255);
-            imagestring($textImg2, $font, 0, 0, $appText, $whiteText2);
-
-            imagecopyresized($image, $textImg2, 
-                $padding, 
-                $height - $boxHeight + ($boxHeight / 2) + 5, 
-                0, 0, 
-                strlen($appText) * $charWidth * $scale, 
-                $charHeight * $scale, 
-                strlen($appText) * $charWidth, 
-                $charHeight
-            );
-            imagedestroy($textImg2);
+            if (file_exists($fontPath)) {
+                // Use Elegant TTF Font
+                imagettftext($image, $fontSize, 0, $padding, $startY, $white, $fontPath, $timestamp);
+                imagettftext($image, $fontSize, 0, $padding, $startY + $lineHeight, $white, $fontPath, $seText);
+                imagettftext($image, $fontSize, 0, $padding, $startY + ($lineHeight * 2), $white, $fontPath, $appText);
+            } else {
+                // Fallback to pixelated imagestring
+                $font = 5;
+                $charHeight = imagefontheight($font);
+                imagestring($image, $font, $padding, $height - $boxHeight + 10, $timestamp, $white);
+                imagestring($image, $font, $padding, $height - $boxHeight + 10 + $charHeight + 5, $seText, $white);
+                imagestring($image, $font, $padding, $height - $boxHeight + 10 + ($charHeight * 2) + 10, $appText, $white);
+            }
 
             if ($mime == 'image/jpeg') {
                 imagejpeg($image, $fullPath, 85);
