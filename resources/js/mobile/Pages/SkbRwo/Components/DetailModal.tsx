@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { router } from '@inertiajs/react';
+import axios from 'axios';
 import {
-    XMarkIcon, PhotoIcon, ArrowPathIcon, MapPinIcon, PencilSquareIcon, ShieldCheckIcon, MagnifyingGlassIcon, ChartPieIcon
+    XMarkIcon, PhotoIcon, ArrowPathIcon, MapPinIcon, PencilSquareIcon, ShieldCheckIcon, MagnifyingGlassIcon, ChartPieIcon, ChartBarIcon
 } from '@heroicons/react/24/outline';
 import { SkbRwoItem } from './StoreCard';
 
@@ -13,6 +14,7 @@ interface DetailModalProps {
 }
 
 export default function DetailModal({ data, isMonitoring, onClose, showToast }: DetailModalProps) {
+    const [activeTab, setActiveTab] = useState<'pencapaian' | 'history'>('pencapaian');
     const [isEditing, setIsEditing] = useState(false);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
@@ -40,6 +42,12 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+
+    const [historyOrder, setHistoryOrder] = useState<any[]>([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+    const [historyProduk, setHistoryProduk] = useState<any[]>([]);
+    const [isLoadingProduk, setIsLoadingProduk] = useState(false);
 
     const ktpRef = useRef<HTMLInputElement>(null);
     const toko2Ref = useRef<HTMLInputElement>(null);
@@ -78,6 +86,69 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
             });
         };
     }, [previews]);
+
+
+    useEffect(() => {
+        if (data && isMonitoring) {
+            setIsLoadingHistory(true);
+            setIsLoadingProduk(true);
+
+            axios.get(`/mobile/skb-rwo/history-order/${data.customer_code}?kuartal=${data.kuartal || ''}`)
+                .then(res => {
+                    setHistoryOrder(res.data || []);
+                })
+                .catch(err => {
+                    console.error('Failed to fetch history', err);
+                })
+                .finally(() => {
+                    setIsLoadingHistory(false);
+                });
+
+            axios.get(`/mobile/skb-rwo/history-produk?kd_dist=${data.distributor_code}&uniq_kd=${data.customer_code}`)
+                .then(res => {
+                    setHistoryProduk(res.data || []);
+                })
+                .catch(err => {
+                    console.error('Failed to fetch history produk', err);
+                })
+                .finally(() => {
+                    setIsLoadingProduk(false);
+                });
+        }
+    }, [data, isMonitoring]);
+
+    const groupedHistory = React.useMemo(() => {
+        if (!historyOrder || historyOrder.length === 0) return {};
+        const groups: { [month: string]: { total: number, items: any[] } } = {};
+        
+        historyOrder.forEach(item => {
+            const date = new Date(item.tanggal);
+            const monthName = date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+            if (!groups[monthName]) {
+                groups[monthName] = { total: 0, items: [] };
+            }
+            groups[monthName].items.push(item);
+            groups[monthName].total += Number(item.value_order);
+        });
+        
+        return groups;
+    }, [historyOrder]);
+
+    const totalHistoryOrder = React.useMemo(() => {
+        return historyOrder.reduce((sum, item) => sum + Number(item.value_order), 0);
+    }, [historyOrder]);
+
+    const getMonthNames = (kuartal: number | string | undefined) => {
+        const k = Number(kuartal) || Math.ceil((new Date().getMonth() + 1) / 3);
+        const months = [
+            ['Januari', 'Februari', 'Maret'],
+            ['April', 'Mei', 'Juni'],
+            ['Juli', 'Agustus', 'September'],
+            ['Oktober', 'November', 'Desember']
+        ];
+        return months[Math.min(Math.max(k - 1, 0), 3)] || months[0];
+    };
+    const monthNames = getMonthNames(data?.kuartal);
 
     const isEditingRef = useRef(isEditing);
     const previewImageRef = useRef(previewImage);
@@ -299,7 +370,27 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                             <div className="animate-fade-in">
                                 {/* Monitoring Achievement Section */}
                                 {isMonitoring && (
-                                    <div className="mb-6 bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm">
+                                    <>
+                                        {/* Tabs Navigation */}
+                                        <div className="flex border-b border-slate-200 mb-4 bg-slate-50 rounded-t-2xl px-2 pt-2 mx-1 shadow-sm">
+                                            <button 
+                                                onClick={() => setActiveTab('pencapaian')} 
+                                                className={`flex-1 py-3 text-[11px] font-black text-center uppercase tracking-widest border-b-2 transition-colors ${activeTab === 'pencapaian' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                                            >
+                                                Pencapaian
+                                            </button>
+                                            <button 
+                                                onClick={() => setActiveTab('history')} 
+                                                className={`flex-1 py-3 text-[11px] font-black text-center uppercase tracking-widest border-b-2 transition-colors ${activeTab === 'history' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                                            >
+                                                History
+                                            </button>
+                                        </div>
+
+                                        {/* Tab Content: Pencapaian */}
+                                        {activeTab === 'pencapaian' && (
+                                            <>
+                                            <div className="mb-6 bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm animate-fade-in mx-1">
                                         <div className="flex items-center gap-2 mb-3">
                                             <ChartPieIcon className="w-4 h-4 text-indigo-600" />
                                             <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-700">Detail Pencapaian {data.kuartal ? `(Kuartal ${data.kuartal})` : ''}</h4>
@@ -310,15 +401,15 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                                 <span className="text-xs font-black text-slate-800">Rp {new Intl.NumberFormat('id-ID').format(data.total_target || 0)}</span>
                                             </div>
                                             <div className="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-100 shadow-sm">
-                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Bulan 1</span>
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{monthNames[0]}</span>
                                                 <span className="text-xs font-bold text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(data.month_1_value || 0)}</span>
                                             </div>
                                             <div className="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-100 shadow-sm">
-                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Bulan 2</span>
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{monthNames[1]}</span>
                                                 <span className="text-xs font-bold text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(data.month_2_value || 0)}</span>
                                             </div>
                                             <div className="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-100 shadow-sm">
-                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Bulan 3</span>
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{monthNames[2]}</span>
                                                 <span className="text-xs font-bold text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(data.month_3_value || 0)}</span>
                                             </div>
                                         </div>
@@ -332,7 +423,141 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                                 <span className="text-[11px] font-black text-rose-600">Rp {new Intl.NumberFormat('id-ID').format(Math.max(0, (data.total_target || 0) - (data.total_achievement || 0)))}</span>
                                             </div>
                                         </div>
-                                    </div>
+                                        </div>
+                                            {/* History Order Card */}
+                                            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <ChartBarIcon className="w-4 h-4 text-indigo-600" />
+                                                    <h5 className="text-[11px] font-black text-slate-700 uppercase tracking-widest">History Order (Kuartal Ini)</h5>
+                                                </div>
+                                        {isLoadingHistory ? (
+                                            <div className="flex justify-center p-4">
+                                                <ArrowPathIcon className="w-5 h-5 animate-spin text-slate-400" />
+                                            </div>
+                                        ) : Object.keys(groupedHistory).length > 0 ? (
+                                            <div className="flex flex-col gap-4">
+                                                {Object.entries(groupedHistory).map(([month, groupData]) => (
+                                                    <div key={month} className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
+                                                        <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center">
+                                                            <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">{month}</span>
+                                                            <span className="text-[11px] font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(groupData.total)}</span>
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            {groupData.items.map((item, idx) => (
+                                                                <div key={idx} className={`flex justify-between items-center px-3 py-2 ${idx !== groupData.items.length - 1 ? 'border-b border-slate-50' : ''}`}>
+                                                                    <span className="text-[10px] font-medium text-slate-500">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                                    <span className="text-[10px] font-bold text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(item.value_order)}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center p-4 border border-dashed border-slate-200 rounded-xl bg-slate-50 mb-4">
+                                                <span className="text-[10px] text-slate-400 font-medium">Belum ada history order di kuartal ini.</span>
+                                            </div>
+                                        )}
+
+                                        {/* Grand Total History Order */}
+                                        {!isLoadingHistory && historyOrder.length > 0 && (
+                                            <div className="pt-3 border-t border-slate-200 mt-4">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[11px] font-black text-slate-600 uppercase tracking-wider">Total Keseluruhan</span>
+                                                    <span className="text-sm font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(totalHistoryOrder)}</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                            </div>
+                                            </>
+                                        )}
+                                    
+                                        {/* Tab Content: History */}
+                                        {activeTab === 'history' && (
+                                            <>
+                                            <div className="mb-6 bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm animate-fade-in mx-1">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <ChartBarIcon className="w-4 h-4 text-indigo-600" />
+                                                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-700">Statistik Transaksi (2026)</h4>
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    <div className="flex justify-between items-center p-2 bg-indigo-50 rounded-lg border border-indigo-100 shadow-sm mb-1">
+                                                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Total Transaction</span>
+                                                        <span className="text-xs font-black text-indigo-700">Rp {new Intl.NumberFormat('id-ID').format(data.total_transaction || 0)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-100 shadow-sm">
+                                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Last Transaction</span>
+                                                        <div className="text-right flex flex-col">
+                                                            <span className="text-xs font-black text-indigo-700">Rp {new Intl.NumberFormat('id-ID').format(data.last_transaction_value || 0)}</span>
+                                                            <span className="text-[9px] font-semibold text-slate-400 mt-0.5">{data.last_transaction_date ? new Date(data.last_transaction_date).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) : '-'}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-100 shadow-sm">
+                                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Max Transaction</span>
+                                                        <span className="text-xs font-black text-indigo-700">Rp {new Intl.NumberFormat('id-ID').format(data.max_transaction || 0)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-100 shadow-sm">
+                                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Average Transaction</span>
+                                                        <span className="text-xs font-black text-indigo-700">Rp {new Intl.NumberFormat('id-ID').format(data.avg_transaction || 0)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Table History Produk */}
+                                            <div className="mb-6 bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm animate-fade-in mx-1">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <ChartBarIcon className="w-4 h-4 text-indigo-600" />
+                                                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-700">History by Produk (2026)</h4>
+                                                </div>
+                                                
+                                                {isLoadingProduk ? (
+                                                    <div className="flex justify-center p-4">
+                                                        <ArrowPathIcon className="w-5 h-5 animate-spin text-slate-400" />
+                                                    </div>
+                                                ) : historyProduk.length > 0 ? (
+                                                    <div className="bg-white border border-slate-100 rounded-xl overflow-x-auto shadow-sm">
+                                                        <table className="w-full text-left border-collapse min-w-max">
+                                                            <thead>
+                                                                <tr className="bg-slate-50 border-b border-slate-100">
+                                                                    <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-10 border-r border-slate-100">Produk</th>
+                                                                    <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Total Trans</th>
+                                                                    <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Last Trans</th>
+                                                                    <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Max Trans</th>
+                                                                    <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Avg Trans</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-slate-100">
+                                                                {historyProduk.map((prod, idx) => (
+                                                                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                                                        <td className="p-3 text-[10px] font-black text-slate-700 sticky left-0 bg-white group-hover:bg-slate-50/50 z-10 border-r border-slate-100">
+                                                                            {prod.produk_subbrand}
+                                                                        </td>
+                                                                        <td className="p-3 text-xs font-black text-indigo-600 text-right">
+                                                                            {new Intl.NumberFormat('id-ID').format(prod.total_qty || 0)}
+                                                                        </td>
+                                                                        <td className="p-3 text-xs font-bold text-slate-700 text-right">
+                                                                            {new Intl.NumberFormat('id-ID').format(prod.last_qty || 0)}
+                                                                        </td>
+                                                                        <td className="p-3 text-xs font-bold text-slate-700 text-right">
+                                                                            {new Intl.NumberFormat('id-ID').format(prod.max_qty || 0)}
+                                                                        </td>
+                                                                        <td className="p-3 text-xs font-bold text-slate-700 text-right">
+                                                                            {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(prod.avg_qty || 0)}
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-center p-4 border border-dashed border-slate-200 rounded-xl bg-white">
+                                                        <span className="text-[10px] text-slate-400 font-medium">Belum ada history produk.</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            </>
+                                        )}
+                                    </>
                                 )}
 
                                 {!isMonitoring && (
@@ -350,6 +575,39 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                                 <span className="text-xs text-slate-500 font-medium">Alamat</span>
                                                 <span className="text-xs font-medium text-slate-800 leading-snug">{data.address || '-'}</span>
                                             </div>
+                                        </div>
+                                        
+                                        {/* History Order */}
+                                        <div className="pt-4 border-t border-slate-200 mt-4">
+                                            <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">History Order (Kuartal Ini)</h5>
+                                            {isLoadingHistory ? (
+                                                <div className="flex justify-center p-4">
+                                                    <ArrowPathIcon className="w-5 h-5 animate-spin text-slate-400" />
+                                                </div>
+                                            ) : Object.keys(groupedHistory).length > 0 ? (
+                                                <div className="flex flex-col gap-4">
+                                                    {Object.entries(groupedHistory).map(([month, groupData]) => (
+                                                        <div key={month} className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
+                                                            <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center">
+                                                                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">{month}</span>
+                                                                <span className="text-[11px] font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(groupData.total)}</span>
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                {groupData.items.map((item, idx) => (
+                                                                    <div key={idx} className={`flex justify-between items-center px-3 py-2 ${idx !== groupData.items.length - 1 ? 'border-b border-slate-50' : ''}`}>
+                                                                        <span className="text-[10px] font-medium text-slate-500">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                                        <span className="text-[10px] font-bold text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(item.value_order)}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center p-4 border border-dashed border-slate-200 rounded-xl bg-slate-50">
+                                                    <span className="text-[10px] text-slate-400 font-medium">Belum ada history order di kuartal ini.</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     
@@ -373,6 +631,39 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                                 <span className="text-xs text-slate-500 font-medium">Distributor</span>
                                                 <span className="text-xs font-bold text-slate-800">{data.distributor_name || '-'} ({data.distributor_code || '-'})</span>
                                             </div>
+                                        </div>
+                                        
+                                        {/* History Order */}
+                                        <div className="pt-4 border-t border-slate-200 mt-4">
+                                            <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">History Order (Kuartal Ini)</h5>
+                                            {isLoadingHistory ? (
+                                                <div className="flex justify-center p-4">
+                                                    <ArrowPathIcon className="w-5 h-5 animate-spin text-slate-400" />
+                                                </div>
+                                            ) : Object.keys(groupedHistory).length > 0 ? (
+                                                <div className="flex flex-col gap-4">
+                                                    {Object.entries(groupedHistory).map(([month, groupData]) => (
+                                                        <div key={month} className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
+                                                            <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center">
+                                                                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">{month}</span>
+                                                                <span className="text-[11px] font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(groupData.total)}</span>
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                {groupData.items.map((item, idx) => (
+                                                                    <div key={idx} className={`flex justify-between items-center px-3 py-2 ${idx !== groupData.items.length - 1 ? 'border-b border-slate-50' : ''}`}>
+                                                                        <span className="text-[10px] font-medium text-slate-500">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                                        <span className="text-[10px] font-bold text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(item.value_order)}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center p-4 border border-dashed border-slate-200 rounded-xl bg-slate-50">
+                                                    <span className="text-[10px] text-slate-400 font-medium">Belum ada history order di kuartal ini.</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
@@ -410,8 +701,41 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                                 </div>
                                             </div>
                                         </div>
+                                        
+                                        {/* History Order */}
+                                        <div className="pt-4 border-t border-slate-200 mt-4">
+                                            <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">History Order (Kuartal Ini)</h5>
+                                            {isLoadingHistory ? (
+                                                <div className="flex justify-center p-4">
+                                                    <ArrowPathIcon className="w-5 h-5 animate-spin text-slate-400" />
+                                                </div>
+                                            ) : Object.keys(groupedHistory).length > 0 ? (
+                                                <div className="flex flex-col gap-4">
+                                                    {Object.entries(groupedHistory).map(([month, groupData]) => (
+                                                        <div key={month} className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
+                                                            <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center">
+                                                                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">{month}</span>
+                                                                <span className="text-[11px] font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(groupData.total)}</span>
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                {groupData.items.map((item, idx) => (
+                                                                    <div key={idx} className={`flex justify-between items-center px-3 py-2 ${idx !== groupData.items.length - 1 ? 'border-b border-slate-50' : ''}`}>
+                                                                        <span className="text-[10px] font-medium text-slate-500">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                                        <span className="text-[10px] font-bold text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(item.value_order)}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center p-4 border border-dashed border-slate-200 rounded-xl bg-slate-50">
+                                                    <span className="text-[10px] text-slate-400 font-medium">Belum ada history order di kuartal ini.</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
+                                    </div>
 
                                 {/* Status Kelengkapan Data */}
                                 <div className="pt-4 border-t border-slate-100">
@@ -581,6 +905,39 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                         <div className="flex-1">
                                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Longitude {data.longitude && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
                                             <input type="text" readOnly value={formData.longitude} className={getInputClass('longitude', false, true)} placeholder="Otomatis" />
+                                        </div>
+                                        
+                                        {/* History Order */}
+                                        <div className="pt-4 border-t border-slate-200 mt-4">
+                                            <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">History Order (Kuartal Ini)</h5>
+                                            {isLoadingHistory ? (
+                                                <div className="flex justify-center p-4">
+                                                    <ArrowPathIcon className="w-5 h-5 animate-spin text-slate-400" />
+                                                </div>
+                                            ) : Object.keys(groupedHistory).length > 0 ? (
+                                                <div className="flex flex-col gap-4">
+                                                    {Object.entries(groupedHistory).map(([month, groupData]) => (
+                                                        <div key={month} className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
+                                                            <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center">
+                                                                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">{month}</span>
+                                                                <span className="text-[11px] font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(groupData.total)}</span>
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                {groupData.items.map((item, idx) => (
+                                                                    <div key={idx} className={`flex justify-between items-center px-3 py-2 ${idx !== groupData.items.length - 1 ? 'border-b border-slate-50' : ''}`}>
+                                                                        <span className="text-[10px] font-medium text-slate-500">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                                        <span className="text-[10px] font-bold text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(item.value_order)}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center p-4 border border-dashed border-slate-200 rounded-xl bg-slate-50">
+                                                    <span className="text-[10px] text-slate-400 font-medium">Belum ada history order di kuartal ini.</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     {!(data.latitude && data.longitude) && (

@@ -1,0 +1,9 @@
+Total Keseluruhan</span>
+                                                    <span className="text-sm font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(totalHistoryOrder)}</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                            </div>
+                                        )}
+                                    
+                                        

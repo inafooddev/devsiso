@@ -149,6 +149,34 @@ class IndexController extends Controller
                          ->on('zv.kuartal', '=', 'l.kuartal');
                 }
             )
+            ->leftJoinSub(
+                DB::table('zv_so_per_toko_2026')
+                    ->select(
+                        'kd_dist', 
+                        'uniq_kd',
+                        DB::raw('MAX(neto) as max_transaction'),
+                        DB::raw('AVG(neto) as avg_transaction'),
+                        DB::raw('SUM(neto) as total_transaction')
+                    )
+                    ->groupBy('kd_dist', 'uniq_kd'),
+                'zv_stats',
+                function($join) {
+                    $join->on('zv_stats.kd_dist', '=', 'l.distributor_code')
+                         ->on('zv_stats.uniq_kd', '=', 'l.customer_code');
+                }
+            )
+            ->leftJoinSub(
+                DB::table('zv_so_per_toko_2026')
+                    ->selectRaw('DISTINCT ON (kd_dist, uniq_kd) kd_dist, uniq_kd, neto as last_transaction_value, bulan as last_transaction_date')
+                    ->orderBy('kd_dist')
+                    ->orderBy('uniq_kd')
+                    ->orderBy('bulan', 'desc'),
+                'zv_last',
+                function($join) {
+                    $join->on('zv_last.kd_dist', '=', 'l.distributor_code')
+                         ->on('zv_last.uniq_kd', '=', 'l.customer_code');
+                }
+            )
             ->select(
                 'l.*', 
                 'lt.customer_code_prc as customer_prc',
@@ -176,7 +204,12 @@ class IndexController extends Controller
                 'zv.total_achievement',
                 'zv.month_1_value',
                 'zv.month_2_value',
-                'zv.month_3_value'
+                'zv.month_3_value',
+                'zv_stats.max_transaction',
+                'zv_stats.avg_transaction',
+                'zv_stats.total_transaction',
+                'zv_last.last_transaction_value',
+                'zv_last.last_transaction_date'
             )
             ->distinct();
 
@@ -335,5 +368,80 @@ class IndexController extends Controller
         $outlet->save();
 
         return back()->with('success', 'Data toko berhasil disimpan.');
+    }
+    public function getHistoryOrder(Request $request, $customer_code)
+    {
+        $kuartal = $request->input('kuartal', ceil(date('n') / 3));
+        $currentYear = date('Y');
+        
+        $history = DB::table('rpt_visit_an_h as rvah')
+            ->leftJoin('customer_map_eska as cme', function($join) {
+                $join->on('cme.branch', '=', 'rvah.BID')
+                     ->on('cme.custno', '=', 'rvah.CUSTNO');
+            })
+            ->where('rvah.RID', '<>', 'HOINA')
+            ->where('rvah.FLAG_BUY', 'Y')
+            ->where(DB::raw("SUBSTRING(cme.branch FROM 3 FOR 3)||'-'||cme.custno_dist"), '=', $customer_code)
+            ->whereRaw('EXTRACT(QUARTER FROM rvah."TANGGAL"::date) = ?', [$kuartal])
+            ->whereRaw('EXTRACT(YEAR FROM rvah."TANGGAL"::date) = ?', [$currentYear])
+            ->select(
+                DB::raw('rvah."TANGGAL"::date as tanggal'),
+                'rvah.ORDER_VAL as value_order'
+            )
+            ->orderBy('tanggal', 'asc')
+            ->get();
+
+        return response()->json($history);
+    }
+
+    public function getHistoryProduk(Request $request)
+    {
+        $kd_dist = $request->input('kd_dist');
+        $uniq_kd = $request->input('uniq_kd');
+
+        $query = DB::table('t_sellingout_y2026')
+            ->where('KDDIST', $kd_dist)
+            ->where('KDUNIQ', $uniq_kd)
+            ->select(
+                DB::raw("DATE_TRUNC('month', TO_DATE(\"THN\" || '-' || \"BLN\" || '-01', 'YYYY-MM-DD'))::date AS bulan"),
+                'SUBBRAND as produk_subbrand',
+                DB::raw('SUM("TTL_QTY_KTN") as qty')
+            )
+            ->groupBy(
+                DB::raw("DATE_TRUNC('month', TO_DATE(\"THN\" || '-' || \"BLN\" || '-01', 'YYYY-MM-DD'))::date"),
+                'SUBBRAND'
+            )
+            ->orderBy('bulan', 'desc')
+            ->get();
+
+        $produkStats = [];
+        foreach ($query as $row) {
+            $subbrand = $row->produk_subbrand;
+            if (!isset($produkStats[$subbrand])) {
+                $produkStats[$subbrand] = [
+                    'produk_subbrand' => $subbrand,
+                    'total_qty' => 0,
+                    'max_qty' => 0,
+                    'last_qty' => $row->qty,
+                    'sum_for_avg' => 0,
+                    'count_for_avg' => 0
+                ];
+            }
+            
+            $produkStats[$subbrand]['total_qty'] += $row->qty;
+            if ($row->qty > $produkStats[$subbrand]['max_qty']) {
+                $produkStats[$subbrand]['max_qty'] = $row->qty;
+            }
+            $produkStats[$subbrand]['sum_for_avg'] += $row->qty;
+            $produkStats[$subbrand]['count_for_avg']++;
+        }
+
+        $result = [];
+        foreach ($produkStats as $stat) {
+            $stat['avg_qty'] = $stat['count_for_avg'] > 0 ? $stat['sum_for_avg'] / $stat['count_for_avg'] : 0;
+            $result[] = $stat;
+        }
+
+        return response()->json($result);
     }
 }
