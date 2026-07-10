@@ -46,7 +46,7 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
     const [historyOrder, setHistoryOrder] = useState<any[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-    const [historyProduk, setHistoryProduk] = useState<any[]>([]);
+    const [historyProduk, setHistoryProduk] = useState<{headers: string[], data: any[]}>({headers: [], data: []});
     const [isLoadingProduk, setIsLoadingProduk] = useState(false);
 
     const ktpRef = useRef<HTMLInputElement>(null);
@@ -106,7 +106,7 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
 
             axios.get(`/mobile/skb-rwo/history-produk?kd_dist=${data.distributor_code}&uniq_kd=${data.customer_code}`)
                 .then(res => {
-                    setHistoryProduk(res.data || []);
+                    setHistoryProduk(res.data || {headers: [], data: []});
                 })
                 .catch(err => {
                     console.error('Failed to fetch history produk', err);
@@ -514,29 +514,24 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                                     <div className="flex justify-center p-4">
                                                         <ArrowPathIcon className="w-5 h-5 animate-spin text-slate-400" />
                                                     </div>
-                                                ) : historyProduk.length > 0 ? (
+                                                ) : historyProduk.data && historyProduk.data.length > 0 ? (
                                                     <div className="bg-white border border-slate-100 rounded-xl overflow-x-auto shadow-sm">
                                                         <table className="w-full text-left border-collapse min-w-max">
                                                             <thead>
                                                                 <tr className="bg-slate-50 border-b border-slate-100">
                                                                     <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-10 border-r border-slate-100">Produk</th>
-                                                                    <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Total Trans</th>
-                                                                    <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Last Trans</th>
                                                                     <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Max Trans</th>
                                                                     <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Avg Trans</th>
+                                                                    {historyProduk.headers.map((h, i) => (
+                                                                        <th key={i} className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">{h}</th>
+                                                                    ))}
                                                                 </tr>
                                                             </thead>
                                                             <tbody className="divide-y divide-slate-100">
-                                                                {historyProduk.map((prod, idx) => (
+                                                                {historyProduk.data.map((prod, idx) => (
                                                                     <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                                                                         <td className="p-3 text-[10px] font-black text-slate-700 sticky left-0 bg-white group-hover:bg-slate-50/50 z-10 border-r border-slate-100">
                                                                             {prod.produk_subbrand}
-                                                                        </td>
-                                                                        <td className="p-3 text-xs font-black text-indigo-600 text-right">
-                                                                            {new Intl.NumberFormat('id-ID').format(prod.total_qty || 0)}
-                                                                        </td>
-                                                                        <td className="p-3 text-xs font-bold text-slate-700 text-right">
-                                                                            {new Intl.NumberFormat('id-ID').format(prod.last_qty || 0)}
                                                                         </td>
                                                                         <td className="p-3 text-xs font-bold text-slate-700 text-right">
                                                                             {new Intl.NumberFormat('id-ID').format(prod.max_qty || 0)}
@@ -544,6 +539,11 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                                                         <td className="p-3 text-xs font-bold text-slate-700 text-right">
                                                                             {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(prod.avg_qty || 0)}
                                                                         </td>
+                                                                        {prod.monthly_qty.map((mq: number, mIdx: number) => (
+                                                                            <td key={mIdx} className={`p-3 text-xs font-bold text-right ${mq > 0 ? 'text-indigo-600' : 'text-slate-300'}`}>
+                                                                                {mq > 0 ? new Intl.NumberFormat('id-ID').format(mq) : '0'}
+                                                                            </td>
+                                                                        ))}
                                                                     </tr>
                                                                 ))}
                                                             </tbody>
@@ -577,38 +577,7 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                             </div>
                                         </div>
                                         
-                                        {/* History Order */}
-                                        <div className="pt-4 border-t border-slate-200 mt-4">
-                                            <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">History Order (Kuartal Ini)</h5>
-                                            {isLoadingHistory ? (
-                                                <div className="flex justify-center p-4">
-                                                    <ArrowPathIcon className="w-5 h-5 animate-spin text-slate-400" />
-                                                </div>
-                                            ) : Object.keys(groupedHistory).length > 0 ? (
-                                                <div className="flex flex-col gap-4">
-                                                    {Object.entries(groupedHistory).map(([month, groupData]) => (
-                                                        <div key={month} className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
-                                                            <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center">
-                                                                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">{month}</span>
-                                                                <span className="text-[11px] font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(groupData.total)}</span>
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                {groupData.items.map((item, idx) => (
-                                                                    <div key={idx} className={`flex justify-between items-center px-3 py-2 ${idx !== groupData.items.length - 1 ? 'border-b border-slate-50' : ''}`}>
-                                                                        <span className="text-[10px] font-medium text-slate-500">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                                                        <span className="text-[10px] font-bold text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(item.value_order)}</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="text-center p-4 border border-dashed border-slate-200 rounded-xl bg-slate-50">
-                                                    <span className="text-[10px] text-slate-400 font-medium">Belum ada history order di kuartal ini.</span>
-                                                </div>
-                                            )}
-                                        </div>
+
                                     </div>
                                     
                                     {/* Hirarki Area & Reward */}
@@ -632,39 +601,7 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                                 <span className="text-xs font-bold text-slate-800">{data.distributor_name || '-'} ({data.distributor_code || '-'})</span>
                                             </div>
                                         </div>
-                                        
-                                        {/* History Order */}
-                                        <div className="pt-4 border-t border-slate-200 mt-4">
-                                            <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">History Order (Kuartal Ini)</h5>
-                                            {isLoadingHistory ? (
-                                                <div className="flex justify-center p-4">
-                                                    <ArrowPathIcon className="w-5 h-5 animate-spin text-slate-400" />
-                                                </div>
-                                            ) : Object.keys(groupedHistory).length > 0 ? (
-                                                <div className="flex flex-col gap-4">
-                                                    {Object.entries(groupedHistory).map(([month, groupData]) => (
-                                                        <div key={month} className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
-                                                            <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center">
-                                                                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">{month}</span>
-                                                                <span className="text-[11px] font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(groupData.total)}</span>
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                {groupData.items.map((item, idx) => (
-                                                                    <div key={idx} className={`flex justify-between items-center px-3 py-2 ${idx !== groupData.items.length - 1 ? 'border-b border-slate-50' : ''}`}>
-                                                                        <span className="text-[10px] font-medium text-slate-500">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                                                        <span className="text-[10px] font-bold text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(item.value_order)}</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="text-center p-4 border border-dashed border-slate-200 rounded-xl bg-slate-50">
-                                                    <span className="text-[10px] text-slate-400 font-medium">Belum ada history order di kuartal ini.</span>
-                                                </div>
-                                            )}
-                                        </div>
+
                                     </div>
 
                                     <div>
@@ -700,39 +637,6 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                                     )}
                                                 </div>
                                             </div>
-                                        </div>
-                                        
-                                        {/* History Order */}
-                                        <div className="pt-4 border-t border-slate-200 mt-4">
-                                            <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">History Order (Kuartal Ini)</h5>
-                                            {isLoadingHistory ? (
-                                                <div className="flex justify-center p-4">
-                                                    <ArrowPathIcon className="w-5 h-5 animate-spin text-slate-400" />
-                                                </div>
-                                            ) : Object.keys(groupedHistory).length > 0 ? (
-                                                <div className="flex flex-col gap-4">
-                                                    {Object.entries(groupedHistory).map(([month, groupData]) => (
-                                                        <div key={month} className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
-                                                            <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center">
-                                                                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">{month}</span>
-                                                                <span className="text-[11px] font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(groupData.total)}</span>
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                {groupData.items.map((item, idx) => (
-                                                                    <div key={idx} className={`flex justify-between items-center px-3 py-2 ${idx !== groupData.items.length - 1 ? 'border-b border-slate-50' : ''}`}>
-                                                                        <span className="text-[10px] font-medium text-slate-500">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                                                        <span className="text-[10px] font-bold text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(item.value_order)}</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="text-center p-4 border border-dashed border-slate-200 rounded-xl bg-slate-50">
-                                                    <span className="text-[10px] text-slate-400 font-medium">Belum ada history order di kuartal ini.</span>
-                                                </div>
-                                            )}
                                         </div>
                                     </div>
                                     </div>
@@ -906,39 +810,7 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Longitude {data.longitude && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
                                             <input type="text" readOnly value={formData.longitude} className={getInputClass('longitude', false, true)} placeholder="Otomatis" />
                                         </div>
-                                        
-                                        {/* History Order */}
-                                        <div className="pt-4 border-t border-slate-200 mt-4">
-                                            <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">History Order (Kuartal Ini)</h5>
-                                            {isLoadingHistory ? (
-                                                <div className="flex justify-center p-4">
-                                                    <ArrowPathIcon className="w-5 h-5 animate-spin text-slate-400" />
-                                                </div>
-                                            ) : Object.keys(groupedHistory).length > 0 ? (
-                                                <div className="flex flex-col gap-4">
-                                                    {Object.entries(groupedHistory).map(([month, groupData]) => (
-                                                        <div key={month} className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
-                                                            <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center">
-                                                                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">{month}</span>
-                                                                <span className="text-[11px] font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(groupData.total)}</span>
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                {groupData.items.map((item, idx) => (
-                                                                    <div key={idx} className={`flex justify-between items-center px-3 py-2 ${idx !== groupData.items.length - 1 ? 'border-b border-slate-50' : ''}`}>
-                                                                        <span className="text-[10px] font-medium text-slate-500">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                                                        <span className="text-[10px] font-bold text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(item.value_order)}</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="text-center p-4 border border-dashed border-slate-200 rounded-xl bg-slate-50">
-                                                    <span className="text-[10px] text-slate-400 font-medium">Belum ada history order di kuartal ini.</span>
-                                                </div>
-                                            )}
-                                        </div>
+
                                     </div>
                                     {!(data.latitude && data.longitude) && (
                                         <button type="button" onClick={handleGetLocation} disabled={isLocating} className="w-full py-2.5 rounded-xl text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-bold text-xs uppercase tracking-wider transition-colors border border-indigo-100 flex items-center justify-center gap-2">

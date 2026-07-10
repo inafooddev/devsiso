@@ -399,6 +399,27 @@ class IndexController extends Controller
         $kd_dist = $request->input('kd_dist');
         $uniq_kd = $request->input('uniq_kd');
 
+        // Generate last 6 months headers
+        $months = [];
+        $headers = [];
+        $currentMonth = date('n');
+        $currentYear = date('Y');
+        
+        for ($i = 0; $i < 6; $i++) {
+            $m = $currentMonth - $i;
+            $y = $currentYear;
+            if ($m <= 0) {
+                $m += 12;
+                $y -= 1;
+            }
+            $monthKey = $y . '-' . str_pad($m, 2, '0', STR_PAD_LEFT);
+            $months[] = $monthKey; // e.g. "2026-07"
+            
+            // Format to something like "Jul"
+            $monthName = date('M', mktime(0, 0, 0, $m, 1, $y));
+            $headers[] = $monthName . ' ' . substr($y, 2);
+        }
+
         $query = DB::table('t_sellingout_y2026')
             ->where('KDDIST', $kd_dist)
             ->where('KDUNIQ', $uniq_kd)
@@ -411,37 +432,64 @@ class IndexController extends Controller
                 DB::raw("DATE_TRUNC('month', TO_DATE(\"THN\" || '-' || \"BLN\" || '-01', 'YYYY-MM-DD'))::date"),
                 'SUBBRAND'
             )
-            ->orderBy('bulan', 'desc')
             ->get();
 
         $produkStats = [];
         foreach ($query as $row) {
             $subbrand = $row->produk_subbrand;
+            $rowMonth = date('Y-m', strtotime($row->bulan)); // "2026-07"
+            
             if (!isset($produkStats[$subbrand])) {
                 $produkStats[$subbrand] = [
                     'produk_subbrand' => $subbrand,
-                    'total_qty' => 0,
                     'max_qty' => 0,
-                    'last_qty' => $row->qty,
-                    'sum_for_avg' => 0,
-                    'count_for_avg' => 0
+                    'sum_qty' => 0,
+                    'count_months' => 0,
+                    'history' => []
                 ];
+                // Initialize 6 months with 0
+                foreach ($months as $mKey) {
+                    $produkStats[$subbrand]['history'][$mKey] = 0;
+                }
             }
             
-            $produkStats[$subbrand]['total_qty'] += $row->qty;
+            // Only update history if it falls in the last 6 months
+            if (in_array($rowMonth, $months)) {
+                $produkStats[$subbrand]['history'][$rowMonth] = $row->qty;
+            }
+            
+            // Max and Avg could be based on ALL history in 2026, or just the last 6 months.
+            // Usually, "max" and "avg" in this context applies to all available history data.
             if ($row->qty > $produkStats[$subbrand]['max_qty']) {
                 $produkStats[$subbrand]['max_qty'] = $row->qty;
             }
-            $produkStats[$subbrand]['sum_for_avg'] += $row->qty;
-            $produkStats[$subbrand]['count_for_avg']++;
+            $produkStats[$subbrand]['sum_qty'] += $row->qty;
+            $produkStats[$subbrand]['count_months']++;
         }
 
-        $result = [];
+        $resultData = [];
         foreach ($produkStats as $stat) {
-            $stat['avg_qty'] = $stat['count_for_avg'] > 0 ? $stat['sum_for_avg'] / $stat['count_for_avg'] : 0;
-            $result[] = $stat;
+            $monthlyQty = [];
+            foreach ($months as $mKey) {
+                $monthlyQty[] = $stat['history'][$mKey];
+            }
+            
+            $resultData[] = [
+                'produk_subbrand' => $stat['produk_subbrand'],
+                'max_qty' => $stat['max_qty'],
+                'avg_qty' => $stat['count_months'] > 0 ? $stat['sum_qty'] / $stat['count_months'] : 0,
+                'monthly_qty' => $monthlyQty
+            ];
         }
 
-        return response()->json($result);
+        // Sort alphabetically by subbrand just to be clean
+        usort($resultData, function($a, $b) {
+            return strcmp($a['produk_subbrand'], $b['produk_subbrand']);
+        });
+
+        return response()->json([
+            'headers' => $headers,
+            'data' => $resultData
+        ]);
     }
 }
