@@ -422,6 +422,7 @@
                     <th class="text-right">Order Val</th>
                     <th class="text-right">Invoice</th>
                     <th class="text-right">Selisih</th>
+                    <th class="text-center">Remark</th>
                 </tr>
                 </thead>
                 <tbody class="text-xs">
@@ -463,6 +464,20 @@
                     <td class="whitespace-nowrap font-mono text-right">{{ number_format($row->order_val ?? 0, 0, ',', '.') }}</td>
                     <td class="whitespace-nowrap font-mono text-right font-bold">{{ number_format($row->invoice ?? 0, 0, ',', '.') }}</td>
                     <td class="whitespace-nowrap font-mono text-right {{ (($row->invoice ?? 0) - ($row->order_val ?? 0)) < 0 ? 'text-error' : 'text-success' }}">{{ number_format(($row->invoice ?? 0) - ($row->order_val ?? 0), 0, ',', '.') }}</td>
+                    <td class="whitespace-nowrap text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            @if(!empty($row->remark))
+                            <button wire:click="openRemarkModal('{{ $row->bulan }}', '{{ $row->team_code }}', '{{ $row->custno }}', '{{ addslashes($row->remark ?? '') }}')" class="btn btn-xs btn-ghost btn-square text-info hover:bg-info/20 shrink-0" title="Lihat Remark">
+                                <x-heroicon-o-eye class="w-4 h-4" />
+                            </button>
+                            @else
+                            <span class="w-6 h-6 inline-block shrink-0"></span> <!-- Placeholder agar tombol edit tetap sejajar -->
+                            @endif
+                            <button wire:click="openRemarkModal('{{ $row->bulan }}', '{{ $row->team_code }}', '{{ $row->custno }}', '{{ addslashes($row->remark ?? '') }}')" class="btn btn-xs btn-ghost btn-square text-primary hover:bg-primary/20 shrink-0" title="Edit Remark">
+                                <x-heroicon-o-pencil-square class="w-4 h-4" />
+                            </button>
+                        </div>
+                    </td>
                 </tr>
                     @endforeach
                 @endif
@@ -475,6 +490,7 @@
                     <td class="text-right font-mono text-sm text-base-content">{{ number_format($kpiData['total_order'] ?? 0, 0, ',', '.') }}</td>
                     <td class="text-right font-mono text-sm text-base-content">{{ number_format($kpiData['total_invoice'] ?? 0, 0, ',', '.') }}</td>
                     <td class="text-right font-mono text-sm {{ (($kpiData['total_invoice'] ?? 0) - ($kpiData['total_order'] ?? 0)) < 0 ? 'text-error' : 'text-success' }}">{{ number_format(($kpiData['total_invoice'] ?? 0) - ($kpiData['total_order'] ?? 0), 0, ',', '.') }}</td>
+                    <td></td>
                 </tr>
                 </tfoot>
                 @endif
@@ -491,5 +507,33 @@
             @endif
         </div>
         @endif
+    </div>
+
+    <!-- Remark Modal -->
+    <input type="checkbox" id="remark_modal" class="modal-toggle" wire:model.live="showRemarkModal" />
+    <div class="modal modal-bottom sm:modal-middle" role="dialog">
+        <div class="modal-box relative">
+            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" wire:click="closeRemarkModal">✕</button>
+            <h3 class="text-lg font-bold flex items-center gap-2">
+                <x-heroicon-o-pencil-square class="w-5 h-5 text-primary" />
+                Edit Remark
+            </h3>
+            <div class="py-4">
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text font-semibold">Tulis Catatan / Remark</span>
+                    </label>
+                    <textarea class="textarea textarea-bordered h-24" wire:model="editingRemark.remark" placeholder="Tuliskan remark di sini..."></textarea>
+                </div>
+            </div>
+            <div class="modal-action">
+                <button type="button" class="btn" wire:click="closeRemarkModal">Batal</button>
+                <button type="button" class="btn btn-primary" wire:click="saveRemark" wire:loading.attr="disabled">
+                    <span wire:loading.remove wire:target="saveRemark">Simpan</span>
+                    <span wire:loading wire:target="saveRemark" class="loading loading-spinner loading-sm"></span>
+                </button>
+            </div>
+        </div>
+        <label class="modal-backdrop" wire:click="closeRemarkModal">Close</label>
     </div>
 </div>

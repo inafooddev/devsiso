@@ -29,6 +29,68 @@ class Index extends Component
     public $isFiltered = false;
     public $currentTab = 'summary';
 
+    public $showRemarkModal = false;
+    public $editingRemark = [
+        'tanggal' => '',
+        'team_code' => '',
+        'custno' => '',
+        'remark' => ''
+    ];
+
+    public function openRemarkModal($tanggal, $team_code, $custno, $currentRemark)
+    {
+        $this->editingRemark = [
+            'tanggal' => $tanggal,
+            'team_code' => $team_code,
+            'custno' => $custno,
+            'remark' => $currentRemark
+        ];
+        $this->showRemarkModal = true;
+    }
+
+    public function closeRemarkModal()
+    {
+        $this->showRemarkModal = false;
+        $this->editingRemark = ['tanggal' => '', 'team_code' => '', 'custno' => '', 'remark' => ''];
+    }
+
+    public function saveRemark()
+    {
+        $exists = DB::table('zv_summary_visit_remarks')->where([
+            'tanggal' => $this->editingRemark['tanggal'],
+            'team_code' => $this->editingRemark['team_code'],
+            'custno' => $this->editingRemark['custno'],
+        ])->exists();
+
+        $userName = auth()->user()->name ?? 'System';
+
+        if ($exists) {
+            DB::table('zv_summary_visit_remarks')->where([
+                'tanggal' => $this->editingRemark['tanggal'],
+                'team_code' => $this->editingRemark['team_code'],
+                'custno' => $this->editingRemark['custno'],
+            ])->update([
+                'remark' => $this->editingRemark['remark'],
+                'updated_by' => $userName,
+                'updated_at' => Carbon::now(),
+            ]);
+        } else {
+            DB::table('zv_summary_visit_remarks')->insert([
+                'tanggal' => $this->editingRemark['tanggal'],
+                'team_code' => $this->editingRemark['team_code'],
+                'custno' => $this->editingRemark['custno'],
+                'remark' => $this->editingRemark['remark'],
+                'created_by' => $userName,
+                'updated_by' => $userName,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ]);
+        }
+
+        $this->closeRemarkModal();
+        session()->flash('success', 'Remark berhasil disimpan.');
+    }
+
     public function setTab($tab)
     {
         $this->currentTab = $tab;
@@ -253,7 +315,9 @@ class Index extends Component
                 l.pilar,
                 l.target,
                 SUM(v.order_val) AS order_val,
-                MAX(COALESCE(i.invoice,0)) AS invoice
+                MAX(COALESCE(i.invoice,0)) AS invoice,
+                MAX(rmk.remark) as remark,
+                v.bulan
             FROM visit v
             LEFT JOIN invoice i
                 ON v.bulan = i.bulan
@@ -262,7 +326,12 @@ class Index extends Component
                 on v.custno = l.customer_code_prc 
             left join ket_visit k
                 on v.custno = k.custno 
+            left join zv_summary_visit_remarks rmk
+                on v.bulan = rmk.tanggal
+               and v.team_code = rmk.team_code
+               and v.custno = rmk.custno
             GROUP BY
+                v.bulan,
                 v.region_code,
                 v.region_name,
                 v.area_code,

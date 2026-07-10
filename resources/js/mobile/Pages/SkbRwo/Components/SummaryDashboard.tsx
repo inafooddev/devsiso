@@ -118,7 +118,7 @@ export default function SummaryDashboard({ data, filterKuartal, onOpenFilter }: 
             <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
                 <div className="flex items-center gap-2 mb-4">
                     <ChartPieIcon className="w-4 h-4 text-slate-400" />
-                    <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Kinerja Toko (RWO)</h3>
+                    <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pengkolaman</h3>
                 </div>
                 
                 {/* Stacked Bar */}
