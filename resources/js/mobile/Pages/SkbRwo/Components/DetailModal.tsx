@@ -136,11 +136,6 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
     const handleFileChange = (field: string, e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            if (file.size > 2 * 1024 * 1024) {
-                showToast(`Ukuran foto ${field} maksimal 2MB`, 'error');
-                e.target.value = '';
-                return;
-            }
             if (previews[field] && previews[field]?.startsWith('blob:')) {
                 URL.revokeObjectURL(previews[field]!);
             }
@@ -536,7 +531,32 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                                 <option value="BCA">BCA (Bank Central Asia)</option>
                                                 <option value="BRI">BRI (Bank Rakyat Indonesia)</option>
                                                 <option value="BNI">BNI (Bank Negara Indonesia)</option>
-                                                <option value="Mandiri">Mandiri</option>
+                                                <option value="Mandiri">Bank Mandiri</option>
+                                                <option value="BSI">BSI (Bank Syariah Indonesia)</option>
+                                                <option value="BTN">BTN (Bank Tabungan Negara)</option>
+                                                <option value="CIMB Niaga">Bank CIMB Niaga</option>
+                                                <option value="Permata">Bank Permata</option>
+                                                <option value="Danamon">Bank Danamon</option>
+                                                <option value="Mega">Bank Mega</option>
+                                                <option value="BTPN">Bank BTPN</option>
+                                            </optgroup>
+                                            <optgroup label="Bank Digital">
+                                                <option value="Jago">Bank Jago</option>
+                                                <option value="SeaBank">SeaBank</option>
+                                                <option value="Blu">Blu by BCA Digital</option>
+                                                <option value="Neo">Bank Neo Commerce (BNC)</option>
+                                                <option value="Allo">Allo Bank</option>
+                                                <option value="Jenius">Jenius (BTPN)</option>
+                                            </optgroup>
+                                            <optgroup label="Bank Pembangunan Daerah (BPD)">
+                                                <option value="BJB">Bank BJB (Jawa Barat & Banten)</option>
+                                                <option value="DKI">Bank DKI</option>
+                                                <option value="Jateng">Bank Jateng</option>
+                                                <option value="Jatim">Bank Jatim</option>
+                                                <option value="DIY">Bank DIY</option>
+                                            </optgroup>
+                                            <optgroup label="Lainnya">
+                                                <option value="Lainnya">Bank Lainnya</option>
                                             </optgroup>
                                         </select>
                                     </div>

@@ -96,11 +96,6 @@ export default function SkbModal({ data, onClose, showToast }: SkbModalProps) {
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            if (file.size > 2 * 1024 * 1024) {
-                showToast('Ukuran foto maksimal 2MB', 'error');
-                e.target.value = '';
-                return;
-            }
             setSkbForm({ ...skbForm, foto_skb: file });
             setPreviewUrl(URL.createObjectURL(file));
         }

@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class IndexController extends Controller
 {
@@ -245,7 +248,7 @@ class IndexController extends Controller
             'distributor_code' => 'required|string',
             'kuartal' => 'nullable|string',
             'approval_status' => 'required|in:approve,reject',
-            'foto_skb' => 'nullable|image|max:2048',
+            'foto_skb' => 'nullable|image',
             'reject_reason' => 'required_if:approval_status,reject|max:500'
         ]);
 
@@ -259,7 +262,12 @@ class IndexController extends Controller
         $skb->reason = ($request->approval_status === 'reject') ? $request->reject_reason : null;
 
         if ($request->hasFile('foto_skb')) {
-            $path = $request->file('foto_skb')->store('skb_photos', 'public');
+            $manager = new ImageManager(new Driver());
+            $image = $manager->read($request->file('foto_skb')->getRealPath());
+            $image->scaleDown(width: 1024);
+            $filename = uniqid() . '.jpg';
+            $path = 'skb_photos/' . $filename;
+            Storage::disk('public')->put($path, (string) $image->toJpeg(75));
             $skb->foto_skb = $path;
         } elseif (!$skb->exists) {
             return back()->withErrors(['foto_skb' => 'Foto SKB wajib diunggah.']);
@@ -287,9 +295,9 @@ class IndexController extends Controller
             'nama_pemilik_norek' => 'nullable|string',
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
-            'foto_ktp' => 'nullable|image|max:2048',
-            'foto_toko2' => 'nullable|image|max:2048',
-            'foto_toko3' => 'nullable|image|max:2048',
+            'foto_ktp' => 'nullable|image',
+            'foto_toko2' => 'nullable|image',
+            'foto_toko3' => 'nullable|image',
         ]);
 
         $outlet = \App\Models\RewardOutlet::firstOrNew(['customer_code' => $request->customer_code]);
@@ -300,14 +308,28 @@ class IndexController extends Controller
             }
         }
 
+        $manager = new ImageManager(new Driver());
+
         if (empty($outlet->foto_ktp) && $request->hasFile('foto_ktp')) {
-            $outlet->foto_ktp = $request->file('foto_ktp')->store('outlet_photos', 'public');
+            $image = $manager->read($request->file('foto_ktp')->getRealPath());
+            $image->scaleDown(width: 1024);
+            $path = 'outlet_photos/' . uniqid() . '.jpg';
+            Storage::disk('public')->put($path, (string) $image->toJpeg(75));
+            $outlet->foto_ktp = $path;
         }
         if (empty($outlet->foto_toko2) && $request->hasFile('foto_toko2')) {
-            $outlet->foto_toko2 = $request->file('foto_toko2')->store('outlet_photos', 'public');
+            $image = $manager->read($request->file('foto_toko2')->getRealPath());
+            $image->scaleDown(width: 1024);
+            $path = 'outlet_photos/' . uniqid() . '.jpg';
+            Storage::disk('public')->put($path, (string) $image->toJpeg(75));
+            $outlet->foto_toko2 = $path;
         }
         if (empty($outlet->foto_toko3) && $request->hasFile('foto_toko3')) {
-            $outlet->foto_toko3 = $request->file('foto_toko3')->store('outlet_photos', 'public');
+            $image = $manager->read($request->file('foto_toko3')->getRealPath());
+            $image->scaleDown(width: 1024);
+            $path = 'outlet_photos/' . uniqid() . '.jpg';
+            Storage::disk('public')->put($path, (string) $image->toJpeg(75));
+            $outlet->foto_toko3 = $path;
         }
 
         $outlet->save();
