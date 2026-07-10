@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { SkbRwoItem } from './StoreCard';
+import { SkbRwoItem, getProratedTarget } from './StoreCard';
 import { 
     ChartPieIcon, ChartBarIcon, 
     CheckBadgeIcon, DocumentCheckIcon,
@@ -37,7 +37,8 @@ export default function SummaryDashboard({ data, filterKuartal, onOpenFilter }: 
         data.forEach(i => {
             const tgt = Number(i.total_target) || 0;
             const act = Number(i.total_achievement) || 0;
-            const pct = tgt > 0 ? (act / tgt) * 100 : 0;
+            const proratedTgt = getProratedTarget(tgt, i.kuartal);
+            const pct = proratedTgt > 0 ? (act / proratedTgt) * 100 : 0;
             if (pct >= 100) hijauCount++;
             else if (pct >= 80) kuningCount++;
             else merahCount++;

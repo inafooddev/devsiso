@@ -23,15 +23,38 @@ export interface SkbRwoItem {
     [key: string]: any; // Allow other properties like no_hp, etc.
 }
 
-interface StoreCardProps {
+export interface StoreCardProps {
     item: SkbRwoItem;
     showProgress?: boolean;
     showSkbAction?: boolean;
     showActualAction?: boolean;
-    onOpenDetail: (item: SkbRwoItem) => void;
+    onOpenDetail?: (item: SkbRwoItem) => void;
     onOpenActual?: (item: SkbRwoItem) => void;
-    onOpenSkb: (item: SkbRwoItem) => void;
+    onOpenSkb?: (item: SkbRwoItem) => void;
 }
+
+export const getProratedTarget = (totalTarget: number, kuartalStr?: string | null): number => {
+    if (!totalTarget || !kuartalStr) return totalTarget;
+    
+    const currentMonth = new Date().getMonth() + 1; // 1-12
+    const kuartal = Number(kuartalStr);
+    
+    if (isNaN(kuartal) || kuartal < 1 || kuartal > 4) return totalTarget;
+    
+    const firstMonthOfQ = (kuartal - 1) * 3 + 1;
+    const lastMonthOfQ = firstMonthOfQ + 2;
+    
+    let multiplier = 3;
+    if (currentMonth < firstMonthOfQ) {
+        multiplier = 3;
+    } else if (currentMonth > lastMonthOfQ) {
+        multiplier = 3;
+    } else {
+        multiplier = currentMonth - firstMonthOfQ + 1; // 1, 2, or 3
+    }
+    
+    return (totalTarget / 3) * multiplier;
+};
 
 export default function StoreCard({ item, showProgress, showSkbAction = true, showActualAction = false, onOpenDetail, onOpenActual, onOpenSkb }: StoreCardProps) {
     const isApproved = item.is_approved === 1 || item.is_approved === true;
@@ -47,13 +70,16 @@ export default function StoreCard({ item, showProgress, showSkbAction = true, sh
     let statusColorBg = "bg-slate-500";
     let statusColorBadge = "bg-slate-100 text-slate-700";
 
+    const proratedTarget = getProratedTarget(target, item.kuartal);
+    const proratedPercent = proratedTarget > 0 ? (achievement / proratedTarget) * 100 : 0;
+
     if (showProgress) {
-        if (percent >= 100) {
+        if (proratedPercent >= 100) {
             borderClass = "border-y border-r border-slate-100 border-l-4 border-l-emerald-500";
             statusColorText = "text-emerald-600";
             statusColorBg = "bg-emerald-500";
             statusColorBadge = "bg-emerald-50 border-emerald-200 text-emerald-700";
-        } else if (percent >= 80) {
+        } else if (proratedPercent >= 80) {
             borderClass = "border-y border-r border-slate-100 border-l-4 border-l-amber-500";
             statusColorText = "text-amber-600";
             statusColorBg = "bg-amber-500";
@@ -127,12 +153,14 @@ export default function StoreCard({ item, showProgress, showSkbAction = true, sh
                         </div>
                         <div className="flex flex-col items-end text-right">
                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Gap</span>
-                            <span className="text-[10px] font-black text-slate-600">Rp {new Intl.NumberFormat('id-ID').format(gap > 0 ? gap : 0)}</span>
+                            <span className={`text-[10px] font-black ${gap > 0 ? 'text-rose-500' : 'text-slate-600'}`}>Rp {new Intl.NumberFormat('id-ID').format(gap > 0 ? gap : 0)}</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex-1">
+                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex-1 relative">
                             <div className={`h-full rounded-full transition-all duration-1000 ${statusColorBg}`} style={{ width: `${Math.min(percent, 100)}%` }}></div>
+                            <div className="absolute top-0 bottom-0 left-1/3 w-[1.5px] bg-slate-500/70 z-10"></div>
+                            <div className="absolute top-0 bottom-0 left-2/3 w-[1.5px] bg-slate-500/70 z-10"></div>
                         </div>
                         <span className={`px-2 py-0.5 rounded-md text-[9px] font-black tracking-wider shrink-0 ${statusColorBadge}`}>
                             {percent.toFixed(1)}%

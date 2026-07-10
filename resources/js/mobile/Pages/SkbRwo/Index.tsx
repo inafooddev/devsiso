@@ -3,7 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import {
     MagnifyingGlassIcon, XMarkIcon, ShieldCheckIcon,
     BuildingStorefrontIcon as BuildingStorefrontOutline, ClipboardDocumentListIcon,
-    CalendarIcon, DocumentCheckIcon, Squares2X2Icon, ArrowLeftIcon, HomeIcon, ChartBarIcon, AdjustmentsHorizontalIcon
+    CalendarIcon, DocumentCheckIcon, Squares2X2Icon, ArrowLeftIcon, HomeIcon, ChartBarIcon, AdjustmentsHorizontalIcon, ChartPieIcon
 } from '@heroicons/react/24/outline';
 import { 
     ShieldExclamationIcon,
@@ -12,13 +12,14 @@ import {
     BuildingStorefrontIcon as BuildingStorefrontSolid,
     ClipboardDocumentListIcon as ClipboardDocumentListSolid,
     CalendarIcon as CalendarSolid,
-    ChartBarIcon as ChartBarSolid
+    ChartBarIcon as ChartBarSolid,
+    ChartPieIcon as ChartPieSolid
 } from '@heroicons/react/24/solid';
 
 import MobileLayout from '../../Layouts/MobileLayout';
 import SearchBar from '../../Components/UI/SearchBar';
 import ScrollCalendar from '../../Components/UI/ScrollCalendar';
-import StoreCard, { SkbRwoItem } from './Components/StoreCard';
+import StoreCard, { SkbRwoItem, getProratedTarget } from './Components/StoreCard';
 import SkbModal from './Components/SkbModal';
 import SummaryDashboard from './Components/SummaryDashboard';
 import DetailModal from './Components/DetailModal';
@@ -113,7 +114,8 @@ export default function Index({
                 result = result.filter(item => {
                     const target = item.total_target || 0;
                     const achievement = item.total_achievement || 0;
-                    const percent = target > 0 ? (achievement / target) * 100 : 0;
+                    const proratedTgt = getProratedTarget(target, item.kuartal);
+                    const percent = proratedTgt > 0 ? (achievement / proratedTgt) * 100 : 0;
                     if (filterStatus === 'Hijau') return percent >= 100;
                     if (filterStatus === 'Kuning') return percent >= 80 && percent < 100;
                     if (filterStatus === 'Merah') return percent < 80;
@@ -170,18 +172,11 @@ export default function Index({
         >
             <div className="flex items-center justify-around px-1 pt-2 pb-2">
                 <button
-                    onClick={() => router.visit('/mobile/home')}
-                    className="flex flex-col items-center justify-center gap-1 w-full transition-colors text-slate-400 hover:text-slate-600"
-                >
-                    <HomeIcon className="w-[22px] h-[22px]" />
-                    <span className="text-[10px] tracking-wide font-medium">Home</span>
-                </button>
-                <button
                     onClick={() => handleTabSwitch('summary')}
                     className={`flex flex-col items-center justify-center gap-1 w-full transition-colors ${activeTab === 'summary' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
                 >
-                    {activeTab === 'summary' ? <Squares2X2Solid className="w-[22px] h-[22px]" /> : <Squares2X2Icon className="w-[22px] h-[22px]" />}
-                    <span className={`text-[10px] tracking-wide ${activeTab === 'summary' ? 'font-bold' : 'font-medium'}`}>Summary</span>
+                    {activeTab === 'summary' ? <ChartPieSolid className="w-[22px] h-[22px]" /> : <ChartPieIcon className="w-[22px] h-[22px]" />}
+                    <span className={`text-[10px] tracking-wide ${activeTab === 'summary' ? 'font-bold' : 'font-medium'}`}>Dashboard</span>
                 </button>
                 <button
                     onClick={() => handleTabSwitch('plan')}
