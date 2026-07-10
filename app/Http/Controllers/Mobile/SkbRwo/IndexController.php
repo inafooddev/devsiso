@@ -86,6 +86,53 @@ class IndexController extends Controller
                      ->on('lp.distributor_code', '=', 'j.distributor_code')
                      ->on('lp.kuartal', '=', DB::raw($currentQuarter));
             })
+            ->leftJoinSub(
+                DB::table('zv_so_per_toko_2026')
+                    ->select(
+                        'kd_dist', 
+                        'uniq_kd', 
+                        DB::raw('EXTRACT(QUARTER FROM bulan) as kuartal'),
+                        DB::raw('SUM(neto) as total_achievement'),
+                        DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 1 THEN neto ELSE 0 END) as month_1_value'),
+                        DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 2 THEN neto ELSE 0 END) as month_2_value'),
+                        DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 0 THEN neto ELSE 0 END) as month_3_value')
+                    )
+                    ->groupBy('kd_dist', 'uniq_kd', DB::raw('EXTRACT(QUARTER FROM bulan)')),
+                'zv',
+                function($join) use ($currentQuarter) {
+                    $join->on('zv.kd_dist', '=', 'j.distributor_code')
+                         ->on('zv.uniq_kd', '=', 'l.uniq_kd')
+                         ->on('zv.kuartal', '=', DB::raw($currentQuarter));
+                }
+            )
+            ->leftJoinSub(
+                DB::table('zv_so_per_toko_2026')
+                    ->select(
+                        'kd_dist', 
+                        'uniq_kd',
+                        DB::raw('MAX(neto) as max_transaction'),
+                        DB::raw('AVG(neto) as avg_transaction'),
+                        DB::raw('SUM(neto) as total_transaction')
+                    )
+                    ->groupBy('kd_dist', 'uniq_kd'),
+                'zv_stats',
+                function($join) {
+                    $join->on('zv_stats.kd_dist', '=', 'j.distributor_code')
+                         ->on('zv_stats.uniq_kd', '=', 'l.uniq_kd');
+                }
+            )
+            ->leftJoinSub(
+                DB::table('zv_so_per_toko_2026')
+                    ->selectRaw('DISTINCT ON (kd_dist, uniq_kd) kd_dist, uniq_kd, neto as last_transaction_value, bulan as last_transaction_date')
+                    ->orderBy('kd_dist')
+                    ->orderBy('uniq_kd')
+                    ->orderBy('bulan', 'desc'),
+                'zv_last',
+                function($join) {
+                    $join->on('zv_last.kd_dist', '=', 'j.distributor_code')
+                         ->on('zv_last.uniq_kd', '=', 'l.uniq_kd');
+                }
+            )
             ->where('l.pilar', '1. RWO')
             ->whereRaw('UPPER(j.kode_team) = ?', [strtoupper($user->userid)])
             ->select(
@@ -116,6 +163,15 @@ class IndexController extends Controller
                     NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND
                     NULLIF(TRIM(r.foto_toko3), '') IS NOT NULL
                     THEN 'Lengkap' ELSE 'Belum' END AS status_data_lengkap"),
+                'zv.total_achievement',
+                'zv.month_1_value',
+                'zv.month_2_value',
+                'zv.month_3_value',
+                'zv_stats.max_transaction',
+                'zv_stats.avg_transaction',
+                'zv_stats.total_transaction',
+                'zv_last.last_transaction_value',
+                'zv_last.last_transaction_date',
                 DB::raw("$currentQuarter as kuartal")
             );
 

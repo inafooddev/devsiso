@@ -12,7 +12,6 @@ export default function KuartalFilterSheet({ isOpen, onClose, selectedKuartal, o
     if (!isOpen) return null;
 
     const options = [
-        { value: 'Semua', label: 'Semua Kuartal' },
         { value: '1', label: 'Kuartal 1 (Q1)' },
         { value: '2', label: 'Kuartal 2 (Q2)' },
         { value: '3', label: 'Kuartal 3 (Q3)' },
