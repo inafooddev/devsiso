@@ -27,3 +27,17 @@ Thumbs.db
 /storage/framework/sessions/*
 /storage/framework/testing/*
 /storage/framework/views/*
+
+# Custom Debug & Temp Files Ignore
+*.txt
+*.xlsx
+*.py
+menus.json
+test*.php
+run_debug*.php
+debug_*.php
+fix_*.php
+patch_*.php
+check_*.php
+fetch_*.php
+insert_*.php
