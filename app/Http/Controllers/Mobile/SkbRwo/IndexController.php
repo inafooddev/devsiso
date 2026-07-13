@@ -461,7 +461,7 @@ class IndexController extends Controller
         $currentMonth = date('n');
         $currentYear = date('Y');
         
-        for ($i = 0; $i < 6; $i++) {
+        for ($i = 1; $i <= 6; $i++) {
             $m = $currentMonth - $i;
             $y = $currentYear;
             if ($m <= 0) {
@@ -481,12 +481,12 @@ class IndexController extends Controller
             ->where('KDUNIQ', $uniq_kd)
             ->select(
                 DB::raw("DATE_TRUNC('month', TO_DATE(\"THN\" || '-' || \"BLN\" || '-01', 'YYYY-MM-DD'))::date AS bulan"),
-                'SUBBRAND as produk_subbrand',
+                'NAMAITEMPRC as produk_subbrand',
                 DB::raw('SUM("TTL_QTY_KTN") as qty')
             )
             ->groupBy(
                 DB::raw("DATE_TRUNC('month', TO_DATE(\"THN\" || '-' || \"BLN\" || '-01', 'YYYY-MM-DD'))::date"),
-                'SUBBRAND'
+                'NAMAITEMPRC'
             )
             ->get();
 

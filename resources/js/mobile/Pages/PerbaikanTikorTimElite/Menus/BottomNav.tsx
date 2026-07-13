@@ -1,6 +1,6 @@
 import React from 'react';
 import { router } from '@inertiajs/react';
-import { HomeIcon as HomeOutline, BuildingStorefrontIcon as BuildingStorefrontOutline, ChartPieIcon as ChartPieOutline, CalendarDaysIcon as CalendarDaysOutline } from '@heroicons/react/24/outline';
+import { BuildingStorefrontIcon as BuildingStorefrontOutline, ChartPieIcon as ChartPieOutline, CalendarDaysIcon as CalendarDaysOutline } from '@heroicons/react/24/outline';
 import { BuildingStorefrontIcon as BuildingStorefrontSolid, ChartPieIcon as ChartPieSolid, CalendarDaysIcon as CalendarDaysSolid } from '@heroicons/react/24/solid';
 
 interface BottomNavProps {
@@ -12,13 +12,7 @@ export default function BottomNav({ activeTab, handleTabSwitch }: BottomNavProps
     return (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.04)] z-40 pb-safe">
             <div className="flex items-center justify-around px-1 pt-2 pb-2">
-                <button
-                    onClick={() => router.visit('/mobile/home')}
-                    className="flex flex-col items-center justify-center gap-1 w-full transition-colors text-slate-400 hover:text-slate-600"
-                >
-                    <HomeOutline className="w-6 h-6" />
-                    <span className="text-xs tracking-wide font-medium">Home</span>
-                </button>
+
                 <button
                     onClick={() => handleTabSwitch('laporan')}
                     className={`flex flex-col items-center justify-center gap-1 w-full transition-colors ${activeTab === 'laporan' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}

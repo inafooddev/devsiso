@@ -53,6 +53,22 @@ export default function StoreCard({ outlet, activeTab, onPerbaikiClick }: StoreC
                             </span>
                         </div>
                     )}
+                    {(outlet.created_at || outlet.updated_at) && activeTab === 'laporan' && (
+                        <div className="flex flex-col gap-1 mt-1 p-2 bg-gray-50 rounded-lg border border-gray-100">
+                            {outlet.created_at && (
+                                <div className="flex items-center justify-between text-[10px]">
+                                    <span className="text-gray-500 font-medium">Waktu Pengajuan:</span>
+                                    <span className="font-bold text-gray-700">{new Date(outlet.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                            )}
+                            {outlet.updated_at && outlet.status_perbaikan && outlet.status_perbaikan.toLowerCase() !== 'pending' && (
+                                <div className="flex items-center justify-between text-[10px]">
+                                    <span className="text-gray-500 font-medium">Waktu Proses:</span>
+                                    <span className="font-bold text-gray-700">{new Date(outlet.updated_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
                     {outlet.status_perbaikan && (activeTab === 'laporan' || outlet.status_perbaikan.toLowerCase() === 'rejected') && outlet.keterangan_perbaikan && (
                         <div className={`mt-2 text-xs p-2 rounded-lg border font-medium leading-relaxed ${
                             outlet.status_perbaikan.toLowerCase() === 'rejected'

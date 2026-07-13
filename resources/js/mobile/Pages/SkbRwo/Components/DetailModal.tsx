@@ -519,9 +519,9 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                                         <table className="w-full text-left border-collapse min-w-max">
                                                             <thead>
                                                                 <tr className="bg-slate-50 border-b border-slate-100">
-                                                                    <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-10 border-r border-slate-100">Produk</th>
-                                                                    <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Max Trans</th>
-                                                                    <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Avg Trans</th>
+                                                                    <th className="w-[50vw] sm:w-[200px] min-w-[50vw] sm:min-w-[200px] max-w-[50vw] sm:max-w-[200px] whitespace-normal break-words p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-10 border-r border-slate-100">Produk</th>
+                                                                    <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Max</th>
+                                                                    <th className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Avg</th>
                                                                     {historyProduk.headers.map((h, i) => (
                                                                         <th key={i} className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">{h}</th>
                                                                     ))}
@@ -530,18 +530,18 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                                             <tbody className="divide-y divide-slate-100">
                                                                 {historyProduk.data.map((prod, idx) => (
                                                                     <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                                                                        <td className="p-3 text-[10px] font-black text-slate-700 sticky left-0 bg-white group-hover:bg-slate-50/50 z-10 border-r border-slate-100">
+                                                                        <td className="w-[50vw] sm:w-[200px] min-w-[50vw] sm:min-w-[200px] max-w-[50vw] sm:max-w-[200px] whitespace-normal break-words p-3 text-[10px] font-black text-slate-700 sticky left-0 bg-white group-hover:bg-slate-50/50 z-10 border-r border-slate-100">
                                                                             {prod.produk_subbrand}
                                                                         </td>
                                                                         <td className="p-3 text-xs font-bold text-slate-700 text-right">
-                                                                            {new Intl.NumberFormat('id-ID').format(prod.max_qty || 0)}
+                                                                            {new Intl.NumberFormat('id-ID').format(Math.round(prod.max_qty || 0))}
                                                                         </td>
                                                                         <td className="p-3 text-xs font-bold text-slate-700 text-right">
-                                                                            {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(prod.avg_qty || 0)}
+                                                                            {new Intl.NumberFormat('id-ID').format(Math.round(prod.avg_qty || 0))}
                                                                         </td>
                                                                         {prod.monthly_qty.map((mq: number, mIdx: number) => (
                                                                             <td key={mIdx} className={`p-3 text-xs font-bold text-right ${mq > 0 ? 'text-indigo-600' : 'text-slate-300'}`}>
-                                                                                {mq > 0 ? new Intl.NumberFormat('id-ID').format(mq) : '0'}
+                                                                                {mq > 0 ? new Intl.NumberFormat('id-ID').format(Math.round(mq)) : '0'}
                                                                             </td>
                                                                         ))}
                                                                     </tr>

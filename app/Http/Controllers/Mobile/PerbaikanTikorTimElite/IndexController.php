@@ -113,6 +113,7 @@ class IndexController extends Controller
                 ptt.status as status_perbaikan,
                 ptt.keterangan as keterangan_perbaikan,
                 ptt.created_at,
+                ptt.updated_at,
                 ptt.source,
                 CASE 
                     WHEN ptt.source = \'se\' THEN c.custname
