@@ -1,5 +1,5 @@
 <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full" 
-        x-data="{ showPhotoModal: false, photoUrl: '', showRejectModal: false, showMapModal: false, mapDist: 0, showReasonModal: false, reasonText: '', copyToast: { show: false, message: '' }, showSummaryModal: false }"
+        x-data="{ showPhotoModal: false, photoUrl: '', showRejectModal: false, showMapModal: false, mapDist: 0, showReasonModal: false, reasonText: '', copyToast: { show: false, message: '' }, showSummaryModal: false, showExportModal: false }"
         x-on:open-summary-modal.window="showSummaryModal = true"
         x-on:open-map-modal.window="
         if (!window.L) {
@@ -149,7 +149,10 @@
                             <x-heroicon-s-check-circle class="w-4 h-4" wire:loading.remove wire:target="bulkApprove" /> Terima Terpilih ({{ $this->selectedPendingCount }})
                         </button>
                     @endif
-                    <x-ui.action-button type="export" wire:click="export" />
+                    <button type="button" @click="showExportModal = true" class="btn btn-sm btn-success text-white shadow-sm shadow-success/20 rounded-xl gap-1 md:gap-2 whitespace-nowrap">
+                        <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
+                        <span>Export</span>
+                    </button>
                     <button type="button" wire:click="loadSummary" class="btn btn-sm btn-info text-white shadow-sm" wire:loading.attr="disabled" wire:target="loadSummary">
                         <span wire:loading wire:target="loadSummary" class="loading loading-spinner loading-xs mr-1"></span>
                         <x-heroicon-s-chart-bar class="w-4 h-4" wire:loading.remove wire:target="loadSummary" /> Summary
@@ -542,7 +545,48 @@
                 <button type="button" @click="showMapModal = false" class="btn btn-outline">Tutup</button>
             </div>
         </div>
-        {{-- LOCAL TOAST NOTIFICATION --}}
+    </div>
+
+    {{-- MODAL EXPORT --}}
+    <div x-show="showExportModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
+        <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col" @click.outside="showExportModal = false">
+            <div class="p-4 border-b border-base-300 flex items-center justify-between bg-base-200/50">
+                <div class="flex items-center gap-2 text-success">
+                    <x-heroicon-s-arrow-down-tray class="w-5 h-5" />
+                    <h3 class="font-bold text-base">Export Data (Waktu Proses)</h3>
+                </div>
+                <button type="button" @click="showExportModal = false" class="btn btn-sm btn-circle btn-ghost">
+                    <x-heroicon-o-x-mark class="w-5 h-5" />
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="label">
+                        <span class="label-text font-bold text-xs uppercase tracking-wider text-base-content/70">Mulai Tanggal Proses</span>
+                    </label>
+                    <input wire:model="exportDateStart" type="date" class="input input-bordered w-full bg-base-50 focus:border-success focus:ring-success" />
+                </div>
+                <div>
+                    <label class="label">
+                        <span class="label-text font-bold text-xs uppercase tracking-wider text-base-content/70">Sampai Tanggal Proses</span>
+                    </label>
+                    <input wire:model="exportDateEnd" type="date" class="input input-bordered w-full bg-base-50 focus:border-success focus:ring-success" />
+                </div>
+                <div class="text-[11px] leading-tight text-base-content/60 italic p-3 bg-info/10 rounded-xl border border-info/20">
+                    *Filter ini digunakan untuk mengekspor data yang statusnya <strong class="text-success">Approved</strong> pada rentang tanggal tersebut (berdasarkan update_at).
+                </div>
+            </div>
+            <div class="p-4 border-t border-base-300 bg-base-200/50 flex justify-end gap-2">
+                <button type="button" @click="showExportModal = false" class="btn btn-ghost btn-sm rounded-xl">Batal</button>
+                <button type="button" wire:click="export" @click="showExportModal = false" class="btn btn-success btn-sm text-white rounded-xl shadow-sm shadow-success/30" wire:loading.attr="disabled" wire:target="export">
+                    <span wire:loading wire:target="export" class="loading loading-spinner loading-xs mr-1"></span>
+                    Download Excel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- LOCAL TOAST NOTIFICATION --}}
     <div x-show="copyToast.show" class="toast toast-top toast-center z-[200] mt-16" style="display: none;" x-transition.opacity.duration.300ms>
         <div class="alert alert-success shadow-lg text-white font-bold text-sm px-4 py-2 rounded-xl flex items-center gap-2">
             <x-heroicon-o-check-circle class="w-5 h-5" />

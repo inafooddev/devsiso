@@ -241,7 +241,7 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (formData.nik_ktp && formData.nik_ktp.toString().length !== 16) {
+        if (!data.nik_ktp && formData.nik_ktp && formData.nik_ktp.toString().length !== 16) {
             showToast('NIK KTP harus tepat 16 digit.', 'error');
             return;
         }
@@ -736,8 +736,8 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                     <h5 className="text-[11px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-1 mt-2">Data Identitas (KTP)</h5>
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">NIK KTP {data.nik_ktp && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
-                                        <input type="text" inputMode="numeric" maxLength={16} disabled={!!data.nik_ktp} value={formData.nik_ktp} onChange={e => handleTextChange('nik_ktp', e.target.value)} className={getInputClass('nik_ktp', !!formData.nik_ktp && formData.nik_ktp.toString().length !== 16)} placeholder="16 Digit NIK" />
-                                        {formData.nik_ktp && formData.nik_ktp.toString().length !== 16 && (
+                                        <input type="text" inputMode="numeric" maxLength={16} disabled={!!data.nik_ktp} value={formData.nik_ktp} onChange={e => handleTextChange('nik_ktp', e.target.value)} className={getInputClass('nik_ktp', !data.nik_ktp && !!formData.nik_ktp && formData.nik_ktp.toString().length !== 16)} placeholder="16 Digit NIK" />
+                                        {!data.nik_ktp && formData.nik_ktp && formData.nik_ktp.toString().length !== 16 && (
                                             <span className="text-[9px] font-medium text-rose-500 mt-1 block">NIK harus 16 digit. Saat ini: {formData.nik_ktp.toString().length} digit</span>
                                         )}
                                     </div>

@@ -14,7 +14,7 @@ use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 use PhpOffice\PhpSpreadsheet\Cell\Cell;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 
-class PerbaikanTikorExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping, WithColumnFormatting, WithCustomValueBinder
+class PerbaikanTikorEliteExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping, WithColumnFormatting, WithCustomValueBinder
 {
     use Exportable;
 
@@ -37,7 +37,7 @@ class PerbaikanTikorExport extends DefaultValueBinder implements FromQuery, With
     {
         $query = DB::table('perbaikan_tikor_toko as p')
             ->leftJoin('customer_prc_eska as cpe', function ($join) {
-                $join->on('cpe.kodecabang', '=', 'p.distributor_code')
+                $join->where('cpe.kodecabang', '=', 'HOINA')
                      ->on('cpe.custno', '=', 'p.customer_code');
             })
             ->leftJoin('fsalesman as fs', function ($join) {
@@ -60,7 +60,7 @@ class PerbaikanTikorExport extends DefaultValueBinder implements FromQuery, With
                 'p.latitude',
                 'p.longitude'
             )
-            ->where('p.source', 'se');
+            ->where('p.source', 'elite');
 
         $user = auth()->user();
         if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {

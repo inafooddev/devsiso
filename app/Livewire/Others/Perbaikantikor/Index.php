@@ -24,6 +24,9 @@ class Index extends Component
     #[Url]
     public $dateEnd = '';
 
+    public $exportDateStart = '';
+    public $exportDateEnd = '';
+
     public $keteranganReject = '';
     public $selectedId = null;
     public $selectedIds = [];
@@ -161,8 +164,8 @@ class Index extends Component
         $exportData = new \App\Exports\PerbaikanTikorExport(
             $this->search, 
             $this->statusFilter, 
-            $this->dateStart, 
-            $this->dateEnd, 
+            $this->exportDateStart, 
+            $this->exportDateEnd, 
             $this->selectedIds
         );
 
