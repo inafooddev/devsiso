@@ -42,7 +42,7 @@ class Index extends Component
 
     public function mount()
     {
-        $this->monthFilter = date('Y-m'); // Default ke bulan saat ini
+        $this->monthFilter = date('Y-m', strtotime('-1 month')); // Default ke bulan sebelumnya
     }
 
     public function openImportModal()
