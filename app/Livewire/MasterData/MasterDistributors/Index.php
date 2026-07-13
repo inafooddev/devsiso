@@ -217,10 +217,10 @@ class Index extends Component
         
         $data = [
             'distributor_name' => $this->distributor_name,
-            'join_date'        => $this->join_date,
-            'resign_date'      => $this->resign_date,
-            'latitude'         => $this->latitude,
-            'longitude'        => $this->longitude,
+            'join_date'        => $this->join_date === '' ? null : $this->join_date,
+            'resign_date'      => $this->resign_date === '' ? null : $this->resign_date,
+            'latitude'         => $this->latitude === '' ? null : $this->latitude,
+            'longitude'        => $this->longitude === '' ? null : $this->longitude,
             'is_active'        => $this->is_active,
             'branch_code'      => $this->branch_code,
             'branch_name'      => $branch->branch_name ?? 'N/A',
