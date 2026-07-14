@@ -290,12 +290,12 @@ class Index extends Component
             'rejected' => $this->baseQuery()->where('perbaikan_tikor_toko.status', 'Rejected')->count(),
         ];
 
-        $duplicates = PerbaikanTikorToko::selectRaw('distributor_code, customer_code')
-            ->groupBy('distributor_code', 'customer_code')
+        $duplicates = PerbaikanTikorToko::selectRaw('distributor_code, sales_code, customer_code')
+            ->groupBy('distributor_code', 'sales_code', 'customer_code')
             ->havingRaw('COUNT(*) > 1')
             ->get()
             ->map(function ($item) {
-                return $item->distributor_code . '_' . $item->customer_code;
+                return $item->distributor_code . '_' . $item->sales_code . '_' . $item->customer_code;
             })
             ->toArray();
 

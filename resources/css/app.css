@@ -15,11 +15,15 @@ html, body {
     overscroll-behavior-y: none;
     /* Remove blue tap highlight on iOS/Android */
     -webkit-tap-highlight-color: transparent;
-    /* Prevent text selection everywhere */
-    -webkit-user-select: none;
-    user-select: none;
-    /* Prevent context menu on long press */
-    -webkit-touch-callout: none;
+}
+
+/* Prevent text selection and long press menu on Tablet and Mobile only */
+@media (max-width: 1023px) {
+    html, body {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+    }
 }
 
 /* Allow text selection ONLY on input forms */

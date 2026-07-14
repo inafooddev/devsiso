@@ -171,9 +171,8 @@
                         </th>
                         <th class="w-12">No</th>
 
-                        <th>Distributor</th>
-                        <th>Kode Sales</th>
                         <th>Nama Sales</th>
+                        <th>Distributor</th>
                         <th>Kode Toko</th>
                         <th>Nama Toko</th>
                         <th>Alamat</th>
@@ -195,22 +194,25 @@
                         <th class="text-base-content/60">{{ $data->firstItem() + $index }}</th>
 
                         <td>
-                            <div class="font-bold text-xs truncate max-w-[150px]" title="{{ $item->distributorImplementasiEskalink->distributor_name ?? $item->distributor_code }}">
-                                {{ $item->distributorImplementasiEskalink->distributor_name ?? $item->distributor_code }}
-                            </div>
-                        </td>
-                        <td class="font-mono">{{ $item->sales_code }}</td>
-                        <td>
                             <div class="font-bold truncate max-w-[150px]" title="{{ $item->sales_name ?? '-' }}">
                                 {{ $item->sales_name ?? '-' }}
                             </div>
                         </td>
+                        <td>
+                            <div class="font-bold text-xs truncate max-w-[150px]" title="{{ $item->distributorImplementasiEskalink->distributor_name ?? $item->distributor_code }}">
+                                {{ $item->distributorImplementasiEskalink->distributor_name ?? $item->distributor_code }}
+                            </div>
+                        </td>
                         <td class="font-mono">{{ $item->customer_code }}</td>
-                        <td class="font-bold {{ in_array($item->distributor_code . '_' . $item->customer_code, $duplicates) ? 'text-rose-600' : '' }}">
-                            {{ $item->exact_customer->custname ?? 'N/A' }}
-                            @if(in_array($item->distributor_code . '_' . $item->customer_code, $duplicates))
-                                <span class="badge badge-[10px] badge-error text-[9px] text-white ml-1 px-1 py-0 h-4" title="Toko ini diajukan lebih dari sekali">Berulang</span>
-                            @endif
+                        <td class="font-bold {{ in_array($item->distributor_code . '_' . $item->sales_code . '_' . $item->customer_code, $duplicates) ? 'text-rose-600' : '' }}">
+                            <div class="flex items-center gap-1">
+                                <span class="truncate max-w-[150px]" title="{{ $item->exact_customer->custname ?? 'N/A' }}">
+                                    {{ $item->exact_customer->custname ?? 'N/A' }}
+                                </span>
+                                @if(in_array($item->distributor_code . '_' . $item->sales_code . '_' . $item->customer_code, $duplicates))
+                                    <span class="badge badge-[10px] badge-error text-[9px] text-white shrink-0 px-1 py-0 h-4" title="Toko ini diajukan lebih dari sekali">Berulang</span>
+                                @endif
+                            </div>
                         </td>
                         <td class="text-xs max-w-[200px] truncate" title="{{ $item->exact_customer->custadd1 ?? '-' }}">
                             {{ $item->exact_customer->custadd1 ?? '-' }}
@@ -280,7 +282,7 @@
                                 @if($dist !== null)
                                     @if($dist < 1)
                                         <button type="button" @click="$dispatch('open-map-modal', { lat1: '{{ $item->exact_customer->la ?? '' }}', lon1: '{{ $item->exact_customer->lg ?? '' }}', lat2: '{{ $item->latitude }}', lon2: '{{ $item->longitude }}', dist: '{{ number_format($dist, 0, '', '') }}' })" class="btn btn-xs btn-warning w-full flex items-center justify-center whitespace-nowrap font-bold">
-                                            0m (Tetap)
+                                            0m
                                         </button>
                                     @else
                                         <button type="button" @click="$dispatch('open-map-modal', { lat1: '{{ $item->exact_customer->la ?? '' }}', lon1: '{{ $item->exact_customer->lg ?? '' }}', lat2: '{{ $item->latitude }}', lon2: '{{ $item->longitude }}', dist: '{{ number_format($dist, 0, '', '') }}' })" class="btn btn-xs btn-outline btn-info w-full flex items-center justify-center whitespace-nowrap">
