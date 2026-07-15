@@ -207,6 +207,18 @@ class IndexController extends Controller
             return redirect()->back()->withErrors(['error' => 'Toko ini bukan milik Anda atau data tidak valid.']);
         }
 
+        // Cek jika sudah ada pengajuan perbaikan yang masih berstatus 'Pending' untuk sales, distributor, dan customer ini
+        $isPending = DB::table('perbaikan_tikor_toko')
+            ->where('distributor_code', $request->distributor_code)
+            ->where('customer_code', $request->customer_code)
+            ->where('sales_code', $salesCode)
+            ->where('status', 'Pending')
+            ->exists();
+
+        if ($isPending) {
+            return redirect()->back()->withErrors(['error' => 'Sudah diajukan perbaikan, status masih pending.']);
+        }
+
         $data = [
             'region_code' => $request->region_code,
             'area_code' => $request->area_code,

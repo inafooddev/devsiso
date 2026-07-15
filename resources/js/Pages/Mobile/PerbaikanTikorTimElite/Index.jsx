@@ -367,6 +367,14 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
             return;
         }
 
+        // Cek jika status toko sudah Approved
+        if (detailOutlet?.status_perbaikan?.toLowerCase() === 'approved') {
+            const confirmRetry = window.confirm('Toko sudah perbaikan, apakah yakin ingin melakukan perbaikan ulang?');
+            if (!confirmRetry) {
+                return;
+            }
+        }
+
         isSubmittingRef.current = true;
 
         post('/mobile/perbaikan-tikor-tim-elite', {
