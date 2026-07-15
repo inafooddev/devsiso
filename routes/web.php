@@ -300,6 +300,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/others/page-template-standard', PageTemplateStandardIndex::class)->name('others.page-template-standard');
     Route::get('/others/perbaikantikor', AdminPerbaikantikorIndex::class)->name('others.perbaikantikor');
     Route::get('/others/perbaikantikor-elite', AdminPerbaikantikorEliteIndex::class)->name('others.perbaikantikor.elite');
+    Route::get('/others/bug-report-request', \App\Livewire\Others\BugReportRequest\Index::class)->name('others.bug-report-request');
     Route::get('/mapping-supervisor-code', MappingSupervisorCodeIndex::class)->name('mapping-supervisor-code.index');
     Route::get('/qceskalink', QceskalinkIndex::class)->name('qceskalink.index');
     Route::get('/monitoring-device', MonitoringDeviceIndex::class)->name('monitoring-device.index');
