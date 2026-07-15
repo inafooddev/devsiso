@@ -191,7 +191,7 @@ class IndexController extends Controller
             'latitude' => 'required|numeric|between:-90,90|not_in:0',
             'longitude' => 'required|numeric|between:-180,180|not_in:0',
             'accuracy' => 'nullable|numeric',
-            'foto' => 'required|image|max:5120',
+            'foto' => 'required|image|max:10240',
         ]);
 
         $isOwner = DB::table('frute as f')
@@ -237,9 +237,38 @@ class IndexController extends Controller
 
         // Handle File Uploads
         if ($request->hasFile('foto')) {
-            $extension = $request->file('foto')->extension();
+            $file = $request->file('foto');
+            $extension = $file->extension();
             $filename = "{$request->distributor_code}_{$request->customer_code}_foto_" . time() . ".{$extension}";
-            $path = $request->file('foto')->storeAs('perbaikan_tikor', $filename, 'public');
+            
+            // Simpan file asli ke disk terlebih dahulu
+            $path = $file->storeAs('perbaikan_tikor', $filename, 'public');
+            $fullPath = storage_path('app/public/' . $path);
+            
+            // Kompresi di sisi server jika ukuran > 1.5 MB & format didukung GD
+            if ($file->getSize() > 1572864 && in_array(strtolower($extension), ['jpg', 'jpeg', 'png'])) {
+                try {
+                    $info = @getimagesize($fullPath);
+                    if ($info !== false) {
+                        $mime = $info['mime'];
+                        $image = null;
+                        if ($mime === 'image/jpeg') {
+                            $image = @imagecreatefromjpeg($fullPath);
+                        } elseif ($mime === 'image/png') {
+                            $image = @imagecreatefrompng($fullPath);
+                        }
+                        
+                        if ($image) {
+                            // Simpan ulang dengan kompresi kualitas 75
+                            @imagejpeg($image, $fullPath, 75);
+                            @imagedestroy($image);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Jika gagal kompresi, biarkan file asli tetap tersimpan
+                }
+            }
+            
             $data['foto'] = $path;
         }
 

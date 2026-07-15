@@ -388,8 +388,8 @@ export default function MapModal({ detailOutlet, setDetailOutlet, showToast }: M
             setData('foto', null);
             return;
         }
-        if (file.size > 5242880) {
-            displayLocalToast('Ukuran foto terlalu besar (Maks. 5MB)', 'error');
+        if (file.size > 10485760) {
+            displayLocalToast('Ukuran foto terlalu besar (Maks. 10MB)', 'error');
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }
@@ -642,7 +642,7 @@ export default function MapModal({ detailOutlet, setDetailOutlet, showToast }: M
                                 <CameraIcon className={`w-8 h-8 ${showNoPhotoWarning ? 'text-rose-400' : 'text-gray-400'}`} />
                                 <div className="flex flex-col items-center">
                                     <span className="text-sm font-bold">Ambil Foto Toko</span>
-                                    <span className="text-[0.65rem] font-medium mt-0.5 opacity-80">Gunakan kamera HP (Maks. 5MB)</span>
+                                    <span className="text-[0.65rem] font-medium mt-0.5 opacity-80">Gunakan kamera HP (Maks. 10MB)</span>
                                 </div>
                             </button>
                         )}

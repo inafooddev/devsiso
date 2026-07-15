@@ -188,8 +188,8 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
             setData('foto', null);
             return;
         }
-        if (file.size > 5242880) {
-            showToast('Ukuran foto terlalu besar (Maks. 5MB)', 'error');
+        if (file.size > 10485760) {
+            showToast('Ukuran foto terlalu besar (Maks. 10MB)', 'error');
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }
@@ -386,9 +386,12 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                 isSubmittingRef.current = false;
                 setShowSuccessModal(true);
             },
-            onError: () => {
+            onError: (errors) => {
                 isSubmittingRef.current = false;
-                showToast('Gagal menyimpan. Pastikan data terisi benar.', 'error');
+                const errorMsg = errors && Object.values(errors).length > 0 
+                    ? Object.values(errors)[0] 
+                    : 'Gagal menyimpan. Pastikan data terisi benar.';
+                showToast(errorMsg, 'error');
             }
         });
     };
@@ -886,14 +889,14 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                                                 </div>
                                                 <div>
                                                     <p className="text-xs font-bold text-slate-700">Ambil Foto Toko</p>
-                                                    <p className="text-[10px] text-slate-400 mt-0.5">Foto langsung di tempat · Maks. 5MB</p>
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">Foto langsung di tempat · Maks. 10MB</p>
                                                 </div>
                                             </>
                                         )}
                                     </div>
                                     {/* FIX #4: Warning shown properly when showNoPhotoWarning = true */}
                                     {showNoPhotoWarning && !data.foto && (
-                                        <p className="text-[10px] font-bold text-rose-500 ml-1">Foto toko wajib dilampirkan sebelum submit.</p>
+                                        <p className="text-[10px] font-bold text-rose-500 ml-1">Foto toko wajib dilampirkan sebelum submit (Maks 10MB).</p>
                                     )}
                                 </div>
 
