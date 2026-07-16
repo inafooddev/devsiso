@@ -101,6 +101,11 @@ class Listpotensirwo extends Component
             $regionQuery->whereIn('region_code', (array) $user->region_code);
         }
         $this->regions = $regionQuery->get();
+
+        $currentMonth = (int) date('n');
+        $currentQuarter = (string) ceil($currentMonth / 3);
+        $this->kuartal = $currentQuarter;
+        $this->appliedKuartal = $currentQuarter;
     }
 
     public function updatedKuartal($value)

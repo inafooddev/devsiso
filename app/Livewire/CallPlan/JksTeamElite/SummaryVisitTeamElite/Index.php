@@ -288,15 +288,17 @@ class Index extends Component
                     v.uniq_kd
             ),
             ket_visit as(
-                SELECT
-                    DATE_TRUNC('month', s.tanggal)::date AS bulan,
-                    s.*
+                SELECT DISTINCT
+                    s.custno,
+                    'Y' as status_visit
                 FROM zv_summary_visit_team_elite s
                 $visitConditions
                   AND s.status_visit = 'Y'
             ),
             list_pareto as(
-                select * from list_toko_pareto_team_elite ltpte 
+                SELECT customer_code_prc, MAX(pilar) as pilar, MAX(target) as target
+                FROM list_toko_pareto_team_elite
+                GROUP BY customer_code_prc
             )
             SELECT
                 v.region_code,
@@ -426,15 +428,17 @@ class Index extends Component
                     v.uniq_kd
             ),
             ket_visit as(
-                SELECT
-                    DATE_TRUNC('month', s.tanggal)::date AS bulan,
-                    s.*
+                SELECT DISTINCT
+                    s.custno,
+                    'Y' as status_visit
                 FROM zv_summary_visit_team_elite s
                 $visitConditions
                   AND s.status_visit = 'Y'
             ),
             list_pareto as(
-                select * from list_toko_pareto_team_elite ltpte 
+                SELECT customer_code_prc, MAX(pilar) as pilar, MAX(target) as target
+                FROM list_toko_pareto_team_elite
+                GROUP BY customer_code_prc
             ),
             detail AS (
                 SELECT

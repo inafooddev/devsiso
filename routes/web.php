@@ -307,6 +307,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/rwo', RwoIndex::class)->name('rwo.index');
     Route::get('/rwo/summary', \App\Livewire\Rwo\Summary::class)->name('rwo.summary');
     Route::get('/rwo/plan-kunjungan', \App\Livewire\Rwo\PlanKunjungan::class)->name('rwo.plan-kunjungan');
+    Route::get('/rwo/summary-list-potensi', \App\Livewire\Rwo\SummaryListPotensi::class)->name('rwo.summarylistpotensi');
     Route::get('/rwo/listpotensirwo', \App\Livewire\Rwo\Listpotensirwo::class)->name('rwo.listpotensirwo');
     Route::get('/rwo/surat-kesepakatan-bersama', \App\Livewire\Rwo\SuratKesepakatanBersama::class)->name('rwo.surat-kesepakatan-bersama');
     Route::get('/under-construction', UnderConstruction::class)->name('under-construction');
