@@ -310,6 +310,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/rwo/summary-list-potensi', \App\Livewire\Rwo\SummaryListPotensi::class)->name('rwo.summarylistpotensi');
     Route::get('/rwo/listpotensirwo', \App\Livewire\Rwo\Listpotensirwo::class)->name('rwo.listpotensirwo');
     Route::get('/rwo/surat-kesepakatan-bersama', \App\Livewire\Rwo\SuratKesepakatanBersama::class)->name('rwo.surat-kesepakatan-bersama');
+    Route::get('/rwo/pencapaian', \App\Livewire\Rwo\Pencapaianrwo::class)->name('rwo.pencapaian');
     Route::get('/under-construction', UnderConstruction::class)->name('under-construction');
     Route::get('/under-bounce', UnderBounce::class)->name('under-bounce');
 
