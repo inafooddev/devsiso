@@ -119,7 +119,21 @@ class SummaryListPotensi extends Component
             DB::raw('COUNT(DISTINCT jks.custno) as total_jks'),
             DB::raw('COUNT(DISTINCT CASE WHEN skb.customer_code IS NOT NULL THEN skb.customer_code END) as sudah_skb'),
             DB::raw('COUNT(DISTINCT CASE WHEN skb.is_approved = true THEN skb.customer_code END) as skb_approve'),
-            DB::raw('COUNT(DISTINCT CASE WHEN skb.is_approved = false THEN skb.customer_code END) as skb_reject')
+            DB::raw('COUNT(DISTINCT CASE WHEN skb.is_approved = false THEN skb.customer_code END) as skb_reject'),
+            DB::raw("COUNT(DISTINCT CASE WHEN 
+                NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_pemilik_toko), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nik_ktp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_ktp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.foto_ktp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_bank), '') IS NOT NULL AND
+                NULLIF(TRIM(r.no_rekening), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_pemilik_norek), '') IS NOT NULL AND
+                NULLIF(TRIM(r.latitude), '') IS NOT NULL AND
+                NULLIF(TRIM(r.longitude), '') IS NOT NULL AND
+                NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND
+                NULLIF(TRIM(r.foto_toko3), '') IS NOT NULL
+                THEN l.customer_code END) as data_lengkap")
         )
         ->groupBy('md.region_name', 'md.area_name', 'f.SLSNAME', 'md.distributor_code', 'md.distributor_name')
         ->orderBy('md.region_name')
@@ -140,6 +154,7 @@ class SummaryListPotensi extends Component
                 $groupedRecords[$rKey] = [
                     'name' => $rKey,
                     'total_toko' => 0, 'total_target' => 0, 'total_jks' => 0, 'sudah_skb' => 0, 'skb_approve' => 0, 'skb_reject' => 0,
+                    'data_lengkap' => 0, 'data_belum' => 0,
                     'areas' => []
                 ];
             }
@@ -148,6 +163,7 @@ class SummaryListPotensi extends Component
                 $groupedRecords[$rKey]['areas'][$aKey] = [
                     'name' => $aKey,
                     'total_toko' => 0, 'total_target' => 0, 'total_jks' => 0, 'sudah_skb' => 0, 'skb_approve' => 0, 'skb_reject' => 0,
+                    'data_lengkap' => 0, 'data_belum' => 0,
                     'supervisors' => []
                 ];
             }
@@ -156,9 +172,12 @@ class SummaryListPotensi extends Component
                 $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey] = [
                     'name' => $sKey,
                     'total_toko' => 0, 'total_target' => 0, 'total_jks' => 0, 'sudah_skb' => 0, 'skb_approve' => 0, 'skb_reject' => 0,
+                    'data_lengkap' => 0, 'data_belum' => 0,
                     'cabang' => []
                 ];
             }
+
+            $dataBelum = $row->total_toko - $row->data_lengkap;
 
             // Accumulate metrics for Region
             $groupedRecords[$rKey]['total_toko'] += $row->total_toko;
@@ -167,6 +186,8 @@ class SummaryListPotensi extends Component
             $groupedRecords[$rKey]['sudah_skb'] += $row->sudah_skb;
             $groupedRecords[$rKey]['skb_approve'] += $row->skb_approve;
             $groupedRecords[$rKey]['skb_reject'] += $row->skb_reject;
+            $groupedRecords[$rKey]['data_lengkap'] += $row->data_lengkap;
+            $groupedRecords[$rKey]['data_belum'] += $dataBelum;
 
             // Accumulate metrics for Area
             $groupedRecords[$rKey]['areas'][$aKey]['total_toko'] += $row->total_toko;
@@ -175,6 +196,8 @@ class SummaryListPotensi extends Component
             $groupedRecords[$rKey]['areas'][$aKey]['sudah_skb'] += $row->sudah_skb;
             $groupedRecords[$rKey]['areas'][$aKey]['skb_approve'] += $row->skb_approve;
             $groupedRecords[$rKey]['areas'][$aKey]['skb_reject'] += $row->skb_reject;
+            $groupedRecords[$rKey]['areas'][$aKey]['data_lengkap'] += $row->data_lengkap;
+            $groupedRecords[$rKey]['areas'][$aKey]['data_belum'] += $dataBelum;
 
             // Accumulate metrics for Supervisor
             $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['total_toko'] += $row->total_toko;
@@ -183,9 +206,22 @@ class SummaryListPotensi extends Component
             $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['sudah_skb'] += $row->sudah_skb;
             $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['skb_approve'] += $row->skb_approve;
             $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['skb_reject'] += $row->skb_reject;
+            $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['data_lengkap'] += $row->data_lengkap;
+            $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['data_belum'] += $dataBelum;
 
             // Add Cabang
-            $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['cabang'][] = (array) $row;
+            $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['cabang'][] = [
+                'distributor_code' => $row->distributor_code,
+                'distributor_name' => $row->distributor_name ?? '-',
+                'total_toko' => $row->total_toko,
+                'total_target' => $row->total_target,
+                'total_jks' => $row->total_jks,
+                'sudah_skb' => $row->sudah_skb,
+                'skb_approve' => $row->skb_approve,
+                'skb_reject' => $row->skb_reject,
+                'data_lengkap' => $row->data_lengkap,
+                'data_belum' => $dataBelum
+            ];
         }
 
         return $groupedRecords;

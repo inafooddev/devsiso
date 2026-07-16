@@ -84,6 +84,8 @@
                         <th class="text-right">Sudah SKB</th>
                         <th class="text-right text-success">Approve</th>
                         <th class="text-right text-error">Reject</th>
+                        <th class="text-right text-success">Lengkap</th>
+                        <th class="text-right text-error">Belum</th>
                     </tr>
                 </thead>
                 @forelse($records as $regionIndex => $region)
@@ -119,6 +121,8 @@
                                     <td class="text-right font-bold">{{ number_format($supervisor['sudah_skb'], 0, ',', '.') }}</td>
                                     <td class="text-right font-bold text-success">{{ number_format($supervisor['skb_approve'], 0, ',', '.') }}</td>
                                     <td class="text-right font-bold text-error">{{ number_format($supervisor['skb_reject'], 0, ',', '.') }}</td>
+                                    <td class="text-right font-bold text-success">{{ number_format($supervisor['data_lengkap'], 0, ',', '.') }}</td>
+                                    <td class="text-right font-bold text-error">{{ number_format($supervisor['data_belum'], 0, ',', '.') }}</td>
                                 </tr>
                                 
                                 @foreach($supervisor['cabang'] as $cabangIndex => $cabang)
@@ -132,6 +136,8 @@
                                         <td class="text-right font-semibold opacity-80 border-none py-2">{{ number_format($cabang['sudah_skb'], 0, ',', '.') }}</td>
                                         <td class="text-right font-semibold text-success opacity-80 border-none py-2">{{ number_format($cabang['skb_approve'], 0, ',', '.') }}</td>
                                         <td class="text-right font-semibold text-error opacity-80 border-none py-2">{{ number_format($cabang['skb_reject'], 0, ',', '.') }}</td>
+                                        <td class="text-right font-semibold text-success opacity-80 border-none py-2">{{ number_format($cabang['data_lengkap'], 0, ',', '.') }}</td>
+                                        <td class="text-right font-semibold text-error opacity-80 border-none py-2">{{ number_format($cabang['data_belum'], 0, ',', '.') }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -151,6 +157,8 @@
                                 <td class="text-right text-base-content/80">{{ number_format($area['sudah_skb'], 0, ',', '.') }}</td>
                                 <td class="text-right text-success">{{ number_format($area['skb_approve'], 0, ',', '.') }}</td>
                                 <td class="text-right text-error">{{ number_format($area['skb_reject'], 0, ',', '.') }}</td>
+                                <td class="text-right text-success">{{ number_format($area['data_lengkap'], 0, ',', '.') }}</td>
+                                <td class="text-right text-error">{{ number_format($area['data_belum'], 0, ',', '.') }}</td>
                             </tr>
                         </tbody>
                     @endforeach
@@ -165,6 +173,8 @@
                             <td class="text-right text-base-content/80">{{ number_format($region['sudah_skb'], 0, ',', '.') }}</td>
                             <td class="text-right text-success">{{ number_format($region['skb_approve'], 0, ',', '.') }}</td>
                             <td class="text-right text-error">{{ number_format($region['skb_reject'], 0, ',', '.') }}</td>
+                            <td class="text-right text-success">{{ number_format($region['data_lengkap'], 0, ',', '.') }}</td>
+                            <td class="text-right text-error">{{ number_format($region['data_belum'], 0, ',', '.') }}</td>
                         </tr>
                     </tbody>
 
@@ -182,15 +192,17 @@
                 @php
                     $recordsColl = collect($records);
                 @endphp
-                <tfoot class="bg-base-200/80 font-bold sticky bottom-0 border-t-4 border-base-300">
-                    <tr>
-                        <td colspan="3" class="text-right uppercase py-3">Grand Total</td>
-                        <td class="text-right text-primary">{{ number_format($recordsColl->sum('total_toko'), 0, ',', '.') }}</td>
-                        <td class="text-right text-primary font-mono text-xs">Rp {{ number_format($recordsColl->sum('total_target'), 0, ',', '.') }}</td>
+                <tfoot class="bg-base-200/80 sticky bottom-0 z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] border-t border-base-300">
+                    <tr class="font-bold text-[13px] text-base-content/90">
+                        <td colspan="3" class="text-right uppercase py-4">Grand Total Nasional</td>
+                        <td class="text-right">{{ number_format($recordsColl->sum('total_toko'), 0, ',', '.') }}</td>
+                        <td class="text-right font-mono text-[11px]">Rp {{ number_format($recordsColl->sum('total_target'), 0, ',', '.') }}</td>
                         <td class="text-right text-info">{{ number_format($recordsColl->sum('total_jks'), 0, ',', '.') }}</td>
                         <td class="text-right">{{ number_format($recordsColl->sum('sudah_skb'), 0, ',', '.') }}</td>
                         <td class="text-right text-success">{{ number_format($recordsColl->sum('skb_approve'), 0, ',', '.') }}</td>
                         <td class="text-right text-error">{{ number_format($recordsColl->sum('skb_reject'), 0, ',', '.') }}</td>
+                        <td class="text-right text-success">{{ number_format($recordsColl->sum('data_lengkap'), 0, ',', '.') }}</td>
+                        <td class="text-right text-error">{{ number_format($recordsColl->sum('data_belum'), 0, ',', '.') }}</td>
                     </tr>
                 </tfoot>
                 @endif

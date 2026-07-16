@@ -8,8 +8,11 @@
             <th style="font-weight: bold; text-align: right; background-color: #f3f4f6;">TOTAL TARGET</th>
             <th style="font-weight: bold; text-align: right; background-color: #f3f4f6; color: #0284c7;">MASUK JKS</th>
             <th style="font-weight: bold; text-align: right; background-color: #f3f4f6;">SUDAH SKB</th>
+            <th style="font-weight: bold; text-align: right; background-color: #f3f4f6; color: #f59e0b;">SKB YG HARUS DI UPLOAD</th>
             <th style="font-weight: bold; text-align: right; background-color: #f3f4f6; color: #16a34a;">APPROVE</th>
             <th style="font-weight: bold; text-align: right; background-color: #f3f4f6; color: #dc2626;">REJECT</th>
+            <th style="font-weight: bold; text-align: right; background-color: #f3f4f6; color: #16a34a;">LENGKAP</th>
+            <th style="font-weight: bold; text-align: right; background-color: #f3f4f6; color: #dc2626;">BELUM</th>
         </tr>
     </thead>
     <tbody>
@@ -26,8 +29,11 @@
                         <td style="text-align: right;">{{ $supervisor['total_target'] }}</td>
                         <td style="text-align: right; color: #0284c7;">{{ $supervisor['total_jks'] }}</td>
                         <td style="text-align: right;">{{ $supervisor['sudah_skb'] }}</td>
+                        <td style="text-align: right; color: #f59e0b; font-weight: bold;">{{ max(0, $supervisor['total_jks'] - $supervisor['sudah_skb']) }}</td>
                         <td style="text-align: right; color: #16a34a;">{{ $supervisor['skb_approve'] }}</td>
                         <td style="text-align: right; color: #dc2626;">{{ $supervisor['skb_reject'] }}</td>
+                        <td style="text-align: right; color: #16a34a;">{{ $supervisor['data_lengkap'] }}</td>
+                        <td style="text-align: right; color: #dc2626;">{{ $supervisor['data_belum'] }}</td>
                     </tr>
                     @php 
                         $isFirstRegionRow = false; 
@@ -42,8 +48,11 @@
                     <td style="font-weight: bold; text-align: right; background-color: #e0f2fe;">{{ $area['total_target'] }}</td>
                     <td style="font-weight: bold; text-align: right; background-color: #e0f2fe; color: #0284c7;">{{ $area['total_jks'] }}</td>
                     <td style="font-weight: bold; text-align: right; background-color: #e0f2fe;">{{ $area['sudah_skb'] }}</td>
+                    <td style="font-weight: bold; text-align: right; background-color: #e0f2fe; color: #f59e0b;">{{ max(0, $area['total_jks'] - $area['sudah_skb']) }}</td>
                     <td style="font-weight: bold; text-align: right; background-color: #e0f2fe; color: #16a34a;">{{ $area['skb_approve'] }}</td>
                     <td style="font-weight: bold; text-align: right; background-color: #e0f2fe; color: #dc2626;">{{ $area['skb_reject'] }}</td>
+                    <td style="font-weight: bold; text-align: right; background-color: #e0f2fe; color: #16a34a;">{{ $area['data_lengkap'] }}</td>
+                    <td style="font-weight: bold; text-align: right; background-color: #e0f2fe; color: #dc2626;">{{ $area['data_belum'] }}</td>
                 </tr>
             @endforeach
 
@@ -54,28 +63,36 @@
                 <td style="font-weight: bold; text-align: right; background-color: #f3e8ff;">{{ $region['total_target'] }}</td>
                 <td style="font-weight: bold; text-align: right; background-color: #f3e8ff; color: #0284c7;">{{ $region['total_jks'] }}</td>
                 <td style="font-weight: bold; text-align: right; background-color: #f3e8ff;">{{ $region['sudah_skb'] }}</td>
+                <td style="font-weight: bold; text-align: right; background-color: #f3e8ff; color: #f59e0b;">{{ max(0, $region['total_jks'] - $region['sudah_skb']) }}</td>
                 <td style="font-weight: bold; text-align: right; background-color: #f3e8ff; color: #16a34a;">{{ $region['skb_approve'] }}</td>
                 <td style="font-weight: bold; text-align: right; background-color: #f3e8ff; color: #dc2626;">{{ $region['skb_reject'] }}</td>
+                <td style="font-weight: bold; text-align: right; background-color: #f3e8ff; color: #16a34a;">{{ $region['data_lengkap'] }}</td>
+                <td style="font-weight: bold; text-align: right; background-color: #f3e8ff; color: #dc2626;">{{ $region['data_belum'] }}</td>
             </tr>
 
         @empty
             <tr>
-                <td colspan="9" style="text-align: center;">Tidak ada data</td>
+                <td colspan="12" style="text-align: center;">Tidak ada data</td>
             </tr>
         @endforelse
 
         @if(count($records) > 0)
             @php
                 $recordsColl = collect($records);
+                $sumJks = collect($recordsColl)->sum('total_jks');
+                $sumSkb = collect($recordsColl)->sum('sudah_skb');
             @endphp
             <tr>
                 <td colspan="3" style="font-weight: bold; text-align: right; background-color: #cbd5e1;">GRAND TOTAL</td>
                 <td style="font-weight: bold; text-align: right; background-color: #cbd5e1;">{{ collect($recordsColl)->sum('total_toko') }}</td>
                 <td style="font-weight: bold; text-align: right; background-color: #cbd5e1;">{{ collect($recordsColl)->sum('total_target') }}</td>
-                <td style="font-weight: bold; text-align: right; background-color: #cbd5e1; color: #0284c7;">{{ collect($recordsColl)->sum('total_jks') }}</td>
-                <td style="font-weight: bold; text-align: right; background-color: #cbd5e1;">{{ collect($recordsColl)->sum('sudah_skb') }}</td>
+                <td style="font-weight: bold; text-align: right; background-color: #cbd5e1; color: #0284c7;">{{ $sumJks }}</td>
+                <td style="font-weight: bold; text-align: right; background-color: #cbd5e1;">{{ $sumSkb }}</td>
+                <td style="font-weight: bold; text-align: right; background-color: #cbd5e1; color: #d97706;">{{ max(0, $sumJks - $sumSkb) }}</td>
                 <td style="font-weight: bold; text-align: right; background-color: #cbd5e1; color: #16a34a;">{{ collect($recordsColl)->sum('skb_approve') }}</td>
                 <td style="font-weight: bold; text-align: right; background-color: #cbd5e1; color: #dc2626;">{{ collect($recordsColl)->sum('skb_reject') }}</td>
+                <td style="font-weight: bold; text-align: right; background-color: #cbd5e1; color: #16a34a;">{{ collect($recordsColl)->sum('data_lengkap') }}</td>
+                <td style="font-weight: bold; text-align: right; background-color: #cbd5e1; color: #dc2626;">{{ collect($recordsColl)->sum('data_belum') }}</td>
             </tr>
         @endif
     </tbody>
