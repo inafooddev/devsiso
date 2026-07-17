@@ -332,16 +332,43 @@
 
     {{-- Preview Photo Modal --}}
     <dialog id="preview_modal" class="modal {{ $isPreviewModalOpen ? 'modal-open' : '' }}">
-        <div class="modal-box max-w-3xl p-0 overflow-hidden bg-base-100 rounded-xl relative">
-            <div class="p-4 border-b border-base-200 flex justify-between items-center bg-base-100/90 backdrop-blur sticky top-0 z-10">
-                <h3 class="font-bold text-lg">Preview Foto SKB</h3>
-                <button class="btn btn-sm btn-circle btn-ghost" wire:click="closePreview">✕</button>
+        <div class="modal-box max-w-4xl p-0 overflow-hidden bg-base-100 rounded-xl relative" 
+             x-data="{ scale: 1, isDragging: false, startX: 0, startY: 0, x: 0, y: 0 }">
+            <div class="p-3 border-b border-base-200 flex justify-between items-center bg-base-100/90 backdrop-blur sticky top-0 z-50">
+                <h3 class="font-bold text-lg px-2">Preview Foto SKB</h3>
+                <div class="flex items-center gap-1">
+                    <button class="btn btn-sm btn-ghost btn-circle" @click="scale = Math.max(0.5, scale - 0.25)" title="Zoom Out">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <button class="btn btn-sm btn-ghost text-xs font-mono" @click="scale = 1; x = 0; y = 0" title="Reset Zoom" style="width: 60px;">
+                        <span x-text="Math.round(scale * 100) + '%'"></span>
+                    </button>
+                    <button class="btn btn-sm btn-ghost btn-circle" @click="scale = Math.min(5, scale + 0.25)" title="Zoom In">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div class="w-px h-5 bg-base-300 mx-1"></div>
+                    <button class="btn btn-sm btn-circle btn-ghost" wire:click="closePreview" @click="scale = 1; x = 0; y = 0">✕</button>
+                </div>
             </div>
-            <div class="p-4 flex justify-center bg-base-200/50 min-h-[40vh] items-center">
+            <div class="p-0 m-0 flex justify-center bg-base-200/80 min-h-[50vh] items-center relative overflow-hidden" 
+                 @mousedown="isDragging = true; startX = $event.clientX - x; startY = $event.clientY - y"
+                 @mousemove="if(isDragging) { x = $event.clientX - startX; y = $event.clientY - startY }"
+                 @mouseup="isDragging = false"
+                 @mouseleave="isDragging = false"
+                 @wheel.prevent="scale = Math.min(Math.max(0.5, scale + $event.deltaY * -0.002), 5)">
                 @if($previewPhotoUrl)
-                    <img src="{{ $previewPhotoUrl }}" alt="Foto SKB" class="max-w-full max-h-[70vh] object-contain rounded shadow-sm" />
+                    <img src="{{ $previewPhotoUrl }}" alt="Foto SKB" 
+                         class="max-w-full max-h-[75vh] object-contain shadow-sm transition-transform duration-75 select-none" 
+                         :class="isDragging ? 'cursor-grabbing' : (scale > 1 ? 'cursor-grab' : 'cursor-zoom-in')"
+                         :style="`transform: translate(${x}px, ${y}px) scale(${scale});`"
+                         @dblclick="scale = scale > 1 ? 1 : 2; x = 0; y = 0"
+                         draggable="false" />
                 @else
-                    <div class="flex flex-col items-center justify-center text-base-content/50">
+                    <div class="flex flex-col items-center justify-center text-base-content/50 py-10">
                         <span class="loading loading-spinner loading-md mb-2"></span>
                         <p>Memuat foto...</p>
                     </div>
@@ -349,7 +376,7 @@
             </div>
         </div>
         <form method="dialog" class="modal-backdrop bg-black/60">
-            <button wire:click="closePreview">Tutup</button>
+            <button wire:click="closePreview" @click="scale = 1; x = 0; y = 0">Tutup</button>
         </form>
     </dialog>
 

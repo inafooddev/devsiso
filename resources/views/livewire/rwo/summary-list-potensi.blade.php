@@ -81,6 +81,13 @@
                         <th>Supervisor</th>
                         <th class="text-right text-primary">Total Toko</th>
                         <th class="text-right text-primary">Total Target</th>
+                        <th class="text-right text-primary">Target Prorata</th>
+                        <th class="text-right text-primary">Pencapaian</th>
+                        <th class="text-right text-primary">%</th>
+                        <th class="text-right text-primary">Toko Trx</th>
+                        <th class="text-right text-success">Hijau</th>
+                        <th class="text-right text-warning">Kuning</th>
+                        <th class="text-right text-error">Merah</th>
                         <th class="text-right text-info">Masuk JKS</th>
                         <th class="text-right">Sudah SKB</th>
                         <th class="text-right text-success">Approve</th>
@@ -118,6 +125,13 @@
                                     <td class="font-bold text-base-content/80">{{ $supervisor['name'] }}</td>
                                     <td class="text-right font-bold">{{ number_format($supervisor['total_toko'], 0, ',', '.') }}</td>
                                     <td class="text-right font-mono text-[11px]">Rp {{ number_format($supervisor['total_target'], 0, ',', '.') }}</td>
+                                    <td class="text-right font-mono text-[11px] text-base-content/60">Rp {{ number_format($supervisor['target_prorata'], 0, ',', '.') }}</td>
+                                    <td class="text-right font-mono font-bold text-[11px] text-success">Rp {{ number_format($supervisor['total_achievement'], 0, ',', '.') }}</td>
+                                    <td class="text-right font-bold text-[11px]">{{ $supervisor['target_prorata'] > 0 ? number_format(($supervisor['total_achievement'] / $supervisor['target_prorata']) * 100, 1, ',', '.') : 0 }}%</td>
+                                    <td class="text-right font-bold">{{ number_format($supervisor['toko_transaksi'], 0, ',', '.') }}</td>
+                                    <td class="text-right font-bold text-success">{{ number_format($supervisor['toko_hijau'], 0, ',', '.') }}</td>
+                                    <td class="text-right font-bold text-warning">{{ number_format($supervisor['toko_kuning'], 0, ',', '.') }}</td>
+                                    <td class="text-right font-bold text-error">{{ number_format($supervisor['toko_merah'], 0, ',', '.') }}</td>
                                     <td class="text-right font-bold text-info">{{ number_format($supervisor['total_jks'], 0, ',', '.') }}</td>
                                     <td class="text-right font-bold">{{ number_format($supervisor['sudah_skb'], 0, ',', '.') }}</td>
                                     <td class="text-right font-bold text-success">{{ number_format($supervisor['skb_approve'], 0, ',', '.') }}</td>
@@ -133,6 +147,13 @@
                                         </td>
                                         <td class="text-right font-semibold opacity-80 border-none py-2">{{ number_format($cabang['total_toko'], 0, ',', '.') }}</td>
                                         <td class="text-right font-mono text-[10px] opacity-80 border-none py-2">Rp {{ number_format($cabang['total_target'], 0, ',', '.') }}</td>
+                                        <td class="text-right font-mono text-[10px] opacity-60 border-none py-2">Rp {{ number_format($cabang['target_prorata'], 0, ',', '.') }}</td>
+                                        <td class="text-right font-mono font-bold text-[10px] text-success opacity-80 border-none py-2">Rp {{ number_format($cabang['total_achievement'], 0, ',', '.') }}</td>
+                                        <td class="text-right font-bold text-[10px] opacity-80 border-none py-2">{{ $cabang['target_prorata'] > 0 ? number_format(($cabang['total_achievement'] / $cabang['target_prorata']) * 100, 1, ',', '.') : 0 }}%</td>
+                                        <td class="text-right font-semibold opacity-80 border-none py-2">{{ number_format($cabang['toko_transaksi'], 0, ',', '.') }}</td>
+                                        <td class="text-right font-semibold text-success opacity-80 border-none py-2">{{ number_format($cabang['toko_hijau'], 0, ',', '.') }}</td>
+                                        <td class="text-right font-semibold text-warning opacity-80 border-none py-2">{{ number_format($cabang['toko_kuning'], 0, ',', '.') }}</td>
+                                        <td class="text-right font-semibold text-error opacity-80 border-none py-2">{{ number_format($cabang['toko_merah'], 0, ',', '.') }}</td>
                                         <td class="text-right font-semibold text-info opacity-80 border-none py-2">{{ number_format($cabang['total_jks'], 0, ',', '.') }}</td>
                                         <td class="text-right font-semibold opacity-80 border-none py-2">{{ number_format($cabang['sudah_skb'], 0, ',', '.') }}</td>
                                         <td class="text-right font-semibold text-success opacity-80 border-none py-2">{{ number_format($cabang['skb_approve'], 0, ',', '.') }}</td>
@@ -154,6 +175,13 @@
                                 <td colspan="3" class="text-right uppercase py-2">Subtotal Area {{ $area['name'] }}</td>
                                 <td class="text-right">{{ number_format($area['total_toko'], 0, ',', '.') }}</td>
                                 <td class="text-right font-mono text-[11px]">Rp {{ number_format($area['total_target'], 0, ',', '.') }}</td>
+                                <td class="text-right font-mono text-[11px] opacity-80">Rp {{ number_format($area['target_prorata'], 0, ',', '.') }}</td>
+                                <td class="text-right font-mono text-[11px] text-success">Rp {{ number_format($area['total_achievement'], 0, ',', '.') }}</td>
+                                <td class="text-right font-bold text-[11px]">{{ $area['target_prorata'] > 0 ? number_format(($area['total_achievement'] / $area['target_prorata']) * 100, 1, ',', '.') : 0 }}%</td>
+                                <td class="text-right">{{ number_format($area['toko_transaksi'], 0, ',', '.') }}</td>
+                                <td class="text-right text-success">{{ number_format($area['toko_hijau'], 0, ',', '.') }}</td>
+                                <td class="text-right text-warning">{{ number_format($area['toko_kuning'], 0, ',', '.') }}</td>
+                                <td class="text-right text-error">{{ number_format($area['toko_merah'], 0, ',', '.') }}</td>
                                 <td class="text-right">{{ number_format($area['total_jks'], 0, ',', '.') }}</td>
                                 <td class="text-right text-base-content/80">{{ number_format($area['sudah_skb'], 0, ',', '.') }}</td>
                                 <td class="text-right text-success">{{ number_format($area['skb_approve'], 0, ',', '.') }}</td>
@@ -170,6 +198,13 @@
                             <td colspan="3" class="text-right uppercase py-3">Subtotal Region {{ $region['name'] }}</td>
                             <td class="text-right">{{ number_format($region['total_toko'], 0, ',', '.') }}</td>
                             <td class="text-right font-mono text-[11px]">Rp {{ number_format($region['total_target'], 0, ',', '.') }}</td>
+                            <td class="text-right font-mono text-[11px] opacity-80">Rp {{ number_format($region['target_prorata'], 0, ',', '.') }}</td>
+                            <td class="text-right font-mono text-[11px] text-success">Rp {{ number_format($region['total_achievement'], 0, ',', '.') }}</td>
+                            <td class="text-right font-bold text-[11px]">{{ $region['target_prorata'] > 0 ? number_format(($region['total_achievement'] / $region['target_prorata']) * 100, 1, ',', '.') : 0 }}%</td>
+                            <td class="text-right">{{ number_format($region['toko_transaksi'], 0, ',', '.') }}</td>
+                            <td class="text-right text-success">{{ number_format($region['toko_hijau'], 0, ',', '.') }}</td>
+                            <td class="text-right text-warning">{{ number_format($region['toko_kuning'], 0, ',', '.') }}</td>
+                            <td class="text-right text-error">{{ number_format($region['toko_merah'], 0, ',', '.') }}</td>
                             <td class="text-right text-info">{{ number_format($region['total_jks'], 0, ',', '.') }}</td>
                             <td class="text-right text-base-content/80">{{ number_format($region['sudah_skb'], 0, ',', '.') }}</td>
                             <td class="text-right text-success">{{ number_format($region['skb_approve'], 0, ',', '.') }}</td>
@@ -182,7 +217,7 @@
                 @empty
                     <tbody class="text-sm">
                         <tr>
-                            <td colspan="9" class="text-center py-8 text-base-content/50">
+                            <td colspan="16" class="text-center py-8 text-base-content/50">
                                 <x-heroicon-o-inbox class="w-12 h-12 mx-auto mb-3 opacity-30" />
                                 <p>Tidak ada data summary ditemukan dengan filter tersebut.</p>
                             </td>
@@ -198,6 +233,13 @@
                         <td colspan="3" class="text-right uppercase py-4">Grand Total Nasional</td>
                         <td class="text-right">{{ number_format($recordsColl->sum('total_toko'), 0, ',', '.') }}</td>
                         <td class="text-right font-mono text-[11px]">Rp {{ number_format($recordsColl->sum('total_target'), 0, ',', '.') }}</td>
+                        <td class="text-right font-mono text-[11px] opacity-80">Rp {{ number_format($recordsColl->sum('target_prorata'), 0, ',', '.') }}</td>
+                        <td class="text-right font-mono text-[11px] text-success">Rp {{ number_format($recordsColl->sum('total_achievement'), 0, ',', '.') }}</td>
+                        <td class="text-right font-bold text-[11px]">{{ $recordsColl->sum('target_prorata') > 0 ? number_format(($recordsColl->sum('total_achievement') / $recordsColl->sum('target_prorata')) * 100, 1, ',', '.') : 0 }}%</td>
+                        <td class="text-right">{{ number_format($recordsColl->sum('toko_transaksi'), 0, ',', '.') }}</td>
+                        <td class="text-right text-success">{{ number_format($recordsColl->sum('toko_hijau'), 0, ',', '.') }}</td>
+                        <td class="text-right text-warning">{{ number_format($recordsColl->sum('toko_kuning'), 0, ',', '.') }}</td>
+                        <td class="text-right text-error">{{ number_format($recordsColl->sum('toko_merah'), 0, ',', '.') }}</td>
                         <td class="text-right text-info">{{ number_format($recordsColl->sum('total_jks'), 0, ',', '.') }}</td>
                         <td class="text-right">{{ number_format($recordsColl->sum('sudah_skb'), 0, ',', '.') }}</td>
                         <td class="text-right text-success">{{ number_format($recordsColl->sum('skb_approve'), 0, ',', '.') }}</td>

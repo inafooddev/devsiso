@@ -94,7 +94,53 @@ class SummaryListPotensi extends Component
             ->leftJoinSub($jksSubquery, 'jks', function($join) {
                 $join->on('jks.custno', '=', 'r.eskalink_code')
                      ->on('jks.kode_team', '=', 'te.team_elite_code');
-            });
+            })
+            ->leftJoinSub(
+                DB::table('zv_so_per_toko_2026')
+                    ->select(
+                        'kd_dist', 
+                        'uniq_kd', 
+                        DB::raw('EXTRACT(QUARTER FROM bulan) as kuartal'),
+                        DB::raw('SUM(neto) as total_achievement'),
+                        DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 1 THEN neto ELSE 0 END) as month_1_value'),
+                        DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 2 THEN neto ELSE 0 END) as month_2_value'),
+                        DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 0 THEN neto ELSE 0 END) as month_3_value')
+                    )
+                    ->groupBy('kd_dist', 'uniq_kd', DB::raw('EXTRACT(QUARTER FROM bulan)')),
+                'zv',
+                function($join) {
+                    $join->on('zv.kd_dist', '=', 'l.distributor_code')
+                         ->on('zv.uniq_kd', '=', 'l.customer_code')
+                         ->on('zv.kuartal', '=', 'l.kuartal');
+                }
+            );
+
+        $currentMonth = (int)date('n');
+        $currentQuarter = (int)ceil($currentMonth / 3);
+        $kuartalNum = (int)($this->kuartal ?: $currentQuarter);
+        
+        $multiplier = 3;
+        if ($kuartalNum === $currentQuarter) {
+            $firstMonthOfQ = ($kuartalNum - 1) * 3 + 1;
+            $multiplier = $currentMonth - $firstMonthOfQ + 1;
+            if ($multiplier < 1) $multiplier = 1;
+            if ($multiplier > 3) $multiplier = 3;
+        } elseif ($kuartalNum > $currentQuarter) {
+            $multiplier = 1;
+        } else {
+            $multiplier = 3;
+        }
+
+        if ($multiplier === 1) {
+            $achievementSql = "COALESCE(zv.month_1_value, 0)";
+        } elseif ($multiplier === 2) {
+            $achievementSql = "(COALESCE(zv.month_1_value, 0) + COALESCE(zv.month_2_value, 0))";
+        } else {
+            $achievementSql = "COALESCE(zv.total_achievement, 0)";
+        }
+        
+        $proratedTargetSql = "((l.total_target / 3.0) * $multiplier)";
+        $progressExpr = "($achievementSql / NULLIF($proratedTargetSql, 0)) * 100";
 
         $this->applyAccessScope($query);
 
@@ -116,6 +162,12 @@ class SummaryListPotensi extends Component
             'md.distributor_name',
             DB::raw('COUNT(DISTINCT l.customer_code) as total_toko'),
             DB::raw('SUM(l.total_target) as total_target'),
+            DB::raw("SUM($proratedTargetSql) as target_prorata"),
+            DB::raw("SUM($achievementSql) as total_achievement"),
+            DB::raw("COUNT(DISTINCT CASE WHEN $achievementSql > 0 THEN l.customer_code END) as toko_transaksi"),
+            DB::raw("COUNT(DISTINCT CASE WHEN COALESCE($progressExpr, 0) >= 100 THEN l.customer_code END) as toko_hijau"),
+            DB::raw("COUNT(DISTINCT CASE WHEN COALESCE($progressExpr, 0) >= 80 AND COALESCE($progressExpr, 0) < 100 THEN l.customer_code END) as toko_kuning"),
+            DB::raw("COUNT(DISTINCT CASE WHEN COALESCE($progressExpr, 0) < 80 THEN l.customer_code END) as toko_merah"),
             DB::raw('COUNT(DISTINCT jks.custno) as total_jks'),
             DB::raw('COUNT(DISTINCT CASE WHEN skb.customer_code IS NOT NULL THEN skb.customer_code END) as sudah_skb'),
             DB::raw('COUNT(DISTINCT CASE WHEN skb.is_approved = true THEN skb.customer_code END) as skb_approve'),
@@ -155,6 +207,8 @@ class SummaryListPotensi extends Component
                     'name' => $rKey,
                     'total_toko' => 0, 'total_target' => 0, 'total_jks' => 0, 'sudah_skb' => 0, 'skb_approve' => 0, 'skb_reject' => 0,
                     'data_lengkap' => 0, 'data_belum' => 0,
+                    'target_prorata' => 0, 'total_achievement' => 0,
+                    'toko_transaksi' => 0, 'toko_hijau' => 0, 'toko_kuning' => 0, 'toko_merah' => 0,
                     'areas' => []
                 ];
             }
@@ -164,6 +218,8 @@ class SummaryListPotensi extends Component
                     'name' => $aKey,
                     'total_toko' => 0, 'total_target' => 0, 'total_jks' => 0, 'sudah_skb' => 0, 'skb_approve' => 0, 'skb_reject' => 0,
                     'data_lengkap' => 0, 'data_belum' => 0,
+                    'target_prorata' => 0, 'total_achievement' => 0,
+                    'toko_transaksi' => 0, 'toko_hijau' => 0, 'toko_kuning' => 0, 'toko_merah' => 0,
                     'supervisors' => []
                 ];
             }
@@ -173,6 +229,8 @@ class SummaryListPotensi extends Component
                     'name' => $sKey,
                     'total_toko' => 0, 'total_target' => 0, 'total_jks' => 0, 'sudah_skb' => 0, 'skb_approve' => 0, 'skb_reject' => 0,
                     'data_lengkap' => 0, 'data_belum' => 0,
+                    'target_prorata' => 0, 'total_achievement' => 0,
+                    'toko_transaksi' => 0, 'toko_hijau' => 0, 'toko_kuning' => 0, 'toko_merah' => 0,
                     'cabang' => []
                 ];
             }
@@ -188,6 +246,12 @@ class SummaryListPotensi extends Component
             $groupedRecords[$rKey]['skb_reject'] += $row->skb_reject;
             $groupedRecords[$rKey]['data_lengkap'] += $row->data_lengkap;
             $groupedRecords[$rKey]['data_belum'] += $dataBelum;
+            $groupedRecords[$rKey]['target_prorata'] += $row->target_prorata;
+            $groupedRecords[$rKey]['total_achievement'] += $row->total_achievement;
+            $groupedRecords[$rKey]['toko_transaksi'] += $row->toko_transaksi;
+            $groupedRecords[$rKey]['toko_hijau'] += $row->toko_hijau;
+            $groupedRecords[$rKey]['toko_kuning'] += $row->toko_kuning;
+            $groupedRecords[$rKey]['toko_merah'] += $row->toko_merah;
 
             // Accumulate metrics for Area
             $groupedRecords[$rKey]['areas'][$aKey]['total_toko'] += $row->total_toko;
@@ -198,6 +262,12 @@ class SummaryListPotensi extends Component
             $groupedRecords[$rKey]['areas'][$aKey]['skb_reject'] += $row->skb_reject;
             $groupedRecords[$rKey]['areas'][$aKey]['data_lengkap'] += $row->data_lengkap;
             $groupedRecords[$rKey]['areas'][$aKey]['data_belum'] += $dataBelum;
+            $groupedRecords[$rKey]['areas'][$aKey]['target_prorata'] += $row->target_prorata;
+            $groupedRecords[$rKey]['areas'][$aKey]['total_achievement'] += $row->total_achievement;
+            $groupedRecords[$rKey]['areas'][$aKey]['toko_transaksi'] += $row->toko_transaksi;
+            $groupedRecords[$rKey]['areas'][$aKey]['toko_hijau'] += $row->toko_hijau;
+            $groupedRecords[$rKey]['areas'][$aKey]['toko_kuning'] += $row->toko_kuning;
+            $groupedRecords[$rKey]['areas'][$aKey]['toko_merah'] += $row->toko_merah;
 
             // Accumulate metrics for Supervisor
             $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['total_toko'] += $row->total_toko;
@@ -208,6 +278,12 @@ class SummaryListPotensi extends Component
             $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['skb_reject'] += $row->skb_reject;
             $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['data_lengkap'] += $row->data_lengkap;
             $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['data_belum'] += $dataBelum;
+            $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['target_prorata'] += $row->target_prorata;
+            $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['total_achievement'] += $row->total_achievement;
+            $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['toko_transaksi'] += $row->toko_transaksi;
+            $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['toko_hijau'] += $row->toko_hijau;
+            $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['toko_kuning'] += $row->toko_kuning;
+            $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['toko_merah'] += $row->toko_merah;
 
             // Add Cabang
             $groupedRecords[$rKey]['areas'][$aKey]['supervisors'][$sKey]['cabang'][] = [
@@ -220,7 +296,13 @@ class SummaryListPotensi extends Component
                 'skb_approve' => $row->skb_approve,
                 'skb_reject' => $row->skb_reject,
                 'data_lengkap' => $row->data_lengkap,
-                'data_belum' => $dataBelum
+                'data_belum' => $dataBelum,
+                'target_prorata' => $row->target_prorata,
+                'total_achievement' => $row->total_achievement,
+                'toko_transaksi' => $row->toko_transaksi,
+                'toko_hijau' => $row->toko_hijau,
+                'toko_kuning' => $row->toko_kuning,
+                'toko_merah' => $row->toko_merah
             ];
         }
 
