@@ -80,6 +80,12 @@
                         <th>Area</th>
                         <th>Supervisor</th>
                         <th class="text-right text-primary">Total Toko</th>
+                        <th class="text-right text-info">Masuk JKS</th>
+                        <th class="text-right">Sudah SKB</th>
+                        <th class="text-right text-success">Approve</th>
+                        <th class="text-right text-error">Reject</th>
+                        <th class="text-right text-success">Lengkap</th>
+                        <th class="text-right text-error">Belum</th>
                         <th class="text-right text-primary">Total Target</th>
                         <th class="text-right text-primary">Target Prorata</th>
                         <th class="text-right text-primary">Pencapaian</th>
@@ -88,12 +94,6 @@
                         <th class="text-right text-success">Hijau</th>
                         <th class="text-right text-warning">Kuning</th>
                         <th class="text-right text-error">Merah</th>
-                        <th class="text-right text-info">Masuk JKS</th>
-                        <th class="text-right">Sudah SKB</th>
-                        <th class="text-right text-success">Approve</th>
-                        <th class="text-right text-error">Reject</th>
-                        <th class="text-right text-success">Lengkap</th>
-                        <th class="text-right text-error">Belum</th>
                     </tr>
                 </thead>
                 @forelse($records as $regionIndex => $region)
@@ -124,6 +124,12 @@
                                     </td>
                                     <td class="font-bold text-base-content/80">{{ $supervisor['name'] }}</td>
                                     <td class="text-right font-bold">{{ number_format($supervisor['total_toko'], 0, ',', '.') }}</td>
+                                    <td class="text-right font-bold text-info">{{ number_format($supervisor['total_jks'], 0, ',', '.') }}</td>
+                                    <td class="text-right font-bold">{{ number_format($supervisor['sudah_skb'], 0, ',', '.') }}</td>
+                                    <td class="text-right font-bold text-success">{{ number_format($supervisor['skb_approve'], 0, ',', '.') }}</td>
+                                    <td class="text-right font-bold text-error">{{ number_format($supervisor['skb_reject'], 0, ',', '.') }}</td>
+                                    <td class="text-right font-bold text-success">{{ number_format($supervisor['data_lengkap'], 0, ',', '.') }}</td>
+                                    <td class="text-right font-bold text-error">{{ number_format($supervisor['data_belum'], 0, ',', '.') }}</td>
                                     <td class="text-right font-mono text-[11px]">Rp {{ number_format($supervisor['total_target'], 0, ',', '.') }}</td>
                                     <td class="text-right font-mono text-[11px] text-base-content/60">Rp {{ number_format($supervisor['target_prorata'], 0, ',', '.') }}</td>
                                     <td class="text-right font-mono font-bold text-[11px] text-success">Rp {{ number_format($supervisor['total_achievement'], 0, ',', '.') }}</td>
@@ -132,12 +138,6 @@
                                     <td class="text-right font-bold text-success">{{ number_format($supervisor['toko_hijau'], 0, ',', '.') }}</td>
                                     <td class="text-right font-bold text-warning">{{ number_format($supervisor['toko_kuning'], 0, ',', '.') }}</td>
                                     <td class="text-right font-bold text-error">{{ number_format($supervisor['toko_merah'], 0, ',', '.') }}</td>
-                                    <td class="text-right font-bold text-info">{{ number_format($supervisor['total_jks'], 0, ',', '.') }}</td>
-                                    <td class="text-right font-bold">{{ number_format($supervisor['sudah_skb'], 0, ',', '.') }}</td>
-                                    <td class="text-right font-bold text-success">{{ number_format($supervisor['skb_approve'], 0, ',', '.') }}</td>
-                                    <td class="text-right font-bold text-error">{{ number_format($supervisor['skb_reject'], 0, ',', '.') }}</td>
-                                    <td class="text-right font-bold text-success">{{ number_format($supervisor['data_lengkap'], 0, ',', '.') }}</td>
-                                    <td class="text-right font-bold text-error">{{ number_format($supervisor['data_belum'], 0, ',', '.') }}</td>
                                 </tr>
                                 
                                 @foreach($supervisor['cabang'] as $cabangIndex => $cabang)
@@ -146,6 +146,12 @@
                                             <div class="font-bold text-primary whitespace-normal" title="{{ $cabang['distributor_name'] }}">{{ $cabang['distributor_name'] }}</div>
                                         </td>
                                         <td class="text-right font-semibold opacity-80 border-none py-2">{{ number_format($cabang['total_toko'], 0, ',', '.') }}</td>
+                                        <td class="text-right font-semibold text-info opacity-80 border-none py-2">{{ number_format($cabang['total_jks'], 0, ',', '.') }}</td>
+                                        <td class="text-right font-semibold opacity-80 border-none py-2">{{ number_format($cabang['sudah_skb'], 0, ',', '.') }}</td>
+                                        <td class="text-right font-semibold text-success opacity-80 border-none py-2">{{ number_format($cabang['skb_approve'], 0, ',', '.') }}</td>
+                                        <td class="text-right font-semibold text-error opacity-80 border-none py-2">{{ number_format($cabang['skb_reject'], 0, ',', '.') }}</td>
+                                        <td class="text-right font-semibold text-success opacity-80 border-none py-2">{{ number_format($cabang['data_lengkap'], 0, ',', '.') }}</td>
+                                        <td class="text-right font-semibold text-error opacity-80 border-none py-2">{{ number_format($cabang['data_belum'], 0, ',', '.') }}</td>
                                         <td class="text-right font-mono text-[10px] opacity-80 border-none py-2">Rp {{ number_format($cabang['total_target'], 0, ',', '.') }}</td>
                                         <td class="text-right font-mono text-[10px] opacity-60 border-none py-2">Rp {{ number_format($cabang['target_prorata'], 0, ',', '.') }}</td>
                                         <td class="text-right font-mono font-bold text-[10px] text-success opacity-80 border-none py-2">Rp {{ number_format($cabang['total_achievement'], 0, ',', '.') }}</td>
@@ -154,12 +160,6 @@
                                         <td class="text-right font-semibold text-success opacity-80 border-none py-2">{{ number_format($cabang['toko_hijau'], 0, ',', '.') }}</td>
                                         <td class="text-right font-semibold text-warning opacity-80 border-none py-2">{{ number_format($cabang['toko_kuning'], 0, ',', '.') }}</td>
                                         <td class="text-right font-semibold text-error opacity-80 border-none py-2">{{ number_format($cabang['toko_merah'], 0, ',', '.') }}</td>
-                                        <td class="text-right font-semibold text-info opacity-80 border-none py-2">{{ number_format($cabang['total_jks'], 0, ',', '.') }}</td>
-                                        <td class="text-right font-semibold opacity-80 border-none py-2">{{ number_format($cabang['sudah_skb'], 0, ',', '.') }}</td>
-                                        <td class="text-right font-semibold text-success opacity-80 border-none py-2">{{ number_format($cabang['skb_approve'], 0, ',', '.') }}</td>
-                                        <td class="text-right font-semibold text-error opacity-80 border-none py-2">{{ number_format($cabang['skb_reject'], 0, ',', '.') }}</td>
-                                        <td class="text-right font-semibold text-success opacity-80 border-none py-2">{{ number_format($cabang['data_lengkap'], 0, ',', '.') }}</td>
-                                        <td class="text-right font-semibold text-error opacity-80 border-none py-2">{{ number_format($cabang['data_belum'], 0, ',', '.') }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -174,6 +174,12 @@
                             <tr class="bg-info/10 text-info font-bold border-b-2 border-info/20">
                                 <td colspan="3" class="text-right uppercase py-2">Subtotal Area {{ $area['name'] }}</td>
                                 <td class="text-right">{{ number_format($area['total_toko'], 0, ',', '.') }}</td>
+                                <td class="text-right">{{ number_format($area['total_jks'], 0, ',', '.') }}</td>
+                                <td class="text-right text-base-content/80">{{ number_format($area['sudah_skb'], 0, ',', '.') }}</td>
+                                <td class="text-right text-success">{{ number_format($area['skb_approve'], 0, ',', '.') }}</td>
+                                <td class="text-right text-error">{{ number_format($area['skb_reject'], 0, ',', '.') }}</td>
+                                <td class="text-right text-success">{{ number_format($area['data_lengkap'], 0, ',', '.') }}</td>
+                                <td class="text-right text-error">{{ number_format($area['data_belum'], 0, ',', '.') }}</td>
                                 <td class="text-right font-mono text-[11px]">Rp {{ number_format($area['total_target'], 0, ',', '.') }}</td>
                                 <td class="text-right font-mono text-[11px] opacity-80">Rp {{ number_format($area['target_prorata'], 0, ',', '.') }}</td>
                                 <td class="text-right font-mono text-[11px] text-success">Rp {{ number_format($area['total_achievement'], 0, ',', '.') }}</td>
@@ -182,12 +188,6 @@
                                 <td class="text-right text-success">{{ number_format($area['toko_hijau'], 0, ',', '.') }}</td>
                                 <td class="text-right text-warning">{{ number_format($area['toko_kuning'], 0, ',', '.') }}</td>
                                 <td class="text-right text-error">{{ number_format($area['toko_merah'], 0, ',', '.') }}</td>
-                                <td class="text-right">{{ number_format($area['total_jks'], 0, ',', '.') }}</td>
-                                <td class="text-right text-base-content/80">{{ number_format($area['sudah_skb'], 0, ',', '.') }}</td>
-                                <td class="text-right text-success">{{ number_format($area['skb_approve'], 0, ',', '.') }}</td>
-                                <td class="text-right text-error">{{ number_format($area['skb_reject'], 0, ',', '.') }}</td>
-                                <td class="text-right text-success">{{ number_format($area['data_lengkap'], 0, ',', '.') }}</td>
-                                <td class="text-right text-error">{{ number_format($area['data_belum'], 0, ',', '.') }}</td>
                             </tr>
                         </tbody>
                     @endforeach
@@ -197,6 +197,12 @@
                         <tr class="bg-primary/10 text-primary font-bold border-b-[3px] border-primary/30">
                             <td colspan="3" class="text-right uppercase py-3">Subtotal Region {{ $region['name'] }}</td>
                             <td class="text-right">{{ number_format($region['total_toko'], 0, ',', '.') }}</td>
+                            <td class="text-right text-info">{{ number_format($region['total_jks'], 0, ',', '.') }}</td>
+                            <td class="text-right text-base-content/80">{{ number_format($region['sudah_skb'], 0, ',', '.') }}</td>
+                            <td class="text-right text-success">{{ number_format($region['skb_approve'], 0, ',', '.') }}</td>
+                            <td class="text-right text-error">{{ number_format($region['skb_reject'], 0, ',', '.') }}</td>
+                            <td class="text-right text-success">{{ number_format($region['data_lengkap'], 0, ',', '.') }}</td>
+                            <td class="text-right text-error">{{ number_format($region['data_belum'], 0, ',', '.') }}</td>
                             <td class="text-right font-mono text-[11px]">Rp {{ number_format($region['total_target'], 0, ',', '.') }}</td>
                             <td class="text-right font-mono text-[11px] opacity-80">Rp {{ number_format($region['target_prorata'], 0, ',', '.') }}</td>
                             <td class="text-right font-mono text-[11px] text-success">Rp {{ number_format($region['total_achievement'], 0, ',', '.') }}</td>
@@ -205,12 +211,6 @@
                             <td class="text-right text-success">{{ number_format($region['toko_hijau'], 0, ',', '.') }}</td>
                             <td class="text-right text-warning">{{ number_format($region['toko_kuning'], 0, ',', '.') }}</td>
                             <td class="text-right text-error">{{ number_format($region['toko_merah'], 0, ',', '.') }}</td>
-                            <td class="text-right text-info">{{ number_format($region['total_jks'], 0, ',', '.') }}</td>
-                            <td class="text-right text-base-content/80">{{ number_format($region['sudah_skb'], 0, ',', '.') }}</td>
-                            <td class="text-right text-success">{{ number_format($region['skb_approve'], 0, ',', '.') }}</td>
-                            <td class="text-right text-error">{{ number_format($region['skb_reject'], 0, ',', '.') }}</td>
-                            <td class="text-right text-success">{{ number_format($region['data_lengkap'], 0, ',', '.') }}</td>
-                            <td class="text-right text-error">{{ number_format($region['data_belum'], 0, ',', '.') }}</td>
                         </tr>
                     </tbody>
 
@@ -232,6 +232,12 @@
                     <tr class="font-bold text-[13px] text-base-content/90">
                         <td colspan="3" class="text-right uppercase py-4">Grand Total Nasional</td>
                         <td class="text-right">{{ number_format($recordsColl->sum('total_toko'), 0, ',', '.') }}</td>
+                        <td class="text-right text-info">{{ number_format($recordsColl->sum('total_jks'), 0, ',', '.') }}</td>
+                        <td class="text-right">{{ number_format($recordsColl->sum('sudah_skb'), 0, ',', '.') }}</td>
+                        <td class="text-right text-success">{{ number_format($recordsColl->sum('skb_approve'), 0, ',', '.') }}</td>
+                        <td class="text-right text-error">{{ number_format($recordsColl->sum('skb_reject'), 0, ',', '.') }}</td>
+                        <td class="text-right text-success">{{ number_format($recordsColl->sum('data_lengkap'), 0, ',', '.') }}</td>
+                        <td class="text-right text-error">{{ number_format($recordsColl->sum('data_belum'), 0, ',', '.') }}</td>
                         <td class="text-right font-mono text-[11px]">Rp {{ number_format($recordsColl->sum('total_target'), 0, ',', '.') }}</td>
                         <td class="text-right font-mono text-[11px] opacity-80">Rp {{ number_format($recordsColl->sum('target_prorata'), 0, ',', '.') }}</td>
                         <td class="text-right font-mono text-[11px] text-success">Rp {{ number_format($recordsColl->sum('total_achievement'), 0, ',', '.') }}</td>
@@ -240,12 +246,6 @@
                         <td class="text-right text-success">{{ number_format($recordsColl->sum('toko_hijau'), 0, ',', '.') }}</td>
                         <td class="text-right text-warning">{{ number_format($recordsColl->sum('toko_kuning'), 0, ',', '.') }}</td>
                         <td class="text-right text-error">{{ number_format($recordsColl->sum('toko_merah'), 0, ',', '.') }}</td>
-                        <td class="text-right text-info">{{ number_format($recordsColl->sum('total_jks'), 0, ',', '.') }}</td>
-                        <td class="text-right">{{ number_format($recordsColl->sum('sudah_skb'), 0, ',', '.') }}</td>
-                        <td class="text-right text-success">{{ number_format($recordsColl->sum('skb_approve'), 0, ',', '.') }}</td>
-                        <td class="text-right text-error">{{ number_format($recordsColl->sum('skb_reject'), 0, ',', '.') }}</td>
-                        <td class="text-right text-success">{{ number_format($recordsColl->sum('data_lengkap'), 0, ',', '.') }}</td>
-                        <td class="text-right text-error">{{ number_format($recordsColl->sum('data_belum'), 0, ',', '.') }}</td>
                     </tr>
                 </tfoot>
                 @endif
