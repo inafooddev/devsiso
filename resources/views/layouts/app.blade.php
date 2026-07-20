@@ -19,6 +19,7 @@
     </script>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <style>
          /* Responsive UI Scaling */
          html { font-size: 100%; } /* 1rem = 16px at >=1536px */
