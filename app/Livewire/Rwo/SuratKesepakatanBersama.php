@@ -193,7 +193,10 @@ class SuratKesepakatanBersama extends Component
         }
 
         if (!empty($user->supervisor_code)) {
-            $query->where("$distributorAlias.supervisor_code", $user->supervisor_code);
+            $query->where(function($q) use ($user, $distributorAlias) {
+                $q->where('te.team_elite_code', $user->supervisor_code)
+                  ->orWhere("$distributorAlias.supervisor_code", $user->supervisor_code);
+            });
         } elseif (!empty($user->area_code)) {
             $query->whereIn("$distributorAlias.area_code", (array) $user->area_code);
         } elseif (!empty($user->region_code)) {
@@ -212,7 +215,8 @@ class SuratKesepakatanBersama extends Component
                      ->on('l.distributor_code', '=', 'skb.distributor_code')
                      ->on('l.kuartal', '=', 'skb.kuartal');
             })
-            ->leftJoin('master_distributors as md', 'md.distributor_code', '=', 'skb.distributor_code');
+            ->leftJoin('master_distributors as md', 'md.distributor_code', '=', 'skb.distributor_code')
+            ->leftJoin('team_elite_code_mappings as te', 'te.siso_code', '=', 'md.supervisor_code');
 
         $this->applyAccessScope($baseQuery, 'md');
 

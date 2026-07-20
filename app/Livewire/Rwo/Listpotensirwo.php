@@ -332,7 +332,10 @@ class Listpotensirwo extends Component
         }
 
         if (!empty($user->supervisor_code)) {
-            $query->where("$distributorAlias.supervisor_code", $user->supervisor_code);
+            $query->where(function($q) use ($user, $distributorAlias) {
+                $q->where('te.team_elite_code', $user->supervisor_code)
+                  ->orWhere("$distributorAlias.supervisor_code", $user->supervisor_code);
+            });
         } elseif (!empty($user->area_code)) {
             $query->whereIn("$distributorAlias.area_code", (array) $user->area_code);
         } elseif (!empty($user->region_code)) {

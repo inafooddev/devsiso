@@ -63,7 +63,10 @@ class SummaryListPotensi extends Component
         }
 
         if (!empty($user->supervisor_code)) {
-            $query->where("md.supervisor_code", $user->supervisor_code);
+            $query->where(function($q) use ($user) {
+                $q->where('te.team_elite_code', $user->supervisor_code)
+                  ->orWhere('md.supervisor_code', $user->supervisor_code);
+            });
         } elseif (!empty($user->area_code)) {
             $query->whereIn("md.area_code", (array) $user->area_code);
         } elseif (!empty($user->region_code)) {

@@ -4,11 +4,11 @@
     {{-- TABS --}}
     <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex items-center shadow-sm relative z-10 -mb-1 md:-mb-2">
         <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
-            <a href="{{ route('rwo.summarylistpotensi') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Summary List Potensi</a>
-            <a href="{{ route('rwo.listpotensirwo') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>List Potensi RWO</a>
-            <a href="{{ route('rwo.surat-kesepakatan-bersama') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Surat Kesepakatan Bersama</a>
-            <a href="{{ route('rwo.pencapaian') }}" class="tab tab-xs px-4 tab-active font-bold shadow-sm bg-base-100" wire:navigate>Pencapaian RWO</a>
-            <a href="{{ route('rwo.plan-kunjungan') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Cek Plan Kunjungan</a>
+            <a href="{{ route('rwo.summarylistpotensi') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Summary</a>
+            <a href="{{ route('rwo.pencapaian') }}" class="tab tab-xs px-4 tab-active font-bold shadow-sm bg-base-100" wire:navigate>Pencapaian</a>
+            <a href="{{ route('rwo.listpotensirwo') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>List Potensi</a>
+            <a href="{{ route('rwo.surat-kesepakatan-bersama') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>SKB</a>
+            <a href="{{ route('rwo.plan-kunjungan') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Plan Kunjungan</a>
         </div>
     </div>
 
@@ -41,10 +41,10 @@
         {{-- Card 1: Toko & Transaksi --}}
         <div class="stats shadow bg-base-100 border border-base-300">
             <div class="stat">
-                <div class="stat-title text-xs font-bold uppercase tracking-wider text-base-content/60">Total Toko / Transaksi</div>
-                <div class="stat-value text-2xl text-primary">{{ number_format($totalToko, 0, ',', '.') }}</div>
+                <div class="stat-title text-xs font-bold uppercase tracking-wider text-base-content/60">Total Transaksi / Toko</div>
+                <div class="stat-value text-2xl text-primary">{{ number_format($tokoTransaksi, 0, ',', '.') }}</div>
                 <div class="stat-desc text-[11px] font-semibold text-primary/80 mt-1">
-                    {{ number_format($tokoTransaksi, 0, ',', '.') }} Toko Transaksi ({{ number_format($tokoTransaksiPct, 1, ',', '.') }}%)
+                    dari Total {{ number_format($totalToko, 0, ',', '.') }} Toko ({{ number_format($tokoTransaksiPct, 1, ',', '.') }}%)
                 </div>
                 <div class="w-full mt-2">
                     <progress class="progress progress-primary w-full h-1.5" value="{{ min($tokoTransaksiPct, 100) }}" max="100"></progress>
@@ -115,99 +115,79 @@
         
         {{-- Toolbar / Filters --}}
         <div class="p-4 border-b border-base-300 shrink-0 bg-base-200/30 flex flex-wrap items-end gap-3">
-            <div class="form-control min-w-[200px] flex-1">
+            <div class="form-control min-w-[250px] max-w-xs">
                 <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Cari Toko</span></label>
                 <div class="relative">
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari nama atau kode toko..." class="input input-sm input-bordered w-full pl-8" />
+                    <input type="text" wire:model="search" wire:keydown.enter="$refresh" placeholder="Cari nama atau kode toko (tekan Enter)..." class="input input-sm input-bordered w-full pl-8" />
                     <x-heroicon-o-magnifying-glass class="w-4 h-4 absolute left-2.5 top-2.5 text-base-content/50" />
                 </div>
             </div>
 
-            <div class="form-control min-w-[120px]">
-                <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Kuartal</span></label>
-                <select wire:model="kuartal" class="select select-sm select-bordered">
-                    @foreach($kuartals as $q)
-                        <option value="{{ $q->quarter }}">Quarter {{ $q->quarter }}</option>
-                    @endforeach
-                </select>
-            </div>
+            <div class="flex flex-wrap items-end gap-3 ml-auto">
+                <button type="button" class="btn btn-sm btn-outline btn-primary" onclick="filter_modal.showModal()">
+                    <x-heroicon-o-funnel class="w-4 h-4 mr-1" />
+                    Filter Wilayah & Kuartal
+                </button>
 
-            <div class="form-control min-w-[130px]">
-                <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Region</span></label>
-                <select wire:model.live="region" class="select select-sm select-bordered">
-                    <option value="">Semua Region</option>
-                    @foreach($regions as $r)
-                        <option value="{{ $r->region_code }}">{{ $r->region_name }}</option>
-                    @endforeach
-                </select>
-            </div>
+                <div class="form-control min-w-[120px]">
+                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Pengkoloman</span></label>
+                    <select wire:model="statusProgress" class="select select-sm select-bordered">
+                        <option value="Semua">Semua Pengkoloman</option>
+                        <option value="1. HIJAU">1. HIJAU (>= 100%)</option>
+                        <option value="2. KUNING">2. KUNING (80% - 99%)</option>
+                        <option value="3. MERAH">3. MERAH (< 80%)</option>
+                    </select>
+                </div>
 
-            <div class="form-control min-w-[130px]">
-                <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Area</span></label>
-                <select wire:model.live="area" class="select select-sm select-bordered" {{ empty($areas) ? 'disabled' : '' }}>
-                    <option value="">Semua Area</option>
-                    @foreach($areas as $a)
-                        <option value="{{ $a->area_code }}">{{ $a->area_name }}</option>
-                    @endforeach
-                </select>
-            </div>
+                <div class="form-control min-w-[110px]">
+                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Status SKB</span></label>
+                    <select wire:model="statusSkb" class="select select-sm select-bordered">
+                        <option value="Semua">Semua</option>
+                        <option value="Sudah">Sudah SKB</option>
+                        <option value="Belum">Belum SKB</option>
+                        <option value="Approve">Approve</option>
+                        <option value="Reject">Reject</option>
+                    </select>
+                </div>
 
-            <div class="form-control min-w-[130px]">
-                <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Supervisor</span></label>
-                <select wire:model.live="supervisor" class="select select-sm select-bordered" {{ empty($supervisors) ? 'disabled' : '' }}>
-                    <option value="">Semua Supervisor</option>
-                    @foreach($supervisors as $s)
-                        <option value="{{ $s->supervisor_code }}">{{ $s->supervisor_name }}</option>
-                    @endforeach
-                </select>
-            </div>
+                <div class="form-control min-w-[110px]">
+                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Status Data</span></label>
+                    <select wire:model="statusData" class="select select-sm select-bordered">
+                        <option value="Semua">Semua</option>
+                        <option value="Lengkap">Lengkap</option>
+                        <option value="Belum">Belum Lengkap</option>
+                    </select>
+                </div>
 
-            <div class="form-control min-w-[130px]">
-                <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Distributor</span></label>
-                <select wire:model="distributor" class="select select-sm select-bordered" {{ empty($distributors) ? 'disabled' : '' }}>
-                    <option value="">Semua Distributor</option>
-                    @foreach($distributors as $d)
-                        <option value="{{ $d->distributor_code }}">{{ $d->distributor_name }}</option>
-                    @endforeach
-                </select>
-            </div>
+                <div class="form-control min-w-[110px]">
+                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Reward %</span></label>
+                    <select wire:model="statusReward" class="select select-sm select-bordered">
+                        <option value="Semua">Semua</option>
+                        <option value="2.5%">2,5%</option>
+                        <option value="2%">2%</option>
+                        <option value="1.5%">1,5%</option>
+                    </select>
+                </div>
 
-            <div class="form-control min-w-[120px]">
-                <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Pengkoloman</span></label>
-                <select wire:model="statusProgress" class="select select-sm select-bordered">
-                    <option value="Semua">Semua Pengkoloman</option>
-                    <option value="1. HIJAU">1. HIJAU (>= 100%)</option>
-                    <option value="2. KUNING">2. KUNING (80% - 99%)</option>
-                    <option value="3. MERAH">3. MERAH (< 80%)</option>
-                </select>
-            </div>
+                <div class="flex gap-2">
+                    <button wire:click="applyFilter" class="btn btn-sm btn-primary">Filter</button>
+                    <button wire:click="resetFilter" class="btn btn-sm btn-outline btn-neutral">Reset</button>
+                    <button type="button" wire:click="export" wire:loading.attr="disabled" wire:target="export" class="btn btn-sm btn-success text-white">
+                        <span wire:loading.remove wire:target="export" class="flex items-center">
+                            <x-heroicon-o-arrow-down-tray class="w-4 h-4 mr-1" />
+                            Export Excel
+                        </span>
+                        <span wire:loading wire:target="export" class="flex items-center">
+                            <span class="loading loading-spinner loading-xs mr-1"></span>
+                            Exporting...
+                        </span>
+                    </button>
+                </div>
 
-            <div class="form-control min-w-[110px]">
-                <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Status SKB</span></label>
-                <select wire:model="statusSkb" class="select select-sm select-bordered">
-                    <option value="Semua">Semua</option>
-                    <option value="Sudah">Sudah SKB</option>
-                    <option value="Belum">Belum SKB</option>
-                </select>
-            </div>
-
-            <div class="form-control min-w-[110px]">
-                <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Status Data</span></label>
-                <select wire:model="statusData" class="select select-sm select-bordered">
-                    <option value="Semua">Semua</option>
-                    <option value="Lengkap">Lengkap</option>
-                    <option value="Belum">Belum Lengkap</option>
-                </select>
-            </div>
-
-            <div class="flex gap-2">
-                <button wire:click="applyFilter" class="btn btn-sm btn-primary">Filter</button>
-                <button wire:click="resetFilter" class="btn btn-sm btn-outline btn-neutral">Reset</button>
-            </div>
-
-            <div class="ml-auto shrink-0 self-center">
-                <div wire:loading>
-                    <span class="loading loading-spinner loading-sm text-primary"></span>
+                <div class="shrink-0 self-center flex items-center h-[32px]">
+                    <div wire:loading>
+                        <span class="loading loading-spinner loading-sm text-primary"></span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -223,10 +203,12 @@
                         <th>Nama Toko</th>
                         <th class="text-center">Status SKB</th>
                         <th class="text-center">Status Data</th>
+                        <th class="text-center">Reward %</th>
                         <th class="text-right">Target Total</th>
                         <th class="text-right text-primary">Target Prorata</th>
                         <th class="text-right">Actual Total</th>
                         <th class="text-center">%</th>
+                        <th class="text-right">Gap</th>
                         <th class="text-right">{{ $monthLabels[0] ?? 'Month 1' }}</th>
                         <th class="text-right">{{ $monthLabels[1] ?? 'Month 2' }}</th>
                         <th class="text-right">{{ $monthLabels[2] ?? 'Month 3' }}</th>
@@ -237,27 +219,40 @@
                     @forelse($records as $row)
                         @php
                             $target = $row->total_target ?? 0;
+                            
+                            $rewardPercent = '1,5%';
+                            if ($target >= 90000000) {
+                                $rewardPercent = '2,5%';
+                            } elseif ($target >= 30000000) {
+                                $rewardPercent = '2%';
+                            }
+
                             $proratedData = $this->getProratedData($target, $row, $this->appliedKuartal);
                             $percent = $proratedData['percent'];
                             $activeAchievement = $proratedData['active_achievement'];
                             $colorLabel = $proratedData['color_label'];
                             $proratedTarget = $proratedData['prorated_target'];
                             
+                            $gap = $proratedTarget - $activeAchievement;
+                            
                             $progressClass = 'progress-error';
                             $textClass = 'text-error font-bold';
+                            $bgClass = 'bg-error/10';
                             if ($colorLabel === '1. HIJAU') {
                                 $progressClass = 'progress-success';
                                 $textClass = 'text-success font-bold';
+                                $bgClass = 'bg-success/10';
                             } elseif ($colorLabel === '2. KUNING') {
                                 $progressClass = 'progress-warning';
                                 $textClass = 'text-warning font-bold';
+                                $bgClass = 'bg-warning/10';
                             }
                         @endphp
                         <tr class="hover">
                             <td class="max-w-[180px] truncate" title="{{ $row->distributor_name }}">{{ $row->distributor_name ?? '-' }}</td>
-                            <td class="font-mono font-bold text-primary">{{ $row->customer_code }}</td>
-                            <td class="font-mono text-xs opacity-75">{{ $row->customer_prc ?? '-' }}</td>
-                            <td class="font-semibold text-base-content/95">{{ $row->customer_name }}</td>
+                            <td class="font-mono font-bold text-primary max-w-[120px] truncate" title="{{ $row->customer_code }}">{{ $row->customer_code }}</td>
+                            <td class="font-mono text-xs opacity-75 max-w-[120px] truncate" title="{{ $row->customer_prc }}">{{ $row->customer_prc ?? '-' }}</td>
+                            <td class="font-semibold text-base-content/95 {{ $bgClass }}">{{ $row->customer_name }}</td>
                             <td class="text-center">
                                 @if($row->status_skb === 'Sudah')
                                     @if($row->is_approved === 1 || $row->is_approved === true)
@@ -278,14 +273,18 @@
                                     <span class="badge badge-warning text-[10px] font-bold text-white py-2">Belum</span>
                                 @endif
                             </td>
-                            <td class="text-right font-mono font-semibold">Rp {{ number_format($target, 0, ',', '.') }}</td>
-                            <td class="text-right font-mono text-xs text-base-content/75 font-semibold">Rp {{ number_format($proratedTarget, 0, ',', '.') }}</td>
-                            <td class="text-right font-mono font-bold text-success/90">Rp {{ number_format($activeAchievement, 0, ',', '.') }}</td>
+                            <td class="text-center font-bold text-info">{{ $rewardPercent }}</td>
+                            <td class="text-right font-mono font-semibold">{{ number_format($target, 0, ',', '.') }}</td>
+                            <td class="text-right font-mono text-xs text-base-content/75 font-semibold">{{ number_format($proratedTarget, 0, ',', '.') }}</td>
+                            <td class="text-right font-mono font-bold text-success/90">{{ number_format($activeAchievement, 0, ',', '.') }}</td>
                             <td class="text-center">
                                 <div class="flex flex-col items-center gap-0.5 min-w-[70px]">
                                     <span class="{{ $textClass }} text-[11px]">{{ number_format($percent, 1, ',', '.') }}%</span>
                                     <progress class="progress {{ $progressClass }} w-14 h-1" value="{{ min($percent, 100) }}" max="100"></progress>
                                 </div>
+                            </td>
+                            <td class="text-right font-mono font-semibold {{ $gap > 0 ? 'text-error' : 'text-success' }}">
+                                {{ $gap > 0 ? '-' : '+' }}{{ number_format(abs($gap), 0, ',', '.') }}
                             </td>
                             <td class="text-right font-mono text-xs text-base-content/75">Rp {{ number_format($row->month_1_value ?? 0, 0, ',', '.') }}</td>
                             <td class="text-right font-mono text-xs text-base-content/75">Rp {{ number_format($row->month_2_value ?? 0, 0, ',', '.') }}</td>
@@ -324,9 +323,52 @@
             <div class="modal-box w-11/12 max-w-4xl bg-base-100 rounded-2xl relative p-6 flex flex-col max-h-[90vh]">
                 <button wire:click="closeDetailModal" class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4">✕</button>
                 
-                <h3 class="font-extrabold text-xl text-base-content border-b pb-3 mb-4">
-                    Detail Toko: <span class="text-primary">{{ $selectedStore->customer_name }}</span>
-                </h3>
+                @php
+                    $modalTarget = $selectedStore->total_target ?? 0;
+                    $modalProratedData = $this->getProratedData($modalTarget, $selectedStore, $this->appliedKuartal);
+                    $modalRewardPercent = '1,5%';
+                    if ($modalTarget >= 90000000) {
+                        $modalRewardPercent = '2,5%';
+                    } elseif ($modalTarget >= 30000000) {
+                        $modalRewardPercent = '2%';
+                    }
+                @endphp
+                <div class="border-b pb-3 mb-4">
+                    <h3 class="font-extrabold text-xl text-base-content">
+                        Detail Toko: <span class="text-primary">{{ $selectedStore->customer_name }}</span>
+                    </h3>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        @if($selectedStore->status_skb === 'Sudah')
+                            @if($selectedStore->is_approved === 1 || $selectedStore->is_approved === true)
+                                <span class="badge badge-success badge-sm font-bold text-white shadow-sm">SKB: Approved</span>
+                            @elseif($selectedStore->is_approved === 0 || $selectedStore->is_approved === false)
+                                <span class="badge badge-error badge-sm font-bold text-white shadow-sm">SKB: Rejected</span>
+                            @else
+                                <span class="badge badge-info badge-sm font-bold text-white shadow-sm">SKB: Submitted</span>
+                            @endif
+                        @else
+                            <span class="badge badge-ghost badge-sm font-bold shadow-sm">SKB: Belum</span>
+                        @endif
+
+                        @if($selectedStore->status_data_lengkap === 'Lengkap')
+                            <span class="badge badge-success badge-sm font-bold text-white shadow-sm">Data: Lengkap</span>
+                        @else
+                            <span class="badge badge-warning badge-sm font-bold text-white shadow-sm">Data: Belum</span>
+                        @endif
+
+                        <span class="badge badge-primary badge-sm font-bold text-white shadow-sm">Reward: {{ $modalRewardPercent }}</span>
+
+                        @php
+                            $kpiColorClass = 'badge-error';
+                            if ($modalProratedData['color_label'] === '1. HIJAU') {
+                                $kpiColorClass = 'badge-success';
+                            } elseif ($modalProratedData['color_label'] === '2. KUNING') {
+                                $kpiColorClass = 'badge-warning';
+                            }
+                        @endphp
+                        <span class="badge {{ $kpiColorClass }} badge-sm font-bold text-white shadow-sm">Kolom: {{ $modalProratedData['color_label'] }}</span>
+                    </div>
+                </div>
 
                 <div class="flex-1 overflow-y-auto pr-2" x-data="{ tab: 'info' }">
                     {{-- Modal Tabs --}}
@@ -372,6 +414,40 @@
 
                                     <div class="font-semibold text-base-content/60">Pemilik Rekening:</div>
                                     <div class="col-span-2">{{ $selectedStore->nama_pemilik_norek ?? '-' }}</div>
+                                </div>
+                            </div>
+                            <div class="card bg-base-200/50 p-4 rounded-xl border border-base-300">
+                                <h4 class="font-bold text-sm text-primary mb-3 uppercase tracking-wide">Pencapaian Toko</h4>
+                                <div class="grid grid-cols-2 gap-y-3 text-xs">
+                                    <div class="font-semibold text-base-content/60">Target Total:</div>
+                                    <div class="font-mono font-semibold">Rp {{ number_format($modalTarget, 0, ',', '.') }}</div>
+
+                                    <div class="font-semibold text-base-content/60">Target Prorata:</div>
+                                    <div class="font-mono font-semibold text-primary">Rp {{ number_format($modalProratedData['prorated_target'], 0, ',', '.') }}</div>
+
+                                    <div class="font-semibold text-base-content/60">Actual Total:</div>
+                                    <div class="font-mono font-bold text-success/90">Rp {{ number_format($modalProratedData['active_achievement'], 0, ',', '.') }}</div>
+
+                                    <div class="font-semibold text-base-content/60">Persentase:</div>
+                                    <div class="font-bold">{{ number_format($modalProratedData['percent'], 1, ',', '.') }}% ({{ $modalProratedData['color_label'] }})</div>
+
+                                    <div class="col-span-2 border-t mt-1 pt-3">
+                                        <div class="font-bold text-xs mb-2 text-base-content/80">Detail Pencapaian Per Bulan:</div>
+                                        <div class="grid grid-cols-3 gap-2 text-[10px]">
+                                            <div class="bg-base-100 p-2 rounded border border-base-300 text-center">
+                                                <div class="uppercase text-base-content/60 font-bold mb-1">{{ $monthLabels[0] ?? 'Bln 1' }}</div>
+                                                <div class="font-mono font-bold text-success/90">Rp {{ number_format($selectedStore->month_1_value ?? 0, 0, ',', '.') }}</div>
+                                            </div>
+                                            <div class="bg-base-100 p-2 rounded border border-base-300 text-center">
+                                                <div class="uppercase text-base-content/60 font-bold mb-1">{{ $monthLabels[1] ?? 'Bln 2' }}</div>
+                                                <div class="font-mono font-bold text-success/90">Rp {{ number_format($selectedStore->month_2_value ?? 0, 0, ',', '.') }}</div>
+                                            </div>
+                                            <div class="bg-base-100 p-2 rounded border border-base-300 text-center">
+                                                <div class="uppercase text-base-content/60 font-bold mb-1">{{ $monthLabels[2] ?? 'Bln 3' }}</div>
+                                                <div class="font-mono font-bold text-success/90">Rp {{ number_format($selectedStore->month_3_value ?? 0, 0, ',', '.') }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -421,6 +497,36 @@
                                             <span class="text-rose-500 font-bold">Belum Diajukan</span>
                                         @endif
                                     </div>
+
+                                    <div class="font-semibold text-base-content/60">Alasan/Reason SKB:</div>
+                                    <div class="col-span-2">
+                                        @if($selectedStore->skb_reason)
+                                            <div class="bg-error/10 text-error font-semibold p-2.5 rounded-md italic text-sm">{{ $selectedStore->skb_reason }}</div>
+                                        @else
+                                            <span class="whitespace-normal italic">-</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card bg-base-200/50 p-4 rounded-xl border border-base-300">
+                                <h4 class="font-bold text-sm text-primary mb-3 uppercase tracking-wide">Remark / Catatan Khusus Toko</h4>
+                                
+                                @if(session()->has('success'))
+                                    <div class="alert alert-success shadow-sm mb-3 text-xs py-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-4 w-4" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        <span>{{ session('success') }}</span>
+                                    </div>
+                                @endif
+                                
+                                <div class="form-control w-full">
+                                    <textarea wire:model="remarkKhusus" class="textarea textarea-bordered h-20 w-full resize-none text-sm" placeholder="Tulis remark khusus untuk toko ini jika ada (misal: case khusus)..."></textarea>
+                                    <div class="flex justify-end mt-3">
+                                        <button wire:click="saveRemarkKhusus" class="btn btn-primary btn-sm">
+                                            <span wire:loading wire:target="saveRemarkKhusus" class="loading loading-spinner loading-xs"></span>
+                                            Simpan Remark
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -462,7 +568,6 @@
                                     <span class="text-lg font-bold font-mono mt-1 text-base-content/90">Rp {{ number_format($selectedStore->month_3_value ?? 0, 0, ',', '.') }}</span>
                                 </div>
                             </div>
-                        </div>
                     </div>
                 </div>
 
@@ -472,4 +577,72 @@
             </div>
         </div>
     @endif
+
+    {{-- Modal Filter Wilayah --}}
+    <dialog id="filter_modal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg mb-4">Filter Wilayah & Kuartal</h3>
+            
+            <div class="space-y-3">
+                <div class="form-control">
+                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Kuartal</span></label>
+                    <select wire:model="kuartal" class="select select-sm select-bordered w-full">
+                        @foreach($kuartals as $q)
+                            <option value="{{ $q->quarter }}">Quarter {{ $q->quarter }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="form-control">
+                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Region</span></label>
+                    <select wire:model.live="region" class="select select-sm select-bordered w-full">
+                        <option value="">Semua Region</option>
+                        @foreach($regions as $r)
+                            <option value="{{ $r->region_code }}">{{ $r->region_name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="form-control">
+                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Area</span></label>
+                    <select wire:model.live="area" class="select select-sm select-bordered w-full" {{ empty($areas) ? 'disabled' : '' }}>
+                        <option value="">Semua Area</option>
+                        @foreach($areas as $a)
+                            <option value="{{ $a->area_code }}">{{ $a->area_name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="form-control">
+                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Supervisor</span></label>
+                    <select wire:model.live="supervisor" class="select select-sm select-bordered w-full" {{ empty($supervisors) ? 'disabled' : '' }}>
+                        <option value="">Semua Supervisor</option>
+                        @foreach($supervisors as $s)
+                            <option value="{{ $s->supervisor_code }}">{{ $s->supervisor_name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="form-control">
+                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Distributor</span></label>
+                    <select wire:model="distributor" class="select select-sm select-bordered w-full" {{ empty($distributors) ? 'disabled' : '' }}>
+                        <option value="">Semua Distributor</option>
+                        @foreach($distributors as $d)
+                            <option value="{{ $d->distributor_code }}">{{ $d->distributor_name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="modal-action">
+                <button type="button" wire:click="applyFilter" onclick="filter_modal.close()" class="btn btn-sm btn-primary">Terapkan Filter</button>
+                <form method="dialog">
+                    <button class="btn btn-sm">Tutup</button>
+                </form>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
 </div>
