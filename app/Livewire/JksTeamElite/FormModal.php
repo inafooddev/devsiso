@@ -420,7 +420,7 @@ class FormModal extends Component
                 $lng = floatval($store['longitude'] ?? 0);
                 if ($lat != 0 && $lng != 0 && !is_nan($lat) && !is_nan($lng)) {
                     $hasValidCoordinates = true;
-                    $q->orWhereRaw("(6371 * acos(cos(radians(?)) * cos(radians(l.latitude)) * cos(radians(l.longitude) - radians(?)) + sin(radians(?)) * sin(radians(l.latitude)))) <= 1.0", [$lat, $lng, $lat]);
+                    $q->orWhereRaw("(6371 * acos(least(1.0, greatest(-1.0, cos(radians(?)) * cos(radians(l.latitude)) * cos(radians(l.longitude) - radians(?)) + sin(radians(?)) * sin(radians(l.latitude)))))) <= 1.0", [$lat, $lng, $lat]);
                 }
             }
         });
