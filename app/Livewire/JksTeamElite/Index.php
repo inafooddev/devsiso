@@ -551,6 +551,8 @@ class Index extends Component
 
     public function addStoreFromGlobalMap($custno, $distributorCode, $tanggal, $kodeTeam)
     {
+        $this->authorizeAction('can_edit');
+
         if (empty($tanggal) || empty($kodeTeam)) {
             session()->flash('message', 'Tanggal dan Team harus diisi.');
             return;
@@ -566,6 +568,8 @@ class Index extends Component
 
     public function updateStoreFromGlobalMap($custno, $distributorCode, $oldDate, $oldTeam, $newDate, $newTeam)
     {
+        $this->authorizeAction('can_edit');
+
         if (empty($newDate) || empty($newTeam)) {
             session()->flash('message', 'Tanggal dan Team harus diisi.');
             return;
@@ -592,6 +596,8 @@ class Index extends Component
 
     public function deleteStoreFromGlobalMap($custno, $distributorCode, $tanggal, $kodeTeam)
     {
+        $this->authorizeAction('can_edit');
+
         JksTeamElite::where('custno', $custno)
             ->where('distributor_code', $distributorCode)
             ->where('tanggal', $tanggal)
@@ -606,6 +612,8 @@ class Index extends Component
 
     public function addStoreFromMap($custno, $distributorCode)
     {
+        $this->authorizeAction('can_edit');
+
         // Pastikan kita tahu tanggal & team mana yang dituju
         if (empty($this->mapTanggal) || empty($this->mapKodeTeam)) {
             return;

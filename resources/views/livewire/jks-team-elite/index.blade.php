@@ -12,7 +12,7 @@
         </div>
     </div>
 
-    <div class="flex flex-col flex-1 min-h-0">
+    <div class="flex flex-col flex-1 min-h-0 h-full">
         {{-- Notifikasi --}}
         @if (session()->has('message') || session()->has('error'))
             <div class="mb-6 mt-4">
@@ -64,17 +64,17 @@
                             <div class="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center text-primary">
                                 <x-heroicon-s-building-storefront class="w-3 h-3" />
                             </div>
-                            <h3 class="text-[0.625rem] font-bold text-base-content/60 uppercase tracking-widest">Total Toko</h3>
+                            <h3 class="text-xs font-bold text-base-content/60 uppercase tracking-widest">Total Toko</h3>
                         </div>
                         <div class="flex items-baseline gap-1 flex-wrap mb-2 cursor-help" title="Format: Terjadwal (Semua Pilar) / Terjadwal (3 Pilar) / Target Pareto (3 Pilar)">
                             <span class="text-xl font-bold text-primary leading-none">{{ number_format($kpi['total_toko_all'] ?? 0) }}</span>
                             <span class="text-sm font-bold text-primary/70 leading-none">/ {{ number_format($kpi['total_toko']) }}</span>
-                            <span class="text-[0.625rem] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_toko']) }}</span>
+                            <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_toko']) }}</span>
                         </div>
                         <div class="w-full bg-base-200 rounded-full h-1 mb-1.5 overflow-hidden">
                             <div class="bg-primary h-1 rounded-full transition-all duration-500" style="width: {{ min(100, $pctToko) }}%"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[0.5625rem] font-bold uppercase tracking-wider">
+                        <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
                             <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapToko) }}</span></span>
                             <span class="text-primary">{{ $pctToko }}%</span>
                         </div>
@@ -95,16 +95,16 @@
                             <div class="w-6 h-6 rounded-md bg-success/10 flex items-center justify-center text-success">
                                 <x-heroicon-s-banknotes class="w-3 h-3" />
                             </div>
-                            <h3 class="text-[0.625rem] font-bold text-base-content/60 uppercase tracking-widest">Total Target</h3>
+                            <h3 class="text-xs font-bold text-base-content/60 uppercase tracking-widest">Total Target</h3>
                         </div>
                         <div class="flex items-baseline gap-1.5 mb-2">
                             <span class="text-xl font-bold text-success leading-none">{{ number_format($kpi['total_target']) }}</span>
-                            <span class="text-[0.625rem] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_target']) }}</span>
+                            <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_target']) }}</span>
                         </div>
                         <div class="w-full bg-base-200 rounded-full h-1 mb-1.5 overflow-hidden">
                             <div class="bg-success h-1 rounded-full transition-all duration-500" style="width: {{ min(100, $pctTarget) }}%"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[0.5625rem] font-bold uppercase tracking-wider">
+                        <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
                             <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapTarget) }}</span></span>
                             <span class="text-success">{{ $pctTarget }}%</span>
                         </div>
@@ -125,16 +125,16 @@
                             <div class="w-6 h-6 rounded-md bg-info/10 flex items-center justify-center text-info">
                                 <x-heroicon-s-shopping-bag class="w-3 h-3" />
                             </div>
-                            <h3 class="text-[0.625rem] font-bold text-base-content/60 uppercase tracking-widest">Total RWO</h3>
+                            <h3 class="text-xs font-bold text-base-content/60 uppercase tracking-widest">Total RWO</h3>
                         </div>
                         <div class="flex items-baseline gap-1.5 mb-2">
                             <span class="text-xl font-bold text-info leading-none">{{ number_format($kpi['total_rwo']) }}</span>
-                            <span class="text-[0.625rem] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_rwo']) }}</span>
+                            <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_rwo']) }}</span>
                         </div>
                         <div class="w-full bg-base-200 rounded-full h-1 mb-1.5 overflow-hidden">
                             <div class="bg-info h-1 rounded-full transition-all duration-500" style="width: {{ min(100, $pctRwo) }}%"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[0.5625rem] font-bold uppercase tracking-wider">
+                        <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
                             <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapRwo) }}</span></span>
                             <span class="text-info">{{ $pctRwo }}%</span>
                         </div>
@@ -155,16 +155,16 @@
                             <div class="w-6 h-6 rounded-md bg-secondary/10 flex items-center justify-center text-secondary">
                                 <x-heroicon-s-archive-box class="w-3 h-3" />
                             </div>
-                            <h3 class="text-[0.625rem] font-bold text-base-content/60 uppercase tracking-widest">Total PNR</h3>
+                            <h3 class="text-xs font-bold text-base-content/60 uppercase tracking-widest">Total PNR</h3>
                         </div>
                         <div class="flex items-baseline gap-1.5 mb-2">
                             <span class="text-xl font-bold text-secondary leading-none">{{ number_format($kpi['total_pnr']) }}</span>
-                            <span class="text-[0.625rem] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_pnr']) }}</span>
+                            <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_pnr']) }}</span>
                         </div>
                         <div class="w-full bg-base-200 rounded-full h-1 mb-1.5 overflow-hidden">
                             <div class="bg-secondary h-1 rounded-full transition-all duration-500" style="width: {{ min(100, $pctPnr) }}%"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[0.5625rem] font-bold uppercase tracking-wider">
+                        <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
                             <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapPnr) }}</span></span>
                             <span class="text-secondary">{{ $pctPnr }}%</span>
                         </div>
@@ -185,16 +185,16 @@
                             <div class="w-6 h-6 rounded-md bg-warning/10 flex items-center justify-center text-warning">
                                 <x-heroicon-s-sparkles class="w-3 h-3" />
                             </div>
-                            <h3 class="text-[0.625rem] font-bold text-base-content/60 uppercase tracking-widest">Total NGVO</h3>
+                            <h3 class="text-xs font-bold text-base-content/60 uppercase tracking-widest">Total NGVO</h3>
                         </div>
                         <div class="flex items-baseline gap-1.5 mb-2">
                             <span class="text-xl font-bold text-warning leading-none">{{ number_format($kpi['total_ngvo']) }}</span>
-                            <span class="text-[0.625rem] font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_ngvo']) }}</span>
+                            <span class="text-xs font-bold text-base-content/40">/ {{ number_format($paretoKpi['total_ngvo']) }}</span>
                         </div>
                         <div class="w-full bg-base-200 rounded-full h-1 mb-1.5 overflow-hidden">
                             <div class="bg-warning h-1 rounded-full transition-all duration-500" style="width: {{ min(100, $pctNgvo) }}%"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[0.5625rem] font-bold uppercase tracking-wider">
+                        <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
                             <span class="text-base-content/50">Gap: <span class="text-error">{{ number_format($gapNgvo) }}</span></span>
                             <span class="text-warning">{{ $pctNgvo }}%</span>
                         </div>
@@ -209,7 +209,7 @@
             <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
                 <div class="shrink-0 w-full sm:w-auto">
                     <h2 class="text-base md:text-lg font-bold">JKS Team Elite</h2>
-                    <p class="text-[0.625rem] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Kelola data JKS Team Elite</p>
+                    <p class="text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Kelola data JKS Team Elite</p>
                 </div>
                 
                 {{-- Menggunakan flex-wrap agar barisan aksi jatuh secara responsif --}}
@@ -217,7 +217,7 @@
                     
                     {{-- Filter Team --}}
                     <div class="relative w-full sm:w-48" x-data="{ open: false }" @click.outside="open = false">
-                        <button type="button" @click="open = !open" class="select select-sm select-bordered w-full rounded-xl bg-base-100 border-base-300 flex items-center justify-between px-3 text-left" @if(count($teams) <= 1) disabled @endif>
+                        <button type="button" @click="open = !open" class="btn btn-sm btn-outline border-base-300 font-normal w-full rounded-xl bg-base-100 flex items-center justify-between px-3 text-left hover:bg-base-200 hover:text-base-content hover:border-base-300" @if(count($teams) <= 1) disabled @endif>
                             <span class="truncate text-base-content/70">
                                 @if(count($filterTeam) === 0)
                                     Pilih Team...
@@ -233,7 +233,7 @@
                         <div x-show="open" 
                              x-transition
                              x-cloak
-                             class="absolute z-50 w-80 mt-1 bg-base-100 border border-base-300 rounded-xl shadow-xl left-0 flex flex-col overflow-hidden">
+                             class="absolute z-50 w-80 mt-1 bg-base-100 border border-base-300 rounded-xl shadow-xl left-0 sm:left-auto sm:right-0 flex flex-col overflow-hidden">
                              
                             <div class="px-3 py-2 border-b border-base-300 bg-base-100 z-10 flex flex-col gap-2 shrink-0">
                                 <div class="flex items-center justify-between gap-2">
@@ -315,7 +315,7 @@
 
             {{-- Body Card (Tabel Scrollable area) --}}
             <div class="flex-1 overflow-auto bg-base-100 w-full relative">
-                <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap text-[0.6875rem] [&_th]:text-[0.6875rem] [&_td]:text-[0.6875rem]">
+                <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap text-xs">
                     <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
                         <tr>
                             <th>No</th>
@@ -416,7 +416,7 @@
                     <tbody>
                         @if(empty($filterTeam) || empty($filterStartDate) || empty($filterEndDate))
                             <tr>
-                                <td colspan="13" class="text-center py-8 text-base-content/50">
+                                <td colspan="12" class="text-center py-8 text-base-content/50">
                                     <x-heroicon-o-funnel class="w-12 h-12 mx-auto mb-3 opacity-30" />
                                     Silakan pilih <strong>Team</strong> dan <strong>Range Tanggal</strong> terlebih dahulu untuk menampilkan data.
                                 </td>
@@ -449,22 +449,22 @@
                                         }
                                     @endphp
                                     <td class="text-center">
-                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}')" wire:loading.attr="disabled" class="badge {{ $badgeClass }} font-bold cursor-pointer transition-colors">
+                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}')" wire:loading.attr="disabled" wire:loading.class="opacity-50 pointer-events-none" class="badge {{ $badgeClass }} font-bold cursor-pointer transition-colors">
                                             {{ $record->total_toko }}
                                         </button>
                                     </td>
                                     <td class="text-center">
-                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}', 'RWO')" wire:loading.attr="disabled" class="badge badge-info badge-outline font-bold cursor-pointer hover:bg-info hover:text-white transition-colors">
+                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}', 'RWO')" wire:loading.attr="disabled" wire:loading.class="opacity-50 pointer-events-none" class="badge badge-info badge-outline font-bold cursor-pointer hover:bg-info hover:text-white transition-colors">
                                             {{ $record->total_rwo ?? 0 }}
                                         </button>
                                     </td>
                                     <td class="text-center">
-                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}', 'PNR')" wire:loading.attr="disabled" class="badge badge-secondary badge-outline font-bold cursor-pointer hover:bg-secondary hover:text-white transition-colors">
+                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}', 'PNR')" wire:loading.attr="disabled" wire:loading.class="opacity-50 pointer-events-none" class="badge badge-secondary badge-outline font-bold cursor-pointer hover:bg-secondary hover:text-white transition-colors">
                                             {{ $record->total_pnr ?? 0 }}
                                         </button>
                                     </td>
                                     <td class="text-center">
-                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}', 'NGVO')" wire:loading.attr="disabled" class="badge badge-warning badge-outline font-bold cursor-pointer hover:bg-warning hover:text-white transition-colors">
+                                        <button type="button" wire:click="showStoreDetails('{{ $record->tanggal }}', '{{ $record->kode_team }}', 'NGVO')" wire:loading.attr="disabled" wire:loading.class="opacity-50 pointer-events-none" class="badge badge-warning badge-outline font-bold cursor-pointer hover:bg-warning hover:text-white transition-colors">
                                             {{ $record->total_ngvo ?? 0 }}
                                         </button>
                                     </td>
@@ -482,7 +482,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="13" class="text-center py-4 text-base-content/50">Tidak ada data ditemukan untuk kriteria tersebut.</td>
+                                    <td colspan="12" class="text-center py-4 text-base-content/50">Tidak ada data ditemukan untuk kriteria tersebut.</td>
                                 </tr>
                             @endforelse
                         @endif
@@ -512,7 +512,7 @@
          x-cloak 
          class="fixed inset-0 z-[60] flex items-center justify-center p-4">
         
-        <div x-show="open" class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
+        <div x-show="open" class="fixed inset-0 bg-neutral/40 backdrop-blur-sm" @click="open = false"></div>
 
         <div x-show="open" class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-sm overflow-hidden text-center">
             <div class="p-8">
@@ -538,7 +538,7 @@
          x-cloak 
          class="fixed inset-0 z-[60] flex items-center justify-center p-4">
         
-        <div x-show="open" class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
+        <div x-show="open" class="fixed inset-0 bg-neutral/40 backdrop-blur-sm" @click="open = false"></div>
 
         <div x-show="open" class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-[95%] sm:w-full max-w-4xl overflow-hidden flex flex-col">
             <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30">
@@ -601,7 +601,7 @@
          x-cloak 
          class="fixed inset-0 z-[60] flex items-center justify-center p-4">
         
-        <div x-show="open" class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
+        <div x-show="open" class="fixed inset-0 bg-neutral/40 backdrop-blur-sm" @click="open = false"></div>
 
         <div x-show="open" class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-sm overflow-hidden flex flex-col">
             <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30">
@@ -752,6 +752,8 @@
                 return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
             }
 
+            const canEditMap = @json(auth()->check() && auth()->user()->hasMenuAccess('jks-team-elite.index', 'can_edit'));
+
             window.renderMapMarkers = function(map, markers, data) {
                 // Wait for map to load
                 if (!map || !map.isStyleLoaded()) {
@@ -842,33 +844,35 @@
                             }
                             popupContent += `<span class="badge badge-ghost badge-sm border-none bg-base-300 text-base-content font-semibold shadow-sm w-max mt-1 mb-1">Belum Dijadwalkan</span>`;
                             
-                            if (!data.isGlobal) {
-                                popupContent += `<button type="button" onclick="window.dispatchEvent(new CustomEvent('map-add-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}' } }))" class="btn btn-primary btn-xs text-white">Tambahkan Jadwal</button>`;
-                            } else {
-                                let teamOptions = data.availableTeams.map(t => `<option value="${escHtml(t.kode_team)}">${escHtml(t.nama_team)}</option>`).join('');
-                                popupContent += `
-                                    <div class="form-control w-full">
-                                        <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Tanggal</span></label>
-                                        <input type="date" id="date_${store.custno}" class="input input-xs input-bordered w-full bg-white text-gray-900 border-gray-300" />
-                                    </div>
-                                    <div class="form-control w-full mt-1">
-                                        <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Team</span></label>
-                                        <select id="team_${store.custno}" class="select select-xs select-bordered w-full bg-white text-gray-900 border-gray-300">
-                                            ${teamOptions}
-                                        </select>
-                                    </div>
-                                    <div id="popup_err_${store.custno}" style="display:none;color:#ef4444;font-size:0.75rem;margin-top:4px;">⚠️ Tanggal dan Team wajib diisi!</div>
-                                    <button type="button" onclick="
-                                        let d = document.getElementById('date_${store.custno}').value;
-                                        let t = document.getElementById('team_${store.custno}').value;
-                                        if(!d || !t) { 
-                                            let errEl = document.getElementById('popup_err_${store.custno}');
-                                            if(errEl) { errEl.style.display='block'; setTimeout(()=>errEl.style.display='none',3000); }
-                                            return; 
-                                        }
-                                        window.dispatchEvent(new CustomEvent('global-map-add-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}', date: d, team: t } }))
-                                    " class="btn btn-primary btn-xs text-white mt-1">Simpan Jadwal</button>
-                                `;
+                            if (canEditMap) {
+                                if (!data.isGlobal) {
+                                    popupContent += `<button type="button" onclick="window.dispatchEvent(new CustomEvent('map-add-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}' } }))" class="btn btn-primary btn-xs text-white">Tambahkan Jadwal</button>`;
+                                } else {
+                                    let teamOptions = data.availableTeams.map(t => `<option value="${escHtml(t.kode_team)}">${escHtml(t.nama_team)}</option>`).join('');
+                                    popupContent += `
+                                        <div class="form-control w-full">
+                                            <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Tanggal</span></label>
+                                            <input type="date" id="date_${store.custno}" class="input input-xs input-bordered w-full bg-white text-gray-900 border-gray-300" />
+                                        </div>
+                                        <div class="form-control w-full mt-1">
+                                            <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Team</span></label>
+                                            <select id="team_${store.custno}" class="select select-xs select-bordered w-full bg-white text-gray-900 border-gray-300">
+                                                ${teamOptions}
+                                            </select>
+                                        </div>
+                                        <div id="popup_err_${store.custno}" style="display:none;color:#ef4444;font-size:0.75rem;margin-top:4px;">⚠️ Tanggal dan Team wajib diisi!</div>
+                                        <button type="button" onclick="
+                                            let d = document.getElementById('date_${store.custno}').value;
+                                            let t = document.getElementById('team_${store.custno}').value;
+                                            if(!d || !t) { 
+                                                let errEl = document.getElementById('popup_err_${store.custno}');
+                                                if(errEl) { errEl.style.display='block'; setTimeout(()=>errEl.style.display='none',3000); }
+                                                return; 
+                                            }
+                                            window.dispatchEvent(new CustomEvent('global-map-add-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}', date: d, team: t } }))
+                                        " class="btn btn-primary btn-xs text-white mt-1">Simpan Jadwal</button>
+                                    `;
+                                }
                             }
                             
                             popupContent += `</div>`;
@@ -917,7 +921,7 @@
                             }
                             popupHtml += `<span class="badge badge-primary badge-sm font-bold border-none text-white shadow-sm mt-1 w-max">Dijadwalkan JKS</span>`;
                             
-                            if (data.isGlobal) {
+                            if (canEditMap && data.isGlobal) {
                                 let teamOptions = (data.availableTeams || []).map(t => `<option value="${escHtml(t.kode_team)}" ${t.kode_team == store.kode_team ? 'selected' : ''}>${escHtml(t.nama_team)}</option>`).join('');
                                 popupHtml += `
                                     <div class="mt-2 border-t border-gray-200 pt-2">
