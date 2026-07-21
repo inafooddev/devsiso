@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Component } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import {
     MagnifyingGlassIcon, XMarkIcon, MapPinIcon, ShieldCheckIcon,
     AdjustmentsHorizontalIcon, XCircleIcon, CheckCircleIcon,
@@ -26,6 +28,55 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
     const d = R * c; // Distance in km
     return d;
 };
+
+const calcDistanceText = (lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    const p1 = parseFloat(lat1);
+    const p2 = parseFloat(lon1);
+    const p3 = parseFloat(lat2);
+    const p4 = parseFloat(lon2);
+    if (isNaN(p1) || isNaN(p2) || isNaN(p3) || isNaN(p4)) return null;
+
+    const distKm = getDistance(p1, p2, p3, p4);
+    if (distKm < 1) {
+        return Math.round(distKm * 1000) + ' m';
+    }
+    return distKm.toFixed(2) + ' km';
+};
+
+class ErrorBoundary extends Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null, errorInfo: null };
+    }
+    static getDerivedStateFromError(error) {
+        return { hasError: true };
+    }
+    componentDidCatch(error, errorInfo) {
+        this.setState({ error, errorInfo });
+        console.error("ErrorBoundary caught an error", error, errorInfo);
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="p-4 m-4 bg-red-100 border border-red-400 text-red-700 rounded-lg overflow-y-auto max-h-screen">
+                    <h2 className="text-lg font-bold mb-2">Terjadi Kesalahan (Runtime Error)</h2>
+                    <p className="text-sm font-semibold mb-2">Mohon screenshot error ini dan kirimkan:</p>
+                    <details className="whitespace-pre-wrap text-[10px] font-mono bg-white p-2 rounded border border-red-200" open>
+                        <summary className="font-bold cursor-pointer text-red-800 mb-1">Error Message:</summary>
+                        {this.state.error && this.state.error.toString()}
+                        <hr className="my-2 border-red-200" />
+                        <span className="font-bold text-red-800">Component Stack:</span>
+                        <br />
+                        {this.state.errorInfo && this.state.errorInfo.componentStack}
+                    </details>
+                    <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded font-bold text-xs">Muat Ulang Halaman</button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 export default function Index({ outlets, auditReports = [], sessionAuditor }) {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -83,6 +134,11 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
     const userLocationRef = useRef(null);
     const [gpsStatus, setGpsStatus] = useState('loading'); // 'loading', 'success', 'error'
     const isSubmittingRef = useRef(false);
+
+    const auditMapContainerRef = useRef(null);
+    const auditLeafletMapRef = useRef(null);
+    const auditMarkersRef = useRef({ master: null, audit: null, line: null });
+
 
     useEffect(() => {
         let isMounted = true;
@@ -145,6 +201,14 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
         customer_address: '',
         auditor: sessionAuditor || '',
         keterangan_hasil_audit: '',
+        is_toko_fisik: false,
+        is_nama_pemilik: false,
+        is_nama_ktp: false,
+        is_nik_ktp: false,
+        is_no_hp: false,
+        is_no_rekening: false,
+        is_an_rekening: false,
+        is_titik_koordinat: false,
         latitude: '',
         longitude: '',
         foto_audit1: null,
@@ -152,6 +216,110 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
         foto_audit3: null,
     });
 
+
+    useEffect(() => {
+        if (!detailOutlet || !auditMapContainerRef.current) return;
+
+        const masterLat = parseFloat(detailOutlet.master_latitude);
+        const masterLng = parseFloat(detailOutlet.master_longitude);
+        const auditLat = parseFloat(data.latitude);
+        const auditLng = parseFloat(data.longitude);
+
+        const hasMaster = !isNaN(masterLat) && !isNaN(masterLng);
+        const hasAudit = !isNaN(auditLat) && !isNaN(auditLng);
+
+        if (!hasMaster && !hasAudit) return;
+
+        let map = auditLeafletMapRef.current;
+
+        try {
+            if (auditMapContainerRef.current && auditMapContainerRef.current._leaflet_id) {
+                auditMapContainerRef.current._leaflet_id = null;
+            }
+
+            if (!map) {
+                map = L.map(auditMapContainerRef.current, {
+                    attributionControl: false,
+                    zoomControl: true,
+                });
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 20
+                }).addTo(map);
+                auditLeafletMapRef.current = map;
+            }
+
+            const m = auditMarkersRef.current;
+
+            if (m.master) { try { map.removeLayer(m.master); } catch (e) {} m.master = null; }
+            if (m.audit) { try { map.removeLayer(m.audit); } catch (e) {} m.audit = null; }
+            if (m.line) { try { map.removeLayer(m.line); } catch (e) {} m.line = null; }
+
+            const masterIcon = L.divIcon({
+                className: 'custom-marker-master',
+                html: `<div style="background-color: #2563eb; color: white; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); font-weight: bold; font-size: 11px;">M</div>`,
+                iconSize: [26, 26],
+                iconAnchor: [13, 13]
+            });
+
+            const auditIcon = L.divIcon({
+                className: 'custom-marker-audit',
+                html: `<div style="background-color: #059669; color: white; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); font-weight: bold; font-size: 11px;">A</div>`,
+                iconSize: [26, 26],
+                iconAnchor: [13, 13]
+            });
+
+            const bounds = L.latLngBounds([]);
+
+            if (hasMaster) {
+                m.master = L.marker([masterLat, masterLng], { icon: masterIcon })
+                    .bindPopup(`<b style="font-size:11px;">Titik Master Outlet</b>`)
+                    .addTo(map);
+                bounds.extend([masterLat, masterLng]);
+            }
+
+            if (hasAudit) {
+                m.audit = L.marker([auditLat, auditLng], { icon: auditIcon })
+                    .bindPopup(`<b style="font-size:11px;">Titik Hasil Audit</b>`)
+                    .addTo(map);
+                bounds.extend([auditLat, auditLng]);
+            }
+
+            if (hasMaster && hasAudit) {
+                m.line = L.polyline([[masterLat, masterLng], [auditLat, auditLng]], {
+                    color: '#6366f1',
+                    weight: 3,
+                    dashArray: '6, 6',
+                    opacity: 0.8
+                }).addTo(map);
+
+                map.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
+            } else if (hasMaster) {
+                map.setView([masterLat, masterLng], 15);
+            } else if (hasAudit) {
+                map.setView([auditLat, auditLng], 15);
+            }
+
+            setTimeout(() => {
+                if (auditLeafletMapRef.current) {
+                    try {
+                        auditLeafletMapRef.current.invalidateSize();
+                    } catch (e) {}
+                }
+            }, 300);
+        } catch (err) {
+            console.error("Leaflet map initialization error:", err);
+        }
+
+        return () => {
+            if (auditLeafletMapRef.current) {
+                try {
+                    auditLeafletMapRef.current.remove();
+                } catch (e) {}
+                auditLeafletMapRef.current = null;
+            }
+            auditMarkersRef.current = { master: null, audit: null, line: null };
+        };
+    }, [detailOutlet, data.latitude, data.longitude]);
     const [previewUrls, setPreviewUrls] = useState({
         foto_audit1: null,
         foto_audit2: null,
@@ -200,17 +368,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
             setData(field, null);
             return;
         }
-        
-        // Cek ukuran file max 5MB (5 * 1024 * 1024)
-        if (file.size > 5242880) {
-            showToast('Ukuran foto terlalu besar (Maks. 5MB)', 'error');
-            setData(field, null);
-            // Reset the file input visually
-            if (field === 'foto_audit1' && fileInput1.current) fileInput1.current.value = '';
-            if (field === 'foto_audit2' && fileInput2.current) fileInput2.current.value = '';
-            if (field === 'foto_audit3' && fileInput3.current) fileInput3.current.value = '';
-            return;
-        }
+
         
         setIsFormTouched(true);
         setData(field, file);
@@ -234,6 +392,14 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
             customer_address: outlet.customer_address,
             auditor: sessionAuditor || outlet.auditor || '',
             keterangan_hasil_audit: outlet.keterangan_hasil_audit || '',
+            is_toko_fisik: Boolean(outlet.is_toko_fisik),
+            is_nama_pemilik: Boolean(outlet.is_nama_pemilik),
+            is_nama_ktp: Boolean(outlet.is_nama_ktp),
+            is_nik_ktp: Boolean(outlet.is_nik_ktp),
+            is_no_hp: Boolean(outlet.is_no_hp),
+            is_no_rekening: Boolean(outlet.is_no_rekening),
+            is_an_rekening: Boolean(outlet.is_an_rekening),
+            is_titik_koordinat: Boolean(outlet.is_titik_koordinat),
             latitude: outlet.audit_latitude || '',
             longitude: outlet.audit_longitude || '',
             foto_audit1: null,
@@ -394,7 +560,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                 setDisplayLimit(30);
                 setFilteredOutlets(sorted);
             } else {
-                setFilteredOutlets([]);
+                setFilteredOutlets(outlets || []);
             }
             return;
         }
@@ -496,6 +662,11 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
         if (isFormTouched) {
             setShowDiscardModal(true);
         } else {
+            if (auditLeafletMapRef.current) {
+                auditLeafletMapRef.current.remove();
+                auditLeafletMapRef.current = null;
+            }
+            auditMarkersRef.current = { master: null, audit: null, line: null };
             setDetailOutlet(null);
             setShowNoPhotoWarning(false);
         }
@@ -513,8 +684,6 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                     </div>
                     <h2 className="text-sm md:text-base font-black uppercase tracking-wider text-slate-900 leading-tight text-center">Sistem Audit Toko</h2>
                     <p className="text-[10px] font-bold text-indigo-600 tracking-widest uppercase mb-6 leading-none text-center">Pilih Identitas Auditor</p>
-                    
-
 
                     <div className="w-full flex flex-col gap-3">
                         {[
@@ -618,8 +787,6 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                         )}
                     </button>
                 </div>
-
-
             </div>
 
             {/* Main Content */}
@@ -823,67 +990,80 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto pr-1">
-                                {filteredReports.length > 0 ? filteredReports.map((report) => (
-                                    <div key={report.customer_code} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col gap-2 relative overflow-hidden">
-                                        <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
-                                        <div className="flex justify-between items-start gap-2">
-                                            <div className="flex-1 min-w-0">
-                                                <span className="text-[9px] px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 font-bold font-mono tracking-wider w-fit inline-block mb-1">{report.customer_code}</span>
-                                                <h5 className="text-xs md:text-sm font-black text-slate-800 tracking-tight leading-snug truncate">{report.customer_name}</h5>
+                                {filteredReports.length > 0 ? filteredReports.map((report) => {
+                                    const verifiedCount = [
+                                        report.is_toko_fisik,
+                                        report.is_nama_pemilik,
+                                        report.is_nama_ktp,
+                                        report.is_nik_ktp,
+                                        report.is_no_hp,
+                                        report.is_no_rekening,
+                                        report.is_an_rekening,
+                                        report.is_titik_koordinat
+                                    ].filter(Boolean).length;
+
+                                    return (
+                                        <div key={report.customer_code} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col gap-2 relative overflow-hidden">
+                                            <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                                            <div className="flex justify-between items-start gap-2">
+                                                <div className="flex-1 min-w-0">
+                                                    <span className="text-[9px] px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 font-bold font-mono tracking-wider w-fit inline-block mb-1">{report.customer_code}</span>
+                                                    <h5 className="text-xs md:text-sm font-black text-slate-800 tracking-tight leading-snug truncate">{report.customer_name}</h5>
+                                                </div>
+                                                <div className="flex flex-col items-end shrink-0">
+                                                    <span className="text-[8px] uppercase tracking-wider font-extrabold text-slate-400 mb-0.5">Auditor</span>
+                                                    <span className="text-[10px] px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold shadow-sm">{report.auditor}</span>
+                                                </div>
                                             </div>
-                                            <div className="flex flex-col items-end shrink-0">
-                                                <span className="text-[8px] uppercase tracking-wider font-extrabold text-slate-400 mb-0.5">Auditor</span>
-                                                <span className="text-[10px] px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold shadow-sm">{report.auditor}</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium mt-1">
-                                            <BuildingStorefrontIcon className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-                                            <span className="flex-1 leading-snug">Cabang: <span className="font-bold text-slate-700">{report.cabang || '-'}</span></span>
-                                        </div>
-                                        {report.created_at && (
                                             <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium mt-1">
-                                                <svg className="w-3.5 h-3.5 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                <span className="flex-1 leading-snug">Tanggal: <span className="font-bold text-slate-700">{new Date(report.created_at).toLocaleString('id-ID', {day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit'})}</span></span>
+                                                <BuildingStorefrontIcon className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                                                <span className="flex-1 leading-snug">Cabang: <span className="font-bold text-slate-700">{report.cabang || '-'}</span></span>
                                             </div>
-                                        )}
-                                        {report.keterangan_hasil_audit && (
-                                            <div className="text-[10px] text-slate-500 mt-1 leading-snug">
-                                                <span className="font-bold text-slate-700">Keterangan Hasil Audit:</span>{' '}
-                                                <span className="text-slate-600">{report.keterangan_hasil_audit}</span>
+                                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium mt-1">
+                                                <ShieldCheckIcon className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                                                <span className="flex-1 leading-snug">
+                                                    Checklist: <span className="font-bold text-emerald-700">{verifiedCount}/8 Sesuai</span>
+                                                </span>
                                             </div>
-                                        )}
-                                        <div className="flex gap-2 mt-3 pt-3 border-t border-slate-200/60">
-                                            <button 
-                                                onClick={() => openDetailFromReport(report)} 
-                                                className="flex-1 inline-flex items-center justify-center gap-1 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 text-[10px] font-bold uppercase tracking-wide hover:bg-indigo-100 transition-colors"
-                                            >
-                                                <EyeIcon className="w-3.5 h-3.5" />
-                                                Detail
-                                            </button>
-                                            <button 
-                                                onClick={() => openDetailFromReport(report, true)} 
-                                                className="flex-1 inline-flex items-center justify-center gap-1 h-8 rounded-lg bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-bold uppercase tracking-wide hover:bg-amber-100 transition-colors"
-                                            >
-                                                <PencilIcon className="w-3.5 h-3.5" />
-                                                Edit
-                                            </button>
-                                            <button 
-                                                onClick={() => requestDeleteReport(report)} 
-                                                disabled={isDeletingCode === report.customer_code}
-                                                className={`flex-1 inline-flex items-center justify-center gap-1 h-8 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors ${isDeletingCode === report.customer_code ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100'}`}
-                                            >
-                                                {isDeletingCode === report.customer_code ? (
-                                                    <div className="w-3 h-3 rounded-full border-2 border-slate-400 border-t-transparent animate-spin"></div>
-                                                ) : (
-                                                    <TrashIcon className="w-3.5 h-3.5" />
-                                                )}
-                                                {isDeletingCode === report.customer_code ? 'Hapus...' : 'Hapus'}
-                                            </button>
+                                            {report.created_at && (
+                                                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium mt-1">
+                                                    <svg className="w-3.5 h-3.5 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    <span className="flex-1 leading-snug">Tanggal: <span className="font-bold text-slate-700">{new Date(report.created_at).toLocaleString('id-ID', {day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit'})}</span></span>
+                                                </div>
+                                            )}
+                                            {report.keterangan_hasil_audit && (
+                                                <div className="text-[10px] text-slate-500 mt-1 leading-snug">
+                                                    <span className="font-bold text-slate-700">Keterangan Hasil Audit:</span>{' '}
+                                                    <span className="text-slate-600">{report.keterangan_hasil_audit}</span>
+                                                </div>
+                                            )}
+                                            <div className="flex gap-2 mt-3 pt-3 border-t border-slate-200/60">
+
+                                                <button 
+                                                    onClick={() => openDetailFromReport(report, true)} 
+                                                    className="flex-1 inline-flex items-center justify-center gap-1 h-8 rounded-lg bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-bold uppercase tracking-wide hover:bg-amber-100 transition-colors"
+                                                >
+                                                    <PencilIcon className="w-3.5 h-3.5" />
+                                                    Edit
+                                                </button>
+                                                <button 
+                                                    onClick={() => requestDeleteReport(report)} 
+                                                    disabled={isDeletingCode === report.customer_code}
+                                                    className={`flex-1 inline-flex items-center justify-center gap-1 h-8 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors ${isDeletingCode === report.customer_code ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100'}`}
+                                                >
+                                                    {isDeletingCode === report.customer_code ? (
+                                                        <div className="w-3 h-3 rounded-full border-2 border-slate-400 border-t-transparent animate-spin"></div>
+                                                    ) : (
+                                                        <TrashIcon className="w-3.5 h-3.5" />
+                                                    )}
+                                                    {isDeletingCode === report.customer_code ? 'Hapus...' : 'Hapus'}
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                )) : (
+                                    );
+                                }) : (
                                     <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center col-span-full">
                                         <ShieldExclamationIcon className="w-8 h-8 text-slate-300 mb-2" />
                                         <span className="text-[11px] font-bold text-slate-500">
@@ -949,11 +1129,15 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                 <div className="fixed inset-0 z-50">
                     <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={handleCloseDetail}></div>
                     <div className="fixed bottom-0 left-0 right-0 max-w-xl md:max-w-2xl mx-auto bg-white rounded-t-[32px] shadow-2xl flex flex-col max-h-[85%] z-50 animate-slide-up">
+                        <ErrorBoundary>
                         <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto my-3 shrink-0"></div>
                         <div className="px-5 pb-3 pt-2 flex items-start justify-between border-b border-slate-100 shrink-0">
                             <div>
                                 <div className="flex flex-wrap items-center gap-1.5 mb-1">
                                     <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 font-mono font-bold rounded-md text-[9px]">{detailOutlet.customer_code}</span>
+                                    <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border ${detailOutlet.status_audit === 'Sudah' ? 'bg-emerald-50 text-emerald-600 border-emerald-100/80' : 'bg-rose-50 text-rose-600 border-rose-100/80'}`}>
+                                        {detailOutlet.status_audit === 'Sudah' ? 'Sudah Audit' : 'Belum Audit'}
+                                    </span>
                                     {detailOutlet.rwo_status && (
                                         <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border ${detailOutlet.rwo_status === 'RWO' ? 'bg-purple-50 text-purple-600 border-purple-100/80' : 'bg-slate-50 text-slate-500 border-slate-200/80'}`}>
                                             {detailOutlet.rwo_status}
@@ -967,52 +1151,75 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                             </button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                            {/* General */}
-                            <div>
-                                <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 mb-2">Informasi Umum</h5>
-                                <div className="bg-slate-50 rounded-xl p-3 space-y-2 border border-slate-100">
-                                    <div className="flex justify-between border-b border-slate-200 pb-2 gap-2">
-                                        <span className="text-[10px] font-semibold text-slate-500 shrink-0">Distributor</span>
-                                        <span className="text-[10px] font-bold text-slate-800 text-right">{detailOutlet.distributor_name}</span>
-                                    </div>
-                                    <div className="flex justify-between border-b border-slate-200 pb-2 gap-2">
-                                        <span className="text-[10px] font-semibold text-slate-500 shrink-0">Cabang</span>
-                                        <span className="text-[10px] font-bold text-slate-800 text-right">{detailOutlet.cabang}</span>
-                                    </div>
-                                    <div className="flex justify-between border-b border-slate-200 pb-2 gap-2">
-                                        <span className="text-[10px] font-semibold text-slate-500 shrink-0">Alamat</span>
-                                        <span className="text-[10px] font-bold text-slate-800 text-right">{detailOutlet.customer_address}</span>
-                                    </div>
-                                    <div className="flex justify-between border-b border-slate-200 pb-2 gap-2">
-                                        <span className="text-[10px] font-semibold text-slate-500 shrink-0">Status Audit</span>
-                                        <span className={`text-[10px] font-bold uppercase ${detailOutlet.status_audit === 'Sudah' ? 'text-emerald-600' : 'text-rose-600'}`}>{detailOutlet.status_audit} Audit</span>
-                                    </div>
-                                    <div className="flex justify-between gap-2">
-                                        <span className="text-[10px] font-semibold text-slate-500 shrink-0">Keterangan Audit</span>
-                                        <span className="text-[10px] font-bold text-slate-800 text-right">{detailOutlet.keterangan_hasil_audit || '-'}</span>
-                                    </div>
-                                </div>
-                            </div>
                             
                             {/* Identitas Pemilik */}
                             <div>
                                 <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 mb-2">Identitas Pemilik</h5>
                                 <div className="bg-slate-50 rounded-xl p-3 space-y-2 border border-slate-100">
-                                    <div className="flex justify-between border-b border-slate-200 pb-2 gap-2">
-                                        <span className="text-[10px] font-semibold text-slate-500 shrink-0">Nama Pemilik</span>
-                                        <span className="text-[10px] font-bold text-slate-800 text-right">{detailOutlet.nama_pemilik_toko || '-'}</span>
+                                    <div className="flex items-center justify-between border-b border-slate-200 pb-2 gap-2">
+                                        <span className="w-1/3 text-[10px] font-semibold text-slate-500 shrink-0">Toko Fisik</span>
+                                        <span className="flex-1 text-[10px] font-bold text-slate-800 truncate">Ada / Beroperasi</span>
+                                        <label className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border text-[9px] font-bold cursor-pointer transition-all ${data.is_toko_fisik ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={Boolean(data.is_toko_fisik)} 
+                                                onChange={e => { setIsFormTouched(true); setData('is_toko_fisik', e.target.checked); }}
+                                                className="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer" 
+                                            />
+                                            <span>{data.is_toko_fisik ? 'Fisik Sesuai' : 'Verifikasi'}</span>
+                                        </label>
                                     </div>
-                                    <div className="flex justify-between border-b border-slate-200 pb-2 gap-2">
-                                        <span className="text-[10px] font-semibold text-slate-500 shrink-0">Nama KTP</span>
-                                        <span className="text-[10px] font-bold text-slate-800 text-right">{detailOutlet.nama_ktp || '-'}</span>
+                                    <div className="flex items-center justify-between border-b border-slate-200 pb-2 gap-2">
+                                        <span className="w-1/3 text-[10px] font-semibold text-slate-500 shrink-0">Nama Pemilik</span>
+                                        <span className="flex-1 text-[10px] font-bold text-slate-800 truncate">{detailOutlet.nama_pemilik_toko || '-'}</span>
+                                        <label className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border text-[9px] font-bold cursor-pointer transition-all ${data.is_nama_pemilik ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={Boolean(data.is_nama_pemilik)} 
+                                                onChange={e => { setIsFormTouched(true); setData('is_nama_pemilik', e.target.checked); }}
+                                                className="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer" 
+                                            />
+                                            <span>{data.is_nama_pemilik ? 'Sesuai' : 'Verifikasi'}</span>
+                                        </label>
                                     </div>
-                                    <div className="flex justify-between border-b border-slate-200 pb-2 gap-2">
-                                        <span className="text-[10px] font-semibold text-slate-500 shrink-0">NIK KTP</span>
-                                        <span className="text-[10px] font-bold text-slate-800 text-right">{detailOutlet.nik_ktp || '-'}</span>
+                                    <div className="flex items-center justify-between border-b border-slate-200 pb-2 gap-2">
+                                        <span className="w-1/3 text-[10px] font-semibold text-slate-500 shrink-0">Nama KTP</span>
+                                        <span className="flex-1 text-[10px] font-bold text-slate-800 truncate">{detailOutlet.nama_ktp || '-'}</span>
+                                        <label className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border text-[9px] font-bold cursor-pointer transition-all ${data.is_nama_ktp ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={Boolean(data.is_nama_ktp)} 
+                                                onChange={e => { setIsFormTouched(true); setData('is_nama_ktp', e.target.checked); }}
+                                                className="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer" 
+                                            />
+                                            <span>{data.is_nama_ktp ? 'Sesuai' : 'Verifikasi'}</span>
+                                        </label>
                                     </div>
-                                    <div className="flex justify-between gap-2">
-                                        <span className="text-[10px] font-semibold text-slate-500 shrink-0">No. HP</span>
-                                        <span className="text-[10px] font-bold text-slate-800 text-right">{detailOutlet.no_hp || '-'}</span>
+                                    <div className="flex items-center justify-between border-b border-slate-200 pb-2 gap-2">
+                                        <span className="w-1/3 text-[10px] font-semibold text-slate-500 shrink-0">NIK KTP</span>
+                                        <span className="flex-1 text-[10px] font-bold text-slate-800 truncate">{detailOutlet.nik_ktp || '-'}</span>
+                                        <label className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border text-[9px] font-bold cursor-pointer transition-all ${data.is_nik_ktp ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={Boolean(data.is_nik_ktp)} 
+                                                onChange={e => { setIsFormTouched(true); setData('is_nik_ktp', e.target.checked); }}
+                                                className="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer" 
+                                            />
+                                            <span>{data.is_nik_ktp ? 'Sesuai' : 'Verifikasi'}</span>
+                                        </label>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="w-1/3 text-[10px] font-semibold text-slate-500 shrink-0">No. HP</span>
+                                        <span className="flex-1 text-[10px] font-bold text-slate-800 truncate">{detailOutlet.no_hp || '-'}</span>
+                                        <label className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border text-[9px] font-bold cursor-pointer transition-all ${data.is_no_hp ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={Boolean(data.is_no_hp)} 
+                                                onChange={e => { setIsFormTouched(true); setData('is_no_hp', e.target.checked); }}
+                                                className="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer" 
+                                            />
+                                            <span>{data.is_no_hp ? 'Sesuai' : 'Verifikasi'}</span>
+                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -1021,69 +1228,138 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                             <div>
                                 <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 mb-2">Rekening Bank</h5>
                                 <div className="bg-slate-50 rounded-xl p-3 space-y-2 border border-slate-100">
-                                    <div className="flex justify-between border-b border-slate-200 pb-2 gap-2">
-                                        <span className="text-[10px] font-semibold text-slate-500 shrink-0">Nama Bank</span>
-                                        <span className="text-[10px] font-bold text-slate-800 text-right">{detailOutlet.nama_bank || '-'}</span>
+                                    <div className="flex items-center justify-between border-b border-slate-200 pb-2 gap-2">
+                                        <span className="w-1/3 text-[10px] font-semibold text-slate-500 shrink-0">Nama Bank</span>
+                                        <span className="flex-1 text-[10px] font-bold text-slate-800 truncate">{detailOutlet.nama_bank || '-'}</span>
                                     </div>
-                                    <div className="flex justify-between border-b border-slate-200 pb-2 gap-2">
-                                        <span className="text-[10px] font-semibold text-slate-500 shrink-0">No. Rekening</span>
-                                        <span className="text-[10px] font-bold text-slate-800 text-right">{detailOutlet.no_rekening || '-'}</span>
+                                    <div className="flex items-center justify-between border-b border-slate-200 pb-2 gap-2">
+                                        <span className="w-1/3 text-[10px] font-semibold text-slate-500 shrink-0">No. Rekening</span>
+                                        <span className="flex-1 text-[10px] font-bold text-slate-800 truncate">{detailOutlet.no_rekening || '-'}</span>
+                                        <label className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border text-[9px] font-bold cursor-pointer transition-all ${data.is_no_rekening ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={Boolean(data.is_no_rekening)} 
+                                                onChange={e => { setIsFormTouched(true); setData('is_no_rekening', e.target.checked); }}
+                                                className="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer" 
+                                            />
+                                            <span>{data.is_no_rekening ? 'Sesuai' : 'Verifikasi'}</span>
+                                        </label>
                                     </div>
-                                    <div className="flex justify-between gap-2">
-                                        <span className="text-[10px] font-semibold text-slate-500 shrink-0">A/N Rekening</span>
-                                        <span className="text-[10px] font-bold text-slate-800 text-right">{detailOutlet.nama_pemilik_norek || '-'}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Foto */}
-                            <div className="pb-6">
-                                <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 mb-2">Foto Lampiran</h5>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="bg-slate-50 rounded-xl overflow-hidden border border-slate-100 shadow-sm flex flex-col relative group">
-                                        <span className="text-[9px] font-bold text-slate-600 px-2.5 py-1.5 border-b border-slate-100 bg-white/90 backdrop-blur-sm absolute top-0 w-full z-10">KTP</span>
-                                        {detailOutlet.foto_ktp ? (
-                                            <button type="button" onClick={() => setZoomedImage(`/storage/${detailOutlet.foto_ktp}`)} className="block mt-6 focus:outline-none w-full text-left">
-                                                <img src={`/storage/${detailOutlet.foto_ktp}`} alt="Foto KTP" className="w-full h-24 object-cover" />
-                                            </button>
-                                        ) : (
-                                            <div className="mt-6 flex-1 h-24 flex items-center justify-center bg-slate-100/50">
-                                                <span className="text-[10px] font-semibold text-slate-400">Belum ada</span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="bg-slate-50 rounded-xl overflow-hidden border border-slate-100 shadow-sm flex flex-col relative group">
-                                        <span className="text-[9px] font-bold text-slate-600 px-2.5 py-1.5 border-b border-slate-100 bg-white/90 backdrop-blur-sm absolute top-0 w-full z-10">Tampak Depan</span>
-                                        {detailOutlet.tampak_depan ? (
-                                            <button type="button" onClick={() => setZoomedImage(`/storage/${detailOutlet.tampak_depan}`)} className="block mt-6 focus:outline-none w-full text-left">
-                                                <img src={`/storage/${detailOutlet.tampak_depan}`} alt="Tampak Depan" className="w-full h-24 object-cover" />
-                                            </button>
-                                        ) : (
-                                            <div className="mt-6 flex-1 h-24 flex items-center justify-center bg-slate-100/50">
-                                                <span className="text-[10px] font-semibold text-slate-400">Belum ada</span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="bg-slate-50 rounded-xl overflow-hidden border border-slate-100 shadow-sm flex flex-col relative group">
-                                        <span className="text-[9px] font-bold text-slate-600 px-2.5 py-1.5 border-b border-slate-100 bg-white/90 backdrop-blur-sm absolute top-0 w-full z-10">Tampak Dalam</span>
-                                        {detailOutlet.tampak_dalam ? (
-                                            <button type="button" onClick={() => setZoomedImage(`/storage/${detailOutlet.tampak_dalam}`)} className="block mt-6 focus:outline-none w-full text-left">
-                                                <img src={`/storage/${detailOutlet.tampak_dalam}`} alt="Tampak Dalam" className="w-full h-24 object-cover" />
-                                            </button>
-                                        ) : (
-                                            <div className="mt-6 flex-1 h-24 flex items-center justify-center bg-slate-100/50">
-                                                <span className="text-[10px] font-semibold text-slate-400">Belum ada</span>
-                                            </div>
-                                        )}
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="w-1/3 text-[10px] font-semibold text-slate-500 shrink-0">A/N Rekening</span>
+                                        <span className="flex-1 text-[10px] font-bold text-slate-800 truncate">{detailOutlet.nama_pemilik_norek || '-'}</span>
+                                        <label className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border text-[9px] font-bold cursor-pointer transition-all ${data.is_an_rekening ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={Boolean(data.is_an_rekening)} 
+                                                onChange={e => { setIsFormTouched(true); setData('is_an_rekening', e.target.checked); }}
+                                                className="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer" 
+                                            />
+                                            <span>{data.is_an_rekening ? 'Sesuai' : 'Verifikasi'}</span>
+                                        </label>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Titik Koordinat & Peta Lokasi */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 flex items-center gap-1">
+                                        <MapPinIcon className="w-3.5 h-3.5 text-indigo-600" />
+                                        Titik Koordinat (GPS)
+                                    </h5>
+                                    <label className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border text-[9px] font-bold cursor-pointer transition-all ${data.is_titik_koordinat ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={Boolean(data.is_titik_koordinat)} 
+                                            onChange={e => { setIsFormTouched(true); setData('is_titik_koordinat', e.target.checked); }}
+                                            className="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer" 
+                                        />
+                                        <span>{data.is_titik_koordinat ? 'Koordinat Sesuai' : 'Verifikasi'}</span>
+                                    </label>
+                                </div>
+
+                                <div className={`p-3.5 rounded-2xl border transition-all ${data.latitude && data.longitude ? 'bg-emerald-50/60 border-emerald-200' : 'bg-amber-50/60 border-amber-300 shadow-sm'}`}>
+                                    {/* Banner Informasional Jarak */}
+                                    <div className="flex items-center justify-between bg-white border border-slate-200/80 p-2.5 rounded-xl shadow-sm mb-2.5">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-2.5 h-2.5 rounded-full ${data.latitude && data.longitude ? 'bg-emerald-500 animate-ping' : 'bg-amber-500'}`}></div>
+                                            <span className="text-[10px] font-bold text-slate-700">Jarak dari Master:</span>
+                                        </div>
+                                        <span className={`text-[11px] font-black ${data.latitude && data.longitude ? 'text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100' : 'text-amber-600'}`}>
+                                            {data.latitude && data.longitude && detailOutlet.master_latitude && detailOutlet.master_longitude ? (
+                                                `📏 ${calcDistanceText(detailOutlet.master_latitude, detailOutlet.master_longitude, data.latitude, data.longitude)}`
+                                            ) : (
+                                                '⚠️ Belum diukur'
+                                            )}
+                                        </span>
+                                    </div>
+
+                                    {/* Leaflet Mini Map Container */}
+                                    <div className="relative w-full h-44 rounded-xl overflow-hidden border border-slate-200/90 shadow-inner mb-3 z-0">
+                                        <div ref={auditMapContainerRef} className="w-full h-full"></div>
+                                        
+                                        {/* Legend Overlay */}
+                                        <div className="absolute top-2 right-2 z-[400] bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-1 text-[8px] font-bold text-slate-700">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block border border-white"></span>
+                                                <span>Titik Master</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block border border-white"></span>
+                                                <span>Hasil Audit</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Box Latitude Longitude */}
+                                    <div className="grid grid-cols-2 gap-2 mb-3">
+                                        <div className="bg-white border border-slate-200/80 rounded-xl p-2 text-center shadow-sm">
+                                            <span className="text-[8px] font-extrabold text-slate-400 block uppercase tracking-wider mb-0.5">Audit Lat</span>
+                                            <span className={`text-[10px] font-mono font-bold ${data.latitude ? 'text-slate-800' : 'text-amber-600'}`}>
+                                                {data.latitude || 'Belum ada'}
+                                            </span>
+                                        </div>
+                                        <div className="bg-white border border-slate-200/80 rounded-xl p-2 text-center shadow-sm">
+                                            <span className="text-[8px] font-extrabold text-slate-400 block uppercase tracking-wider mb-0.5">Audit Long</span>
+                                            <span className={`text-[10px] font-mono font-bold ${data.longitude ? 'text-slate-800' : 'text-amber-600'}`}>
+                                                {data.longitude || 'Belum ada'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Button Ambil GPS */}
+                                    <button 
+                                        type="button" 
+                                        onClick={fetchCurrentLocation}
+                                        disabled={isGettingLocation}
+                                        className={`w-full py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider shadow-md flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+                                            isGettingLocation 
+                                                ? 'bg-slate-300 text-slate-600 cursor-not-allowed' 
+                                                : data.latitude && data.longitude
+                                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/20'
+                                                    : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-600/25 ring-2 ring-indigo-400/40 animate-pulse'
+                                        }`}
+                                    >
+                                        {isGettingLocation ? (
+                                            <>
+                                                <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                                                <span>Mendeteksi Lokasi GPS...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <MapPinIcon className="w-4 h-4" />
+                                                <span>{data.latitude && data.longitude ? 'Perbarui Lokasi GPS' : '📍 Ambil Lokasi GPS Sekarang'}</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+
 
                             {/* Form Audit */}
                             <div id="audit-form-container" className="pb-6">
-                                <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 mb-2">Form Hasil Audit</h5>
+                                <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 mb-2">Catatan Hasil Audit</h5>
                                 <form onSubmit={submitAudit} className="bg-white rounded-xl p-4 border border-indigo-100 shadow-sm shadow-indigo-100/50 space-y-4">
                                     <div>
                                         <label className="block text-[10px] font-bold text-slate-700 mb-1">Nama Auditor *</label>
@@ -1096,8 +1372,9 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                         />
                                         {errors.auditor && <div className="text-[10px] text-rose-500 mt-1">{errors.auditor}</div>}
                                     </div>
+
                                     <div>
-                                        <label className="block text-[10px] font-bold text-slate-700 mb-1">Keterangan Audit</label>
+                                        <label className="block text-[10px] font-bold text-slate-700 mb-1">Keterangan Audit (Free Text)</label>
                                         <textarea 
                                             value={data.keterangan_hasil_audit || ''} 
                                             onChange={e => {
@@ -1113,31 +1390,6 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                             <span className={`text-[9px] font-semibold ${(data.keterangan_hasil_audit || '').length > 480 ? 'text-rose-500' : (data.keterangan_hasil_audit || '').length > 400 ? 'text-amber-500' : 'text-slate-400'}`}>
                                                 {(data.keterangan_hasil_audit || '').length}/500
                                             </span>
-                                        </div>
-                                    </div>
-                                    {/* Lokasi Koordinat */}
-                                    <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl space-y-2">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-[10px] font-bold text-slate-700">Titik Koordinat (GPS)</span>
-                                            <button 
-                                                type="button" 
-                                                onClick={fetchCurrentLocation}
-                                                disabled={isGettingLocation}
-                                                className="text-[9px] text-indigo-600 hover:text-indigo-800 font-black uppercase tracking-wide flex items-center gap-1 disabled:opacity-50"
-                                            >
-                                                <MapPinIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                                                Ambil Lokasi
-                                            </button>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div className="bg-white border border-slate-200/80 rounded-lg p-2 text-center shadow-sm">
-                                                <span className="text-[8px] font-extrabold text-slate-400 block mb-0.5 uppercase tracking-wider">Latitude</span>
-                                                <span className="text-[10px] font-mono font-bold text-slate-800">{data.latitude || 'Belum diambil'}</span>
-                                            </div>
-                                            <div className="bg-white border border-slate-200/80 rounded-lg p-2 text-center shadow-sm">
-                                                <span className="text-[8px] font-extrabold text-slate-400 block mb-0.5 uppercase tracking-wider">Longitude</span>
-                                                <span className="text-[10px] font-mono font-bold text-slate-800">{data.longitude || 'Belum diambil'}</span>
-                                            </div>
                                         </div>
                                     </div>
                                     <div>
@@ -1276,6 +1528,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                 </form>
                             </div>
                         </div>
+                        </ErrorBoundary>
                     </div>
                 </div>
             )}

@@ -49,6 +49,14 @@ class IndexController extends Controller
                     ELSE 'Belum'
                 END AS status_audit,
                 hat.keterangan_hasil_audit,
+                hat.is_toko_fisik,
+                hat.is_nama_pemilik,
+                hat.is_nama_ktp,
+                hat.is_nik_ktp,
+                hat.is_no_hp,
+                hat.is_no_rekening,
+                hat.is_an_rekening,
+                hat.is_titik_koordinat,
                 hat.auditor,
                 hat.foto_audit1,
                 hat.foto_audit2,
@@ -76,14 +84,25 @@ class IndexController extends Controller
                 hat.customer_address,
                 hat.latitude,
                 hat.longitude,
+                l.latitude AS master_latitude,
+                l.longitude AS master_longitude,
                 hat.foto_audit1,
                 hat.foto_audit2,
                 hat.foto_audit3,
                 hat.keterangan_hasil_audit,
+                hat.is_toko_fisik,
+                hat.is_nama_pemilik,
+                hat.is_nama_ktp,
+                hat.is_nik_ktp,
+                hat.is_no_hp,
+                hat.is_no_rekening,
+                hat.is_an_rekening,
+                hat.is_titik_koordinat,
                 hat.created_at,
                 hat.id
             ')
             ->leftJoin('master_distributors as md', 'hat.distributor_code', '=', 'md.distributor_code')
+            ->leftJoin('list_outlet_audit as l', 'hat.customer_code', '=', 'l.customer_code')
             ->when(session('audit_user'), function ($q) {
                 $q->where('hat.auditor', session('audit_user'));
             })
@@ -115,9 +134,17 @@ class IndexController extends Controller
             'customer_code' => 'required',
             'distributor_code' => 'required',
             'auditor' => 'required',
-            'foto_audit1' => 'nullable|image|max:5120',
-            'foto_audit2' => 'nullable|image|max:5120',
-            'foto_audit3' => 'nullable|image|max:5120',
+            'foto_audit1' => 'nullable|image',
+            'foto_audit2' => 'nullable|image',
+            'foto_audit3' => 'nullable|image',
+            'is_toko_fisik' => 'nullable|boolean',
+            'is_nama_pemilik' => 'nullable|boolean',
+            'is_nama_ktp' => 'nullable|boolean',
+            'is_nik_ktp' => 'nullable|boolean',
+            'is_no_hp' => 'nullable|boolean',
+            'is_no_rekening' => 'nullable|boolean',
+            'is_an_rekening' => 'nullable|boolean',
+            'is_titik_koordinat' => 'nullable|boolean',
         ]);
 
         $data = [
@@ -128,6 +155,14 @@ class IndexController extends Controller
             'latitude' => ($request->latitude && $request->latitude !== '0') ? $request->latitude : null,
             'longitude' => ($request->longitude && $request->longitude !== '0') ? $request->longitude : null,
             'keterangan_hasil_audit' => $request->keterangan_hasil_audit,
+            'is_toko_fisik' => filter_var($request->is_toko_fisik, FILTER_VALIDATE_BOOLEAN),
+            'is_nama_pemilik' => filter_var($request->is_nama_pemilik, FILTER_VALIDATE_BOOLEAN),
+            'is_nama_ktp' => filter_var($request->is_nama_ktp, FILTER_VALIDATE_BOOLEAN),
+            'is_nik_ktp' => filter_var($request->is_nik_ktp, FILTER_VALIDATE_BOOLEAN),
+            'is_no_hp' => filter_var($request->is_no_hp, FILTER_VALIDATE_BOOLEAN),
+            'is_no_rekening' => filter_var($request->is_no_rekening, FILTER_VALIDATE_BOOLEAN),
+            'is_an_rekening' => filter_var($request->is_an_rekening, FILTER_VALIDATE_BOOLEAN),
+            'is_titik_koordinat' => filter_var($request->is_titik_koordinat, FILTER_VALIDATE_BOOLEAN),
             'updated_at' => now(),
         ];
 
@@ -139,15 +174,56 @@ class IndexController extends Controller
 
         // Handle File Uploads
         $fileFields = ['foto_audit1', 'foto_audit2', 'foto_audit3'];
+        
+        $manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
+        $auditDir = storage_path('app/public/audit');
+        if (!file_exists($auditDir)) {
+            mkdir($auditDir, 0755, true);
+        }
+
         foreach ($fileFields as $field) {
             if ($request->hasFile($field)) {
-                // Get extension
-                $extension = $request->file($field)->getClientOriginalExtension();
-                // Create unique filename
+                $file = $request->file($field);
+                $extension = $file->getClientOriginalExtension() ?: 'jpg';
                 $filename = "{$request->customer_code}_{$field}_" . time() . ".{$extension}";
-                // Store file
-                $path = $request->file($field)->storeAs('audit', $filename, 'public');
-                $data[$field] = $path;
+                
+                $image = $manager->read($file->getRealPath());
+                if ($image->width() > 1024) {
+                    $image->scaleDown(width: 1024);
+                }
+                
+                // Add Watermark
+                $timestamp = date('d-m-Y H:i:s');
+                $auditor = $request->auditor ?? session('audit_user', 'Unknown');
+                $lat = $request->latitude ?? '-';
+                $lng = $request->longitude ?? '-';
+                $watermarkText = "Waktu: {$timestamp}\nAuditor: {$auditor}\nLokasi: {$lat}, {$lng}";
+                
+                $x = 15;
+                $y = $image->height() - 75;
+                $fontPath = 'C:/Windows/Fonts/arial.ttf';
+                
+                if (file_exists($fontPath)) {
+                    // Shadow
+                    $image->text($watermarkText, $x + 2, $y + 2, function ($font) use ($fontPath) {
+                        $font->file($fontPath);
+                        $font->size(18);
+                        $font->color('#000000');
+                        $font->lineHeight(1.5);
+                    });
+                    
+                    // Main Text
+                    $image->text($watermarkText, $x, $y, function ($font) use ($fontPath) {
+                        $font->file($fontPath);
+                        $font->size(18);
+                        $font->color('#ffffff');
+                        $font->lineHeight(1.5);
+                    });
+                }
+                
+                $image->save($auditDir . '/' . $filename, quality: 75);
+                
+                $data[$field] = 'audit/' . $filename;
             }
         }
 
@@ -180,9 +256,11 @@ class IndexController extends Controller
     }
 }
 
-class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColumnFormatting, ShouldAutoSize, WithStyles
+class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColumnFormatting, ShouldAutoSize, WithStyles, \Maatwebsite\Excel\Concerns\WithDrawings, \Maatwebsite\Excel\Concerns\WithEvents
 {
     protected $auditor;
+    protected $drawings = [];
+    protected $rowNumber = 2;
 
     public function __construct($auditor = null)
     {
@@ -201,7 +279,18 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
                 hat.customer_address,
                 hat.latitude,
                 hat.longitude,
-                hat.keterangan_hasil_audit
+                hat.is_toko_fisik,
+                hat.is_nama_pemilik,
+                hat.is_nama_ktp,
+                hat.is_nik_ktp,
+                hat.is_no_hp,
+                hat.is_no_rekening,
+                hat.is_an_rekening,
+                hat.is_titik_koordinat,
+                hat.keterangan_hasil_audit,
+                hat.foto_audit1,
+                hat.foto_audit2,
+                hat.foto_audit3
             ')
             ->leftJoin('master_distributors as md', 'hat.distributor_code', '=', 'md.distributor_code');
 
@@ -223,12 +312,48 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
             'Customer Address',
             'Latitude',
             'Longitude',
-            'Keterangan Hasil Audit'
+            'Toko Fisik Sesuai',
+            'Nama Pemilik Sesuai',
+            'Nama KTP Sesuai',
+            'NIK KTP Sesuai',
+            'No HP Sesuai',
+            'No Rekening Sesuai',
+            'A/N Rekening Sesuai',
+            'Titik Koordinat Sesuai',
+            'Keterangan Hasil Audit',
+            'Foto KTP',
+            'Foto Tampak Depan',
+            'Foto Tampak Dalam'
         ];
     }
 
     public function map($row): array
     {
+        $fields = [
+            'foto_audit1' => 'R',
+            'foto_audit2' => 'S',
+            'foto_audit3' => 'T'
+        ];
+
+        foreach ($fields as $field => $col) {
+            if (!empty($row->$field)) {
+                $path = storage_path('app/public/' . $row->$field);
+                if (file_exists($path)) {
+                    $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+                    $drawing->setName('Foto');
+                    $drawing->setDescription('Foto Audit');
+                    $drawing->setPath($path);
+                    $drawing->setHeight(100);
+                    $drawing->setCoordinates($col . $this->rowNumber);
+                    $drawing->setOffsetX(5);
+                    $drawing->setOffsetY(5);
+                    $this->drawings[] = $drawing;
+                }
+            }
+        }
+
+        $this->rowNumber++;
+
         return [
             $row->created_at ? date('Y-m-d', strtotime($row->created_at)) : '-',
             $row->distributor_name ?? '-',
@@ -238,7 +363,38 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
             $row->customer_address ?? '-',
             $row->latitude ?? '0',
             $row->longitude ?? '0',
-            $row->keterangan_hasil_audit ?? '-'
+            $row->is_toko_fisik ? '✓ Sesuai' : '✗ Tidak Sesuai',
+            $row->is_nama_pemilik ? '✓ Sesuai' : '✗ Tidak Sesuai',
+            $row->is_nama_ktp ? '✓ Sesuai' : '✗ Tidak Sesuai',
+            $row->is_nik_ktp ? '✓ Sesuai' : '✗ Tidak Sesuai',
+            $row->is_no_hp ? '✓ Sesuai' : '✗ Tidak Sesuai',
+            $row->is_no_rekening ? '✓ Sesuai' : '✗ Tidak Sesuai',
+            $row->is_an_rekening ? '✓ Sesuai' : '✗ Tidak Sesuai',
+            $row->is_titik_koordinat ? '✓ Sesuai' : '✗ Tidak Sesuai',
+            $row->keterangan_hasil_audit ?? '-',
+            ' ',
+            ' ',
+            ' '
+        ];
+    }
+
+    public function drawings()
+    {
+        return $this->drawings;
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            \Maatwebsite\Excel\Events\AfterSheet::class => function(\Maatwebsite\Excel\Events\AfterSheet $event) {
+                for ($i = 2; $i < $this->rowNumber; $i++) {
+                    $event->sheet->getDelegate()->getRowDimension($i)->setRowHeight(85);
+                }
+                
+                $event->sheet->getDelegate()->getColumnDimension('R')->setAutoSize(false)->setWidth(25);
+                $event->sheet->getDelegate()->getColumnDimension('S')->setAutoSize(false)->setWidth(25);
+                $event->sheet->getDelegate()->getColumnDimension('T')->setAutoSize(false)->setWidth(25);
+            },
         ];
     }
 
