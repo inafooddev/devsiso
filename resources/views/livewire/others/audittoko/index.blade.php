@@ -338,38 +338,38 @@
                 {{-- Checklist 8 Items Table --}}
                 <div>
                     <h4 class="font-bold text-sm mb-2 text-base-content">Hasil Checklist 8 Verifikasi Audit</h4>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between" :class="detailData?.is_toko_fisik ? 'bg-success/10 border-success/30 text-success-content' : 'bg-error/10 border-error/30 text-error-content'">
-                            <span class="font-semibold">Toko Fisik</span>
-                            <span class="font-bold" x-text="detailData?.is_toko_fisik ? '✓ Sesuai' : '✗ Tidak'"></span>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_toko_fisik ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
+                            <span class="font-bold text-xs text-slate-800">Toko Fisik</span>
+                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_toko_fisik ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_toko_fisik ? '✓ Sesuai' : '✗ Tidak'"></span>
                         </div>
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between" :class="detailData?.is_nama_pemilik ? 'bg-success/10 border-success/30 text-success-content' : 'bg-error/10 border-error/30 text-error-content'">
-                            <span class="font-semibold">Nama Pemilik</span>
-                            <span class="font-bold" x-text="detailData?.is_nama_pemilik ? '✓ Sesuai' : '✗ Tidak'"></span>
+                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_nama_pemilik ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
+                            <span class="font-bold text-xs text-slate-800">Nama Pemilik</span>
+                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_nama_pemilik ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_nama_pemilik ? '✓ Sesuai' : '✗ Tidak'"></span>
                         </div>
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between" :class="detailData?.is_nama_ktp ? 'bg-success/10 border-success/30 text-success-content' : 'bg-error/10 border-error/30 text-error-content'">
-                            <span class="font-semibold">Nama KTP</span>
-                            <span class="font-bold" x-text="detailData?.is_nama_ktp ? '✓ Sesuai' : '✗ Tidak'"></span>
+                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_nama_ktp ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
+                            <span class="font-bold text-xs text-slate-800">Nama KTP</span>
+                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_nama_ktp ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_nama_ktp ? '✓ Sesuai' : '✗ Tidak'"></span>
                         </div>
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between" :class="detailData?.is_nik_ktp ? 'bg-success/10 border-success/30 text-success-content' : 'bg-error/10 border-error/30 text-error-content'">
-                            <span class="font-semibold">NIK KTP</span>
-                            <span class="font-bold" x-text="detailData?.is_nik_ktp ? '✓ Sesuai' : '✗ Tidak'"></span>
+                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_nik_ktp ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
+                            <span class="font-bold text-xs text-slate-800">NIK KTP</span>
+                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_nik_ktp ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_nik_ktp ? '✓ Sesuai' : '✗ Tidak'"></span>
                         </div>
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between" :class="detailData?.is_no_hp ? 'bg-success/10 border-success/30 text-success-content' : 'bg-error/10 border-error/30 text-error-content'">
-                            <span class="font-semibold">No HP</span>
-                            <span class="font-bold" x-text="detailData?.is_no_hp ? '✓ Sesuai' : '✗ Tidak'"></span>
+                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_no_hp ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
+                            <span class="font-bold text-xs text-slate-800">No HP</span>
+                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_no_hp ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_no_hp ? '✓ Sesuai' : '✗ Tidak'"></span>
                         </div>
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between" :class="detailData?.is_no_rekening ? 'bg-success/10 border-success/30 text-success-content' : 'bg-error/10 border-error/30 text-error-content'">
-                            <span class="font-semibold">No Rekening</span>
-                            <span class="font-bold" x-text="detailData?.is_no_rekening ? '✓ Sesuai' : '✗ Tidak'"></span>
+                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_no_rekening ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
+                            <span class="font-bold text-xs text-slate-800">No Rekening</span>
+                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_no_rekening ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_no_rekening ? '✓ Sesuai' : '✗ Tidak'"></span>
                         </div>
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between" :class="detailData?.is_an_rekening ? 'bg-success/10 border-success/30 text-success-content' : 'bg-error/10 border-error/30 text-error-content'">
-                            <span class="font-semibold">A/N Rekening</span>
-                            <span class="font-bold" x-text="detailData?.is_an_rekening ? '✓ Sesuai' : '✗ Tidak'"></span>
+                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_an_rekening ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
+                            <span class="font-bold text-xs text-slate-800">A/N Rekening</span>
+                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_an_rekening ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_an_rekening ? '✓ Sesuai' : '✗ Tidak'"></span>
                         </div>
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between" :class="detailData?.is_titik_koordinat ? 'bg-success/10 border-success/30 text-success-content' : 'bg-error/10 border-error/30 text-error-content'">
-                            <span class="font-semibold">Titik Koordinat</span>
-                            <span class="font-bold" x-text="detailData?.is_titik_koordinat ? '✓ Sesuai' : '✗ Tidak'"></span>
+                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_titik_koordinat ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
+                            <span class="font-bold text-xs text-slate-800">Titik Koordinat</span>
+                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_titik_koordinat ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_titik_koordinat ? '✓ Sesuai' : '✗ Tidak'"></span>
                         </div>
                     </div>
                 </div>
