@@ -407,6 +407,31 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
     // Preview URLs removed to save memory on mobile devices
 
     const [showDiscardModal, setShowDiscardModal] = useState(false);
+
+    // Intercept hardware back button for Detail Modal
+    useEffect(() => {
+        const handlePopState = (e) => {
+            if (detailOutlet) {
+                if (isFormTouched) {
+                    // User tried to go back but form is touched. Push state back to prevent leaving
+                    window.history.pushState({ modal: 'detail' }, '');
+                    setShowDiscardModal(true);
+                } else {
+                    // Close the modal directly
+                    if (auditLeafletMapRef.current) {
+                        auditLeafletMapRef.current.remove();
+                        auditLeafletMapRef.current = null;
+                    }
+                    auditMarkersRef.current = { master: null, audit: null, line: null };
+                    setDetailOutlet(null);
+                    setShowNoPhotoWarning(false);
+                }
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [detailOutlet, isFormTouched]);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showNoPhotoWarning, setShowNoPhotoWarning] = useState(false);
     const [deletingReport, setDeletingReport] = useState(null);
@@ -503,6 +528,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
     const openDetail = (outlet) => {
         setIsFormTouched(false);
         setDetailOutlet(outlet);
+        window.history.pushState({ modal: 'detail' }, '');
         setShowNoPhotoWarning(false);
         setZoomedImage(null);
 
@@ -850,17 +876,18 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
         if (isFormTouched) {
             setShowDiscardModal(true);
         } else {
-            if (auditLeafletMapRef.current) {
-                auditLeafletMapRef.current.remove();
-                auditLeafletMapRef.current = null;
-            }
-            auditMarkersRef.current = { master: null, audit: null, line: null };
-            setDetailOutlet(null);
-            setShowNoPhotoWarning(false);
+            window.history.back(); // This triggers popstate, which closes the modal
         }
     };
 
-
+    const confirmDiscard = () => {
+        setIsFormTouched(false);
+        setShowDiscardModal(false);
+        // Biarkan state ter-update dulu di siklus React berikutnya, baru trigger back
+        setTimeout(() => {
+            window.history.back();
+        }, 0);
+    };
 
     return (
         <div className="w-full min-h-screen bg-slate-50 text-slate-800 flex flex-col relative">
