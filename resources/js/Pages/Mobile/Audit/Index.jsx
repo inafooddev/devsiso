@@ -450,7 +450,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
             setIsGettingLocation(false);
             isSubmittingRef.current = false;
             showToast(
-                "Terjadi kesalahan sistem (Server Error). Pastikan foto tidak lebih dari 5MB dan berformat JPG/PNG.",
+                "Terjadi kesalahan sistem (Server Error). Pastikan foto tidak lebih dari 20MB dan berformat JPG/PNG.",
                 "error"
             );
         });
@@ -486,8 +486,8 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
             return;
         }
 
-        if (file.size > 5 * 1024 * 1024) {
-            showToast(`Ukuran file (${(file.size / 1024 / 1024).toFixed(1)}MB) melebihi batas maksimal 5MB.`, "error");
+        if (file.size > 20 * 1024 * 1024) {
+            showToast(`Ukuran file (${(file.size / 1024 / 1024).toFixed(1)}MB) melebihi batas maksimal 20MB.`, "error");
             return;
         }
 
