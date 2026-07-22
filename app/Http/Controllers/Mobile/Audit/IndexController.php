@@ -61,6 +61,11 @@ class IndexController extends Controller
                 hat.foto_audit1,
                 hat.foto_audit2,
                 hat.foto_audit3,
+                hat.foto_audit4,
+                hat.foto_audit5,
+                hat.foto_audit6,
+                hat.foto_audit7,
+                hat.foto_audit8,
                 l.latitude AS master_latitude,
                 l.longitude AS master_longitude,
                 hat.latitude AS audit_latitude,
@@ -89,6 +94,11 @@ class IndexController extends Controller
                 hat.foto_audit1,
                 hat.foto_audit2,
                 hat.foto_audit3,
+                hat.foto_audit4,
+                hat.foto_audit5,
+                hat.foto_audit6,
+                hat.foto_audit7,
+                hat.foto_audit8,
                 hat.keterangan_hasil_audit,
                 hat.is_toko_fisik,
                 hat.is_nama_pemilik,
@@ -137,6 +147,11 @@ class IndexController extends Controller
             'foto_audit1' => 'nullable|image',
             'foto_audit2' => 'nullable|image',
             'foto_audit3' => 'nullable|image',
+            'foto_audit4' => 'nullable|image',
+            'foto_audit5' => 'nullable|image',
+            'foto_audit6' => 'nullable|image',
+            'foto_audit7' => 'nullable|image',
+            'foto_audit8' => 'nullable|image',
             'is_toko_fisik' => 'nullable|boolean',
             'is_nama_pemilik' => 'nullable|boolean',
             'is_nama_ktp' => 'nullable|boolean',
@@ -173,7 +188,7 @@ class IndexController extends Controller
         }
 
         // Handle File Uploads
-        $fileFields = ['foto_audit1', 'foto_audit2', 'foto_audit3'];
+        $fileFields = ['foto_audit1', 'foto_audit2', 'foto_audit3', 'foto_audit4', 'foto_audit5', 'foto_audit6', 'foto_audit7', 'foto_audit8'];
         
         $manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
         $auditDir = storage_path('app/public/audit');
@@ -245,7 +260,7 @@ class IndexController extends Controller
     {
         $audit = DB::table('hasil_audit_toko')->where('id', $id)->first();
         if ($audit) {
-            foreach (['foto_audit1', 'foto_audit2', 'foto_audit3'] as $field) {
+            foreach (['foto_audit1', 'foto_audit2', 'foto_audit3', 'foto_audit4', 'foto_audit5', 'foto_audit6', 'foto_audit7', 'foto_audit8'] as $field) {
                 if (!empty($audit->$field)) {
                     \Illuminate\Support\Facades\Storage::disk('public')->delete($audit->$field);
                 }
@@ -253,6 +268,40 @@ class IndexController extends Controller
             DB::table('hasil_audit_toko')->where('id', $id)->delete();
         }
         return redirect()->back()->with('success', 'Data audit berhasil dihapus.');
+    }
+
+    public function thumbnail(Request $request)
+    {
+        $path = $request->query('path');
+        if (!$path) {
+            return abort(404);
+        }
+        
+        $fullPath = storage_path('app/public/' . $path);
+        if (!file_exists($fullPath)) {
+            return abort(404);
+        }
+        
+        $cacheDir = storage_path('app/public/thumbnails');
+        if (!file_exists($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+        
+        $thumbName = md5($path) . '.jpg';
+        $thumbPath = $cacheDir . '/' . $thumbName;
+        
+        if (!file_exists($thumbPath)) {
+            $manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
+            try {
+                $image = $manager->read($fullPath);
+                $image->scaleDown(width: 300);
+                $image->save($thumbPath, quality: 60);
+            } catch (\Exception $e) {
+                return response()->file($fullPath); // Fallback to original if fails
+            }
+        }
+        
+        return response()->file($thumbPath);
     }
 }
 
@@ -290,7 +339,12 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
                 hat.keterangan_hasil_audit,
                 hat.foto_audit1,
                 hat.foto_audit2,
-                hat.foto_audit3
+                hat.foto_audit3,
+                hat.foto_audit4,
+                hat.foto_audit5,
+                hat.foto_audit6,
+                hat.foto_audit7,
+                hat.foto_audit8
             ')
             ->leftJoin('master_distributors as md', 'hat.distributor_code', '=', 'md.distributor_code');
 
@@ -321,9 +375,14 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
             'A/N Rekening Sesuai',
             'Titik Koordinat Sesuai',
             'Keterangan Hasil Audit',
-            'Foto KTP',
-            'Foto Tampak Depan',
-            'Foto Tampak Dalam'
+            'Foto Audit 1',
+            'Foto Audit 2',
+            'Foto Audit 3',
+            'Foto Audit 4',
+            'Foto Audit 5',
+            'Foto Audit 6',
+            'Foto Audit 7',
+            'Foto Audit 8'
         ];
     }
 
@@ -332,7 +391,12 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
         $fields = [
             'foto_audit1' => 'R',
             'foto_audit2' => 'S',
-            'foto_audit3' => 'T'
+            'foto_audit3' => 'T',
+            'foto_audit4' => 'U',
+            'foto_audit5' => 'V',
+            'foto_audit6' => 'W',
+            'foto_audit7' => 'X',
+            'foto_audit8' => 'Y'
         ];
 
         foreach ($fields as $field => $col) {
@@ -374,6 +438,11 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
             $row->keterangan_hasil_audit ?? '-',
             ' ',
             ' ',
+            ' ',
+            ' ',
+            ' ',
+            ' ',
+            ' ',
             ' '
         ];
     }
@@ -394,6 +463,11 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
                 $event->sheet->getDelegate()->getColumnDimension('R')->setAutoSize(false)->setWidth(25);
                 $event->sheet->getDelegate()->getColumnDimension('S')->setAutoSize(false)->setWidth(25);
                 $event->sheet->getDelegate()->getColumnDimension('T')->setAutoSize(false)->setWidth(25);
+                $event->sheet->getDelegate()->getColumnDimension('U')->setAutoSize(false)->setWidth(25);
+                $event->sheet->getDelegate()->getColumnDimension('V')->setAutoSize(false)->setWidth(25);
+                $event->sheet->getDelegate()->getColumnDimension('W')->setAutoSize(false)->setWidth(25);
+                $event->sheet->getDelegate()->getColumnDimension('X')->setAutoSize(false)->setWidth(25);
+                $event->sheet->getDelegate()->getColumnDimension('Y')->setAutoSize(false)->setWidth(25);
             },
         ];
     }

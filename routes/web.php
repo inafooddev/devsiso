@@ -109,6 +109,7 @@ Route::delete('/mobile/audit/{id}', [\App\Http\Controllers\Mobile\Audit\IndexCon
 Route::get('/mobile/audit/export', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'export'])->name('mobile.audit.export');
 Route::post('/mobile/audit/login', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'loginAuditor'])->name('mobile.audit.login');
 Route::post('/mobile/audit/logout', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'logoutAuditor'])->name('mobile.audit.logout');
+Route::get('/mobile/audit/thumbnail', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'thumbnail'])->name('mobile.audit.thumbnail');
 
 Route::redirect('/mobile/monitoring-device', '/app/monitoring-device')->name('mobile.monitoring-device.index');
 
