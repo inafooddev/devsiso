@@ -893,6 +893,8 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                 audit_latitude: report.latitude || "",
                 audit_longitude: report.longitude || "",
                 status_audit: "Sudah",
+                status_approval: report.status_approval || "Pending",
+                alasan_reject: report.alasan_reject || null,
                 foto_audit1: report.foto_audit1,
                 foto_audit2: report.foto_audit2,
                 foto_audit3: report.foto_audit3,
@@ -1382,11 +1384,26 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                                 <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
                                                 <div className="flex justify-between items-start gap-2">
                                                     <div className="flex-1 min-w-0">
-                                                        <span className="text-[9px] px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 font-bold font-mono tracking-wider w-fit inline-block mb-1">
-                                                            {
-                                                                report.customer_code
-                                                            }
-                                                        </span>
+                                                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                                                            <span className="text-[9px] px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 font-bold font-mono tracking-wider">
+                                                                {
+                                                                    report.customer_code
+                                                                }
+                                                            </span>
+                                                            {report.status_approval === "Approved" ? (
+                                                                <span className="text-[9px] px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-extrabold flex items-center gap-1">
+                                                                    <CheckCircleIcon className="w-3 h-3" /> Disetujui
+                                                                </span>
+                                                            ) : report.status_approval === "Rejected" ? (
+                                                                <span className="text-[9px] px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 font-extrabold flex items-center gap-1">
+                                                                    <XCircleIcon className="w-3 h-3" /> Ditolak
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[9px] px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-extrabold flex items-center gap-1">
+                                                                    <ClockIcon className="w-3 h-3" /> Menunggu Approval
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <h5 className="text-xs md:text-sm font-black text-slate-800 tracking-tight leading-snug truncate">
                                                             {
                                                                 report.customer_name
@@ -1422,6 +1439,15 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                                         </span>
                                                     </span>
                                                 </div>
+
+                                                {report.status_approval === "Rejected" && report.alasan_reject && (
+                                                    <div className="mt-1 bg-rose-50 border border-rose-200 rounded-xl p-2 text-[10px] text-rose-700 font-medium">
+                                                        <div className="font-bold flex items-center gap-1 mb-0.5 text-rose-800">
+                                                            <ShieldExclamationIcon className="w-3.5 h-3.5" /> Catatan Penolakan:
+                                                        </div>
+                                                        <p className="line-clamp-2 text-[10px] text-rose-600 pl-4">{report.alasan_reject}</p>
+                                                    </div>
+                                                )}
                                                 {report.created_at && (
                                                     <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium mt-1">
                                                         <svg
@@ -1658,11 +1684,23 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                         <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 font-mono font-bold rounded-md text-[9px]">
                                             {detailOutlet.customer_code}
                                         </span>
+                                        {detailOutlet.status_approval === "Approved" ? (
+                                            <span className="text-[9px] px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-extrabold flex items-center gap-1">
+                                                <CheckCircleIcon className="w-3 h-3" /> Disetujui
+                                            </span>
+                                        ) : detailOutlet.status_approval === "Rejected" ? (
+                                            <span className="text-[9px] px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 font-extrabold flex items-center gap-1">
+                                                <XCircleIcon className="w-3 h-3" /> Ditolak
+                                            </span>
+                                        ) : (
+                                            <span className="text-[9px] px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-extrabold flex items-center gap-1">
+                                                <ClockIcon className="w-3 h-3" /> Menunggu Approval
+                                            </span>
+                                        )}
                                         <span
                                             className={`text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border ${detailOutlet.status_audit === "Sudah" ? "bg-emerald-50 text-emerald-600 border-emerald-100/80" : "bg-rose-50 text-rose-600 border-rose-100/80"}`}
                                         >
-                                            {detailOutlet.status_audit ===
-                                            "Sudah"
+                                            {detailOutlet.status_audit === "Sudah"
                                                 ? "Sudah Audit"
                                                 : "Belum Audit"}
                                         </span>
@@ -1685,6 +1723,21 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                     <XMarkIcon className="w-5 h-5 md:w-6 md:h-6" />
                                 </button>
                             </div>
+
+                            {detailOutlet.status_approval === "Rejected" && (
+                                <div className="mx-5 mt-3 bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-2xl flex flex-col gap-1 shadow-sm animate-fade-in">
+                                    <div className="flex items-center gap-1.5 font-bold text-xs text-rose-700">
+                                        <XCircleIcon className="w-4 h-4 shrink-0 text-rose-600" />
+                                        <span>Catatan Penolakan Manager:</span>
+                                    </div>
+                                    <p className="text-[11px] font-medium leading-relaxed pl-5 text-rose-700">
+                                        {detailOutlet.alasan_reject || "Belum ada rincian alasan penolakan."}
+                                    </p>
+                                    <p className="text-[9.5px] font-bold text-rose-600 pl-5 mt-1">
+                                        💡 Silakan perbaiki data/foto di bawah ini dan tekan "Simpan Hasil Audit" untuk pengajuan ulang ke Manager.
+                                    </p>
+                                </div>
+                            )}
 
                             {Object.keys(errors).length > 0 && (
                                 <div className="mx-5 mt-4 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-[11px] md:text-xs shadow-sm flex flex-col animate-fade-in">

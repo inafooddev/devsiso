@@ -70,6 +70,8 @@ class IndexController extends Controller
                 hat.foto_audit6,
                 hat.foto_audit7,
                 hat.foto_audit8,
+                hat.status_approval,
+                hat.alasan_reject,
                 l.latitude AS master_latitude,
                 l.longitude AS master_longitude,
                 hat.latitude AS audit_latitude,
@@ -119,6 +121,8 @@ class IndexController extends Controller
                 hat.is_no_rekening,
                 hat.is_an_rekening,
                 hat.is_titik_koordinat,
+                hat.status_approval,
+                hat.alasan_reject,
                 hat.created_at,
                 hat.id
             ')
@@ -244,6 +248,8 @@ class IndexController extends Controller
             'is_no_rekening' => filter_var($request->is_no_rekening, FILTER_VALIDATE_BOOLEAN),
             'is_an_rekening' => filter_var($request->is_an_rekening, FILTER_VALIDATE_BOOLEAN),
             'is_titik_koordinat' => filter_var($request->is_titik_koordinat, FILTER_VALIDATE_BOOLEAN),
+            'status_approval' => 'Pending',
+            'alasan_reject' => null,
             'updated_at' => now(),
         ];
 
@@ -422,6 +428,8 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
                 hat.is_an_rekening,
                 hat.is_titik_koordinat,
                 hat.keterangan_hasil_audit,
+                hat.status_approval,
+                hat.alasan_reject,
                 hat.foto_audit1,
                 hat.foto_audit2,
                 hat.foto_audit3,
@@ -481,6 +489,8 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
             'A/N Rekening Sesuai',
             'Titik Koordinat Sesuai',
             'Keterangan Hasil Audit',
+            'Status Approval',
+            'Alasan Reject',
             'Foto Audit 1',
             'Foto Audit 2',
             'Foto Audit 3',
@@ -495,14 +505,14 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
     public function map($row): array
     {
         $fields = [
-            'foto_audit1' => 'R',
-            'foto_audit2' => 'S',
-            'foto_audit3' => 'T',
-            'foto_audit4' => 'U',
-            'foto_audit5' => 'V',
-            'foto_audit6' => 'W',
-            'foto_audit7' => 'X',
-            'foto_audit8' => 'Y'
+            'foto_audit1' => 'T',
+            'foto_audit2' => 'U',
+            'foto_audit3' => 'V',
+            'foto_audit4' => 'W',
+            'foto_audit5' => 'X',
+            'foto_audit6' => 'Y',
+            'foto_audit7' => 'Z',
+            'foto_audit8' => 'AA'
         ];
 
         foreach ($fields as $field => $col) {
@@ -542,6 +552,8 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
             $row->is_an_rekening ? '✓ Sesuai' : '✗ Tidak Sesuai',
             $row->is_titik_koordinat ? '✓ Sesuai' : '✗ Tidak Sesuai',
             $row->keterangan_hasil_audit ?? '-',
+            $row->status_approval ?? 'Pending',
+            $row->alasan_reject ?? '-',
             ' ',
             ' ',
             ' ',
@@ -566,14 +578,10 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
                     $event->sheet->getDelegate()->getRowDimension($i)->setRowHeight(85);
                 }
                 
-                $event->sheet->getDelegate()->getColumnDimension('R')->setAutoSize(false)->setWidth(25);
-                $event->sheet->getDelegate()->getColumnDimension('S')->setAutoSize(false)->setWidth(25);
-                $event->sheet->getDelegate()->getColumnDimension('T')->setAutoSize(false)->setWidth(25);
-                $event->sheet->getDelegate()->getColumnDimension('U')->setAutoSize(false)->setWidth(25);
-                $event->sheet->getDelegate()->getColumnDimension('V')->setAutoSize(false)->setWidth(25);
-                $event->sheet->getDelegate()->getColumnDimension('W')->setAutoSize(false)->setWidth(25);
-                $event->sheet->getDelegate()->getColumnDimension('X')->setAutoSize(false)->setWidth(25);
-                $event->sheet->getDelegate()->getColumnDimension('Y')->setAutoSize(false)->setWidth(25);
+                $cols = ['T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA'];
+                foreach ($cols as $col) {
+                    $event->sheet->getDelegate()->getColumnDimension($col)->setAutoSize(false)->setWidth(25);
+                }
             },
         ];
     }
