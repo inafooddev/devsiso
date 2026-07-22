@@ -88,6 +88,7 @@ use App\Livewire\Others\PageTemplateStandard\Index as PageTemplateStandardIndex;
 use App\Livewire\Others\Qceskalink\Index as QceskalinkIndex;
 use App\Livewire\Others\Perbaikantikor\Index as AdminPerbaikantikorIndex;
 use App\Livewire\Others\PerbaikantikorElite\Index as AdminPerbaikantikorEliteIndex;
+use App\Livewire\Others\AuditToko\Index as AdminAuditTokoIndex;
 use App\Livewire\MonitoringDevice\Index as MonitoringDeviceIndex;
 /*
 |--------------------------------------------------------------------------
@@ -305,6 +306,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/others/page-template-standard', PageTemplateStandardIndex::class)->name('others.page-template-standard');
     Route::get('/others/perbaikantikor', AdminPerbaikantikorIndex::class)->name('others.perbaikantikor');
     Route::get('/others/perbaikantikor-elite', AdminPerbaikantikorEliteIndex::class)->name('others.perbaikantikor.elite');
+    Route::get('/others/audit-toko', AdminAuditTokoIndex::class)->name('others.audit-toko');
     Route::get('/others/bug-report-request', \App\Livewire\Others\BugReportRequest\Index::class)->name('others.bug-report-request');
     Route::get('/mapping-supervisor-code', MappingSupervisorCodeIndex::class)->name('mapping-supervisor-code.index');
     Route::get('/qceskalink', QceskalinkIndex::class)->name('qceskalink.index');
