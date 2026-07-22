@@ -162,6 +162,21 @@ class IndexController extends Controller
         }
 
         if (Auth::attempt(['userid' => $request->user_id, 'password' => $request->password], $request->boolean('remember'))) {
+            $user = Auth::user();
+            
+            // Periksa apakah user memiliki role audit atau admin (case-insensitive checks)
+            if (!$user->hasAnyRole(['audit', 'admin', 'Audit', 'Admin', 'super-admin', 'Super Admin'])) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                \App\Helpers\ActivityLogger::log('Audit Login Failed', "Gagal login audit (Role tidak sesuai) dengan userid: {$request->user_id}");
+
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'user_id' => 'Akun Anda tidak memiliki akses (role Audit/Admin) untuk masuk ke fitur ini.',
+                ]);
+            }
+
             \Illuminate\Support\Facades\RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
             
