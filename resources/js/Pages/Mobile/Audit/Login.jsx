@@ -17,7 +17,11 @@ export default function Login() {
 
     const submit = (e) => {
         e.preventDefault();
-        post(route("mobile.audit.login"));
+        post("/mobile/audit/login", {
+            onError: (errors) => {
+                console.error("Login errors:", errors);
+            }
+        });
     };
 
     return (
