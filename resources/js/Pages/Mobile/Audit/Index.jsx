@@ -135,34 +135,16 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
     };
 
     const [reportSearch, setReportSearch] = useState("");
-    const [reportSort, setReportSort] = useState("newest"); // "newest", "oldest", "name"
-
-    const parseDateMs = (dateVal) => {
-        if (!dateVal) return 0;
-        const str = String(dateVal).replace(" ", "T");
-        const ms = new Date(str).getTime();
-        return isNaN(ms) ? 0 : ms;
-    };
-
     const allMyReports = auditReports || [];
-    const filteredReports = (allMyReports || [])
-        .filter((r) => {
-            if (!reportSearch) return true;
-            const q = reportSearch.toLowerCase();
-            return (
-                r.customer_name?.toLowerCase().includes(q) ||
-                r.customer_code?.toLowerCase().includes(q) ||
-                r.cabang?.toLowerCase().includes(q)
-            );
-        })
-        .sort((a, b) => {
-            if (reportSort === "oldest") {
-                return parseDateMs(a.created_at) - parseDateMs(b.created_at);
-            } else if (reportSort === "name") {
-                return (a.customer_name || "").localeCompare(b.customer_name || "");
-            }
-            return parseDateMs(b.created_at) - parseDateMs(a.created_at);
-        });
+    const filteredReports = (allMyReports || []).filter((r) => {
+        if (!reportSearch) return true;
+        const q = reportSearch.toLowerCase();
+        return (
+            r.customer_name?.toLowerCase().includes(q) ||
+            r.customer_code?.toLowerCase().includes(q) ||
+            r.cabang?.toLowerCase().includes(q)
+        );
+    });
 
     // Draft states (for UI inputs only)
     const [search, setSearch] = useState("");
@@ -1340,8 +1322,8 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                 </button>
                             </div>
 
-                            <div className="flex flex-col sm:flex-row gap-2 mb-4">
-                                <div className="relative flex-1">
+                            <div className="mb-4">
+                                <div className="relative w-full">
                                     <input
                                         type="search"
                                         value={reportSearch}
@@ -1361,15 +1343,6 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                         </button>
                                     )}
                                 </div>
-                                <select
-                                    value={reportSort}
-                                    onChange={(e) => setReportSort(e.target.value)}
-                                    className="h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs md:text-sm font-semibold text-slate-700 outline-none focus:border-indigo-500 shrink-0"
-                                >
-                                    <option value="newest">Terbaru</option>
-                                    <option value="oldest">Terlama</option>
-                                    <option value="name">Nama (A-Z)</option>
-                                </select>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -1476,7 +1449,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                                         <span className="flex-1 leading-snug">
                                                             Tanggal:{" "}
                                                             <span className="font-bold text-slate-700">
-                                                                {formatDateSafe(report.created_at)}
+                                                                {report.created_at}
                                                             </span>
                                                         </span>
                                                     </div>
