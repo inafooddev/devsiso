@@ -18,6 +18,7 @@ import {
     ChartPieIcon,
     ListBulletIcon,
     TrashIcon,
+    ClockIcon,
 } from "@heroicons/react/24/outline";
 import {
     ShieldExclamationIcon,
@@ -1466,18 +1467,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                                         <span className="flex-1 leading-snug">
                                                             Tanggal:{" "}
                                                             <span className="font-bold text-slate-700">
-                                                                {new Date(
-                                                                    report.created_at,
-                                                                ).toLocaleString(
-                                                                    "id-ID",
-                                                                    {
-                                                                        day: "numeric",
-                                                                        month: "short",
-                                                                        year: "numeric",
-                                                                        hour: "2-digit",
-                                                                        minute: "2-digit",
-                                                                    },
-                                                                )}
+                                                                {formatDateSafe(report.created_at)}
                                                             </span>
                                                         </span>
                                                     </div>
