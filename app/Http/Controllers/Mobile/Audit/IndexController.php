@@ -173,7 +173,7 @@ class IndexController extends Controller
                 \App\Helpers\ActivityLogger::log('Audit Login Failed', "Gagal login audit (Role tidak sesuai) dengan userid: {$request->user_id}");
 
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'user_id' => 'Akun Anda tidak memiliki akses (role Audit/Admin) untuk masuk ke fitur ini.',
+                    'user_id' => 'Akun Anda tidak memiliki akses untuk masuk ke fitur ini.',
                 ]);
             }
 
