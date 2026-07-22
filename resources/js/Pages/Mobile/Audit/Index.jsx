@@ -426,6 +426,9 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
     const [displayLimit, setDisplayLimit] = useState(30);
     const [isExporting, setIsExporting] = useState(false);
     const [gpsError, setGpsError] = useState(null);
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [exportStartDate, setExportStartDate] = useState("");
+    const [exportEndDate, setExportEndDate] = useState("");
 
     const isAnyProcessLoading =
         processing ||
