@@ -52,7 +52,7 @@ export default function Login() {
                             name="user_id"
                             value={data.user_id}
                             onChange={(e) => setData("user_id", e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-medium"
+                            className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-medium"
                             placeholder="Masukkan User ID Anda"
                             autoComplete="username"
                         />
@@ -76,7 +76,7 @@ export default function Login() {
                             name="password"
                             value={data.password}
                             onChange={(e) => setData("password", e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-medium"
+                            className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-medium"
                             placeholder="Masukkan Password"
                             autoComplete="current-password"
                         />
