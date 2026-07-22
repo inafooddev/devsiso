@@ -253,7 +253,10 @@ class IndexController extends Controller
     public function export(Request $request)
     {
         $auditor = $request->query('auditor');
-        return Excel::download(new AuditExport($auditor), 'hasil_audit_' . date('Ymd_His') . '.xlsx');
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        
+        return Excel::download(new AuditExport($auditor, $startDate, $endDate), 'hasil_audit_' . date('Ymd_His') . '.xlsx');
     }
 
     public function destroy($id)
@@ -308,12 +311,16 @@ class IndexController extends Controller
 class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColumnFormatting, ShouldAutoSize, WithStyles, \Maatwebsite\Excel\Concerns\WithDrawings, \Maatwebsite\Excel\Concerns\WithEvents
 {
     protected $auditor;
+    protected $startDate;
+    protected $endDate;
     protected $drawings = [];
     protected $rowNumber = 2;
 
-    public function __construct($auditor = null)
+    public function __construct($auditor = null, $startDate = null, $endDate = null)
     {
         $this->auditor = $auditor;
+        $this->startDate = $startDate;
+        $this->endDate = $endDate;
     }
 
     public function collection()
@@ -350,6 +357,15 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
 
         if (!empty($this->auditor)) {
             $query->where('hat.auditor', $this->auditor);
+        }
+        
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            // Include entire end date by appending time
+            $query->whereBetween('hat.created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59']);
+        } elseif (!empty($this->startDate)) {
+            $query->where('hat.created_at', '>=', $this->startDate . ' 00:00:00');
+        } elseif (!empty($this->endDate)) {
+            $query->where('hat.created_at', '<=', $this->endDate . ' 23:59:59');
         }
 
         return $query->get();

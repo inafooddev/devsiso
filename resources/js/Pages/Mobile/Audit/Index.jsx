@@ -1282,66 +1282,9 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                 </h4>
                                 <button
                                     type="button"
-                                    onClick={async (e) => {
+                                    onClick={(e) => {
                                         e.preventDefault();
-                                        setIsExporting(true);
-                                        try {
-                                            const response = await fetch(
-                                                `/mobile/audit/export?auditor=${sessionAuditor}`,
-                                            );
-                                            const blob = await response.blob();
-                                            const url =
-                                                window.URL.createObjectURL(
-                                                    blob,
-                                                );
-                                            const a =
-                                                document.createElement("a");
-                                            a.href = url;
-
-                                            const disposition =
-                                                response.headers.get(
-                                                    "content-disposition",
-                                                );
-                                            let filename = `hasil_audit_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}.xlsx`;
-                                            if (
-                                                disposition &&
-                                                disposition.indexOf(
-                                                    "attachment",
-                                                ) !== -1
-                                            ) {
-                                                const matches =
-                                                    /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(
-                                                        disposition,
-                                                    );
-                                                if (
-                                                    matches != null &&
-                                                    matches[1]
-                                                ) {
-                                                    filename =
-                                                        matches[1].replace(
-                                                            /['"]/g,
-                                                            "",
-                                                        );
-                                                }
-                                            }
-
-                                            a.download = filename;
-                                            document.body.appendChild(a);
-                                            a.click();
-                                            a.remove();
-                                            window.URL.revokeObjectURL(url);
-                                        } catch (error) {
-                                            console.error(
-                                                "Export failed:",
-                                                error,
-                                            );
-                                            showToast(
-                                                "Gagal mengunduh file export",
-                                                "error",
-                                            );
-                                        } finally {
-                                            setIsExporting(false);
-                                        }
+                                        setShowExportModal(true);
                                     }}
                                     className="inline-flex items-center gap-1.5 px-2.5 md:px-4 py-1.5 rounded-lg bg-emerald-600 text-white text-[10px] md:text-xs font-bold uppercase tracking-wide hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-600/10 cursor-pointer"
                                 >
@@ -2729,6 +2672,98 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                         <p className="text-[11px] md:text-xs text-slate-500 mt-1">
                             Mohon tunggu sebentar.
                         </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Export Range Date Modal */}
+            {showExportModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl animate-in zoom-in-95 duration-200">
+                        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm">
+                                Export Hasil Audit
+                            </h3>
+                            <button
+                                onClick={() => setShowExportModal(false)}
+                                className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                            >
+                                <XMarkIcon className="w-5 h-5 text-slate-400" />
+                            </button>
+                        </div>
+                        <div className="p-4 space-y-4">
+                            <div>
+                                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                                    Tanggal Mulai
+                                </label>
+                                <input
+                                    type="date"
+                                    value={exportStartDate}
+                                    onChange={(e) => setExportStartDate(e.target.value)}
+                                    className="w-full text-sm md:text-base px-3 py-2 border border-slate-200 rounded-lg outline-none bg-slate-50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                                    Tanggal Akhir
+                                </label>
+                                <input
+                                    type="date"
+                                    value={exportEndDate}
+                                    onChange={(e) => setExportEndDate(e.target.value)}
+                                    className="w-full text-sm md:text-base px-3 py-2 border border-slate-200 rounded-lg outline-none bg-slate-50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                />
+                            </div>
+                        </div>
+                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+                            <button
+                                onClick={() => setShowExportModal(false)}
+                                className="flex-1 px-4 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl text-sm shadow-sm hover:bg-slate-50"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setIsExporting(true);
+                                    try {
+                                        let url = `/mobile/audit/export?auditor=${sessionAuditor}`;
+                                        if (exportStartDate) url += `&start_date=${exportStartDate}`;
+                                        if (exportEndDate) url += `&end_date=${exportEndDate}`;
+                                        
+                                        const response = await fetch(url);
+                                        const blob = await response.blob();
+                                        const downloadUrl = window.URL.createObjectURL(blob);
+                                        const a = document.createElement("a");
+                                        a.href = downloadUrl;
+
+                                        const disposition = response.headers.get("content-disposition");
+                                        let filename = `hasil_audit_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}.xlsx`;
+                                        if (disposition && disposition.indexOf("attachment") !== -1) {
+                                            const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                                            if (matches != null && matches[1]) {
+                                                filename = matches[1].replace(/['"]/g, "");
+                                            }
+                                        }
+
+                                        a.download = filename;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        a.remove();
+                                        window.URL.revokeObjectURL(downloadUrl);
+                                        setShowExportModal(false);
+                                    } catch (error) {
+                                        console.error("Export failed:", error);
+                                        showToast("Gagal mengunduh file export", "error");
+                                    } finally {
+                                        setIsExporting(false);
+                                    }
+                                }}
+                                disabled={isExporting}
+                                className="flex-1 px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl text-sm shadow-sm shadow-emerald-500/20 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {isExporting ? "Exporting..." : "Download"}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
