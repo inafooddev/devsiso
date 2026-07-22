@@ -471,6 +471,28 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
         }
     }, [sessionAuditor]);
 
+    const [currentAddress, setCurrentAddress] = useState("");
+
+    // Fetch reverse geocode address when user location is available
+    useEffect(() => {
+        if (userLocation && userLocation.latitude && userLocation.longitude) {
+            const fetchAddress = async () => {
+                try {
+                    const res = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${userLocation.latitude}&lon=${userLocation.longitude}`
+                    );
+                    const json = await res.json();
+                    if (json && json.display_name) {
+                        setCurrentAddress(json.display_name);
+                    }
+                } catch (e) {
+                    console.warn("Reverse geocode fetch failed:", e);
+                }
+            };
+            fetchAddress();
+        }
+    }, [userLocation]);
+
     const handleFileChange = (field, file) => {
         if (!file) {
             setData(field, null);
@@ -482,13 +504,12 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
             return;
         }
 
-        if (file.type.startsWith("image/") && file.size > 1024 * 1024) {
-            // Compress if > 1MB
+        if (file.type.startsWith("image/")) {
             const img = new Image();
             const objectUrl = URL.createObjectURL(file);
 
             img.onload = () => {
-                URL.revokeObjectURL(objectUrl); // Clean up immediately
+                URL.revokeObjectURL(objectUrl);
 
                 const canvas = document.createElement("canvas");
                 let width = img.width;
@@ -512,6 +533,44 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                 const ctx = canvas.getContext("2d");
                 ctx.drawImage(img, 0, 0, width, height);
 
+                // Add Watermark Banner at the bottom of the photo
+                const bannerHeight = Math.max(75, Math.round(height * 0.15));
+                ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+                ctx.fillRect(0, height - bannerHeight, width, bannerHeight);
+
+                ctx.fillStyle = "#ffffff";
+                ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+                ctx.shadowBlur = 4;
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 1;
+
+                const fontSize = Math.max(12, Math.round(width * 0.024));
+                ctx.font = `bold ${fontSize}px sans-serif`;
+
+                const now = new Date();
+                const timestampStr = `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+
+                const storeNameStr = `Toko: ${detailOutlet?.customer_name || data.customer_name || "-"}`;
+                const timeStr = `Waktu: ${timestampStr}`;
+                const addressStr = `Alamat: ${currentAddress || detailOutlet?.customer_address || (userLocation ? `${userLocation.latitude}, ${userLocation.longitude}` : "-")}`;
+
+                const padding = Math.max(10, Math.round(width * 0.02));
+                const lineSpacing = fontSize + 5;
+                let startY = height - bannerHeight + fontSize + 4;
+
+                ctx.fillText(storeNameStr, padding, startY);
+                ctx.fillText(timeStr, padding, startY + lineSpacing);
+                
+                // Truncate address if wider than canvas width
+                let displayAddress = addressStr;
+                if (ctx.measureText(displayAddress).width > width - padding * 2) {
+                    while (displayAddress.length > 10 && ctx.measureText(displayAddress + "...").width > width - padding * 2) {
+                        displayAddress = displayAddress.slice(0, -1);
+                    }
+                    displayAddress += "...";
+                }
+                ctx.fillText(displayAddress, padding, startY + lineSpacing * 2);
+
                 canvas.toBlob(
                     (blob) => {
                         if (blob) {
@@ -522,20 +581,19 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                             setIsFormTouched(true);
                             setData(field, newFile);
                         } else {
-                            // Fallback if compression fails
                             setIsFormTouched(true);
                             setData(field, file);
                         }
                     },
                     "image/jpeg",
-                    0.7,
+                    0.75,
                 );
             };
 
             img.onerror = () => {
                 URL.revokeObjectURL(objectUrl);
                 setIsFormTouched(true);
-                setData(field, file); // Fallback
+                setData(field, file);
             };
 
             img.src = objectUrl;

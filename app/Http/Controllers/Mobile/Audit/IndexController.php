@@ -281,31 +281,60 @@ class IndexController extends Controller
                     }
                     
                     // Add Watermark
-                    $timestamp = date('d-m-Y H:i:s');
+                    $timestamp = date('d/m/Y H:i:s');
                     $auditor = $request->auditor ?? session('audit_user', 'Unknown');
-                    $lat = $request->latitude ?? '-';
-                    $lng = $request->longitude ?? '-';
-                    $watermarkText = "Waktu: {$timestamp}\nAuditor: {$auditor}\nLokasi: {$lat}, {$lng}";
+                    $customerName = $request->customer_name ?? '-';
+                    $lat = $request->latitude;
+                    $lng = $request->longitude;
+
+                    $addressText = $request->customer_address ?? '-';
+                    if (!empty($lat) && !empty($lng) && $lat !== '0' && $lng !== '0') {
+                        try {
+                            $geoUrl = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat={$lat}&lon={$lng}";
+                            $ctx = stream_context_create([
+                                'http' => [
+                                    'timeout' => 2,
+                                    'header' => "User-Agent: DevsisoAudit/1.0\r\n"
+                                ]
+                            ]);
+                            $geoJson = @file_get_contents($geoUrl, false, $ctx);
+                            if ($geoJson) {
+                                $geoData = json_decode($geoJson, true);
+                                if (!empty($geoData['display_name'])) {
+                                    $addressText = $geoData['display_name'];
+                                }
+                            }
+                        } catch (\Throwable $e) {
+                            // Fallback to customer_address
+                        }
+                    }
+
+                    // Trim address if too long for watermark text
+                    if (mb_strlen($addressText) > 80) {
+                        $addressText = mb_substr($addressText, 0, 77) . '...';
+                    }
+
+                    $watermarkText = "Toko: {$customerName}\nWaktu: {$timestamp}\nAlamat: {$addressText}\nAuditor: {$auditor}";
                     
                     $x = 15;
-                    $y = max(15, $image->height() - 75);
+                    $y = max(15, $image->height() - 110);
                     $fontPath = 'C:/Windows/Fonts/arial.ttf';
                     
                     if (file_exists($fontPath)) {
                         // Shadow
                         $image->text($watermarkText, $x + 2, $y + 2, function ($font) use ($fontPath) {
                             $font->file($fontPath);
-                            $font->size(18);
+                            $font->size(16);
                             $font->color('#000000');
-                            $font->lineHeight(1.5);
+                            $font->lineHeight(1.4);
                         });
                         
                         // Main Text
                         $image->text($watermarkText, $x, $y, function ($font) use ($fontPath) {
                             $font->file($fontPath);
-                            $font->size(18);
+                            $font->size(16);
                             $font->color('#ffffff');
-                            $font->lineHeight(1.5);
+                            $font->lineHeight(1.4);
                         });
                     }
                     
