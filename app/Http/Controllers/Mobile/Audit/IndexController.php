@@ -139,6 +139,45 @@ class IndexController extends Controller
         ]);
     }
 
+    public function showLogin()
+    {
+        return Inertia::render('Mobile/Audit/Login');
+    }
+
+    public function login(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|string',
+            'password' => 'required|string',
+        ]);
+
+        $throttleKey = \Illuminate\Support\Str::lower($request->user_id) . '|' . $request->ip();
+
+        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = \Illuminate\Support\Facades\RateLimiter::availableIn($throttleKey);
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'user_id' => "Terlalu banyak percobaan login. Silakan coba lagi dalam {$seconds} detik.",
+            ]);
+        }
+
+        if (Auth::attempt(['userid' => $request->user_id, 'password' => $request->password], $request->boolean('remember'))) {
+            \Illuminate\Support\Facades\RateLimiter::clear($throttleKey);
+            $request->session()->regenerate();
+            
+            \App\Helpers\ActivityLogger::log('Audit Login', 'User berhasil login ke sistem Audit Mobile.');
+
+            return redirect()->route('mobile.audit.index');
+        }
+
+        \Illuminate\Support\Facades\RateLimiter::hit($throttleKey, 60);
+
+        \App\Helpers\ActivityLogger::log('Audit Login Failed', "Gagal login audit dengan userid: {$request->user_id} dari IP: " . $request->ip());
+
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'user_id' => 'User ID atau password salah.',
+        ]);
+    }
+
     public function store(Request $request)
     {
         $request->validate([

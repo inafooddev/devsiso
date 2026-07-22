@@ -34,6 +34,9 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+            if ($request->is('mobile/audit*')) {
+                return redirect()->guest(route('mobile.audit.login'));
+            }
             if ($request->is('mobile/*')) {
                 return redirect()->guest(route('mobile.login'));
             }

@@ -101,6 +101,10 @@ use App\Livewire\MonitoringDevice\Index as MonitoringDeviceIndex;
 Route::middleware('guest')->group(function () {
     Route::get('/mobile/login', [\App\Http\Controllers\Mobile\AuthController::class, 'showLogin'])->name('mobile.login');
     Route::post('/mobile/login', [\App\Http\Controllers\Mobile\AuthController::class, 'login']);
+    
+    // Audit specific login
+    Route::get('/mobile/audit/login', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'showLogin'])->name('mobile.audit.login');
+    Route::post('/mobile/audit/login', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'login']);
 });
 
 Route::redirect('/mobile/monitoring-device', '/app/monitoring-device')->name('mobile.monitoring-device.index');
