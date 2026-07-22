@@ -265,47 +265,52 @@ class IndexController extends Controller
         foreach ($fileFields as $field) {
             if ($request->hasFile($field)) {
                 $file = $request->file($field);
-                $extension = $file->getClientOriginalExtension() ?: 'jpg';
+                $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
                 $filename = "{$request->customer_code}_{$field}_" . time() . ".{$extension}";
                 
-                $image = $manager->read($file->getRealPath());
-                if ($image->width() > 1024) {
-                    $image->scaleDown(width: 1024);
-                }
-                
-                // Add Watermark
-                $timestamp = date('d-m-Y H:i:s');
-                $auditor = $request->auditor ?? session('audit_user', 'Unknown');
-                $lat = $request->latitude ?? '-';
-                $lng = $request->longitude ?? '-';
-                $watermarkText = "Waktu: {$timestamp}\nAuditor: {$auditor}\nLokasi: {$lat}, {$lng}";
-                
-                $x = 15;
-                $y = $image->height() - 75;
-                $fontPath = 'C:/Windows/Fonts/arial.ttf';
-                
-                if (file_exists($fontPath)) {
-                    // Shadow
-                    $image->text($watermarkText, $x + 2, $y + 2, function ($font) use ($fontPath) {
-                        $font->file($fontPath);
-                        $font->size(18);
-                        $font->color('#000000');
-                        $font->lineHeight(1.5);
-                    });
+                try {
+                    $image = $manager->read($file->getRealPath());
+                    if ($image->width() > 1024) {
+                        $image->scaleDown(width: 1024);
+                    }
                     
-                    // Main Text
-                    $image->text($watermarkText, $x, $y, function ($font) use ($fontPath) {
-                        $font->file($fontPath);
-                        $font->size(18);
-                        $font->color('#ffffff');
-                        $font->lineHeight(1.5);
-                    });
+                    // Add Watermark
+                    $timestamp = date('d-m-Y H:i:s');
+                    $auditor = $request->auditor ?? session('audit_user', 'Unknown');
+                    $lat = $request->latitude ?? '-';
+                    $lng = $request->longitude ?? '-';
+                    $watermarkText = "Waktu: {$timestamp}\nAuditor: {$auditor}\nLokasi: {$lat}, {$lng}";
+                    
+                    $x = 15;
+                    $y = max(15, $image->height() - 75);
+                    $fontPath = 'C:/Windows/Fonts/arial.ttf';
+                    
+                    if (file_exists($fontPath)) {
+                        // Shadow
+                        $image->text($watermarkText, $x + 2, $y + 2, function ($font) use ($fontPath) {
+                            $font->file($fontPath);
+                            $font->size(18);
+                            $font->color('#000000');
+                            $font->lineHeight(1.5);
+                        });
+                        
+                        // Main Text
+                        $image->text($watermarkText, $x, $y, function ($font) use ($fontPath) {
+                            $font->file($fontPath);
+                            $font->size(18);
+                            $font->color('#ffffff');
+                            $font->lineHeight(1.5);
+                        });
+                    }
+                    
+                    $image->save($auditDir . '/' . $filename, quality: 75);
+                    $data[$field] = 'audit/' . $filename;
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("Failed to process image {$field}: " . $e->getMessage());
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        $field => "Foto {$field} tidak dapat diproses. Pastikan format foto adalah JPG/PNG dan ukurannya tidak terlalu besar."
+                    ]);
                 }
-                
-                $image->save($auditDir . '/' . $filename, quality: 75);
-                
-                
-                $data[$field] = 'audit/' . $filename;
             } elseif ($request->$field === 'delete') {
                 $data[$field] = null;
                 // Optional: Delete physical file if exists

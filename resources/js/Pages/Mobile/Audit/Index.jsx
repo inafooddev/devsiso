@@ -134,16 +134,26 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
     };
 
     const [reportSearch, setReportSearch] = useState("");
+    const [reportSort, setReportSort] = useState("newest"); // "newest", "oldest", "name"
     const allMyReports = auditReports || [];
-    const filteredReports = allMyReports.filter((r) => {
-        if (!reportSearch) return true;
-        const q = reportSearch.toLowerCase();
-        return (
-            r.customer_name?.toLowerCase().includes(q) ||
-            r.customer_code?.toLowerCase().includes(q) ||
-            r.cabang?.toLowerCase().includes(q)
-        );
-    });
+    const filteredReports = (allMyReports || [])
+        .filter((r) => {
+            if (!reportSearch) return true;
+            const q = reportSearch.toLowerCase();
+            return (
+                r.customer_name?.toLowerCase().includes(q) ||
+                r.customer_code?.toLowerCase().includes(q) ||
+                r.cabang?.toLowerCase().includes(q)
+            );
+        })
+        .sort((a, b) => {
+            if (reportSort === "oldest") {
+                return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+            } else if (reportSort === "name") {
+                return (a.customer_name || "").localeCompare(b.customer_name || "");
+            }
+            return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        });
 
     // Draft states (for UI inputs only)
     const [search, setSearch] = useState("");
@@ -432,6 +442,20 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
     }, [detailOutlet, isFormTouched]);
+
+    // Global listener for HTTP 500 Server Errors to prevent silent failures
+    useEffect(() => {
+        const removeErrorListener = router.on("exception", (event) => {
+            event.preventDefault(); // Prevent default Inertia error modal
+            setIsGettingLocation(false);
+            isSubmittingRef.current = false;
+            showToast(
+                "Terjadi kesalahan sistem (Server Error). Pastikan foto tidak lebih dari 5MB dan berformat JPG/PNG.",
+                "error"
+            );
+        });
+        return () => removeErrorListener();
+    }, []);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showNoPhotoWarning, setShowNoPhotoWarning] = useState(false);
     const [deletingReport, setDeletingReport] = useState(null);
@@ -459,6 +483,11 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
     const handleFileChange = (field, file) => {
         if (!file) {
             setData(field, null);
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            showToast(`Ukuran file (${(file.size / 1024 / 1024).toFixed(1)}MB) melebihi batas maksimal 5MB.`, "error");
             return;
         }
 
@@ -841,23 +870,57 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
     };
 
     const openDetailFromReport = (report, scrollToForm = false) => {
-        const outlet = (outlets || []).find(
+        let outlet = (outlets || []).find(
             (o) => o.customer_code === report.customer_code,
         );
-        if (outlet) {
-            openDetail(outlet);
-            if (scrollToForm) {
-                setTimeout(() => {
-                    const formEl = document.getElementById(
-                        "audit-form-container",
-                    );
-                    if (formEl) {
+        if (!outlet) {
+            // Fallback: Construct outlet object from report data if missing in outlets list
+            outlet = {
+                customer_code: report.customer_code,
+                distributor_code: report.distributor_code || "",
+                customer_name: report.customer_name,
+                customer_address: report.customer_address || "",
+                auditor: report.auditor || "",
+                keterangan_hasil_audit: report.keterangan_hasil_audit || "",
+                is_toko_fisik: Boolean(report.is_toko_fisik),
+                is_nama_pemilik: Boolean(report.is_nama_pemilik),
+                is_nama_ktp: Boolean(report.is_nama_ktp),
+                is_nik_ktp: Boolean(report.is_nik_ktp),
+                is_no_hp: Boolean(report.is_no_hp),
+                is_no_rekening: Boolean(report.is_no_rekening),
+                is_an_rekening: Boolean(report.is_an_rekening),
+                is_titik_koordinat: Boolean(report.is_titik_koordinat),
+                audit_latitude: report.latitude || "",
+                audit_longitude: report.longitude || "",
+                status_audit: "Sudah",
+                foto_audit1: report.foto_audit1,
+                foto_audit2: report.foto_audit2,
+                foto_audit3: report.foto_audit3,
+                foto_audit4: report.foto_audit4,
+                foto_audit5: report.foto_audit5,
+                foto_audit6: report.foto_audit6,
+                foto_audit7: report.foto_audit7,
+                foto_audit8: report.foto_audit8,
+            };
+        }
+        openDetail(outlet);
+        if (scrollToForm) {
+            setTimeout(() => {
+                const formEl = document.getElementById(
+                    "audit-form-container",
+                );
+                if (formEl) {
+                    const scrollContainer = formEl.closest(".overflow-y-auto");
+                    if (scrollContainer) {
+                        scrollContainer.scrollTo({
+                            top: formEl.offsetTop - 20,
+                            behavior: "smooth",
+                        });
+                    } else {
                         formEl.scrollIntoView({ behavior: "smooth" });
                     }
-                }, 300);
-            }
-        } else {
-            showToast("Data toko tidak ditemukan di master list.", "error");
+                }
+            }, 300);
         }
     };
 
@@ -1265,28 +1328,39 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                 </button>
                             </div>
 
-                            <div className="relative mb-4">
-                                <input
-                                    type="search"
-                                    value={reportSearch}
-                                    onChange={(e) =>
-                                        setReportSearch(e.target.value)
-                                    }
-                                    placeholder="Cari laporan (toko, kode, cabang)..."
-                                    className="w-full h-10 pl-10 pr-10 text-sm md:text-base border border-slate-200 rounded-xl bg-slate-50 focus:border-indigo-500 outline-none"
-                                />
-                                <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
-                                {reportSearch && (
-                                    <button
-                                        onClick={() => setReportSearch("")}
-                                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
-                                    >
-                                        <XMarkIcon className="w-5 h-5" />
-                                    </button>
-                                )}
+                            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                                <div className="relative flex-1">
+                                    <input
+                                        type="search"
+                                        value={reportSearch}
+                                        onChange={(e) =>
+                                            setReportSearch(e.target.value)
+                                        }
+                                        placeholder="Cari laporan (toko, kode, cabang)..."
+                                        className="w-full h-10 pl-10 pr-10 text-sm md:text-base border border-slate-200 rounded-xl bg-slate-50 focus:border-indigo-500 outline-none"
+                                    />
+                                    <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
+                                    {reportSearch && (
+                                        <button
+                                            onClick={() => setReportSearch("")}
+                                            className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                                        >
+                                            <XMarkIcon className="w-5 h-5" />
+                                        </button>
+                                    )}
+                                </div>
+                                <select
+                                    value={reportSort}
+                                    onChange={(e) => setReportSort(e.target.value)}
+                                    className="h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs md:text-sm font-semibold text-slate-700 outline-none focus:border-indigo-500 shrink-0"
+                                >
+                                    <option value="newest">Terbaru</option>
+                                    <option value="oldest">Terlama</option>
+                                    <option value="name">Nama (A-Z)</option>
+                                </select>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto pr-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                 {filteredReports.length > 0 ? (
                                     filteredReports.map((report) => {
                                         const verifiedCount = [
@@ -1997,8 +2071,9 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                             )}
                                         </button>
                                     </div>
+                                </div>
 
-                                    {/* Foto Lampiran */}
+                                {/* Foto Lampiran */}
                                     <div className="mt-6 pb-6">
                                         <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 mb-2">
                                             Foto Lampiran
@@ -2095,13 +2170,19 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-
-                                {/* Foto Hasil Audit (Dipisah) */}
+                                    {/* Foto Hasil Audit (Dipisah) */}
                                 <div className="pb-6">
-                                    <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 mb-2">
-                                        Foto Hasil Audit (Maks. 8)
-                                    </h5>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600">
+                                            Foto Hasil Audit
+                                        </h5>
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                            {[1, 2, 3, 4, 5, 6, 7, 8].filter(n => {
+                                                const f = `foto_audit${n}`;
+                                                return data[f] instanceof File || (data[f] !== "delete" && detailOutlet?.[f]);
+                                            }).length}/8 Terisi
+                                        </span>
+                                    </div>
                                     <div className="bg-white rounded-xl p-4 border border-indigo-100 shadow-sm shadow-indigo-100/50">
                                         <div className="grid grid-cols-4 gap-2">
                                             {[1, 2, 3, 4, 5, 6, 7, 8].map(
@@ -2130,12 +2211,14 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                                                 <>
                                                                     <div className="absolute inset-0 rounded-xl overflow-hidden">
                                                                         {hasUploadedFile ? (
-                                                                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-emerald-50 text-emerald-600">
-                                                                                <CheckCircleIcon className="w-5 h-5 mb-1" />
-                                                                                <span className="text-[8px] font-semibold text-center leading-tight">
-                                                                                    Siap
-                                                                                    <br />
-                                                                                    Upload
+                                                                            <div className="absolute inset-0">
+                                                                                <img
+                                                                                    src={URL.createObjectURL(data[field])}
+                                                                                    alt={`Preview ${num}`}
+                                                                                    className="w-full h-full object-cover"
+                                                                                />
+                                                                                <span className="absolute top-1 left-1 bg-emerald-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-sm">
+                                                                                    BARU
                                                                                 </span>
                                                                             </div>
                                                                         ) : (
@@ -2147,23 +2230,22 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                                                         )}
                                                                         
                                                                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                                                            {!hasUploadedFile &&
-                                                                                hasServerFile && (
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={(
-                                                                                            e,
-                                                                                        ) => {
-                                                                                            e.preventDefault();
-                                                                                            setZoomedImage(
-                                                                                                `/storage/${hasServerFile}`,
-                                                                                            );
-                                                                                        }}
-                                                                                        className="w-8 h-8 rounded-full bg-slate-900/60 hover:bg-slate-900/80 flex items-center justify-center text-white shadow-sm backdrop-blur-sm transition-all pointer-events-auto"
-                                                                                    >
-                                                                                        <EyeIcon className="w-4 h-4" />
-                                                                                    </button>
-                                                                                )}
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(
+                                                                                    e,
+                                                                                ) => {
+                                                                                    e.preventDefault();
+                                                                                    if (hasUploadedFile) {
+                                                                                        setZoomedImage(URL.createObjectURL(data[field]));
+                                                                                    } else if (hasServerFile) {
+                                                                                        setZoomedImage(`/storage/${hasServerFile}`);
+                                                                                    }
+                                                                                }}
+                                                                                className="w-7 h-7 rounded-full bg-slate-900/60 hover:bg-slate-900/80 flex items-center justify-center text-white shadow-sm backdrop-blur-sm transition-all pointer-events-auto"
+                                                                            >
+                                                                                <EyeIcon className="w-3.5 h-3.5" />
+                                                                            </button>
                                                                         </div>
                                                                     </div>
                                                                     
@@ -2377,7 +2459,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                             )}
                                             <span>
                                                 {processing || isGettingLocation
-                                                    ? "Menyimpan & Mengambil Lokasi..."
+                                                    ? "Menyimpan..."
                                                     : "Simpan Hasil Audit"}
                                             </span>
                                         </button>
@@ -2570,19 +2652,25 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
             {/* Custom Toast Notification */}
             {toast && (
                 <div
-                    className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[100] px-5 py-3 rounded-full shadow-lg shadow-black/10 flex items-center gap-2.5 transition-all animate-fade-in-down"
+                    className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[100] max-w-[90vw] px-4 py-2.5 rounded-2xl shadow-xl shadow-black/10 flex items-center gap-2.5 transition-all animate-fade-in-down text-center"
                     style={{
                         backgroundColor:
-                            toast.type === "success" ? "#10b981" : "#f43f5e",
+                            toast.type === "success"
+                                ? "#10b981"
+                                : toast.type === "warning"
+                                  ? "#f59e0b"
+                                  : "#f43f5e",
                         color: "white",
                     }}
                 >
                     {toast.type === "success" ? (
-                        <CheckCircleIcon className="w-5 h-5" />
+                        <CheckCircleIcon className="w-5 h-5 shrink-0" />
+                    ) : toast.type === "warning" ? (
+                        <InformationCircleIcon className="w-5 h-5 shrink-0" />
                     ) : (
-                        <XCircleIcon className="w-5 h-5" />
+                        <XCircleIcon className="w-5 h-5 shrink-0" />
                     )}
-                    <span className="text-xs md:text-sm font-bold tracking-wide">
+                    <span className="text-xs md:text-sm font-bold tracking-wide leading-snug">
                         {toast.message}
                     </span>
                 </div>
