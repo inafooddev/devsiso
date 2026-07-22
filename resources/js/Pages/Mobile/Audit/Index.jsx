@@ -121,7 +121,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
 
     const confirmLogoutAuditor = () => {
         router.post(
-            "/mobile/logout",
+            "/mobile/audit/logout",
             {},
             {
                 preserveScroll: true,

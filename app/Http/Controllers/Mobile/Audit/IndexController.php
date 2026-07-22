@@ -179,6 +179,16 @@ class IndexController extends Controller
         ]);
     }
 
+    public function logout(Request $request)
+    {
+        \App\Helpers\ActivityLogger::log('Audit Logout', 'User berhasil logout dari sistem Audit Mobile.');
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('mobile.audit.login');
+    }
+
     public function store(Request $request)
     {
         $request->validate([
