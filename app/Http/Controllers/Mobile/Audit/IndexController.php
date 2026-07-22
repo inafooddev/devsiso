@@ -210,14 +210,14 @@ class IndexController extends Controller
             'customer_code' => 'required',
             'distributor_code' => 'required',
             'auditor' => 'required',
-            'foto_audit1' => 'nullable|image',
-            'foto_audit2' => 'nullable|image',
-            'foto_audit3' => 'nullable|image',
-            'foto_audit4' => 'nullable|image',
-            'foto_audit5' => 'nullable|image',
-            'foto_audit6' => 'nullable|image',
-            'foto_audit7' => 'nullable|image',
-            'foto_audit8' => 'nullable|image',
+            'foto_audit1' => 'nullable',
+            'foto_audit2' => 'nullable',
+            'foto_audit3' => 'nullable',
+            'foto_audit4' => 'nullable',
+            'foto_audit5' => 'nullable',
+            'foto_audit6' => 'nullable',
+            'foto_audit7' => 'nullable',
+            'foto_audit8' => 'nullable',
             'is_toko_fisik' => 'nullable|boolean',
             'is_nama_pemilik' => 'nullable|boolean',
             'is_nama_ktp' => 'nullable|boolean',
@@ -304,7 +304,14 @@ class IndexController extends Controller
                 
                 $image->save($auditDir . '/' . $filename, quality: 75);
                 
+                
                 $data[$field] = 'audit/' . $filename;
+            } elseif ($request->$field === 'delete') {
+                $data[$field] = null;
+                // Optional: Delete physical file if exists
+                if ($existing && !empty($existing->$field)) {
+                    @unlink(storage_path('app/public/' . $existing->$field));
+                }
             }
         }
 

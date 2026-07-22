@@ -628,6 +628,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
             setIsGettingLocation(false);
             setGpsError("timeout");
             isSubmittingRef.current = false;
+            showToast("Waktu pencarian GPS habis. Sinyal GPS lemah.", "error");
         }, 5000);
 
         navigator.geolocation.getCurrentPosition(
@@ -647,6 +648,12 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                 setIsGettingLocation(false);
                 setGpsError(error.code === 1 ? "denied" : "unavailable");
                 isSubmittingRef.current = false;
+                showToast(
+                    error.code === 1 
+                        ? "Izin GPS ditolak. Silakan izinkan akses lokasi." 
+                        : "Gagal mendapatkan lokasi GPS.", 
+                    "error"
+                );
             },
             { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 },
         );
@@ -682,6 +689,9 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
             forceFormData: true,
             onSuccess: () => {
                 setDetailOutlet(null);
+                if (window.history.state?.modal === 'detail') {
+                    window.history.back();
+                }
                 reset();
                 setIsFormTouched(false);
                 setIsGettingLocation(false);
@@ -692,8 +702,9 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                 setIsGettingLocation(false);
                 isSubmittingRef.current = false;
                 console.error("Validation Error:", errors);
+                const firstError = Object.values(errors)[0];
                 showToast(
-                    "Gagal menyimpan. Pastikan semua data wajib telah diisi.",
+                    firstError || "Gagal menyimpan. Pastikan semua data wajib telah diisi.",
                     "error",
                 );
             },
@@ -951,46 +962,50 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                     )}
                 </header>
 
-                <div className="px-4 pb-3 flex items-center gap-2">
-                    <form
-                        onSubmit={handleSearchSubmit}
-                        className="relative flex-1 flex items-center"
-                    >
-                        <button
-                            type="submit"
-                            className="absolute left-3 text-slate-400 hover:text-indigo-600"
+                {activeTab === "list" && (
+                    <div className="px-4 pb-3 flex items-center gap-2">
+                        <form
+                            onSubmit={handleSearchSubmit}
+                            className="relative flex-1 flex items-center"
                         >
-                            <MagnifyingGlassIcon className="w-5 h-5" />
-                        </button>
-                        <input
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            type="search"
-                            placeholder="Cari (Tekan Enter / Go)..."
-                            className="block w-full pl-10 pr-8 py-2 text-sm md:text-base border border-slate-200 rounded-xl bg-slate-50 focus:border-indigo-500 outline-none text-slate-800"
-                        />
-                        {search && (
                             <button
-                                type="button"
-                                onClick={clearSearch}
-                                className="absolute right-3 text-slate-400 hover:text-slate-600"
+                                type="submit"
+                                className="absolute left-3 text-slate-400 hover:text-indigo-600"
                             >
-                                <XMarkIcon className="w-4 h-4" />
+                                <MagnifyingGlassIcon className="w-5 h-5" />
                             </button>
-                        )}
-                    </form>
-                    <button
-                        onClick={() => setShowFiltersSheet(true)}
-                        className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-200 relative shrink-0 ${appliedRegion || appliedArea || appliedDistributor ? "bg-indigo-600 text-white shadow-md border-indigo-600" : "bg-slate-50 text-slate-600 border-slate-200"}`}
-                    >
-                        <AdjustmentsHorizontalIcon className="w-5 h-5" />
-                        {(appliedRegion ||
-                            appliedArea ||
-                            appliedDistributor) && (
-                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 border-2 border-white rounded-full animate-bounce"></span>
-                        )}
-                    </button>
-                </div>
+                            <input
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                type="search"
+                                placeholder="Cari (Tekan Enter / Go)..."
+                                className="block w-full pl-10 pr-8 py-2 text-sm md:text-base border border-slate-200 rounded-xl bg-slate-50 focus:border-indigo-500 outline-none text-slate-800"
+                            />
+                            {search && (
+                                <button
+                                    type="button"
+                                    onClick={clearSearch}
+                                    className="absolute right-3 text-slate-400 hover:text-slate-600"
+                                >
+                                    <XMarkIcon className="w-4 h-4" />
+                                </button>
+                            )}
+                        </form>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowFiltersSheet(true)}
+                            className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-200 relative shrink-0 ${appliedRegion || appliedArea || appliedDistributor ? "bg-indigo-600 text-white shadow-md border-indigo-600" : "bg-slate-50 text-slate-600 border-slate-200"}`}
+                        >
+                            <AdjustmentsHorizontalIcon className="w-5 h-5" />
+                            {(appliedRegion ||
+                                appliedArea ||
+                                appliedDistributor) && (
+                                <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 border-2 border-white rounded-full animate-bounce"></span>
+                            )}
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Main Content */}
@@ -1589,12 +1604,27 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                 </div>
                                 <button
                                     onClick={handleCloseDetail}
-                                    className="text-slate-400 p-1 bg-slate-50 rounded-full shrink-0"
+                                    className="text-slate-400 p-1.5 bg-slate-50 rounded-full shrink-0"
                                 >
-                                    <XMarkIcon className="w-5 h-5" />
+                                    <XMarkIcon className="w-5 h-5 md:w-6 md:h-6" />
                                 </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+
+                            {Object.keys(errors).length > 0 && (
+                                <div className="mx-5 mt-4 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-[11px] md:text-xs shadow-sm flex flex-col animate-fade-in">
+                                    <span className="font-bold mb-1 flex items-center gap-1.5">
+                                        <XCircleIcon className="w-4 h-4" />
+                                        Gagal menyimpan data:
+                                    </span>
+                                    <ul className="list-disc ml-5 space-y-0.5">
+                                        {Object.values(errors).map((err, i) => (
+                                            <li key={i}>{err}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
+                            <div className="flex-1 overflow-y-auto overflow-x-hidden p-5 custom-scrollbar">
                                 {/* Identitas Pemilik */}
                                 <div>
                                     <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 mb-2">
@@ -2075,11 +2105,16 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                             {[1, 2, 3, 4, 5, 6, 7, 8].map(
                                                 (num) => {
                                                     const field = `foto_audit${num}`;
+                                                    const isDeleted =
+                                                        data[field] ===
+                                                        "delete";
                                                     const hasUploadedFile =
                                                         data[field] instanceof
                                                         File;
                                                     const hasServerFile =
-                                                        detailOutlet?.[field];
+                                                        isDeleted
+                                                            ? null
+                                                            : detailOutlet?.[field];
                                                     const hasAnyFile =
                                                         hasUploadedFile ||
                                                         hasServerFile;
@@ -2087,89 +2122,76 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                                     return (
                                                         <div
                                                             key={num}
-                                                            className="relative aspect-square rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 flex flex-col items-center justify-center overflow-hidden transition-colors group"
+                                                            className="relative aspect-square rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 flex flex-col items-center justify-center transition-colors group"
                                                         >
                                                             {hasAnyFile ? (
                                                                 <>
-                                                                    {hasUploadedFile ? (
-                                                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-emerald-50 text-emerald-600">
-                                                                            <CheckCircleIcon className="w-5 h-5 mb-1" />
-                                                                            <span className="text-[8px] font-semibold text-center leading-tight">
-                                                                                Siap
-                                                                                <br />
-                                                                                Upload
-                                                                            </span>
+                                                                    <div className="absolute inset-0 rounded-xl overflow-hidden">
+                                                                        {hasUploadedFile ? (
+                                                                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-emerald-50 text-emerald-600">
+                                                                                <CheckCircleIcon className="w-5 h-5 mb-1" />
+                                                                                <span className="text-[8px] font-semibold text-center leading-tight">
+                                                                                    Siap
+                                                                                    <br />
+                                                                                    Upload
+                                                                                </span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <img
+                                                                                src={`/mobile/audit/thumbnail?path=${encodeURIComponent(hasServerFile)}`}
+                                                                                alt={`Audit ${num}`}
+                                                                                className="absolute inset-0 w-full h-full object-cover"
+                                                                            />
+                                                                        )}
+                                                                        
+                                                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                                            {!hasUploadedFile &&
+                                                                                hasServerFile && (
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={(
+                                                                                            e,
+                                                                                        ) => {
+                                                                                            e.preventDefault();
+                                                                                            setZoomedImage(
+                                                                                                `/storage/${hasServerFile}`,
+                                                                                            );
+                                                                                        }}
+                                                                                        className="w-8 h-8 rounded-full bg-slate-900/60 hover:bg-slate-900/80 flex items-center justify-center text-white shadow-sm backdrop-blur-sm transition-all pointer-events-auto"
+                                                                                    >
+                                                                                        <EyeIcon className="w-4 h-4" />
+                                                                                    </button>
+                                                                                )}
                                                                         </div>
-                                                                    ) : (
-                                                                        <img
-                                                                            src={`/mobile/audit/thumbnail?path=${encodeURIComponent(hasServerFile)}`}
-                                                                            alt={`Audit ${num}`}
-                                                                            className="absolute inset-0 w-full h-full object-cover"
-                                                                        />
-                                                                    )}
-                                                                    <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 backdrop-blur-[2px]">
-                                                                        {!hasUploadedFile &&
-                                                                            hasServerFile && (
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={(
-                                                                                        e,
-                                                                                    ) => {
-                                                                                        e.preventDefault();
-                                                                                        setZoomedImage(
-                                                                                            `/storage/${hasServerFile}`,
-                                                                                        );
-                                                                                    }}
-                                                                                    className="w-6 h-6 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all"
-                                                                                >
-                                                                                    <EyeIcon className="w-3 h-3" />
-                                                                                </button>
-                                                                            )}
+                                                                    </div>
+                                                                    
+                                                                    {hasAnyFile && (
                                                                         <button
                                                                             type="button"
                                                                             onClick={(
                                                                                 e,
                                                                             ) => {
                                                                                 e.preventDefault();
-                                                                                document
-                                                                                    .getElementById(
+                                                                                if (hasUploadedFile) {
+                                                                                    setData(field, null);
+                                                                                } else {
+                                                                                    setData(field, "delete");
+                                                                                }
+                                                                                const fi =
+                                                                                    document.getElementById(
                                                                                         `fileInputAudit${num}`,
-                                                                                    )
-                                                                                    .click();
-                                                                            }}
-                                                                            className="w-6 h-6 rounded-full bg-white/95 hover:bg-white flex items-center justify-center text-slate-900 shadow-sm backdrop-blur-sm transition-all"
-                                                                        >
-                                                                            <PencilIcon className="w-3 h-3" />
-                                                                        </button>
-                                                                        {data[
-                                                                            field
-                                                                        ] && (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={(
-                                                                                    e,
-                                                                                ) => {
-                                                                                    e.preventDefault();
-                                                                                    setData(
-                                                                                        field,
-                                                                                        null,
                                                                                     );
-                                                                                    const fi =
-                                                                                        document.getElementById(
-                                                                                            `fileInputAudit${num}`,
-                                                                                        );
-                                                                                    if (
-                                                                                        fi
-                                                                                    )
-                                                                                        fi.value =
-                                                                                            "";
-                                                                                }}
-                                                                                className="w-6 h-6 rounded-full bg-white/95 hover:bg-rose-100 flex items-center justify-center text-rose-600 shadow-sm backdrop-blur-sm transition-all"
-                                                                            >
-                                                                                <TrashIcon className="w-3 h-3" />
-                                                                            </button>
-                                                                        )}
-                                                                    </div>
+                                                                                if (
+                                                                                    fi
+                                                                                )
+                                                                                    fi.value =
+                                                                                        "";
+                                                                            }}
+                                                                            className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-rose-600 hover:bg-rose-700 flex items-center justify-center text-white shadow-md transition-all z-10 border-2 border-white"
+                                                                        >
+                                                                            <XMarkIcon className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    )}
                                                                 </>
                                                             ) : (
                                                                 <div
