@@ -103,14 +103,6 @@ Route::middleware('guest')->group(function () {
     Route::post('/mobile/login', [\App\Http\Controllers\Mobile\AuthController::class, 'login']);
 });
 
-Route::get('/mobile/audit', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'index'])->name('mobile.audit.index');
-Route::post('/mobile/audit', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'store'])->name('mobile.audit.store');
-Route::delete('/mobile/audit/{id}', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'destroy'])->name('mobile.audit.destroy');
-Route::get('/mobile/audit/export', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'export'])->name('mobile.audit.export');
-Route::post('/mobile/audit/login', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'loginAuditor'])->name('mobile.audit.login');
-Route::post('/mobile/audit/logout', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'logoutAuditor'])->name('mobile.audit.logout');
-Route::get('/mobile/audit/thumbnail', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'thumbnail'])->name('mobile.audit.thumbnail');
-
 Route::redirect('/mobile/monitoring-device', '/app/monitoring-device')->name('mobile.monitoring-device.index');
 
 Route::get('/mobile/perbaikan-tikor', [\App\Http\Controllers\Mobile\PerbaikanTikor\IndexController::class, 'index'])->name('mobile.perbaikan.tikor.index');
@@ -125,6 +117,12 @@ Route::post('/app/monitoring-device/logout', [\App\Http\Controllers\Mobile\Monit
 Route::post('/app/monitoring-device/destroy-image', [\App\Http\Controllers\Mobile\MonitoringDeviceController::class, 'destroyImage'])->name('mobile.app.monitoring-device.destroy-image');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/mobile/audit', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'index'])->name('mobile.audit.index');
+    Route::post('/mobile/audit', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'store'])->name('mobile.audit.store');
+    Route::delete('/mobile/audit/{id}', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'destroy'])->name('mobile.audit.destroy');
+    Route::get('/mobile/audit/export', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'export'])->name('mobile.audit.export');
+    Route::get('/mobile/audit/thumbnail', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'thumbnail'])->name('mobile.audit.thumbnail');
+
     Route::post('/mobile/logout', [\App\Http\Controllers\Mobile\AuthController::class, 'logout'])->name('mobile.logout');
     Route::inertia('/mobile/portal', 'Mobile/Portal/Index')->name('mobile.portal');
     Route::inertia('/mobile/home', 'mobile/Pages/Home')->name('mobile.home');
@@ -133,6 +131,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/mobile/profile/password', [\App\Http\Controllers\Mobile\ProfileController::class, 'updatePassword'])->name('mobile.profile.password');
 
     Route::get('/mobile/rwo', \App\Livewire\Rwo\MobileUpdate::class)->name('mobile.rwo.update');
+
     Route::get('/mobile/rwo-inertia', [\App\Http\Controllers\Mobile\Rwo\IndexController::class, 'index'])->name('mobile.rwo.inertia');
     Route::post('/mobile/rwo-inertia/upload', [\App\Http\Controllers\Mobile\Rwo\IndexController::class, 'upload'])->name('mobile.rwo.inertia.upload');
     Route::post('/mobile/rwo-inertia/edit', [\App\Http\Controllers\Mobile\Rwo\IndexController::class, 'edit'])->name('mobile.rwo.inertia.edit');

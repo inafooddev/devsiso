@@ -114,17 +114,6 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [isFormTouched, setIsFormTouched] = useState(false);
 
-    const handleLoginAuditor = (name) => {
-        router.post(
-            "/mobile/audit/login",
-            { auditor: name },
-            {
-                preserveScroll: true,
-                onSuccess: () =>
-                    showToast(`Selamat datang, ${name}!`, "success"),
-            },
-        );
-    };
 
     const handleLogoutAuditor = () => {
         setShowLogoutModal(true);
@@ -132,13 +121,13 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
 
     const confirmLogoutAuditor = () => {
         router.post(
-            "/mobile/audit/logout",
+            "/mobile/logout",
             {},
             {
                 preserveScroll: true,
                 onSuccess: () => {
                     setShowLogoutModal(false);
-                    showToast("Berhasil keluar dari sesi.", "success");
+                    showToast("Berhasil keluar dari aplikasi.", "success");
                 },
             },
         );
@@ -871,83 +860,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
         }
     };
 
-    if (!sessionAuditor) {
-        return (
-            <div className="w-full min-h-screen bg-gradient-to-br from-indigo-50 via-slate-50 to-indigo-100/50 flex items-center justify-center p-6">
-                <Head title="Pilih Auditor - Audit Toko" />
-                <div className="w-full max-w-sm bg-white/90 backdrop-blur-lg border border-slate-200/50 rounded-3xl shadow-xl p-6 flex flex-col items-center animate-fade-in">
-                    <div className="w-14 h-14 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-600 shadow-sm shadow-indigo-600/10 mb-4 animate-bounce-slow">
-                        <ShieldCheckIcon className="w-8 h-8" />
-                    </div>
-                    <h2 className="text-sm md:text-base font-black uppercase tracking-wider text-slate-900 leading-tight text-center">
-                        Sistem Audit Toko
-                    </h2>
-                    <p className="text-[10px] font-bold text-indigo-600 tracking-widest uppercase mb-6 leading-none text-center">
-                        Pilih Identitas Auditor
-                    </p>
 
-                    <div className="w-full flex flex-col gap-3">
-                        {[
-                            {
-                                name: "Lisa",
-                                gradient:
-                                    "linear-gradient(135deg, #6366f1, #2563eb)",
-                            },
-                            {
-                                name: "Juliana",
-                                gradient:
-                                    "linear-gradient(135deg, #ec4899, #e11d48)",
-                            },
-                            {
-                                name: "Vera",
-                                gradient:
-                                    "linear-gradient(135deg, #10b981, #0d9488)",
-                            },
-                        ].map((auditor) => (
-                            <button
-                                key={auditor.name}
-                                onClick={() => handleLoginAuditor(auditor.name)}
-                                className="w-full flex items-center justify-between p-3.5 bg-white border border-slate-200 hover:border-indigo-500 hover:shadow-md active:scale-[0.98] rounded-2xl transition-all group"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div
-                                        style={{ background: auditor.gradient }}
-                                        className="w-10 h-10 rounded-xl text-white font-black flex items-center justify-center shadow-md shadow-slate-900/10 shrink-0 text-sm md:text-base"
-                                    >
-                                        {auditor.name.charAt(0)}
-                                    </div>
-                                    <div className="text-left">
-                                        <h4 className="text-xs md:text-sm font-black text-slate-800 tracking-tight leading-snug group-hover:text-indigo-600 transition-colors">
-                                            {auditor.name}
-                                        </h4>
-                                    </div>
-                                </div>
-                                <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                                    <svg
-                                        className="w-3.5 h-3.5"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                        strokeWidth="3"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M9 5l7 7-7 7"
-                                        />
-                                    </svg>
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="mt-8 text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
-                        PT INAFOOD © {new Date().getFullYear()}
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="w-full min-h-screen bg-slate-50 text-slate-800 flex flex-col relative">

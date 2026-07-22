@@ -19,8 +19,11 @@ class IndexController extends Controller
 {
     public function index(Request $request)
     {
-        // Execute the raw query using Laravel Query Builder
-        $outlets = DB::table('list_outlet_audit as l')
+        $user = Auth::user();
+        $userRegionCodes = !empty($user->region_code) ? (array) $user->region_code : [];
+        $userAreaCodes = !empty($user->area_code) ? (array) $user->area_code : [];
+
+        $outletsQuery = DB::table('list_outlet_audit as l')
             ->selectRaw("
                 md.region_name,
                 md.area_name,
@@ -75,10 +78,17 @@ class IndexController extends Controller
             ->leftJoin('master_distributors as md', 'l.distributor_code', '=', 'md.distributor_code')
             ->leftJoin('reward_outlet as ro', 'l.customer_code', '=', 'ro.eskalink_code')
             ->leftJoin('hasil_audit_toko as hat', 'hat.customer_code', '=', 'l.customer_code')
-            ->distinct()
-            ->get();
+            ->distinct();
 
-        $auditReports = DB::table('hasil_audit_toko as hat')
+        if (!empty($userAreaCodes)) {
+            $outletsQuery->whereIn('md.area_code', $userAreaCodes);
+        } elseif (!empty($userRegionCodes)) {
+            $outletsQuery->whereIn('md.region_code', $userRegionCodes);
+        }
+
+        $outlets = $outletsQuery->get();
+
+        $auditReportsQuery = DB::table('hasil_audit_toko as hat')
             ->selectRaw('
                 md.distributor_code,
                 md.distributor_name,
@@ -112,30 +122,21 @@ class IndexController extends Controller
                 hat.id
             ')
             ->leftJoin('master_distributors as md', 'hat.distributor_code', '=', 'md.distributor_code')
-            ->leftJoin('list_outlet_audit as l', 'hat.customer_code', '=', 'l.customer_code')
-            ->when(session('audit_user'), function ($q) {
-                $q->where('hat.auditor', session('audit_user'));
-            })
-            ->get();
+            ->leftJoin('list_outlet_audit as l', 'hat.customer_code', '=', 'l.customer_code');
+
+        if (!empty($userAreaCodes)) {
+            $auditReportsQuery->whereIn('md.area_code', $userAreaCodes);
+        } elseif (!empty($userRegionCodes)) {
+            $auditReportsQuery->whereIn('md.region_code', $userRegionCodes);
+        }
+
+        $auditReports = $auditReportsQuery->get();
 
         return Inertia::render('Mobile/Audit/Index', [
             'outlets' => $outlets,
             'auditReports' => $auditReports,
-            'sessionAuditor' => session('audit_user'),
+            'sessionAuditor' => $user->name,
         ]);
-    }
-
-    public function loginAuditor(Request $request)
-    {
-        $request->validate(['auditor' => 'required|string']);
-        session(['audit_user' => $request->auditor]);
-        return redirect()->back();
-    }
-
-    public function logoutAuditor(Request $request)
-    {
-        session()->forget('audit_user');
-        return redirect()->back();
     }
 
     public function store(Request $request)
@@ -163,7 +164,7 @@ class IndexController extends Controller
         ]);
 
         $data = [
-            'auditor' => session('audit_user'),
+            'auditor' => Auth::user()->name,
             'distributor_code' => $request->distributor_code,
             'customer_name' => $request->customer_name,
             'customer_address' => $request->customer_address,
@@ -366,6 +367,18 @@ class AuditExport implements FromCollection, WithHeadings, WithMapping, WithColu
             $query->where('hat.created_at', '>=', $this->startDate . ' 00:00:00');
         } elseif (!empty($this->endDate)) {
             $query->where('hat.created_at', '<=', $this->endDate . ' 23:59:59');
+        }
+
+        $user = Auth::user();
+        if ($user) {
+            $userRegionCodes = !empty($user->region_code) ? (array) $user->region_code : [];
+            $userAreaCodes = !empty($user->area_code) ? (array) $user->area_code : [];
+            
+            if (!empty($userAreaCodes)) {
+                $query->whereIn('md.area_code', $userAreaCodes);
+            } elseif (!empty($userRegionCodes)) {
+                $query->whereIn('md.region_code', $userRegionCodes);
+            }
         }
 
         return $query->get();
