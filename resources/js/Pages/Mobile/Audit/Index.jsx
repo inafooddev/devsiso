@@ -136,6 +136,14 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
 
     const [reportSearch, setReportSearch] = useState("");
     const [reportSort, setReportSort] = useState("newest"); // "newest", "oldest", "name"
+
+    const parseDateMs = (dateVal) => {
+        if (!dateVal) return 0;
+        const str = String(dateVal).replace(" ", "T");
+        const ms = new Date(str).getTime();
+        return isNaN(ms) ? 0 : ms;
+    };
+
     const allMyReports = auditReports || [];
     const filteredReports = (allMyReports || [])
         .filter((r) => {
@@ -149,11 +157,11 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
         })
         .sort((a, b) => {
             if (reportSort === "oldest") {
-                return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+                return parseDateMs(a.created_at) - parseDateMs(b.created_at);
             } else if (reportSort === "name") {
                 return (a.customer_name || "").localeCompare(b.customer_name || "");
             }
-            return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+            return parseDateMs(b.created_at) - parseDateMs(a.created_at);
         });
 
     // Draft states (for UI inputs only)
@@ -969,7 +977,8 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
     };
 
     return (
-        <div className="w-full min-h-screen bg-slate-50 text-slate-800 flex flex-col relative">
+        <ErrorBoundary>
+            <div className="w-full min-h-screen bg-slate-50 text-slate-800 flex flex-col relative">
             <Head title="Audit Toko" />
 
             {/* Header */}
@@ -2865,6 +2874,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                     </div>
                 </div>
             )}
-        </div>
+            </div>
+        </ErrorBoundary>
     );
 }
