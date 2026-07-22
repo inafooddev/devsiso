@@ -225,7 +225,13 @@ class Index extends Component
     public function exportExcel()
     {
         return Excel::download(
-            new \App\Http\Controllers\Mobile\Audit\AuditExport('', '', ''),
+            new \App\Exports\AuditTokoExport(
+                $this->search,
+                $this->statusFilter,
+                $this->selectedRegion,
+                $this->selectedArea,
+                $this->selectedDistributor
+            ),
             'Audit_Toko_Report_' . date('Ymd_His') . '.xlsx'
         );
     }
