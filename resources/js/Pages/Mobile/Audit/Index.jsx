@@ -540,6 +540,11 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
             foto_audit1: null,
             foto_audit2: null,
             foto_audit3: null,
+            foto_audit4: null,
+            foto_audit5: null,
+            foto_audit6: null,
+            foto_audit7: null,
+            foto_audit8: null,
         });
     };
 
@@ -636,13 +641,8 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
         isSubmittingRef.current = true;
 
         // Warning no photo
-        const hasPhoto =
-            data.foto_audit1 ||
-            data.foto_audit2 ||
-            data.foto_audit3 ||
-            detailOutlet?.foto_audit1 ||
-            detailOutlet?.foto_audit2 ||
-            detailOutlet?.foto_audit3;
+        const hasPhoto = [1, 2, 3, 4, 5, 6, 7, 8].some(i => data[`foto_audit${i}`] || detailOutlet?.[`foto_audit${i}`]);
+        
         if (!hasPhoto && !showNoPhotoWarning) {
             setShowNoPhotoWarning(true);
             isSubmittingRef.current = false;
@@ -681,6 +681,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
             },
             onFinish: () => {
                 setIsGettingLocation(false);
+                isSubmittingRef.current = false;
             },
         });
     };
