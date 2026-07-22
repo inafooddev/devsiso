@@ -619,6 +619,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
             setIsGettingLocation(false);
             setGpsError("unavailable");
             isSubmittingRef.current = false;
+            showToast("Perangkat atau browser Anda tidak mendukung GPS.", "error");
             return;
         }
 
@@ -671,6 +672,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
         if (!hasPhoto && !showNoPhotoWarning) {
             setShowNoPhotoWarning(true);
             isSubmittingRef.current = false;
+            showToast("Foto bukti belum dilampirkan. Mohon periksa kembali.", "warning");
             return;
         }
 
