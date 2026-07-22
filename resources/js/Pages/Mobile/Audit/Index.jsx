@@ -533,43 +533,48 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                 const ctx = canvas.getContext("2d");
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // Add Watermark Banner at the bottom of the photo
-                const bannerHeight = Math.max(75, Math.round(height * 0.15));
-                ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
-                ctx.fillRect(0, height - bannerHeight, width, bannerHeight);
+                // Detect if photo was taken directly from camera (file created/modified within last 3 minutes)
+                const isCameraPhoto = file.lastModified && Math.abs(Date.now() - file.lastModified) <= 3 * 60 * 1000;
 
-                ctx.fillStyle = "#ffffff";
-                ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
-                ctx.shadowBlur = 4;
-                ctx.shadowOffsetX = 1;
-                ctx.shadowOffsetY = 1;
+                if (isCameraPhoto) {
+                    // Add Watermark Banner at the bottom of the photo
+                    const bannerHeight = Math.max(75, Math.round(height * 0.15));
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+                    ctx.fillRect(0, height - bannerHeight, width, bannerHeight);
 
-                const fontSize = Math.max(12, Math.round(width * 0.024));
-                ctx.font = `bold ${fontSize}px sans-serif`;
+                    ctx.fillStyle = "#ffffff";
+                    ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+                    ctx.shadowBlur = 4;
+                    ctx.shadowOffsetX = 1;
+                    ctx.shadowOffsetY = 1;
 
-                const now = new Date();
-                const timestampStr = `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+                    const fontSize = Math.max(12, Math.round(width * 0.024));
+                    ctx.font = `bold ${fontSize}px sans-serif`;
 
-                const storeNameStr = `Toko: ${detailOutlet?.customer_name || data.customer_name || "-"}`;
-                const timeStr = `Waktu: ${timestampStr}`;
-                const addressStr = `Alamat: ${currentAddress || detailOutlet?.customer_address || (userLocation ? `${userLocation.latitude}, ${userLocation.longitude}` : "-")}`;
+                    const now = new Date();
+                    const timestampStr = `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
 
-                const padding = Math.max(10, Math.round(width * 0.02));
-                const lineSpacing = fontSize + 5;
-                let startY = height - bannerHeight + fontSize + 4;
+                    const storeNameStr = `Toko: ${detailOutlet?.customer_name || data.customer_name || "-"}`;
+                    const timeStr = `Waktu: ${timestampStr}`;
+                    const addressStr = `Alamat: ${currentAddress || detailOutlet?.customer_address || (userLocation ? `${userLocation.latitude}, ${userLocation.longitude}` : "-")}`;
 
-                ctx.fillText(storeNameStr, padding, startY);
-                ctx.fillText(timeStr, padding, startY + lineSpacing);
-                
-                // Truncate address if wider than canvas width
-                let displayAddress = addressStr;
-                if (ctx.measureText(displayAddress).width > width - padding * 2) {
-                    while (displayAddress.length > 10 && ctx.measureText(displayAddress + "...").width > width - padding * 2) {
-                        displayAddress = displayAddress.slice(0, -1);
+                    const padding = Math.max(10, Math.round(width * 0.02));
+                    const lineSpacing = fontSize + 5;
+                    let startY = height - bannerHeight + fontSize + 4;
+
+                    ctx.fillText(storeNameStr, padding, startY);
+                    ctx.fillText(timeStr, padding, startY + lineSpacing);
+                    
+                    // Truncate address if wider than canvas width
+                    let displayAddress = addressStr;
+                    if (ctx.measureText(displayAddress).width > width - padding * 2) {
+                        while (displayAddress.length > 10 && ctx.measureText(displayAddress + "...").width > width - padding * 2) {
+                            displayAddress = displayAddress.slice(0, -1);
+                        }
+                        displayAddress += "...";
                     }
-                    displayAddress += "...";
+                    ctx.fillText(displayAddress, padding, startY + lineSpacing * 2);
                 }
-                ctx.fillText(displayAddress, padding, startY + lineSpacing * 2);
 
                 canvas.toBlob(
                     (blob) => {
