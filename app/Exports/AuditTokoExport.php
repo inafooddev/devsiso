@@ -9,9 +9,10 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Maatwebsite\Excel\Concerns\WithDrawings;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
-class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithStyles
+class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithStyles, WithDrawings
 {
     protected $search;
     protected $statusFilter;
@@ -20,6 +21,7 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
     protected $exportDistributors;
     protected $dateStart;
     protected $dateEnd;
+    protected $exportData;
 
     public function __construct($search = '', $statusFilter = '', $selectedRegion = '', $selectedArea = '', $exportDistributors = [], $dateStart = '', $dateEnd = '')
     {
@@ -116,7 +118,8 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
             });
         }
 
-        return $query->orderBy('hat.created_at', 'desc')->get();
+        $this->exportData = $query->orderBy('hat.created_at', 'desc')->get();
+        return $this->exportData;
     }
 
     public function headings(): array
@@ -209,15 +212,47 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
             $row->alasan_reject ?? '-',
             $row->approved_by ?? '-',
             $row->approved_at ? date('Y-m-d H:i:s', strtotime($row->approved_at)) : '-',
-            $row->foto_audit1 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit1) . '", "Lihat Foto 1")' : '-',
-            $row->foto_audit2 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit2) . '", "Lihat Foto 2")' : '-',
-            $row->foto_audit3 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit3) . '", "Lihat Foto 3")' : '-',
-            $row->foto_audit4 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit4) . '", "Lihat Foto 4")' : '-',
-            $row->foto_audit5 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit5) . '", "Lihat Foto 5")' : '-',
-            $row->foto_audit6 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit6) . '", "Lihat Foto 6")' : '-',
-            $row->foto_audit7 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit7) . '", "Lihat Foto 7")' : '-',
-            $row->foto_audit8 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit8) . '", "Lihat Foto 8")' : '-',
+            '', // Z: Foto 1
+            '', // AA: Foto 2
+            '', // AB: Foto 3
+            '', // AC: Foto 4
+            '', // AD: Foto 5
+            '', // AE: Foto 6
+            '', // AF: Foto 7
+            '', // AG: Foto 8
         ];
+    }
+
+    public function drawings()
+    {
+        $drawings = [];
+        $rowNum = 8; // Data starts at row 8
+        $colLetters = ['Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG'];
+
+        if ($this->exportData) {
+            foreach ($this->exportData as $row) {
+                for ($i = 1; $i <= 8; $i++) {
+                    $fotoField = 'foto_audit' . $i;
+                    if (!empty($row->$fotoField)) {
+                        $imagePath = storage_path('app/public/' . $row->$fotoField);
+                        if (file_exists($imagePath)) {
+                            $drawing = new Drawing();
+                            $drawing->setName('Foto ' . $i);
+                            $drawing->setDescription('Foto ' . $i);
+                            $drawing->setPath($imagePath);
+                            $drawing->setHeight(80); // 80px height
+                            $drawing->setCoordinates($colLetters[$i - 1] . $rowNum);
+                            $drawing->setOffsetX(5);
+                            $drawing->setOffsetY(5);
+                            $drawings[] = $drawing;
+                        }
+                    }
+                }
+                $rowNum++;
+            }
+        }
+
+        return $drawings;
     }
 
     public function styles(Worksheet $sheet)
@@ -232,6 +267,21 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
         // Allow text to wrap in the distributor filter row if it's too long
         $sheet->getStyle('C4')->getAlignment()->setWrapText(true);
         $sheet->getRowDimension(4)->setRowHeight(-1); // Auto-adjust row height
+
+        // Set column widths for photo columns
+        $photoCols = ['Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG'];
+        foreach ($photoCols as $col) {
+            $sheet->getColumnDimension($col)->setWidth(15);
+        }
+
+        // Set row heights for data rows to fit the images
+        if ($this->exportData) {
+            $startRow = 8;
+            $endRow = 7 + $this->exportData->count();
+            for ($i = $startRow; $i <= $endRow; $i++) {
+                $sheet->getRowDimension($i)->setRowHeight(70); // Match image height ~80px -> row height 70 points
+            }
+        }
 
         return [
             1 => [
