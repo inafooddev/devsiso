@@ -2,12 +2,15 @@
     x-data="{ 
         showRejectModal: false, 
         showDetailModal: false, 
+        showExportModal: false,
         detailData: null, 
         photoUrl: '', 
         showPhotoModal: false 
     }"
     x-on:open-reject-modal.window="showRejectModal = true"
     x-on:close-reject-modal.window="showRejectModal = false"
+    x-on:open-export-modal.window="showExportModal = true"
+    x-on:close-export-modal.window="showExportModal = false"
 >
     <x-slot name="title">Approval Audit Toko</x-slot>
 
@@ -116,7 +119,7 @@
 
                 {{-- Export Button --}}
                 <div class="flex items-center gap-1 md:gap-2">
-                    <button wire:click="exportExcel" class="btn btn-sm btn-success text-white rounded-xl gap-2 font-bold shadow-sm">
+                    <button wire:click="openExportModal" class="btn btn-sm btn-success text-white rounded-xl gap-2 font-bold shadow-sm">
                         <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
                         Export Excel
                     </button>
@@ -244,6 +247,68 @@
             </div>
         </div>
 
+    </div>
+
+    {{-- MODAL EXPORT FILTER --}}
+    <div 
+        x-show="showExportModal" 
+        x-cloak 
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+    >
+        <div class="bg-base-100 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-base-300 flex flex-col gap-4">
+            <div class="flex items-center justify-between border-b border-base-200 pb-3">
+                <h3 class="font-extrabold text-base flex items-center gap-2">
+                    <x-heroicon-s-funnel class="w-5 h-5 text-success" />
+                    Filter Export Data
+                </h3>
+                <button type="button" @click="showExportModal = false" class="btn btn-sm btn-circle btn-ghost">✕</button>
+            </div>
+
+            <div class="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-2">
+                <div class="form-control">
+                    <label class="label text-xs font-bold">Rentang Tanggal</label>
+                    <div class="flex items-center gap-2">
+                        <input type="date" wire:model.defer="exportDateStart" class="input input-bordered input-sm w-full rounded-xl text-xs">
+                        <span class="text-xs">s/d</span>
+                        <input type="date" wire:model.defer="exportDateEnd" class="input input-bordered input-sm w-full rounded-xl text-xs">
+                    </div>
+                </div>
+
+                <div class="form-control">
+                    <label class="label text-xs font-bold">Status Approval</label>
+                    <select wire:model.defer="exportStatusFilter" class="select select-bordered select-sm rounded-xl w-full text-xs">
+                        <option value="">Semua Status</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+
+                <div class="form-control border rounded-xl p-3 bg-base-200/30">
+                    <label class="label cursor-pointer justify-start gap-3 pb-2 border-b">
+                        <input type="checkbox" wire:model.live="selectAllExportDistributors" class="checkbox checkbox-primary checkbox-sm rounded-md">
+                        <span class="label-text font-bold text-xs">Pilih Semua Distributor</span>
+                    </label>
+                    
+                    <div class="max-h-40 overflow-y-auto mt-2 space-y-1 pr-2">
+                        @foreach($distributors as $dist)
+                            <label class="label cursor-pointer justify-start gap-3 py-1">
+                                <input type="checkbox" wire:model.defer="exportDistributors" value="{{ $dist }}" class="checkbox checkbox-sm rounded-md">
+                                <span class="label-text text-xs">{{ $dist }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-2 pt-3 border-t border-base-200">
+                <button type="button" @click="showExportModal = false" class="btn btn-sm rounded-xl">Batal</button>
+                <button wire:click="exportExcel" @click="showExportModal = false" class="btn btn-sm btn-success text-white rounded-xl font-bold">
+                    <x-heroicon-s-document-arrow-down class="w-4 h-4" />
+                    Download Excel
+                </button>
+            </div>
+        </div>
     </div>
 
     {{-- MODAL REJECT ALASAN --}}

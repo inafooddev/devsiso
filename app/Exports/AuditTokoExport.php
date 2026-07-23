@@ -17,15 +17,19 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
     protected $statusFilter;
     protected $selectedRegion;
     protected $selectedArea;
-    protected $selectedDistributor;
+    protected $exportDistributors;
+    protected $dateStart;
+    protected $dateEnd;
 
-    public function __construct($search = '', $statusFilter = '', $selectedRegion = '', $selectedArea = '', $selectedDistributor = '')
+    public function __construct($search = '', $statusFilter = '', $selectedRegion = '', $selectedArea = '', $exportDistributors = [], $dateStart = '', $dateEnd = '')
     {
         $this->search = $search;
         $this->statusFilter = $statusFilter;
         $this->selectedRegion = $selectedRegion;
         $this->selectedArea = $selectedArea;
-        $this->selectedDistributor = $selectedDistributor;
+        $this->exportDistributors = $exportDistributors;
+        $this->dateStart = $dateStart;
+        $this->dateEnd = $dateEnd;
     }
 
     public function collection()
@@ -81,8 +85,16 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
             $query->where('md.area_name', $this->selectedArea);
         }
 
-        if (!empty($this->selectedDistributor)) {
-            $query->where('md.distributor_name', $this->selectedDistributor);
+        if (!empty($this->exportDistributors)) {
+            $query->whereIn('md.distributor_name', $this->exportDistributors);
+        }
+
+        if (!empty($this->dateStart) && !empty($this->dateEnd)) {
+            $query->whereBetween('hat.created_at', [$this->dateStart . ' 00:00:00', $this->dateEnd . ' 23:59:59']);
+        } elseif (!empty($this->dateStart)) {
+            $query->where('hat.created_at', '>=', $this->dateStart . ' 00:00:00');
+        } elseif (!empty($this->dateEnd)) {
+            $query->where('hat.created_at', '<=', $this->dateEnd . ' 23:59:59');
         }
 
         if (!empty($this->search)) {

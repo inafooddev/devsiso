@@ -33,6 +33,15 @@ class Index extends Component
     public $selectedId = null;
     public $alasanReject = '';
 
+    // Export Modal Filter properties
+    public $dateStart = '';
+    public $dateEnd = '';
+    public $exportDateStart = '';
+    public $exportDateEnd = '';
+    public $exportStatusFilter = '';
+    public $exportDistributors = [];
+    public $selectAllExportDistributors = false;
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -59,6 +68,41 @@ class Index extends Component
     public function updatingSelectedDistributor()
     {
         $this->resetPage();
+    }
+
+    public function updatingDateStart()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingDateEnd()
+    {
+        $this->resetPage();
+    }
+
+    public function openExportModal()
+    {
+        $this->exportDateStart = $this->dateStart;
+        $this->exportDateEnd = $this->dateEnd;
+        $this->exportStatusFilter = $this->statusFilter;
+        $this->exportDistributors = !empty($this->selectedDistributor) ? [$this->selectedDistributor] : [];
+        $this->selectAllExportDistributors = false;
+        
+        $this->dispatch('open-export-modal');
+    }
+
+    public function updatedSelectAllExportDistributors($value)
+    {
+        $allDistributors = DB::table('master_distributors')
+            ->when(!empty($this->selectedRegion), fn($q) => $q->where('region_name', $this->selectedRegion))
+            ->when(!empty($this->selectedArea), fn($q) => $q->where('area_name', $this->selectedArea))
+            ->distinct()->pluck('distributor_name')->filter()->sort()->values()->toArray();
+
+        if ($value) {
+            $this->exportDistributors = $allDistributors;
+        } else {
+            $this->exportDistributors = [];
+        }
     }
 
     public function getFilteredQueryProperty()
@@ -129,6 +173,14 @@ class Index extends Component
 
         if (!empty($this->selectedDistributor)) {
             $query->where('md.distributor_name', $this->selectedDistributor);
+        }
+
+        if (!empty($this->dateStart) && !empty($this->dateEnd)) {
+            $query->whereBetween('hat.created_at', [$this->dateStart . ' 00:00:00', $this->dateEnd . ' 23:59:59']);
+        } elseif (!empty($this->dateStart)) {
+            $query->where('hat.created_at', '>=', $this->dateStart . ' 00:00:00');
+        } elseif (!empty($this->dateEnd)) {
+            $query->where('hat.created_at', '<=', $this->dateEnd . ' 23:59:59');
         }
 
         if (!empty($this->search)) {
@@ -227,10 +279,12 @@ class Index extends Component
         return Excel::download(
             new \App\Exports\AuditTokoExport(
                 $this->search,
-                $this->statusFilter,
+                $this->exportStatusFilter ?: $this->statusFilter,
                 $this->selectedRegion,
                 $this->selectedArea,
-                $this->selectedDistributor
+                $this->exportDistributors,
+                $this->exportDateStart,
+                $this->exportDateEnd
             ),
             'Audit_Toko_Report_' . date('Ymd_His') . '.xlsx'
         );
