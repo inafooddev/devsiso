@@ -298,11 +298,38 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
             ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
 
         // Center align text horizontally for J (Latitude) to S (Titik Koordinat)
+        // Also apply green/red colors for the checklist columns (L to S)
         if ($this->exportData) {
+            $startRow = 8;
             $endRow = 7 + $this->exportData->count();
+            
             $sheet->getStyle('J7:S' . $endRow)
                 ->getAlignment()
                 ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                
+            foreach ($this->exportData as $index => $row) {
+                $rowIndex = $startRow + $index;
+                $fields = [
+                    'L' => $row->is_toko_fisik,
+                    'M' => $row->is_nama_pemilik,
+                    'N' => $row->is_nama_ktp,
+                    'O' => $row->is_nik_ktp,
+                    'P' => $row->is_no_hp,
+                    'Q' => $row->is_no_rekening,
+                    'R' => $row->is_an_rekening,
+                    'S' => $row->is_titik_koordinat,
+                ];
+                
+                foreach ($fields as $col => $value) {
+                    if ($value) { // Ya -> Hijau
+                        $sheet->getStyle($col . $rowIndex)->getFont()->getColor()->setARGB('FF16A34A');
+                        $sheet->getStyle($col . $rowIndex)->getFont()->setBold(true);
+                    } else { // Tidak -> Merah
+                        $sheet->getStyle($col . $rowIndex)->getFont()->getColor()->setARGB('FFDC2626');
+                        $sheet->getStyle($col . $rowIndex)->getFont()->setBold(true);
+                    }
+                }
+            }
         }
 
         return [
