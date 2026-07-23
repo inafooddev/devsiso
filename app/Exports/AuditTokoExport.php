@@ -113,32 +113,44 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
 
     public function headings(): array
     {
+        $distributorText = empty($this->exportDistributors) ? 'Semua Distributor' : implode(', ', $this->exportDistributors);
+        $dateText = (!empty($this->dateStart) && !empty($this->dateEnd)) ? ($this->dateStart . ' s/d ' . $this->dateEnd) : 'Semua Waktu';
+        $statusText = empty($this->statusFilter) ? 'Semua Status' : $this->statusFilter;
+
         return [
-            'Tanggal Audit',
-            'Region',
-            'Area',
-            'Distributor',
-            'Cabang',
-            'Auditor',
-            'Kode Toko',
-            'Nama Toko',
-            'Alamat Toko',
-            'Latitude',
-            'Longitude',
-            'Toko Fisik',
-            'Nama Pemilik',
-            'Nama KTP',
-            'NIK KTP',
-            'No HP',
-            'No Rekening',
-            'A/N Rekening',
-            'Titik Koordinat',
-            'Total Checklist Sesuai',
-            'Catatan Audit',
-            'Status Approval',
-            'Alasan Reject',
-            'Approved By',
-            'Approved At',
+            ['LAPORAN HASIL AUDIT TOKO'],
+            ['Tanggal Cetak', ':', date('d-m-Y H:i:s')],
+            ['Filter Tanggal', ':', $dateText],
+            ['Filter Distributor', ':', $distributorText],
+            ['Filter Status', ':', $statusText],
+            [''], // Empty row as separator
+            [
+                'Tanggal Audit',
+                'Region',
+                'Area',
+                'Distributor',
+                'Cabang',
+                'Auditor',
+                'Kode Toko',
+                'Nama Toko',
+                'Alamat Toko',
+                'Latitude',
+                'Longitude',
+                'Toko Fisik',
+                'Nama Pemilik',
+                'Nama KTP',
+                'NIK KTP',
+                'No HP',
+                'No Rekening',
+                'A/N Rekening',
+                'Titik Koordinat',
+                'Total Checklist Sesuai',
+                'Catatan Audit',
+                'Status Approval',
+                'Alasan Reject',
+                'Approved By',
+                'Approved At',
+            ]
         ];
     }
 
@@ -188,6 +200,13 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
     {
         return [
             1 => [
+                'font' => ['bold' => true, 'size' => 14],
+            ],
+            2 => ['font' => ['bold' => true]],
+            3 => ['font' => ['bold' => true]],
+            4 => ['font' => ['bold' => true]],
+            5 => ['font' => ['bold' => true]],
+            7 => [
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => [
                     'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
