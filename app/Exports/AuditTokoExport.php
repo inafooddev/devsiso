@@ -158,7 +158,6 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
                 'No Rekening',
                 'A/N Rekening',
                 'Titik Koordinat',
-                'Total Checklist Sesuai',
                 'Catatan Audit',
                 'Status Approval',
                 'Alasan Reject',
@@ -209,20 +208,19 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
             $row->is_no_rekening ? 'Ya' : 'Tidak',
             $row->is_an_rekening ? 'Ya' : 'Tidak',
             $row->is_titik_koordinat ? 'Ya' : 'Tidak',
-            $verifiedCount . '/8 Sesuai',
             $row->keterangan_hasil_audit ?? '-',
             $row->status_approval ?? 'Pending',
             $row->alasan_reject ?? '-',
             $row->approved_by ?? '-',
             $row->approved_at ? date('Y-m-d H:i:s', strtotime($row->approved_at)) : '-',
-            '', // Z: Foto 1
-            '', // AA: Foto 2
-            '', // AB: Foto 3
-            '', // AC: Foto 4
-            '', // AD: Foto 5
-            '', // AE: Foto 6
-            '', // AF: Foto 7
-            '', // AG: Foto 8
+            '', // Y: Foto 1
+            '', // Z: Foto 2
+            '', // AA: Foto 3
+            '', // AB: Foto 4
+            '', // AC: Foto 5
+            '', // AD: Foto 6
+            '', // AE: Foto 7
+            '', // AF: Foto 8
         ];
     }
 
@@ -230,7 +228,7 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
     {
         $drawings = [];
         $rowNum = 8; // Data starts at row 8
-        $colLetters = ['Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG'];
+        $colLetters = ['Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF'];
 
         if ($this->exportData) {
             foreach ($this->exportData as $row) {
@@ -285,6 +283,14 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
             ->getAlignment()
             ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
 
+        // Center align text horizontally for J (Latitude) to S (Titik Koordinat)
+        if ($this->exportData) {
+            $endRow = 7 + $this->exportData->count();
+            $sheet->getStyle('J7:S' . $endRow)
+                ->getAlignment()
+                ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        }
+
         return [
             1 => [
                 'font' => ['bold' => true, 'size' => 14],
@@ -308,7 +314,7 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
         return [
             AfterSheet::class => function(AfterSheet $event) {
                 // Force column widths for photo columns after auto-size has been applied
-                $photoCols = ['Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG'];
+                $photoCols = ['Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF'];
                 foreach ($photoCols as $col) {
                     $event->sheet->getDelegate()->getColumnDimension($col)->setAutoSize(false);
                     $event->sheet->getDelegate()->getColumnDimension($col)->setWidth(25);
