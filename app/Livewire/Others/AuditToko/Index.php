@@ -437,14 +437,29 @@ class Index extends Component
             ->orderBy('hat.created_at', 'desc')
             ->paginate($this->perPage);
 
-        $regions = DB::table('master_distributors')->distinct()->pluck('region_name')->filter()->sort()->values();
-        $areas = DB::table('master_distributors')
-            ->when(!empty($this->selectedRegion), fn($q) => $q->where('region_name', $this->selectedRegion))
-            ->distinct()->pluck('area_name')->filter()->sort()->values();
-        $distributors = DB::table('master_distributors')
-            ->when(!empty($this->selectedRegion), fn($q) => $q->where('region_name', $this->selectedRegion))
-            ->when(!empty($this->selectedArea), fn($q) => $q->where('area_name', $this->selectedArea))
-            ->distinct()->pluck('distributor_name')->filter()->sort()->values();
+        $user = Auth::user();
+        $userRegionCodes = !empty($user->region_code) ? (array) $user->region_code : [];
+        $userAreaCodes = !empty($user->area_code) ? (array) $user->area_code : [];
+
+        $baseQuery = DB::table('hasil_audit_toko as hat')
+            ->join('master_distributors as md', 'hat.distributor_code', '=', 'md.distributor_code');
+
+        if (!empty($userAreaCodes)) {
+            $baseQuery->whereIn('md.area_code', $userAreaCodes);
+        } elseif (!empty($userRegionCodes)) {
+            $baseQuery->whereIn('md.region_code', $userRegionCodes);
+        }
+
+        $regions = (clone $baseQuery)->distinct()->pluck('md.region_name')->filter()->sort()->values();
+        
+        $areas = (clone $baseQuery)
+            ->when(!empty($this->selectedRegion), fn($q) => $q->where('md.region_name', $this->selectedRegion))
+            ->distinct()->pluck('md.area_name')->filter()->sort()->values();
+            
+        $distributors = (clone $baseQuery)
+            ->when(!empty($this->selectedRegion), fn($q) => $q->where('md.region_name', $this->selectedRegion))
+            ->when(!empty($this->selectedArea), fn($q) => $q->where('md.area_name', $this->selectedArea))
+            ->distinct()->pluck('md.distributor_name')->filter()->sort()->values();
 
         return view('livewire.others.audittoko.index', [
             'reports' => $reports,
