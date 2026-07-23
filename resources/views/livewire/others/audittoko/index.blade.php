@@ -738,7 +738,7 @@
             class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden ring-1 ring-slate-900/5"
             @click.outside="showEditModal = false"
         >
-            <form wire:submit.prevent="update" class="flex flex-col h-full">
+            <form wire:submit.prevent="update" class="flex flex-col h-full min-h-0 w-full">
                 {{-- Header Edit Modal --}}
                 <div class="px-5 sm:px-8 py-4 sm:py-5 bg-gradient-to-r from-info to-blue-500 text-white flex justify-between items-center shrink-0">
                     <div class="flex items-center gap-4">
