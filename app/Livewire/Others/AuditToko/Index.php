@@ -303,6 +303,12 @@ class Index extends Component
         }
     }
 
+    public function edit($id)
+    {
+        // Placeholder for edit action
+        $this->dispatch('show-toast', type: 'info', message: 'Fitur form edit sedang dalam pengembangan.');
+    }
+
     public function exportExcel()
     {
         return Excel::download(

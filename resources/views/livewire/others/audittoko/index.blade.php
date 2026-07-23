@@ -201,8 +201,29 @@
                                         <x-heroicon-s-eye class="w-4 h-4" />
                                     </button>
 
-                                    {{-- Approve & Reject Action --}}
+                                    {{-- Approve & Reject & Edit Action --}}
                                     @canEdit('others.audit-toko')
+                                        {{-- Edit Button --}}
+                                        @if($status !== 'Approved')
+                                        <button 
+                                            type="button"
+                                            wire:click="edit({{ $row->id }})"
+                                            class="btn btn-square btn-xs btn-ghost text-blue-500 hover:bg-blue-500/10"
+                                            title="Edit Data"
+                                        >
+                                            <x-heroicon-s-pencil-square class="w-4 h-4" />
+                                        </button>
+                                        @else
+                                        <div class="tooltip tooltip-left" data-tip="Harus di-reject dulu untuk edit">
+                                            <button 
+                                                type="button"
+                                                class="btn btn-square btn-xs btn-ghost text-slate-300 cursor-not-allowed"
+                                            >
+                                                <x-heroicon-s-pencil-square class="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        @endif
+
                                         {{-- Approve Button --}}
                                         @if($status !== 'Approved')
                                         <button 
@@ -640,6 +661,28 @@
                     @endcanDelete
 
                     @canEdit('others.audit-toko')
+                        {{-- Edit Button --}}
+                        <template x-if="detailData?.status_approval !== 'Approved'">
+                            <button 
+                                type="button"
+                                @click="showDetailModal = false; $wire.edit(detailData.id);"
+                                class="btn btn-info text-white rounded-xl px-6 shadow-sm shadow-info/20 gap-2 hover:scale-[1.03] transition-transform w-full sm:w-auto"
+                            >
+                                <x-heroicon-s-pencil-square class="w-5 h-5" /> Edit
+                            </button>
+                        </template>
+                        <template x-if="detailData?.status_approval === 'Approved'">
+                            <div class="tooltip tooltip-top w-full sm:w-auto" data-tip="Harus di-reject dulu untuk edit">
+                                <button 
+                                    type="button"
+                                    class="btn bg-slate-100 text-slate-400 border-0 rounded-xl px-6 w-full sm:w-auto gap-2 cursor-not-allowed"
+                                >
+                                    <x-heroicon-s-pencil-square class="w-5 h-5" /> Edit
+                                </button>
+                            </div>
+                        </template>
+
+                        {{-- Reject Button --}}
                         <button 
                             type="button"
                             @click="showDetailModal = false; $wire.openRejectModal(detailData.id);"
