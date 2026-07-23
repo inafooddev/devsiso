@@ -280,6 +280,11 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
             }
         }
 
+        // Set vertical alignment to middle (center) for all cells
+        $sheet->getStyle($sheet->calculateWorksheetDimension())
+            ->getAlignment()
+            ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+
         return [
             1 => [
                 'font' => ['bold' => true, 'size' => 14],
