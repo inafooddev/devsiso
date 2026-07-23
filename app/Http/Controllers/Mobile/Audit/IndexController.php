@@ -360,6 +360,11 @@ class IndexController extends Controller
             $data
         );
 
+        \App\Helpers\ActivityLogger::log(
+            $existing ? 'Update Audit Toko (Mobile)' : 'Create Audit Toko (Mobile)',
+            ($existing ? 'Memperbarui' : 'Menyimpan') . " data hasil audit toko: {$request->customer_code} - {$request->customer_name} via Mobile"
+        );
+
         return redirect()->back()->with('success', 'Data audit berhasil disimpan.');
     }
 
@@ -369,6 +374,11 @@ class IndexController extends Controller
     {
         $audit = DB::table('hasil_audit_toko')->where('id', $id)->first();
         if ($audit) {
+            \App\Helpers\ActivityLogger::log(
+                'Delete Audit Toko (Mobile)',
+                "Menghapus data hasil audit toko ID: {$id} - {$audit->customer_name} secara permanen via Mobile."
+            );
+
             foreach (['foto_audit1', 'foto_audit2', 'foto_audit3', 'foto_audit4', 'foto_audit5', 'foto_audit6', 'foto_audit7', 'foto_audit8'] as $field) {
                 if (!empty($audit->$field)) {
                     \Illuminate\Support\Facades\Storage::disk('public')->delete($audit->$field);
