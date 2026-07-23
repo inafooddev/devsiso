@@ -863,7 +863,7 @@
                     
                     <button type="submit" class="btn btn-info text-white rounded-xl px-8 shadow-sm shadow-info/20 gap-2 font-bold w-full sm:w-auto" wire:loading.attr="disabled" wire:target="update, edit_foto_audit">
                         <span wire:loading.remove wire:target="update, edit_foto_audit">
-                            <x-heroicon-s-check-circle class="w-5 h-5" /> Simpan
+                            Simpan
                         </span>
                         <span wire:loading wire:target="update, edit_foto_audit">
                             <span class="loading loading-spinner loading-sm"></span> Menyimpan...
