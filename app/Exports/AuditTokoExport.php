@@ -198,6 +198,17 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
 
     public function styles(Worksheet $sheet)
     {
+        // Merge cells for headers so they don't affect column C auto-sizing
+        $sheet->mergeCells('A1:J1');
+        $sheet->mergeCells('C2:H2');
+        $sheet->mergeCells('C3:H3');
+        $sheet->mergeCells('C4:J4');
+        $sheet->mergeCells('C5:H5');
+
+        // Allow text to wrap in the distributor filter row if it's too long
+        $sheet->getStyle('C4')->getAlignment()->setWrapText(true);
+        $sheet->getRowDimension(4)->setRowHeight(-1); // Auto-adjust row height
+
         return [
             1 => [
                 'font' => ['bold' => true, 'size' => 14],
