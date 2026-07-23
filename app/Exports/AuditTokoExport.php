@@ -127,7 +127,14 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
 
     public function headings(): array
     {
-        $distributorText = empty($this->exportDistributors) ? 'Semua Distributor' : implode(', ', $this->exportDistributors);
+        if (empty($this->exportDistributors)) {
+            $distributorText = 'Semua Distributor';
+        } else if (count($this->exportDistributors) > 3) {
+            $distributorText = count($this->exportDistributors) . ' Distributor Terpilih';
+        } else {
+            $distributorText = implode(', ', $this->exportDistributors);
+        }
+
         $dateText = (!empty($this->dateStart) && !empty($this->dateEnd)) ? ($this->dateStart . ' s/d ' . $this->dateEnd) : 'Semua Waktu';
         $statusText = empty($this->statusFilter) ? 'Semua Status' : $this->statusFilter;
 

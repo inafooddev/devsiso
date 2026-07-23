@@ -111,10 +111,23 @@ class Index extends Component
 
     public function updatedSelectAllExportDistributors($value)
     {
-        $allDistributors = DB::table('master_distributors')
-            ->when(!empty($this->selectedRegion), fn($q) => $q->where('region_name', $this->selectedRegion))
-            ->when(!empty($this->selectedArea), fn($q) => $q->where('area_name', $this->selectedArea))
-            ->distinct()->pluck('distributor_name')->filter()->sort()->values()->toArray();
+        $user = Auth::user();
+        $userRegionCodes = !empty($user->region_code) ? (array) $user->region_code : [];
+        $userAreaCodes = !empty($user->area_code) ? (array) $user->area_code : [];
+
+        $baseQuery = DB::table('hasil_audit_toko as hat')
+            ->join('master_distributors as md', 'hat.distributor_code', '=', 'md.distributor_code');
+
+        if (!empty($userAreaCodes)) {
+            $baseQuery->whereIn('md.area_code', $userAreaCodes);
+        } elseif (!empty($userRegionCodes)) {
+            $baseQuery->whereIn('md.region_code', $userRegionCodes);
+        }
+
+        $allDistributors = $baseQuery
+            ->when(!empty($this->selectedRegion), fn($q) => $q->where('md.region_name', $this->selectedRegion))
+            ->when(!empty($this->selectedArea), fn($q) => $q->where('md.area_name', $this->selectedArea))
+            ->distinct()->pluck('md.distributor_name')->filter()->sort()->values()->toArray();
 
         if ($value) {
             $this->exportDistributors = $allDistributors;
