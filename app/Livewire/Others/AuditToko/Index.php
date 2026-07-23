@@ -326,14 +326,14 @@ class Index extends Component
         $audit = DB::table('hasil_audit_toko')->where('id', $id)->first();
         if ($audit) {
             $this->edit_id = $audit->id;
-            $this->edit_is_toko_fisik = (bool) $audit->is_toko_fisik;
-            $this->edit_is_nama_pemilik = (bool) $audit->is_nama_pemilik;
-            $this->edit_is_nama_ktp = (bool) $audit->is_nama_ktp;
-            $this->edit_is_nik_ktp = (bool) $audit->is_nik_ktp;
-            $this->edit_is_no_hp = (bool) $audit->is_no_hp;
-            $this->edit_is_no_rekening = (bool) $audit->is_no_rekening;
-            $this->edit_is_an_rekening = (bool) $audit->is_an_rekening;
-            $this->edit_is_titik_koordinat = (bool) $audit->is_titik_koordinat;
+            $this->edit_is_toko_fisik = $audit->is_toko_fisik ? 1 : 0;
+            $this->edit_is_nama_pemilik = $audit->is_nama_pemilik ? 1 : 0;
+            $this->edit_is_nama_ktp = $audit->is_nama_ktp ? 1 : 0;
+            $this->edit_is_nik_ktp = $audit->is_nik_ktp ? 1 : 0;
+            $this->edit_is_no_hp = $audit->is_no_hp ? 1 : 0;
+            $this->edit_is_no_rekening = $audit->is_no_rekening ? 1 : 0;
+            $this->edit_is_an_rekening = $audit->is_an_rekening ? 1 : 0;
+            $this->edit_is_titik_koordinat = $audit->is_titik_koordinat ? 1 : 0;
             
             $this->edit_latitude = $audit->latitude;
             $this->edit_longitude = $audit->longitude;
