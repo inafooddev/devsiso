@@ -10,9 +10,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 
+use Livewire\WithFileUploads;
+
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, WithFileUploads;
 
     #[Url]
     public $search = '';
@@ -41,6 +43,22 @@ class Index extends Component
     public $exportStatusFilter = '';
     public $exportDistributors = [];
     public $selectAllExportDistributors = false;
+
+    // Edit Form properties
+    public $edit_id;
+    public $edit_is_toko_fisik;
+    public $edit_is_nama_pemilik;
+    public $edit_is_nama_ktp;
+    public $edit_is_nik_ktp;
+    public $edit_is_no_hp;
+    public $edit_is_no_rekening;
+    public $edit_is_an_rekening;
+    public $edit_is_titik_koordinat;
+    public $edit_latitude;
+    public $edit_longitude;
+    public $edit_keterangan_hasil_audit;
+    public $edit_foto_audit = [];
+    public $existing_foto_audit = [];
 
     public function updatingSearch()
     {
@@ -305,8 +323,80 @@ class Index extends Component
 
     public function edit($id)
     {
-        // Placeholder for edit action
-        $this->dispatch('show-toast', type: 'info', message: 'Fitur form edit sedang dalam pengembangan.');
+        $audit = DB::table('hasil_audit_toko')->where('id', $id)->first();
+        if ($audit) {
+            $this->edit_id = $audit->id;
+            $this->edit_is_toko_fisik = $audit->is_toko_fisik;
+            $this->edit_is_nama_pemilik = $audit->is_nama_pemilik;
+            $this->edit_is_nama_ktp = $audit->is_nama_ktp;
+            $this->edit_is_nik_ktp = $audit->is_nik_ktp;
+            $this->edit_is_no_hp = $audit->is_no_hp;
+            $this->edit_is_no_rekening = $audit->is_no_rekening;
+            $this->edit_is_an_rekening = $audit->is_an_rekening;
+            $this->edit_is_titik_koordinat = $audit->is_titik_koordinat;
+            
+            $this->edit_latitude = $audit->latitude;
+            $this->edit_longitude = $audit->longitude;
+            $this->edit_keterangan_hasil_audit = $audit->keterangan_hasil_audit;
+            
+            $this->edit_foto_audit = []; // Reset uploads
+            $this->existing_foto_audit = [];
+            for ($i = 1; $i <= 8; $i++) {
+                $field = "foto_audit{$i}";
+                $this->existing_foto_audit[$i] = $audit->$field;
+            }
+            
+            $this->dispatch('open-edit-modal');
+        }
+    }
+
+    public function update()
+    {
+        $this->validate([
+            'edit_latitude' => 'nullable|numeric',
+            'edit_longitude' => 'nullable|numeric',
+            'edit_foto_audit.*' => 'nullable|image|max:10240', // 10MB max per photo
+        ], [
+            'edit_foto_audit.*.image' => 'File harus berupa gambar.',
+            'edit_foto_audit.*.max' => 'Ukuran gambar maksimal 10MB.',
+            'edit_latitude.numeric' => 'Latitude harus berupa angka/desimal.',
+            'edit_longitude.numeric' => 'Longitude harus berupa angka/desimal.',
+        ]);
+
+        if ($this->edit_id) {
+            $updateData = [
+                'is_toko_fisik' => $this->edit_is_toko_fisik,
+                'is_nama_pemilik' => $this->edit_is_nama_pemilik,
+                'is_nama_ktp' => $this->edit_is_nama_ktp,
+                'is_nik_ktp' => $this->edit_is_nik_ktp,
+                'is_no_hp' => $this->edit_is_no_hp,
+                'is_no_rekening' => $this->edit_is_no_rekening,
+                'is_an_rekening' => $this->edit_is_an_rekening,
+                'is_titik_koordinat' => $this->edit_is_titik_koordinat,
+                'latitude' => $this->edit_latitude,
+                'longitude' => $this->edit_longitude,
+                'keterangan_hasil_audit' => $this->edit_keterangan_hasil_audit,
+            ];
+
+            // Handle photo uploads
+            for ($i = 1; $i <= 8; $i++) {
+                if (isset($this->edit_foto_audit[$i])) {
+                    // Delete old photo if exists
+                    if (!empty($this->existing_foto_audit[$i]) && \Illuminate\Support\Facades\Storage::disk('public')->exists($this->existing_foto_audit[$i])) {
+                        \Illuminate\Support\Facades\Storage::disk('public')->delete($this->existing_foto_audit[$i]);
+                    }
+                    
+                    // Store new photo
+                    $path = $this->edit_foto_audit[$i]->store('audit_toko_photos', 'public');
+                    $updateData["foto_audit{$i}"] = $path;
+                }
+            }
+
+            DB::table('hasil_audit_toko')->where('id', $this->edit_id)->update($updateData);
+
+            $this->dispatch('show-toast', type: 'success', message: 'Data hasil audit toko berhasil diperbarui.');
+            $this->dispatch('close-edit-modal');
+        }
     }
 
     public function exportExcel()

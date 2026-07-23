@@ -4,6 +4,7 @@
         showRejectModal: false, 
         showDetailModal: false, 
         showExportModal: false,
+        showEditModal: false,
         detailData: null, 
         photoUrl: '', 
         showPhotoModal: false 
@@ -14,6 +15,8 @@
     x-on:close-reject-modal.window="showRejectModal = false"
     x-on:open-export-modal.window="showExportModal = true"
     x-on:close-export-modal.window="showExportModal = false"
+    x-on:open-edit-modal.window="showEditModal = true"
+    x-on:close-edit-modal.window="showEditModal = false"
 >
     <x-slot name="title">Approval Audit Toko</x-slot>
 
@@ -709,7 +712,7 @@
     <div 
         x-show="showPhotoModal" 
         x-cloak 
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+        class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
         @click="showPhotoModal = false"
     >
         <div class="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-base-100 shadow-2xl">
@@ -717,4 +720,158 @@
             <button type="button" @click="showPhotoModal = false" class="absolute top-3 right-3 btn btn-circle btn-sm bg-black/50 text-white border-0 hover:bg-black/70">✕</button>
         </div>
     </div>
+
+    {{-- MODAL EDIT AUDIT TOKO --}}
+    <div 
+        x-show="showEditModal" 
+        x-cloak 
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm"
+    >
+        <div 
+            x-show="showEditModal" 
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-8 scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+            x-transition:leave-end="opacity-0 translate-y-8 scale-95"
+            class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden ring-1 ring-slate-900/5"
+            @click.outside="showEditModal = false"
+        >
+            <form wire:submit.prevent="update" class="flex flex-col h-full">
+                {{-- Header Edit Modal --}}
+                <div class="px-5 sm:px-8 py-4 sm:py-5 bg-gradient-to-r from-info to-blue-500 text-white flex justify-between items-center shrink-0">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0 backdrop-blur-sm">
+                            <x-heroicon-s-pencil-square class="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg leading-tight">Edit Data Audit Toko</h3>
+                            <p class="text-white/80 text-xs font-medium">Perbarui checklist, koordinat, dan foto hasil audit</p>
+                        </div>
+                    </div>
+                    <button type="button" @click="showEditModal = false" class="btn btn-ghost btn-sm btn-circle text-white hover:bg-white/20 transition-colors">
+                        <x-heroicon-s-x-mark class="w-5 h-5" />
+                    </button>
+                </div>
+
+                {{-- Body Edit Modal --}}
+                <div class="p-5 sm:p-8 overflow-y-auto flex-1 bg-slate-50">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {{-- Kiri: Checklist Verifikasi --}}
+                        <div class="space-y-6">
+                            <h4 class="text-md font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+                                <x-heroicon-s-clipboard-document-check class="w-5 h-5 text-primary" />
+                                Poin Checklist Verifikasi
+                            </h4>
+                            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+                                @php
+                                    $checklists = [
+                                        'edit_is_toko_fisik' => 'Toko Fisik',
+                                        'edit_is_nama_pemilik' => 'Nama Pemilik',
+                                        'edit_is_nama_ktp' => 'Nama KTP',
+                                        'edit_is_nik_ktp' => 'NIK KTP',
+                                        'edit_is_no_hp' => 'Nomor HP',
+                                        'edit_is_no_rekening' => 'Nomor Rekening',
+                                        'edit_is_an_rekening' => 'A.N Rekening',
+                                        'edit_is_titik_koordinat' => 'Titik Koordinat',
+                                    ];
+                                @endphp
+
+                                @foreach($checklists as $field => $label)
+                                    <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                                        <span class="font-medium text-slate-700">{{ $label }}</span>
+                                        <select wire:model="{{ $field }}" class="select select-bordered select-sm w-32 bg-white">
+                                            <option value="Yes">Yes (Sesuai)</option>
+                                            <option value="No">No (Tidak)</option>
+                                        </select>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        {{-- Kanan: Koordinat, Foto, dan Catatan --}}
+                        <div class="space-y-6">
+                            {{-- Koordinat GPS --}}
+                            <h4 class="text-md font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+                                <x-heroicon-s-map-pin class="w-5 h-5 text-error" />
+                                Edit Titik Koordinat (Manual)
+                            </h4>
+                            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-semibold text-slate-700">Latitude</span></label>
+                                    <input type="text" wire:model="edit_latitude" class="input input-bordered w-full bg-slate-50 focus:bg-white" placeholder="Contoh: -6.200000" />
+                                    @error('edit_latitude') <span class="text-error text-xs mt-1">{{ $message }}</span> @enderror
+                                </div>
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-semibold text-slate-700">Longitude</span></label>
+                                    <input type="text" wire:model="edit_longitude" class="input input-bordered w-full bg-slate-50 focus:bg-white" placeholder="Contoh: 106.816666" />
+                                    @error('edit_longitude') <span class="text-error text-xs mt-1">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+
+                            {{-- Catatan Auditor --}}
+                            <h4 class="text-md font-bold text-slate-800 border-b pb-2 flex items-center gap-2 mt-6">
+                                <x-heroicon-s-document-text class="w-5 h-5 text-warning" />
+                                Catatan Hasil Audit
+                            </h4>
+                            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                                <textarea wire:model="edit_keterangan_hasil_audit" class="textarea textarea-bordered w-full h-24 bg-slate-50 focus:bg-white" placeholder="Ketik catatan hasil audit di sini..."></textarea>
+                            </div>
+
+                            {{-- Foto Audit --}}
+                            <h4 class="text-md font-bold text-slate-800 border-b pb-2 flex items-center gap-2 mt-6">
+                                <x-heroicon-s-camera class="w-5 h-5 text-success" />
+                                Foto Hasil Audit (Opsional)
+                            </h4>
+                            <p class="text-xs text-slate-500">Pilih file baru jika ingin mengganti foto yang lama. Biarkan kosong jika tidak ingin diubah.</p>
+                            
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
+                                @for($i = 1; $i <= 8; $i++)
+                                    <div class="form-control w-full bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative group">
+                                        <label class="label p-0 mb-2 justify-center"><span class="label-text font-semibold text-xs text-slate-600">Foto {{ $i }}</span></label>
+                                        
+                                        {{-- Image Preview --}}
+                                        <div class="w-full h-20 bg-slate-100 rounded-lg flex items-center justify-center mb-3 overflow-hidden border border-slate-200">
+                                            @if(!empty($edit_foto_audit[$i]) && method_exists($edit_foto_audit[$i], 'temporaryUrl'))
+                                                <img src="{{ $edit_foto_audit[$i]->temporaryUrl() }}" class="w-full h-full object-cover">
+                                            @elseif(!empty($existing_foto_audit[$i]))
+                                                <img src="{{ asset('storage/' . $existing_foto_audit[$i]) }}" class="w-full h-full object-cover">
+                                            @else
+                                                <x-heroicon-o-photo class="w-8 h-8 text-slate-300" />
+                                            @endif
+                                        </div>
+                                        
+                                        {{-- File Input --}}
+                                        <div class="relative overflow-hidden w-full">
+                                            <input type="file" wire:model="edit_foto_audit.{{ $i }}" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept="image/*" />
+                                            <button type="button" class="btn btn-xs btn-outline w-full text-[10px]">Pilih Foto</button>
+                                        </div>
+                                    </div>
+                                @endfor
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Footer Edit Modal --}}
+                <div class="px-5 sm:px-8 py-4 sm:py-5 bg-white border-t border-base-200 flex flex-col-reverse sm:flex-row items-center justify-end gap-3 shrink-0">
+                    <button type="button" @click="showEditModal = false" class="btn btn-ghost bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl px-8 font-bold w-full sm:w-auto">
+                        Batal
+                    </button>
+                    
+                    <button type="submit" class="btn btn-info text-white rounded-xl px-8 shadow-sm shadow-info/20 gap-2 font-bold w-full sm:w-auto" wire:loading.attr="disabled" wire:target="update, edit_foto_audit">
+                        <span wire:loading.remove wire:target="update, edit_foto_audit">
+                            <x-heroicon-s-check-circle class="w-5 h-5" /> Simpan Perubahan
+                        </span>
+                        <span wire:loading wire:target="update, edit_foto_audit">
+                            <span class="loading loading-spinner loading-sm"></span> Menyimpan...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </div>
