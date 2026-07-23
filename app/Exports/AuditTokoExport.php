@@ -241,7 +241,7 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
                             $drawing->setName('Foto ' . $i);
                             $drawing->setDescription('Foto ' . $i);
                             $drawing->setPath($imagePath);
-                            $drawing->setHeight(80); // 80px height
+                            $drawing->setHeight(75); // Slightly smaller height (75px)
                             $drawing->setCoordinates($colLetters[$i - 1] . $rowNum);
                             $drawing->setOffsetX(5);
                             $drawing->setOffsetY(5);
@@ -269,18 +269,18 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
         $sheet->getStyle('C4')->getAlignment()->setWrapText(true);
         $sheet->getRowDimension(4)->setRowHeight(-1); // Auto-adjust row height
 
-        // Set column widths for photo columns
+        // Set column widths for photo columns to be wider (prevents horizontal overlapping)
         $photoCols = ['Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG'];
         foreach ($photoCols as $col) {
-            $sheet->getColumnDimension($col)->setWidth(15);
+            $sheet->getColumnDimension($col)->setWidth(20);
         }
 
-        // Set row heights for data rows to fit the images
+        // Set row heights for data rows to fit the images (prevents vertical overlapping)
         if ($this->exportData) {
             $startRow = 8;
             $endRow = 7 + $this->exportData->count();
             for ($i = $startRow; $i <= $endRow; $i++) {
-                $sheet->getRowDimension($i)->setRowHeight(70); // Match image height ~80px -> row height 70 points
+                $sheet->getRowDimension($i)->setRowHeight(70); // Row height 70 points (~93px)
             }
         }
 
