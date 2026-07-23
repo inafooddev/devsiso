@@ -226,7 +226,9 @@
                                             </button>
                                         </div>
                                         @endif
+                                    @endcanEdit
 
+                                    @canAdd('others.audit-toko')
                                         {{-- Approve Button --}}
                                         @if($status !== 'Approved')
                                         <button 
@@ -250,7 +252,7 @@
                                             <x-heroicon-s-x-mark class="w-4 h-4" />
                                         </button>
                                         @endif
-                                    @endcanEdit
+                                    @endcanAdd
 
                                     {{-- Delete Button --}}
                                     @canDelete('others.audit-toko')
@@ -684,7 +686,9 @@
                                 </button>
                             </div>
                         </template>
+                    @endcanEdit
 
+                    @canAdd('others.audit-toko')
                         {{-- Reject Button --}}
                         <button 
                             type="button"
@@ -702,7 +706,7 @@
                         >
                             <x-heroicon-s-check class="w-5 h-5" /> Setujui
                         </button>
-                    @endcanEdit
+                    @endcanAdd
                 </div>
             </div>
         </div>
