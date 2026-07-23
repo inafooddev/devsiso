@@ -415,6 +415,8 @@ class Index extends Component
 
     public function exportExcel()
     {
+        \App\Helpers\ActivityLogger::log('Export Audit Toko', 'Mengekspor data Laporan Audit Toko (Excel).');
+
         return Excel::download(
             new \App\Exports\AuditTokoExport(
                 $this->search,
