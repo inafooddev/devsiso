@@ -194,40 +194,6 @@
                             </td>
                             <th class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
                                 <div class="flex items-center justify-center gap-1">
-                                    {{-- Detail Button --}}
-                                    <button 
-                                        type="button"
-                                        x-on:click="detailData = {{ json_encode($row) }}; showDetailModal = true;"
-                                        class="btn btn-square btn-xs btn-ghost text-info hover:bg-info/10"
-                                        title="Detail Audit Toko"
-                                    >
-                                        <x-heroicon-s-eye class="w-4 h-4" />
-                                    </button>
-
-                                    {{-- Approve & Reject & Edit Action --}}
-                                    @canEdit('others.audit-toko')
-                                        {{-- Edit Button --}}
-                                        @if($status !== 'Approved')
-                                        <button 
-                                            type="button"
-                                            wire:click="edit({{ $row->id }})"
-                                            class="btn btn-square btn-xs btn-ghost text-blue-500 hover:bg-blue-500/10"
-                                            title="Edit Data"
-                                        >
-                                            <x-heroicon-s-pencil-square class="w-4 h-4" />
-                                        </button>
-                                        @else
-                                        <div class="tooltip tooltip-left" data-tip="Harus di-reject dulu untuk edit">
-                                            <button 
-                                                type="button"
-                                                class="btn btn-square btn-xs btn-ghost text-slate-300 cursor-not-allowed"
-                                            >
-                                                <x-heroicon-s-pencil-square class="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                        @endif
-                                    @endcanEdit
-
                                     @canAdd('others.audit-toko')
                                         {{-- Approve Button --}}
                                         @if($status !== 'Approved')
@@ -253,6 +219,39 @@
                                         </button>
                                         @endif
                                     @endcanAdd
+
+                                    {{-- Detail Button --}}
+                                    <button 
+                                        type="button"
+                                        x-on:click="detailData = {{ json_encode($row) }}; showDetailModal = true;"
+                                        class="btn btn-square btn-xs btn-ghost text-info hover:bg-info/10"
+                                        title="Detail Audit Toko"
+                                    >
+                                        <x-heroicon-s-eye class="w-4 h-4" />
+                                    </button>
+
+                                    @canEdit('others.audit-toko')
+                                        {{-- Edit Button --}}
+                                        @if($status !== 'Approved')
+                                        <button 
+                                            type="button"
+                                            wire:click="edit({{ $row->id }})"
+                                            class="btn btn-square btn-xs btn-ghost text-blue-500 hover:bg-blue-500/10"
+                                            title="Edit Data"
+                                        >
+                                            <x-heroicon-s-pencil-square class="w-4 h-4" />
+                                        </button>
+                                        @else
+                                        <div class="tooltip tooltip-left" data-tip="Harus di-reject dulu untuk edit">
+                                            <button 
+                                                type="button"
+                                                class="btn btn-square btn-xs btn-ghost text-slate-300 cursor-not-allowed"
+                                            >
+                                                <x-heroicon-s-pencil-square class="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        @endif
+                                    @endcanEdit
 
                                     {{-- Delete Button --}}
                                     @canDelete('others.audit-toko')
