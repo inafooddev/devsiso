@@ -201,30 +201,32 @@
                                         <x-heroicon-s-eye class="w-4 h-4" />
                                     </button>
 
-                                    {{-- Approve Button --}}
-                                    @if($status !== 'Approved')
-                                    <button 
-                                        type="button"
-                                        wire:click="approve({{ $row->id }})"
-                                        wire:confirm="Apakah Anda yakin ingin MENSETUJUI hasil audit toko ini?"
-                                        class="btn btn-square btn-xs btn-ghost text-success hover:bg-success/10"
-                                        title="Approve (Setujui)"
-                                    >
-                                        <x-heroicon-s-check class="w-4 h-4" />
-                                    </button>
-                                    @endif
+                                    {{-- Approve & Reject Action --}}
+                                    @canEdit('others.audit-toko')
+                                        {{-- Approve Button --}}
+                                        @if($status !== 'Approved')
+                                        <button 
+                                            type="button"
+                                            wire:click="openApproveModal({{ $row->id }})"
+                                            class="btn btn-square btn-xs btn-ghost text-success hover:bg-success/10"
+                                            title="Approve (Setujui)"
+                                        >
+                                            <x-heroicon-s-check class="w-4 h-4" />
+                                        </button>
+                                        @endif
 
-                                    {{-- Reject Button --}}
-                                    @if($status !== 'Rejected')
-                                    <button 
-                                        type="button"
-                                        wire:click="openRejectModal({{ $row->id }})"
-                                        class="btn btn-square btn-xs btn-ghost text-error hover:bg-error/10"
-                                        title="Reject (Tolak)"
-                                    >
-                                        <x-heroicon-s-x-mark class="w-4 h-4" />
-                                    </button>
-                                    @endif
+                                        {{-- Reject Button --}}
+                                        @if($status !== 'Rejected')
+                                        <button 
+                                            type="button"
+                                            wire:click="openRejectModal({{ $row->id }})"
+                                            class="btn btn-square btn-xs btn-ghost text-error hover:bg-error/10"
+                                            title="Reject (Tolak)"
+                                        >
+                                            <x-heroicon-s-x-mark class="w-4 h-4" />
+                                        </button>
+                                        @endif
+                                    @endcanEdit
                                 </div>
                             </th>
                         </tr>
@@ -614,22 +616,24 @@
                 </button>
                 
                 <div class="flex items-center gap-3 w-full sm:w-auto">
-                    <button 
-                        type="button"
-                        @click="showDetailModal = false; $wire.openRejectModal(detailData.id);"
-                        class="btn btn-error text-white rounded-xl px-6 shadow-sm shadow-error/20 gap-2 hover:scale-[1.03] transition-transform w-full sm:w-auto"
-                        x-show="detailData?.status_approval !== 'Rejected'"
-                    >
-                        <x-heroicon-s-x-mark class="w-5 h-5" /> Tolak
-                    </button>
-                    <button 
-                        type="button"
-                        @click="showDetailModal = false; $wire.openApproveModal(detailData.id);"
-                        class="btn btn-success text-white rounded-xl px-6 shadow-sm shadow-success/20 gap-2 hover:scale-[1.03] transition-transform w-full sm:w-auto"
-                        x-show="detailData?.status_approval !== 'Approved'"
-                    >
-                        <x-heroicon-s-check class="w-5 h-5" /> Setujui
-                    </button>
+                    @canEdit('others.audit-toko')
+                        <button 
+                            type="button"
+                            @click="showDetailModal = false; $wire.openRejectModal(detailData.id);"
+                            class="btn btn-error text-white rounded-xl px-6 shadow-sm shadow-error/20 gap-2 hover:scale-[1.03] transition-transform w-full sm:w-auto"
+                            x-show="detailData?.status_approval !== 'Rejected'"
+                        >
+                            <x-heroicon-s-x-mark class="w-5 h-5" /> Tolak
+                        </button>
+                        <button 
+                            type="button"
+                            @click="showDetailModal = false; $wire.openApproveModal(detailData.id);"
+                            class="btn btn-success text-white rounded-xl px-6 shadow-sm shadow-success/20 gap-2 hover:scale-[1.03] transition-transform w-full sm:w-auto"
+                            x-show="detailData?.status_approval !== 'Approved'"
+                        >
+                            <x-heroicon-s-check class="w-5 h-5" /> Setujui
+                        </button>
+                    @endcanEdit
                 </div>
             </div>
         </div>
