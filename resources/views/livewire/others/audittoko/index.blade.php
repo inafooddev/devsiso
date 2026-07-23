@@ -1,5 +1,6 @@
 <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full"
     x-data="{ 
+        showApproveModal: false,
         showRejectModal: false, 
         showDetailModal: false, 
         showExportModal: false,
@@ -7,6 +8,8 @@
         photoUrl: '', 
         showPhotoModal: false 
     }"
+    x-on:open-approve-modal.window="showApproveModal = true"
+    x-on:close-approve-modal.window="showApproveModal = false"
     x-on:open-reject-modal.window="showRejectModal = true"
     x-on:close-reject-modal.window="showRejectModal = false"
     x-on:open-export-modal.window="showExportModal = true"
@@ -311,40 +314,80 @@
         </div>
     </div>
 
+    {{-- MODAL APPROVE (Catatan Manager Optional) --}}
+    <div 
+        x-show="showApproveModal" 
+        x-cloak 
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+    >
+        <div class="bg-base-100 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-base-200 flex flex-col gap-4">
+            <div class="flex items-center justify-between border-b border-base-200 pb-4">
+                <h3 class="font-extrabold text-lg text-success flex items-center gap-2">
+                    <div class="p-1.5 bg-success/10 rounded-lg"><x-heroicon-s-check class="w-6 h-6" /></div>
+                    Persetujuan Audit Toko
+                </h3>
+                <button type="button" @click="showApproveModal = false" class="btn btn-sm btn-circle btn-ghost">✕</button>
+            </div>
+
+            <p class="text-sm text-base-content/70">
+                Apakah Anda yakin ingin menyetujui hasil audit ini? Anda juga dapat menambahkan catatan opsional.
+            </p>
+
+            <form wire:submit.prevent="approve" class="flex flex-col gap-4">
+                <div class="form-control">
+                    <label class="label text-xs font-bold text-base-content/70">Catatan Manager Audit (Opsional)</label>
+                    <textarea 
+                        wire:model="catatanManager" 
+                        rows="3" 
+                        placeholder="Tambahkan pesan/catatan (tidak wajib)..." 
+                        class="textarea textarea-bordered rounded-xl text-sm w-full bg-slate-50 focus:bg-white transition-colors"
+                    ></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-2">
+                    <button type="button" @click="showApproveModal = false" class="btn btn-ghost bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl px-6 font-bold">Batal</button>
+                    <button type="submit" class="btn btn-success text-white rounded-xl px-6 font-bold shadow-sm shadow-success/30">
+                        Setujui Sekarang
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     {{-- MODAL REJECT ALASAN --}}
     <div 
         x-show="showRejectModal" 
         x-cloak 
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
     >
-        <div class="bg-base-100 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-base-300 flex flex-col gap-4">
-            <div class="flex items-center justify-between border-b border-base-200 pb-3">
-                <h3 class="font-extrabold text-base text-error flex items-center gap-2">
-                    <x-heroicon-s-x-circle class="w-5 h-5" />
-                    Penolakan Hasil Audit Toko
+        <div class="bg-base-100 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-base-200 flex flex-col gap-4">
+            <div class="flex items-center justify-between border-b border-base-200 pb-4">
+                <h3 class="font-extrabold text-lg text-error flex items-center gap-2">
+                    <div class="p-1.5 bg-error/10 rounded-lg"><x-heroicon-s-x-mark class="w-6 h-6" /></div>
+                    Penolakan Audit Toko
                 </h3>
                 <button type="button" @click="showRejectModal = false" class="btn btn-sm btn-circle btn-ghost">✕</button>
             </div>
 
-            <p class="text-xs text-base-content/70">
-                Silakan berikan alasan penolakan secara jelas agar Auditor dapat memperbaiki data/foto dan mengajukan ulang laporan audit ini.
+            <p class="text-sm text-base-content/70">
+                Silakan berikan catatan penolakan secara jelas agar Auditor dapat memperbaiki data/foto dan mengajukan ulang laporan audit ini.
             </p>
 
-            <form wire:submit.prevent="reject" class="flex flex-col gap-3">
+            <form wire:submit.prevent="reject" class="flex flex-col gap-4">
                 <div class="form-control">
-                    <label class="label text-xs font-bold">Alasan Penolakan (Wajib Diisi)</label>
+                    <label class="label text-xs font-bold text-base-content/70">Catatan Manager Audit <span class="text-error">*Wajib</span></label>
                     <textarea 
-                        wire:model="alasanReject" 
+                        wire:model="catatanManager" 
                         rows="3" 
                         placeholder="Contoh: Foto tampak depan buram, NIK KTP tidak sesuai dengan foto KTP..." 
-                        class="textarea textarea-bordered rounded-xl text-xs"
+                        class="textarea textarea-bordered rounded-xl text-sm w-full bg-slate-50 focus:bg-white transition-colors"
                     ></textarea>
-                    @error('alasanReject') <span class="text-error text-[10px] mt-1 font-bold">{{ $message }}</span> @enderror
+                    @error('catatanManager') <span class="text-error text-[11px] mt-1.5 font-bold flex items-center gap-1"><x-heroicon-s-exclamation-circle class="w-3.5 h-3.5" /> {{ $message }}</span> @enderror
                 </div>
 
-                <div class="flex justify-end gap-2 mt-2">
-                    <button type="button" @click="showRejectModal = false" class="btn btn-sm rounded-xl">Batal</button>
-                    <button type="submit" class="btn btn-sm btn-error text-white rounded-xl font-bold">
+                <div class="flex justify-end gap-3 mt-2">
+                    <button type="button" @click="showRejectModal = false" class="btn btn-ghost bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl px-6 font-bold">Batal</button>
+                    <button type="submit" class="btn btn-error text-white rounded-xl px-6 font-bold shadow-sm shadow-error/30">
                         Simpan Penolakan
                     </button>
                 </div>
@@ -389,18 +432,7 @@
             {{-- Body Content --}}
             <div class="flex-1 overflow-y-auto bg-slate-50 p-5 sm:p-8" x-if="detailData">
                 
-                {{-- Rejection Alert --}}
-                <template x-if="detailData?.status_approval === 'Rejected'">
-                    <div class="mb-6 rounded-2xl bg-rose-50 border border-rose-200 p-4 sm:p-5 flex gap-3 sm:gap-4 shadow-sm">
-                        <div class="shrink-0 mt-0.5">
-                            <x-heroicon-s-exclamation-circle class="w-6 h-6 text-rose-500" />
-                        </div>
-                        <div>
-                            <h4 class="text-sm sm:text-base font-bold text-rose-800">Laporan Ditolak</h4>
-                            <p class="text-xs sm:text-sm text-rose-600 mt-1 font-medium" x-text="detailData?.alasan_reject || 'Tidak ada alasan.'"></p>
-                        </div>
-                    </div>
-                </template>
+                {{-- Body Content begins (Rejection alert removed) --}}
 
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
                     
@@ -472,23 +504,9 @@
                         
                     </div>
 
-                    {{-- Right Column: Notes & Photos --}}
+                    {{-- Right Column: Photos & Notes --}}
                     <div class="lg:col-span-7 flex flex-col gap-6 sm:gap-8">
                         
-                        {{-- Notes Widget --}}
-                        <div class="bg-white rounded-2xl border border-base-200 p-5 sm:p-6 shadow-sm">
-                            <h4 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                <x-heroicon-s-document-text class="w-4 h-4" /> Catatan Auditor
-                            </h4>
-                            <div class="bg-amber-50/50 border border-amber-100/50 rounded-xl p-4 sm:p-5 relative overflow-hidden">
-                                <div class="absolute -right-2 -top-2 opacity-5 text-amber-900">
-                                    <x-heroicon-s-chat-bubble-bottom-center-text class="w-24 h-24" />
-                                </div>
-                                <p class="text-sm font-semibold text-slate-700 italic relative z-10 leading-relaxed" 
-                                   x-text="detailData?.keterangan_hasil_audit || 'Tidak ada catatan khusus yang dilampirkan oleh auditor.'"></p>
-                            </div>
-                        </div>
-
                         {{-- Photos Widget --}}
                         <div class="bg-white rounded-2xl border border-base-200 p-5 sm:p-6 shadow-sm flex-1">
                             <div class="flex items-center justify-between mb-5">
@@ -532,6 +550,36 @@
                             </div>
                         </div>
 
+                        {{-- Notes Widget --}}
+                        <div class="bg-white rounded-2xl border border-base-200 p-5 sm:p-6 shadow-sm">
+                            <h4 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <x-heroicon-s-document-text class="w-4 h-4" /> Catatan Auditor
+                            </h4>
+                            <div class="bg-amber-50/50 border border-amber-100/50 rounded-xl p-4 sm:p-5 relative overflow-hidden">
+                                <div class="absolute -right-2 -top-2 opacity-5 text-amber-900">
+                                    <x-heroicon-s-chat-bubble-bottom-center-text class="w-24 h-24" />
+                                </div>
+                                <p class="text-sm font-semibold text-slate-700 italic relative z-10 leading-relaxed" 
+                                   x-text="detailData?.keterangan_hasil_audit || 'Tidak ada catatan khusus yang dilampirkan oleh auditor.'"></p>
+                            </div>
+                        </div>
+
+                        {{-- Manager Notes Widget --}}
+                        <div class="bg-white rounded-2xl border border-base-200 p-5 sm:p-6 shadow-sm" x-show="detailData?.status_approval === 'Approved' || detailData?.status_approval === 'Rejected'">
+                            <h4 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <x-heroicon-s-clipboard-document-check class="w-4 h-4" /> Catatan Manager Audit
+                            </h4>
+                            <div class="rounded-xl p-4 sm:p-5 relative overflow-hidden border"
+                                 :class="detailData?.status_approval === 'Approved' ? 'bg-emerald-50/50 border-emerald-100/50' : 'bg-rose-50/50 border-rose-100/50'">
+                                <div class="absolute -right-2 -top-2 opacity-5"
+                                     :class="detailData?.status_approval === 'Approved' ? 'text-emerald-900' : 'text-rose-900'">
+                                    <x-heroicon-s-chat-bubble-bottom-center-text class="w-24 h-24" />
+                                </div>
+                                <p class="text-sm font-semibold text-slate-700 italic relative z-10 leading-relaxed" 
+                                   x-text="detailData?.alasan_reject || 'Tidak ada catatan yang dilampirkan oleh Manager.'"></p>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -553,7 +601,7 @@
                     </button>
                     <button 
                         type="button"
-                        @click="showDetailModal = false; $wire.approve(detailData.id);"
+                        @click="showDetailModal = false; $wire.openApproveModal(detailData.id);"
                         class="btn btn-success text-white rounded-xl px-6 shadow-sm shadow-success/20 gap-2 hover:scale-[1.03] transition-transform w-full sm:w-auto"
                         x-show="detailData?.status_approval !== 'Approved'"
                     >

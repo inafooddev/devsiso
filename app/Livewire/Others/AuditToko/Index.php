@@ -31,7 +31,7 @@ class Index extends Component
 
     public $perPage = 15;
     public $selectedId = null;
-    public $alasanReject = '';
+    public $catatanManager = '';
 
     // Export Modal Filter properties
     public $dateStart = '';
@@ -226,34 +226,46 @@ class Index extends Component
         return compact('total', 'pending', 'approved', 'rejected', 'rate');
     }
 
-    public function approve($id)
+    public function openApproveModal($id)
     {
-        $audit = DB::table('hasil_audit_toko')->where('id', $id)->first();
-        if ($audit) {
-            DB::table('hasil_audit_toko')->where('id', $id)->update([
-                'status_approval' => 'Approved',
-                'alasan_reject' => null,
-                'approved_by' => Auth::user()->name,
-                'approved_at' => now(),
-            ]);
-            $this->dispatch('show-toast', type: 'success', message: "Audit toko {$audit->customer_name} berhasil disetujui (Approved).");
+        $this->selectedId = $id;
+        $this->catatanManager = '';
+        $this->dispatch('open-approve-modal');
+    }
+
+    public function approve()
+    {
+        if ($this->selectedId) {
+            $audit = DB::table('hasil_audit_toko')->where('id', $this->selectedId)->first();
+            if ($audit) {
+                DB::table('hasil_audit_toko')->where('id', $this->selectedId)->update([
+                    'status_approval' => 'Approved',
+                    'alasan_reject' => empty($this->catatanManager) ? null : $this->catatanManager,
+                    'approved_by' => Auth::user()->name,
+                    'approved_at' => now(),
+                ]);
+                $this->dispatch('show-toast', type: 'success', message: "Audit toko {$audit->customer_name} berhasil disetujui (Approved).");
+            }
         }
+        $this->selectedId = null;
+        $this->catatanManager = '';
+        $this->dispatch('close-approve-modal');
     }
 
     public function openRejectModal($id)
     {
         $this->selectedId = $id;
-        $this->alasanReject = '';
+        $this->catatanManager = '';
         $this->dispatch('open-reject-modal');
     }
 
     public function reject()
     {
         $this->validate([
-            'alasanReject' => 'required|string|min:3',
+            'catatanManager' => 'required|string|min:3',
         ], [
-            'alasanReject.required' => 'Alasan penolakan wajib diisi.',
-            'alasanReject.min' => 'Alasan penolakan minimal 3 karakter.',
+            'catatanManager.required' => 'Catatan penolakan wajib diisi.',
+            'catatanManager.min' => 'Catatan penolakan minimal 3 karakter.',
         ]);
 
         if ($this->selectedId) {
@@ -261,7 +273,7 @@ class Index extends Component
             if ($audit) {
                 DB::table('hasil_audit_toko')->where('id', $this->selectedId)->update([
                     'status_approval' => 'Rejected',
-                    'alasan_reject' => $this->alasanReject,
+                    'alasan_reject' => $this->catatanManager,
                     'approved_by' => Auth::user()->name,
                     'approved_at' => now(),
                 ]);
@@ -270,7 +282,7 @@ class Index extends Component
         }
 
         $this->selectedId = null;
-        $this->alasanReject = '';
+        $this->catatanManager = '';
         $this->dispatch('close-reject-modal');
     }
 
