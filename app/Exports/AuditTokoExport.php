@@ -10,10 +10,12 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithDrawings;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithStyles, WithDrawings
+class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithStyles, WithDrawings, WithEvents
 {
     protected $search;
     protected $statusFilter;
@@ -269,12 +271,6 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
         $sheet->getStyle('C4')->getAlignment()->setWrapText(true);
         $sheet->getRowDimension(4)->setRowHeight(-1); // Auto-adjust row height
 
-        // Set column widths for photo columns to be wider (prevents horizontal overlapping)
-        $photoCols = ['Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG'];
-        foreach ($photoCols as $col) {
-            $sheet->getColumnDimension($col)->setWidth(20);
-        }
-
         // Set row heights for data rows to fit the images (prevents vertical overlapping)
         if ($this->exportData) {
             $startRow = 8;
@@ -299,6 +295,20 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
                     'startColor' => ['rgb' => '1E293B']
                 ]
             ],
+        ];
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function(AfterSheet $event) {
+                // Force column widths for photo columns after auto-size has been applied
+                $photoCols = ['Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG'];
+                foreach ($photoCols as $col) {
+                    $event->sheet->getDelegate()->getColumnDimension($col)->setAutoSize(false);
+                    $event->sheet->getDelegate()->getColumnDimension($col)->setWidth(25);
+                }
+            },
         ];
     }
 }
