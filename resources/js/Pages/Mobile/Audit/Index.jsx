@@ -2383,9 +2383,15 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                     </h5>
                                     <form
                                         onSubmit={submitAudit}
-                                        className="bg-white rounded-xl p-4 border border-indigo-100 shadow-sm shadow-indigo-100/50 space-y-4"
+                                        className={`bg-white rounded-xl p-4 border border-indigo-100 shadow-sm shadow-indigo-100/50 space-y-4 ${detailOutlet?.status_approval === 'Approved' ? 'opacity-90 pointer-events-none' : ''}`}
                                     >
-
+                                        {detailOutlet?.status_approval === 'Approved' && (
+                                            <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] p-3 rounded-lg font-bold flex items-center gap-2">
+                                                <CheckCircleIcon className="w-5 h-5 shrink-0" />
+                                                Laporan ini sudah di-Approve dan tidak dapat diubah lagi.
+                                            </div>
+                                        )}
+                                        <fieldset disabled={detailOutlet?.status_approval === 'Approved'} className="space-y-4">
                                         <div>
                                             <label className="block text-[10px] font-bold text-slate-700 mb-1">
                                                 Keterangan Audit (Free Text)
@@ -2506,23 +2512,26 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                             </div>
                                         )}
 
-                                        <button
-                                            type="submit"
-                                            disabled={
-                                                processing || isGettingLocation
-                                            }
-                                            className="w-full h-10 bg-indigo-600 text-white rounded-lg text-xs md:text-sm font-bold shadow-md shadow-indigo-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                        >
-                                            {(processing ||
-                                                isGettingLocation) && (
-                                                <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
-                                            )}
-                                            <span>
-                                                {processing || isGettingLocation
-                                                    ? "Menyimpan..."
-                                                    : "Simpan Hasil Audit"}
-                                            </span>
-                                        </button>
+                                        {detailOutlet?.status_approval !== 'Approved' && (
+                                            <button
+                                                type="submit"
+                                                disabled={
+                                                    processing || isGettingLocation
+                                                }
+                                                className="w-full h-10 bg-indigo-600 text-white rounded-lg text-xs md:text-sm font-bold shadow-md shadow-indigo-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                            >
+                                                {(processing ||
+                                                    isGettingLocation) && (
+                                                    <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                                                )}
+                                                <span>
+                                                    {processing || isGettingLocation
+                                                        ? "Menyimpan..."
+                                                        : "Simpan Hasil Audit"}
+                                                </span>
+                                            </button>
+                                        )}
+                                        </fieldset>
                                     </form>
                                 </div>
                             </div>
