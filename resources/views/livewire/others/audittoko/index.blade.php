@@ -501,6 +501,29 @@
                                 </template>
                             </div>
                         </div>
+
+                        {{-- Lokasi Audit Widget --}}
+                        <div class="bg-white rounded-2xl border border-base-200 p-5 sm:p-6 shadow-sm">
+                            <h4 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-4">Lokasi Audit</h4>
+                            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col gap-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="bg-blue-100/50 p-2.5 rounded-xl text-blue-600 shrink-0 border border-blue-200/50">
+                                        <x-heroicon-s-map-pin class="w-5 h-5" />
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Titik Koordinat (GPS)</p>
+                                        <p class="font-bold text-slate-800 text-sm font-mono truncate" x-text="detailData?.audit_latitude && detailData?.audit_longitude ? detailData.audit_latitude + ', ' + detailData.audit_longitude : 'Tidak direkam'"></p>
+                                    </div>
+                                </div>
+                                <template x-if="detailData?.audit_latitude && detailData?.audit_longitude">
+                                    <a :href="'https://www.google.com/maps/search/?api=1&query=' + detailData.audit_latitude + ',' + detailData.audit_longitude" 
+                                       target="_blank" 
+                                       class="btn btn-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold w-full shadow-sm shadow-blue-500/20 border-0 flex items-center justify-center gap-2 mt-1">
+                                        <x-heroicon-s-map class="w-4 h-4" /> Buka di Google Maps
+                                    </a>
+                                </template>
+                            </div>
+                        </div>
                         
                     </div>
 
