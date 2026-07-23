@@ -781,16 +781,7 @@
                                 @foreach($checklists as $field => $label)
                                     <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
                                         <span class="font-medium text-slate-700">{{ $label }}</span>
-                                        <div class="flex items-center gap-4">
-                                            <label class="cursor-pointer flex items-center gap-1.5">
-                                                <input type="radio" wire:model="{{ $field }}" value="1" class="radio radio-sm radio-success" />
-                                                <span class="label-text font-bold text-success text-xs uppercase">Yes</span>
-                                            </label>
-                                            <label class="cursor-pointer flex items-center gap-1.5">
-                                                <input type="radio" wire:model="{{ $field }}" value="0" class="radio radio-sm radio-error" />
-                                                <span class="label-text font-bold text-error text-xs uppercase">No</span>
-                                            </label>
-                                        </div>
+                                        <input type="checkbox" wire:model="{{ $field }}" class="toggle toggle-success" />
                                     </div>
                                 @endforeach
                             </div>
