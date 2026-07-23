@@ -1761,6 +1761,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                             )}
 
                             <div className="flex-1 overflow-y-auto overflow-x-hidden p-5 custom-scrollbar">
+                                <fieldset disabled={detailOutlet?.status_approval === 'Approved'} className={`space-y-6 ${detailOutlet?.status_approval === 'Approved' ? 'opacity-90 pointer-events-none' : ''}`}>
                                 {/* Identitas Pemilik */}
                                 <div>
                                     <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 mb-2">
@@ -2383,7 +2384,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                     </h5>
                                     <form
                                         onSubmit={submitAudit}
-                                        className={`bg-white rounded-xl p-4 border border-indigo-100 shadow-sm shadow-indigo-100/50 space-y-4 ${detailOutlet?.status_approval === 'Approved' ? 'opacity-90 pointer-events-none' : ''}`}
+                                        className="bg-white rounded-xl p-4 border border-indigo-100 shadow-sm shadow-indigo-100/50 space-y-4"
                                     >
                                         {detailOutlet?.status_approval === 'Approved' && (
                                             <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] p-3 rounded-lg font-bold flex items-center gap-2">
@@ -2391,7 +2392,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                                 Laporan ini sudah di-Approve dan tidak dapat diubah lagi.
                                             </div>
                                         )}
-                                        <fieldset disabled={detailOutlet?.status_approval === 'Approved'} className="space-y-4">
+                                        <div className="space-y-4">
                                         <div>
                                             <label className="block text-[10px] font-bold text-slate-700 mb-1">
                                                 Keterangan Audit (Free Text)
@@ -2531,9 +2532,10 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                                 </span>
                                             </button>
                                         )}
-                                        </fieldset>
+                                        </div>
                                     </form>
                                 </div>
+                                </fieldset>
                             </div>
                         </ErrorBoundary>
                     </div>
