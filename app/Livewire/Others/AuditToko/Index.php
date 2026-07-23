@@ -262,6 +262,9 @@ class Index extends Component
                     'approved_by' => Auth::user()->name,
                     'approved_at' => now(),
                 ]);
+                
+                \App\Helpers\ActivityLogger::log('Approve Audit Toko', "Menyetujui hasil audit toko ID: {$this->selectedId} - {$audit->customer_name}");
+                
                 $this->dispatch('show-toast', type: 'success', message: "Audit toko {$audit->customer_name} berhasil disetujui (Approved).");
             }
         }
@@ -295,6 +298,9 @@ class Index extends Component
                     'approved_by' => Auth::user()->name,
                     'approved_at' => now(),
                 ]);
+                
+                \App\Helpers\ActivityLogger::log('Reject Audit Toko', "Menolak hasil audit toko ID: {$this->selectedId} - {$audit->customer_name} dengan alasan: {$this->catatanManager}");
+                
                 $this->dispatch('show-toast', type: 'warning', message: "Audit toko {$audit->customer_name} ditolak (Rejected).");
             }
         }
@@ -317,6 +323,9 @@ class Index extends Component
             }
             // Delete record
             DB::table('hasil_audit_toko')->where('id', $id)->delete();
+            
+            \App\Helpers\ActivityLogger::log('Delete Audit Toko', "Menghapus hasil audit toko ID: {$id} - {$audit->customer_name} secara permanen.");
+            
             $this->dispatch('show-toast', type: 'success', message: "Data audit toko {$audit->customer_name} berhasil dihapus permanen.");
         }
     }
@@ -393,6 +402,8 @@ class Index extends Component
             }
 
             DB::table('hasil_audit_toko')->where('id', $this->edit_id)->update($updateData);
+
+            \App\Helpers\ActivityLogger::log('Update Audit Toko', "Memperbarui data hasil audit toko ID: {$this->edit_id}");
 
             $this->dispatch('show-toast', type: 'success', message: 'Data hasil audit toko berhasil diperbarui.');
             $this->dispatch('close-edit-modal');
