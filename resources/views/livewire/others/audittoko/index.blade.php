@@ -227,6 +227,19 @@
                                         </button>
                                         @endif
                                     @endcanEdit
+
+                                    {{-- Delete Button --}}
+                                    @canDelete('others.audit-toko')
+                                        <button 
+                                            type="button"
+                                            wire:click="delete({{ $row->id }})"
+                                            wire:confirm="Apakah Anda yakin ingin MENGHAPUS data audit toko ini secara permanen?"
+                                            class="btn btn-square btn-xs btn-ghost text-red-500 hover:bg-red-500/10"
+                                            title="Hapus (Delete)"
+                                        >
+                                            <x-heroicon-s-trash class="w-4 h-4" />
+                                        </button>
+                                    @endcanDelete
                                 </div>
                             </th>
                         </tr>
@@ -616,6 +629,16 @@
                 </button>
                 
                 <div class="flex items-center gap-3 w-full sm:w-auto">
+                    @canDelete('others.audit-toko')
+                        <button 
+                            type="button"
+                            @click="if(confirm('Apakah Anda yakin ingin MENGHAPUS data audit toko ini secara permanen?')) { showDetailModal = false; $wire.delete(detailData.id); }"
+                            class="btn btn-outline border-error text-error hover:bg-error hover:border-error hover:text-white rounded-xl px-4 gap-2 mr-auto sm:mr-4"
+                        >
+                            <x-heroicon-s-trash class="w-5 h-5" /> Hapus
+                        </button>
+                    @endcanDelete
+
                     @canEdit('others.audit-toko')
                         <button 
                             type="button"

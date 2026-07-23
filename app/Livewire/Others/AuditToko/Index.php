@@ -286,6 +286,23 @@ class Index extends Component
         $this->dispatch('close-reject-modal');
     }
 
+    public function delete($id)
+    {
+        $audit = DB::table('hasil_audit_toko')->where('id', $id)->first();
+        if ($audit) {
+            // Delete associated photos
+            for ($i = 1; $i <= 8; $i++) {
+                $field = "foto_audit{$i}";
+                if (!empty($audit->$field) && \Illuminate\Support\Facades\Storage::disk('public')->exists($audit->$field)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($audit->$field);
+                }
+            }
+            // Delete record
+            DB::table('hasil_audit_toko')->where('id', $id)->delete();
+            $this->dispatch('show-toast', type: 'success', message: "Data audit toko {$audit->customer_name} berhasil dihapus permanen.");
+        }
+    }
+
     public function exportExcel()
     {
         return Excel::download(
