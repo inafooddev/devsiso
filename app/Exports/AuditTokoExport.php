@@ -241,10 +241,24 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
                             $drawing->setName('Foto ' . $i);
                             $drawing->setDescription('Foto ' . $i);
                             $drawing->setPath($imagePath);
-                            $drawing->setHeight(75); // Slightly smaller height (75px)
+                            $drawing->setHeight(75); // 75px height
+
+                            // Menghitung aspect ratio untuk posisi di tengah (horizontal)
+                            $size = @getimagesize($imagePath);
+                            $imgWidth = $size ? $size[0] : 100;
+                            $imgHeight = $size ? $size[1] : 75;
+                            
+                            $scaledWidth = ($imgHeight > 0) ? ($imgWidth * (75 / $imgHeight)) : 75;
+                            
+                            // Asumsi lebar kolom 25 = ~175 pixel
+                            $cellWidthPx = 175; 
+                            $offsetX = max(0, ($cellWidthPx - $scaledWidth) / 2);
+
                             $drawing->setCoordinates($colLetters[$i - 1] . $rowNum);
-                            $drawing->setOffsetX(5);
-                            $drawing->setOffsetY(5);
+                            $drawing->setOffsetX((int) $offsetX);
+                            
+                            // Row height 70 points = ~93px. Sisa ruang = 93 - 75 = 18px. OffsetY = 9px.
+                            $drawing->setOffsetY(9);
                             $drawings[] = $drawing;
                         }
                     }
