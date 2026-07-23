@@ -1761,7 +1761,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                             )}
 
                             <div className="flex-1 overflow-y-auto overflow-x-hidden p-5 custom-scrollbar">
-                                <fieldset disabled={detailOutlet?.status_approval === 'Approved'} className={`space-y-6 ${detailOutlet?.status_approval === 'Approved' ? 'opacity-90 pointer-events-none' : ''}`}>
+                                <fieldset disabled={detailOutlet?.status_approval === 'Approved'} className={`space-y-6 ${detailOutlet?.status_approval === 'Approved' ? 'opacity-90' : ''}`}>
                                 {/* Identitas Pemilik */}
                                 <div>
                                     <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 mb-2">
@@ -2133,6 +2133,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                         </button>
                                     </div>
                                 </div>
+                                </fieldset>
 
                                 {/* Foto Lampiran */}
                                     <div className="mt-6 pb-6">
@@ -2310,7 +2311,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                                                         </div>
                                                                     </div>
                                                                     
-                                                                    {hasAnyFile && (
+                                                                    {hasAnyFile && detailOutlet?.status_approval !== 'Approved' && (
                                                                         <button
                                                                             type="button"
                                                                             onClick={(
@@ -2340,14 +2341,16 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                                                 </>
                                                             ) : (
                                                                 <div
-                                                                    onClick={() =>
-                                                                        document
-                                                                            .getElementById(
-                                                                                `fileInputAudit${num}`,
-                                                                            )
-                                                                            .click()
-                                                                    }
-                                                                    className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
+                                                                    onClick={() => {
+                                                                        if (detailOutlet?.status_approval !== 'Approved') {
+                                                                            document
+                                                                                .getElementById(
+                                                                                    `fileInputAudit${num}`,
+                                                                                )
+                                                                                .click()
+                                                                        }
+                                                                    }}
+                                                                    className={`absolute inset-0 flex flex-col items-center justify-center ${detailOutlet?.status_approval !== 'Approved' ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                                                                 >
                                                                     <CameraIcon className="w-5 h-5 text-indigo-400 mb-1" />
                                                                     <span className="text-[9px] font-semibold text-indigo-600">
@@ -2359,6 +2362,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                                             <input
                                                                 id={`fileInputAudit${num}`}
                                                                 type="file"
+                                                                disabled={detailOutlet?.status_approval === 'Approved'}
                                                                 onChange={(e) =>
                                                                     handleFileChange(
                                                                         field,
@@ -2384,7 +2388,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                     </h5>
                                     <form
                                         onSubmit={submitAudit}
-                                        className="bg-white rounded-xl p-4 border border-indigo-100 shadow-sm shadow-indigo-100/50 space-y-4"
+                                        className={`bg-white rounded-xl p-4 border border-indigo-100 shadow-sm shadow-indigo-100/50 space-y-4 ${detailOutlet?.status_approval === 'Approved' ? 'opacity-90' : ''}`}
                                     >
                                         {detailOutlet?.status_approval === 'Approved' && (
                                             <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] p-3 rounded-lg font-bold flex items-center gap-2">
@@ -2392,7 +2396,7 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                                 Laporan ini sudah di-Approve dan tidak dapat diubah lagi.
                                             </div>
                                         )}
-                                        <div className="space-y-4">
+                                        <fieldset disabled={detailOutlet?.status_approval === 'Approved'} className="space-y-4">
                                         <div>
                                             <label className="block text-[10px] font-bold text-slate-700 mb-1">
                                                 Keterangan Audit (Free Text)
@@ -2532,10 +2536,9 @@ export default function Index({ outlets, auditReports = [], sessionAuditor }) {
                                                 </span>
                                             </button>
                                         )}
-                                        </div>
+                                        </fieldset>
                                     </form>
                                 </div>
-                                </fieldset>
                             </div>
                         </ErrorBoundary>
                     </div>
