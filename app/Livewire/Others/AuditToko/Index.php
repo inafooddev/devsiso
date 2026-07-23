@@ -401,9 +401,12 @@ class Index extends Component
                 }
             }
 
+            $auditToUpdate = DB::table('hasil_audit_toko')->where('id', $this->edit_id)->first();
+            $customerName = $auditToUpdate ? $auditToUpdate->customer_name : '';
+
             DB::table('hasil_audit_toko')->where('id', $this->edit_id)->update($updateData);
 
-            \App\Helpers\ActivityLogger::log('Update Audit Toko', "Memperbarui data hasil audit toko ID: {$this->edit_id}");
+            \App\Helpers\ActivityLogger::log('Update Audit Toko', "Memperbarui data hasil audit toko ID: {$this->edit_id} - {$customerName}");
 
             $this->dispatch('show-toast', type: 'success', message: 'Data hasil audit toko berhasil diperbarui.');
             $this->dispatch('close-edit-modal');
