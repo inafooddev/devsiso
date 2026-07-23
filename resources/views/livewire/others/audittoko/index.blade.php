@@ -409,34 +409,29 @@
                         
                         {{-- General Info Widget --}}
                         <div class="bg-white rounded-2xl border border-base-200 p-5 sm:p-6 shadow-sm">
-                            <h4 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-5">Informasi Umum</h4>
-                            <div class="flex flex-col gap-4 sm:gap-5 text-sm">
-                                <div class="flex items-start gap-3 sm:gap-4">
-                                    <div class="bg-base-100 p-2 rounded-lg shrink-0">
-                                        <x-heroicon-s-user class="w-5 h-5 text-base-content/40" />
+                            <div class="flex flex-col gap-4 sm:gap-5">
+                                {{-- Distributor --}}
+                                <div class="flex items-center gap-3 sm:gap-4">
+                                    <div class="bg-base-100 p-3 rounded-xl shrink-0 border border-base-200 shadow-sm">
+                                        <x-heroicon-s-truck class="w-5 h-5 text-slate-500" />
                                     </div>
-                                    <div class="pt-1">
-                                        <p class="text-[11px] font-semibold text-base-content/50 mb-0.5 uppercase tracking-wider">Auditor</p>
-                                        <p class="font-bold text-slate-700" x-text="detailData?.auditor || '-'"></p>
-                                    </div>
+                                    <p class="font-bold text-slate-800 text-sm sm:text-base" x-text="(detailData?.distributor_name || '-') + ' (' + (detailData?.cabang || '-') + ')'"></p>
                                 </div>
-                                <div class="flex items-start gap-3 sm:gap-4">
-                                    <div class="bg-base-100 p-2 rounded-lg shrink-0">
-                                        <x-heroicon-s-truck class="w-5 h-5 text-base-content/40" />
+                                
+                                {{-- Kode Toko - Nama Toko --}}
+                                <div class="flex items-center gap-3 sm:gap-4">
+                                    <div class="bg-base-100 p-3 rounded-xl shrink-0 border border-base-200 shadow-sm">
+                                        <x-heroicon-s-building-storefront class="w-5 h-5 text-slate-500" />
                                     </div>
-                                    <div class="pt-1">
-                                        <p class="text-[11px] font-semibold text-base-content/50 mb-0.5 uppercase tracking-wider">Distributor / Cabang</p>
-                                        <p class="font-bold text-slate-700" x-text="(detailData?.distributor_name || '-') + ' (' + (detailData?.cabang || '-') + ')'"></p>
-                                    </div>
+                                    <p class="font-bold text-slate-800 text-sm sm:text-base" x-text="(detailData?.customer_code || '-') + ' - ' + (detailData?.customer_name || '-')"></p>
                                 </div>
-                                <div class="flex items-start gap-3 sm:gap-4">
-                                    <div class="bg-base-100 p-2 rounded-lg shrink-0">
-                                        <x-heroicon-s-calendar-days class="w-5 h-5 text-base-content/40" />
+
+                                {{-- Waktu Audit --}}
+                                <div class="flex items-center gap-3 sm:gap-4">
+                                    <div class="bg-base-100 p-3 rounded-xl shrink-0 border border-base-200 shadow-sm">
+                                        <x-heroicon-s-calendar-days class="w-5 h-5 text-slate-500" />
                                     </div>
-                                    <div class="pt-1">
-                                        <p class="text-[11px] font-semibold text-base-content/50 mb-0.5 uppercase tracking-wider">Waktu Audit</p>
-                                        <p class="font-bold text-slate-700 font-mono" x-text="detailData?.created_at ? new Date(detailData.created_at).toLocaleString('id-ID', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-'"></p>
-                                    </div>
+                                    <p class="font-bold text-slate-800 text-sm sm:text-base font-mono" x-text="detailData?.created_at ? new Date(detailData.created_at).toLocaleString('id-ID', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-'"></p>
                                 </div>
                             </div>
                         </div>
