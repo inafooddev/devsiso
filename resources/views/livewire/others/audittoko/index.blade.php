@@ -781,10 +781,7 @@
                                 @foreach($checklists as $field => $label)
                                     <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
                                         <span class="font-medium text-slate-700">{{ $label }}</span>
-                                        <select wire:model="{{ $field }}" class="select select-bordered select-sm w-32 bg-white">
-                                            <option value="Yes">Yes (Sesuai)</option>
-                                            <option value="No">No (Tidak)</option>
-                                        </select>
+                                        <input type="checkbox" wire:model="{{ $field }}" class="toggle toggle-success" />
                                     </div>
                                 @endforeach
                             </div>

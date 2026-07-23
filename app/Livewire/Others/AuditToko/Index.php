@@ -326,14 +326,14 @@ class Index extends Component
         $audit = DB::table('hasil_audit_toko')->where('id', $id)->first();
         if ($audit) {
             $this->edit_id = $audit->id;
-            $this->edit_is_toko_fisik = $audit->is_toko_fisik;
-            $this->edit_is_nama_pemilik = $audit->is_nama_pemilik;
-            $this->edit_is_nama_ktp = $audit->is_nama_ktp;
-            $this->edit_is_nik_ktp = $audit->is_nik_ktp;
-            $this->edit_is_no_hp = $audit->is_no_hp;
-            $this->edit_is_no_rekening = $audit->is_no_rekening;
-            $this->edit_is_an_rekening = $audit->is_an_rekening;
-            $this->edit_is_titik_koordinat = $audit->is_titik_koordinat;
+            $this->edit_is_toko_fisik = $audit->is_toko_fisik === 'Yes';
+            $this->edit_is_nama_pemilik = $audit->is_nama_pemilik === 'Yes';
+            $this->edit_is_nama_ktp = $audit->is_nama_ktp === 'Yes';
+            $this->edit_is_nik_ktp = $audit->is_nik_ktp === 'Yes';
+            $this->edit_is_no_hp = $audit->is_no_hp === 'Yes';
+            $this->edit_is_no_rekening = $audit->is_no_rekening === 'Yes';
+            $this->edit_is_an_rekening = $audit->is_an_rekening === 'Yes';
+            $this->edit_is_titik_koordinat = $audit->is_titik_koordinat === 'Yes';
             
             $this->edit_latitude = $audit->latitude;
             $this->edit_longitude = $audit->longitude;
@@ -365,14 +365,14 @@ class Index extends Component
 
         if ($this->edit_id) {
             $updateData = [
-                'is_toko_fisik' => $this->edit_is_toko_fisik,
-                'is_nama_pemilik' => $this->edit_is_nama_pemilik,
-                'is_nama_ktp' => $this->edit_is_nama_ktp,
-                'is_nik_ktp' => $this->edit_is_nik_ktp,
-                'is_no_hp' => $this->edit_is_no_hp,
-                'is_no_rekening' => $this->edit_is_no_rekening,
-                'is_an_rekening' => $this->edit_is_an_rekening,
-                'is_titik_koordinat' => $this->edit_is_titik_koordinat,
+                'is_toko_fisik' => $this->edit_is_toko_fisik ? 'Yes' : 'No',
+                'is_nama_pemilik' => $this->edit_is_nama_pemilik ? 'Yes' : 'No',
+                'is_nama_ktp' => $this->edit_is_nama_ktp ? 'Yes' : 'No',
+                'is_nik_ktp' => $this->edit_is_nik_ktp ? 'Yes' : 'No',
+                'is_no_hp' => $this->edit_is_no_hp ? 'Yes' : 'No',
+                'is_no_rekening' => $this->edit_is_no_rekening ? 'Yes' : 'No',
+                'is_an_rekening' => $this->edit_is_an_rekening ? 'Yes' : 'No',
+                'is_titik_koordinat' => $this->edit_is_titik_koordinat ? 'Yes' : 'No',
                 'latitude' => $this->edit_latitude,
                 'longitude' => $this->edit_longitude,
                 'keterangan_hasil_audit' => $this->edit_keterangan_hasil_audit,
