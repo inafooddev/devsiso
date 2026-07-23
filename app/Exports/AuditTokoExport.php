@@ -297,11 +297,29 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
             ->getAlignment()
             ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
 
+        $photoCols = ['Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF'];
+        foreach ($photoCols as $col) {
+            $sheet->getColumnDimension($col)->setWidth(20);
+        }
+
+        // Hide default Excel gridlines
+        $sheet->setShowGridlines(false);
+
         // Center align text horizontally for J (Latitude) to S (Titik Koordinat)
         // Also apply green/red colors for the checklist columns (L to S)
         if ($this->exportData) {
             $startRow = 8;
             $endRow = 7 + $this->exportData->count();
+
+            // Add gray borders to the entire table (A7 to AF[endRow])
+            $sheet->getStyle('A7:AF' . $endRow)->applyFromArray([
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                        'color' => ['argb' => 'FFCBD5E1'], // slate-300 gray
+                    ],
+                ],
+            ]);
             
             $sheet->getStyle('J7:S' . $endRow)
                 ->getAlignment()
