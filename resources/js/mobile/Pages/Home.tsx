@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { 
     BuildingStorefrontIcon, 
     MapPinIcon, 
@@ -8,10 +8,21 @@ import {
     CalendarDaysIcon,
     ChartBarIcon,
     UserCircleIcon,
-    ArrowRightOnRectangleIcon
+    ArrowRightOnRectangleIcon,
+    ClipboardDocumentCheckIcon
 } from '@heroicons/react/24/solid';
 
 export default function Home() {
+    const { auth } = usePage().props as any;
+
+    const userRolesRaw = auth?.user?.roles || (auth?.user?.role ? [auth.user.role] : []);
+    const userRoles: string[] = Array.isArray(userRolesRaw)
+        ? userRolesRaw.map((r: any) => (typeof r === 'object' && r !== null ? r.name : String(r)).toLowerCase())
+        : [String(userRolesRaw).toLowerCase()];
+
+    const allowedAuditRoles = ['audit', 'manaudit', 'admin', 'super-admin'];
+    const canAccessAudit = userRoles.some((r: string) => allowedAuditRoles.includes(r));
+
     return (
         <div className="min-h-screen bg-[#F8FAFC] font-sans pb-10 selection:bg-indigo-500 selection:text-white">
             <Head title="SISO Workspace" />
@@ -101,6 +112,32 @@ export default function Home() {
                             </div>
                         </div>
                     </Link>
+
+                    {/* Card Audit Toko - Only for audit, manaudit, admin roles */}
+                    {canAccessAudit && (
+                        <Link href="/mobile/audit" className="group block h-full">
+                            <div className="bg-white p-5 rounded-[28px] h-full shadow-lg shadow-purple-100/50 hover:shadow-xl border border-slate-100 transition-all duration-300 transform active:scale-95 flex flex-col justify-between relative overflow-hidden group-hover:-translate-y-1">
+                                {/* Decorative gradient blob */}
+                                <div className="absolute -right-6 -top-6 w-24 h-24 bg-purple-50 rounded-full blur-2xl group-hover:bg-purple-100 transition-colors"></div>
+                                
+                                <div className="relative z-10 mb-6">
+                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-md shadow-purple-200 text-white mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                                        <ClipboardDocumentCheckIcon className="w-6 h-6" />
+                                    </div>
+                                    <h2 className="text-sm font-black text-slate-800 uppercase tracking-wide leading-snug">
+                                        Audit Toko
+                                    </h2>
+                                </div>
+                                
+                                <div className="relative z-10 flex items-center justify-between mt-auto">
+                                    <span className="text-xs font-bold text-slate-400">Akses Modul</span>
+                                    <div className="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-purple-50 transition-colors">
+                                        <ArrowRightIcon className="w-3 h-3 text-slate-300 group-hover:text-purple-600 transition-colors" />
+                                    </div>
+                                </div>
+                            </div>
+                        </Link>
+                    )}
                     
                     {/* Card 3: Call Plan - Disabled for now */}
                     <a href="#" onClick={(e) => e.preventDefault()} className="group block h-full cursor-default">
