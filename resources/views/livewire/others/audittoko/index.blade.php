@@ -255,6 +255,7 @@
 
                                     {{-- Delete Button --}}
                                     @canDelete('others.audit-toko')
+                                        @if($status === 'Pending')
                                         <button 
                                             type="button"
                                             wire:click="delete({{ $row->id }})"
@@ -264,6 +265,16 @@
                                         >
                                             <x-heroicon-s-trash class="w-4 h-4" />
                                         </button>
+                                        @else
+                                        <div class="tooltip tooltip-left" data-tip="Data yang sudah diproses tidak bisa dihapus">
+                                            <button 
+                                                type="button"
+                                                class="btn btn-square btn-xs btn-ghost text-slate-300 cursor-not-allowed"
+                                            >
+                                                <x-heroicon-s-trash class="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        @endif
                                     @endcanDelete
                                 </div>
                             </th>
@@ -655,13 +666,25 @@
                 
                 <div class="flex items-center gap-3 w-full sm:w-auto">
                     @canDelete('others.audit-toko')
-                        <button 
-                            type="button"
-                            @click="if(confirm('Apakah Anda yakin ingin MENGHAPUS data audit toko ini secara permanen?')) { showDetailModal = false; $wire.delete(detailData.id); }"
-                            class="btn btn-outline border-error text-error hover:bg-error hover:border-error hover:text-white rounded-xl px-4 gap-2 mr-auto sm:mr-4"
-                        >
-                            <x-heroicon-s-trash class="w-5 h-5" /> Hapus
-                        </button>
+                        <template x-if="detailData?.status_approval === 'Pending'">
+                            <button 
+                                type="button"
+                                @click="if(confirm('Apakah Anda yakin ingin MENGHAPUS data audit toko ini secara permanen?')) { showDetailModal = false; $wire.delete(detailData.id); }"
+                                class="btn btn-outline border-error text-error hover:bg-error hover:border-error hover:text-white rounded-xl px-4 gap-2 mr-auto sm:mr-4"
+                            >
+                                <x-heroicon-s-trash class="w-5 h-5" /> Hapus
+                            </button>
+                        </template>
+                        <template x-if="detailData?.status_approval !== 'Pending'">
+                            <div class="tooltip tooltip-right mr-auto sm:mr-4" data-tip="Data yang sudah diproses tidak bisa dihapus">
+                                <button 
+                                    type="button"
+                                    class="btn btn-outline border-slate-200 text-slate-300 rounded-xl px-4 gap-2 cursor-not-allowed"
+                                >
+                                    <x-heroicon-s-trash class="w-5 h-5" /> Hapus
+                                </button>
+                            </div>
+                        </template>
                     @endcanDelete
 
                     @canEdit('others.audit-toko')
