@@ -63,7 +63,15 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
                 hat.status_approval,
                 hat.alasan_reject,
                 hat.approved_by,
-                hat.approved_at
+                hat.approved_at,
+                hat.foto_audit1,
+                hat.foto_audit2,
+                hat.foto_audit3,
+                hat.foto_audit4,
+                hat.foto_audit5,
+                hat.foto_audit6,
+                hat.foto_audit7,
+                hat.foto_audit8
             ')
             ->leftJoin('master_distributors as md', 'hat.distributor_code', '=', 'md.distributor_code');
 
@@ -150,6 +158,14 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
                 'Alasan Reject',
                 'Approved By',
                 'Approved At',
+                'Foto 1',
+                'Foto 2',
+                'Foto 3',
+                'Foto 4',
+                'Foto 5',
+                'Foto 6',
+                'Foto 7',
+                'Foto 8',
             ]
         ];
     }
@@ -193,6 +209,14 @@ class AuditTokoExport implements FromCollection, WithHeadings, WithMapping, Shou
             $row->alasan_reject ?? '-',
             $row->approved_by ?? '-',
             $row->approved_at ? date('Y-m-d H:i:s', strtotime($row->approved_at)) : '-',
+            $row->foto_audit1 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit1) . '", "Lihat Foto 1")' : '-',
+            $row->foto_audit2 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit2) . '", "Lihat Foto 2")' : '-',
+            $row->foto_audit3 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit3) . '", "Lihat Foto 3")' : '-',
+            $row->foto_audit4 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit4) . '", "Lihat Foto 4")' : '-',
+            $row->foto_audit5 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit5) . '", "Lihat Foto 5")' : '-',
+            $row->foto_audit6 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit6) . '", "Lihat Foto 6")' : '-',
+            $row->foto_audit7 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit7) . '", "Lihat Foto 7")' : '-',
+            $row->foto_audit8 ? '=HYPERLINK("' . url('storage/' . $row->foto_audit8) . '", "Lihat Foto 8")' : '-',
         ];
     }
 
