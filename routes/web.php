@@ -125,7 +125,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/mobile/audit', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'index'])->name('mobile.audit.index');
     Route::post('/mobile/audit', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'store'])->name('mobile.audit.store');
     Route::delete('/mobile/audit/{id}', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'destroy'])->name('mobile.audit.destroy');
-    Route::get('/mobile/audit/export', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'export'])->name('mobile.audit.export');
+
     Route::get('/mobile/audit/thumbnail', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'thumbnail'])->name('mobile.audit.thumbnail');
     Route::post('/mobile/audit/logout', [\App\Http\Controllers\Mobile\Audit\IndexController::class, 'logout'])->name('mobile.audit.logout');
 
