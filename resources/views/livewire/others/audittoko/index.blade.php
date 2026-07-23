@@ -516,18 +516,11 @@
                                     </div>
                                 </div>
                                 <template x-if="detailData?.audit_latitude && detailData?.audit_longitude">
-                                    <div class="flex flex-col sm:flex-row gap-2 mt-1">
-                                        <a :href="'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + detailData.audit_latitude + ',' + detailData.audit_longitude" 
-                                           target="_blank" 
-                                           class="btn btn-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex-1 shadow-sm shadow-blue-500/20 border-0 flex items-center justify-center gap-2">
-                                            <x-heroicon-s-eye class="w-4 h-4" /> Street View
-                                        </a>
-                                        <a :href="'https://www.google.com/maps/search/?api=1&query=' + detailData.audit_latitude + ',' + detailData.audit_longitude" 
-                                           target="_blank" 
-                                           class="btn btn-sm bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-bold flex-1 shadow-sm border-0 flex items-center justify-center gap-2">
-                                            <x-heroicon-s-map class="w-4 h-4" /> Google Maps
-                                        </a>
-                                    </div>
+                                    <a :href="'https://www.google.com/maps/search/?api=1&query=' + detailData.audit_latitude + ',' + detailData.audit_longitude" 
+                                       target="_blank" 
+                                       class="btn btn-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold w-full shadow-sm shadow-blue-500/20 border-0 flex items-center justify-center gap-2 mt-1">
+                                        <x-heroicon-s-map class="w-4 h-4" /> Buka di Google Maps
+                                    </a>
                                 </template>
                             </div>
                         </div>
