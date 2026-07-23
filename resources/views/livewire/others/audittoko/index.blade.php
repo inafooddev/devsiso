@@ -352,147 +352,217 @@
         </div>
     </div>
 
-    {{-- MODAL DETAIL AUDIT --}}
+    {{-- MODAL DETAIL AUDIT (PREMIUM REDESIGN) --}}
     <div 
         x-show="showDetailModal" 
         x-cloak 
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
     >
-        <div class="bg-base-100 rounded-2xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-base-300 flex flex-col overflow-hidden" x-trap="showDetailModal">
-            {{-- Modal Header --}}
-            <div class="p-4 border-b border-base-300 flex items-center justify-between bg-base-200/50">
-                <div>
-                    <span class="badge badge-sm badge-neutral font-mono font-bold" x-text="detailData?.customer_code"></span>
-                    <h3 class="font-extrabold text-base text-base-content mt-0.5" x-text="detailData?.customer_name"></h3>
+        <div class="bg-base-100 rounded-3xl max-w-5xl w-full max-h-[95vh] shadow-2xl flex flex-col overflow-hidden ring-1 ring-base-200" x-trap="showDetailModal" x-transition.scale.95>
+            
+            {{-- Header Premium --}}
+            <div class="px-5 sm:px-8 py-5 sm:py-6 border-b border-base-200 bg-white flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-4 sm:gap-5">
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <x-heroicon-s-building-storefront class="w-6 h-6 sm:w-7 sm:h-7" />
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2 mb-1">
+                            <span class="badge badge-sm badge-outline font-mono font-bold text-base-content/60" x-text="detailData?.customer_code"></span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full"
+                                  :class="{
+                                      'bg-emerald-100 text-emerald-700': detailData?.status_approval === 'Approved',
+                                      'bg-rose-100 text-rose-700': detailData?.status_approval === 'Rejected',
+                                      'bg-amber-100 text-amber-700': !detailData?.status_approval || detailData?.status_approval === 'Pending'
+                                  }"
+                                  x-text="detailData?.status_approval || 'Pending'">
+                            </span>
+                        </div>
+                        <h3 class="text-lg sm:text-2xl font-extrabold text-slate-800 leading-tight" x-text="detailData?.customer_name"></h3>
+                    </div>
                 </div>
-                <button type="button" @click="showDetailModal = false" class="btn btn-sm btn-circle btn-ghost">✕</button>
+                <button type="button" @click="showDetailModal = false" class="btn btn-sm btn-circle btn-ghost text-base-content/50 hover:bg-base-200 hover:text-base-content">
+                    <x-heroicon-s-x-mark class="w-5 h-5" />
+                </button>
             </div>
 
-            {{-- Modal Body --}}
-            <div class="p-6 overflow-y-auto flex flex-col gap-5 text-xs" x-if="detailData">
-                {{-- If Rejected, show banner --}}
+            {{-- Body Content --}}
+            <div class="flex-1 overflow-y-auto bg-slate-50 p-5 sm:p-8" x-if="detailData">
+                
+                {{-- Rejection Alert --}}
                 <template x-if="detailData?.status_approval === 'Rejected'">
-                    <div class="bg-error/10 border border-error/30 text-error p-3 rounded-xl flex flex-col gap-1">
-                        <span class="font-bold flex items-center gap-1 text-xs">
-                            <x-heroicon-s-x-circle class="w-4 h-4" /> Catatan Penolakan Manager:
-                        </span>
-                        <p class="text-xs pl-5 font-semibold" x-text="detailData?.alasan_reject || 'Belum ada catatan'"></p>
+                    <div class="mb-6 rounded-2xl bg-rose-50 border border-rose-200 p-4 sm:p-5 flex gap-3 sm:gap-4 shadow-sm">
+                        <div class="shrink-0 mt-0.5">
+                            <x-heroicon-s-exclamation-circle class="w-6 h-6 text-rose-500" />
+                        </div>
+                        <div>
+                            <h4 class="text-sm sm:text-base font-bold text-rose-800">Laporan Ditolak</h4>
+                            <p class="text-xs sm:text-sm text-rose-600 mt-1 font-medium" x-text="detailData?.alasan_reject || 'Tidak ada alasan.'"></p>
+                        </div>
                     </div>
                 </template>
 
-                {{-- General Info Grid --}}
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-base-200/40 p-3 rounded-xl border border-base-200">
-                    <div>
-                        <span class="text-base-content/50 block font-semibold text-[10px] uppercase">Auditor</span>
-                        <span class="font-bold" x-text="detailData?.auditor || '-'"></span>
-                    </div>
-                    <div>
-                        <span class="text-base-content/50 block font-semibold text-[10px] uppercase">Distributor / Cabang</span>
-                        <span class="font-bold" x-text="(detailData?.distributor_name || '-') + ' (' + (detailData?.cabang || '-') + ')'"></span>
-                    </div>
-                    <div>
-                        <span class="text-base-content/50 block font-semibold text-[10px] uppercase">Tanggal Audit</span>
-                        <span class="font-bold" x-text="detailData?.created_at || '-'"></span>
-                    </div>
-                    <div>
-                        <span class="text-base-content/50 block font-semibold text-[10px] uppercase">Status Approval</span>
-                        <span class="font-bold uppercase" x-text="detailData?.status_approval || 'Pending'"></span>
-                    </div>
-                </div>
-
-                {{-- Checklist 8 Items Table --}}
-                <div>
-                    <h4 class="font-bold text-sm mb-2 text-base-content">Hasil Checklist 8 Verifikasi Audit</h4>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_toko_fisik ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
-                            <span class="font-bold text-xs text-slate-800">Toko Fisik</span>
-                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_toko_fisik ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_toko_fisik ? '✓ Sesuai' : '✗ Tidak'"></span>
-                        </div>
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_nama_pemilik ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
-                            <span class="font-bold text-xs text-slate-800">Nama Pemilik</span>
-                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_nama_pemilik ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_nama_pemilik ? '✓ Sesuai' : '✗ Tidak'"></span>
-                        </div>
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_nama_ktp ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
-                            <span class="font-bold text-xs text-slate-800">Nama KTP</span>
-                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_nama_ktp ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_nama_ktp ? '✓ Sesuai' : '✗ Tidak'"></span>
-                        </div>
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_nik_ktp ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
-                            <span class="font-bold text-xs text-slate-800">NIK KTP</span>
-                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_nik_ktp ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_nik_ktp ? '✓ Sesuai' : '✗ Tidak'"></span>
-                        </div>
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_no_hp ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
-                            <span class="font-bold text-xs text-slate-800">No HP</span>
-                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_no_hp ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_no_hp ? '✓ Sesuai' : '✗ Tidak'"></span>
-                        </div>
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_no_rekening ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
-                            <span class="font-bold text-xs text-slate-800">No Rekening</span>
-                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_no_rekening ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_no_rekening ? '✓ Sesuai' : '✗ Tidak'"></span>
-                        </div>
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_an_rekening ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
-                            <span class="font-bold text-xs text-slate-800">A/N Rekening</span>
-                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_an_rekening ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_an_rekening ? '✓ Sesuai' : '✗ Tidak'"></span>
-                        </div>
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between shadow-xs transition-all" :class="detailData?.is_titik_koordinat ? 'bg-emerald-50 border-emerald-300 text-slate-900' : 'bg-rose-50 border-rose-300 text-slate-900'">
-                            <span class="font-bold text-xs text-slate-800">Titik Koordinat</span>
-                            <span class="font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-xs" :class="detailData?.is_titik_koordinat ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'" x-text="detailData?.is_titik_koordinat ? '✓ Sesuai' : '✗ Tidak'"></span>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Keterangan Hasil Audit --}}
-                <div class="bg-base-200/50 p-3 rounded-xl border border-base-200">
-                    <span class="text-base-content/60 block font-bold mb-1">Keterangan Catatan Audit:</span>
-                    <p class="font-medium" x-text="detailData?.keterangan_hasil_audit || 'Tidak ada catatan khusus.'"></p>
-                </div>
-
-                {{-- Foto Grid --}}
-                <div>
-                    <h4 class="font-bold text-sm mb-2 text-base-content">Foto Dokumentasi Hasil Audit</h4>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <template x-for="i in 8" :key="i">
-                            <div class="flex flex-col gap-1">
-                                <span class="text-[10px] font-bold text-base-content/60" x-text="'Foto ' + i"></span>
-                                <div class="aspect-square bg-base-200 rounded-xl overflow-hidden border border-base-300 relative group">
-                                    <template x-if="detailData && detailData['foto_audit' + i]">
-                                        <img 
-                                            :src="'/storage/' + detailData['foto_audit' + i]" 
-                                            class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform"
-                                            @click="photoUrl = '/storage/' + detailData['foto_audit' + i]; showPhotoModal = true;"
-                                        />
-                                    </template>
-                                    <template x-if="!detailData || !detailData['foto_audit' + i]">
-                                        <div class="w-full h-full flex flex-col items-center justify-center text-base-content/30">
-                                            <x-heroicon-s-photo class="w-6 h-6 mb-1" />
-                                            <span class="text-[9px]">Kosong</span>
-                                        </div>
-                                    </template>
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
+                    
+                    {{-- Left Column: Info & Checklist --}}
+                    <div class="lg:col-span-5 flex flex-col gap-6 sm:gap-8">
+                        
+                        {{-- General Info Widget --}}
+                        <div class="bg-white rounded-2xl border border-base-200 p-5 sm:p-6 shadow-sm">
+                            <h4 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-5">Informasi Umum</h4>
+                            <div class="flex flex-col gap-4 sm:gap-5 text-sm">
+                                <div class="flex items-start gap-3 sm:gap-4">
+                                    <div class="bg-base-100 p-2 rounded-lg shrink-0">
+                                        <x-heroicon-s-user class="w-5 h-5 text-base-content/40" />
+                                    </div>
+                                    <div class="pt-1">
+                                        <p class="text-[11px] font-semibold text-base-content/50 mb-0.5 uppercase tracking-wider">Auditor</p>
+                                        <p class="font-bold text-slate-700" x-text="detailData?.auditor || '-'"></p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-3 sm:gap-4">
+                                    <div class="bg-base-100 p-2 rounded-lg shrink-0">
+                                        <x-heroicon-s-truck class="w-5 h-5 text-base-content/40" />
+                                    </div>
+                                    <div class="pt-1">
+                                        <p class="text-[11px] font-semibold text-base-content/50 mb-0.5 uppercase tracking-wider">Distributor / Cabang</p>
+                                        <p class="font-bold text-slate-700" x-text="(detailData?.distributor_name || '-') + ' (' + (detailData?.cabang || '-') + ')'"></p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-3 sm:gap-4">
+                                    <div class="bg-base-100 p-2 rounded-lg shrink-0">
+                                        <x-heroicon-s-calendar-days class="w-5 h-5 text-base-content/40" />
+                                    </div>
+                                    <div class="pt-1">
+                                        <p class="text-[11px] font-semibold text-base-content/50 mb-0.5 uppercase tracking-wider">Waktu Audit</p>
+                                        <p class="font-bold text-slate-700 font-mono" x-text="detailData?.created_at ? new Date(detailData.created_at).toLocaleString('id-ID', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '-'"></p>
+                                    </div>
                                 </div>
                             </div>
-                        </template>
+                        </div>
+
+                        {{-- Checklist Widget --}}
+                        <div class="bg-white rounded-2xl border border-base-200 p-5 sm:p-6 shadow-sm">
+                            <h4 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-5 flex items-center justify-between">
+                                Hasil Verifikasi 
+                                <span class="badge badge-sm badge-neutral" x-text="(
+                                    [detailData?.is_toko_fisik, detailData?.is_nama_pemilik, detailData?.is_nama_ktp, detailData?.is_nik_ktp, detailData?.is_no_hp, detailData?.is_no_rekening, detailData?.is_an_rekening, detailData?.is_titik_koordinat].filter(Boolean).length
+                                ) + '/8'"></span>
+                            </h4>
+                            
+                            <div class="grid grid-cols-2 gap-3 sm:gap-4">
+                                <template x-for="(item, idx) in [
+                                    { label: 'Toko Fisik', key: 'is_toko_fisik' },
+                                    { label: 'Nama Pemilik', key: 'is_nama_pemilik' },
+                                    { label: 'Nama KTP', key: 'is_nama_ktp' },
+                                    { label: 'NIK KTP', key: 'is_nik_ktp' },
+                                    { label: 'No HP', key: 'is_no_hp' },
+                                    { label: 'No Rekening', key: 'is_no_rekening' },
+                                    { label: 'A/N Rekening', key: 'is_an_rekening' },
+                                    { label: 'Titik Koordinat', key: 'is_titik_koordinat' }
+                                ]" :key="idx">
+                                    <div class="flex items-center gap-2.5 p-2.5 sm:p-3 rounded-xl border transition-colors shadow-sm"
+                                         :class="detailData?.[item.key] ? 'bg-emerald-50/30 border-emerald-100/60' : 'bg-rose-50/30 border-rose-100/60'">
+                                        <div class="shrink-0">
+                                            <x-heroicon-s-check-circle x-show="detailData?.[item.key]" class="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
+                                            <x-heroicon-s-x-circle x-show="!detailData?.[item.key]" class="w-5 h-5 sm:w-6 sm:h-6 text-rose-400" />
+                                        </div>
+                                        <span class="text-xs sm:text-sm font-bold"
+                                              :class="detailData?.[item.key] ? 'text-emerald-900' : 'text-rose-900'"
+                                              x-text="item.label"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        
+                    </div>
+
+                    {{-- Right Column: Notes & Photos --}}
+                    <div class="lg:col-span-7 flex flex-col gap-6 sm:gap-8">
+                        
+                        {{-- Notes Widget --}}
+                        <div class="bg-white rounded-2xl border border-base-200 p-5 sm:p-6 shadow-sm">
+                            <h4 class="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <x-heroicon-s-document-text class="w-4 h-4" /> Catatan Auditor
+                            </h4>
+                            <div class="bg-amber-50/50 border border-amber-100/50 rounded-xl p-4 sm:p-5 relative overflow-hidden">
+                                <div class="absolute -right-2 -top-2 opacity-5 text-amber-900">
+                                    <x-heroicon-s-chat-bubble-bottom-center-text class="w-24 h-24" />
+                                </div>
+                                <p class="text-sm font-semibold text-slate-700 italic relative z-10 leading-relaxed" 
+                                   x-text="detailData?.keterangan_hasil_audit || 'Tidak ada catatan khusus yang dilampirkan oleh auditor.'"></p>
+                            </div>
+                        </div>
+
+                        {{-- Photos Widget --}}
+                        <div class="bg-white rounded-2xl border border-base-200 p-5 sm:p-6 shadow-sm flex-1">
+                            <div class="flex items-center justify-between mb-5">
+                                <h4 class="text-xs font-bold text-base-content/50 uppercase tracking-wider flex items-center gap-2">
+                                    <x-heroicon-s-photo class="w-4 h-4" /> Dokumentasi Audit
+                                </h4>
+                                <span class="text-[10px] text-base-content/40 font-bold bg-base-100 px-2 py-1 rounded-md">Klik gambar untuk Zoom</span>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                                <template x-for="i in 8" :key="i">
+                                    <div class="relative group aspect-square rounded-2xl overflow-hidden bg-slate-100/50 border border-slate-200 flex flex-col shadow-sm transition-all hover:shadow-md hover:border-primary/30">
+                                        {{-- Image Label Overlay --}}
+                                        <div class="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/60 to-transparent p-2 sm:p-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                            <span class="text-[10px] sm:text-xs text-white font-bold drop-shadow-md" x-text="'FOTO ' + i"></span>
+                                        </div>
+                                        
+                                        <template x-if="detailData && detailData['foto_audit' + i]">
+                                            <div class="w-full h-full cursor-zoom-in relative" @click="photoUrl = '/storage/' + detailData['foto_audit' + i]; showPhotoModal = true;">
+                                                <img :src="'/storage/' + detailData['foto_audit' + i]" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                
+                                                {{-- Magnify Icon Overlay --}}
+                                                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/10 transition-opacity">
+                                                    <div class="bg-white/90 p-2 rounded-full shadow-lg backdrop-blur-sm">
+                                                        <x-heroicon-s-magnifying-glass-plus class="w-5 h-5 text-slate-800" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                        
+                                        <template x-if="!detailData || !detailData['foto_audit' + i]">
+                                            <div class="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+                                                <div class="p-3 bg-slate-200/50 rounded-full">
+                                                    <x-heroicon-s-photo class="w-6 h-6 opacity-40" />
+                                                </div>
+                                                <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Kosong</span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
 
-            {{-- Modal Footer --}}
-            <div class="p-4 border-t border-base-300 bg-base-200/50 flex justify-between items-center">
-                <button type="button" @click="showDetailModal = false" class="btn btn-sm rounded-xl">Tutup</button>
+            {{-- Footer Actions --}}
+            <div class="px-5 sm:px-8 py-4 sm:py-5 bg-white border-t border-base-200 flex flex-col-reverse sm:flex-row items-center justify-between shrink-0 gap-3">
+                <button type="button" @click="showDetailModal = false" class="btn btn-ghost bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl px-8 font-bold w-full sm:w-auto">
+                    Tutup Detail
+                </button>
                 
-                <div class="flex items-center gap-2" x-if="detailData">
-                    <button 
-                        type="button"
-                        @click="showDetailModal = false; $wire.approve(detailData.id);"
-                        class="btn btn-sm btn-success text-white rounded-xl font-bold gap-1"
-                        x-show="detailData?.status_approval !== 'Approved'"
-                    >
-                        <x-heroicon-s-check class="w-4 h-4" /> Setujui (Approve)
-                    </button>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
                     <button 
                         type="button"
                         @click="showDetailModal = false; $wire.openRejectModal(detailData.id);"
-                        class="btn btn-sm btn-error text-white rounded-xl font-bold gap-1"
+                        class="btn btn-error text-white rounded-xl px-6 shadow-sm shadow-error/20 gap-2 hover:scale-[1.03] transition-transform w-full sm:w-auto"
                         x-show="detailData?.status_approval !== 'Rejected'"
                     >
-                        <x-heroicon-s-x-mark class="w-4 h-4" /> Tolak (Reject)
+                        <x-heroicon-s-x-mark class="w-5 h-5" /> Tolak
+                    </button>
+                    <button 
+                        type="button"
+                        @click="showDetailModal = false; $wire.approve(detailData.id);"
+                        class="btn btn-success text-white rounded-xl px-6 shadow-sm shadow-success/20 gap-2 hover:scale-[1.03] transition-transform w-full sm:w-auto"
+                        x-show="detailData?.status_approval !== 'Approved'"
+                    >
+                        <x-heroicon-s-check class="w-5 h-5" /> Setujui
                     </button>
                 </div>
             </div>
