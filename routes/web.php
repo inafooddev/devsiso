@@ -213,6 +213,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/master-branches', MasterBranchIndex::class)->name('master-branches.index');
     Route::get('/master-distributors', MasterDistributorsIndex::class)->name('master-distributors.index');
     Route::get('/mapping-distributor-implementasi-eskalink', MappingDistributorImplementasiEskalinkIndex::class)->name('mapping-distributor-implementasi-eskalink.index');
+    Route::get('/monitoringbankgaransi', \App\Livewire\Others\MonitoringBankGaransi\Index::class)->name('monitoringbankgaransi.index');
 
     // ==========================================
     // MASTER DATA: PRODUCT

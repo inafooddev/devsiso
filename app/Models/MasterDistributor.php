@@ -81,6 +81,19 @@ class MasterDistributor extends Model
      */
 
     /**
+     * Get the short name of the distributor (before the first " - ").
+     */
+    public function getShortNameAttribute()
+    {
+        if (empty($this->distributor_name)) {
+            return '';
+        }
+        
+        $parts = explode(' - ', $this->distributor_name);
+        return trim($parts[0]);
+    }
+
+    /**
      * Get the region that owns the distributor.
      */
     public function region()
