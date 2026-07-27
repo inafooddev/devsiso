@@ -6,14 +6,7 @@
         $stats = $this->kpiStats;
     @endphp
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 mb-2 md:mb-3">
-        @php
-            $totalBg = $stats['aktif'] + $stats['expired'];
-            $pctAktif = $totalBg > 0 ? round(($stats['aktif'] / $totalBg) * 100, 1) : 0;
-            $pctExpired = $totalBg > 0 ? round(($stats['expired'] / $totalBg) * 100, 1) : 0;
-            $pct3Bulan = $totalBg > 0 ? round(($stats['kurang_3_bulan'] / $totalBg) * 100, 1) : 0;
-            $pct2Bulan = $totalBg > 0 ? round(($stats['kurang_2_bulan'] / $totalBg) * 100, 1) : 0;
-            $pct1Bulan = $totalBg > 0 ? round(($stats['kurang_1_bulan'] / $totalBg) * 100, 1) : 0;
-        @endphp
+
 
         <!-- Aktif -->
         <div class="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default group text-white">
@@ -28,14 +21,7 @@
                     </div>
                 </div>
                 <div>
-                    <div class="text-3xl font-black text-white drop-shadow-sm mb-2">{{ $stats['aktif'] }}</div>
-                    <div class="flex items-center justify-between text-[10px] text-white/80 font-bold mb-1.5">
-                        <span>Dari Total BG</span>
-                        <span>{{ $pctAktif }}%</span>
-                    </div>
-                    <div class="w-full bg-white/20 rounded-full h-1">
-                        <div class="bg-white h-1 rounded-full" style="width: {{ $pctAktif }}%"></div>
-                    </div>
+                    <div class="text-3xl font-black text-white drop-shadow-sm">{{ $stats['aktif'] }}</div>
                 </div>
             </div>
         </div>
@@ -53,14 +39,7 @@
                     </div>
                 </div>
                 <div>
-                    <div class="text-3xl font-black text-white drop-shadow-sm mb-2">{{ $stats['kurang_3_bulan'] }}</div>
-                    <div class="flex items-center justify-between text-[10px] text-white/80 font-bold mb-1.5">
-                        <span>Dari Total BG</span>
-                        <span>{{ $pct3Bulan }}%</span>
-                    </div>
-                    <div class="w-full bg-white/20 rounded-full h-1">
-                        <div class="bg-white h-1 rounded-full" style="width: {{ $pct3Bulan }}%"></div>
-                    </div>
+                    <div class="text-3xl font-black text-white drop-shadow-sm">{{ $stats['kurang_3_bulan'] }}</div>
                 </div>
             </div>
         </div>
@@ -78,14 +57,7 @@
                     </div>
                 </div>
                 <div>
-                    <div class="text-3xl font-black text-white drop-shadow-sm mb-2">{{ $stats['kurang_2_bulan'] }}</div>
-                    <div class="flex items-center justify-between text-[10px] text-white/80 font-bold mb-1.5">
-                        <span>Dari Total BG</span>
-                        <span>{{ $pct2Bulan }}%</span>
-                    </div>
-                    <div class="w-full bg-white/20 rounded-full h-1">
-                        <div class="bg-white h-1 rounded-full" style="width: {{ $pct2Bulan }}%"></div>
-                    </div>
+                    <div class="text-3xl font-black text-white drop-shadow-sm">{{ $stats['kurang_2_bulan'] }}</div>
                 </div>
             </div>
         </div>
@@ -103,14 +75,7 @@
                     </div>
                 </div>
                 <div>
-                    <div class="text-3xl font-black text-white drop-shadow-sm mb-2">{{ $stats['kurang_1_bulan'] }}</div>
-                    <div class="flex items-center justify-between text-[10px] text-white/80 font-bold mb-1.5">
-                        <span>Dari Total BG</span>
-                        <span>{{ $pct1Bulan }}%</span>
-                    </div>
-                    <div class="w-full bg-white/20 rounded-full h-1">
-                        <div class="bg-white h-1 rounded-full" style="width: {{ $pct1Bulan }}%"></div>
-                    </div>
+                    <div class="text-3xl font-black text-white drop-shadow-sm">{{ $stats['kurang_1_bulan'] }}</div>
                 </div>
             </div>
         </div>
@@ -128,14 +93,7 @@
                     </div>
                 </div>
                 <div>
-                    <div class="text-3xl font-black text-white drop-shadow-sm mb-2">{{ $stats['expired'] }}</div>
-                    <div class="flex items-center justify-between text-[10px] text-white/80 font-bold mb-1.5">
-                        <span>Dari Total BG</span>
-                        <span>{{ $pctExpired }}%</span>
-                    </div>
-                    <div class="w-full bg-white/20 rounded-full h-1">
-                        <div class="bg-white h-1 rounded-full" style="width: {{ $pctExpired }}%"></div>
-                    </div>
+                    <div class="text-3xl font-black text-white drop-shadow-sm">{{ $stats['expired'] }}</div>
                 </div>
             </div>
         </div>
