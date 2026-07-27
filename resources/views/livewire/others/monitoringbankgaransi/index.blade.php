@@ -108,12 +108,6 @@
                         <option value="Expired">Expired</option>
                     </select>
 
-                    <!-- Filter Perpanjangan -->
-                    <select wire:model.live="statusPerpanjanganFilter" class="select select-sm select-bordered w-36 sm:w-40 rounded-xl bg-base-200 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                        <option value="">Sts. Perpanjangan</option>
-                        <option value="Ya">Diperpanjang</option>
-                        <option value="Tidak">Tidak</option>
-                    </select>
 
                     <!-- Filter Jatuh Tempo -->
                     <select wire:model.live="masaBerlakuFilter" class="select select-sm select-bordered w-36 sm:w-40 rounded-xl bg-base-200 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">

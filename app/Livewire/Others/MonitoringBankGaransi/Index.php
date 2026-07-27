@@ -64,7 +64,6 @@ class Index extends Component
     protected $queryString = [
         'statusFilter' => ['except' => ''],
         'statusDistributorFilter' => ['except' => ''],
-        'statusPerpanjanganFilter' => ['except' => ''],
         'masaBerlakuFilter' => ['except' => ''],
         'regionFilter' => ['except' => ''],
     ];
@@ -501,13 +500,13 @@ class Index extends Component
         if ($this->masaBerlakuFilter !== '') {
             $targetDate = Carbon::now()->startOfDay();
             if ($this->masaBerlakuFilter === '3_months') {
-                $targetDate->addMonths(3);
+                $targetDate->addDays(90);
             } elseif ($this->masaBerlakuFilter === '2_months') {
-                $targetDate->addMonths(2);
+                $targetDate->addDays(60);
             } elseif ($this->masaBerlakuFilter === '1_month') {
-                $targetDate->addMonth(1);
+                $targetDate->addDays(30);
             } elseif ($this->masaBerlakuFilter === '2_weeks') {
-                $targetDate->addWeeks(2);
+                $targetDate->addDays(14);
             }
             $query->where('tanggal_jatuh_tempo', '<=', $targetDate)
                   ->whereDate('tanggal_jatuh_tempo', '>=', Carbon::today());
@@ -518,10 +517,6 @@ class Index extends Component
             $query->whereHas('distributor', function($q) use ($isActive) {
                 $q->where('is_active', $isActive);
             });
-        }
-
-        if ($this->statusPerpanjanganFilter !== '') {
-            $query->where('status_perpanjangan', $this->statusPerpanjanganFilter);
         }
 
         if ($this->regionFilter !== '') {
