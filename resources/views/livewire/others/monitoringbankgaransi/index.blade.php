@@ -194,10 +194,13 @@
                                     $badgeClass = '';
                                     
                                     if ($garansi->status == 'Expired' || $daysLeft < 0) {
+                                        $garansi->status = 'Expired'; // Auto visual update
+                                    }
+
+                                    if ($garansi->status == 'Expired' || $daysLeft <= 30) {
                                         $badgeClass = 'bg-error/20 text-error';
                                         $textColorClass = 'text-error';
-                                        $garansi->status = 'Expired'; // Auto visual update
-                                    } elseif ($daysLeft <= 30) {
+                                    } elseif ($daysLeft <= 60) {
                                         $badgeClass = 'bg-warning/20 text-warning';
                                         $textColorClass = 'text-warning';
                                     } else {
@@ -634,13 +637,17 @@
                         <tbody>
                             @forelse($this->expiringBgs as $bg)
                                 @php
-                                    $today = \Carbon\Carbon::today();
-                                    $isExpired = $bg->tanggal_jatuh_tempo < $today;
-                                    $diffDays = intval($today->diffInDays($bg->tanggal_jatuh_tempo));
+                                    $diffDays = \Carbon\Carbon::now()->startOfDay()->diffInDays($bg->tanggal_jatuh_tempo->startOfDay(), false);
+                                    $isExpired = $diffDays < 0;
                                     
-                                    $statusClass = $isExpired ? 'badge-error' : 'badge-warning';
+                                    if ($isExpired || $diffDays <= 30) {
+                                        $statusClass = 'badge-error';
+                                    } else {
+                                        $statusClass = 'badge-warning';
+                                    }
+                                    
                                     if ($isExpired) {
-                                        $statusText = 'Expired (Lewat ' . $diffDays . ' Hari)';
+                                        $statusText = 'Expired (Lewat ' . abs($diffDays) . ' Hari)';
                                     } else {
                                         $statusText = 'Sisa ' . $diffDays . ' Hari';
                                     }
