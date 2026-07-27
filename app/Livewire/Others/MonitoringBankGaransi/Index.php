@@ -142,7 +142,7 @@ class Index extends Component
             });
         }
 
-        $targetDate = Carbon::now()->startOfDay()->addMonths(3);
+        $targetDate = Carbon::now()->startOfDay()->addDays(90);
 
         return $query->where('tanggal_jatuh_tempo', '<=', $targetDate)
                      ->where('progress_status', '!=', 'Close')
@@ -180,19 +180,23 @@ class Index extends Component
             if ($g->status === 'Aktif') $stats['aktif']++;
 
             // Abaikan BG yang urusannya sudah 'Close' untuk indikator alarm
-            if ($g->progress_status !== 'Close') {
-                if ($g->status === 'Expired') $stats['expired']++;
-
-                if ($g->status === 'Aktif' && $g->tanggal_jatuh_tempo) {
-                    $days = $now->diffInDays($g->tanggal_jatuh_tempo->startOfDay(), false);
-                    
-                    if ($days >= 0 && $days <= 90) {
+            if ($g->progress_status !== 'Close' && $g->tanggal_jatuh_tempo) {
+                
+                $days = $now->diffInDays($g->tanggal_jatuh_tempo->startOfDay(), false);
+                
+                if ($days < 0) {
+                    // Otomatis deteksi Expired berdasarkan tanggal, 
+                    // meskipun user lupa mengubah status manualnya menjadi 'Expired'
+                    $stats['expired']++;
+                } else {
+                    // Belum expired
+                    if ($days <= 90) {
                         $stats['kurang_3_bulan']++;
                     }
-                    if ($days >= 0 && $days <= 60) {
+                    if ($days <= 60) {
                         $stats['kurang_2_bulan']++;
                     }
-                    if ($days >= 0 && $days <= 30) {
+                    if ($days <= 30) {
                         $stats['kurang_1_bulan']++;
                     }
                 }
