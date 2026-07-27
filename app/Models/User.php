@@ -105,6 +105,10 @@ class User extends Authenticatable
      */
     public function hasMenuAccess($routeName, $action = 'can_view')
     {
+        if ($this->hasRole('admin')) {
+            return true;
+        }
+
         if ($this->menuAccessCache === null) {
             $this->menuAccessCache = [];
             

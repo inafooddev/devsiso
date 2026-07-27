@@ -31,8 +31,16 @@ class Index extends Component
     public $isFormModalOpen = false;
     public $isDeleteModalOpen = false;
     public $isImportModalOpen = false;
+    public $showReminderModal = false;
     public $isEditing = false;
     public $garansiIdToDelete = null;
+
+    // Follow Up States
+    public $isFollowUpModalOpen = false;
+    public $selectedBgForFollowUp = null;
+    public $followUpCatatan = '';
+    public $followUpStatus = 'Belum';
+    public $followUpAttachment = null;
 
     // Form Fields
     public $garansi_id;
@@ -60,6 +68,13 @@ class Index extends Component
         'masaBerlakuFilter' => ['except' => ''],
         'regionFilter' => ['except' => ''],
     ];
+
+    public function mount()
+    {
+        if ($this->expiringBgs->count() > 0) {
+            $this->showReminderModal = true;
+        }
+    }
 
     protected function rules()
     {
@@ -113,6 +128,27 @@ class Index extends Component
             $query->whereIn('region_code', $user->region_code);
         }
         return $query->orderBy('region_name', 'asc')->get();
+    }
+
+    #[Computed]
+    public function expiringBgs()
+    {
+        $query = BankGaransi::with('distributor');
+
+        $user = auth()->user();
+        if (!$user->hasRole('admin') && !empty($user->region_code)) {
+            $query->whereHas('distributor', function($q) use ($user) {
+                $q->whereIn('region_code', $user->region_code);
+            });
+        }
+
+        $targetDate = Carbon::now()->startOfDay()->addMonths(3);
+
+        return $query->where('tanggal_jatuh_tempo', '<=', $targetDate)
+                     ->where('progress_status', '!=', 'Close')
+                     ->orderByRaw('tanggal_jatuh_tempo < CURRENT_DATE DESC')
+                     ->orderBy('tanggal_jatuh_tempo', 'asc')
+                     ->get();
     }
 
     #[Computed]
@@ -370,6 +406,59 @@ class Index extends Component
         $this->isDeleteModalOpen = false;
     }
 
+    public function openFollowUpModal($id)
+    {
+        $this->selectedBgForFollowUp = BankGaransi::with(['followUps.user', 'distributor'])->find($id);
+        if ($this->selectedBgForFollowUp) {
+            $this->followUpStatus = $this->selectedBgForFollowUp->progress_status ?? 'Belum';
+            $this->followUpCatatan = '';
+            $this->followUpAttachment = null;
+            $this->isFollowUpModalOpen = true;
+        }
+    }
+
+    public function saveFollowUp()
+    {
+        $this->validate([
+            'followUpStatus' => 'required|in:Belum,Sudah di-Follow Up,Close',
+            'followUpCatatan' => 'required|string|max:1000',
+            'followUpAttachment' => 'nullable|image|max:5120', // Max 5MB
+        ]);
+
+        if ($this->selectedBgForFollowUp) {
+            $attachmentPath = null;
+            if ($this->followUpAttachment) {
+                $attachmentPath = $this->followUpAttachment->store('follow_ups', 'public');
+            }
+
+            // Simpan riwayat
+            \App\Models\BankGaransiFollowUp::create([
+                'bank_garansi_id' => $this->selectedBgForFollowUp->id,
+                'user_id' => auth()->id(),
+                'status_progress' => $this->followUpStatus,
+                'catatan' => $this->followUpCatatan,
+                'attachment' => $attachmentPath,
+            ]);
+
+            // Update status di BG
+            $this->selectedBgForFollowUp->update([
+                'progress_status' => $this->followUpStatus
+            ]);
+
+            // Reload data
+            $this->selectedBgForFollowUp->load(['followUps.user']);
+            
+            // Reset form (kecuali status biarkan yang baru)
+            $this->followUpCatatan = '';
+            $this->followUpAttachment = null;
+
+            // Reset file input di browser (menghindari cache state)
+            $this->dispatch('reset-file-input');
+
+            session()->flash('message', 'Catatan follow up berhasil ditambahkan.');
+        }
+    }
+
     public function render()
     {
         $query = BankGaransi::with('distributor');
@@ -433,7 +522,8 @@ class Index extends Component
             });
         }
 
-        $garansis = $query->orderByRaw('tanggal_jatuh_tempo < CURRENT_DATE DESC')
+        $garansis = $query->orderByRaw("CASE WHEN progress_status = 'Close' THEN 1 ELSE 0 END ASC")
+                          ->orderByRaw('tanggal_jatuh_tempo < CURRENT_DATE DESC')
                           ->orderBy(\App\Models\MasterDistributor::select('is_active')
                                     ->whereColumn('distributor_code', 'bank_garansis.distributor_code')
                                     ->limit(1), 'desc')

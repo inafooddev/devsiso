@@ -191,7 +191,8 @@
                                 <th class="bg-base-200/50 text-[10px] uppercase tracking-wider text-base-content/70 font-extrabold w-32 cursor-pointer hover:bg-base-200 transition-colors">Masa Berlaku</th>
                                 <th class="bg-base-200/50 text-[10px] uppercase tracking-wider text-base-content/70 font-extrabold text-center w-24">Status BG</th>
                                 <th class="bg-base-200/50 text-[10px] uppercase tracking-wider text-base-content/70 font-extrabold text-center w-28">Perpanjangan</th>
-                                <th class="bg-base-200/50 text-[10px] uppercase tracking-wider text-base-content/70 font-extrabold text-center w-24 rounded-tr-xl">Aksi</th>
+                                <th class="bg-base-200/50 text-[10px] uppercase tracking-wider text-base-content/70 font-extrabold text-center w-24">Progres</th>
+                                <th class="bg-base-200/50 text-[10px] uppercase tracking-wider text-base-content/70 font-extrabold text-center w-32 rounded-tr-xl">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="text-[11px]">
@@ -289,8 +290,25 @@
                                         @endif
                                     </td>
 
+                                    {{-- Status Progres --}}
+                                    <td class="text-center">
+                                        @if($garansi->progress_status === 'Sudah di-Follow Up')
+                                            <span class="badge badge-primary badge-sm text-xs px-2 py-3 rounded-md font-bold border-0">{{ $garansi->progress_status }}</span>
+                                        @elseif($garansi->progress_status === 'Close')
+                                            <span class="badge badge-neutral badge-sm text-xs px-2 py-3 rounded-md font-bold border-0">{{ $garansi->progress_status }}</span>
+                                        @else
+                                            <span class="badge badge-error badge-sm text-xs px-2 py-3 rounded-md font-bold border-0 text-error bg-error/20">{{ $garansi->progress_status ?? 'Belum' }}</span>
+                                        @endif
+                                    </td>
+
                                     <th class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
                                         <div class="flex items-center justify-center gap-1">
+                                            @if($daysLeft <= 90)
+                                                <button wire:click="openFollowUpModal({{ $garansi->id }})" 
+                                                        class="btn btn-ghost btn-sm btn-square rounded-xl text-primary hover:bg-primary/10 transition-all duration-200" title="Follow Up">
+                                                    <x-heroicon-s-chat-bubble-left-ellipsis class="w-4 h-4" />
+                                                </button>
+                                            @endif
                                             {{-- @canEdit('monitoringbankgaransi.index') --}}
                                             <button wire:click="openEditModal({{ $garansi->id }})" 
                                                     class="btn btn-ghost btn-sm btn-square rounded-xl text-warning hover:bg-warning/10 transition-all duration-200" title="Edit">
@@ -593,4 +611,193 @@
             </form>
         </div>
     </div>
+
+    <!-- Reminder Modal -->
+    <div class="modal {{ $showReminderModal ? 'modal-open' : '' }} backdrop-blur-sm bg-base-900/40 transition-all duration-300 z-50">
+        <div class="modal-box rounded-3xl shadow-2xl p-0 overflow-hidden max-w-5xl w-full mx-4">
+            <div class="bg-gradient-to-br from-warning to-warning/80 p-6 flex flex-col items-center justify-center relative">
+                <button wire:click="$set('showReminderModal', false)" class="btn btn-circle btn-sm btn-ghost absolute top-3 right-3 text-warning-content/70 hover:bg-black/10">
+                    <x-heroicon-s-x-mark class="w-4 h-4" />
+                </button>
+                <div class="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mb-3">
+                    <x-heroicon-o-bell-alert class="w-8 h-8 text-warning-content" />
+                </div>
+                <h3 class="font-bold text-xl text-warning-content">Perhatian! Bank Garansi Perlu Follow-up</h3>
+                <p class="text-warning-content/80 text-sm mt-1 text-center">Terdapat {{ count($this->expiringBgs) }} Bank Garansi yang sudah Expired atau Mendekati Jatuh Tempo (< 3 Bulan).</p>
+            </div>
+            
+            <div class="p-6">
+                <div class="overflow-x-auto overflow-y-auto max-h-[50vh] rounded-xl border border-base-200">
+                    <table class="table table-sm table-pin-rows w-full text-xs">
+                        <thead>
+                            <tr class="bg-base-200/50">
+                                <th>Distributor</th>
+                                <th>Bank</th>
+                                <th>Nilai</th>
+                                <th>Jatuh Tempo</th>
+                                <th>Status</th>
+                                <th>Progres</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($this->expiringBgs as $bg)
+                                @php
+                                    $today = \Carbon\Carbon::today();
+                                    $isExpired = $bg->tanggal_jatuh_tempo < $today;
+                                    $diffDays = intval($today->diffInDays($bg->tanggal_jatuh_tempo));
+                                    
+                                    $statusClass = $isExpired ? 'badge-error' : 'badge-warning';
+                                    if ($isExpired) {
+                                        $statusText = 'Expired (Lewat ' . $diffDays . ' Hari)';
+                                    } else {
+                                        $statusText = 'Sisa ' . $diffDays . ' Hari';
+                                    }
+                                @endphp
+                                <tr class="hover">
+                                    <td class="font-semibold">{{ $bg->distributor ? $bg->distributor->short_name : '-' }}</td>
+                                    <td>{{ $bg->nama_bank }}</td>
+                                    <td>Rp {{ number_format($bg->nilai_jaminan, 0, ',', '.') }}</td>
+                                    <td>{{ $bg->tanggal_jatuh_tempo->format('d/m/Y') }}</td>
+                                    <td><div class="badge badge-sm {{ $statusClass }} font-bold">{{ $statusText }}</div></td>
+                                    <td>
+                                        @if($bg->progress_status === 'Sudah di-Follow Up')
+                                            <span class="badge badge-primary badge-sm text-[10px] font-bold border-0">{{ $bg->progress_status }}</span>
+                                        @else
+                                            <span class="badge badge-error badge-sm text-[10px] font-bold border-0 text-error bg-error/20">{{ $bg->progress_status ?? 'Belum' }}</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-base-content/50">Tidak ada data</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-6 pt-5 border-t border-base-300 flex justify-end gap-3">
+                    <button type="button" wire:click="$set('showReminderModal', false)" class="btn btn-outline rounded-xl normal-case">Tutup Peringatan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Follow Up Modal -->
+    <div class="modal {{ $isFollowUpModalOpen ? 'modal-open' : '' }} backdrop-blur-sm bg-base-900/40 transition-all duration-300 z-50">
+        <div class="modal-box rounded-3xl shadow-2xl p-0 overflow-hidden max-w-4xl w-full mx-4 flex flex-col h-[80vh]">
+            <div class="bg-base-200/50 p-4 border-b border-base-300 flex justify-between items-center shrink-0">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <x-heroicon-s-chat-bubble-left-ellipsis class="w-5 h-5 text-primary" />
+                    Progres Follow Up: {{ $selectedBgForFollowUp ? ($selectedBgForFollowUp->distributor ? $selectedBgForFollowUp->distributor->short_name : '-') : '' }}
+                </h3>
+                <button wire:click="$set('isFollowUpModalOpen', false)" class="btn btn-circle btn-sm btn-ghost hover:bg-base-300">
+                    <x-heroicon-s-x-mark class="w-4 h-4" />
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex-1 bg-base-100 flex flex-col">
+                <!-- Timeline History -->
+                <div class="flex-1 space-y-4 mb-6">
+                    @if($selectedBgForFollowUp && $selectedBgForFollowUp->followUps->count() > 0)
+                        @foreach($selectedBgForFollowUp->followUps as $fu)
+                            <div class="chat {{ $fu->user_id === auth()->id() ? 'chat-end' : 'chat-start' }}">
+                                <div class="chat-header text-xs opacity-70 mb-1">
+                                    {{ $fu->user->name ?? 'User' }}
+                                    <time class="ml-1 text-[10px]">{{ $fu->created_at->format('d M Y H:i') }}</time>
+                                </div>
+                                <div class="chat-bubble {{ $fu->user_id === auth()->id() ? 'chat-bubble-primary text-primary-content' : 'chat-bubble-base-200' }} text-sm flex flex-col gap-2 overflow-hidden">
+                                    @if($fu->attachment)
+                                        <button type="button" onclick="document.getElementById('image_viewer_img').src = '{{ Storage::url($fu->attachment) }}'; document.getElementById('image_viewer_modal').showModal();" class="border-none bg-transparent p-0 m-0 text-left">
+                                            <img src="{{ Storage::url($fu->attachment) }}" class="max-w-[200px] md:max-w-xs rounded-lg max-h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity border border-base-100/20">
+                                        </button>
+                                    @endif
+                                    <span>{{ $fu->catatan }}</span>
+                                </div>
+                                <div class="chat-footer opacity-50 text-[10px] mt-1 font-semibold">
+                                    Status di-set: <span class="uppercase">{{ $fu->status_progress }}</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    @else
+                        <div class="h-full flex flex-col items-center justify-center text-base-content/40 space-y-3">
+                            <x-heroicon-o-chat-bubble-left-ellipsis class="w-12 h-12 opacity-20" />
+                            <p>Belum ada riwayat follow up.</p>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Input Form -->
+                <div class="mt-auto bg-base-200/30 p-4 rounded-2xl border border-base-300">
+                    <form wire:submit.prevent="saveFollowUp">
+                        <div class="flex flex-col gap-3">
+                            <div class="form-control w-full max-w-xs">
+                                <label class="label py-1"><span class="label-text text-xs font-semibold">Ubah Status Progres</span></label>
+                                <select wire:model.defer="followUpStatus" class="select select-bordered select-sm w-full rounded-lg bg-base-100">
+                                    <option value="Belum">Belum</option>
+                                    <option value="Sudah di-Follow Up">Sudah di-Follow Up</option>
+                                    <option value="Close">Close</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-control w-full" x-data="{
+                                handlePaste(e) {
+                                    if (e.clipboardData.files.length > 0) {
+                                        const file = e.clipboardData.files[0];
+                                        if (file.type.startsWith('image/')) {
+                                            $wire.upload('followUpAttachment', file, (uploadedFilename) => {
+                                                // Sukses
+                                            }, () => {
+                                                alert('Gagal mengunggah gambar');
+                                            });
+                                        }
+                                    }
+                                }
+                            }" @reset-file-input.window="$refs.fileInput.value = ''">
+                                <label class="label py-1">
+                                    <span class="label-text text-xs font-semibold">Catatan (Paste gambar di sini)</span>
+                                    <span class="label-text-alt flex items-center gap-2">
+                                        <span wire:loading wire:target="followUpAttachment" class="text-primary loading loading-spinner loading-xs"></span>
+                                        <input type="file" x-ref="fileInput" wire:model="followUpAttachment" accept="image/*" class="file-input file-input-bordered file-input-xs w-full max-w-[150px]" />
+                                    </span>
+                                </label>
+                                <textarea wire:model.defer="followUpCatatan" x-on:paste="handlePaste" class="textarea textarea-bordered h-20 rounded-xl bg-base-100 placeholder-base-content/30" placeholder="Tulis catatan atau hasil komunikasi... bisa paste (Ctrl+V) gambar bukti chat di sini."></textarea>
+                                @error('followUpCatatan') <span class="text-error text-xs mt-1">{{ $message }}</span> @enderror
+                                @error('followUpAttachment') <span class="text-error text-xs mt-1">{{ $message }}</span> @enderror
+
+                                @if($followUpAttachment)
+                                    <div class="mt-3 relative inline-block self-start">
+                                        <img src="{{ $followUpAttachment->temporaryUrl() }}" class="h-24 w-auto rounded-lg border border-base-300 shadow-sm">
+                                        <button type="button" wire:click="$set('followUpAttachment', null)" class="btn btn-circle btn-xs btn-error absolute -top-2 -right-2 text-white">
+                                            <x-heroicon-s-x-mark class="w-3 h-3"/>
+                                        </button>
+                                    </div>
+                                @endif
+                            </div>
+                            
+                            <div class="flex justify-end mt-2">
+                                <button type="submit" class="btn btn-primary btn-sm rounded-xl px-6">
+                                    <x-heroicon-s-paper-airplane class="w-4 h-4 mr-1" />
+                                    Kirim & Simpan
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Viewer Modal -->
+    <dialog id="image_viewer_modal" class="modal modal-bottom sm:modal-middle z-[60]">
+        <div class="modal-box p-1 max-w-5xl bg-transparent shadow-none overflow-hidden flex flex-col items-center">
+            <form method="dialog" class="w-full flex justify-end mb-2">
+                <button class="btn btn-circle btn-sm btn-neutral text-white"><x-heroicon-s-x-mark class="w-4 h-4" /></button>
+            </form>
+            <img id="image_viewer_img" src="" class="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl bg-base-100">
+        </div>
+        <form method="dialog" class="modal-backdrop bg-base-900/80">
+            <button>close</button>
+        </form>
+    </dialog>
 </div>

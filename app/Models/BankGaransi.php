@@ -20,6 +20,7 @@ class BankGaransi extends Model
         'status_perpanjangan',
         'keterangan',
         'dokumen_lampiran',
+        'progress_status',
     ];
 
     protected $casts = [
@@ -40,5 +41,10 @@ class BankGaransi extends Model
     public function distributor()
     {
         return $this->belongsTo(MasterDistributor::class, 'distributor_code', 'distributor_code');
+    }
+
+    public function followUps()
+    {
+        return $this->hasMany(BankGaransiFollowUp::class, 'bank_garansi_id')->orderBy('created_at', 'desc');
     }
 }
