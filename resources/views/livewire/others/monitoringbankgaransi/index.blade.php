@@ -6,60 +6,138 @@
         $stats = $this->kpiStats;
     @endphp
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 mb-2 md:mb-3">
+        @php
+            $totalBg = $stats['aktif'] + $stats['expired'];
+            $pctAktif = $totalBg > 0 ? round(($stats['aktif'] / $totalBg) * 100, 1) : 0;
+            $pctExpired = $totalBg > 0 ? round(($stats['expired'] / $totalBg) * 100, 1) : 0;
+            $pct3Bulan = $totalBg > 0 ? round(($stats['kurang_3_bulan'] / $totalBg) * 100, 1) : 0;
+            $pct2Bulan = $totalBg > 0 ? round(($stats['kurang_2_bulan'] / $totalBg) * 100, 1) : 0;
+            $pct1Bulan = $totalBg > 0 ? round(($stats['kurang_1_bulan'] / $totalBg) * 100, 1) : 0;
+        @endphp
+
         <!-- Aktif -->
-        <div class="bg-base-100 rounded-2xl p-4 border border-base-300 shadow-sm flex flex-col justify-between hover:shadow-md transition-all cursor-default group">
-            <div class="flex items-center gap-2 mb-2">
-                <div class="w-6 h-6 rounded-lg bg-success/10 text-success flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <x-heroicon-s-check-circle class="w-4 h-4" />
+        <div class="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default group text-white">
+            <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/10 blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+            <div class="absolute -right-4 -bottom-4 w-20 h-20 rounded-full bg-white/10 group-hover:scale-125 transition-transform duration-500"></div>
+            
+            <div class="relative z-10 flex flex-col justify-between h-full">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-white/90">Aktif</span>
+                    <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center group-hover:rotate-12 transition-transform">
+                        <x-heroicon-s-check-circle class="w-4 h-4 text-white" />
+                    </div>
                 </div>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">Aktif</span>
-            </div>
-            <div class="text-2xl font-black text-base-content">{{ $stats['aktif'] }}</div>
-        </div>
-
-        <!-- Expired -->
-        <div class="bg-base-100 rounded-2xl p-4 border border-base-300 shadow-sm flex flex-col justify-between hover:shadow-md transition-all cursor-default group">
-            <div class="flex items-center gap-2 mb-2">
-                <div class="w-6 h-6 rounded-lg bg-error/10 text-error flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <x-heroicon-s-x-circle class="w-4 h-4" />
+                <div>
+                    <div class="text-3xl font-black text-white drop-shadow-sm mb-2">{{ $stats['aktif'] }}</div>
+                    <div class="flex items-center justify-between text-[10px] text-white/80 font-bold mb-1.5">
+                        <span>Dari Total BG</span>
+                        <span>{{ $pctAktif }}%</span>
+                    </div>
+                    <div class="w-full bg-white/20 rounded-full h-1">
+                        <div class="bg-white h-1 rounded-full" style="width: {{ $pctAktif }}%"></div>
+                    </div>
                 </div>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">Expired</span>
             </div>
-            <div class="text-2xl font-black text-base-content">{{ $stats['expired'] }}</div>
         </div>
-
 
         <!-- < 3 Bulan -->
-        <div class="bg-base-100 rounded-2xl p-4 border border-base-300 shadow-sm flex flex-col justify-between hover:shadow-md transition-all cursor-default group">
-            <div class="flex items-center gap-2 mb-2">
-                <div class="w-6 h-6 rounded-lg bg-warning/10 text-warning flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <x-heroicon-s-clock class="w-4 h-4" />
+        <div class="relative overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default group text-white">
+            <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/10 blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+            <div class="absolute -right-4 -bottom-4 w-20 h-20 rounded-full bg-white/10 group-hover:scale-125 transition-transform duration-500"></div>
+            
+            <div class="relative z-10 flex flex-col justify-between h-full">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-white/90">&lt; 3 Bulan</span>
+                    <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center group-hover:rotate-12 transition-transform">
+                        <x-heroicon-s-clock class="w-4 h-4 text-white" />
+                    </div>
                 </div>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">&lt; 3 Bulan</span>
+                <div>
+                    <div class="text-3xl font-black text-white drop-shadow-sm mb-2">{{ $stats['kurang_3_bulan'] }}</div>
+                    <div class="flex items-center justify-between text-[10px] text-white/80 font-bold mb-1.5">
+                        <span>Dari Total BG</span>
+                        <span>{{ $pct3Bulan }}%</span>
+                    </div>
+                    <div class="w-full bg-white/20 rounded-full h-1">
+                        <div class="bg-white h-1 rounded-full" style="width: {{ $pct3Bulan }}%"></div>
+                    </div>
+                </div>
             </div>
-            <div class="text-2xl font-black text-base-content">{{ $stats['kurang_3_bulan'] }}</div>
         </div>
 
         <!-- < 2 Bulan -->
-        <div class="bg-base-100 rounded-2xl p-4 border border-base-300 shadow-sm flex flex-col justify-between hover:shadow-md transition-all cursor-default group">
-            <div class="flex items-center gap-2 mb-2">
-                <div class="w-6 h-6 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <x-heroicon-s-exclamation-triangle class="w-4 h-4" />
+        <div class="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default group text-white">
+            <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/10 blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+            <div class="absolute -right-4 -bottom-4 w-20 h-20 rounded-full bg-white/10 group-hover:scale-125 transition-transform duration-500"></div>
+            
+            <div class="relative z-10 flex flex-col justify-between h-full">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-white/90">&lt; 2 Bulan</span>
+                    <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center group-hover:rotate-12 transition-transform">
+                        <x-heroicon-s-exclamation-triangle class="w-4 h-4 text-white" />
+                    </div>
                 </div>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">&lt; 2 Bulan</span>
+                <div>
+                    <div class="text-3xl font-black text-white drop-shadow-sm mb-2">{{ $stats['kurang_2_bulan'] }}</div>
+                    <div class="flex items-center justify-between text-[10px] text-white/80 font-bold mb-1.5">
+                        <span>Dari Total BG</span>
+                        <span>{{ $pct2Bulan }}%</span>
+                    </div>
+                    <div class="w-full bg-white/20 rounded-full h-1">
+                        <div class="bg-white h-1 rounded-full" style="width: {{ $pct2Bulan }}%"></div>
+                    </div>
+                </div>
             </div>
-            <div class="text-2xl font-black text-base-content">{{ $stats['kurang_2_bulan'] }}</div>
         </div>
 
         <!-- < 1 Bulan -->
-        <div class="bg-base-100 rounded-2xl p-4 border border-base-300 shadow-sm flex flex-col justify-between hover:shadow-md transition-all cursor-default group">
-            <div class="flex items-center gap-2 mb-2">
-                <div class="w-6 h-6 rounded-lg bg-error/20 text-error flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <x-heroicon-s-bell-alert class="w-4 h-4" />
+        <div class="relative overflow-hidden bg-gradient-to-br from-rose-500 to-red-600 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default group text-white">
+            <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/10 blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+            <div class="absolute -right-4 -bottom-4 w-20 h-20 rounded-full bg-white/10 group-hover:scale-125 transition-transform duration-500"></div>
+            
+            <div class="relative z-10 flex flex-col justify-between h-full">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-white/90">&lt; 1 Bulan</span>
+                    <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center group-hover:rotate-12 transition-transform">
+                        <x-heroicon-s-bell-alert class="w-4 h-4 text-white" />
+                    </div>
                 </div>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">&lt; 1 Bulan</span>
+                <div>
+                    <div class="text-3xl font-black text-white drop-shadow-sm mb-2">{{ $stats['kurang_1_bulan'] }}</div>
+                    <div class="flex items-center justify-between text-[10px] text-white/80 font-bold mb-1.5">
+                        <span>Dari Total BG</span>
+                        <span>{{ $pct1Bulan }}%</span>
+                    </div>
+                    <div class="w-full bg-white/20 rounded-full h-1">
+                        <div class="bg-white h-1 rounded-full" style="width: {{ $pct1Bulan }}%"></div>
+                    </div>
+                </div>
             </div>
-            <div class="text-2xl font-black text-base-content">{{ $stats['kurang_1_bulan'] }}</div>
+        </div>
+
+        <!-- Expired -->
+        <div class="relative overflow-hidden bg-gradient-to-br from-slate-700 to-slate-900 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default group text-white">
+            <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/10 blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+            <div class="absolute -right-4 -bottom-4 w-20 h-20 rounded-full bg-white/10 group-hover:scale-125 transition-transform duration-500"></div>
+            
+            <div class="relative z-10 flex flex-col justify-between h-full">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-white/90">Expired</span>
+                    <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center group-hover:rotate-12 transition-transform">
+                        <x-heroicon-s-x-circle class="w-4 h-4 text-white" />
+                    </div>
+                </div>
+                <div>
+                    <div class="text-3xl font-black text-white drop-shadow-sm mb-2">{{ $stats['expired'] }}</div>
+                    <div class="flex items-center justify-between text-[10px] text-white/80 font-bold mb-1.5">
+                        <span>Dari Total BG</span>
+                        <span>{{ $pctExpired }}%</span>
+                    </div>
+                    <div class="w-full bg-white/20 rounded-full h-1">
+                        <div class="bg-white h-1 rounded-full" style="width: {{ $pctExpired }}%"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
