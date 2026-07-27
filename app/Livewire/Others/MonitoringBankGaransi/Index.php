@@ -176,21 +176,25 @@ class Index extends Component
         ];
 
         foreach ($garansis as $g) {
+            // Hitung total fisik BG yang masih aktif
             if ($g->status === 'Aktif') $stats['aktif']++;
-            if ($g->status === 'Expired') $stats['expired']++;
-            if ($g->status_perpanjangan === 'Ya') $stats['diperpanjang']++;
 
-            if ($g->status === 'Aktif' && $g->tanggal_jatuh_tempo) {
-                $days = $now->diffInDays($g->tanggal_jatuh_tempo->startOfDay(), false);
-                
-                if ($days >= 0 && $days <= 90) {
-                    $stats['kurang_3_bulan']++;
-                }
-                if ($days >= 0 && $days <= 60) {
-                    $stats['kurang_2_bulan']++;
-                }
-                if ($days >= 0 && $days <= 30) {
-                    $stats['kurang_1_bulan']++;
+            // Abaikan BG yang urusannya sudah 'Close' untuk indikator alarm
+            if ($g->progress_status !== 'Close') {
+                if ($g->status === 'Expired') $stats['expired']++;
+
+                if ($g->status === 'Aktif' && $g->tanggal_jatuh_tempo) {
+                    $days = $now->diffInDays($g->tanggal_jatuh_tempo->startOfDay(), false);
+                    
+                    if ($days >= 0 && $days <= 90) {
+                        $stats['kurang_3_bulan']++;
+                    }
+                    if ($days >= 0 && $days <= 60) {
+                        $stats['kurang_2_bulan']++;
+                    }
+                    if ($days >= 0 && $days <= 30) {
+                        $stats['kurang_1_bulan']++;
+                    }
                 }
             }
         }
