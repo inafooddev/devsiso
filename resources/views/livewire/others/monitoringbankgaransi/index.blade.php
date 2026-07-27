@@ -125,6 +125,14 @@
                         <option value="Inaktif">Inaktif</option>
                     </select>
 
+                    <!-- Filter Progres -->
+                    <select wire:model.live="progressFilter" class="select select-sm select-bordered w-32 sm:w-36 rounded-xl bg-base-200 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
+                        <option value="">Semua Progres</option>
+                        <option value="Belum">Belum</option>
+                        <option value="Sudah di-Follow Up">Sdh Follow Up</option>
+                        <option value="Close">Close</option>
+                    </select>
+
                     <!-- Filter Region -->
                     <select wire:model.live="regionFilter" class="select select-sm select-bordered w-32 sm:w-36 rounded-xl bg-base-200 border-base-300 focus:ring-2 focus:ring-primary/50 transition-all duration-300">
                         <option value="">Semua Region</option>

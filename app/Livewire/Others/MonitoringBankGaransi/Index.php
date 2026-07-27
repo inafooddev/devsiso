@@ -23,9 +23,10 @@ class Index extends Component
     public $search = '';
     public $statusFilter = '';
     public $masaBerlakuFilter = '';
-    public $statusDistributorFilter = '';
+    public $statusDistributorFilter = 'Aktif';
     public $statusPerpanjanganFilter = '';
     public $regionFilter = '';
+    public $progressFilter = '';
 
     // Modal & Form States
     public $isFormModalOpen = false;
@@ -66,6 +67,7 @@ class Index extends Component
         'statusDistributorFilter' => ['except' => ''],
         'masaBerlakuFilter' => ['except' => ''],
         'regionFilter' => ['except' => ''],
+        'progressFilter' => ['except' => ''],
     ];
 
     public function mount()
@@ -517,6 +519,17 @@ class Index extends Component
             $query->whereHas('distributor', function($q) use ($isActive) {
                 $q->where('is_active', $isActive);
             });
+        }
+
+        if ($this->progressFilter !== '') {
+            if ($this->progressFilter === 'Belum') {
+                $query->where(function($q) {
+                    $q->whereNull('progress_status')
+                      ->orWhere('progress_status', 'Belum');
+                });
+            } else {
+                $query->where('progress_status', $this->progressFilter);
+            }
         }
 
         if ($this->regionFilter !== '') {
