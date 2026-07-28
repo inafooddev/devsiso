@@ -70,21 +70,27 @@ class IndexController extends Controller
         }
 
         // ==== APLIKASI HAK AKSES (FILTERING) ====
+        $userAreaCodes = !empty($user->area_code) ? array_filter((array) $user->area_code) : [];
+        if (is_string($user->region_code)) {
+            $userRegionCodes = json_decode($user->region_code, true) ?? [];
+        } else {
+            $userRegionCodes = (array) ($user->region_code ?? []);
+        }
+        $userRegionCodes = array_filter($userRegionCodes);
+
         if ($user->supervisor_code) {
             // Level SPV / Sales
             $queryToko->where(function($q) use ($user) {
                 $q->where('t.team_elite_code', $user->supervisor_code)
                   ->orWhere('md.supervisor_code', $user->supervisor_code);
             });
-        } elseif ($user->area_code) {
+        } elseif (!empty($userAreaCodes)) {
             // Level Area Manager
-            $queryToko->where('md.area_code', $user->area_code);
-        } elseif ($user->region_code) {
+            $queryToko->whereIn('md.area_code', $userAreaCodes);
+        } elseif (!empty($userRegionCodes)) {
             // Level Region Manager
-            $regions = is_string($user->region_code) ? json_decode($user->region_code, true) : $user->region_code;
-            $regions = $regions ?? [];
-            if (!in_array('HOINA', $regions)) {
-                $queryToko->whereIn('md.region_code', $regions);
+            if (!in_array('HOINA', $userRegionCodes)) {
+                $queryToko->whereIn('md.region_code', $userRegionCodes);
             }
         }
 
@@ -167,13 +173,11 @@ class IndexController extends Controller
                 $q->where('ptt.sales_code', $user->supervisor_code)
                   ->orWhere('md.supervisor_code', $user->supervisor_code);
             });
-        } elseif ($user->area_code) {
-            $queryRiwayat->where('md.area_code', $user->area_code);
-        } elseif ($user->region_code) {
-            $regions = is_string($user->region_code) ? json_decode($user->region_code, true) : $user->region_code;
-            $regions = $regions ?? [];
-            if (!in_array('HOINA', $regions)) {
-                $queryRiwayat->whereIn('md.region_code', $regions);
+        } elseif (!empty($userAreaCodes)) {
+            $queryRiwayat->whereIn('md.area_code', $userAreaCodes);
+        } elseif (!empty($userRegionCodes)) {
+            if (!in_array('HOINA', $userRegionCodes)) {
+                $queryRiwayat->whereIn('md.region_code', $userRegionCodes);
             }
         }
 
@@ -284,13 +288,11 @@ class IndexController extends Controller
                 $q->where('t.team_elite_code', $user->supervisor_code)
                   ->orWhere('md.supervisor_code', $user->supervisor_code);
             });
-        } elseif ($user->area_code) {
-            $query->where('md.area_code', $user->area_code);
-        } elseif ($user->region_code) {
-            $regions = is_string($user->region_code) ? json_decode($user->region_code, true) : $user->region_code;
-            $regions = $regions ?? [];
-            if (!in_array('HOINA', $regions)) {
-                $query->whereIn('md.region_code', $regions);
+        } elseif (!empty($userAreaCodes)) {
+            $query->whereIn('md.area_code', $userAreaCodes);
+        } elseif (!empty($userRegionCodes)) {
+            if (!in_array('HOINA', $userRegionCodes)) {
+                $query->whereIn('md.region_code', $userRegionCodes);
             }
         }
 

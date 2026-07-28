@@ -68,6 +68,22 @@ class IndexController extends Controller
 
 
 
+        // Subquery agregasi tunggal untuk zv_so_per_toko_2026 (menggabungkan achievement, statistik transaksi, dan bulanan)
+        $zvCombined = DB::table('zv_so_per_toko_2026')
+            ->select(
+                'kd_dist', 
+                'uniq_kd', 
+                DB::raw('EXTRACT(QUARTER FROM bulan) as kuartal'),
+                DB::raw('SUM(neto) as total_achievement'),
+                DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 1 THEN neto ELSE 0 END) as month_1_value'),
+                DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 2 THEN neto ELSE 0 END) as month_2_value'),
+                DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 0 THEN neto ELSE 0 END) as month_3_value'),
+                DB::raw('MAX(neto) as max_transaction'),
+                DB::raw('AVG(neto) as avg_transaction'),
+                DB::raw('SUM(neto) as total_transaction')
+            )
+            ->groupBy('kd_dist', 'uniq_kd', DB::raw('EXTRACT(QUARTER FROM bulan)'));
+
         // 3. Data Plan Kunjungan (jks_team_elite)
         $queryPlan = DB::table('jks_team_elite as j')
             ->leftJoin('list_toko_pareto_team_elite as l', function($join) {
@@ -75,6 +91,7 @@ class IndexController extends Controller
                      ->on('l.customer_code_prc', '=', 'j.custno');
             })
             ->leftJoin('master_distributors as md', 'md.distributor_code', '=', 'j.distributor_code')
+            ->leftJoin('team_elite_code_mappings as te', 'te.siso_code', '=', 'md.supervisor_code')
             ->leftJoin('reward_outlet as r', 'r.customer_code', '=', 'l.uniq_kd')
             ->leftJoin('surat_kesepakatan_bersama_rwo as skb', function($join) use ($currentQuarter) {
                 $join->on('skb.customer_code', '=', 'l.uniq_kd')
@@ -87,17 +104,7 @@ class IndexController extends Controller
                      ->on('lp.kuartal', '=', DB::raw($currentQuarter));
             })
             ->leftJoinSub(
-                DB::table('zv_so_per_toko_2026')
-                    ->select(
-                        'kd_dist', 
-                        'uniq_kd', 
-                        DB::raw('EXTRACT(QUARTER FROM bulan) as kuartal'),
-                        DB::raw('SUM(neto) as total_achievement'),
-                        DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 1 THEN neto ELSE 0 END) as month_1_value'),
-                        DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 2 THEN neto ELSE 0 END) as month_2_value'),
-                        DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 0 THEN neto ELSE 0 END) as month_3_value')
-                    )
-                    ->groupBy('kd_dist', 'uniq_kd', DB::raw('EXTRACT(QUARTER FROM bulan)')),
+                $zvCombined,
                 'zv',
                 function($join) use ($currentQuarter) {
                     $join->on('zv.kd_dist', '=', 'j.distributor_code')
@@ -105,36 +112,7 @@ class IndexController extends Controller
                          ->on('zv.kuartal', '=', DB::raw($currentQuarter));
                 }
             )
-            ->leftJoinSub(
-                DB::table('zv_so_per_toko_2026')
-                    ->select(
-                        'kd_dist', 
-                        'uniq_kd',
-                        DB::raw('MAX(neto) as max_transaction'),
-                        DB::raw('AVG(neto) as avg_transaction'),
-                        DB::raw('SUM(neto) as total_transaction')
-                    )
-                    ->groupBy('kd_dist', 'uniq_kd'),
-                'zv_stats',
-                function($join) {
-                    $join->on('zv_stats.kd_dist', '=', 'j.distributor_code')
-                         ->on('zv_stats.uniq_kd', '=', 'l.uniq_kd');
-                }
-            )
-            ->leftJoinSub(
-                DB::table('zv_so_per_toko_2026')
-                    ->selectRaw('DISTINCT ON (kd_dist, uniq_kd) kd_dist, uniq_kd, neto as last_transaction_value, bulan as last_transaction_date')
-                    ->orderBy('kd_dist')
-                    ->orderBy('uniq_kd')
-                    ->orderBy('bulan', 'desc'),
-                'zv_last',
-                function($join) {
-                    $join->on('zv_last.kd_dist', '=', 'j.distributor_code')
-                         ->on('zv_last.uniq_kd', '=', 'l.uniq_kd');
-                }
-            )
             ->where('l.pilar', '1. RWO')
-            ->whereRaw('UPPER(j.kode_team) = ?', [strtoupper($user->userid)])
             ->select(
                 'j.tanggal',
                 'j.distributor_code',
@@ -167,11 +145,9 @@ class IndexController extends Controller
                 'zv.month_1_value',
                 'zv.month_2_value',
                 'zv.month_3_value',
-                'zv_stats.max_transaction',
-                'zv_stats.avg_transaction',
-                'zv_stats.total_transaction',
-                'zv_last.last_transaction_value',
-                'zv_last.last_transaction_date',
+                'zv.max_transaction',
+                'zv.avg_transaction',
+                'zv.total_transaction',
                 DB::raw("$currentQuarter as kuartal")
             );
 
@@ -187,50 +163,12 @@ class IndexController extends Controller
             })
             ->leftJoin('list_toko_pareto_team_elite as lt', 'lt.uniq_kd', '=', 'l.customer_code')
             ->leftJoinSub(
-                DB::table('zv_so_per_toko_2026')
-                    ->select(
-                        'kd_dist', 
-                        'uniq_kd', 
-                        DB::raw('EXTRACT(QUARTER FROM bulan) as kuartal'),
-                        DB::raw('SUM(neto) as total_achievement'),
-                        DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 1 THEN neto ELSE 0 END) as month_1_value'),
-                        DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 2 THEN neto ELSE 0 END) as month_2_value'),
-                        DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 0 THEN neto ELSE 0 END) as month_3_value')
-                    )
-                    ->groupBy('kd_dist', 'uniq_kd', DB::raw('EXTRACT(QUARTER FROM bulan)')),
+                $zvCombined,
                 'zv',
                 function($join) {
                     $join->on('zv.kd_dist', '=', 'l.distributor_code')
                          ->on('zv.uniq_kd', '=', 'l.customer_code')
                          ->on('zv.kuartal', '=', 'l.kuartal');
-                }
-            )
-            ->leftJoinSub(
-                DB::table('zv_so_per_toko_2026')
-                    ->select(
-                        'kd_dist', 
-                        'uniq_kd',
-                        DB::raw('MAX(neto) as max_transaction'),
-                        DB::raw('AVG(neto) as avg_transaction'),
-                        DB::raw('SUM(neto) as total_transaction')
-                    )
-                    ->groupBy('kd_dist', 'uniq_kd'),
-                'zv_stats',
-                function($join) {
-                    $join->on('zv_stats.kd_dist', '=', 'l.distributor_code')
-                         ->on('zv_stats.uniq_kd', '=', 'l.customer_code');
-                }
-            )
-            ->leftJoinSub(
-                DB::table('zv_so_per_toko_2026')
-                    ->selectRaw('DISTINCT ON (kd_dist, uniq_kd) kd_dist, uniq_kd, neto as last_transaction_value, bulan as last_transaction_date')
-                    ->orderBy('kd_dist')
-                    ->orderBy('uniq_kd')
-                    ->orderBy('bulan', 'desc'),
-                'zv_last',
-                function($join) {
-                    $join->on('zv_last.kd_dist', '=', 'l.distributor_code')
-                         ->on('zv_last.uniq_kd', '=', 'l.customer_code');
                 }
             )
             ->select(
@@ -261,17 +199,23 @@ class IndexController extends Controller
                 'zv.month_1_value',
                 'zv.month_2_value',
                 'zv.month_3_value',
-                'zv_stats.max_transaction',
-                'zv_stats.avg_transaction',
-                'zv_stats.total_transaction',
-                'zv_last.last_transaction_value',
-                'zv_last.last_transaction_date'
+                'zv.max_transaction',
+                'zv.avg_transaction',
+                'zv.total_transaction'
             )
             ->distinct();
 
         // ==== APLIKASI HAK AKSES (FILTERING) ====
+        $userAreaCodes = !empty($user->area_code) ? array_filter((array) $user->area_code) : [];
+        if (is_string($user->region_code)) {
+            $userRegionCodes = json_decode($user->region_code, true) ?? [];
+        } else {
+            $userRegionCodes = (array) ($user->region_code ?? []);
+        }
+        $userRegionCodes = array_filter($userRegionCodes);
+
         if ($user->supervisor_code) {
-            // Level SPV: Potensi filter dengan supervisor_code (bisa fallback)
+            // Level SPV: Filter dengan supervisor_code (bisa fallback ke team_elite_code atau md.supervisor_code)
             $queryPotensi->where(function($q) use ($user) {
                 $q->where('te.team_elite_code', $user->supervisor_code)
                   ->orWhere('md.supervisor_code', $user->supervisor_code);
@@ -280,20 +224,22 @@ class IndexController extends Controller
                 $q->where('te.team_elite_code', $user->supervisor_code)
                   ->orWhere('md.supervisor_code', $user->supervisor_code);
             });
-        } elseif ($user->area_code) {
+            $queryPlan->where(function($q) use ($sessionSupervisorCode, $user) {
+                $q->where('j.kode_team', $sessionSupervisorCode)
+                  ->orWhere('te.team_elite_code', $user->supervisor_code)
+                  ->orWhere('md.supervisor_code', $user->supervisor_code);
+            });
+        } elseif (!empty($userAreaCodes)) {
             // Level Area Manager
-            $queryPotensi->where('md.area_code', $user->area_code);
-            $queryMonitoring->where('md.area_code', $user->area_code);
-        } elseif ($user->region_code) {
-            // Level Region Manager (JSON Array of Region Codes)
-            $regions = is_string($user->region_code) ? json_decode($user->region_code, true) : $user->region_code;
-            $regions = $regions ?? [];
-            
-            if (!in_array('HOINA', $regions)) {
-                $queryPotensi->whereIn('md.region_code', $regions);
-                $queryMonitoring->whereIn('md.region_code', $regions);
+            $queryPotensi->whereIn('md.area_code', $userAreaCodes);
+            $queryMonitoring->whereIn('md.area_code', $userAreaCodes);
+            $queryPlan->whereIn('md.area_code', $userAreaCodes);
+        } elseif (!empty($userRegionCodes)) {
+            if (!in_array('HOINA', $userRegionCodes)) {
+                $queryPotensi->whereIn('md.region_code', $userRegionCodes);
+                $queryMonitoring->whereIn('md.region_code', $userRegionCodes);
+                $queryPlan->whereIn('md.region_code', $userRegionCodes);
             }
-            // Jika ada 'HOINA', maka ia bisa melihat semuanya secara nasional.
         }
 
         $listPotensi = $queryPotensi->get();
