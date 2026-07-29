@@ -260,6 +260,42 @@ Route::middleware(['auth'])->group(function () {
     // ==========================================
     // CALL PLAN
     // ==========================================
+    Route::post('/call-plan/batas-wilayah-geojson', function (\Illuminate\Http\Request $request) {
+        $kecamatans = $request->input('kecamatans', []);
+        if (empty($kecamatans)) {
+            return response()->json(['type' => 'FeatureCollection', 'features' => []]);
+        }
+        
+        $placeholders = implode(',', array_fill(0, count($kecamatans), '?'));
+        
+        $sql = "
+            SELECT wadmkc, wadmkd, ST_AsGeoJSON(ST_SimplifyPreserveTopology(geom, 0.0005)) as geojson
+            FROM batas_wilayah
+            WHERE wadmkc IN ($placeholders)
+        ";
+        
+        $results = \Illuminate\Support\Facades\DB::select($sql, $kecamatans);
+        
+        $features = [];
+        foreach ($results as $row) {
+            if ($row->geojson) {
+                $features[] = [
+                    'type' => 'Feature',
+                    'geometry' => json_decode($row->geojson),
+                    'properties' => [
+                        'kecamatan' => $row->wadmkc,
+                        'kelurahan' => $row->wadmkd,
+                    ]
+                ];
+            }
+        }
+        
+        return response()->json([
+            'type' => 'FeatureCollection',
+            'features' => $features
+        ]);
+    })->name('call-plan.batas-wilayah-geojson');
+
     Route::get('/call-plan', CallPlanIndex::class)->name('call-plan.index');
     Route::get('/plan-call-team-elite/toko-pareto', ListTokoPareto::class)->name('plan-call-team-elite.toko-pareto');
     Route::get('/jks-team-elite', JksTeamEliteIndex::class)->name('jks-team-elite.index');
