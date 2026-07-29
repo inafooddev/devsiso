@@ -73,7 +73,7 @@ class IndexController extends Controller
             ->select(
                 'kd_dist', 
                 'uniq_kd', 
-                DB::raw('EXTRACT(QUARTER FROM bulan) as kuartal'),
+                DB::raw('CAST(EXTRACT(QUARTER FROM bulan) AS INTEGER) as kuartal'),
                 DB::raw('SUM(neto) as total_achievement'),
                 DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 1 THEN neto ELSE 0 END) as month_1_value'),
                 DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 2 THEN neto ELSE 0 END) as month_2_value'),
@@ -82,7 +82,7 @@ class IndexController extends Controller
                 DB::raw('AVG(neto) as avg_transaction'),
                 DB::raw('SUM(neto) as total_transaction')
             )
-            ->groupBy('kd_dist', 'uniq_kd', DB::raw('EXTRACT(QUARTER FROM bulan)'));
+            ->groupBy('kd_dist', 'uniq_kd', DB::raw('CAST(EXTRACT(QUARTER FROM bulan) AS INTEGER)'));
 
         // 3. Data Plan Kunjungan (jks_team_elite)
         $queryPlan = DB::table('jks_team_elite as j')
@@ -109,7 +109,7 @@ class IndexController extends Controller
                 function($join) use ($currentQuarter) {
                     $join->on('zv.kd_dist', '=', 'j.distributor_code')
                          ->on('zv.uniq_kd', '=', 'l.uniq_kd')
-                         ->on('zv.kuartal', '=', DB::raw($currentQuarter));
+                         ->on(DB::raw('zv.kuartal::text'), '=', DB::raw("'$currentQuarter'"));
                 }
             )
             ->where('l.pilar', '1. RWO')
@@ -168,7 +168,7 @@ class IndexController extends Controller
                 function($join) {
                     $join->on('zv.kd_dist', '=', 'l.distributor_code')
                          ->on('zv.uniq_kd', '=', 'l.customer_code')
-                         ->on('zv.kuartal', '=', 'l.kuartal');
+                         ->on(DB::raw('zv.kuartal::text'), '=', DB::raw('l.kuartal::text'));
                 }
             )
             ->select(
@@ -215,19 +215,30 @@ class IndexController extends Controller
         $userRegionCodes = array_filter($userRegionCodes);
 
         if ($user->supervisor_code) {
-            // Level SPV: Filter dengan supervisor_code (bisa fallback ke team_elite_code atau md.supervisor_code)
-            $queryPotensi->where(function($q) use ($user) {
-                $q->where('te.team_elite_code', $user->supervisor_code)
-                  ->orWhere('md.supervisor_code', $user->supervisor_code);
-            });
-            $queryMonitoring->where(function($q) use ($user) {
-                $q->where('te.team_elite_code', $user->supervisor_code)
-                  ->orWhere('md.supervisor_code', $user->supervisor_code);
-            });
-            $queryPlan->where(function($q) use ($sessionSupervisorCode, $user) {
-                $q->where('j.kode_team', $sessionSupervisorCode)
-                  ->orWhere('te.team_elite_code', $user->supervisor_code)
-                  ->orWhere('md.supervisor_code', $user->supervisor_code);
+            // Level SPV: Pre-collect mapped codes (siso_code, team_elite_code, userid) to utilize B-Tree index scans
+            $spvCode = $user->supervisor_code;
+            $spvCodes = DB::table('team_elite_code_mappings')
+                ->where('siso_code', $spvCode)
+                ->orWhere('team_elite_code', $spvCode)
+                ->pluck('team_elite_code')
+                ->concat(
+                    DB::table('team_elite_code_mappings')
+                        ->where('siso_code', $spvCode)
+                        ->orWhere('team_elite_code', $spvCode)
+                        ->pluck('siso_code')
+                )
+                ->push($spvCode)
+                ->push($user->userid)
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
+
+            $queryPotensi->whereIn('md.supervisor_code', $spvCodes);
+            $queryMonitoring->whereIn('md.supervisor_code', $spvCodes);
+            $queryPlan->where(function($q) use ($spvCodes) {
+                $q->whereIn('j.kode_team', $spvCodes)
+                  ->orWhereIn('md.supervisor_code', $spvCodes);
             });
         } elseif (!empty($userAreaCodes)) {
             // Level Area Manager
