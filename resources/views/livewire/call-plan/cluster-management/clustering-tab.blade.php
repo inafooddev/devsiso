@@ -157,16 +157,18 @@
                 matchesSearch(cId, stores) {
                     if (!this.search || this.search.trim() === '') return true;
                     const query = this.search.toLowerCase().trim();
-                    if (cId > 0 && ('cluster ' + cId).includes(query)) return true;
-                    if (cId == 0 && 'unclustered'.includes(query)) return true;
-                    if (cId == -1 && 'telah disimpan'.includes(query)) return true;
+                    const label = cId == 0 ? 'unclustered' : (cId == -1 ? 'telah disimpan' : 'cluster ' + cId);
+                    if (label.includes(query)) return true;
 
-                    return (stores || []).some(s => 
-                        (s.customer_name || '').toLowerCase().includes(query) ||
-                        (s.customer_code_prc || '').toLowerCase().includes(query) ||
-                        (s.kecamatan || '').toLowerCase().includes(query) ||
-                        (s.kelurahan || '').toLowerCase().includes(query)
-                    );
+                    if (stores && Array.isArray(stores)) {
+                        return stores.some(s => 
+                            (s.customer_name && s.customer_name.toLowerCase().includes(query)) ||
+                            (s.customer_code_prc && s.customer_code_prc.toLowerCase().includes(query)) ||
+                            (s.kecamatan && s.kecamatan.toLowerCase().includes(query)) ||
+                            (s.kelurahan && s.kelurahan.toLowerCase().includes(query))
+                        );
+                    }
+                    return false;
                 }
              }"
              class="w-full lg:w-1/3 bg-base-100 rounded-xl border border-base-300 shadow-sm overflow-hidden flex flex-col">
@@ -190,7 +192,7 @@
                 <div class="flex flex-col gap-1.5">
                     <div class="relative">
                         <input x-model="search" type="text" class="input input-xs input-bordered w-full pr-6 text-xs bg-base-100" placeholder="Cari cluster, kecamatan, atau nama/kode toko...">
-                        <button x-show="search.length > 0" @click="search = ''" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-xs text-base-content/40 hover:text-base-content font-bold">✕</button>
+                        <button x-show="search.length != 0" @click="search = ''" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-xs text-base-content/40 hover:text-base-content font-bold">✕</button>
                     </div>
 
                     @if(count($summary) > 0)
