@@ -116,35 +116,17 @@
 
     <div class="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
         {{-- Map Container --}}
-        <div class="w-full lg:w-2/3 bg-base-100 rounded-xl border border-base-300 shadow-sm overflow-hidden flex flex-col relative z-0" wire:ignore x-data="{ mapFilterPilar: 'all', mapFilterCluster: 'all' }">
+        <div class="w-full lg:w-2/3 bg-base-100 rounded-xl border border-base-300 shadow-sm overflow-hidden flex flex-col relative z-0" wire:ignore x-data="{ mapFilterPilar: 'all' }">
             <div id="management-map" class="w-full h-[500px] lg:h-full z-0"></div>
             
             {{-- Map Filter Controls Bar --}}
-            <div class="absolute top-3 left-3 bg-base-100/90 backdrop-blur p-1.5 rounded-xl border border-base-300 shadow-md z-[400] text-xs flex items-center gap-1.5">
-                <span class="text-[0.65rem] font-bold text-base-content/70 pl-1 flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 text-primary"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" /></svg>
-                    Filter Peta:
-                </span>
-                <select x-model="mapFilterPilar" @change="window.filterManagementMapMarkers(mapFilterPilar, mapFilterCluster)" class="select select-xs select-bordered bg-base-100 font-semibold text-[0.65rem] h-7 min-h-0">
+            <div class="absolute top-3 left-3 bg-base-100/90 backdrop-blur p-1 rounded-xl border border-base-300 shadow-md z-[400] text-xs">
+                <select x-model="mapFilterPilar" @change="window.filterManagementMapMarkers(mapFilterPilar, 'all')" class="select select-xs select-bordered bg-base-100 font-semibold text-[0.65rem] h-7 min-h-0">
                     <option value="all">Semua Pilar</option>
                     <option value="1">Pilar 1 (RWO)</option>
                     <option value="2">Pilar 2 (PNR)</option>
                     <option value="3">Pilar 3 (NGVO)</option>
                     <option value="4">Pilar 4 (GRO)</option>
-                </select>
-                <select x-model="mapFilterCluster" @change="window.filterManagementMapMarkers(mapFilterPilar, mapFilterCluster)" class="select select-xs select-bordered bg-base-100 font-semibold text-[0.65rem] h-7 min-h-0">
-                    <option value="all">Semua Cluster / Status</option>
-                    <option value="clustered">Semua Ter-cluster</option>
-                    <option value="unclustered">Hanya Unclustered</option>
-                    @if(isset($clusterSummary) && count($clusterSummary) > 0)
-                        <optgroup label="Pilih Spesifik Cluster">
-                            @foreach($clusterSummary as $cId => $cData)
-                                <option value="{{ $cId }}">Cluster {{ $cData['seq'] }} ({{ $cData['count'] }} Toko)</option>
-                            @endforeach
-                        </optgroup>
-                    @else
-                        <option value="" disabled>(Pilih Team Sales untuk daftar Cluster)</option>
-                    @endif
                 </select>
             </div>
 
@@ -962,8 +944,7 @@
     window.updateMapClusterVisibility = function(hiddenClusters) {
         window.managementHiddenClusters = hiddenClusters || [];
         const pilarVal = document.querySelector('select[x-model="mapFilterPilar"]')?.value || 'all';
-        const clusterVal = document.querySelector('select[x-model="mapFilterCluster"]')?.value || 'all';
-        window.filterManagementMapMarkers(pilarVal, clusterVal);
+        window.filterManagementMapMarkers(pilarVal, 'all');
     };
 
     window.filterManagementMapMarkers = function(pilarFilter, clusterFilter) {
