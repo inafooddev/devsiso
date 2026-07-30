@@ -56,7 +56,7 @@
                         </div>
                     </div>
                     
-                    <div class="tooltip tooltip-bottom before:text-xs ml-1" data-tip="Prioritas Batas Wilayah">
+                    <div class="tooltip tooltip-bottom before:text-xs ml-1" data-tip="Prioritas Kelurahan & Tetangga (Spatial Penalty)">
                         <label class="cursor-pointer label p-0 px-2 border border-base-200 rounded-lg hover:bg-base-200 transition-colors h-8 flex items-center justify-center bg-base-100">
                             <input wire:model="useSpatialPenalty" type="checkbox" class="checkbox checkbox-xs checkbox-primary rounded" />
                         </label>

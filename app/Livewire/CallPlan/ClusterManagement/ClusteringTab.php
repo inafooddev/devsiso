@@ -182,6 +182,27 @@ class ClusteringTab extends Component
             }
         }
 
+        // Pre-compute Kelurahan center coordinates for Neighborhood Adjacency Penalty
+        $kelurahanCentroids = [];
+        foreach ($activeStores as $s) {
+            $kel = trim((string)($s['kelurahan'] ?? ''));
+            if (!empty($kel)) {
+                if (!isset($kelurahanCentroids[$kel])) {
+                    $kelurahanCentroids[$kel] = ['lats' => [], 'lons' => []];
+                }
+                $kelurahanCentroids[$kel]['lats'][] = (float)$s['latitude'];
+                $kelurahanCentroids[$kel]['lons'][] = (float)$s['longitude'];
+            }
+        }
+
+        $kelMap = [];
+        foreach ($kelurahanCentroids as $kel => $coords) {
+            $kelMap[$kel] = [
+                'lat' => array_sum($coords['lats']) / count($coords['lats']),
+                'lon' => array_sum($coords['lons']) / count($coords['lons']),
+            ];
+        }
+
         $maxIterations = 15;
         for ($iter = 0; $iter < $maxIterations; $iter++) {
             foreach ($centroids as &$c) {
@@ -200,11 +221,26 @@ class ClusteringTab extends Component
                 foreach ($centroids as $cIdx => $c) {
                     $dist = $this->haversineGreatCircleDistance($lat, $lon, $c['lat'], $c['lon']);
                     
-                    if ($this->useSpatialPenalty && !empty($store['kecamatan']) && !empty($c['kecamatan'])) {
-                        if ($store['kecamatan'] !== $c['kecamatan']) {
-                            $dist += 3.0;
-                        } elseif (!empty($store['kelurahan']) && !empty($c['kelurahan']) && $store['kelurahan'] !== $c['kelurahan']) {
-                            $dist += 1.0;
+                    if ($this->useSpatialPenalty && !empty($store['kelurahan']) && !empty($c['kelurahan'])) {
+                        $storeKel = trim((string)$store['kelurahan']);
+                        $cKel = trim((string)$c['kelurahan']);
+
+                        if ($storeKel === $cKel) {
+                            $dist += 0.0; // Kelurahan Sama: Ideal (0 km penalty)
+                        } else {
+                            $kelDist = 999;
+                            if (isset($kelMap[$storeKel]) && isset($kelMap[$cKel])) {
+                                $kelDist = $this->haversineGreatCircleDistance(
+                                    $kelMap[$storeKel]['lat'], $kelMap[$storeKel]['lon'],
+                                    $kelMap[$cKel]['lat'], $kelMap[$cKel]['lon']
+                                );
+                            }
+
+                            if ($kelDist <= 2.5) {
+                                $dist += 0.8; // Kelurahan Tetangga Bersebelahan (<= 2.5 km penalty)
+                            } else {
+                                $dist += 4.0; // Beda Kelurahan Jauh / Tidak Menempel (4.0 km penalty)
+                            }
                         }
                     }
 
