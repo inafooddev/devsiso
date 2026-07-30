@@ -168,9 +168,24 @@
                     } else {
                         this.hiddenClusters.push(cId);
                     }
+                    this.updateMap();
+                },
+                toggleAllMapClusters(visible) {
+                    if (visible) {
+                        this.hiddenClusters = [];
+                    } else {
+                        const allCIds = Array.from(document.querySelectorAll('[data-cluster-id]')).map(el => parseInt(el.getAttribute('data-cluster-id')));
+                        this.hiddenClusters = [...new Set(allCIds)];
+                    }
+                    this.updateMap();
+                },
+                updateMap() {
                     if (window.updateMapClusterVisibility) {
                         window.updateMapClusterVisibility(this.hiddenClusters);
                     }
+                },
+                isClusterVisible(cId) {
+                    return !this.hiddenClusters.includes(cId);
                 },
                 matchesSearch(seq, kec, kecFull, stores) {
                     if (!this.search || this.search.trim() === '') return true;
@@ -221,6 +236,28 @@
                         ✕
                     </button>
                 </div>
+                
+                {{-- Quick Map View Controls: Select All / Unselect All --}}
+                <div class="flex justify-between items-center text-[0.68rem] text-base-content/70 px-0.5 pt-1 border-t border-base-200/60">
+                    <span class="font-bold flex items-center gap-1 text-base-content/80">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5 text-primary"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.82c-.317-.159-.69-.159-1.006 0L3.622 6.257C3.24 6.447 3 6.837 3 7.263v12.417c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" /></svg>
+                        Tampilkan Peta:
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" 
+                                @click="toggleAllMapClusters(true)" 
+                                class="btn btn-xs btn-ghost text-primary hover:bg-primary/10 font-bold text-[0.65rem] px-2 h-5 min-h-0 border border-primary/30 rounded-full"
+                                title="Tampilkan Semua Cluster di Peta">
+                            ✓ Pilih Semua
+                        </button>
+                        <button type="button" 
+                                @click="toggleAllMapClusters(false)" 
+                                class="btn btn-xs btn-ghost text-base-content/60 hover:bg-base-200 font-medium text-[0.65rem] px-2 h-5 min-h-0 border border-base-300 rounded-full"
+                                title="Sembunyikan Semua Cluster dari Peta">
+                            ✕ Batal Semua
+                        </button>
+                    </div>
+                </div>
                 @endif
             </div>
 
@@ -249,6 +286,7 @@
                                 $hue = ($cId * 137.5) % 360;
                             @endphp
                             <div wire:key="cluster-card-{{ $cId }}"
+                                 data-cluster-id="{{ $cId }}"
                                  x-show="matchesSearch('{{ $data['seq'] }}', '{{ addslashes($data['kec_str']) }}', '{{ addslashes($data['kec_str_full'] ?? '') }}', {{ json_encode($data['stores']) }})"
                                  x-data="{ open: false }"
                                  x-init="$watch('search', val => { if(val.trim().length > 0) open = true; })"
@@ -259,11 +297,12 @@
                                      @click="open = !open">
                                     <div class="flex items-center gap-2 shrink-0">
                                         <input type="checkbox" 
-                                               checked 
-                                               @click.stop="toggleCluster({{ $cId }})"
+                                               :checked="isClusterVisible({{ $cId }})" 
+                                               @change="toggleCluster({{ $cId }})"
+                                               @click.stop
                                                class="checkbox checkbox-xs checkbox-primary rounded-full shrink-0" 
                                                title="Tampilkan / Sembunyikan Cluster {{ $data['seq'] }} di Peta" />
-                                        <div class="w-3 h-3 rounded-full shrink-0" style="background-color: hsl({{ $hue }}, 70%, 50%);"></div>
+                                        <div class="w-3.5 h-3.5 rounded-full shrink-0" style="background-color: hsl({{ $hue }}, 70%, 50%);"></div>
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center gap-1.5 min-w-0">
@@ -426,15 +465,16 @@
                 {{-- Section: Toko Belum Ter-cluster --}}
                 @if(count($unclusteredStores) > 0)
                     <div class="mt-3">
-                        <div wire:key="unclustered-stores-card" x-data="{ open: false }" class="border border-warning/40 bg-warning/5 rounded-xl shadow-xs overflow-hidden">
+                        <div wire:key="unclustered-stores-card" data-cluster-id="0" x-data="{ open: false }" class="border border-warning/40 bg-warning/5 rounded-xl shadow-xs overflow-hidden">
                             <div class="flex justify-between items-center gap-2 p-2.5 w-full cursor-pointer select-none hover:bg-warning/10 transition-colors" @click="open = !open">
                                 <div class="flex items-center gap-2 shrink-0">
                                     <input type="checkbox" 
-                                           checked 
-                                           @click.stop="toggleCluster(0)"
+                                           :checked="isClusterVisible(0)" 
+                                           @change="toggleCluster(0)"
+                                           @click.stop
                                            class="checkbox checkbox-xs checkbox-warning rounded-full shrink-0" 
                                            title="Tampilkan / Sembunyikan Toko Unclustered di Peta" />
-                                    <div class="w-3 h-3 rounded-full shrink-0 bg-gray-500"></div>
+                                    <div class="w-3.5 h-3.5 rounded-full shrink-0 bg-gray-500"></div>
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <div class="font-bold text-xs sm:text-sm leading-tight text-warning-content truncate">
