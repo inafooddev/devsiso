@@ -72,5 +72,6 @@
 
     @livewireScripts
     @stack('scripts')
+    <x-global-loading />
 </body>
 </html>
