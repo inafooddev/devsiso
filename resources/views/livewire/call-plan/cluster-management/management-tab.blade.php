@@ -161,6 +161,17 @@
         <div x-data="{ 
                 search: '',
                 activeKecPopover: null,
+                hiddenClusters: [],
+                toggleCluster(cId) {
+                    if (this.hiddenClusters.includes(cId)) {
+                        this.hiddenClusters = this.hiddenClusters.filter(id => id !== cId);
+                    } else {
+                        this.hiddenClusters.push(cId);
+                    }
+                    if (window.updateMapClusterVisibility) {
+                        window.updateMapClusterVisibility(this.hiddenClusters);
+                    }
+                },
                 matchesSearch(seq, kec, kecFull, stores) {
                     if (!this.search || this.search.trim() === '') return true;
                     const q = this.search.toLowerCase().trim();
@@ -177,7 +188,7 @@
                     return false;
                 }
              }" 
-             class="w-full lg:w-1/3 bg-base-100 rounded-xl border border-base-300 shadow-sm overflow-hidden flex flex-col">
+             class="w-full lg:w-1/3 bg-base-100 rounded-xl border border-base-300 shadow-sm overflow-hidden flex flex-col relative">
             
             <div class="p-3 border-b border-base-300 bg-base-200/50 flex flex-col gap-2 z-10 shadow-sm">
                 <div class="flex justify-between items-center">
@@ -246,7 +257,14 @@
                                 <div class="flex justify-between items-center gap-2 p-2.5 w-full cursor-pointer select-none hover:bg-base-200/60 transition-colors"
                                      :class="open ? 'rounded-t-xl' : 'rounded-xl'"
                                      @click="open = !open">
-                                    <div class="w-3.5 h-3.5 rounded-full shrink-0" style="background-color: hsl({{ $hue }}, 70%, 50%);"></div>
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        <input type="checkbox" 
+                                               checked 
+                                               @click.stop="toggleCluster({{ $cId }})"
+                                               class="checkbox checkbox-xs checkbox-primary rounded-full shrink-0" 
+                                               title="Tampilkan / Sembunyikan Cluster {{ $data['seq'] }} di Peta" />
+                                        <div class="w-3 h-3 rounded-full shrink-0" style="background-color: hsl({{ $hue }}, 70%, 50%);"></div>
+                                    </div>
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center gap-1.5 min-w-0">
                                             <span class="font-bold text-xs sm:text-sm truncate shrink-0">Cluster {{ $data['seq'] }}</span>
@@ -332,6 +350,23 @@
                                      class="border-t border-base-300 rounded-b-xl overflow-hidden">
                                     <div class="overflow-x-auto">
                                         <table class="table table-xs table-zebra w-full text-[0.7rem]">
+                                            <thead class="bg-base-200/80 text-[0.65rem] border-b border-base-200 text-base-content/70">
+                                                <tr>
+                                                    <th class="w-8 text-center py-1 px-1">
+                                                        @php
+                                                            $cKeys = array_map(fn($s) => 'item-' . $s['item_id'], $data['stores']);
+                                                            $isAllSelected = count($cKeys) > 0 && count(array_intersect($cKeys, $selectedStoreIds)) === count($cKeys);
+                                                        @endphp
+                                                        <input type="checkbox" 
+                                                               wire:click="toggleSelectClusterStores({{ $cId }})" 
+                                                               {{ $isAllSelected ? 'checked' : '' }} 
+                                                               class="checkbox checkbox-xs checkbox-primary rounded-xs" 
+                                                               title="Pilih Semua / Batal Pilih Toko Cluster {{ $data['seq'] }}" />
+                                                    </th>
+                                                    <th class="py-1 px-2 font-semibold">Toko ({{ count($data['stores']) }})</th>
+                                                    <th class="py-1 px-2 text-right font-semibold pr-3">Aksi</th>
+                                                </tr>
+                                            </thead>
                                             <tbody>
                                                 @foreach($data['stores'] as $st)
                                                     @php
@@ -354,7 +389,9 @@
                                                         }
                                                     @endphp
                                                     <tr wire:key="store-row-{{ $st['item_id'] ?? $st['id'] }}" :class="search.length > 0 && ('{{ strtolower(addslashes($st['customer_name'] ?? '')) }}'.includes(search.toLowerCase().trim()) || '{{ strtolower(addslashes($st['customer_code_prc'] ?? '')) }}'.includes(search.toLowerCase().trim())) ? 'bg-amber-100 text-gray-900 font-bold' : ''" class="hover:bg-base-200/50 transition-colors group">
-                                                        <td class="w-8 text-center font-mono opacity-50">{{ $loop->iteration }}</td>
+                                                        <td class="w-8 text-center font-mono opacity-70">
+                                                            <input type="checkbox" wire:model.live="selectedStoreIds" value="item-{{ $st['item_id'] }}" class="checkbox checkbox-xs checkbox-primary rounded-xs" />
+                                                        </td>
                                                         <td ondblclick="window.focusManagementMapOnStore('{{ $st['latitude'] ?? 0 }}', '{{ $st['longitude'] ?? 0 }}', {{ $st['id'] }})" class="cursor-pointer w-full" title="Klik ganda untuk fokus di peta">
                                                             <div class="flex items-center gap-2">
                                                                 <div class="font-bold">{{ $st['customer_name'] }}</div>
@@ -391,7 +428,14 @@
                     <div class="mt-3">
                         <div wire:key="unclustered-stores-card" x-data="{ open: false }" class="border border-warning/40 bg-warning/5 rounded-xl shadow-xs overflow-hidden">
                             <div class="flex justify-between items-center gap-2 p-2.5 w-full cursor-pointer select-none hover:bg-warning/10 transition-colors" @click="open = !open">
-                                <div class="w-3.5 h-3.5 rounded-full shrink-0 bg-gray-500"></div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <input type="checkbox" 
+                                           checked 
+                                           @click.stop="toggleCluster(0)"
+                                           class="checkbox checkbox-xs checkbox-warning rounded-full shrink-0" 
+                                           title="Tampilkan / Sembunyikan Toko Unclustered di Peta" />
+                                    <div class="w-3 h-3 rounded-full shrink-0 bg-gray-500"></div>
+                                </div>
                                 <div class="flex-1 min-w-0">
                                     <div class="font-bold text-xs sm:text-sm leading-tight text-warning-content truncate">
                                         Toko Belum Ter-cluster
@@ -410,6 +454,23 @@
                             <div x-show="open" class="border-t border-warning/30 bg-base-100">
                                 <div class="overflow-x-auto">
                                     <table class="table table-xs table-zebra w-full text-[0.7rem]">
+                                        <thead class="bg-warning/10 text-[0.65rem] border-b border-warning/20 text-warning-content/80">
+                                            <tr>
+                                                <th class="w-8 text-center py-1 px-1">
+                                                    @php
+                                                        $uKeys = array_map(fn($s) => 'store-' . $s['id'], $unclusteredStores);
+                                                        $isAllUSelected = count($uKeys) > 0 && count(array_intersect($uKeys, $selectedStoreIds)) === count($uKeys);
+                                                    @endphp
+                                                    <input type="checkbox" 
+                                                           wire:click="toggleSelectUnclusteredStores" 
+                                                           {{ $isAllUSelected ? 'checked' : '' }} 
+                                                           class="checkbox checkbox-xs checkbox-warning rounded-xs" 
+                                                           title="Pilih Semua / Batal Pilih Toko Unclustered" />
+                                                </th>
+                                                <th class="py-1 px-2 font-semibold">Toko Unclustered ({{ count($unclusteredStores) }})</th>
+                                                <th class="py-1 px-2 text-right font-semibold pr-3">Aksi</th>
+                                            </tr>
+                                        </thead>
                                         <tbody>
                                             @foreach($unclusteredStores as $st)
                                                 @php
@@ -423,7 +484,9 @@
                                                     elseif (str_contains($pilarRaw, '4.')) { $pilarName = 'GRO'; $pilarClass = 'badge-info text-white'; }
                                                 @endphp
                                                 <tr wire:key="unclustered-row-{{ $st['id'] }}" class="hover:bg-base-200/50 transition-colors group">
-                                                    <td class="w-8 text-center font-mono opacity-50">{{ $loop->iteration }}</td>
+                                                    <td class="w-8 text-center font-mono opacity-70">
+                                                        <input type="checkbox" wire:model.live="selectedStoreIds" value="store-{{ $st['id'] }}" class="checkbox checkbox-xs checkbox-warning rounded-xs" />
+                                                    </td>
                                                     <td ondblclick="window.focusManagementMapOnStore('{{ $st['latitude'] ?? 0 }}', '{{ $st['longitude'] ?? 0 }}', {{ $st['id'] }})" class="cursor-pointer w-full" title="Klik ganda untuk fokus di peta">
                                                         <div class="flex items-center gap-2">
                                                             <div class="font-bold">{{ $st['customer_name'] }}</div>
@@ -456,6 +519,26 @@
                     </div>
                 @endif
             </div>
+
+            {{-- Floating Bulk Action Bar --}}
+            @if(count($selectedStoreIds) > 0)
+                <div class="p-2.5 bg-neutral text-neutral-content border-t border-neutral-700 shadow-2xl flex items-center justify-between gap-2 z-40 animate-fade-in">
+                    <div class="flex items-center gap-2">
+                        <span class="badge badge-primary font-bold text-[0.7rem] px-2 py-0.5">{{ count($selectedStoreIds) }} Toko Terpilih</span>
+                        <button type="button" wire:click="clearSelectedStores" class="btn btn-ghost btn-xs text-neutral-content/70 hover:text-white underline text-[0.65rem] p-0 h-auto min-h-0">Batal</button>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" wire:click="openBulkMoveModal" class="btn btn-xs btn-warning text-white font-bold gap-1 shadow-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+                            Pindahkan
+                        </button>
+                        <button type="button" wire:click="openConfirmBulkDeleteModal" class="btn btn-xs btn-error text-white font-bold gap-1 shadow-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                            Hapus
+                        </button>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -683,6 +766,64 @@
         <div class="modal-backdrop bg-base-content/30 backdrop-blur-sm" wire:click="closeConfirmDeleteClusterModal"></div>
     </div>
     @endif
+
+    {{-- MODAL 7: BULK MOVE STORES --}}
+    @if($isBulkMoveModalOpen)
+    <div class="modal modal-open z-[9999]">
+        <div class="modal-box max-w-md rounded-2xl relative bg-white text-gray-800 shadow-2xl border border-gray-100" data-theme="light">
+            <button type="button" wire:click="closeBulkMoveModal" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            <h3 class="font-bold text-base mb-1 flex items-center gap-2 text-warning">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+                Pindahkan {{ count($selectedStoreIds) }} Toko Terpilih
+            </h3>
+            <p class="text-xs text-gray-500 mb-4">Pilih cluster tujuan untuk memindahkan {{ count($selectedStoreIds) }} toko yang telah Anda ceklis.</p>
+            
+            <div class="form-control w-full mb-4">
+                <label class="label"><span class="label-text text-xs font-semibold text-gray-700">Cluster Tujuan:</span></label>
+                <select wire:model.live="bulkTargetClusterId" class="select select-bordered select-sm w-full text-xs font-semibold bg-white text-gray-800">
+                    <option value="">-- Pilih Cluster Tujuan --</option>
+                    @if(isset($mSummary))
+                        @foreach($mSummary as $optId => $optData)
+                            <option value="{{ $optId }}">Cluster {{ $optData['seq'] }}{{ $optData['kec_str'] }} ({{ $optData['count'] }} Toko)</option>
+                        @endforeach
+                    @endif
+                </select>
+            </div>
+            
+            <div class="modal-action">
+                <button type="button" wire:click="closeBulkMoveModal" class="btn btn-sm btn-ghost font-bold">Batal</button>
+                <button type="button" wire:click="bulkMoveStores" wire:loading.attr="disabled" class="btn btn-sm btn-warning text-white font-bold gap-1" {{ empty($bulkTargetClusterId) ? 'disabled' : '' }}>
+                    <span wire:loading wire:target="bulkMoveStores" class="loading loading-spinner loading-xs"></span>
+                    <span>Pindahkan Toko</span>
+                </button>
+            </div>
+        </div>
+        <div class="modal-backdrop bg-base-content/30 backdrop-blur-sm" wire:click="closeBulkMoveModal"></div>
+    </div>
+    @endif
+
+    {{-- MODAL 8: BULK DELETE STORES --}}
+    @if($isConfirmBulkDeleteOpen)
+    <div class="modal modal-open z-[9999]">
+        <div class="modal-box max-w-sm rounded-2xl p-5 text-center shadow-xl border border-gray-100 bg-white text-gray-800" data-theme="light">
+            <div class="w-12 h-12 rounded-full bg-error/10 text-error flex items-center justify-center mx-auto mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+            </div>
+            <h3 class="font-bold text-base text-gray-900">Keluarkan {{ count($selectedStoreIds) }} Toko Terpilih?</h3>
+            <p class="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                Toko-toko yang terpilih akan dikeluarkan dari clusternya masing-masing dan statusnya kembali menjadi <span class="font-bold text-amber-600">Unclustered</span>.
+            </p>
+            <div class="modal-action justify-center gap-2 mt-5">
+                <button type="button" wire:click="closeConfirmBulkDeleteModal" class="btn btn-xs sm:btn-sm btn-ghost font-bold">Batal</button>
+                <button type="button" wire:click="bulkDeleteStores" wire:loading.attr="disabled" class="btn btn-xs sm:btn-sm btn-error text-white font-bold px-4 gap-1">
+                    <span wire:loading wire:target="bulkDeleteStores" class="loading loading-spinner loading-xs"></span>
+                    <span>Ya, Keluarkan {{ count($selectedStoreIds) }} Toko</span>
+                </button>
+            </div>
+        </div>
+        <div class="modal-backdrop bg-base-content/30 backdrop-blur-sm" wire:click="closeConfirmBulkDeleteModal"></div>
+    </div>
+    @endif
 </div>
 
 @script
@@ -776,8 +917,19 @@
         return true;
     }
 
+    window.managementHiddenClusters = [];
+
+    window.updateMapClusterVisibility = function(hiddenClusters) {
+        window.managementHiddenClusters = hiddenClusters || [];
+        const pilarVal = document.querySelector('select[x-model="mapFilterPilar"]')?.value || 'all';
+        const clusterVal = document.querySelector('select[x-model="mapFilterCluster"]')?.value || 'all';
+        window.filterManagementMapMarkers(pilarVal, clusterVal);
+    };
+
     window.filterManagementMapMarkers = function(pilarFilter, clusterFilter) {
         if (!mmarkers || mmarkers.length === 0) return;
+
+        const hidden = window.managementHiddenClusters || [];
 
         mmarkers.forEach(marker => {
             const store = marker.storeData;
@@ -790,7 +942,10 @@
             }
 
             let matchCluster = true;
-            if (clusterFilter === 'clustered') {
+            const storeCId = store.cluster_id || 0;
+            if (hidden.includes(storeCId)) {
+                matchCluster = false;
+            } else if (clusterFilter === 'clustered') {
                 matchCluster = (store.cluster_id > 0);
             } else if (clusterFilter === 'unclustered') {
                 matchCluster = (!store.cluster_id || store.cluster_id == 0);
