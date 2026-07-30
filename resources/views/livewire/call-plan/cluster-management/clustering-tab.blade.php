@@ -151,7 +151,7 @@
                 },
                 updateMap() {
                     window.clusteringHiddenClusters = [...this.hiddenClusters];
-                    const pilarVal = document.querySelector('select[x-model=\"mapFilterPilar\"]')?.value || 'all';
+                    const pilarVal = document.querySelector('select[x-model=mapFilterPilar]')?.value || 'all';
                     window.filterClusteringMapMarkers(pilarVal, 'all');
                 },
                 matchesSearch(cId, stores) {
