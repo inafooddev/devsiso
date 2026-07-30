@@ -144,6 +144,9 @@
                 search: '',
                 activeKecPopover: null,
                 hiddenClusters: [],
+                init() {
+                    this.updateMap();
+                },
                 toggleCluster(cId) {
                     if (this.hiddenClusters.includes(cId)) {
                         this.hiddenClusters = this.hiddenClusters.filter(id => id !== cId);
@@ -1098,17 +1101,12 @@
         });
 
         if (hasPoints && isInitialFilter) {
-            mmap.fitBounds(bounds, { padding: 50, duration: 1000 });
+            mmap.fitBounds(bounds, { padding: 50, duration: 500 });
         }
 
-        // Apply active map filter if set
-        const mapContainer = document.getElementById('management-map')?.parentElement;
-        if (mapContainer && window.Alpine) {
-            const alpineData = Alpine.$data(mapContainer);
-            if (alpineData && (alpineData.mapFilterPilar !== 'all' || alpineData.mapFilterCluster !== 'all')) {
-                window.filterManagementMapMarkers(alpineData.mapFilterPilar, alpineData.mapFilterCluster);
-            }
-        }
+        // Always apply active map filter and cluster visibility unconditionally
+        const pilarVal = document.querySelector('select[x-model="mapFilterPilar"]')?.value || 'all';
+        window.filterManagementMapMarkers(pilarVal, 'all');
     }
 
     window.focusManagementMapOnStore = function(lat, lng, storeId) {
