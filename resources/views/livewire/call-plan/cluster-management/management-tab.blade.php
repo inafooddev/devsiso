@@ -149,7 +149,7 @@
                 },
                 toggleCluster(cId) {
                     if (this.hiddenClusters.includes(cId)) {
-                        this.hiddenClusters = this.hiddenClusters.filter(id => id !== cId);
+                        this.hiddenClusters = this.hiddenClusters.filter(function(id) { return id !== cId; });
                     } else {
                         this.hiddenClusters.push(cId);
                     }
@@ -159,7 +159,7 @@
                     if (visible) {
                         this.hiddenClusters = [];
                     } else {
-                        const allCIds = Array.from(document.querySelectorAll('[data-cluster-id]')).map(el => parseInt(el.getAttribute('data-cluster-id')));
+                        const allCIds = Array.from(document.querySelectorAll('[data-cluster-id]')).map(function(el) { return parseInt(el.getAttribute('data-cluster-id')); });
                         this.hiddenClusters = [...new Set(allCIds)];
                     }
                     this.updateMap();
@@ -175,15 +175,15 @@
                 matchesSearch(seq, kec, kecFull, stores) {
                     if (!this.search || this.search.trim() === '') return true;
                     const q = this.search.toLowerCase().trim();
-                    const textToMatch = (`cluster ${seq} ${kec} ${kecFull}`).toLowerCase();
+                    const textToMatch = ('cluster ' + seq + ' ' + kec + ' ' + kecFull).toLowerCase();
                     if (textToMatch.includes(q)) return true;
                     if (stores && Array.isArray(stores)) {
-                        return stores.some(s => 
-                            (s.customer_name && s.customer_name.toLowerCase().includes(q)) ||
-                            (s.customer_code_prc && s.customer_code_prc.toLowerCase().includes(q)) ||
-                            (s.kelurahan && s.kelurahan.toLowerCase().includes(q)) ||
-                            (s.kecamatan && s.kecamatan.toLowerCase().includes(q))
-                        );
+                        return stores.some(function(s) { 
+                            return (s.customer_name && s.customer_name.toLowerCase().includes(q)) ||
+                                   (s.customer_code_prc && s.customer_code_prc.toLowerCase().includes(q)) ||
+                                   (s.kelurahan && s.kelurahan.toLowerCase().includes(q)) ||
+                                   (s.kecamatan && s.kecamatan.toLowerCase().includes(q));
+                        });
                     }
                     return false;
                 }
@@ -274,7 +274,7 @@
                                  data-cluster-id="{{ $cId }}"
                                  x-show="matchesSearch('{{ $data['seq'] }}', '{{ addslashes($data['kec_str']) }}', '{{ addslashes($data['kec_str_full'] ?? '') }}', {{ json_encode($data['stores']) }})"
                                  x-data="{ open: false }"
-                                 x-init="$watch('search', val => { if(val.trim().length > 0) open = true; })"
+                                 x-init="$watch('search', function(val) { if(val.trim().length) open = true; })"
                                  class="border border-base-300 bg-base-100 rounded-xl shadow-xs hover:border-primary/30 transition-all">
                                 {{-- Header / Trigger --}}
                                 <div class="flex justify-between items-center gap-2 p-2.5 w-full cursor-pointer select-none hover:bg-base-200/60 transition-colors"

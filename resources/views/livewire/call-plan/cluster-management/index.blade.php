@@ -42,7 +42,7 @@
 
     <div class="toast toast-top toast-end z-[9999] mt-12">
         @if (session()->has('message'))
-            <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition.opacity.duration.500ms class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success flex justify-between items-start backdrop-blur-sm">
+            <div x-data="{ show: true }" x-init="setTimeout(function() { show = false; }, 4000)" x-show="show" x-transition.opacity.duration.500ms class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success flex justify-between items-start backdrop-blur-sm">
                 <div class="flex items-start gap-3">
                     <x-heroicon-s-check-circle class="w-6 h-6 shrink-0 mt-0.5" />
                     <div>
@@ -57,7 +57,7 @@
         @endif
 
         @if (session()->has('error'))
-            <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition.opacity.duration.500ms class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error flex justify-between items-start backdrop-blur-sm">
+            <div x-data="{ show: true }" x-init="setTimeout(function() { show = false; }, 4000)" x-show="show" x-transition.opacity.duration.500ms class="alert alert-error shadow-lg rounded-2xl border-none bg-error/20 text-error flex justify-between items-start backdrop-blur-sm">
                 <div class="flex items-start gap-3">
                     <x-heroicon-s-x-circle class="w-6 h-6 shrink-0 mt-0.5" />
                     <div>

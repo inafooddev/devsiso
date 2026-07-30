@@ -131,7 +131,7 @@
                 },
                 toggleCluster(cId) {
                     if (this.hiddenClusters.includes(cId)) {
-                        this.hiddenClusters = this.hiddenClusters.filter(id => id !== cId);
+                        this.hiddenClusters = this.hiddenClusters.filter(function(id) { return id !== cId; });
                     } else {
                         this.hiddenClusters.push(cId);
                     }
@@ -161,12 +161,12 @@
                     if (label.includes(query)) return true;
 
                     if (stores && Array.isArray(stores)) {
-                        return stores.some(s => 
-                            (s.customer_name && s.customer_name.toLowerCase().includes(query)) ||
-                            (s.customer_code_prc && s.customer_code_prc.toLowerCase().includes(query)) ||
-                            (s.kecamatan && s.kecamatan.toLowerCase().includes(query)) ||
-                            (s.kelurahan && s.kelurahan.toLowerCase().includes(query))
-                        );
+                        return stores.some(function(s) {
+                            return (s.customer_name && s.customer_name.toLowerCase().includes(query)) ||
+                                   (s.customer_code_prc && s.customer_code_prc.toLowerCase().includes(query)) ||
+                                   (s.kecamatan && s.kecamatan.toLowerCase().includes(query)) ||
+                                   (s.kelurahan && s.kelurahan.toLowerCase().includes(query));
+                        });
                     }
                     return false;
                 }
