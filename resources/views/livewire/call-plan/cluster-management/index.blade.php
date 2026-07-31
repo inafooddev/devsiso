@@ -37,6 +37,9 @@
                     <span>Terapkan</span>
                 </button>
             </div>
+        @elseif($activeTab === 'clustering')
+            {{-- Teleport Target for Clustering Toolbar --}}
+            <div id="clustering-toolbar-teleport" class="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto justify-end flex-1"></div>
         @endif
     </div>
 

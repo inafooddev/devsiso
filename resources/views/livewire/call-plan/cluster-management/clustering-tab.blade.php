@@ -1,78 +1,66 @@
 <div class="flex flex-col gap-4 flex-1 min-h-0 w-full">
-    {{-- Toolbar --}}
-    <div class="bg-base-100 rounded-xl shadow-sm border border-base-200 p-3 shrink-0 relative z-50 mt-2">
-        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 lg:gap-4">
+    {{-- Teleported Form Toolbar to Tab Bar --}}
+    <template x-teleport="#clustering-toolbar-teleport">
+        <div class="flex items-center gap-2 flex-wrap lg:flex-nowrap w-full lg:w-auto justify-end">
             
-            {{-- Title & Info --}}
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                    <h2 class="text-sm md:text-base font-bold text-base-content truncate">Balanced Master Clustering</h2>
-                    <button onclick="document.getElementById('modal_panduan').showModal()" class="btn btn-xs btn-circle btn-ghost text-info hover:bg-info/10 tooltip tooltip-right shrink-0" data-tip="Panduan & Info">
-                        <x-heroicon-o-information-circle class="w-4 h-4" />
-                    </button>
-                </div>
-                <p class="text-[0.65rem] text-base-content/60 leading-tight hidden md:block truncate">Kelompokkan semua toko otomatis berdasarkan kapasitas dan radius</p>
+            {{-- Distributor Input --}}
+            <div class="w-full sm:w-48 relative">
+                <input wire:model.live.debounce.300ms="searchDistributor" type="text" class="input input-sm input-bordered w-full text-xs font-semibold bg-base-100 pr-6 h-8 min-h-0" placeholder="Ketik Distributor...">
+                @if(!empty($selectedDistributorCode))
+                    <button wire:click="clearDistributor" class="absolute right-1 top-1 btn btn-xs btn-circle btn-ghost text-base-content/50 hover:bg-base-200 h-6 w-6 min-h-0">✕</button>
+                @endif
+                
+                @if(count($distributorOptions) > 0)
+                <ul class="menu menu-xs bg-base-100 border border-base-200 rounded-box mt-1 max-h-60 overflow-y-auto absolute w-full md:w-80 shadow-lg top-full right-0 z-50 text-[0.7rem]">
+                    @foreach($distributorOptions as $res)
+                        <li><a wire:click="selectDistributor('{{ $res['distributor_code'] }}', '{{ addslashes($res['distributor_name']) }}')" class="py-2">{{ $res['distributor_code'] }} - <span class="font-bold">{{ $res['distributor_name'] }}</span></a></li>
+                    @endforeach
+                </ul>
+                @endif
             </div>
             
-            {{-- Form Toolbar --}}
-            <div class="flex items-center gap-2 flex-wrap lg:flex-nowrap w-full lg:w-auto">
-                
-                {{-- Distributor Input --}}
-                <div class="w-full sm:w-48 relative">
-                    <input wire:model.live.debounce.300ms="searchDistributor" type="text" class="input input-sm input-bordered w-full text-xs font-semibold bg-base-100 pr-6 h-8 min-h-0" placeholder="Ketik Distributor...">
-                    @if(!empty($selectedDistributorCode))
-                        <button wire:click="clearDistributor" class="absolute right-1 top-1 btn btn-xs btn-circle btn-ghost text-base-content/50 hover:bg-base-200 h-6 w-6 min-h-0">✕</button>
-                    @endif
-                    
-                    @if(count($distributorOptions) > 0)
-                    <ul class="menu menu-xs bg-base-100 border border-base-200 rounded-box mt-1 max-h-60 overflow-y-auto absolute w-full md:w-80 shadow-lg top-full left-0 z-50 text-[0.7rem]">
-                        @foreach($distributorOptions as $res)
-                            <li><a wire:click="selectDistributor('{{ $res['distributor_code'] }}', '{{ addslashes($res['distributor_name']) }}')" class="py-2">{{ $res['distributor_code'] }} - <span class="font-bold">{{ $res['distributor_name'] }}</span></a></li>
-                        @endforeach
-                    </ul>
-                    @endif
+            {{-- Parameters Input (Compact) --}}
+            <div class="flex items-center gap-1 sm:gap-2 sm:border-l sm:border-base-200 sm:pl-2">
+                <div class="tooltip tooltip-bottom before:text-xs" data-tip="Jumlah Cluster (K)">
+                    <div class="relative">
+                        <span class="absolute -top-2 left-2 bg-base-100 px-1 text-[0.55rem] font-bold text-accent">K</span>
+                        <input wire:model="targetClusters" type="number" class="input input-sm input-bordered w-14 sm:w-16 text-xs text-center px-1 h-8 min-h-0 font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" min="1" max="100">
+                    </div>
                 </div>
                 
-                {{-- Parameters Input (Compact) --}}
-                <div class="flex items-center gap-1 sm:gap-2 sm:border-l sm:border-base-200 sm:pl-2">
-                    <div class="tooltip tooltip-bottom before:text-xs" data-tip="Jumlah Cluster (K)">
-                        <div class="relative">
-                            <span class="absolute -top-2 left-2 bg-base-100 px-1 text-[0.55rem] font-bold text-accent">K</span>
-                            <input wire:model="targetClusters" type="number" class="input input-sm input-bordered w-14 sm:w-16 text-xs text-center px-1 h-8 min-h-0 font-bold" min="1" max="100">
-                        </div>
-                    </div>
-                    
-                    <div class="tooltip tooltip-bottom before:text-xs" data-tip="Max Toko / Cluster">
-                        <div class="relative">
-                            <span class="absolute -top-2 left-2 bg-base-100 px-1 text-[0.55rem] font-bold text-accent">Max T</span>
-                            <input wire:model="maxStoresPerCluster" type="number" class="input input-sm input-bordered w-14 sm:w-16 text-xs text-center px-1 h-8 min-h-0 font-bold" min="5" max="100">
-                        </div>
-                    </div>
-
-                    <div class="tooltip tooltip-bottom before:text-xs" data-tip="Max Radius (Km)">
-                        <div class="relative">
-                            <span class="absolute -top-2 left-2 bg-base-100 px-1 text-[0.55rem] font-bold text-error">Rad</span>
-                            <input wire:model="maxRadiusKm" type="number" step="0.1" class="input input-sm input-bordered w-14 sm:w-16 text-xs text-center px-1 h-8 min-h-0 font-bold text-error" min="1" max="100">
-                        </div>
-                    </div>
-                    
-                    <div class="tooltip tooltip-bottom before:text-xs ml-1" data-tip="Prioritas Kelurahan & Tetangga (Spatial Penalty)">
-                        <label class="cursor-pointer label p-0 px-2 border border-base-200 rounded-lg hover:bg-base-200 transition-colors h-8 flex items-center justify-center bg-base-100">
-                            <input wire:model="useSpatialPenalty" type="checkbox" class="checkbox checkbox-xs checkbox-primary rounded" />
-                        </label>
+                <div class="tooltip tooltip-bottom before:text-xs" data-tip="Max Toko / Cluster">
+                    <div class="relative">
+                        <span class="absolute -top-2 left-2 bg-base-100 px-1 text-[0.55rem] font-bold text-accent">Max T</span>
+                        <input wire:model="maxStoresPerCluster" type="number" class="input input-sm input-bordered w-14 sm:w-16 text-xs text-center px-1 h-8 min-h-0 font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" min="5" max="100">
                     </div>
                 </div>
 
-                {{-- Action Button --}}
-                <button wire:click="generateMasterClusters" wire:loading.attr="disabled" wire:target="generateMasterClusters" class="btn btn-sm btn-primary ml-auto lg:ml-2 shadow-sm shrink-0 h-8 min-h-0 px-4" @if(!$selectedDistributorCode) disabled @endif>
-                    <x-heroicon-s-sparkles class="w-4 h-4 hidden sm:inline" wire:loading.remove wire:target="generateMasterClusters" />
-                    <span wire:loading.remove wire:target="generateMasterClusters">Generate</span>
-                    <span wire:loading wire:target="generateMasterClusters" class="loading loading-spinner loading-xs"></span>
-                </button>
+                <div class="tooltip tooltip-bottom before:text-xs" data-tip="Max Radius (Km)">
+                    <div class="relative">
+                        <span class="absolute -top-2 left-2 bg-base-100 px-1 text-[0.55rem] font-bold text-error">Rad</span>
+                        <input wire:model="maxRadiusKm" type="number" step="0.1" class="input input-sm input-bordered w-14 sm:w-16 text-xs text-center px-1 h-8 min-h-0 font-bold text-error [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" min="1" max="100">
+                    </div>
+                </div>
                 
+                <div class="tooltip tooltip-bottom before:text-xs ml-1" data-tip="Prioritas Kelurahan & Tetangga (Spatial Penalty)">
+                    <label class="cursor-pointer label p-0 px-2 border border-base-200 rounded-lg hover:bg-base-200 transition-colors h-8 flex items-center justify-center bg-base-100">
+                        <input wire:model="useSpatialPenalty" type="checkbox" class="checkbox checkbox-xs checkbox-primary rounded" />
+                    </label>
+                </div>
             </div>
+
+            {{-- Action Button --}}
+            <button wire:click="generateMasterClusters" wire:loading.attr="disabled" wire:target="generateMasterClusters" class="btn btn-sm btn-primary ml-auto lg:ml-2 shadow-sm shrink-0 h-8 min-h-0 px-4" @if(!$selectedDistributorCode) disabled @endif>
+                <x-heroicon-s-sparkles class="w-4 h-4 hidden sm:inline" wire:loading.remove wire:target="generateMasterClusters" />
+                <span wire:loading.remove wire:target="generateMasterClusters">Generate</span>
+                <span wire:loading wire:target="generateMasterClusters" class="loading loading-spinner loading-xs"></span>
+            </button>
+
+            <button onclick="document.getElementById('modal_panduan').showModal()" class="btn btn-sm btn-circle btn-ghost text-info hover:bg-info/10 tooltip tooltip-bottom shrink-0 h-8 w-8 min-h-0" data-tip="Panduan & Info">
+                <x-heroicon-o-information-circle class="w-5 h-5" />
+            </button>
         </div>
-    </div>
+    </template>
 
     @php
         $summary = [];
@@ -126,6 +114,7 @@
                 search: '',
                 activeKecPopover: null,
                 hiddenClusters: [],
+                cardState: 'collapse',
                 init() {
                     this.updateMap();
                 },
@@ -196,12 +185,26 @@
                     </div>
 
                     @if(count($summary) > 0)
-                    <div class="flex items-center justify-between text-[0.65rem] px-0.5">
-                        <span class="text-base-content/60 font-semibold">Tampilkan Peta:</span>
-                        <div class="flex items-center gap-1.5">
-                            <button type="button" @click="toggleAllClusters(true)" class="text-primary hover:underline font-bold">✓ Pilih Semua</button>
-                            <span class="text-base-content/30">•</span>
-                            <button type="button" @click="toggleAllClusters(false)" class="text-error hover:underline font-bold">✕ Batal Semua</button>
+                    <div class="flex items-center justify-center gap-2 mt-1.5 pt-1.5 border-t border-base-200/60 w-full">
+                        <div class="join w-1/2">
+                            <button type="button" @click="toggleAllClusters(true)" 
+                                    :class="hiddenClusters.length === 0 ? 'bg-primary border-primary text-white hover:bg-primary/90' : 'btn-outline border-base-300 hover:bg-primary/10 hover:border-primary/30 hover:text-primary text-base-content/70'" 
+                                    class="btn btn-xs join-item flex-1 font-medium text-[0.6rem] px-1 h-6 min-h-0" 
+                                    title="Tampilkan Semua di Peta">Tampil Peta</button>
+                            <button type="button" @click="toggleAllClusters(false)" 
+                                    :class="hiddenClusters.length > 0 ? 'bg-base-300 border-base-300 text-base-content' : 'btn-outline border-base-300 hover:bg-base-200 text-base-content/70'" 
+                                    class="btn btn-xs join-item flex-1 font-medium text-[0.6rem] px-1 h-6 min-h-0" 
+                                    title="Sembunyikan Semua dari Peta">Sembunyi Peta</button>
+                        </div>
+                        <div class="join w-1/2">
+                            <button type="button" @click="$dispatch('expand-all'); cardState = 'expand'" 
+                                    :class="cardState === 'expand' ? 'bg-secondary border-secondary text-white hover:bg-secondary/90' : 'btn-outline border-base-300 hover:bg-secondary/10 hover:border-secondary/30 hover:text-secondary text-base-content/70'" 
+                                    class="btn btn-xs join-item flex-1 font-medium text-[0.6rem] px-1 h-6 min-h-0" 
+                                    title="Buka Semua Card">Buka Card</button>
+                            <button type="button" @click="$dispatch('collapse-all'); cardState = 'collapse'" 
+                                    :class="cardState === 'collapse' ? 'bg-base-300 border-base-300 text-base-content' : 'btn-outline border-base-300 hover:bg-base-200 text-base-content/70'" 
+                                    class="btn btn-xs join-item flex-1 font-medium text-[0.6rem] px-1 h-6 min-h-0" 
+                                    title="Tutup Semua Card">Tutup Card</button>
                         </div>
                     </div>
                     @endif
@@ -242,8 +245,10 @@
                         <div wire:key="cluster-card-{{ $cId }}"
                              data-cluster-id="{{ $cId }}"
                              x-show="matchesSearch({{ $cId }}, {{ json_encode($data['stores']) }})"
-                             x-data="{ open: {{ $loop->first ? 'true' : 'false' }} }"
+                             x-data="{ open: false }"
                              x-init="$watch('search', function(val) { if(val.trim().length) open = true; })"
+                             @expand-all.window="open = true"
+                             @collapse-all.window="open = false"
                              class="border border-base-300 bg-base-100 rounded-xl shadow-xs hover:border-primary/30 transition-all {{ $cId == 0 ? 'border-warning/40 bg-warning/5' : ($cId == -1 ? 'border-gray-400 bg-gray-50' : '') }}">
                             
                             {{-- Header / Trigger --}}
