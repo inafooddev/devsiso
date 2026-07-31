@@ -720,6 +720,24 @@
                 el.style.display = (matchPilar && matchCluster) ? 'block' : 'none';
             }
         });
+
+        if (map && map.getLayer('cluster-hulls-fill')) {
+            const hiddenIds = hidden.map(id => parseInt(id));
+            if (hiddenIds.length > 0) {
+                const filter = ['!', ['in', ['get', 'cluster_id'], ['literal', hiddenIds]]];
+                map.setFilter('cluster-hulls-fill', filter);
+                map.setFilter('cluster-hulls-line', filter);
+                if (map.getLayer('cluster-routes-line')) {
+                    map.setFilter('cluster-routes-line', filter);
+                }
+            } else {
+                map.setFilter('cluster-hulls-fill', null);
+                map.setFilter('cluster-hulls-line', null);
+                if (map.getLayer('cluster-routes-line')) {
+                    map.setFilter('cluster-routes-line', null);
+                }
+            }
+        }
     };
 
     function initRouteMap() {
@@ -1066,14 +1084,14 @@
                     const featureColl = turf.featureCollection(pts.map(p => turf.point(p)));
                     let hull = turf.convex(featureColl);
                     if (hull) {
-                        hull.properties = { color: data.color };
+                        hull.properties = { color: data.color, cluster_id: parseInt(cId) };
                         hullFeatures.push(hull);
                     }
                 }
                 
                 // Route requires at least 2 points
                 if (pts.length >= 2) {
-                    routeFeatures.push(turf.lineString(pts, { color: data.color }));
+                    routeFeatures.push(turf.lineString(pts, { color: data.color, cluster_id: parseInt(cId) }));
                 }
             }
 

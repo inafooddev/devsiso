@@ -148,6 +148,7 @@
                 search: '',
                 activeKecPopover: null,
                 hiddenClusters: [],
+                cardState: 'collapse',
                 init() {
                     this.updateMap();
                 },
@@ -226,25 +227,27 @@
                     </button>
                 </div>
                 
-                {{-- Quick Map View Controls: Select All / Unselect All --}}
-                <div class="flex justify-between items-center text-[0.68rem] text-base-content/70 px-0.5 pt-1 border-t border-base-200/60">
-                    <span class="font-bold flex items-center gap-1 text-base-content/80">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5 text-primary"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.82c-.317-.159-.69-.159-1.006 0L3.622 6.257C3.24 6.447 3 6.837 3 7.263v12.417c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" /></svg>
-                        Tampilkan Peta:
-                    </span>
-                    <div class="flex items-center gap-1.5">
-                        <button type="button" 
-                                @click="toggleAllMapClusters(true)" 
-                                class="btn btn-xs btn-ghost text-primary hover:bg-primary/10 font-bold text-[0.65rem] px-2 h-5 min-h-0 border border-primary/30 rounded-full"
-                                title="Tampilkan Semua Cluster di Peta">
-                            ✓ Pilih Semua
-                        </button>
-                        <button type="button" 
-                                @click="toggleAllMapClusters(false)" 
-                                class="btn btn-xs btn-ghost text-base-content/60 hover:bg-base-200 font-medium text-[0.65rem] px-2 h-5 min-h-0 border border-base-300 rounded-full"
-                                title="Sembunyikan Semua Cluster dari Peta">
-                            ✕ Batal Semua
-                        </button>
+                {{-- Quick Controls --}}
+                <div class="flex flex-col gap-2 pt-1 border-t border-base-200/60 mt-1">
+                    <div class="flex w-full">
+                        <div class="join w-1/2 pr-1">
+                            <button type="button" @click="toggleAllMapClusters(true)" 
+                                    class="btn btn-xs join-item flex-1 font-medium text-[0.6rem] px-1 h-6 min-h-0 btn-outline border-primary/30 text-primary hover:bg-primary hover:text-white" 
+                                    title="Tampilkan Semua di Peta">Tampil Peta</button>
+                            <button type="button" @click="toggleAllMapClusters(false)" 
+                                    class="btn btn-xs join-item flex-1 font-medium text-[0.6rem] px-1 h-6 min-h-0 btn-outline border-base-300 text-base-content/70 hover:bg-base-300" 
+                                    title="Sembunyikan Semua dari Peta">Sembunyi Peta</button>
+                        </div>
+                        <div class="join w-1/2 pl-1">
+                            <button type="button" @click="$dispatch('expand-all-m'); cardState = 'expand'" 
+                                    :class="cardState === 'expand' ? 'bg-secondary border-secondary text-white hover:bg-secondary/90' : 'btn-outline border-base-300 hover:bg-secondary/10 hover:border-secondary/30 hover:text-secondary text-base-content/70'" 
+                                    class="btn btn-xs join-item flex-1 font-medium text-[0.6rem] px-1 h-6 min-h-0" 
+                                    title="Buka Semua Card">Buka Card</button>
+                            <button type="button" @click="$dispatch('collapse-all-m'); cardState = 'collapse'" 
+                                    :class="cardState === 'collapse' ? 'bg-base-300 border-base-300 text-base-content' : 'btn-outline border-base-300 hover:bg-base-200 text-base-content/70'" 
+                                    class="btn btn-xs join-item flex-1 font-medium text-[0.6rem] px-1 h-6 min-h-0" 
+                                    title="Tutup Semua Card">Tutup Card</button>
+                        </div>
                     </div>
                 </div>
                 @endif
@@ -278,6 +281,8 @@
                                  data-cluster-id="{{ $cId }}"
                                  x-show="matchesSearch('{{ $data['seq'] }}', '{{ addslashes($data['kec_str']) }}', '{{ addslashes($data['kec_str_full'] ?? '') }}', {{ json_encode($data['stores']) }})"
                                  x-data="{ open: false }"
+                                 @expand-all-m.window="open = true"
+                                 @collapse-all-m.window="open = false"
                                  x-init="$watch('search', function(val) { if(val.trim().length) open = true; })"
                                  class="border border-base-300 bg-base-100 rounded-xl shadow-xs hover:border-primary/30 transition-all">
                                 {{-- Header / Trigger --}}
@@ -454,7 +459,11 @@
                 {{-- Section: Toko Belum Ter-cluster --}}
                 @if(count($unclusteredStores) > 0)
                     <div class="mt-3">
-                        <div wire:key="unclustered-stores-card" data-cluster-id="0" x-data="{ open: false }" class="border border-warning/40 bg-warning/5 rounded-xl shadow-xs overflow-hidden">
+                        <div wire:key="unclustered-stores-card" data-cluster-id="0" 
+                             x-data="{ open: false }" 
+                             @expand-all-m.window="open = true"
+                             @collapse-all-m.window="open = false"
+                             class="border border-warning/40 bg-warning/5 rounded-xl shadow-xs overflow-hidden">
                             <div class="flex justify-between items-center gap-2 p-2.5 w-full cursor-pointer select-none hover:bg-warning/10 transition-colors" @click="open = !open">
                                 <div class="flex items-center gap-2 shrink-0">
                                     <input type="checkbox" 
@@ -996,6 +1005,24 @@
                 el.style.display = (matchPilar && matchCluster) ? 'block' : 'none';
             }
         });
+
+        if (mmap && mmap.getLayer('cluster-hulls-fill')) {
+            const hiddenIds = hidden.map(id => parseInt(id));
+            if (hiddenIds.length > 0) {
+                const filter = ['!', ['in', ['get', 'cluster_id'], ['literal', hiddenIds]]];
+                mmap.setFilter('cluster-hulls-fill', filter);
+                mmap.setFilter('cluster-hulls-line', filter);
+                if (mmap.getLayer('cluster-routes-line')) {
+                    mmap.setFilter('cluster-routes-line', filter);
+                }
+            } else {
+                mmap.setFilter('cluster-hulls-fill', null);
+                mmap.setFilter('cluster-hulls-line', null);
+                if (mmap.getLayer('cluster-routes-line')) {
+                    mmap.setFilter('cluster-routes-line', null);
+                }
+            }
+        }
     };
 
     function drawManagementClusters(stores, isInitialFilter = false) {
@@ -1146,14 +1173,14 @@
                     const featureColl = turf.featureCollection(pts.map(p => turf.point(p)));
                     let hull = turf.convex(featureColl);
                     if (hull) {
-                        hull.properties = { color: data.color };
+                        hull.properties = { color: data.color, cluster_id: parseInt(cId) };
                         hullFeatures.push(hull);
                     }
                 }
                 
                 // Route requires at least 2 points
                 if (pts.length >= 2) {
-                    routeFeatures.push(turf.lineString(pts, { color: data.color }));
+                    routeFeatures.push(turf.lineString(pts, { color: data.color, cluster_id: parseInt(cId) }));
                 }
             }
 
