@@ -1,17 +1,24 @@
 <div x-data="{
         show: false,
-        timer: null,
+        delayTimer: null,
+        safetyTimer: null,
         startLoading() {
-            this.show = true;
-            if (this.timer) clearTimeout(this.timer);
-            // Safety timeout: Auto-dismiss spinner after 5 seconds max
-            this.timer = setTimeout(() => {
-                this.show = false;
-            }, 5000);
+            if (this.delayTimer) clearTimeout(this.delayTimer);
+            if (this.safetyTimer) clearTimeout(this.safetyTimer);
+            
+            // Wait 1000ms before showing the spinner to prevent flashing on fast requests
+            this.delayTimer = setTimeout(() => {
+                this.show = true;
+                // Safety timeout: Auto-dismiss spinner after 5 seconds max
+                this.safetyTimer = setTimeout(() => {
+                    this.show = false;
+                }, 5000);
+            }, 1000);
         },
         stopLoading() {
+            if (this.delayTimer) clearTimeout(this.delayTimer);
+            if (this.safetyTimer) clearTimeout(this.safetyTimer);
             this.show = false;
-            if (this.timer) clearTimeout(this.timer);
         },
         initHooks() {
             const register = () => {
