@@ -27,6 +27,7 @@ Thumbs.db
 /storage/framework/sessions/*
 /storage/framework/testing/*
 /storage/framework/views/*
+storage/app/private/spatial_data/
 
 # Custom Debug & Temp Files Ignore
 *.txt
