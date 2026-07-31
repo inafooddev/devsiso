@@ -884,7 +884,10 @@ class Index extends Component
         })->count();
         
         $tanpaRekening = (clone $kpiQuery)->where(function($q) {
-            $q->where('validasi_rekening', false)->orWhereNull('validasi_rekening');
+            $q->whereNotNull('no_rekening')->where('no_rekening', '!=', '')->where('no_rekening', '!=', '0')
+              ->where(function($q2) {
+                  $q2->where('validasi_rekening', false)->orWhereNull('validasi_rekening');
+              });
         })->count();
         
         $tanpaFotoToko = (clone $kpiQuery)->where(function($q) {
@@ -909,7 +912,10 @@ class Index extends Component
             });
         } elseif ($this->filter_type === 'tanpa_rekening') {
             $query->where(function($q) {
-                $q->where('validasi_rekening', false)->orWhereNull('validasi_rekening');
+                $q->whereNotNull('no_rekening')->where('no_rekening', '!=', '')->where('no_rekening', '!=', '0')
+                  ->where(function($q2) {
+                      $q2->where('validasi_rekening', false)->orWhereNull('validasi_rekening');
+                  });
             });
         } elseif ($this->filter_type === 'tanpa_foto_toko') {
             $query->where(function($q) {
