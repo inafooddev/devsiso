@@ -36,10 +36,12 @@ class RewardOutlet extends Model
         'foto_toko3',
         'keterangan',
         'is_valid',
+        'validasi_rekening',
     ];
 
     protected $casts = [
         'is_valid' => 'boolean',
+        'validasi_rekening' => 'boolean',
     ];
 
     protected $appends = [

@@ -47,7 +47,6 @@
         <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
             <a href="{{ route('rwo.summary') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Summary</a>
             <a href="{{ route('rwo.index') }}" class="tab tab-xs px-4 tab-active font-bold shadow-sm bg-base-100" wire:navigate>Detail</a>
-            <a href="{{ route('rwo.plan-kunjungan') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Cek Plan Kunjungan</a>
         </div>
     </div>
 
@@ -107,20 +106,23 @@
             </div>
         </div>
 
-        {{-- Card 4: Belum Ada Rekening --}}
+        {{-- Card 4: Rekening Belum di Validasi --}}
         <div wire:click="setFilter('tanpa_rekening')" 
              class="relative overflow-hidden cursor-pointer group p-3.5 bg-base-100 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 {{ $filter_type === 'tanpa_rekening' ? 'border-info shadow-lg shadow-info/10 ring-1 ring-info' : 'border-base-300 hover:shadow-md' }}">
-            <div class="flex items-start justify-between gap-2">
+            <div class="flex items-start justify-between">
                 <div>
-                    <span class="text-[9px] font-bold uppercase tracking-wider text-base-content/50 line-clamp-2 leading-tight">Belum Ada Rekening</span>
+                    <span class="text-[9px] font-bold uppercase tracking-wider text-base-content/50 line-clamp-2 leading-tight">Rekening Belum Validasi</span>
                     <h3 class="text-xl font-black mt-1.5 text-base-content">{{ number_format($kpis['tanpa_rekening']) }}</h3>
                 </div>
                 <div class="p-2 rounded-xl transition-all duration-300 {{ $filter_type === 'tanpa_rekening' ? 'bg-info/20 text-info' : 'bg-base-200 text-base-content/40 group-hover:bg-info/10 group-hover:text-info' }}">
                     <x-heroicon-s-credit-card class="w-5 h-5 shrink-0" />
                 </div>
             </div>
-            <div class="mt-2.5 flex items-center justify-between text-[10px]">
-                <span class="font-medium text-base-content/50 truncate">Tanpa Rekening</span>
+            <div class="mt-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                    <div class="w-1.5 h-1.5 rounded-full {{ $filter_type === 'tanpa_rekening' ? 'bg-info animate-pulse' : 'bg-info/40' }}"></div>
+                    <span class="text-[10px] font-medium text-base-content/50 truncate">Belum divalidasi</span>
+                </div>
                 <span class="font-bold text-info opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap ml-1">&rarr;</span>
             </div>
         </div>
@@ -202,7 +204,7 @@
                     <option value="">Semua Data</option>
                     <option value="tanpa_ktp">Tanpa NIK KTP</option>
                     <option value="tanpa_foto_ktp">Tanpa Foto KTP</option>
-                    <option value="tanpa_rekening">Tanpa Rekening</option>
+                    <option value="tanpa_rekening">Rekening Belum Validasi</option>
                     <option value="tanpa_foto_toko">Tanpa Foto Toko</option>
                     <option value="tanpa_tikor">Tanpa Tikor (Lat/Long)</option>
                     <option value="tidak_valid">Outlet Tidak Valid</option>
@@ -245,6 +247,16 @@
                         Import
                     </button>
                     @endcanImport
+
+                    {{-- Sync Pareto --}}
+                    @canAdd('rwo.index')
+                    <button wire:click="syncTikorPareto"
+                            wire:loading.attr="disabled" wire:target="syncTikorPareto"
+                            class="btn btn-sm btn-outline btn-info rounded-xl normal-case gap-2 transition-all duration-200">
+                        <x-heroicon-s-arrow-path class="w-4 h-4" wire:loading.class="animate-spin" wire:target="syncTikorPareto" />
+                        Sync Tikor
+                    </button>
+                    @endcanAdd
                 </div>
 
                 {{-- Mobile Actions Menu (Hidden on Desktop) --}}
@@ -279,6 +291,14 @@
                             </button>
                         </li>
                         @endcanImport
+                        @canAdd('rwo.index')
+                        <li>
+                            <button wire:click="syncTikorPareto" class="gap-3 text-info">
+                                <x-heroicon-s-arrow-path class="w-4 h-4" wire:loading.class="animate-spin" wire:target="syncTikorPareto" />
+                                Sync Tikor
+                            </button>
+                        </li>
+                        @endcanAdd
                     </ul>
                 </div>
 
@@ -568,7 +588,7 @@
                             @error('branch_name') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                         </div>
 
-                        <div class="space-y-1.5">
+                        <div class="space-y-1.5 md:col-span-2">
                             <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Customer Code <span class="text-error">*</span></label>
                             <input wire:model="customer_code" type="text" placeholder="Contoh: CUST-01"
                                    class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('customer_code') input-error @enderror">
@@ -582,13 +602,6 @@
                             @error('eskalink_code') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                         </div>
 
-                        <div class="space-y-1.5">
-                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">No HP</label>
-                            <input wire:model="no_hp" type="text" placeholder="Contoh: 08123456789"
-                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('no_hp') input-error @enderror">
-                            @error('no_hp') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
-                        </div>
-
                         {{-- OUTLET DATA --}}
                         <div class="md:col-span-3 border-b border-base-200 pb-3 mt-4">
                             <h4 class="text-xs font-bold uppercase tracking-wider text-primary">Informasi Toko / Outlet</h4>
@@ -597,35 +610,42 @@
                         <div class="md:col-span-2 space-y-1.5">
                             <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Nama Customer / Toko <span class="text-error">*</span></label>
                             <input wire:model="customer_name" type="text" placeholder="Nama Toko"
-                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('customer_name') input-error @enderror">
+                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 placeholder-shown:border-error @error('customer_name') input-error @enderror">
                             @error('customer_name') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="space-y-1.5">
                             <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Nama Pemilik Toko</label>
                             <input wire:model="nama_pemilik_toko" type="text" placeholder="Nama Pemilik Toko"
-                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('nama_pemilik_toko') input-error @enderror">
+                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 placeholder-shown:border-error @error('nama_pemilik_toko') input-error @enderror">
                             @error('nama_pemilik_toko') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="md:col-span-3 space-y-1.5">
                             <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Alamat Lengkap <span class="text-error">*</span></label>
                             <textarea wire:model="alamat" placeholder="Tulis alamat toko secara detail..."
-                                      class="textarea textarea-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('alamat') textarea-error @enderror" rows="3"></textarea>
+                                      class="textarea textarea-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 placeholder-shown:border-error @error('alamat') textarea-error @enderror" rows="3"></textarea>
                             @error('alamat') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">No HP</label>
+                            <input wire:model="no_hp" type="text" placeholder="Contoh: 08123456789"
+                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 placeholder-shown:border-error @error('no_hp') input-error @enderror">
+                            @error('no_hp') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="space-y-1.5">
                             <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Latitude</label>
                             <input wire:model="latitude" type="number" step="any" min="-90" max="90" placeholder="Contoh: -6.12345"
-                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('latitude') input-error @enderror">
+                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 placeholder-shown:border-error @error('latitude') input-error @enderror">
                             @error('latitude') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="space-y-1.5">
                             <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Longitude</label>
                             <input wire:model="longitude" type="number" step="any" min="-180" max="180" placeholder="Contoh: 106.12345"
-                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('longitude') input-error @enderror">
+                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 placeholder-shown:border-error @error('longitude') input-error @enderror">
                             @error('longitude') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                         </div>
 
@@ -634,26 +654,19 @@
                             <h4 class="text-xs font-bold uppercase tracking-wider text-primary">Identitas & KTP</h4>
                         </div>
 
-                        <div class="space-y-1.5">
-                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Nama KTP</label>
-                            <input wire:model="nama_ktp" type="text" placeholder="Nama Sesuai KTP"
-                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('nama_ktp') input-error @enderror">
+                        <div class="space-y-1.5 md:col-span-2">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Nama Sesuai KTP / NPWP</label>
+                            <input wire:model="nama_ktp" type="text" placeholder="Nama Sesuai KTP / NPWP"
+                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 placeholder-shown:border-error @error('nama_ktp') input-error @enderror">
                             @error('nama_ktp') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="space-y-1.5">
-                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">NIK KTP</label>
-                            <input wire:model="nik_ktp" type="text" inputmode="numeric" maxlength="16" placeholder="16 digit NIK KTP"
-                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('nik_ktp') input-error @enderror">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">NIK / NPWP</label>
+                            <input wire:model="nik_ktp" type="text" minlength="15" maxlength="25" placeholder="Contoh: 1234567890123456 atau 12.345.678.9-012.000"
+                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 placeholder-shown:border-error @error('nik_ktp') input-error @enderror">
                             @error('nik_ktp') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                         </div>
-
-                        <x-ui.upload-image 
-                            wireModel="foto_ktp" 
-                            label="Upload Foto KTP" 
-                            :previewUrl="$this->getFotoKtpPreview()" 
-                            :existingUrl="$existing_foto_ktp ? asset('storage/' . $existing_foto_ktp) : null" 
-                        />
 
                         {{-- BANK & REKENING --}}
                         <div class="md:col-span-3 border-b border-base-200 pb-3 mt-4">
@@ -669,9 +682,20 @@
                             <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Nama Bank</label>
                             <div @click.away="open = false" class="relative">
                                 <button type="button" @click="open = !open" 
-                                        class="input input-bordered w-full text-left flex justify-between items-center bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
-                                    <span x-text="selectedBank || 'Pilih Bank / Cari...'" class="truncate"></span>
-                                    <x-heroicon-s-chevron-down class="w-4 h-4 text-base-content/40" />
+                                        :class="!selectedBank ? 'border-error' : 'border-base-300'"
+                                        class="input input-bordered w-full text-left flex justify-between items-center bg-base-200 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 pr-2">
+                                    <span x-text="selectedBank || 'Pilih Bank / Cari...'" class="truncate" :class="!selectedBank ? 'text-base-content/50' : ''"></span>
+                                    <div class="flex items-center gap-1 shrink-0">
+                                        <div x-show="selectedBank" 
+                                             @click.stop="selectedBank = ''; open = false" 
+                                             class="p-1 hover:bg-error/10 rounded-lg transition-colors cursor-pointer text-base-content/40 hover:text-error"
+                                             title="Kosongkan pilihan">
+                                            <x-heroicon-s-x-mark class="w-4 h-4" />
+                                        </div>
+                                        <div class="p-1">
+                                            <x-heroicon-s-chevron-down class="w-4 h-4 text-base-content/40" />
+                                        </div>
+                                    </div>
                                 </button>
                                 <div x-show="open" 
                                      x-transition:enter="transition ease-out duration-150"
@@ -704,14 +728,14 @@
                         <div class="space-y-1.5">
                             <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">No Rekening</label>
                             <input wire:model="no_rekening" type="text" placeholder="Nomor Rekening"
-                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('no_rekening') input-error @enderror">
+                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 placeholder-shown:border-error @error('no_rekening') input-error @enderror">
                             @error('no_rekening') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="space-y-1.5">
                             <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Nama Pemilik Rekening</label>
                             <input wire:model="nama_pemilik_norek" type="text" placeholder="Nama Pemilik Rekening"
-                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('nama_pemilik_norek') input-error @enderror">
+                                   class="input input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 placeholder-shown:border-error @error('nama_pemilik_norek') input-error @enderror">
                             @error('nama_pemilik_norek') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                         </div>
 
@@ -720,9 +744,9 @@
                             <h4 class="text-xs font-bold uppercase tracking-wider text-primary">Validasi & Keterangan</h4>
                         </div>
 
-                        <div class="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                        <div class="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                             {{-- Validasi Checkbox --}}
-                            <div class="space-y-1.5 md:col-span-1">
+                            <div class="space-y-1.5">
                                 <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Status Toko</label>
                                 <div class="form-control bg-base-200 border border-base-300 rounded-2xl p-3 flex flex-row items-center justify-between gap-3 hover:bg-base-200/80 transition-all duration-200 cursor-pointer">
                                     <div class="flex flex-col select-none" @click="$refs.isValidCheckbox.click()">
@@ -734,6 +758,19 @@
                                 @error('is_valid') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
                             </div>
 
+                            {{-- Validasi Rekening Checkbox --}}
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Validasi Rekening</label>
+                                <div class="form-control bg-base-200 border border-base-300 rounded-2xl p-3 flex flex-row items-center justify-between gap-3 hover:bg-base-200/80 transition-all duration-200 cursor-pointer">
+                                    <div class="flex flex-col select-none" @click="$refs.isValidRekeningCheckbox.click()">
+                                        <span class="text-xs font-bold text-base-content/80">Rekening Valid</span>
+                                        <span class="text-[10px] text-base-content/40">Centang jika rekening diverifikasi</span>
+                                    </div>
+                                    <input x-ref="isValidRekeningCheckbox" type="checkbox" wire:model="validasi_rekening" class="checkbox checkbox-primary rounded-lg">
+                                </div>
+                                @error('validasi_rekening') <span class="text-error text-xs font-medium ml-1 mt-1">{{ $message }}</span> @enderror
+                            </div>
+
                             {{-- Keterangan Text --}}
                             <div class="space-y-1.5 md:col-span-2">
                                 <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Keterangan</label>
@@ -743,12 +780,21 @@
                             </div>
                         </div>
 
-                        {{-- FOTO TOKO --}}
+                        {{-- FOTO TOKO & KTP --}}
                         <div class="md:col-span-3 border-b border-base-200 pb-3 mt-4">
-                            <h4 class="text-xs font-bold uppercase tracking-wider text-primary">Media / Foto Toko</h4>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-primary">Media / Foto</h4>
                         </div>
 
-                        <div class="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                            {{-- Foto KTP --}}
+                            <x-ui.upload-image 
+                                wireModel="foto_ktp" 
+                                label="Upload Foto KTP" 
+                                :previewUrl="$this->getFotoKtpPreview()" 
+                                :existingUrl="$existing_foto_ktp ? asset('storage/' . $existing_foto_ktp) : null" 
+                                minHeight="110px"
+                            />
+
                             {{-- Foto Toko by GPS --}}
                             <x-ui.upload-image 
                                 wireModel="foto_toko" 
@@ -844,9 +890,13 @@
                                 <span class="text-xs font-semibold text-base-content/60">Nama Pemilik Toko:</span>
                                 <span class="text-xs font-bold text-base-content">{{ $selectedOutlet->nama_pemilik_toko }}</span>
                             </div>
-                            <div class="flex justify-between">
+                            <div class="flex justify-between border-b border-base-200 pb-1.5">
                                 <span class="text-xs font-semibold text-base-content/60">No HP:</span>
                                 <span class="text-xs font-bold text-base-content font-mono">{{ $selectedOutlet->no_hp ?? '-' }}</span>
+                            </div>
+                            <div class="flex flex-col pt-0.5">
+                                <span class="text-xs font-semibold text-base-content/60 mb-0.5">Alamat Outlet:</span>
+                                <span class="text-xs font-medium text-base-content leading-relaxed">{{ $selectedOutlet->alamat }}</span>
                             </div>
                         </div>
                     </div>
@@ -886,51 +936,6 @@
                     </div>
                 </div>
 
-                {{-- Alamat --}}
-                <div class="bg-base-200/50 p-4 rounded-2xl border border-base-300">
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40">Alamat Outlet</span>
-                    <p class="text-xs text-base-content mt-1.5 leading-relaxed">{{ $selectedOutlet->alamat }}</p>
-                </div>
-
-                {{-- Validasi & Keterangan --}}
-                <div class="bg-base-200/50 p-4 rounded-2xl border border-base-300">
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40">Status Validasi & Keterangan</span>
-                    <div class="mt-2.5 flex flex-col md:flex-row md:items-center gap-4">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-semibold text-base-content/60">Status:</span>
-                            @if($selectedOutlet->is_valid)
-                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-success bg-success/15 rounded-lg py-1 px-2.5">
-                                    <x-heroicon-s-check-circle class="w-4 h-4" />
-                                    <span>Outlet Valid (Toko Ada)</span>
-                                </span>
-                            @else
-                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-error bg-error/15 rounded-lg py-1 px-2.5">
-                                    <x-heroicon-s-x-circle class="w-4 h-4" />
-                                    <span>Outlet Tidak Valid (Toko Tidak Ada)</span>
-                                </span>
-                            @endif
-                        </div>
-                        <div class="flex items-center gap-2 md:border-l md:border-base-300 md:pl-4">
-                            <span class="text-xs font-semibold text-base-content/60">Kelengkapan Data:</span>
-                            @if($selectedOutlet->status === 'Complete')
-                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-success bg-success/15 rounded-lg py-1 px-2.5">
-                                    <x-heroicon-s-check-circle class="w-4 h-4" />
-                                    <span>Complete</span>
-                                </span>
-                            @else
-                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-warning bg-warning/15 rounded-lg py-1 px-2.5">
-                                    <x-heroicon-s-exclamation-circle class="w-4 h-4" />
-                                    <span>Not Complete</span>
-                                </span>
-                            @endif
-                        </div>
-                        <div class="flex-1 flex items-start md:items-center gap-2 md:border-l md:border-base-300 md:pl-4">
-                            <span class="text-xs font-semibold text-base-content/60 whitespace-nowrap">Keterangan:</span>
-                            <span class="text-xs font-semibold text-base-content/85">{{ $selectedOutlet->keterangan ?? 'Tidak ada keterangan tambahan' }}</span>
-                        </div>
-                    </div>
-                </div>
-
                 {{-- KTP & Rekening --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-base-200/50 p-4 rounded-2xl border border-base-300">
@@ -958,10 +963,69 @@
                                 <span class="text-xs font-semibold text-base-content/60">Nomor Rekening:</span>
                                 <span class="text-xs font-bold text-base-content font-mono">{{ $selectedOutlet->no_rekening ?? '-' }}</span>
                             </div>
-                            <div class="flex justify-between">
+                            <div class="flex justify-between border-b border-base-200 pb-1.5">
                                 <span class="text-xs font-semibold text-base-content/60">Pemilik Rekening:</span>
                                 <span class="text-xs font-bold text-base-content">{{ $selectedOutlet->nama_pemilik_norek ?? '-' }}</span>
                             </div>
+                            <div class="flex justify-between">
+                                <span class="text-xs font-semibold text-base-content/60">Status Rekening:</span>
+                                @if($selectedOutlet->validasi_rekening)
+                                    <span class="text-xs font-bold text-success flex items-center gap-1"><x-heroicon-s-check-circle class="w-3.5 h-3.5" /> Valid</span>
+                                @else
+                                    <span class="text-xs font-bold text-base-content/40 flex items-center gap-1"><x-heroicon-s-clock class="w-3.5 h-3.5" /> Belum Validasi</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Validasi & Keterangan --}}
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Status Validasi -->
+                    <div class="bg-base-200/50 p-4 rounded-2xl border border-base-300 flex flex-col justify-start">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40 mb-2">Status Validasi</span>
+                        @if($selectedOutlet->is_valid)
+                            <div class="flex items-start gap-2 text-success bg-success/10 p-2.5 rounded-xl border border-success/20">
+                                <x-heroicon-s-check-circle class="w-5 h-5 shrink-0 mt-0.5" />
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold leading-tight">Outlet Valid</span>
+                                    <span class="text-[11px] font-medium text-success/70">(Toko Ada)</span>
+                                </div>
+                            </div>
+                        @else
+                            <div class="flex items-start gap-2 text-error bg-error/10 p-2.5 rounded-xl border border-error/20">
+                                <x-heroicon-s-x-circle class="w-5 h-5 shrink-0 mt-0.5" />
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold leading-tight">Outlet Tidak Valid</span>
+                                    <span class="text-[11px] font-medium text-error/70">(Toko Tidak Ada)</span>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Kelengkapan Data -->
+                    <div class="bg-base-200/50 p-4 rounded-2xl border border-base-300 flex flex-col justify-start">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40 mb-2">Kelengkapan Data</span>
+                        @if($selectedOutlet->status === 'Complete')
+                            <div class="flex items-center gap-2 text-success bg-success/10 p-2.5 rounded-xl border border-success/20">
+                                <x-heroicon-s-check-badge class="w-5 h-5 shrink-0" />
+                                <span class="text-sm font-bold">Complete</span>
+                            </div>
+                        @else
+                            <div class="flex items-center gap-2 text-warning bg-warning/10 p-2.5 rounded-xl border border-warning/20">
+                                <x-heroicon-s-exclamation-triangle class="w-5 h-5 shrink-0" />
+                                <span class="text-sm font-bold">Not Complete</span>
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Keterangan -->
+                    <div class="bg-base-200/50 p-4 rounded-2xl border border-base-300 flex flex-col justify-start">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40 mb-2">Keterangan</span>
+                        <div class="bg-base-100/50 p-2.5 rounded-xl border border-base-200/50 h-full">
+                            <p class="text-[11px] font-medium text-base-content/80 leading-relaxed">
+                                {{ $selectedOutlet->keterangan ?: 'Tidak ada keterangan tambahan.' }}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -972,12 +1036,12 @@
                     <div class="space-y-1.5">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40 ml-1">Foto KTP</span>
                         @if ($selectedOutlet->foto_ktp)
-                            <a href="{{ asset('storage/' . $selectedOutlet->foto_ktp) }}" target="_blank" class="block group relative rounded-2xl overflow-hidden border border-base-300 bg-base-200">
+                            <div @click.prevent="$dispatch('open-photo-modal', { url: '{{ asset('storage/' . $selectedOutlet->foto_ktp) }}', title: 'Foto KTP' })" class="block group relative rounded-2xl overflow-hidden border border-base-300 bg-base-200 cursor-pointer">
                                 <img src="{{ asset('storage/' . $selectedOutlet->foto_ktp) }}" alt="Foto KTP" class="w-full h-32 object-contain">
                                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity duration-200 gap-1 text-[10px] font-bold">
                                     <x-heroicon-s-magnifying-glass-plus class="w-3 h-3" /> Perbesar
                                 </div>
-                            </a>
+                            </div>
                         @else
                             <div class="flex items-center justify-center border border-dashed border-base-300 rounded-2xl h-32 text-xs text-base-content/30 italic bg-base-200/20 text-center px-2">
                                 Tidak ada foto KTP
@@ -989,12 +1053,12 @@
                     <div class="space-y-1.5">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40 ml-1">Foto Toko by GPS</span>
                         @if ($selectedOutlet->foto_toko)
-                            <a href="{{ asset('storage/' . $selectedOutlet->foto_toko) }}" target="_blank" class="block group relative rounded-2xl overflow-hidden border border-base-300 bg-base-200">
+                            <div @click.prevent="$dispatch('open-photo-modal', { url: '{{ asset('storage/' . $selectedOutlet->foto_toko) }}', title: 'Foto Toko GPS' })" class="block group relative rounded-2xl overflow-hidden border border-base-300 bg-base-200 cursor-pointer">
                                 <img src="{{ asset('storage/' . $selectedOutlet->foto_toko) }}" alt="Foto Toko GPS" class="w-full h-32 object-contain">
                                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity duration-200 gap-1 text-[10px] font-bold">
                                     <x-heroicon-s-magnifying-glass-plus class="w-3 h-3" /> Perbesar
                                 </div>
-                            </a>
+                            </div>
                         @else
                             <div class="flex items-center justify-center border border-dashed border-base-300 rounded-2xl h-32 text-xs text-base-content/30 italic bg-base-200/20 text-center px-2">
                                 Tidak ada foto GPS
@@ -1006,12 +1070,12 @@
                     <div class="space-y-1.5">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40 ml-1">Foto Tampak Depan</span>
                         @if ($selectedOutlet->foto_toko2)
-                            <a href="{{ asset('storage/' . $selectedOutlet->foto_toko2) }}" target="_blank" class="block group relative rounded-2xl overflow-hidden border border-base-300 bg-base-200">
+                            <div @click.prevent="$dispatch('open-photo-modal', { url: '{{ asset('storage/' . $selectedOutlet->foto_toko2) }}', title: 'Foto Tampak Depan' })" class="block group relative rounded-2xl overflow-hidden border border-base-300 bg-base-200 cursor-pointer">
                                 <img src="{{ asset('storage/' . $selectedOutlet->foto_toko2) }}" alt="Foto Tampak Depan" class="w-full h-32 object-contain">
                                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity duration-200 gap-1 text-[10px] font-bold">
                                     <x-heroicon-s-magnifying-glass-plus class="w-3 h-3" /> Perbesar
                                 </div>
-                            </a>
+                            </div>
                         @else
                             <div class="flex items-center justify-center border border-dashed border-base-300 rounded-2xl h-32 text-xs text-base-content/30 italic bg-base-200/20 text-center px-2">
                                 Tidak ada foto Depan
@@ -1023,12 +1087,12 @@
                     <div class="space-y-1.5">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40 ml-1">Foto Tampak Dalam</span>
                         @if ($selectedOutlet->foto_toko3)
-                            <a href="{{ asset('storage/' . $selectedOutlet->foto_toko3) }}" target="_blank" class="block group relative rounded-2xl overflow-hidden border border-base-300 bg-base-200">
+                            <div @click.prevent="$dispatch('open-photo-modal', { url: '{{ asset('storage/' . $selectedOutlet->foto_toko3) }}', title: 'Foto Tampak Dalam' })" class="block group relative rounded-2xl overflow-hidden border border-base-300 bg-base-200 cursor-pointer">
                                 <img src="{{ asset('storage/' . $selectedOutlet->foto_toko3) }}" alt="Foto Tampak Dalam" class="w-full h-32 object-contain">
                                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity duration-200 gap-1 text-[10px] font-bold">
                                     <x-heroicon-s-magnifying-glass-plus class="w-3 h-3" /> Perbesar
                                 </div>
-                            </a>
+                            </div>
                         @else
                             <div class="flex items-center justify-center border border-dashed border-base-300 rounded-2xl h-32 text-xs text-base-content/30 italic bg-base-200/20 text-center px-2">
                                 Tidak ada foto Dalam
@@ -1317,8 +1381,46 @@
     </div>
 
     {{-- ========== MODAL PHOTO VIEWER ========== --}}
-    <div x-data="{ open: false, imageUrl: '', title: '' }" 
-         @open-photo-modal.window="open = true; imageUrl = $event.detail.url; title = $event.detail.title"
+    <div x-data="{ 
+            open: false, 
+            imageUrl: '', 
+            title: '', 
+            scale: 1, 
+            rotation: 0,
+            panX: 0,
+            panY: 0,
+            isDragging: false,
+            startX: 0,
+            startY: 0,
+            reset() {
+                this.scale = 1;
+                this.rotation = 0;
+                this.panX = 0;
+                this.panY = 0;
+            },
+            handleWheel(e) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.15 : 0.15;
+                this.scale = Math.min(Math.max(0.25, this.scale + delta), 4);
+            },
+            startDrag(e) {
+                if (this.scale <= 1) return; // Allow dragging only when zoomed in
+                this.isDragging = true;
+                this.startX = e.clientX - this.panX;
+                this.startY = e.clientY - this.panY;
+            },
+            doDrag(e) {
+                if (!this.isDragging) return;
+                this.panX = e.clientX - this.startX;
+                this.panY = e.clientY - this.startY;
+            },
+            endDrag() {
+                this.isDragging = false;
+            }
+         }" 
+         @open-photo-modal.window="open = true; imageUrl = $event.detail.url; title = $event.detail.title; reset();"
+         @mousemove.window="doDrag($event)"
+         @mouseup.window="endDrag()"
          x-show="open" 
          x-cloak 
          class="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6">
@@ -1335,13 +1437,37 @@
              x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100 translate-y-0" x-transition:leave-end="opacity-0 scale-95 translate-y-4"
              class="relative w-full max-w-4xl flex flex-col items-center justify-center pointer-events-none">
             
-            <div class="w-full flex justify-end mb-4 pointer-events-auto">
+            <div class="w-full flex justify-between items-center mb-4 pointer-events-auto">
+                <div class="flex items-center gap-1 bg-black/40 rounded-xl p-1 backdrop-blur-sm border border-white/10">
+                    <button @click="scale = Math.max(0.25, scale - 0.25)" class="btn btn-sm btn-circle btn-ghost text-white hover:bg-white/20" title="Zoom Out">
+                        <x-heroicon-s-minus class="w-4 h-4" />
+                    </button>
+                    <button @click="scale = Math.min(4, scale + 0.25)" class="btn btn-sm btn-circle btn-ghost text-white hover:bg-white/20" title="Zoom In">
+                        <x-heroicon-s-plus class="w-4 h-4" />
+                    </button>
+                    <button @click="reset()" class="btn btn-sm btn-circle btn-ghost text-white hover:bg-white/20" title="Reset">
+                        <x-heroicon-s-arrow-path class="w-4 h-4" />
+                    </button>
+                    <div class="w-px h-5 bg-white/20 mx-1"></div>
+                    <button @click="rotation -= 90" class="btn btn-sm btn-circle btn-ghost text-white hover:bg-white/20" title="Putar Kiri">
+                        <x-heroicon-s-arrow-uturn-left class="w-4 h-4" />
+                    </button>
+                    <button @click="rotation += 90" class="btn btn-sm btn-circle btn-ghost text-white hover:bg-white/20" title="Putar Kanan">
+                        <x-heroicon-s-arrow-uturn-right class="w-4 h-4" />
+                    </button>
+                </div>
                 <button @click="open = false" class="btn btn-circle btn-ghost text-white/70 hover:text-white hover:bg-white/20">
                     <x-heroicon-s-x-mark class="w-6 h-6" />
                 </button>
             </div>
             
-            <img :src="imageUrl" :alt="title" class="max-h-[75vh] w-auto rounded-xl shadow-2xl pointer-events-auto bg-base-200/20 object-contain ring-1 ring-white/10" />
+            <div class="overflow-hidden flex items-center justify-center pointer-events-auto max-h-[75vh] w-full rounded-xl ring-1 ring-white/10 bg-base-200/20 relative"
+                 @wheel="handleWheel($event)"
+                 @mousedown="startDrag($event)">
+                <img :src="imageUrl" :alt="title" 
+                     :style="`transform: translate(${panX}px, ${panY}px) scale(${scale}) rotate(${rotation}deg); transition: ${isDragging ? 'none' : 'transform 0.2s ease-in-out'}; cursor: ${scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default'};`"
+                     class="max-h-[75vh] w-auto object-contain select-none" draggable="false" />
+            </div>
             <div class="mt-4 text-white font-semibold tracking-wider uppercase text-sm pointer-events-auto" x-text="title"></div>
         </div>
     </div>

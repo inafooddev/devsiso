@@ -14,7 +14,6 @@
         <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
             <a href="{{ route('rwo.summary') }}" class="tab tab-xs px-4 tab-active font-bold shadow-sm bg-base-100" wire:navigate>Summary</a>
             <a href="{{ route('rwo.index') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Detail</a>
-            <a href="{{ route('rwo.plan-kunjungan') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors" wire:navigate>Cek Plan Kunjungan</a>
         </div>
     </div>
 

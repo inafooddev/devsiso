@@ -66,6 +66,7 @@ class Index extends Component
     public $existing_foto_toko3; // Path string
     public $keterangan;
     public $is_valid = false;
+    public $validasi_rekening = false;
     
     public $outletIdToDelete;
     
@@ -116,7 +117,7 @@ class Index extends Component
             'longitude' => 'nullable|numeric|between:-180,180',
             'nama_pemilik_toko' => 'nullable|string|max:100',
             'nama_ktp' => 'nullable|string|max:100',
-            'nik_ktp' => 'nullable|string|max:50',
+            'nik_ktp' => 'nullable|string|min:15|max:25',
             'foto_ktp' => 'nullable|image|max:2048', // 2MB Max
             'nama_bank' => 'nullable|string|max:100',
             'no_rekening' => 'nullable|string|max:50',
@@ -126,6 +127,7 @@ class Index extends Component
             'foto_toko3' => 'nullable|image|max:2048', // 2MB Max
             'keterangan' => 'nullable|string',
             'is_valid' => 'nullable|boolean',
+            'validasi_rekening' => 'nullable|boolean',
         ];
     }
 
@@ -476,6 +478,7 @@ class Index extends Component
         $this->existing_foto_toko3 = $outlet->foto_toko3;
         $this->keterangan = $outlet->keterangan;
         $this->is_valid = (bool) $outlet->is_valid;
+        $this->validasi_rekening = (bool) $outlet->validasi_rekening;
         
         $this->foto_ktp = null;
         $this->foto_toko = null;
@@ -534,6 +537,7 @@ class Index extends Component
         $this->existing_foto_toko3 = null;
         $this->keterangan = '';
         $this->is_valid = false;
+        $this->validasi_rekening = false;
     }
 
     /**
@@ -566,6 +570,7 @@ class Index extends Component
             'nama_pemilik_norek' => $this->nama_pemilik_norek,
             'keterangan' => $this->keterangan,
             'is_valid' => $this->is_valid,
+            'validasi_rekening' => $this->validasi_rekening,
         ];
 
         // Handle Foto KTP
@@ -753,6 +758,55 @@ class Index extends Component
         return Excel::download(new \App\Exports\RewardOutletTemplateExport, $filename);
     }
 
+    public function syncTikorPareto()
+    {
+        try {
+            $updatedRows = \Illuminate\Support\Facades\DB::select("
+                UPDATE reward_outlet AS ro
+                SET 
+                    latitude = l.latitude,
+                    longitude = l.longitude
+                FROM list_toko_pareto_team_elite AS l
+                WHERE ro.customer_code = l.uniq_kd
+                  AND l.latitude IS NOT NULL
+                  AND l.longitude IS NOT NULL
+                  AND l.latitude::text != ''
+                  AND l.longitude::text != ''
+                  AND l.latitude::numeric != 0
+                  AND l.longitude::numeric != 0
+                  AND (ro.latitude IS DISTINCT FROM l.latitude::text OR ro.longitude IS DISTINCT FROM l.longitude::text)
+                RETURNING ro.customer_code, ro.customer_name, ro.latitude, ro.longitude
+            ");
+            
+            $count = count($updatedRows);
+
+            if ($count > 0) {
+                $logContent = "LOG SYNC TIKOR PARETO\n";
+                $logContent .= "Tanggal: " . now()->format('Y-m-d H:i:s') . "\n";
+                $logContent .= "Total Diupdate: " . $count . " Outlet\n";
+                $logContent .= str_repeat("-", 80) . "\n";
+                $logContent .= str_pad("KODE CUSTOMER", 15) . " | " . str_pad("NAMA TOKO", 30) . " | " . str_pad("LATITUDE", 15) . " | " . "LONGITUDE\n";
+                $logContent .= str_repeat("-", 80) . "\n";
+                
+                foreach ($updatedRows as $row) {
+                    $logContent .= str_pad($row->customer_code, 15) . " | " . str_pad(substr($row->customer_name ?? '-', 0, 30), 30) . " | " . str_pad($row->latitude, 15) . " | " . $row->longitude . "\n";
+                }
+                
+                $filename = 'sync_tikor_pareto_' . now()->format('Ymd_His') . '.txt';
+                
+                $this->dispatch('show-toast', ['type' => 'success', 'message' => $count . ' Titik Koordinat berhasil disinkronisasi dari Pareto!']);
+                
+                return response()->streamDownload(function () use ($logContent) {
+                    echo $logContent;
+                }, $filename);
+            } else {
+                $this->dispatch('show-toast', ['type' => 'info', 'message' => 'Tidak ada koordinat baru yang perlu disinkronisasi.']);
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Gagal sync koordinat: ' . $e->getMessage()]);
+        }
+    }
+
     public function getFotoKtpPreview()
     {
         if ($this->foto_ktp && method_exists($this->foto_ktp, 'temporaryUrl')) {
@@ -830,7 +884,7 @@ class Index extends Component
         })->count();
         
         $tanpaRekening = (clone $kpiQuery)->where(function($q) {
-            $q->whereNull('no_rekening')->orWhere('no_rekening', '');
+            $q->where('validasi_rekening', false)->orWhereNull('validasi_rekening');
         })->count();
         
         $tanpaFotoToko = (clone $kpiQuery)->where(function($q) {
@@ -855,7 +909,7 @@ class Index extends Component
             });
         } elseif ($this->filter_type === 'tanpa_rekening') {
             $query->where(function($q) {
-                $q->whereNull('no_rekening')->orWhere('no_rekening', '');
+                $q->where('validasi_rekening', false)->orWhereNull('validasi_rekening');
             });
         } elseif ($this->filter_type === 'tanpa_foto_toko') {
             $query->where(function($q) {
