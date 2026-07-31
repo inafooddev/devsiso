@@ -132,7 +132,11 @@
 
             <div class="absolute bottom-4 right-4 bg-base-100/90 backdrop-blur p-2 rounded-lg border border-base-300 shadow-sm z-[400] text-xs">
                 <div class="flex flex-col gap-1">
-                    <div class="text-[0.6rem] text-base-content/50">
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-warning"></div>
+                        <span>Unclustered</span>
+                    </div>
+                    <div class="text-[0.6rem] text-base-content/50 mt-1">
                         Titik-titik toko dari cluster yang tersimpan
                     </div>
                 </div>
@@ -851,6 +855,8 @@
     @endif
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
 @script
 <script>
     let mmap;
@@ -932,6 +938,14 @@
             mmarkers.forEach(m => m.remove());
             mmarkers = [];
         }
+        if (mmap) {
+            if (mmap.getLayer('cluster-hulls-fill')) mmap.removeLayer('cluster-hulls-fill');
+            if (mmap.getLayer('cluster-hulls-line')) mmap.removeLayer('cluster-hulls-line');
+            if (mmap.getSource('cluster-hulls')) mmap.removeSource('cluster-hulls');
+
+            if (mmap.getLayer('cluster-routes-line')) mmap.removeLayer('cluster-routes-line');
+            if (mmap.getSource('cluster-routes')) mmap.removeSource('cluster-routes');
+        }
     }
 
     function isValidCoord(lat, lng) {
@@ -992,6 +1006,8 @@
         let bounds = new maplibregl.LngLatBounds();
         let hasPoints = false;
 
+        let clusterPoints = {};
+
         stores.forEach((store) => {
             const lat = parseFloat(store.latitude);
             const lng = parseFloat(store.longitude);
@@ -1004,17 +1020,33 @@
                 const clusterId = store.cluster_id || 0;
                 const markerColor = getClusterColor(clusterId);
 
-                const el = document.createElement('div');
-                el.className = 'cluster-marker';
-                el.style.backgroundColor = markerColor;
+                // For Convex Hull and Routing
+                if (clusterId > 0) {
+                    if (!clusterPoints[clusterId]) {
+                        clusterPoints[clusterId] = { points: [], color: markerColor };
+                    }
+                    clusterPoints[clusterId].points.push(point);
+                }
 
                 let pilarName = '?';
                 let pilarClass = 'badge-ghost';
+                let pilarBorderColor = 'white';
                 const pilarStr = (store.pilar || '').toString();
-                if(pilarStr.includes('1.')) { pilarName = 'RWO'; pilarClass = 'badge-primary text-white'; }
-                else if(pilarStr.includes('2.')) { pilarName = 'PNR'; pilarClass = 'badge-secondary text-white'; }
-                else if(pilarStr.includes('3.')) { pilarName = 'NGVO'; pilarClass = 'badge-accent text-white'; }
+                if(pilarStr.includes('1.')) { pilarName = 'RWO'; pilarClass = 'badge-primary text-white'; pilarBorderColor = '#fbbf24'; } // Bright yellow for RWO
+                else if(pilarStr.includes('2.')) { pilarName = 'PNR'; pilarClass = 'badge-secondary text-white'; } 
+                else if(pilarStr.includes('3.')) { pilarName = 'NGVO'; pilarClass = 'badge-accent text-white'; } 
                 else if(pilarStr.includes('4.')) { pilarName = 'GRO'; pilarClass = 'badge-info text-white'; }
+
+                const el = document.createElement('div');
+                el.className = 'cluster-marker';
+                el.style.backgroundColor = markerColor;
+                el.style.borderColor = pilarBorderColor;
+                el.style.borderWidth = '2px';
+                el.style.zIndex = clusterId == 0 ? '1' : '10';
+
+                if (clusterId > 0) {
+                    el.innerHTML = `<span style="font-size: 0.75rem; color: white; font-weight: 900; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); display: block; line-height: 1; margin-top: 1px;">${store.cluster_seq || clusterId}</span>`;
+                }
 
                 let clusterBadge = '';
                 if (store.cluster_id > 0) {
@@ -1099,6 +1131,59 @@
                 mmarkers.push(marker);
             }
         });
+
+        // Draw Hulls and Routes
+        if (typeof turf !== 'undefined') {
+            let hullFeatures = [];
+            let routeFeatures = [];
+
+            for (const cId in clusterPoints) {
+                const data = clusterPoints[cId];
+                const pts = data.points;
+                
+                // Hull requires at least 3 points
+                if (pts.length >= 3) {
+                    const featureColl = turf.featureCollection(pts.map(p => turf.point(p)));
+                    let hull = turf.convex(featureColl);
+                    if (hull) {
+                        hull.properties = { color: data.color };
+                        hullFeatures.push(hull);
+                    }
+                }
+                
+                // Route requires at least 2 points
+                if (pts.length >= 2) {
+                    routeFeatures.push(turf.lineString(pts, { color: data.color }));
+                }
+            }
+
+            if (hullFeatures.length > 0) {
+                mmap.addSource('cluster-hulls', { type: 'geojson', data: turf.featureCollection(hullFeatures) });
+                mmap.addLayer({
+                    id: 'cluster-hulls-fill',
+                    type: 'fill',
+                    source: 'cluster-hulls',
+                    paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.2 }
+                }); 
+                
+                mmap.addLayer({
+                    id: 'cluster-hulls-line',
+                    type: 'line',
+                    source: 'cluster-hulls',
+                    paint: { 'line-color': ['get', 'color'], 'line-width': 2 }
+                });
+            }
+
+            if (routeFeatures.length > 0) {
+                mmap.addSource('cluster-routes', { type: 'geojson', data: turf.featureCollection(routeFeatures) });
+                mmap.addLayer({
+                    id: 'cluster-routes-line',
+                    type: 'line',
+                    source: 'cluster-routes',
+                    paint: { 'line-color': ['get', 'color'], 'line-width': 1.5, 'line-dasharray': [3, 3] }
+                });
+            }
+        }
 
         if (hasPoints && isInitialFilter) {
             mmap.fitBounds(bounds, { padding: 50, duration: 500 });

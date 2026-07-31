@@ -87,13 +87,20 @@
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
     <style>
         .cluster-marker {
-            width: 14px;
-            height: 14px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             border: 2px solid white;
             box-shadow: 0 2px 4px rgba(0,0,0,0.4);
             cursor: pointer;
             transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            margin: 0;
+            line-height: 1;
+            text-align: center;
         }
         .cluster-marker:hover {
             transform: scale(1.5);
@@ -107,7 +114,14 @@
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             min-width: 200px;
+            background-color: #ffffff !important;
+            color: #1f2937 !important;
         }
+        /* Ensure the tip arrow matches the white background regardless of theme */
+        .maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: #ffffff !important; }
+        .maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: #ffffff !important; }
+        .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: #ffffff !important; }
+        .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: #ffffff !important; }
         .hover-popup .maplibregl-popup-content {
             padding: 6px 10px;
             min-width: auto;

@@ -64,16 +64,126 @@
 
     @php
         $summary = [];
+        $pilarCounts = ['1' => 0, '2' => 0, '3' => 0, '4' => 0];
+        $totalStores = 0;
+        
         foreach($clusterStores as $s) {
+            // Group clusters for list UI
             $cId = $s['cluster_id'];
             if(!isset($summary[$cId])) {
                 $summary[$cId] = ['count' => 0, 'stores' => []];
             }
             $summary[$cId]['count']++;
             $summary[$cId]['stores'][] = $s;
+            
+            // Only count clustered stores for KPI (cluster_id > 0)
+            if ($cId > 0) {
+                $totalStores++;
+                // Count pilars
+                $p = (string)($s['pilar'] ?? '');
+                if (str_contains($p, '1.')) $pilarCounts['1']++;
+                elseif (str_contains($p, '2.')) $pilarCounts['2']++;
+                elseif (str_contains($p, '3.')) $pilarCounts['3']++;
+                elseif (str_contains($p, '4.')) $pilarCounts['4']++;
+            }
         }
         ksort($summary);
+        
+        // Count valid clusters (excluding unclustered 0 and bypassed -1)
+        $totalClusters = 0;
+        foreach ($summary as $key => $val) {
+            if ($key > 0) $totalClusters++;
+        }
     @endphp
+
+    {{-- KPI STATS CARDS --}}
+    @if($totalStores > 0)
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 shrink-0">
+        {{-- Total Ter-cluster --}}
+        <div class="bg-base-100 border border-base-200/80 rounded-2xl p-3 sm:p-3.5 shadow-xs hover:shadow-md hover:border-primary/40 transition-all duration-300 flex items-center gap-3 relative overflow-hidden group">
+            <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.25a.75.75 0 0 1-.75-.75V4.5a.75.75 0 0 1 .75-.75h19.5a.75.75 0 0 1 .75.75v15.75a.75.75 0 0 1-.75.75H13.5Z" /></svg>
+            </div>
+            <div class="min-w-0 flex-1">
+                <div class="text-[0.62rem] font-bold text-base-content/60 uppercase tracking-wider truncate">Ter-cluster</div>
+                <div class="text-base sm:text-lg font-black text-base-content leading-tight flex items-baseline gap-1">
+                    {{ number_format($totalStores) }}
+                    <span class="text-[0.65rem] font-semibold text-base-content/40">/ {{ number_format($paretoTotalStores) }}</span>
+                </div>
+            </div>
+        </div>
+
+        {{-- Total Cluster --}}
+        <div class="bg-base-100 border border-base-200/80 rounded-2xl p-3 sm:p-3.5 shadow-xs hover:shadow-md hover:border-indigo-500/40 transition-all duration-300 flex items-center gap-3 relative overflow-hidden group">
+            <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.82c-.317-.159-.69-.159-1.006 0L3.622 6.257C3.24 6.447 3 6.837 3 7.263v12.417c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" /></svg>
+            </div>
+            <div class="min-w-0 flex-1">
+                <div class="text-[0.62rem] font-bold text-base-content/60 uppercase tracking-wider truncate">Total Cluster</div>
+                <div class="text-base sm:text-lg font-black text-base-content leading-tight">
+                    {{ number_format($totalClusters) }}
+                    <span class="text-[0.65rem] font-semibold text-base-content/40">Grup</span>
+                </div>
+            </div>
+        </div>
+
+        {{-- Pilar 1 RWO --}}
+        <div class="bg-base-100 border border-base-200/80 rounded-2xl p-3 sm:p-3.5 shadow-xs hover:shadow-md hover:border-primary/40 transition-all duration-300 flex items-center gap-3 relative overflow-hidden group">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs transition-transform duration-300 group-hover:scale-110">
+                P1
+            </div>
+            <div class="min-w-0 flex-1">
+                <div class="text-[0.62rem] font-extrabold text-primary uppercase tracking-wider truncate">Pilar 1 • RWO</div>
+                <div class="text-base sm:text-lg font-black text-base-content leading-tight flex items-baseline gap-1">
+                    {{ number_format($pilarCounts['1']) }}
+                    <span class="text-[0.65rem] font-semibold text-base-content/40">/ {{ number_format($paretoPilarCounts['1'] ?? 0) }}</span>
+                </div>
+            </div>
+        </div>
+
+        {{-- Pilar 2 PNR --}}
+        <div class="bg-base-100 border border-base-200/80 rounded-2xl p-3 sm:p-3.5 shadow-xs hover:shadow-md hover:border-secondary/40 transition-all duration-300 flex items-center gap-3 relative overflow-hidden group">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-secondary to-pink-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs transition-transform duration-300 group-hover:scale-110">
+                P2
+            </div>
+            <div class="min-w-0 flex-1">
+                <div class="text-[0.62rem] font-extrabold text-secondary uppercase tracking-wider truncate">Pilar 2 • PNR</div>
+                <div class="text-base sm:text-lg font-black text-base-content leading-tight flex items-baseline gap-1">
+                    {{ number_format($pilarCounts['2']) }}
+                    <span class="text-[0.65rem] font-semibold text-base-content/40">/ {{ number_format($paretoPilarCounts['2'] ?? 0) }}</span>
+                </div>
+            </div>
+        </div>
+
+        {{-- Pilar 3 NGVO --}}
+        <div class="bg-base-100 border border-base-200/80 rounded-2xl p-3 sm:p-3.5 shadow-xs hover:shadow-md hover:border-accent/40 transition-all duration-300 flex items-center gap-3 relative overflow-hidden group">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-emerald-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs transition-transform duration-300 group-hover:scale-110">
+                P3
+            </div>
+            <div class="min-w-0 flex-1">
+                <div class="text-[0.62rem] font-extrabold text-accent uppercase tracking-wider truncate">Pilar 3 • NGVO</div>
+                <div class="text-base sm:text-lg font-black text-base-content leading-tight flex items-baseline gap-1">
+                    {{ number_format($pilarCounts['3']) }}
+                    <span class="text-[0.65rem] font-semibold text-base-content/40">/ {{ number_format($paretoPilarCounts['3'] ?? 0) }}</span>
+                </div>
+            </div>
+        </div>
+
+        {{-- Pilar 4 GRO --}}
+        <div class="bg-base-100 border border-base-200/80 rounded-2xl p-3 sm:p-3.5 shadow-xs hover:shadow-md hover:border-info/40 transition-all duration-300 flex items-center gap-3 relative overflow-hidden group">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-info to-cyan-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs transition-transform duration-300 group-hover:scale-110">
+                P4
+            </div>
+            <div class="min-w-0 flex-1">
+                <div class="text-[0.62rem] font-extrabold text-info uppercase tracking-wider truncate">Pilar 4 • GRO</div>
+                <div class="text-base sm:text-lg font-black text-base-content leading-tight flex items-baseline gap-1">
+                    {{ number_format($pilarCounts['4']) }}
+                    <span class="text-[0.65rem] font-semibold text-base-content/40">/ {{ number_format($paretoPilarCounts['4'] ?? 0) }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <div class="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
         {{-- Map Container --}}
@@ -96,11 +206,11 @@
                 <div class="flex flex-col gap-1">
                     <div class="flex items-center gap-2">
                         <div class="w-3 h-3 rounded-full bg-gray-400"></div>
-                        <span>Unclustered (Out of Range)</span>
+                        <span>Unclustered</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <div class="w-3 h-3 rounded-full bg-gray-800"></div>
-                        <span>Telah Masuk Cluster Lain</span>
+                        <span>Telah Disimpan</span>
                     </div>
                     <div class="text-[0.6rem] text-base-content/50 mt-1">
                         Klik marker toko untuk pindah cluster
@@ -564,6 +674,8 @@
     </dialog>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
 @script
 <script>
     let map;
@@ -652,6 +764,14 @@
         if (markers.length > 0) {
             markers.forEach(m => m.remove());
             markers = [];
+        }
+        if (map) {
+            if (map.getLayer('cluster-hulls-fill')) map.removeLayer('cluster-hulls-fill');
+            if (map.getLayer('cluster-hulls-line')) map.removeLayer('cluster-hulls-line');
+            if (map.getSource('cluster-hulls')) map.removeSource('cluster-hulls');
+
+            if (map.getLayer('cluster-routes-line')) map.removeLayer('cluster-routes-line');
+            if (map.getSource('cluster-routes')) map.removeSource('cluster-routes');
         }
     }
 
@@ -778,7 +898,7 @@
         }
     };
 
-    function drawClusters(stores) {
+    function drawClusters(stores, isInitial = false) {
         if (!map) return;
         clearRouteMap();
         if (!stores || stores.length === 0) return;
@@ -800,6 +920,8 @@
         
         let sortedClusterIds = Array.from(uniqueClusterIds).sort((a, b) => a - b);
 
+        let clusterPoints = {}; 
+
         stores.forEach((store) => {
             const lat = parseFloat(store.latitude);
             const lng = parseFloat(store.longitude);
@@ -811,11 +933,34 @@
 
                 const clusterId = store.cluster_id || 0;
                 const markerColor = getClusterColor(clusterId);
+                
+                // For Convex Hull and Routing
+                if (clusterId > 0) {
+                    if (!clusterPoints[clusterId]) {
+                        clusterPoints[clusterId] = { points: [], color: markerColor };
+                    }
+                    clusterPoints[clusterId].points.push(point);
+                }
+
+                let pilarName = '?';
+                let pilarClass = 'badge-ghost';
+                let pilarBorderColor = 'white';
+                const pilarStr = (store.pilar || '').toString();
+                if(pilarStr.includes('1.')) { pilarName = 'RWO'; pilarClass = 'badge-primary text-white'; pilarBorderColor = '#fbbf24'; } // Bright yellow for RWO
+                else if(pilarStr.includes('2.')) { pilarName = 'PNR'; pilarClass = 'badge-secondary text-white'; } 
+                else if(pilarStr.includes('3.')) { pilarName = 'NGVO'; pilarClass = 'badge-accent text-white'; } 
+                else if(pilarStr.includes('4.')) { pilarName = 'GRO'; pilarClass = 'badge-info text-white'; }
 
                 const el = document.createElement('div');
                 el.className = 'cluster-marker';
                 el.style.backgroundColor = markerColor;
+                el.style.borderColor = pilarBorderColor;
+                el.style.borderWidth = '2px';
                 el.style.zIndex = clusterId == 0 ? '1' : '10';
+
+                if (clusterId > 0) {
+                    el.innerHTML = `<span style="font-size: 0.75rem; color: white; font-weight: 900; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); display: block; line-height: 1; margin-top: 1px;">${clusterId}</span>`;
+                }
 
                 let optionsHtml = `<option value="-1" ${clusterId == -1 ? 'selected' : ''}>Telah Disimpan</option>`;
                 optionsHtml += `<option value="0" ${clusterId == 0 ? 'selected' : ''}>Unclustered</option>`;
@@ -828,30 +973,69 @@
                     optionsHtml += `<option value="${id}" ${clusterId == id ? 'selected' : ''}>Cluster ${id}${kec}</option>`;
                 });
 
-                let pilarClass = 'badge-ghost';
-                const pilarStr = (store.pilar || '').toString();
-                if(pilarStr.includes('1.')) pilarClass = 'badge-primary text-white';
-                else if(pilarStr.includes('2.')) pilarClass = 'badge-secondary text-white';
-                else if(pilarStr.includes('3.')) pilarClass = 'badge-accent text-white';
-                else if(pilarStr.includes('4.')) pilarClass = 'badge-info text-white';
+                let clusterBadge = '';
+                if (clusterId > 0) {
+                    clusterBadge = `<span class="badge badge-xs badge-neutral font-bold shrink-0">Cluster ${clusterId}</span>`;
+                } else if (clusterId == -1) {
+                    clusterBadge = `<span class="badge badge-xs bg-gray-800 text-white font-bold shrink-0">Telah Disimpan</span>`;
+                } else {
+                    clusterBadge = `<span class="badge badge-xs badge-warning font-bold shrink-0">Unclustered</span>`;
+                }
 
-                const popupContent = `
-                    <div class="text-xs">
-                        <div class="font-bold text-sm mb-1 text-base-content border-b border-base-200 pb-2 flex justify-between items-start gap-3">
-                            <span class="leading-tight text-blue-600 font-extrabold">${escHtml(store.customer_name)}</span>
-                            <span class="badge badge-xs ${pilarClass} border-none shadow-sm font-bold p-2 shrink-0">Pilar ${escHtml(store.pilar || '?')}</span>
-                        </div>
-                        <div class="text-[0.65rem] text-base-content/60 mb-2 mt-1">
-                            ${escHtml(store.customer_code_prc)}<br>
-                            ${store.kecamatan ? '<span class="text-primary font-bold">' + escHtml(store.kecamatan) + '</span> - ' + escHtml(store.kelurahan) : ''}
-                        </div>
-                        
-                        <div class="form-control w-full mt-2">
-                            <label class="label p-0 pb-1"><span class="label-text text-[0.65rem] font-bold">Pindah Cluster:</span></label>
-                            <select class="select select-xs select-bordered w-full font-semibold" onchange="window.reassignStoreCluster(${store.id}, this)">
+                const distDisplay = store.distributor_name || store.distributor_code || '-';
+
+                const featureHtml = `
+                    <div class="mt-2 pt-2 border-t border-base-200 flex items-end gap-1.5">
+                        <div class="form-control flex-1">
+                            <label class="label p-0 pb-1"><span class="label-text text-[0.65rem] font-bold text-gray-600">Pindah Cluster:</span></label>
+                            <select class="select select-xs select-bordered w-full font-semibold bg-white text-gray-900 border-gray-300 focus:bg-white focus:text-gray-900" style="background-color: white !important; color: #1f2937 !important; border-color: #d1d5db !important;" onchange="window.reassignStoreCluster(${store.id}, this)">
                                 ${optionsHtml}
                             </select>
                         </div>
+                        ${clusterId > 0 ? `
+                        <button type="button" onclick="document.querySelector('.maplibregl-popup-close-button')?.click(); window.reassignStoreCluster(${store.id}, {value: 0})" class="btn btn-xs btn-outline btn-error font-bold px-2 shrink-0 h-[24px]" title="Keluarkan dari Cluster" style="min-height: 0;">
+                            🗑️
+                        </button>
+                        ` : ''}
+                    </div>
+                `;
+
+                const popupContent = `
+                    <div class="text-xs text-gray-800 bg-white" data-theme="light">
+                        {{-- 1. HEADER: Nama Toko & Badge Pilar --}}
+                        <div class="font-bold border-b border-gray-200 pb-2 flex justify-between items-start gap-2 pr-6">
+                            <span class="leading-tight text-blue-600 font-extrabold text-sm">${escHtml(store.customer_name)}</span>
+                            <span class="badge badge-xs ${pilarClass} border-none font-bold p-2 shrink-0">${pilarName}</span>
+                        </div>
+
+                        {{-- 2. KOTAK INFORMASI --}}
+                        <div class="space-y-1 text-[0.7rem] text-gray-700 mt-2">
+                            <div class="flex items-center justify-between gap-2 bg-gray-100 p-1.5 rounded-md">
+                                <span class="text-gray-500 shrink-0 font-medium">Cluster:</span>
+                                <div class="shrink-0">${clusterBadge}</div>
+                            </div>
+                            <div class="flex items-center justify-between gap-2 bg-gray-100 p-1.5 rounded-md">
+                                <span class="text-gray-500 shrink-0 font-medium">Kode Toko:</span>
+                                <span class="font-mono font-bold text-gray-900 shrink-0">${escHtml(store.customer_code_prc || '-')}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-2 bg-gray-100 p-1.5 rounded-md">
+                                <span class="text-gray-500 shrink-0 font-medium">Dist Name:</span>
+                                <span class="font-semibold text-gray-900 text-right truncate max-w-[170px]" title="${escHtml(distDisplay)}">${escHtml(distDisplay)}</span>
+                            </div>
+                            ${store.customer_address ? `
+                                <div class="bg-gray-100 p-1.5 rounded-md leading-tight">
+                                    <span class="text-gray-500 block text-[0.65rem] font-medium mb-0.5">Alamat:</span>
+                                    <span class="break-words text-gray-900 font-medium">${escHtml(store.customer_address)}</span>
+                                </div>
+                            ` : ''}
+                            <div class="flex items-center justify-between gap-2 bg-gray-100 p-1.5 rounded-md">
+                                <span class="text-gray-500 shrink-0 font-medium">Wilayah:</span>
+                                <span class="font-semibold text-gray-900 text-right truncate max-w-[170px]" title="${store.kecamatan ? escHtml(store.kecamatan) + (store.kelurahan ? ' • ' + escHtml(store.kelurahan) : '') : '-'}">${store.kecamatan ? escHtml(store.kecamatan) + (store.kelurahan ? ' • ' + escHtml(store.kelurahan) : '') : '-'}</span>
+                            </div>
+                        </div>
+
+                        {{-- 3. FITUR / AKSI --}}
+                        ${featureHtml}
                     </div>
                 `;
 
@@ -868,7 +1052,60 @@
             }
         });
 
-        if (hasPoints) {
+        // Draw Hulls and Routes
+        if (typeof turf !== 'undefined') {
+            let hullFeatures = [];
+            let routeFeatures = [];
+
+            for (const cId in clusterPoints) {
+                const data = clusterPoints[cId];
+                const pts = data.points;
+                
+                // Hull requires at least 3 points
+                if (pts.length >= 3) {
+                    const featureColl = turf.featureCollection(pts.map(p => turf.point(p)));
+                    let hull = turf.convex(featureColl);
+                    if (hull) {
+                        hull.properties = { color: data.color };
+                        hullFeatures.push(hull);
+                    }
+                }
+                
+                // Route requires at least 2 points
+                if (pts.length >= 2) {
+                    routeFeatures.push(turf.lineString(pts, { color: data.color }));
+                }
+            }
+
+            if (hullFeatures.length > 0) {
+                map.addSource('cluster-hulls', { type: 'geojson', data: turf.featureCollection(hullFeatures) });
+                map.addLayer({
+                    id: 'cluster-hulls-fill',
+                    type: 'fill',
+                    source: 'cluster-hulls',
+                    paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.2 }
+                }); 
+                
+                map.addLayer({
+                    id: 'cluster-hulls-line',
+                    type: 'line',
+                    source: 'cluster-hulls',
+                    paint: { 'line-color': ['get', 'color'], 'line-width': 2 }
+                });
+            }
+
+            if (routeFeatures.length > 0) {
+                map.addSource('cluster-routes', { type: 'geojson', data: turf.featureCollection(routeFeatures) });
+                map.addLayer({
+                    id: 'cluster-routes-line',
+                    type: 'line',
+                    source: 'cluster-routes',
+                    paint: { 'line-color': ['get', 'color'], 'line-width': 1.5, 'line-dasharray': [3, 3] }
+                });
+            }
+        }
+
+        if (hasPoints && isInitial) {
             map.fitBounds(bounds, { padding: 50, duration: 500 });
         }
 
@@ -882,12 +1119,10 @@
         const initialStores = $wire.clusterStores;
         if (initialStores && initialStores.length > 0) {
             if (map.isStyleLoaded()) {
-                drawClusters(initialStores);
-                fetchAndDrawBoundaries(initialStores);
+                drawClusters(initialStores, true);
             } else {
                 map.once('load', () => {
-                    drawClusters(initialStores);
-                    fetchAndDrawBoundaries(initialStores);
+                    drawClusters(initialStores, true);
                 });
             }
         }
@@ -895,16 +1130,16 @@
 
     Livewire.on('clusters-generated', (data) => {
         const stores = data[0]?.stores || data.stores || [];
+        const isInitialUpdate = markers.length === 0;
+
         if (!map) initRouteMap();
         setTimeout(() => {
             if (map) map.resize();
             if (map && map.isStyleLoaded()) {
-                drawClusters(stores);
-                if (stores.length > 0) fetchAndDrawBoundaries(stores);
+                drawClusters(stores, isInitialUpdate);
             } else if (map) {
                 map.once('load', () => {
-                    drawClusters(stores);
-                    if (stores.length > 0) fetchAndDrawBoundaries(stores);
+                    drawClusters(stores, isInitialUpdate);
                 });
             }
         }, 100);

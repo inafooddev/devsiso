@@ -31,6 +31,10 @@ class ClusteringTab extends Component
     // Map Data
     public $clusterStores = [];
     
+    // Pareto KPI
+    public $paretoTotalStores = 0;
+    public $paretoPilarCounts = ['1' => 0, '2' => 0, '3' => 0, '4' => 0];
+
     // Bulk Actions
     public $selectedStoreIds = [];
 
@@ -71,7 +75,7 @@ class ClusteringTab extends Component
 
     public function updatedSearchDistributor()
     {
-        if (strlen($this->searchDistributor) >= 2) {
+        if (strlen($this->searchDistributor) >= 3) {
             $query = DB::table('master_distributors')
                 ->where('is_active', true)
                 ->where(function($q) {
@@ -109,6 +113,8 @@ class ClusteringTab extends Component
         $this->searchDistributor = $code . ' - ' . $name;
         $this->distributorOptions = [];
         $this->clusterStores = [];
+        $this->paretoTotalStores = 0;
+        $this->paretoPilarCounts = ['1' => 0, '2' => 0, '3' => 0, '4' => 0];
     }
 
     public function clearDistributor()
@@ -118,6 +124,8 @@ class ClusteringTab extends Component
         $this->searchDistributor = '';
         $this->distributorOptions = [];
         $this->clusterStores = [];
+        $this->paretoTotalStores = 0;
+        $this->paretoPilarCounts = ['1' => 0, '2' => 0, '3' => 0, '4' => 0];
     }
 
     public function generateMasterClusters()
@@ -141,6 +149,17 @@ class ClusteringTab extends Component
         $allStores = collect(DB::select($sql, ['distributor' => $this->selectedDistributorCode]))
             ->map(fn($item) => (array) $item)
             ->toArray();
+            
+        // Calculate Pareto totals for KPI
+        $this->paretoTotalStores = count($allStores);
+        $this->paretoPilarCounts = ['1' => 0, '2' => 0, '3' => 0, '4' => 0];
+        foreach ($allStores as $s) {
+            $p = (string)($s['pilar'] ?? '');
+            if (str_contains($p, '1.')) $this->paretoPilarCounts['1']++;
+            elseif (str_contains($p, '2.')) $this->paretoPilarCounts['2']++;
+            elseif (str_contains($p, '3.')) $this->paretoPilarCounts['3']++;
+            elseif (str_contains($p, '4.')) $this->paretoPilarCounts['4']++;
+        }
 
         if (count($allStores) === 0) {
             session()->flash('error', 'Tidak ada toko dengan koordinat valid untuk distributor ini.');
