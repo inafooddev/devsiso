@@ -683,9 +683,8 @@ class ManagementTab extends Component
 
             $msg = 'Semua cluster untuk tim / distributor ini berhasil dihapus!';
             session()->flash('message', $msg);
-            $this->dispatch('notify', type: 'success', message: $msg);
             $this->closeConfirmDeleteAllClustersModal();
-            $this->loadManagementClusters();
+            return $this->redirect(request()->header('Referer'));
         }
     }
 

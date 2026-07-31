@@ -4,6 +4,7 @@ namespace App\Livewire\CallPlan\ClusterManagement;
 
 use Livewire\Component;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use App\Traits\EnforcesMenuPermissions;
 use Illuminate\Support\Facades\DB;
 
@@ -14,6 +15,7 @@ class Index extends Component
 
     protected string $menuRoute = 'call-plan.cluster-management'; 
 
+    #[Url(as: 'tab')]
     public $activeTab = 'management';
 
     public $managementSelectedTeam = '';
@@ -23,6 +25,9 @@ class Index extends Component
 
     public function mount()
     {
+        if (!in_array($this->activeTab, ['management', 'clustering'])) {
+            $this->activeTab = 'management';
+        }
         $this->loadManagementTeams();
     }
 

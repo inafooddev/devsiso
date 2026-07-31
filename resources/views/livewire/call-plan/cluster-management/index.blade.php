@@ -4,8 +4,8 @@
     {{-- TABS --}}
     <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 shadow-sm relative z-50">
         <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
-            <button wire:click="setActiveTab('management')" class="tab tab-xs px-4 transition-colors {{ $activeTab === 'management' ? 'tab-active font-bold shadow-sm bg-base-100' : 'text-base-content/70 hover:text-base-content' }}">Management Cluster</button>
-            <button wire:click="setActiveTab('clustering')" class="tab tab-xs px-4 transition-colors {{ $activeTab === 'clustering' ? 'tab-active font-bold shadow-sm bg-base-100' : 'text-base-content/70 hover:text-base-content' }}">Clustering Toko</button>
+            <a href="?tab=management" class="tab tab-xs px-4 transition-colors {{ $activeTab === 'management' ? 'tab-active font-bold shadow-sm bg-base-100' : 'text-base-content/70 hover:text-base-content' }}">Management Cluster</a>
+            <a href="?tab=clustering" class="tab tab-xs px-4 transition-colors {{ $activeTab === 'clustering' ? 'tab-active font-bold shadow-sm bg-base-100' : 'text-base-content/70 hover:text-base-content' }}">Clustering Toko</a>
         </div>
 
         @if($activeTab === 'management')
