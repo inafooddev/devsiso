@@ -30,6 +30,9 @@ class ClusteringTab extends Component
 
     // Map Data
     public $clusterStores = [];
+    
+    // Bulk Actions
+    public $selectedStoreIds = [];
 
     public function mount()
     {
@@ -381,6 +384,41 @@ class ClusteringTab extends Component
                 $this->clusterStores[$idx]['cluster_id'] = (int)$toClusterId;
             }
         }
+        $this->dispatch('clusters-generated', stores: $this->clusterStores);
+    }
+
+    public function toggleSelectClusterStores($clusterId)
+    {
+        $storesInCluster = array_filter($this->clusterStores, fn($s) => $s['cluster_id'] == $clusterId);
+        $storeIds = array_map(fn($s) => 'store-' . $s['id'], $storesInCluster);
+        
+        $alreadySelected = count(array_intersect($storeIds, $this->selectedStoreIds)) === count($storeIds) && count($storeIds) > 0;
+        
+        if ($alreadySelected) {
+            $this->selectedStoreIds = array_values(array_diff($this->selectedStoreIds, $storeIds));
+        } else {
+            $this->selectedStoreIds = array_values(array_unique(array_merge($this->selectedStoreIds, $storeIds)));
+        }
+    }
+
+    public function clearSelectedStores()
+    {
+        $this->selectedStoreIds = [];
+    }
+
+    public function bulkReassignStores($newClusterId)
+    {
+        if ($newClusterId === '' || $newClusterId === null) return;
+        
+        $targetIds = array_map(fn($s) => str_replace('store-', '', $s), $this->selectedStoreIds);
+        
+        foreach ($this->clusterStores as $idx => $store) {
+            if (in_array($store['id'], $targetIds)) {
+                $this->clusterStores[$idx]['cluster_id'] = (int)$newClusterId;
+            }
+        }
+        
+        $this->clearSelectedStores();
         $this->dispatch('clusters-generated', stores: $this->clusterStores);
     }
 

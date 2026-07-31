@@ -212,7 +212,15 @@
                 @if(count($summary) === 0)
                     <div class="text-center py-12 text-base-content/50 text-sm">Belum ada cluster di-generate.</div>
                 @else
-                    @foreach($summary as $cId => $data)
+                    @php
+                        // Sort summary: keys > 0 first (Cluster 1, 2, ...), then 0 (Unclustered), then -1 (Telah Disimpan)
+                        $sortedSummary = collect($summary)->sortBy(function($data, $cId) {
+                            if ($cId > 0) return $cId;
+                            if ($cId == 0) return 999999;
+                            return 1000000; // -1
+                        })->all();
+                    @endphp
+                    @foreach($sortedSummary as $cId => $data)
                         @php
                             $kecamatanList = [];
                             $pilarCounts = ['RWO' => 0, 'PNR' => 0, 'NGVO' => 0, 'GRO' => 0];
@@ -231,114 +239,151 @@
                             $extraKecCount = count($uniqueKec) - 1;
                         @endphp
 
-                        <div x-data="{ open: {{ $loop->first ? 'true' : 'false' }} }"
+                        <div wire:key="cluster-card-{{ $cId }}"
+                             data-cluster-id="{{ $cId }}"
                              x-show="matchesSearch({{ $cId }}, {{ json_encode($data['stores']) }})"
-                             class="bg-base-100 border border-base-300 rounded-xl shadow-xs overflow-hidden transition-all duration-200 {{ $cId == 0 ? 'border-warning/40 bg-warning/5' : '' }}">
+                             x-data="{ open: {{ $loop->first ? 'true' : 'false' }} }"
+                             x-init="$watch('search', function(val) { if(val.trim().length) open = true; })"
+                             class="border border-base-300 bg-base-100 rounded-xl shadow-xs hover:border-primary/30 transition-all {{ $cId == 0 ? 'border-warning/40 bg-warning/5' : ($cId == -1 ? 'border-gray-400 bg-gray-50' : '') }}">
                             
-                            {{-- CARD HEADER --}}
-                            <div @click="open = !open" class="p-2.5 flex items-center justify-between gap-2 cursor-pointer hover:bg-base-200/50 transition-colors w-full select-none">
-                                <div class="flex items-center gap-2.5 flex-1 min-w-0">
-                                    {{-- CHECKBOX CHECK/UNCHECK MAP VISIBILITY --}}
+                            {{-- Header / Trigger --}}
+                            <div class="flex justify-between items-center gap-2 p-2.5 w-full cursor-pointer select-none hover:bg-base-200/60 transition-colors"
+                                 :class="open ? 'rounded-t-xl' : 'rounded-xl'"
+                                 @click="open = !open">
+                                <div class="flex items-center gap-2 shrink-0">
                                     <input type="checkbox" 
                                            :checked="isClusterVisible({{ $cId }})" 
                                            @change="toggleCluster({{ $cId }})"
                                            @click.stop
                                            class="checkbox checkbox-xs checkbox-primary rounded-full shrink-0" 
-                                           title="Tampilkan / Sembunyikan Cluster di Peta" />
-
+                                           title="Tampilkan / Sembunyikan di Peta" />
                                     @if($cId == 0)
                                         <div class="w-3.5 h-3.5 rounded-full bg-gray-400 shrink-0"></div>
-                                        <div class="flex-1 min-w-0">
-                                            <div class="font-extrabold text-xs text-warning leading-tight">Unclustered</div>
-                                            <div class="text-[0.6rem] text-base-content/60">Tidak masuk jangkauan</div>
-                                        </div>
                                     @elseif($cId == -1)
                                         <div class="w-3.5 h-3.5 rounded-full bg-gray-800 shrink-0"></div>
-                                        <div class="flex-1 min-w-0">
-                                            <div class="font-extrabold text-xs leading-tight">Telah Disimpan</div>
-                                            <div class="text-[0.6rem] text-base-content/60">Masuk cluster lain</div>
-                                        </div>
                                     @else
-                                        <div class="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs" style="background-color: hsl({{ ($cId * 137.5) % 360 }}, 70%, 50%);"></div>
-                                        <div class="flex-1 min-w-0">
-                                            <div class="font-extrabold text-xs leading-tight flex items-center gap-1.5">
-                                                <span class="truncate">Cluster {{ $cId }}</span>
-                                                @if($primaryKec)
-                                                    <span class="text-[0.65rem] font-medium text-base-content/70 truncate">({{ $primaryKec }})</span>
-                                                @endif
-
-                                                {{-- POPOVER KECAMATAN LAIN --}}
-                                                @if($extraKecCount > 0)
-                                                    <div class="relative inline-block shrink-0" @click.stop>
-                                                        <button type="button" @click="activeKecPopover = activeKecPopover === {{ $cId }} ? null : {{ $cId }}" class="badge badge-xs badge-secondary font-bold hover:scale-105 transition-transform cursor-pointer">
-                                                            +{{ $extraKecCount }} lagi
-                                                        </button>
-                                                        <div x-show="activeKecPopover === {{ $cId }}" @click.outside="activeKecPopover = null" x-transition.opacity.duration.200ms class="absolute left-0 top-full mt-1 z-50 w-48 p-2 bg-base-100 rounded-lg shadow-xl border border-base-300 text-[0.65rem] text-base-content">
-                                                            <div class="font-bold border-b border-base-200 pb-1 mb-1 text-primary">Daftar Kecamatan:</div>
-                                                            <div class="space-y-0.5 max-h-32 overflow-y-auto">
-                                                                @foreach($uniqueKec as $kName)
-                                                                    <div class="flex items-center gap-1">
-                                                                        <span class="text-base-content/50">•</span>
-                                                                        <span class="font-medium truncate">{{ $kName }}</span>
-                                                                    </div>
-                                                                @endforeach
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @endif
-                                            </div>
+                                        <div class="w-3.5 h-3.5 rounded-full shrink-0" style="background-color: hsl({{ ($cId * 137.5) % 360 }}, 70%, 50%);"></div>
+                                    @endif
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-1.5 min-w-0">
+                                        @if($cId == 0)
+                                            <span class="font-bold text-xs sm:text-sm text-warning truncate shrink-0">Unclustered</span>
+                                            <span class="text-[0.7rem] opacity-70 truncate flex-1 min-w-0">Tidak masuk jangkauan</span>
+                                        @elseif($cId == -1)
+                                            <span class="font-bold text-xs sm:text-sm text-gray-700 truncate shrink-0">Telah Disimpan</span>
+                                            <span class="text-[0.7rem] opacity-70 truncate flex-1 min-w-0">Masuk cluster lain</span>
+                                        @else
+                                            <span class="font-bold text-xs sm:text-sm truncate shrink-0">Cluster {{ $cId }}</span>
+                                            <span class="text-[0.7rem] opacity-70 truncate flex-1 min-w-0">{{ $primaryKec }}</span>
+                                            @if($extraKecCount > 0)
+                                                <div class="relative z-30 inline-block shrink-0"
+                                                     @click.stop
+                                                     @click.outside="if (activeKecPopover === {{ $cId }}) activeKecPopover = null">
+                                                     <button type="button" 
+                                                             class="btn btn-ghost btn-xs btn-circle text-base-content/50 hover:text-info shrink-0 p-0" 
+                                                             @click="activeKecPopover = (activeKecPopover === {{ $cId }} ? null : {{ $cId }})"
+                                                             title="Daftar Lengkap Kecamatan">
+                                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>
+                                                     </button>
+                                                     <div x-show="activeKecPopover === {{ $cId }}" 
+                                                          x-transition:enter="transition ease-out duration-150"
+                                                          x-transition:enter-start="opacity-0 scale-95"
+                                                          x-transition:enter-end="opacity-100 scale-100"
+                                                          x-transition:leave="transition ease-in duration-100"
+                                                          x-transition:leave-start="opacity-100 scale-100"
+                                                          x-transition:leave-end="opacity-0 scale-95"
+                                                          class="absolute right-0 top-full mt-1 w-56 p-2.5 bg-base-100 rounded-xl shadow-xl border border-base-300 z-50 text-xs text-base-content normal-case font-normal"
+                                                          style="display: none;">
+                                                         <div class="font-bold text-[0.7rem] text-primary mb-1 border-b border-base-200 pb-1">Daftar Kecamatan:</div>
+                                                         <div class="text-[0.68rem] text-base-content/80 leading-relaxed font-medium">
+                                                             {{ implode(', ', $uniqueKec) }}
+                                                         </div>
+                                                     </div>
+                                                </div>
+                                            @endif
+                                        @endif
+                                    </div>
+                                    {{-- Pillar Badges (Compact, single line) --}}
+                                    <div class="flex items-center gap-2 mt-0.5 text-[0.6rem] font-semibold overflow-hidden whitespace-nowrap">
+                                        @if($pilarCounts['RWO'] > 0)
+                                            <span class="inline-flex items-center gap-0.5 text-primary shrink-0" title="Pilar 1 RWO: {{ $pilarCounts['RWO'] }} Toko">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-primary shrink-0"></span>{{ $pilarCounts['RWO'] }} RWO
+                                            </span>
+                                        @endif
+                                        @if($pilarCounts['PNR'] > 0)
+                                            <span class="inline-flex items-center gap-0.5 text-secondary shrink-0" title="Pilar 2 PNR: {{ $pilarCounts['PNR'] }} Toko">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-secondary shrink-0"></span>{{ $pilarCounts['PNR'] }} PNR
+                                            </span>
+                                        @endif
+                                        @if($pilarCounts['NGVO'] > 0)
+                                            <span class="inline-flex items-center gap-0.5 text-accent shrink-0" title="Pilar 3 NGVO: {{ $pilarCounts['NGVO'] }} Toko">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-accent shrink-0"></span>{{ $pilarCounts['NGVO'] }} NGVO
+                                            </span>
+                                        @endif
+                                        @if($pilarCounts['GRO'] > 0)
+                                            <span class="inline-flex items-center gap-0.5 text-info shrink-0" title="Pilar 4 GRO: {{ $pilarCounts['GRO'] }} Toko">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-info shrink-0"></span>{{ $pilarCounts['GRO'] }} GRO
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="badge badge-xs sm:badge-sm {{ $data['count'] > $maxStoresPerCluster ? 'badge-error' : 'badge-neutral' }} shrink-0">
+                                    {{ $data['count'] }} Toko
+                                </div>
+                                <div class="flex items-center gap-0.5 shrink-0 z-20 relative">
+                                    @if($cId > 0)
+                                        {{-- Action: Gabung Cluster --}}
+                                        <div class="relative inline-block tooltip tooltip-left" data-tip="Gabungkan ke Cluster Lain">
+                                            <select class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" wire:change="mergeCluster({{ $cId }}, $event.target.value)" onclick="event.stopPropagation();">
+                                                <option value="" disabled selected>Gabung ke...</option>
+                                                @foreach($summary as $optId => $optData)
+                                                    @if($optId > 0 && $optId != $cId)
+                                                        <option value="{{ $optId }}">Cluster {{ $optId }}</option>
+                                                    @endif
+                                                @endforeach
+                                            </select>
+                                            <button type="button" class="btn btn-ghost btn-xs btn-circle text-info hover:bg-info/10 p-1 relative z-10 pointer-events-none">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m-3-13.5L18 7.5m0 0L13.5 12M18 7.5H4.5" /></svg>
+                                            </button>
+                                        </div>
+                                        
+                                        {{-- Bongkar Cluster --}}
+                                        <div class="tooltip tooltip-left" data-tip="Bongkar (Keluarkan semua toko ke Unclustered)">
+                                            <button type="button" wire:click="dissolveCluster({{ $cId }})" class="btn btn-ghost btn-xs btn-circle text-error hover:bg-error/10 p-1" onclick="event.stopPropagation();">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                                            </button>
                                         </div>
                                     @endif
                                 </div>
-
-                                {{-- ACTION BUTTONS & BADGES --}}
-                                <div class="flex items-center gap-1.5 shrink-0" @click.stop>
-                                    @if($cId > 0)
-                                        {{-- MERGE DROPDOWN & DISSOLVE BUTTON --}}
-                                        <select class="select select-bordered select-xs w-24 font-normal text-[0.6rem] h-6 min-h-0 px-1" wire:change="mergeCluster({{ $cId }}, $event.target.value)">
-                                            <option value="" disabled selected>Gabung ke...</option>
-                                            @foreach($summary as $optId => $optData)
-                                                @if($optId > 0 && $optId != $cId)
-                                                    <option value="{{ $optId }}">Cluster {{ $optId }}</option>
-                                                @endif
-                                            @endforeach
-                                        </select>
-                                        
-                                        <button type="button" wire:click="dissolveCluster({{ $cId }})" class="btn btn-ghost btn-xs btn-circle text-error h-6 w-6 min-h-0" title="Bongkar (Keluarkan semua toko ke Unclustered)">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
-                                        </button>
-                                    @endif
-
-                                    {{-- PILAR BREAKDOWN BADGES --}}
-                                    @if($cId > 0)
-                                    <div class="hidden sm:flex items-center gap-0.5">
-                                        @if($pilarCounts['RWO'] > 0)<span class="badge badge-xs badge-primary text-white font-mono text-[0.55rem] px-1" title="Pilar 1 RWO">{{ $pilarCounts['RWO'] }}</span>@endif
-                                        @if($pilarCounts['PNR'] > 0)<span class="badge badge-xs badge-secondary text-white font-mono text-[0.55rem] px-1" title="Pilar 2 PNR">{{ $pilarCounts['PNR'] }}</span>@endif
-                                        @if($pilarCounts['NGVO'] > 0)<span class="badge badge-xs badge-accent text-white font-mono text-[0.55rem] px-1" title="Pilar 3 NGVO">{{ $pilarCounts['NGVO'] }}</span>@endif
-                                        @if($pilarCounts['GRO'] > 0)<span class="badge badge-xs badge-info text-white font-mono text-[0.55rem] px-1" title="Pilar 4 GRO">{{ $pilarCounts['GRO'] }}</span>@endif
-                                    </div>
-                                    @endif
-
-                                    <span class="badge badge-xs {{ $data['count'] > $maxStoresPerCluster ? 'badge-error' : 'badge-neutral' }} font-bold shrink-0">
-                                        {{ $data['count'] }} Toko
-                                    </span>
-
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 text-base-content/50 transition-transform duration-200 shrink-0" :class="{ 'rotate-180': open }">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                                    </svg>
-                                </div>
+                                {{-- Chevron indicator --}}
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+                                     class="w-3.5 h-3.5 shrink-0 text-base-content/40 transition-transform duration-200"
+                                     :class="{ 'rotate-180': open }">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                                </svg>
                             </div>
 
-                            {{-- CARD EXPANDABLE BODY TABLE --}}
-                            <div x-show="open" x-transition.opacity.duration.200ms class="border-t border-base-200">
+                            {{-- Collapsible content --}}
+                            <div x-show="open"
+                                 class="border-t border-base-300 rounded-b-xl overflow-hidden">
                                 <div class="overflow-x-auto">
                                     <table class="table table-xs table-zebra w-full text-[0.7rem]">
-                                        <thead>
-                                            <tr class="bg-base-200/50 text-[0.6rem] text-base-content/60">
-                                                <th class="w-8 text-center">#</th>
-                                                <th>Nama Toko & Wilayah</th>
-                                                <th class="text-right">Pilar</th>
-                                                <th class="w-28 text-center">Aksi</th>
+                                        <thead class="bg-base-200/80 text-[0.65rem] border-b border-base-200 text-base-content/70">
+                                            <tr>
+                                                <th class="w-8 text-center py-1 px-1">
+                                                    @php
+                                                        $cKeys = array_map(fn($s) => 'store-' . $s['id'], $data['stores']);
+                                                        $isAllSelected = count($cKeys) > 0 && count(array_intersect($cKeys, $selectedStoreIds)) === count($cKeys);
+                                                    @endphp
+                                                    <input type="checkbox" 
+                                                           wire:click="toggleSelectClusterStores({{ $cId }})" 
+                                                           {{ $isAllSelected ? 'checked' : '' }} 
+                                                           class="checkbox checkbox-xs checkbox-primary rounded-xs" 
+                                                           title="Pilih Semua / Batal Pilih Toko" />
+                                                </th>
+                                                <th class="py-1 px-2 font-semibold">Toko ({{ count($data['stores']) }})</th>
+                                                <th class="py-1 px-2 text-right font-semibold pr-3">Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -362,32 +407,47 @@
                                                         $pilarClass = 'badge-info text-white';
                                                     }
                                                 @endphp
-                                                <tr class="hover:bg-base-200/50 transition-colors group">
-                                                    <td class="w-8 text-center font-mono opacity-50">{{ $loop->iteration }}</td>
-                                                    <td ondblclick="window.focusMapOnStore({{ $st['latitude'] ?? 0 }}, {{ $st['longitude'] ?? 0 }}, {{ $st['id'] }})" class="cursor-pointer max-w-[170px]" title="Klik ganda untuk fokus di peta">
-                                                        <div class="flex items-center gap-1">
-                                                            <div class="font-bold text-gray-900 truncate leading-tight" title="{{ $st['customer_name'] }}">{{ $st['customer_name'] }}</div>
-                                                            <button type="button" onclick="window.focusMapOnStore({{ $st['latitude'] ?? 0 }}, {{ $st['longitude'] ?? 0 }}, {{ $st['id'] }})" class="btn btn-ghost btn-xs btn-circle text-info opacity-40 hover:opacity-100 shrink-0 h-5 w-5 min-h-0" title="Fokus di Peta">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>
+                                                <tr wire:key="store-row-{{ $st['item_id'] ?? $st['id'] }}" :class="search.length > 0 && ('{{ strtolower(addslashes($st['customer_name'] ?? '')) }}'.includes(search.toLowerCase().trim()) || '{{ strtolower(addslashes($st['customer_code_prc'] ?? '')) }}'.includes(search.toLowerCase().trim())) ? 'bg-amber-100 text-gray-900 font-bold' : ''" class="hover:bg-base-200/50 transition-colors group">
+                                                    <td class="w-8 text-center font-mono opacity-70">
+                                                        <input type="checkbox" wire:model.live="selectedStoreIds" value="store-{{ $st['id'] }}" class="checkbox checkbox-xs checkbox-primary rounded-xs" />
+                                                    </td>
+                                                    <td ondblclick="window.focusMapOnStore('{{ $st['latitude'] ?? 0 }}', '{{ $st['longitude'] ?? 0 }}', {{ $st['id'] }})" class="cursor-pointer w-full" title="Klik ganda untuk fokus di peta">
+                                                        <div class="flex items-center gap-2">
+                                                            <div class="font-bold">{{ $st['customer_name'] }}</div>
+                                                            <button type="button" onclick="window.focusMapOnStore('{{ $st['latitude'] ?? 0 }}', '{{ $st['longitude'] ?? 0 }}', {{ $st['id'] }})" class="btn btn-ghost btn-xs btn-circle text-info opacity-50 hover:opacity-100" title="Fokus di Peta">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>
                                                             </button>
                                                         </div>
-                                                        <div class="text-[0.6rem] text-base-content/60 truncate">{{ $st['customer_code_prc'] }} &bull; {{ $st['kelurahan'] ?? '-' }}</div>
+                                                        <div class="opacity-60">{{ $st['customer_code_prc'] }} &bull; {{ $st['kelurahan'] ?? '-' }}</div>
                                                     </td>
-                                                    <td class="text-right shrink-0">
-                                                        <span class="badge badge-xs {{ $pilarClass }} border-none px-1.5 py-1 font-bold shadow-xs">{{ $pilarName }}</span>
-                                                    </td>
-                                                    <td class="w-28 text-center shrink-0">
-                                                        <select class="select select-bordered select-xs w-full opacity-0 group-hover:opacity-100 transition-opacity font-normal text-[0.65rem] h-6 min-h-0" wire:change="reassignStore({{ $st['id'] }}, $event.target.value)">
-                                                            <option value="" disabled selected>Pindah ke...</option>
+                                                    <td class="text-right whitespace-nowrap">
+                                                        <div class="flex items-center justify-end gap-1 relative z-10">
+                                                            <span class="badge badge-xs {{ $pilarClass }} border-none px-2 py-2 font-bold shadow-sm">{{ $pilarName }}</span>
+                                                            
+                                                            {{-- Action: Move (Pindahkan) --}}
+                                                            <div class="relative inline-block tooltip tooltip-left" data-tip="Pindahkan Toko Ini ke Cluster Lain">
+                                                                <select class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" wire:change="reassignStore({{ $st['id'] }}, $event.target.value)">
+                                                                    <option value="" disabled selected>Pindah ke...</option>
+                                                                    @foreach($summary as $optId => $optData)
+                                                                        @if($optId > 0 && $optId != $cId)
+                                                                            <option value="{{ $optId }}">Cluster {{ $optId }}</option>
+                                                                        @endif
+                                                                    @endforeach
+                                                                </select>
+                                                                <button type="button" class="btn btn-ghost btn-xs btn-circle text-warning hover:bg-warning/10 relative z-10 pointer-events-none">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+                                                                </button>
+                                                            </div>
+
+                                                            {{-- Action: Remove (Keluarkan) --}}
                                                             @if($cId > 0)
-                                                                <option value="0" class="text-error">Keluarkan (Unclustered)</option>
+                                                            <div class="tooltip tooltip-left" data-tip="Keluarkan Toko dari Cluster">
+                                                                <button type="button" wire:click="reassignStore({{ $st['id'] }}, 0)" class="btn btn-ghost btn-xs btn-circle text-error hover:bg-error/10 relative z-10">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                                                                </button>
+                                                            </div>
                                                             @endif
-                                                            @foreach($summary as $optId => $optData)
-                                                                @if($optId > 0 && $optId != $cId)
-                                                                    <option value="{{ $optId }}">Cluster {{ $optId }}</option>
-                                                                @endif
-                                                            @endforeach
-                                                        </select>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -399,6 +459,37 @@
                     @endforeach
                 @endif
             </div>
+            
+            {{-- Floating Bulk Action Bar --}}
+            @if(count($selectedStoreIds) > 0)
+                <div class="p-2.5 bg-neutral text-neutral-content border-t border-neutral-700 shadow-2xl flex items-center justify-between gap-2 z-40 animate-fade-in">
+                    <div class="flex items-center gap-2">
+                        <span class="badge badge-primary font-bold text-[0.7rem] px-2 py-0.5">{{ count($selectedStoreIds) }} Toko</span>
+                        <button type="button" wire:click="clearSelectedStores" class="btn btn-ghost btn-xs text-neutral-content/70 hover:text-white underline text-[0.65rem] p-0 h-auto min-h-0">Batal</button>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <div class="relative inline-block">
+                            <select class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" wire:change="bulkReassignStores($event.target.value)">
+                                <option value="" disabled selected>Pindah ke...</option>
+                                @foreach($summary as $optId => $optData)
+                                    @if($optId > 0)
+                                        <option value="{{ $optId }}">Cluster {{ $optId }}</option>
+                                    @endif
+                                @endforeach
+                            </select>
+                            <button type="button" class="btn btn-xs btn-warning text-white font-bold gap-1 shadow-xs pointer-events-none relative z-10">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+                                Pindahkan
+                            </button>
+                        </div>
+                        <button type="button" wire:click="bulkReassignStores(0)" class="btn btn-xs btn-error text-white font-bold gap-1 shadow-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                            Keluarkan
+                        </button>
+                    </div>
+                </div>
+            @endif
+
         </div>
     </div>
 
