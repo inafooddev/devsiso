@@ -65,7 +65,12 @@ class JksTeamEliteEskaSheet implements FromCollection, WithTitle, WithStyles, Sh
                 DB::raw("case when mc.week_month = 4 then 'Y' else 'T' end  as w4"),
             ])
             ->where('j.kode_team', $this->slsno)
-            ->whereBetween('j.tanggal', [$this->startDate, $this->endDate]);
+            ->whereBetween('j.tanggal', [$this->startDate, $this->endDate])
+            ->where(function($q) {
+                $q->where('j.custno', 'not ilike', '%BRIF%')
+                  ->where('j.custno', 'not ilike', '%BRIEF%')
+                  ->where('j.custno', 'not ilike', '%EVAL%');
+            });
 
         // Apply hierarchy access
         $user = auth()->user();

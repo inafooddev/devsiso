@@ -307,6 +307,9 @@
                         <div class="tooltip tooltip-bottom" data-tip="{{ !$canExportBtn ? 'Pilih Team dan tanggal terlebih dahulu' : 'Export data ke Excel format ESKA' }}">
                             <x-ui.action-button type="default" icon="arrow-down-tray" label="ESKA Export" class="text-info bg-info/10 hover:bg-info hover:text-white border-0 shadow-sm" wire:click="openExportEskaModal" :disabled="!$canExportBtn" />
                         </div>
+                        <div class="tooltip tooltip-bottom" data-tip="{{ !$canExportBtn ? 'Pilih Team dan tanggal terlebih dahulu' : 'Cetak Data' }}">
+                            <x-ui.action-button type="default" icon="printer" label="Print" class="text-secondary bg-secondary/10 hover:bg-secondary hover:text-white border-0 shadow-sm" wire:click="print" :disabled="!$canExportBtn" />
+                        </div>
                         @endcanExport
 
                     </div>
@@ -1131,6 +1134,10 @@
                     }
                 }
             }
+
+            window.addEventListener('open-new-tab', (e) => {
+                window.open(e.detail.url, '_blank');
+            });
         </script>
     @endpush
 @endonce

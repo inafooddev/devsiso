@@ -336,6 +336,37 @@ class Index extends Component
     }
 
     /**
+     * Cetak Data
+     */
+    public function print()
+    {
+        try {
+            $this->authorizeAction('can_export');
+
+            if (empty($this->filterTeam) || empty($this->filterStartDate) || empty($this->filterEndDate)) {
+                session()->flash('error', 'Pilih Team dan rentang tanggal terlebih dahulu sebelum cetak.');
+                return;
+            }
+
+            $teamsLog = is_array($this->filterTeam) ? implode(', ', $this->filterTeam) : $this->filterTeam;
+            \App\Helpers\ActivityLogger::log('Print JKS Team Elite', "Mencetak data JKS Team Elite. Team: {$teamsLog}");
+
+            $url = route('jks-team-elite.print', [
+                'teams' => $this->filterTeam,
+                'start_date' => $this->filterStartDate,
+                'end_date' => $this->filterEndDate,
+                'search' => $this->search,
+                'sort_field' => $this->sortField,
+                'sort_direction' => $this->sortDirection,
+            ]);
+
+            $this->dispatch('open-new-tab', url: $url);
+        } catch (\Exception $e) {
+            return $this->downloadExceptionLog($e, 'Cetak Data');
+        }
+    }
+
+    /**
      * Buka modal import (Memicu child component)
      */
     public function openImportModal()
@@ -355,7 +386,12 @@ class Index extends Component
                      ->on('jks_team_elite.distributor_code', '=', 'l.distributor_code');
             })
             ->where('jks_team_elite.tanggal', $tanggal)
-            ->where('jks_team_elite.kode_team', $kodeTeam);
+            ->where('jks_team_elite.kode_team', $kodeTeam)
+            ->where(function($q) {
+                $q->where('jks_team_elite.custno', 'not ilike', '%BRIF%')
+                  ->where('jks_team_elite.custno', 'not ilike', '%BRIEF%')
+                  ->where('jks_team_elite.custno', 'not ilike', '%EVAL%');
+            });
             
         $this->applyHierarchyAccess($query, 'jks_team_elite.distributor_code');
 

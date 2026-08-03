@@ -299,6 +299,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/call-plan', CallPlanIndex::class)->name('call-plan.index');
     Route::get('/plan-call-team-elite/toko-pareto', ListTokoPareto::class)->name('plan-call-team-elite.toko-pareto');
     Route::get('/jks-team-elite', JksTeamEliteIndex::class)->name('jks-team-elite.index');
+    Route::get('/jks-team-elite/print', [\App\Http\Controllers\JksTeamElitePrintController::class, 'index'])->name('jks-team-elite.print');
     Route::get('/call-plan/jks-team-elite/summary-kunjungan', SummaryKunjunganIndex::class)->name('call-plan.jks-team-elite.summary-kunjungan');
     Route::get('/call-plan/jks-team-elite/summary-visit-team-elite', SummaryVisitTeamEliteIndex::class)->name('call-plan.jks-team-elite.summary-visit-team-elite');
     Route::get('/call-plan/jks-team-elite/monitoring', MonitoringJKSTeamEliteIndex::class)->name('call-plan.jks-team-elite.monitoring');
