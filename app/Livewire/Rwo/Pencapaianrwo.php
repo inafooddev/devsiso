@@ -16,12 +16,7 @@ class Pencapaianrwo extends Component
 
     // Filters
     public $search = '';
-    public $kuartal = '';
-    public $region = '';
-    public $area = '';
-    public $supervisor = '';
-    public $distributor = '';
-
+    // Applied Filters (used for actual queries)
     public $appliedKuartal = '';
     public $appliedRegion = '';
     public $appliedArea = '';
@@ -34,20 +29,15 @@ class Pencapaianrwo extends Component
     public $appliedStatusReward = 'Semua';
 
     // Status Filters
-    public $statusProgress = 'Semua'; // Semua, Hijau, Kuning, Merah
-    public $statusSkb = 'Semua';      // Semua, Sudah, Belum
-    public $statusData = 'Semua';     // Semua, Lengkap, Belum
-    public $statusReward = 'Semua';   // Semua, 2.5%, 2%, 1.5%
+    public $statusProgress = 'Semua';
+    public $statusSkb = 'Semua';
+    public $statusData = 'Semua';
+    public $statusReward = 'Semua';
 
-    public $sortField = 'gap';
+    protected $listeners = ['apply-rwo-filter' => 'applyModalFilter'];
+
+    public $sortField = 'wilayah';
     public $sortDirection = 'desc';
-
-    // Select lists
-    public $kuartals = [];
-    public $regions = [];
-    public $areas = [];
-    public $supervisors = [];
-    public $distributors = [];
 
     // Modals
     public $selectedStore = null;
@@ -56,19 +46,8 @@ class Pencapaianrwo extends Component
 
     public function mount()
     {
-        $user = auth()->user();
-        
-        $this->kuartals = DB::table('master_calender')->select('quarter')->whereNotNull('quarter')->distinct()->orderBy('quarter')->get();
-        
-        $regionQuery = DB::table('master_regions')->orderBy('region_name');
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $regionQuery->whereIn('region_code', (array) $user->region_code);
-        }
-        $this->regions = $regionQuery->get();
-
         $currentMonth = (int) date('n');
         $currentQuarter = (string) ceil($currentMonth / 3);
-        $this->kuartal = $currentQuarter;
         $this->appliedKuartal = $currentQuarter;
     }
 
@@ -77,68 +56,71 @@ class Pencapaianrwo extends Component
         $this->resetPage();
     }
 
-    public function updatedRegion($value)
+    public function updatedSortField()
     {
-        $this->area = '';
-        $this->supervisor = '';
-        $this->distributor = '';
-        
-        $this->areas = empty($value) ? [] : DB::table('master_areas')
-            ->where('region_code', $value)
-            ->orderBy('area_name')
-            ->get();
-            
-        $this->supervisors = [];
-        $this->distributors = [];
         $this->resetPage();
     }
 
-    public function updatedArea($value)
+    #[Livewire\Attributes\On('apply-rwo-filter')]
+    public function applyModalFilter($filters)
     {
-        $this->supervisor = '';
-        $this->distributor = '';
+        $this->appliedKuartal = $filters['kuartal'] ?? '';
+        $this->appliedRegion = $filters['region'] ?? '';
+        $this->appliedArea = $filters['area'] ?? '';
+        $this->appliedSupervisor = $filters['supervisor'] ?? '';
+        $this->appliedDistributor = $filters['distributor'] ?? '';
         
-        $this->supervisors = empty($value) ? [] : DB::table('master_distributors')
-            ->where('area_code', $value)
-            ->select('supervisor_code', 'supervisor_name')
-            ->whereNotNull('supervisor_code')
-            ->where('supervisor_code', '!=', '')
-            ->distinct()
-            ->orderBy('supervisor_name')
-            ->get();
-            
-        $this->distributors = [];
         $this->resetPage();
     }
 
-    public function updatedSupervisor($value)
+    public function updatedStatusProgress()
     {
-        $this->distributor = '';
-        
-        $this->distributors = empty($value) ? [] : DB::table('master_distributors')
-            ->where('supervisor_code', $value)
-            ->when($this->area, function ($q) {
-                return $q->where('area_code', $this->area);
-            })
-            ->select('distributor_code', 'distributor_name')
-            ->orderBy('distributor_name')
-            ->get();
-            
-        $this->resetPage();
-    }
-
-    public function applyFilter()
-    {
-        $this->appliedKuartal = $this->kuartal;
-        $this->appliedRegion = $this->region;
-        $this->appliedArea = $this->area;
-        $this->appliedSupervisor = $this->supervisor;
-        $this->appliedDistributor = $this->distributor;
         $this->appliedStatusProgress = $this->statusProgress;
+        $this->resetPage();
+    }
+
+    public function updatedStatusSkb()
+    {
         $this->appliedStatusSkb = $this->statusSkb;
+        $this->resetPage();
+    }
+
+    public function updatedStatusData()
+    {
         $this->appliedStatusData = $this->statusData;
+        $this->resetPage();
+    }
+
+    public function updatedStatusReward()
+    {
         $this->appliedStatusReward = $this->statusReward;
         $this->resetPage();
+    }
+
+    public function resetFilter()
+    {
+        $this->search = '';
+        $currentMonth = (int) date('n');
+        $this->appliedKuartal = (string) ceil($currentMonth / 3);
+        $this->appliedRegion = '';
+        $this->appliedArea = '';
+        $this->appliedSupervisor = '';
+        $this->appliedDistributor = '';
+        
+        $this->statusProgress = 'Semua';
+        $this->statusSkb = 'Semua';
+        $this->statusData = 'Semua';
+        $this->statusReward = 'Semua';
+
+        $this->appliedStatusProgress = 'Semua';
+        $this->appliedStatusSkb = 'Semua';
+        $this->appliedStatusData = 'Semua';
+        $this->appliedStatusReward = 'Semua';
+        
+        $this->resetPage();
+        
+        // Broadcast to the filter component so it resets its UI as well
+        $this->dispatch('rwo-filter-reset');
     }
 
     public function sortBy($field)
@@ -152,28 +134,16 @@ class Pencapaianrwo extends Component
         $this->resetPage();
     }
 
-    public function resetFilter()
-    {
-        $this->search = '';
-        $this->kuartal = (string) ceil((int)date('n') / 3);
-        $this->region = '';
-        $this->area = '';
-        $this->supervisor = '';
-        $this->distributor = '';
-        $this->statusProgress = 'Semua';
-        $this->statusSkb = 'Semua';
-        $this->statusData = 'Semua';
-        $this->statusReward = 'Semua';
-        $this->applyFilter();
-    }
 
     public function showStoreDetail($customerCode, $distributorCode)
     {
-        $this->selectedStore = $this->getStoreQuery()
+        $result = $this->getStoreQuery()
             ->where('l.customer_code', $customerCode)
             ->where('l.distributor_code', $distributorCode)
             ->where('l.kuartal', $this->appliedKuartal)
             ->first();
+
+        $this->selectedStore = $result ? (array) $result : null;
 
         if ($this->selectedStore) {
             $this->isDetailModalOpen = true;
@@ -200,8 +170,8 @@ class Pencapaianrwo extends Component
             RemarkListPotensiRwo::updateOrCreate(
                 [
                     'kuartal' => $this->appliedKuartal,
-                    'distributor_code' => $this->selectedStore->distributor_code,
-                    'customer_code' => $this->selectedStore->customer_code,
+                    'distributor_code' => $this->selectedStore['distributor_code'],
+                    'customer_code' => $this->selectedStore['customer_code'],
                 ],
                 [
                     'remark' => $this->remarkKhusus
@@ -505,6 +475,12 @@ class Pencapaianrwo extends Component
         if ($this->sortField === 'gap') {
             $gapSql = "($proratedTargetSql - COALESCE($achievementSql, 0))";
             $query->orderByRaw("$gapSql {$this->sortDirection}");
+        } elseif ($this->sortField === 'wilayah') {
+            $query->orderBy('md.region_name', 'asc')
+                  ->orderBy('md.area_name', 'asc')
+                  ->orderBy('md.supervisor_name', 'asc')
+                  ->orderBy('md.distributor_name', 'asc')
+                  ->orderBy('l.customer_name', 'asc');
         } else {
             // Default fallback
             $query->orderBy('l.customer_name', 'asc');
@@ -681,5 +657,160 @@ class Pencapaianrwo extends Component
             new \App\Exports\PencapaianRwoExport($query, $this->appliedKuartal),
             'Pencapaian_RWO_Q' . $this->appliedKuartal . '_' . date('Ymd_His') . '.xlsx'
         );
+    }
+
+    public function loadMapData()
+    {
+        $query = $this->getStoreQuery();
+        $this->applyAccessScope($query);
+
+        if ($this->appliedKuartal) {
+            $query->where('l.kuartal', $this->appliedKuartal);
+        }
+        if ($this->appliedRegion) {
+            $query->where('md.region_code', $this->appliedRegion);
+        }
+        if ($this->appliedArea) {
+            $query->where('md.area_code', $this->appliedArea);
+        }
+        if ($this->appliedSupervisor) {
+            $query->where('md.supervisor_code', $this->appliedSupervisor);
+        }
+        if ($this->appliedDistributor) {
+            $query->where('l.distributor_code', $this->appliedDistributor);
+        }
+
+        if ($this->search) {
+            $q = '%' . strtolower($this->search) . '%';
+            $query->where(function($sub) use ($q) {
+                $sub->whereRaw('LOWER(l.customer_name) LIKE ?', [$q])
+                    ->orWhereRaw('LOWER(l.customer_code) LIKE ?', [$q]);
+            });
+        }
+
+        if ($this->appliedStatusSkb !== 'Semua') {
+            if ($this->appliedStatusSkb === 'Sudah') {
+                $query->whereNotNull('skb.customer_code');
+            } elseif ($this->appliedStatusSkb === 'Belum') {
+                $query->whereNull('skb.customer_code');
+            } elseif ($this->appliedStatusSkb === 'Approve') {
+                $query->whereNotNull('skb.customer_code')->where('skb.is_approved', true);
+            } elseif ($this->appliedStatusSkb === 'Reject') {
+                $query->whereNotNull('skb.customer_code')->where(function($q) {
+                    $q->where('skb.is_approved', false)->orWhereNull('skb.is_approved');
+                });
+            }
+        }
+
+        if ($this->appliedStatusData !== 'Semua') {
+            $fieldsCheck = [
+                'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
+                'r.nama_bank', 'r.no_rekening', 'r.nama_pemilik_norek', 'r.latitude', 'r.longitude',
+                'r.foto_toko2', 'r.foto_toko3'
+            ];
+            if ($this->appliedStatusData === 'Lengkap') {
+                foreach ($fieldsCheck as $f) {
+                    $query->whereNotNull($f)->where(DB::raw("TRIM($f)"), '!=', '');
+                }
+            } else {
+                $query->where(function($sub) use ($fieldsCheck) {
+                    foreach ($fieldsCheck as $f) {
+                        $sub->orWhereNull($f)->orWhere(DB::raw("TRIM($f)"), '=', '');
+                    }
+                });
+            }
+        }
+
+        if ($this->appliedStatusReward !== 'Semua') {
+            if ($this->appliedStatusReward === '2.5%') {
+                $query->where('l.total_target', '>=', 90000000);
+            } elseif ($this->appliedStatusReward === '2%') {
+                $query->where('l.total_target', '>=', 30000000)->where('l.total_target', '<', 90000000);
+            } elseif ($this->appliedStatusReward === '1.5%') {
+                $query->where(function($q) {
+                    $q->whereNull('l.total_target')->orWhere('l.total_target', '<', 30000000);
+                });
+            }
+        }
+
+        $currentMonth = (int)date('n');
+        $currentQuarter = (int)ceil($currentMonth / 3);
+        $kuartal = (int)$this->appliedKuartal;
+        
+        $multiplier = 3;
+        if ($kuartal === $currentQuarter) {
+            $firstMonthOfQ = ($kuartal - 1) * 3 + 1;
+            $multiplier = $currentMonth - $firstMonthOfQ + 1;
+            if ($multiplier < 1) $multiplier = 1;
+            if ($multiplier > 3) $multiplier = 3;
+        } elseif ($kuartal > $currentQuarter) {
+            $multiplier = 1;
+        } else {
+            $multiplier = 3;
+        }
+
+        if ($multiplier === 1) {
+            $achievementSql = "COALESCE(zv.month_1_value, 0)";
+        } elseif ($multiplier === 2) {
+            $achievementSql = "(COALESCE(zv.month_1_value, 0) + COALESCE(zv.month_2_value, 0))";
+        } else {
+            $achievementSql = "COALESCE(zv.total_achievement, 0)";
+        }
+        
+        $proratedTargetSql = "((l.total_target / 3.0) * $multiplier)";
+        $progressExpr = "($achievementSql / NULLIF($proratedTargetSql, 0)) * 100";
+
+        if ($this->appliedStatusProgress !== 'Semua') {
+            if ($this->appliedStatusProgress === '1. HIJAU') {
+                $query->whereRaw("COALESCE($progressExpr, 0) >= 100");
+            } elseif ($this->appliedStatusProgress === '2. KUNING') {
+                $query->whereRaw("COALESCE($progressExpr, 0) >= 80 AND COALESCE($progressExpr, 0) < 100");
+            } elseif ($this->appliedStatusProgress === '3. MERAH') {
+                $query->whereRaw("COALESCE($progressExpr, 0) < 80");
+            }
+        }
+
+        // Add filter to only get valid coordinates
+        $query->whereNotNull('r.latitude')
+              ->whereNotNull('r.longitude')
+              ->whereRaw("TRIM(r.latitude) != ''")
+              ->whereRaw("TRIM(r.longitude) != ''");
+
+        // Override select to prevent fetching unused heavy columns (saves memory)
+        $query->select([
+            'r.latitude',
+            'r.longitude',
+            'l.total_target'
+        ]);
+
+        $stores = $query->get();
+
+        $mapData = [];
+        foreach ($stores as $row) {
+            $lat = (float) $row->latitude;
+            $lng = (float) $row->longitude;
+            
+            // Validate coordinates range
+            if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180 || ($lat == 0 && $lng == 0)) {
+                continue;
+            }
+            
+            $target = $row->total_target ?? 0;
+            
+            $color = '#64748b'; // default slate (for 1.5% or null)
+            if ($target >= 90000000) {
+                $color = '#eab308'; // yellow / gold
+            } elseif ($target >= 30000000) {
+                $color = '#3b82f6'; // blue
+            }
+            
+            $mapData[] = [
+                'lat' => $lat,
+                'lng' => $lng,
+                'color' => $color
+            ];
+        }
+
+        $this->dispatch('open-map-modal', mapData: $mapData);
     }
 }

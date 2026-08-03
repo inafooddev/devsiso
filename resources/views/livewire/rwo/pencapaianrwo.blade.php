@@ -133,7 +133,7 @@
 
                 <div class="form-control min-w-[120px]">
                     <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Pengkoloman</span></label>
-                    <select wire:model="statusProgress" class="select select-sm select-bordered">
+                    <select wire:model.live="statusProgress" class="select select-sm select-bordered">
                         <option value="Semua">Semua Pengkoloman</option>
                         <option value="1. HIJAU">1. HIJAU (>= 100%)</option>
                         <option value="2. KUNING">2. KUNING (80% - 99%)</option>
@@ -143,7 +143,7 @@
 
                 <div class="form-control min-w-[110px]">
                     <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Status SKB</span></label>
-                    <select wire:model="statusSkb" class="select select-sm select-bordered">
+                    <select wire:model.live="statusSkb" class="select select-sm select-bordered">
                         <option value="Semua">Semua</option>
                         <option value="Sudah">Sudah SKB</option>
                         <option value="Belum">Belum SKB</option>
@@ -154,7 +154,7 @@
 
                 <div class="form-control min-w-[110px]">
                     <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Status Data</span></label>
-                    <select wire:model="statusData" class="select select-sm select-bordered">
+                    <select wire:model.live="statusData" class="select select-sm select-bordered">
                         <option value="Semua">Semua</option>
                         <option value="Lengkap">Lengkap</option>
                         <option value="Belum">Belum Lengkap</option>
@@ -163,7 +163,7 @@
 
                 <div class="form-control min-w-[110px]">
                     <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Reward %</span></label>
-                    <select wire:model="statusReward" class="select select-sm select-bordered">
+                    <select wire:model.live="statusReward" class="select select-sm select-bordered">
                         <option value="Semua">Semua</option>
                         <option value="2.5%">2,5%</option>
                         <option value="2%">2%</option>
@@ -172,7 +172,6 @@
                 </div>
 
                 <div class="flex gap-2">
-                    <button wire:click="applyFilter" class="btn btn-sm btn-primary">Filter</button>
                     <button wire:click="resetFilter" class="btn btn-sm btn-outline btn-neutral">Reset</button>
                     <button type="button" wire:click="export" wire:loading.attr="disabled" wire:target="export" class="btn btn-sm btn-success text-white">
                         <span wire:loading.remove wire:target="export" class="flex items-center">
@@ -182,6 +181,16 @@
                         <span wire:loading wire:target="export" class="flex items-center">
                             <span class="loading loading-spinner loading-xs mr-1"></span>
                             Exporting...
+                        </span>
+                    </button>
+                    <button type="button" wire:click="loadMapData" wire:loading.attr="disabled" wire:target="loadMapData" class="btn btn-sm btn-info text-white">
+                        <span wire:loading.remove wire:target="loadMapData" class="flex items-center">
+                            <x-heroicon-o-map class="w-4 h-4 mr-1" />
+                            Maps
+                        </span>
+                        <span wire:loading wire:target="loadMapData" class="flex items-center">
+                            <span class="loading loading-spinner loading-xs mr-1"></span>
+                            Memuat Peta...
                         </span>
                     </button>
                 </div>
@@ -328,9 +337,10 @@
 
     {{-- DETAIL MODAL --}}
     @if($isDetailModalOpen && $selectedStore)
-        <div class="modal modal-open">
+        @php $selectedStore = (object) $selectedStore; @endphp
+        <div class="modal modal-open" wire:key="detail-modal-{{ $selectedStore->customer_code ?? '1' }}">
             <div class="modal-box w-11/12 max-w-4xl bg-base-100 rounded-2xl relative p-6 flex flex-col max-h-[90vh]">
-                <button wire:click="closeDetailModal" class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4">✕</button>
+                <button type="button" wire:click="closeDetailModal" class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4">✕</button>
                 
                 @php
                     $modalTarget = $selectedStore->total_target ?? 0;
@@ -531,7 +541,7 @@
                                 <div class="form-control w-full">
                                     <textarea wire:model="remarkKhusus" class="textarea textarea-bordered h-20 w-full resize-none text-sm" placeholder="Tulis remark khusus untuk toko ini jika ada (misal: case khusus)..."></textarea>
                                     <div class="flex justify-end mt-3">
-                                        <button wire:click="saveRemarkKhusus" class="btn btn-primary btn-sm">
+                                        <button type="button" wire:click="saveRemarkKhusus" class="btn btn-primary btn-sm">
                                             <span wire:loading wire:target="saveRemarkKhusus" class="loading loading-spinner loading-xs"></span>
                                             Simpan Remark
                                         </button>
@@ -581,73 +591,44 @@
                 </div>
 
                 <div class="modal-action border-t pt-3">
-                    <button wire:click="closeDetailModal" class="btn btn-neutral btn-sm">Tutup</button>
+                    <button type="button" wire:click="closeDetailModal" class="btn btn-neutral btn-sm">Tutup</button>
                 </div>
             </div>
         </div>
     @endif
 
     {{-- Modal Filter Wilayah --}}
-    <dialog id="filter_modal" class="modal">
-        <div class="modal-box">
-            <h3 class="font-bold text-lg mb-4">Filter Wilayah & Kuartal</h3>
+    <dialog id="filter_modal" class="modal" wire:ignore.self>
+        <livewire:rwo.filter-pencapaianrwo 
+            :appliedKuartal="$appliedKuartal" 
+            :appliedRegion="$appliedRegion" 
+            :appliedArea="$appliedArea" 
+            :appliedSupervisor="$appliedSupervisor" 
+            :appliedDistributor="$appliedDistributor" 
+            :appliedStatusProgress="$appliedStatusProgress" 
+            :appliedStatusSkb="$appliedStatusSkb" 
+            :appliedStatusData="$appliedStatusData" 
+            :appliedStatusReward="$appliedStatusReward" 
+        />
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    {{-- Map Modal --}}
+    <dialog id="map_modal" class="modal" wire:ignore>
+        <div class="modal-box w-11/12 max-w-6xl h-[85vh] flex flex-col p-4 bg-base-100 rounded-2xl relative">
+            <button onclick="map_modal.close()" class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4 z-10">✕</button>
+            <h3 class="font-bold text-lg mb-3 shrink-0">Peta Pencapaian RWO</h3>
             
-            <div class="space-y-3">
-                <div class="form-control">
-                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Kuartal</span></label>
-                    <select wire:model="kuartal" class="select select-sm select-bordered w-full">
-                        @foreach($kuartals as $q)
-                            <option value="{{ $q->quarter }}">Quarter {{ $q->quarter }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="form-control">
-                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Region</span></label>
-                    <select wire:model.live="region" class="select select-sm select-bordered w-full">
-                        <option value="">Semua Region</option>
-                        @foreach($regions as $r)
-                            <option value="{{ $r->region_code }}">{{ $r->region_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="form-control">
-                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Area</span></label>
-                    <select wire:model.live="area" class="select select-sm select-bordered w-full" {{ empty($areas) ? 'disabled' : '' }}>
-                        <option value="">Semua Area</option>
-                        @foreach($areas as $a)
-                            <option value="{{ $a->area_code }}">{{ $a->area_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="form-control">
-                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Supervisor</span></label>
-                    <select wire:model.live="supervisor" class="select select-sm select-bordered w-full" {{ empty($supervisors) ? 'disabled' : '' }}>
-                        <option value="">Semua Supervisor</option>
-                        @foreach($supervisors as $s)
-                            <option value="{{ $s->supervisor_code }}">{{ $s->supervisor_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="form-control">
-                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Distributor</span></label>
-                    <select wire:model="distributor" class="select select-sm select-bordered w-full" {{ empty($distributors) ? 'disabled' : '' }}>
-                        <option value="">Semua Distributor</option>
-                        @foreach($distributors as $d)
-                            <option value="{{ $d->distributor_code }}">{{ $d->distributor_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+            <div class="w-full rounded-xl overflow-hidden border border-base-300 relative shadow-inner bg-base-200" style="height: 65vh; min-height: 400px;">
+                <div id="pencapaian-map" style="width: 100%; height: 100%; position: absolute; inset: 0;"></div>
             </div>
-
-            <div class="modal-action">
-                <button type="button" wire:click="applyFilter" onclick="filter_modal.close()" class="btn btn-sm btn-primary">Terapkan Filter</button>
-                <form method="dialog">
-                    <button class="btn btn-sm">Tutup</button>
-                </form>
+            
+            <div class="shrink-0 mt-4 flex gap-4 text-xs font-semibold justify-center">
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#eab308] inline-block shadow-sm"></span> Reward 2.5%</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#3b82f6] inline-block shadow-sm"></span> Reward 2%</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#64748b] inline-block shadow-sm"></span> Reward 1.5%</div>
             </div>
         </div>
         <form method="dialog" class="modal-backdrop">
@@ -655,3 +636,116 @@
         </form>
     </dialog>
 </div>
+
+@push('styles')
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+@endpush
+
+@push('scripts')
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            let map = null;
+            let currentData = [];
+
+            function renderPoints() {
+                if (!map || !map.isStyleLoaded()) {
+                    setTimeout(renderPoints, 100);
+                    return;
+                }
+
+                if (map.getSource('stores')) {
+                    map.getSource('stores').setData({
+                        type: 'FeatureCollection',
+                        features: currentData.filter(s => s.lng && s.lat).map(store => ({
+                            type: 'Feature',
+                            geometry: { type: 'Point', coordinates: [store.lng, store.lat] },
+                            properties: { color: store.color }
+                        }))
+                    });
+                } else {
+                    map.addSource('stores', {
+                        type: 'geojson',
+                        data: {
+                            type: 'FeatureCollection',
+                            features: currentData.filter(s => s.lng && s.lat).map(store => ({
+                                type: 'Feature',
+                                geometry: { type: 'Point', coordinates: [store.lng, store.lat] },
+                                properties: { color: store.color }
+                            }))
+                        }
+                    });
+
+                    map.addLayer({
+                        id: 'stores-layer',
+                        type: 'circle',
+                        source: 'stores',
+                        paint: {
+                            'circle-radius': 5,
+                            'circle-color': ['get', 'color'],
+                            'circle-stroke-width': 1,
+                            'circle-stroke-color': '#ffffff'
+                        }
+                    });
+                }
+
+                const bounds = new maplibregl.LngLatBounds();
+                currentData.forEach(store => {
+                    if (store.lng && store.lat) bounds.extend([store.lng, store.lat]);
+                });
+
+                if (!bounds.isEmpty()) {
+                    map.fitBounds(bounds, { padding: 50, maxZoom: 15, duration: 800 });
+                }
+            }
+
+            window.addEventListener('close-filter-modal', () => {
+                const filterModal = document.getElementById('filter_modal');
+                if (filterModal && filterModal.open) {
+                    filterModal.close();
+                }
+            });
+
+            Livewire.on('open-map-modal', (event) => {
+                let mapDataRaw = event;
+                if (event.detail) mapDataRaw = event.detail; // native event
+                if (Array.isArray(event) && event[0]) mapDataRaw = event[0]; // livewire array wrap
+                
+                if (mapDataRaw && mapDataRaw.mapData) {
+                    currentData = mapDataRaw.mapData;
+                } else if (Array.isArray(mapDataRaw)) {
+                    currentData = mapDataRaw;
+                } else {
+                    currentData = [];
+                }
+
+                if (!Array.isArray(currentData)) {
+                    currentData = [];
+                }
+
+                const mapModal = document.getElementById('map_modal');
+                mapModal.showModal();
+
+                if (!map) {
+                    map = new maplibregl.Map({
+                        container: 'pencapaian-map',
+                        style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+                        center: [106.827153, -6.175392], // Default Jakarta
+                        zoom: 5
+                    });
+                    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+                    map.on('load', () => {
+                        map.resize();
+                        renderPoints();
+                    });
+                } else {
+                    setTimeout(() => {
+                        map.resize();
+                        renderPoints();
+                    }, 100);
+                }
+            });
+        });
+    </script>
+@endpush
