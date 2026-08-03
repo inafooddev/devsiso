@@ -440,25 +440,34 @@ class SuratKesepakatanBersama extends Component
     {
         $this->authorizeAction('can_export');
         
-        $query = $this->getBaseQuery()->select([
-            'skb.kuartal',
-            'md.region_code',
-            'md.region_name',
-            'md.area_code',
-            'md.area_name',
-            'md.supervisor_code',
-            'md.distributor_code',
-            'md.distributor_name',
-            'skb.customer_code',
-            'l.customer_name',
-            'skb.is_approved',
-            'skb.reason',
-            'skb.ho_is_valid',
-            'skb.ho_notes'
-        ])
-        ->orderBy('md.region_name', 'asc')
-        ->orderBy('md.area_name', 'asc')
-        ->orderBy('md.distributor_name', 'asc');
+        $query = $this->getBaseQuery()
+            ->leftJoin('reward_outlet as ro', 'ro.customer_code', '=', 'skb.customer_code')
+            ->select([
+                'skb.kuartal',
+                'md.region_code',
+                'md.region_name',
+                'md.area_code',
+                'md.area_name',
+                'md.supervisor_code',
+                'md.distributor_code',
+                'md.distributor_name',
+                'skb.customer_code',
+                'l.customer_name',
+                'skb.is_approved',
+                'skb.reason',
+                'skb.ho_is_valid',
+                'skb.ho_notes',
+                'ro.nama_pemilik_toko',
+                'ro.no_hp',
+                'ro.nik_ktp',
+                'ro.nama_ktp',
+                'ro.nama_bank',
+                'ro.no_rekening',
+                'ro.nama_pemilik_norek'
+            ])
+            ->orderBy('md.region_name', 'asc')
+            ->orderBy('md.area_name', 'asc')
+            ->orderBy('md.distributor_name', 'asc');
         
         $timestamp = now()->format('Ymd_His');
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SuratKesepakatanBersamaExport($query), "SKB_RWO_{$timestamp}.xlsx");
