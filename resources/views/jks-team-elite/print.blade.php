@@ -11,7 +11,7 @@
             color-scheme: light !important;
         }
         @page {
-            size: A4 landscape;
+            size: A4 portrait;
             margin-top: 10mm;
             margin-left: 10mm;
             margin-right: 10mm;
@@ -64,7 +64,7 @@
             background-color: #ffffff !important;
         }
         .print-container {
-            max-width: 297mm;
+            max-width: 210mm; /* A4 Portrait width */
             margin: 0 auto;
             background-color: #ffffff !important;
             background: #ffffff !important;
@@ -79,7 +79,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
-            font-size: 13px;
+            font-size: 11px;
         }
         .info-table td {
             border: 1px solid #000;
@@ -95,7 +95,7 @@
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 11px;
+            font-size: 9px;
         }
         .data-table th, .data-table td {
             border: 1px solid #000;
@@ -121,7 +121,7 @@
         .footer-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 11px;
+            font-size: 9px;
             margin-top: 20px;
             background-color: white !important;
             color: black !important;
@@ -277,7 +277,7 @@
                                 <td colspan="3" class="text-right" style="padding-right: 15px;">
                                     Subtotal {{ \Carbon\Carbon::parse($tanggal)->format('d-M-y') }} (Total: {{ count($dailyRecords) }} Toko) :
                                 </td>
-                                <td colspan="3" class="text-center" style="font-size: 11px;">
+                                <td colspan="3" class="text-center" style="font-size: 9px;">
                                     {{ implode(', ', $summary) }}
                                 </td>
                                 <td class="text-center">
