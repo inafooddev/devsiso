@@ -91,8 +91,8 @@ class SuratKesepakatanBersama extends Component
             return;
         }
         
-        // Khusus INATM hanya otomatis bisa Edit
-        if ($user && $user->hasRole('inatm') && $action === 'can_edit') {
+        // Khusus INATM otomatis bisa Edit dan Export
+        if ($user && $user->hasRole('inatm') && in_array($action, ['can_edit', 'can_export'])) {
             return;
         }
         
@@ -107,10 +107,11 @@ class SuratKesepakatanBersama extends Component
         $user = auth()->user();
         if ($user) {
             $isAdmin = $user->hasRole('admin');
-            $this->canEdit = $isAdmin || $user->hasRole('inatm') || $user->hasMenuAccess($this->menuRoute, 'can_edit');
+            $isInatm = $user->hasRole('inatm');
+            $this->canEdit = $isAdmin || $isInatm || $user->hasMenuAccess($this->menuRoute, 'can_edit');
             $this->canDelete = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_delete');
             $this->canImport = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_import');
-            $this->canExport = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_export');
+            $this->canExport = $isAdmin || $isInatm || $user->hasMenuAccess($this->menuRoute, 'can_export');
         }
 
         $this->kuartals = DB::table('master_calender')->select('quarter')->whereNotNull('quarter')->distinct()->orderBy('quarter')->get();
