@@ -336,8 +336,8 @@
     </div>
 
     {{-- DETAIL MODAL --}}
-    @if($isDetailModalOpen && $selectedStore)
-        @php $selectedStore = (object) $selectedStore; @endphp
+    @if($isDetailModalOpen && $this->selectedStore)
+        @php $selectedStore = $this->selectedStore; @endphp
         <div class="modal modal-open" wire:key="detail-modal-{{ $selectedStore->customer_code ?? '1' }}">
             <div class="modal-box w-11/12 max-w-4xl bg-base-100 rounded-2xl relative p-6 flex flex-col max-h-[90vh]">
                 <button type="button" wire:click="closeDetailModal" class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4">✕</button>
@@ -589,12 +589,13 @@
                             </div>
                     </div>
                 </div>
+            </div> <!-- Close x-data container -->
 
-                <div class="modal-action border-t pt-3">
-                    <button type="button" wire:click="closeDetailModal" class="btn btn-neutral btn-sm">Tutup</button>
-                </div>
+            <div class="modal-action border-t pt-3">
+                <button type="button" wire:click="closeDetailModal" class="btn btn-neutral btn-sm">Tutup</button>
             </div>
         </div>
+    </div>
     @endif
 
     {{-- Modal Filter Wilayah --}}
@@ -615,135 +616,17 @@
         </form>
     </dialog>
 
-    {{-- Map Modal --}}
-    <dialog id="map_modal" class="modal" wire:ignore>
-        <div class="modal-box w-11/12 max-w-6xl h-[85vh] flex flex-col p-4 bg-base-100 rounded-2xl relative">
-            <button onclick="map_modal.close()" class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4 z-10">✕</button>
-            <h3 class="font-bold text-lg mb-3 shrink-0">Peta Pencapaian RWO</h3>
-            
-            <div class="w-full rounded-xl overflow-hidden border border-base-300 relative shadow-inner bg-base-200" style="height: 65vh; min-height: 400px;">
-                <div id="pencapaian-map" style="width: 100%; height: 100%; position: absolute; inset: 0;"></div>
-            </div>
-            
-            <div class="shrink-0 mt-4 flex gap-4 text-xs font-semibold justify-center">
-                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#eab308] inline-block shadow-sm"></span> Reward 2.5%</div>
-                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#3b82f6] inline-block shadow-sm"></span> Reward 2%</div>
-                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#64748b] inline-block shadow-sm"></span> Reward 1.5%</div>
-            </div>
-        </div>
-        <form method="dialog" class="modal-backdrop">
-            <button>close</button>
-        </form>
-    </dialog>
+    {{-- Map Component --}}
+    <livewire:rwo.pencapaianrwo-map />
 </div>
 
-@push('styles')
-    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
-@endpush
-
 @push('scripts')
-    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script>
         document.addEventListener('livewire:initialized', () => {
-            let map = null;
-            let currentData = [];
-
-            function renderPoints() {
-                if (!map || !map.isStyleLoaded()) {
-                    setTimeout(renderPoints, 100);
-                    return;
-                }
-
-                if (map.getSource('stores')) {
-                    map.getSource('stores').setData({
-                        type: 'FeatureCollection',
-                        features: currentData.filter(s => s.lng && s.lat).map(store => ({
-                            type: 'Feature',
-                            geometry: { type: 'Point', coordinates: [store.lng, store.lat] },
-                            properties: { color: store.color }
-                        }))
-                    });
-                } else {
-                    map.addSource('stores', {
-                        type: 'geojson',
-                        data: {
-                            type: 'FeatureCollection',
-                            features: currentData.filter(s => s.lng && s.lat).map(store => ({
-                                type: 'Feature',
-                                geometry: { type: 'Point', coordinates: [store.lng, store.lat] },
-                                properties: { color: store.color }
-                            }))
-                        }
-                    });
-
-                    map.addLayer({
-                        id: 'stores-layer',
-                        type: 'circle',
-                        source: 'stores',
-                        paint: {
-                            'circle-radius': 5,
-                            'circle-color': ['get', 'color'],
-                            'circle-stroke-width': 1,
-                            'circle-stroke-color': '#ffffff'
-                        }
-                    });
-                }
-
-                const bounds = new maplibregl.LngLatBounds();
-                currentData.forEach(store => {
-                    if (store.lng && store.lat) bounds.extend([store.lng, store.lat]);
-                });
-
-                if (!bounds.isEmpty()) {
-                    map.fitBounds(bounds, { padding: 50, maxZoom: 15, duration: 800 });
-                }
-            }
-
             window.addEventListener('close-filter-modal', () => {
                 const filterModal = document.getElementById('filter_modal');
                 if (filterModal && filterModal.open) {
                     filterModal.close();
-                }
-            });
-
-            Livewire.on('open-map-modal', (event) => {
-                let mapDataRaw = event;
-                if (event.detail) mapDataRaw = event.detail; // native event
-                if (Array.isArray(event) && event[0]) mapDataRaw = event[0]; // livewire array wrap
-                
-                if (mapDataRaw && mapDataRaw.mapData) {
-                    currentData = mapDataRaw.mapData;
-                } else if (Array.isArray(mapDataRaw)) {
-                    currentData = mapDataRaw;
-                } else {
-                    currentData = [];
-                }
-
-                if (!Array.isArray(currentData)) {
-                    currentData = [];
-                }
-
-                const mapModal = document.getElementById('map_modal');
-                mapModal.showModal();
-
-                if (!map) {
-                    map = new maplibregl.Map({
-                        container: 'pencapaian-map',
-                        style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-                        center: [106.827153, -6.175392], // Default Jakarta
-                        zoom: 5
-                    });
-                    map.addControl(new maplibregl.NavigationControl(), 'top-right');
-
-                    map.on('load', () => {
-                        map.resize();
-                        renderPoints();
-                    });
-                } else {
-                    setTimeout(() => {
-                        map.resize();
-                        renderPoints();
-                    }, 100);
                 }
             });
         });
