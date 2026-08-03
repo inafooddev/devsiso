@@ -52,6 +52,23 @@ class SuratKesepakatanBersama extends Component
     public $existingFotoSkb = null;
     public $approvalError = '';
 
+    // HO Validation fields
+    public $hoIsValid = ''; // 'valid', 'invalid', ''
+    public $hoNotes = '';
+
+    // Master data reference & edit properties
+    public $masterData = null;
+    public $masterId = null;
+    public $masterNamaPemilik = '';
+    public $masterNoHp = '';
+    public $masterNikKtp = '';
+    public $masterNamaKtp = '';
+    public $masterNamaBank = '';
+    public $masterNoRekening = '';
+    public $masterPemilikRekening = '';
+    public $masterFotoKtp;
+    public $existingMasterFotoKtp = null;
+
     public $isDeleteModalOpen = false;
     public $deleteId = null;
     public $deleteCustomerName = '';
@@ -67,14 +84,33 @@ class SuratKesepakatanBersama extends Component
     public $canImport = true;
     public $canExport = true;
 
+    public function authorizeAction($action = 'can_edit')
+    {
+        $user = auth()->user();
+        if ($user && $user->hasRole('admin')) {
+            return;
+        }
+        
+        // Khusus INATM hanya otomatis bisa Edit
+        if ($user && $user->hasRole('inatm') && $action === 'can_edit') {
+            return;
+        }
+        
+        $routeName = property_exists($this, 'menuRoute') ? $this->menuRoute : null;
+        if (!$user || !$user->hasMenuAccess($routeName, $action)) {
+            abort(403, "Anda tidak memiliki akses untuk melakukan aksi ini ({$action}).");
+        }
+    }
+
     public function mount()
     {
         $user = auth()->user();
         if ($user) {
-            $this->canEdit = $user->hasMenuAccess($this->menuRoute, 'can_edit');
-            $this->canDelete = $user->hasMenuAccess($this->menuRoute, 'can_delete');
-            $this->canImport = $user->hasMenuAccess($this->menuRoute, 'can_import');
-            $this->canExport = $user->hasMenuAccess($this->menuRoute, 'can_export');
+            $isAdmin = $user->hasRole('admin');
+            $this->canEdit = $isAdmin || $user->hasRole('inatm') || $user->hasMenuAccess($this->menuRoute, 'can_edit');
+            $this->canDelete = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_delete');
+            $this->canImport = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_import');
+            $this->canExport = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_export');
         }
 
         $this->kuartals = DB::table('master_calender')->select('quarter')->whereNotNull('quarter')->distinct()->orderBy('quarter')->get();
@@ -287,7 +323,30 @@ class SuratKesepakatanBersama extends Component
             $this->rejectReason = $skb->reason;
             $this->existingFotoSkb = $skb->foto_skb;
             
+            $this->hoIsValid = $skb->ho_is_valid === true ? 'valid' : ($skb->ho_is_valid === false ? 'invalid' : '');
+            $this->hoNotes = $skb->ho_notes;
+            
+            // Fetch master data reference
+            $rewardOutlet = \App\Models\RewardOutlet::where('customer_code', $skb->customer_code)->first();
+            $this->masterData = $rewardOutlet ? $rewardOutlet->toArray() : null;
+            
+            if ($rewardOutlet) {
+                $this->masterId = $rewardOutlet->id;
+                $this->masterNamaPemilik = $rewardOutlet->nama_pemilik_toko ?? '';
+                $this->masterNoHp = $rewardOutlet->no_hp ?? '';
+                $this->masterNikKtp = $rewardOutlet->nik_ktp ?? '';
+                $this->masterNamaKtp = $rewardOutlet->nama_ktp ?? '';
+                $this->masterNamaBank = $rewardOutlet->nama_bank ?? '';
+                $this->masterNoRekening = $rewardOutlet->no_rekening ?? '';
+                $this->masterPemilikRekening = $rewardOutlet->nama_pemilik_norek ?? '';
+                $this->existingMasterFotoKtp = $rewardOutlet->foto_ktp ?? null;
+            } else {
+                $this->masterId = null;
+                $this->existingMasterFotoKtp = null;
+            }
+            
             $this->fotoSkb = null;
+            $this->masterFotoKtp = null;
             $this->approvalError = '';
             $this->isEditModalOpen = true;
         }
@@ -300,7 +359,10 @@ class SuratKesepakatanBersama extends Component
         $this->validate([
             'approvalStatus' => 'required|in:approve,reject',
             'fotoSkb' => 'nullable|image|max:2048',
-            'rejectReason' => 'required_if:approvalStatus,reject|max:500'
+            'masterFotoKtp' => 'nullable|image|max:2048',
+            'rejectReason' => 'required_if:approvalStatus,reject|max:500',
+            'hoIsValid' => 'nullable|in:valid,invalid',
+            'hoNotes' => 'nullable|string|max:1000'
         ], [
             'approvalStatus.required' => 'Pilih status approval (Approve/Reject).',
             'rejectReason.required_if' => 'Alasan wajib diisi jika status Reject.',
@@ -321,12 +383,41 @@ class SuratKesepakatanBersama extends Component
                 $skb->reason = null;
             }
 
+            if ($this->hoIsValid === 'valid') {
+                $skb->ho_is_valid = true;
+            } elseif ($this->hoIsValid === 'invalid') {
+                $skb->ho_is_valid = false;
+            } else {
+                $skb->ho_is_valid = null;
+            }
+            $skb->ho_notes = $this->hoNotes;
+
             if ($this->fotoSkb) {
                 $path = $this->fotoSkb->store('skb_photos', 'public');
                 $skb->foto_skb = $path;
             }
 
             $skb->save();
+
+            // Update Master Data if exists
+            if ($this->masterId) {
+                $ro = \App\Models\RewardOutlet::find($this->masterId);
+                if ($ro) {
+                    $ro->nama_pemilik_toko = $this->masterNamaPemilik;
+                    $ro->no_hp = $this->masterNoHp;
+                    $ro->nik_ktp = $this->masterNikKtp;
+                    $ro->nama_ktp = $this->masterNamaKtp;
+                    $ro->nama_bank = $this->masterNamaBank;
+                    $ro->no_rekening = $this->masterNoRekening;
+                    $ro->nama_pemilik_norek = $this->masterPemilikRekening;
+                    
+                    if ($this->masterFotoKtp) {
+                        $ro->foto_ktp = $this->masterFotoKtp->store('ktp_photos', 'public');
+                    }
+                    
+                    $ro->save();
+                }
+            }
 
             $this->isEditModalOpen = false;
             $this->dispatch('notify', type: 'success', message: 'Data SKB berhasil diperbarui.');
@@ -361,7 +452,9 @@ class SuratKesepakatanBersama extends Component
             'skb.customer_code',
             'l.customer_name',
             'skb.is_approved',
-            'skb.reason'
+            'skb.reason',
+            'skb.ho_is_valid',
+            'skb.ho_notes'
         ])
         ->orderBy('md.region_name', 'asc')
         ->orderBy('md.area_name', 'asc')
@@ -459,6 +552,8 @@ class SuratKesepakatanBersama extends Component
             'skb.distributor_code',
             'skb.is_approved',
             'skb.reason',
+            'skb.ho_is_valid',
+            'skb.ho_notes',
             'skb.foto_skb',
             'l.customer_name',
             'md.distributor_name',

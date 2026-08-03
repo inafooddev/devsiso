@@ -15,5 +15,7 @@ class SuratKesepakatanBersamaRwo extends Model
         'foto_skb',
         'is_approved',
         'reason',
+        'ho_is_valid',
+        'ho_notes',
     ];
 }

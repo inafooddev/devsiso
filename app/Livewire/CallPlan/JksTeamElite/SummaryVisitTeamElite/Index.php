@@ -29,6 +29,19 @@ class Index extends Component
     public $isFiltered = false;
     public $currentTab = 'summary';
 
+    public $sortField = 'selisih';
+    public $sortDirection = 'desc';
+
+    public function sortBy($field)
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = 'desc';
+        }
+    }
+
     public $showRemarkModal = false;
     public $editingRemark = [
         'tanggal' => '',
@@ -349,7 +362,7 @@ class Index extends Component
                 k.status_visit,
                 l.pilar,
                 l.target
-            ORDER BY v.region_name, v.area_name, v.\"level\", v.team_name, v.custno
+            ORDER BY " . ($this->sortField === 'selisih' ? "(MAX(COALESCE(i.invoice,0)) - SUM(v.order_val)) " . ($this->sortDirection === 'asc' ? 'ASC' : 'DESC') . ", " : "") . "v.region_name, v.area_name, v.\"level\", v.team_name, v.custno
         ";
 
         $bindings = array_merge($visitBindings, [$startDate, $endDatePlus1], $visitBindings);

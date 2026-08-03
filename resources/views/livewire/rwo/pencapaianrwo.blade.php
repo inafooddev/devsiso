@@ -210,7 +210,14 @@
                         <th class="text-right text-primary">Target Prorata</th>
                         <th class="text-right">Actual Total</th>
                         <th class="text-center">%</th>
-                        <th class="text-right">Gap</th>
+                        <th class="text-right cursor-pointer hover:bg-base-200" wire:click="sortBy('gap')">
+                            Gap 
+                            @if($sortField === 'gap')
+                                <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3 inline-block ml-1" />
+                            @else
+                                <x-heroicon-s-chevron-up-down class="w-3 h-3 inline-block ml-1 opacity-30" />
+                            @endif
+                        </th>
                         <th class="text-right">{{ $monthLabels[0] ?? 'Month 1' }}</th>
                         <th class="text-right">{{ $monthLabels[1] ?? 'Month 2' }}</th>
                         <th class="text-right">{{ $monthLabels[2] ?? 'Month 3' }}</th>

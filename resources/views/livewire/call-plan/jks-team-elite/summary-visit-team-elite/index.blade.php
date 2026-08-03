@@ -421,7 +421,14 @@
                     <th class="text-right">Target</th>
                     <th class="text-right">Order Val</th>
                     <th class="text-right">Invoice</th>
-                    <th class="text-right">Selisih</th>
+                    <th class="text-right cursor-pointer hover:bg-base-200" wire:click="sortBy('selisih')">
+                        Selisih
+                        @if($sortField === 'selisih')
+                            <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3 inline-block ml-1" />
+                        @else
+                            <x-heroicon-s-chevron-up-down class="w-3 h-3 inline-block ml-1 opacity-30" />
+                        @endif
+                    </th>
                     <th class="text-center">Remark</th>
                 </tr>
                 </thead>

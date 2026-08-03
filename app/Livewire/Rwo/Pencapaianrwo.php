@@ -39,6 +39,9 @@ class Pencapaianrwo extends Component
     public $statusData = 'Semua';     // Semua, Lengkap, Belum
     public $statusReward = 'Semua';   // Semua, 2.5%, 2%, 1.5%
 
+    public $sortField = 'gap';
+    public $sortDirection = 'desc';
+
     // Select lists
     public $kuartals = [];
     public $regions = [];
@@ -135,6 +138,17 @@ class Pencapaianrwo extends Component
         $this->appliedStatusSkb = $this->statusSkb;
         $this->appliedStatusData = $this->statusData;
         $this->appliedStatusReward = $this->statusReward;
+        $this->resetPage();
+    }
+
+    public function sortBy($field)
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = 'desc';
+        }
         $this->resetPage();
     }
 
@@ -486,6 +500,15 @@ class Pencapaianrwo extends Component
         // KPI Card Stats (CLONE BEFORE PAGINATE!)
         $kpiQuery = clone $query;
         $kpiQuery->orders = null;
+
+        // Sorting
+        if ($this->sortField === 'gap') {
+            $gapSql = "($proratedTargetSql - COALESCE($achievementSql, 0))";
+            $query->orderByRaw("$gapSql {$this->sortDirection}");
+        } else {
+            // Default fallback
+            $query->orderBy('l.customer_name', 'asc');
+        }
 
         $records = $query->paginate(100);
         
