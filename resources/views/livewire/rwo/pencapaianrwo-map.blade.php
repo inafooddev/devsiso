@@ -101,9 +101,9 @@
     <script>
         document.addEventListener('livewire:initialized', () => {
             let map = null;
-            let currentData = [];
             let hiddenColors = new Set();
             let activePopup = null;
+            let currentFilters = {};
 
             // Set up interactive legend click handlers
             document.querySelectorAll('.legend-item').forEach(item => {
@@ -116,48 +116,57 @@
                         hiddenColors.add(color);
                         item.classList.add('opacity-40', 'grayscale');
                     }
-                    renderPoints(false); // Re-render without resetting bounds
+                    updateLegendFilter();
                 });
             });
 
-            function renderPoints(fitBounds = true) {
+            function updateLegendFilter() {
+                if (!map || !map.getLayer('stores-layer')) return;
+                
+                const allColors = ['#eab308', '#3b82f6', '#64748b'];
+                const activeColors = allColors.filter(c => !hiddenColors.has(c));
+                
+                if (activeColors.length === 0) {
+                    map.setFilter('stores-layer', ['==', 'color', 'none']);
+                    map.setFilter('stores-glow-layer', ['==', 'color', 'none']);
+                } else {
+                    const filterExp = ['in', ['get', 'color'], ['literal', activeColors]];
+                    map.setFilter('stores-layer', filterExp);
+                    map.setFilter('stores-glow-layer', filterExp);
+                }
+            }
+
+            async function renderPoints(fitBounds = true) {
                 if (!map || !map.isStyleLoaded()) {
                     setTimeout(() => renderPoints(fitBounds), 100);
                     return;
                 }
                 
-                const bounds = new maplibregl.LngLatBounds();
-                let hasValidPoints = false;
-                
-                // Filter out hidden colors
-                const features = currentData
-                    .filter(s => s.lng && s.lat && !hiddenColors.has(s.color))
-                    .map(store => {
-                        bounds.extend([store.lng, store.lat]);
-                        hasValidPoints = true;
-                        return {
-                            type: 'Feature',
-                            geometry: { type: 'Point', coordinates: [store.lng, store.lat] },
-                            properties: { 
-                                code: store.code,
-                                color: store.color 
-                            }
-                        };
-                    });
+                const urlParams = new URLSearchParams();
+                if (currentFilters.appliedKuartal) urlParams.set('kuartal', currentFilters.appliedKuartal);
+                if (currentFilters.appliedRegion) urlParams.set('region', currentFilters.appliedRegion);
+                if (currentFilters.appliedArea) urlParams.set('area', currentFilters.appliedArea);
+                if (currentFilters.appliedSupervisor) urlParams.set('supervisor', currentFilters.appliedSupervisor);
+                if (currentFilters.appliedDistributor) urlParams.set('distributor', currentFilters.appliedDistributor);
+                if (currentFilters.search) urlParams.set('search', currentFilters.search);
+                if (currentFilters.appliedStatusSkb) urlParams.set('statusSkb', currentFilters.appliedStatusSkb);
+                if (currentFilters.appliedStatusData) urlParams.set('statusData', currentFilters.appliedStatusData);
+                if (currentFilters.appliedStatusReward) urlParams.set('statusReward', currentFilters.appliedStatusReward);
+                if (currentFilters.appliedStatusProgress) urlParams.set('statusProgress', currentFilters.appliedStatusProgress);
 
-                if (map.getSource('stores')) {
-                    map.getSource('stores').setData({
-                        type: 'FeatureCollection',
-                        features: features
-                    });
-                } else {
-                    map.addSource('stores', {
-                        type: 'geojson',
-                        data: {
-                            type: 'FeatureCollection',
-                            features: features
-                        }
-                    });
+                const sourceUrl = '/api/rwo/map-geojson?' + urlParams.toString();
+                
+                try {
+                    const response = await fetch(sourceUrl);
+                    const geojsonData = await response.json();
+                    
+                    if (map.getSource('stores')) {
+                        map.getSource('stores').setData(geojsonData);
+                    } else {
+                        map.addSource('stores', {
+                            type: 'geojson',
+                            data: geojsonData
+                        });
 
                     // Glow layer
                     map.addLayer({
@@ -294,33 +303,37 @@
                             activePopup.setHTML('<div class="p-4 text-sm text-center text-error">Gagal mengambil data</div>');
                         }
                     });
+                    
+                    updateLegendFilter();
                 }
 
-                if (fitBounds) {
-                    if (hasValidPoints) {
-                        map.fitBounds(bounds, {
-                            padding: 60,
-                            maxZoom: 14,
-                            duration: 1200,
-                            pitchWithRotate: false
-                        });
-                    } else if (features.length === 0 && currentData.length > 0) {
-                        // All filtered out, do not fly
-                    } else {
-                        map.flyTo({
-                            center: [106.827153, -6.175392],
-                            zoom: 5,
-                            duration: 1000
-                        });
-                    }
+                if (fitBounds && geojsonData && geojsonData.features.length > 0) {
+                    const bounds = new maplibregl.LngLatBounds();
+                    geojsonData.features.forEach(f => {
+                        bounds.extend(f.geometry.coordinates);
+                    });
+                    
+                    map.fitBounds(bounds, {
+                        padding: 60,
+                        maxZoom: 14,
+                        duration: 1200,
+                        pitchWithRotate: false
+                    });
+                } else if (fitBounds) {
+                    map.flyTo({
+                        center: [106.827153, -6.175392],
+                        zoom: 5,
+                        duration: 1000
+                    });
+                }
+                
+                } catch (err) {
+                    console.error("Failed to load map data from API", err);
                 }
             }
 
             Livewire.on('open-map-modal', (data) => {
-                currentData = data.mapData || (data[0] ? data[0].mapData : []);
-                if (!Array.isArray(currentData)) {
-                    currentData = [];
-                }
+                currentFilters = data.filters || (data[0] ? data[0].filters : {});
 
                 const mapModal = document.getElementById('map_modal');
                 mapModal.showModal();
