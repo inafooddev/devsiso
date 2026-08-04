@@ -1,0 +1,8 @@
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+    <!-- Outer 360 Arc (Top-Right-Bottom-Left) -->
+    <path d="M 12 3 A 9 9 0 1 1 3 12" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" />
+    <!-- Inner Accent Arc (Top-Left quadrant) -->
+    <path d="M 12 7 A 5 5 0 0 0 7 12" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.8" />
+    <!-- Core Node -->
+    <circle cx="12" cy="12" r="2" fill="#ffffff" />
+</svg>

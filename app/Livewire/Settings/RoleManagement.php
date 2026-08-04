@@ -23,6 +23,11 @@ class RoleManagement extends Component
     public $isMenuModalOpen = false;
     public $roleNameForMenu = '';
 
+    // Properti untuk Modal Daftar User
+    public $isUserModalOpen = false;
+    public $selectedRoleUsers = [];
+    public $roleNameForUsers = '';
+
     // Validasi form: nama role wajib diisi dan tidak boleh duplikat
     protected $rules = [
         'name' => 'required|string|max:255|unique:roles,name',
@@ -32,9 +37,9 @@ class RoleManagement extends Component
     {
         return view('livewire.settings.role-management', [
             // Menampilkan semua role dengan paginasi
-            'roles' => Role::when($this->search, function($query) {
-                $query->where('name', 'like', '%' . $this->search . '%');
-            })->latest()->paginate(10),
+            'roles' => Role::withCount('users')->when($this->search, function($query) {
+                $query->where('name', 'ilike', '%' . $this->search . '%');
+            })->latest()->paginate(100),
         ]);
     }
 
@@ -187,5 +192,13 @@ class RoleManagement extends Component
     private function resetFields()
     {
         $this->name = '';
+    }
+
+    public function openUserModal($id)
+    {
+        $role = Role::with('users')->findOrFail($id);
+        $this->roleNameForUsers = strtoupper($role->name);
+        $this->selectedRoleUsers = $role->users;
+        $this->isUserModalOpen = true;
     }
 }

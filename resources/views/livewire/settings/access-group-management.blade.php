@@ -34,6 +34,7 @@
                     <th class="w-16">ID</th>
                     <th>NAMA GRUP</th>
                     <th>DESKRIPSI</th>
+                    <th class="text-center">JUMLAH USER</th>
                     <th class="text-right">AKSI</th>
                 </tr>
             </x-slot:head>
@@ -43,6 +44,13 @@
                 <td>{{ $group->id }}</td>
                 <td class="font-bold text-base-content">{{ strtoupper($group->name) }}</td>
                 <td class="text-base-content/70">{{ $group->description ?? '-' }}</td>
+                <td class="text-center">
+                    @if($group->users_count > 0)
+                        <button wire:click="openUserModal({{ $group->id }})" class="btn btn-xs btn-outline btn-info rounded-full px-3 shadow-sm hover:scale-105 transition-transform">{{ $group->users_count }} User</button>
+                    @else
+                        <span class="text-base-content/40 text-xs font-medium bg-base-200 px-2 py-0.5 rounded-full">0</span>
+                    @endif
+                </td>
                 <td class="text-right space-x-1">
                     <x-ui.button variant="primary" size="sm" outline="true" icon="eye" wire:click="openMenuModal({{ $group->id }})">
                         Akses View
@@ -105,11 +113,16 @@
                 @if(count($allMenus) > 0)
                     <div class="space-y-4">
                         @foreach($allMenus as $menu)
-                            <div class="bg-base-200/50 rounded-lg p-3 border border-base-300">
+                            @php
+                                $isGroupHeader = empty($menu['icon']) && empty($menu['route']);
+                            @endphp
+                            <div class="{{ $isGroupHeader ? 'bg-base-300/50 border-base-300 shadow-sm' : 'bg-base-200/50 border-base-300' }} rounded-lg p-3 border">
                                 <!-- Level 1 -->
-                                <label class="flex items-center cursor-pointer font-bold text-base-content">
+                                <label class="flex items-center cursor-pointer font-bold {{ $isGroupHeader ? 'text-base-content/70 text-xs uppercase tracking-wider' : 'text-base-content' }}">
                                     <input type="checkbox" wire:model="selectedMenus" value="{{ $menu['id'] }}" class="checkbox checkbox-primary checkbox-sm mr-3">
-                                    {!! $menu['icon'] ?? '' !!} <span class="ml-2">{{ $menu['name'] }}</span>
+                                    @if(!empty($menu['icon'])) <span class="w-5 h-5 inline-flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full">{!! $menu['icon'] !!}</span> @endif
+                                    <span class="{{ !empty($menu['icon']) ? 'ml-2' : '' }}">{{ $menu['name'] }}</span>
+                                    @if($isGroupHeader) <span class="ml-3 text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold normal-case tracking-normal">GROUP HEADER</span> @endif
                                 </label>
                                 
                                 @if(count($menu['children'] ?? []) > 0)
@@ -169,6 +182,33 @@
             </x-ui.button>
             <x-ui.button variant="primary" type="button" onclick="document.getElementById('form-akses-menu').requestSubmit()">
                 Simpan Akses
+            </x-ui.button>
+        </x-slot:footer>
+    </x-ui.modal>
+
+    <!-- Modal Daftar User -->
+    <x-ui.modal id="modal-daftar-user" title="Daftar User: {{ $groupNameForUsers }}" icon="users" size="lg" :dismissible="true" :open="$isUserModalOpen" wire:close="$set('isUserModalOpen', false)">
+        <div class="max-h-[60vh] overflow-y-auto pr-2">
+            @if(count($selectedGroupUsers) > 0)
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    @foreach($selectedGroupUsers as $user)
+                        <div class="bg-base-200/50 border border-base-300 rounded-lg p-3 flex flex-col hover:bg-base-200 transition-colors">
+                            <span class="font-bold text-base-content">{{ $user['name'] }}</span>
+                            <span class="text-xs font-mono text-base-content/60 mt-1">ID: {{ $user['userid'] ?? $user['id'] }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="text-center py-8 text-base-content/50">
+                    <x-heroicon-o-users class="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>Tidak ada user yang terdaftar di grup ini.</p>
+                </div>
+            @endif
+        </div>
+        
+        <x-slot:footer>
+            <x-ui.button variant="ghost" type="button" wire:click="$set('isUserModalOpen', false)">
+                Tutup
             </x-ui.button>
         </x-slot:footer>
     </x-ui.modal>

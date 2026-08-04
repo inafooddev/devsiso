@@ -31,7 +31,7 @@ class Index extends Component
     #[Url]
     public $selectedDistributor = '';
 
-    public $perPage = 15;
+    public $perPage = 100;
     public $selectedId = null;
     public $catatanManager = '';
 

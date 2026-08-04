@@ -82,19 +82,22 @@
          class="relative z-10 bg-white/95 text-gray-800 rounded-3xl p-5 sm:p-6 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] border border-white/80 flex items-center justify-center select-none overflow-hidden"
          data-theme="light">
         
-        {{-- Glowing Ambient Radial Aura --}}
-        <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-500 to-sky-400 blur-md opacity-35 animate-pulse absolute"></div>
-
-        {{-- Multi-Ring Kinetic Orbital Spinner Container --}}
+        {{-- 360 Logo Spinner Container --}}
         <div class="relative w-14 h-14 flex items-center justify-center shrink-0">
-            {{-- Outer Primary Gradient Arc (Clockwise Fast) --}}
-            <div class="absolute inset-0 rounded-full border-[3.5px] border-indigo-100 border-t-indigo-600 border-r-sky-400 animate-spin"></div>
-
-            {{-- Inner Counter-Rotating Gradient Arc (Counter-Clockwise) --}}
-            <div class="absolute w-9 h-9 rounded-full border-[2.5px] border-transparent border-b-indigo-500 border-l-blue-400 animate-[spin_1.4s_linear_infinite_reverse]"></div>
-
-            {{-- Pulsing Glowing Core Dot --}}
-            <div class="w-3 h-3 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 shadow-[0_0_12px_rgba(79,70,229,0.9)] animate-pulse"></div>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-md">
+                <!-- Outer 360 Arc (Clockwise Spin) -->
+                <g class="origin-center animate-[spin_1s_linear_infinite]">
+                    <path d="M 12 3 A 9 9 0 1 1 3 12" stroke="currentColor" stroke-width="3" stroke-linecap="round" class="text-sky-500" />
+                </g>
+                
+                <!-- Inner Accent Arc (Counter-Clockwise Spin) -->
+                <g class="origin-center animate-[spin_1.5s_linear_infinite_reverse]">
+                    <path d="M 12 7 A 5 5 0 0 0 7 12" stroke="currentColor" stroke-width="3" stroke-linecap="round" class="text-indigo-400" />
+                </g>
+                
+                <!-- Core Node (Glowing Pulse) -->
+                <circle cx="12" cy="12" r="2.5" fill="currentColor" class="text-indigo-600 animate-pulse" />
+            </svg>
         </div>
     </div>
 </div>

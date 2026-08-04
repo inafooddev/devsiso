@@ -44,7 +44,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Nama Role (Kode)</th>
-                        <th>Total User</th>
+                        <th class="text-center">Total User</th>
                         <th class="text-right">Aksi</th>
                     </tr>
                 </x-slot:head>
@@ -57,8 +57,12 @@
                 <td>
                     <p class="font-bold text-base-content text-primary">{{ strtoupper($role->name) }}</p>
                 </td>
-                <td class="text-base-content/70">
-                    {{ $role->users()->count() }} Akun
+                <td class="text-center">
+                    @if($role->users_count > 0)
+                        <button wire:click="openUserModal({{ $role->id }})" class="btn btn-xs btn-outline btn-info rounded-full px-3 shadow-sm hover:scale-105 transition-transform">{{ $role->users_count }} User</button>
+                    @else
+                        <span class="text-base-content/40 text-xs font-medium bg-base-200 px-2 py-0.5 rounded-full">0</span>
+                    @endif
                 </td>
                 <td class="text-right space-x-1">
                     <x-ui.button variant="primary" size="sm" outline="true" icon="key" wire:click="openMenuModal({{ $role->id }})">
@@ -153,16 +157,24 @@
                         </thead>
                         <tbody>
                             @foreach($allMenus as $menu)
-                                <tr class="hover:bg-base-200/50">
-                                     <td class="font-bold flex items-center">
-                                        <div class="w-5 h-5 mr-2 flex justify-center items-center">{!! $menu['icon'] ?? '' !!}</div>
+                                @php
+                                    $isGroupHeader = empty($menu['icon']) && empty($menu['route']);
+                                @endphp
+                                <tr class="{{ $isGroupHeader ? 'bg-base-300/50 uppercase tracking-wider text-xs' : 'hover:bg-base-200/50' }}">
+                                     <td class="font-bold flex items-center {{ $isGroupHeader ? 'py-3' : '' }}">
+                                        @if(!empty($menu['icon'])) <div class="w-5 h-5 inline-flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full mr-2">{!! $menu['icon'] !!}</div> @endif
                                         <span>{{ $menu['name'] }}</span>
+                                        @if($isGroupHeader) <span class="ml-3 text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold normal-case tracking-normal">GROUP HEADER</span> @endif
                                     </td>
-                                    <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $menu['id'] }}.can_add" class="checkbox checkbox-primary checkbox-sm"></td>
-                                    <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $menu['id'] }}.can_edit" class="checkbox checkbox-secondary checkbox-sm"></td>
-                                    <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $menu['id'] }}.can_delete" class="checkbox checkbox-error checkbox-sm"></td>
-                                    <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $menu['id'] }}.can_import" class="checkbox checkbox-accent checkbox-sm"></td>
-                                    <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $menu['id'] }}.can_export" class="checkbox checkbox-info checkbox-sm"></td>
+                                    @if(!$isGroupHeader)
+                                        <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $menu['id'] }}.can_add" class="checkbox checkbox-primary checkbox-sm"></td>
+                                        <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $menu['id'] }}.can_edit" class="checkbox checkbox-secondary checkbox-sm"></td>
+                                        <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $menu['id'] }}.can_delete" class="checkbox checkbox-error checkbox-sm"></td>
+                                        <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $menu['id'] }}.can_import" class="checkbox checkbox-accent checkbox-sm"></td>
+                                        <td class="text-center"><input type="checkbox" wire:model="rolePermissions.{{ $menu['id'] }}.can_export" class="checkbox checkbox-info checkbox-sm"></td>
+                                    @else
+                                        <td colspan="5"></td>
+                                    @endif
                                 </tr>
                                 
                                 @if(count($menu['children'] ?? []) > 0)
@@ -221,6 +233,33 @@
             </x-ui.button>
             <x-ui.button variant="primary" type="button" onclick="document.getElementById('form-akses-menu-role').requestSubmit()">
                 Simpan Akses
+            </x-ui.button>
+        </x-slot:footer>
+    </x-ui.modal>
+
+    <!-- Modal Daftar User -->
+    <x-ui.modal id="modal-daftar-user-role" title="Daftar User: {{ $roleNameForUsers }}" icon="users" size="lg" :dismissible="true" :open="$isUserModalOpen" wire:close="$set('isUserModalOpen', false)">
+        <div class="max-h-[60vh] overflow-y-auto pr-2">
+            @if(count($selectedRoleUsers) > 0)
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    @foreach($selectedRoleUsers as $user)
+                        <div class="bg-base-200/50 border border-base-300 rounded-lg p-3 flex flex-col hover:bg-base-200 transition-colors">
+                            <span class="font-bold text-base-content">{{ $user['name'] }}</span>
+                            <span class="text-xs font-mono text-base-content/60 mt-1">ID: {{ $user['userid'] ?? $user['id'] }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="text-center py-8 text-base-content/50">
+                    <x-heroicon-o-users class="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>Tidak ada user yang memiliki role ini.</p>
+                </div>
+            @endif
+        </div>
+        
+        <x-slot:footer>
+            <x-ui.button variant="ghost" type="button" wire:click="$set('isUserModalOpen', false)">
+                Tutup
             </x-ui.button>
         </x-slot:footer>
     </x-ui.modal>

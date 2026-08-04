@@ -103,17 +103,17 @@
     
     <!-- Enterprise Header -->
     <div class="flex items-center justify-center h-16 border-b border-white/10 relative overflow-hidden shrink-0">
-        <a href="#" class="flex items-center justify-center w-full h-full gap-2 transition-transform duration-300 relative group cursor-default focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset">
-            <!-- Pure SVG Icon -->
-            <div class="w-[34px] h-[34px] shrink-0 relative flex items-center justify-center transition-transform duration-500 group-hover:scale-105">
-                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-sm">
-                    <!-- Outer Hexagon Frame -->
-                    <g class="text-base-content/80 group-hover:text-base-content transition-colors duration-300">
-                        <polygon points="50,6 88,28 88,72 50,94 12,72 12,28" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
-                    </g>
-                    <!-- Inner Geometric S -->
-                    <g class="text-white transition-colors duration-300">
-                        <path d="M 68 32 L 42 32 L 32 46 L 68 54 L 58 68 L 32 68" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+        <a href="#" class="flex items-center justify-center w-full h-full gap-3 transition-transform duration-300 relative group cursor-default focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset">
+            <!-- 360 SVG Icon -->
+            <div class="w-[32px] h-[32px] shrink-0 relative flex items-center justify-center transition-transform duration-500 group-hover:scale-105">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                    <g class="origin-center group-hover:rotate-180 transition-transform duration-700 ease-in-out">
+                        <!-- Outer 360 Arc (Top-Right-Bottom-Left) -->
+                        <path d="M 12 3 A 9 9 0 1 1 3 12" stroke="currentColor" stroke-width="3" stroke-linecap="round" class="text-info transition-colors duration-300" />
+                        <!-- Inner Accent Arc (Top-Left quadrant) -->
+                        <path d="M 12 7 A 5 5 0 0 0 7 12" stroke="currentColor" stroke-width="3" stroke-linecap="round" class="text-white/80 group-hover:text-white transition-colors duration-300" />
+                        <!-- Core Node -->
+                        <circle cx="12" cy="12" r="2" fill="currentColor" class="text-white" />
                     </g>
                 </svg>
             </div>
@@ -128,8 +128,9 @@
                  x-transition:leave-end="opacity-0 -translate-x-4"
                  class="flex items-center whitespace-nowrap relative -top-[1px]"
                  x-cloak>
-                <span class="text-[22px] font-extrabold tracking-tight text-base-content leading-none">
-                    SISO<span class="text-info">.</span>
+                <span class="text-[24px] tracking-tight leading-none flex items-start">
+                    <span class="font-black text-white">SISO</span>
+                    <span class="font-bold text-info text-sm ml-1 mt-0.5">360</span>
                 </span>
             </div>
         </a>

@@ -32,13 +32,18 @@
                 @if(count($menus) > 0)
                     <div class="space-y-4">
                         @foreach($menus as $menu)
-                            <div class="bg-base-200/30 rounded-lg p-3 border border-base-300">
+                            @php
+                                $isGroupHeader = empty($menu->icon) && empty($menu->route);
+                            @endphp
+                            <div class="{{ $isGroupHeader ? 'bg-base-300/50 border-base-300 shadow-sm' : 'bg-base-200/30 border-base-300' }} rounded-lg p-3 border">
                                 <!-- Level 1 -->
                                 <div class="flex justify-between items-center">
-                                    <div class="flex items-center font-bold text-base-content">
-                                        @if($menu->icon) {!! $menu->icon !!} @else <span class="w-5 h-5 inline-block"></span> @endif
-                                        <span class="ml-2">{{ $menu->name }}</span>
+                                    <div class="flex items-center font-bold {{ $isGroupHeader ? 'text-base-content/70 text-xs uppercase tracking-wider' : 'text-base-content' }}">
+                                        @if($menu->icon) <span class="w-5 h-5 inline-flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full mr-2">{!! $menu->icon !!}</span> @elseif(!$isGroupHeader) <span class="w-5 h-5 inline-block shrink-0 mr-2"></span> @endif
+                                        <span class="mr-2 text-[10px] font-mono text-base-content/50 bg-base-300/50 px-1.5 py-0.5 rounded border border-base-300" title="Nomor Urut">{{ $menu->order_number }}</span>
+                                        <span>{{ $menu->name }}</span>
                                         @if($menu->route) <span class="ml-2 text-xs font-normal text-base-content/50 bg-base-300 px-2 rounded">{{ $menu->route }}</span> @endif
+                                        @if($isGroupHeader) <span class="ml-3 text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold">GROUP HEADER</span> @endif
                                     </div>
                                     <div class="space-x-1 flex-shrink-0">
                                         <x-ui.button variant="primary" size="xs" outline="true" icon="pencil" wire:click="edit({{ $menu->id }})">Edit</x-ui.button>
@@ -53,7 +58,9 @@
                                             <div class="bg-base-100 rounded p-2 border border-base-200">
                                                 <div class="flex justify-between items-center">
                                                     <div class="font-medium text-base-content/90 flex items-center">
-                                                        <span class="mr-2 text-xs text-base-content/40">L2</span> {{ $child1->name }}
+                                                        <span class="mr-2 text-xs text-base-content/40">L2</span>
+                                                        <span class="mr-2 text-[10px] font-mono text-base-content/50 bg-base-200 px-1.5 py-0.5 rounded border border-base-300" title="Nomor Urut">{{ $child1->order_number }}</span>
+                                                        <span>{{ $child1->name }}</span>
                                                         @if($child1->route) <span class="ml-2 text-[10px] text-base-content/50 bg-base-200 px-1.5 rounded">{{ $child1->route }}</span> @endif
                                                     </div>
                                                     <div class="space-x-1 flex-shrink-0">
@@ -68,7 +75,9 @@
                                                             <!-- Level 3 -->
                                                             <div class="flex justify-between items-center">
                                                                 <div class="text-sm text-base-content/80 flex items-center">
-                                                                    <span class="mr-2 text-[10px] text-base-content/40">L3</span> {{ $child2->name }}
+                                                                    <span class="mr-2 text-[10px] text-base-content/40">L3</span>
+                                                                    <span class="mr-2 text-[10px] font-mono text-base-content/50 bg-base-200 px-1.5 py-0.5 rounded border border-base-300" title="Nomor Urut">{{ $child2->order_number }}</span>
+                                                                    <span>{{ $child2->name }}</span>
                                                                     @if($child2->route) <span class="ml-2 text-[10px] text-base-content/50 bg-base-200 px-1.5 rounded">{{ $child2->route }}</span> @endif
                                                                 </div>
                                                                 <div class="space-x-1 flex-shrink-0">
@@ -83,7 +92,9 @@
                                                                         <!-- Level 4 -->
                                                                         <div class="flex justify-between items-center">
                                                                             <div class="text-xs text-base-content/70 flex items-center">
-                                                                                <span class="mr-2 text-[8px] text-base-content/40">L4</span> {{ $child3->name }}
+                                                                                <span class="mr-2 text-[8px] text-base-content/40">L4</span>
+                                                                                <span class="mr-2 text-[10px] font-mono text-base-content/50 bg-base-200 px-1.5 py-0.5 rounded border border-base-300" title="Nomor Urut">{{ $child3->order_number }}</span>
+                                                                                <span>{{ $child3->name }}</span>
                                                                                 @if($child3->route) <span class="ml-2 text-[10px] text-base-content/40 bg-base-200 px-1.5 rounded">{{ $child3->route }}</span> @endif
                                                                             </div>
                                                                             <div class="space-x-1 flex-shrink-0">

@@ -21,6 +21,7 @@ class AccessGroupManagement extends Component
     // State untuk Modal Alpine
     public $isModalOpen = false;
     public $isMenuModalOpen = false;
+    public $isUserModalOpen = false;
 
     // Properti untuk Akses Menu View
     public $selectedGroupId = null;
@@ -28,12 +29,16 @@ class AccessGroupManagement extends Component
     public $selectedMenus = [];
     public $allMenus = [];
 
+    // Properti untuk Daftar User
+    public $selectedGroupUsers = [];
+    public $groupNameForUsers = '';
+
     public function render()
     {
         return view('livewire.settings.access-group-management', [
-            'groups' => AccessGroup::when($this->search, function($query) {
-                $query->where('name', 'like', '%' . $this->search . '%');
-            })->latest()->paginate(10),
+            'groups' => AccessGroup::withCount('users')->when($this->search, function($query) {
+                $query->where('name', 'ilike', '%' . $this->search . '%');
+            })->latest()->paginate(100),
         ]);
     }
 
@@ -143,5 +148,13 @@ class AccessGroupManagement extends Component
         $this->description = '';
         $this->selectedGroupId = null;
         $this->selectedMenus = [];
+    }
+
+    public function openUserModal($id)
+    {
+        $group = AccessGroup::with('users')->findOrFail($id);
+        $this->groupNameForUsers = strtoupper($group->name);
+        $this->selectedGroupUsers = $group->users;
+        $this->isUserModalOpen = true;
     }
 }
