@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=1280">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'Admin Panel' }}</title>
 
@@ -10,7 +10,7 @@
     <script>
         (function() {
             var applyTheme = function() {
-                var t = localStorage.getItem('neon-theme') || 'neon-dark';
+                var t = localStorage.getItem('neon-theme') || 'neon-light';
                 document.documentElement.setAttribute('data-theme', t);
             };
             applyTheme();
@@ -18,6 +18,10 @@
         })();
     </script>
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <style>
@@ -36,7 +40,7 @@
     @stack('styles')
 </head>
 <body x-data="{
-    theme: localStorage.getItem('neon-theme') || 'neon-dark',
+    theme: localStorage.getItem('neon-theme') || 'neon-light',
     get isDark() { return this.theme === 'neon-dark'; },
     toggleTheme() {
         this.theme = this.theme === 'neon-dark' ? 'neon-light' : 'neon-dark';
@@ -60,7 +64,7 @@
             </main>
 
             {{-- Footer --}}
-            <x-footer />
+            {{-- <x-footer /> --}}
         </div>
 
         {{-- Sidebar --}}
