@@ -9,10 +9,12 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithDrawings;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Cell\StringValueBinder;
 
-class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, WithDrawings, WithEvents, WithColumnFormatting
+class RewardOutletExport extends StringValueBinder implements FromCollection, WithHeadings, WithMapping, WithDrawings, WithEvents, WithColumnFormatting, WithCustomValueBinder
 {
     protected $filters;
     protected $items;
@@ -176,12 +178,12 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
             $item->customer_code,
             $item->customer_name,
             $item->alamat,
-            $item->no_hp ? "'" . $item->no_hp : '',
-            $item->latitude ? "'" . $item->latitude : '',
-            $item->longitude ? "'" . $item->longitude : '',
+            $item->no_hp ?? '',
+            $item->latitude ?? '',
+            $item->longitude ?? '',
             $item->nama_pemilik_toko,
             $item->nama_ktp,
-            $item->nik_ktp ? "'" . $item->nik_ktp : '',
+            $item->nik_ktp ?? '',
         ];
 
         if ($this->includeKtp) {
@@ -190,7 +192,7 @@ class RewardOutletExport implements FromCollection, WithHeadings, WithMapping, W
 
         $row = array_merge($row, [
             $item->nama_bank,
-            $item->no_rekening ? "'" . $item->no_rekening : '',
+            $item->no_rekening ?? '',
             $item->nama_pemilik_norek,
         ]);
 
