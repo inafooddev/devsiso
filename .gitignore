@@ -43,3 +43,4 @@ check_*.php
 fetch_*.php
 insert_*.php
 storage/app/private/spatial_data/*
+/coreui
