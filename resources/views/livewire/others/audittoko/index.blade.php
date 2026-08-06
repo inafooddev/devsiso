@@ -20,8 +20,18 @@
 >
     <x-slot name="title">Approval Audit Toko</x-slot>
 
+    {{-- Tabs Navigation --}}
+    <x-ui.tab-menu>
+        <x-ui.tab-item href="{{ route('others.audit-toko') }}" :active="true" class="gap-1.5 text-primary">
+            <x-heroicon-s-clipboard-document-check class="w-3.5 h-3.5" /> Approval Audit
+        </x-ui.tab-item>
+        <x-ui.tab-item href="{{ route('others.audit-toko.master') }}" :active="false" class="gap-1.5">
+            <x-heroicon-s-building-storefront class="w-3.5 h-3.5" /> Master Customer
+        </x-ui.tab-item>
+    </x-ui.tab-menu>
+
     {{-- 5 KPI Cards Section (Tetap Statis di Atas) --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-6 shrink-0">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-6 shrink-0 mt-2">
         {{-- Total Audit --}}
         <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
             <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 transition-transform group-hover:scale-150"></div>
