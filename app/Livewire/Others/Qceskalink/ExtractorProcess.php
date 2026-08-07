@@ -77,6 +77,13 @@ class ExtractorProcess extends Component
             }
 
             if ($distCode) { // Hanya simpan yang punya distributor code valid
+                // Cek OCR Document (jika ada) untuk distributor ini pada bulan ini
+                $ocrDoc = \App\Models\OcrDocument::where('distributor_code', $distCode)
+                    ->where('tanggal', $tanggal)
+                    ->first();
+                
+                $nominalFinal = $ocrDoc ? $ocrDoc->nominal_extracted : ($res['nominal_surat'] ?? 0);
+
                 $insertsPermanent[] = [
                     'tanggal' => $tanggal,
                     'distributor_code' => $distCode,
@@ -84,8 +91,8 @@ class ExtractorProcess extends Component
                     'discount_4' => $disc4,
                     'discount_8' => $disc8,
                     'neto' => $neto,
-                    'nominal_surat' => $res['nominal_surat'] ?? 0,
-                    'file_surat' => $res['nama_file'] ?? '',
+                    'nominal_surat' => $nominalFinal,
+                    'file_surat' => $ocrDoc ? $ocrDoc->file_name : ($res['nama_file'] ?? ''),
                     'timestamp' => $now,
                     'created_at' => $now,
                     'updated_at' => $now,

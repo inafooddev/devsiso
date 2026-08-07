@@ -208,6 +208,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/others/qceskalink/sales-comparison', SalesComparison::class)->name('dashboard.sales-comparison');
     Route::get('/others/qceskalink/extractor-config', ExtractorConfig::class)->name('dashboard.extractor-config');
     Route::get('/others/qceskalink/extractor-process', ExtractorProcess::class)->name('dashboard.extractor-process');
+    Route::get('/others/qceskalink/ocr-scanner', \App\Livewire\Others\Qceskalink\OcrScanner::class)->name('dashboard.ocr-scanner');
     Route::get('/dashboard/selling-overview', SellingOverviewNew::class)->name('dashboard.selling-overview');
 
     // ==========================================
