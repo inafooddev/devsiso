@@ -1,6 +1,9 @@
 <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <x-slot name="title">Komparasi Sales (Eska vs SID)</x-slot>
 
+    {{-- Tabs Navigation --}}
+    @include('livewire.others.qceskalink._tabs')
+
     {{-- Notifikasi Toast --}}
     <div class="toast toast-top toast-center z-[100] mt-16">
         @if (session()->has('message'))
@@ -137,6 +140,7 @@
                     <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
                         <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
                             <tr>
+                                <th class="w-10 text-center">No</th>
                                 <th>Region</th>
                                 <th>Area</th>
                                 <th>Branch Code</th>
@@ -150,6 +154,7 @@
                         <tbody class="text-sm">
                             @forelse ($comparisons as $row)
                                 <tr class="hover:bg-base-200/50 transition-colors group text-sm">
+                                    <td class="text-center text-base-content/50 font-medium">{{ $comparisons->firstItem() + $loop->index }}</td>
                                     <td><div class="font-bold text-base-content/80">{{ $row->region_name }}</div></td>
                                     <td><div class="text-base-content/70">{{ $row->entity_name }}</div></td>
                                     <td><span class="font-mono text-[11px] text-base-content/50 uppercase tracking-widest">{{ $row->branch_code }}</span></td>
@@ -173,7 +178,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="text-center py-8 text-base-content/40">Tidak ada data komparasi yang ditemukan untuk kriteria filter ini.</td>
+                                    <td colspan="9" class="text-center py-8 text-base-content/40">Tidak ada data komparasi yang ditemukan untuk kriteria filter ini.</td>
                                 </tr>
                             @endforelse
                         </tbody>

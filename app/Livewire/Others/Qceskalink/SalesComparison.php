@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Dashboard;
+namespace App\Livewire\Others\Qceskalink;
 
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -57,8 +57,9 @@ class SalesComparison extends Component
 
     public function mount()
     {
-        $this->monthFilter = date('Y-m');
+        $this->monthFilter = Carbon::now()->subMonth()->format('Y-m');
         $this->implementasiFilter = 'ALL';
+        $this->statusFilter = 'ALL';
 
         // Load Region Awal dengan Proteksi
         $query = DB::table('master_distributors')
@@ -70,10 +71,9 @@ class SalesComparison extends Component
         $this->applyRegionAccess($query);
         $this->regionsOption = $query->orderBy('region_name')->get();
 
-        // Auto-select region jika user hanya memiliki akses ke 1 region
-        if (!auth()->user()->hasRole('admin') && count($this->regionsOption) === 1) {
-            $this->regionsFilter = [$this->regionsOption->first()->region_code];
-        }
+        // Auto select all regions and auto load data by default
+        $this->regionsFilter = $this->regionsOption->pluck('region_code')->toArray();
+        $this->isFiltered = true;
 
         // Restore filters from session
         if (session()->has('sales_comparison_filters')) {
@@ -81,8 +81,8 @@ class SalesComparison extends Component
             $this->monthFilter = $filters['monthFilter'] ?? $this->monthFilter;
             $this->regionsFilter = $filters['regionsFilter'] ?? $this->regionsFilter;
             $this->implementasiFilter = $filters['implementasiFilter'] ?? $this->implementasiFilter;
-            $this->statusFilter = $filters['statusFilter'] ?? 'ALL';
-            $this->isFiltered = $filters['isFiltered'] ?? false;
+            $this->statusFilter = $filters['statusFilter'] ?? $this->statusFilter;
+            $this->isFiltered = $filters['isFiltered'] ?? $this->isFiltered;
         }
     }
 
@@ -118,14 +118,14 @@ class SalesComparison extends Component
     public function resetFilters()
     {
         $this->reset(['monthFilter', 'regionsFilter', 'implementasiFilter', 'statusFilter', 'isFiltered']);
-        $this->monthFilter = date('Y-m');
+        $this->monthFilter = Carbon::now()->subMonth()->format('Y-m');
         $this->implementasiFilter = 'ALL';
         $this->statusFilter = 'ALL';
         session()->forget('sales_comparison_filters');
 
-        if (!auth()->user()->hasRole('admin') && count($this->regionsOption) === 1) {
-            $this->regionsFilter = [$this->regionsOption->first()->region_code];
-        }
+        // Reset to all available regions and auto load
+        $this->regionsFilter = $this->regionsOption->pluck('region_code')->toArray();
+        $this->isFiltered = true;
     }
 
     protected function saveFiltersToSession()
@@ -310,7 +310,7 @@ class SalesComparison extends Component
                 ->paginate(100);
         }
 
-        return view('livewire.dashboard.sales-comparison', [
+        return view('livewire.others.qceskalink.sales-comparison', [
             'comparisons' => $comparisons,
             'summary'     => $this->summary,
         ])->layout('layouts.app');

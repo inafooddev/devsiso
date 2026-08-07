@@ -1,6 +1,9 @@
 <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <x-slot name="title">QC Eskalink</x-slot>
 
+    {{-- Tabs Navigation --}}
+    @include('livewire.others.qceskalink._tabs')
+
     {{-- Notifikasi --}}
     @if (session()->has('message'))
         <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"

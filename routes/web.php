@@ -24,7 +24,9 @@ use App\Livewire\Dashboard\NationalSellInDashboard;
 use App\Livewire\Dashboard\SupervisorSellInDashboard;
 use App\Livewire\Dashboard\DistributorMap;
 use App\Livewire\Dashboard\MetabaseDashboard;
-use App\Livewire\Dashboard\SalesComparison;
+use App\Livewire\Others\Qceskalink\SalesComparison;
+use App\Livewire\Others\Qceskalink\ExtractorConfig;
+use App\Livewire\Others\Qceskalink\ExtractorProcess;
 use App\Livewire\Dashboard\SellingOverviewNew;
 
 use App\Livewire\Mapping\Product\Index as ProductMappingIndex;
@@ -203,7 +205,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/area-sell-in', AreaSellInDashboard::class)->name('dashboard.area-sell-in');
     Route::get('/dashboard/cabang-sell-in', CabangSellInDashboard::class)->name('dashboard.cabang-sell-in');
     Route::get('/dashboard/supervisor-sell-in', SupervisorSellInDashboard::class)->name('dashboard.supervisor-sell-in');
-    Route::get('/dashboard/sales-comparison', SalesComparison::class)->name('dashboard.sales-comparison');
+    Route::get('/others/qceskalink/sales-comparison', SalesComparison::class)->name('dashboard.sales-comparison');
+    Route::get('/others/qceskalink/extractor-config', ExtractorConfig::class)->name('dashboard.extractor-config');
+    Route::get('/others/qceskalink/extractor-process', ExtractorProcess::class)->name('dashboard.extractor-process');
     Route::get('/dashboard/selling-overview', SellingOverviewNew::class)->name('dashboard.selling-overview');
 
     // ==========================================

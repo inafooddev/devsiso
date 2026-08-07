@@ -18,3 +18,7 @@ L.Icon.Default.mergeOptions({
 
 // Make Leaflet globally available
 window.L = L;
+
+// SweetAlert2
+import Swal from 'sweetalert2';
+window.Swal = Swal;
