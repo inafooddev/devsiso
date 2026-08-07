@@ -21,6 +21,15 @@
                 secs: 0,
                 timer: null,
                 init() {
+                    window.onTurnstileSuccess = (token) => {
+                        $wire.set('cfTurnstileResponse', token);
+                    };
+                    $wire.on('reset-turnstile', () => {
+                        if (typeof turnstile !== 'undefined') {
+                            turnstile.reset();
+                        }
+                    });
+
                     this.secs = $wire.lockoutSeconds;
                     if (this.secs > 0) this.startCountdown();
                     $wire.$watch('lockoutSeconds', (val) => {
@@ -90,6 +99,17 @@
                 @enderror
             </div>
 
+            <!-- Turnstile Widget -->
+            <div class="form-control" wire:ignore>
+                <div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.site_key', env('TURNSTILE_SITE_KEY')) }}" data-callback="onTurnstileSuccess"></div>
+            </div>
+            @error('cfTurnstileResponse') 
+                <span class="text-error text-xs mt-2 flex items-center">
+                    <x-heroicon-s-exclamation-circle class="w-3 h-3 mr-1" />
+                    {{ $message }}
+                </span> 
+            @enderror
+
             <!-- Helpers -->
             <div class="flex items-center justify-between pt-1">
                 <label class="flex items-center cursor-pointer group">
@@ -127,4 +147,7 @@
             </p>
         </div>
     </div>
+    
+    <!-- Cloudflare Turnstile Script -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </div>
