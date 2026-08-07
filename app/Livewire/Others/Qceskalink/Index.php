@@ -214,6 +214,28 @@ class Index extends Component
         session()->flash('message', 'Data nominal berhasil disimpan.');
     }
 
+    public function updateNominalSurat($distCode, $newNominal)
+    {
+        $tanggal = \Carbon\Carbon::parse($this->monthFilter)->startOfMonth()->format('Y-m-d');
+        
+        $qcRecord = \App\Models\NominalQcDist::firstOrNew([
+            'tanggal' => $tanggal,
+            'distributor_code' => $distCode
+        ]);
+        
+        if (!$qcRecord->exists) {
+            $qcRecord->qty = 0;
+            $qcRecord->discount_4 = 0;
+            $qcRecord->discount_8 = 0;
+            $qcRecord->neto = 0;
+        }
+        
+        $qcRecord->nominal_surat = $newNominal ?: 0;
+        $qcRecord->save();
+
+        session()->flash('message', 'Nominal surat berhasil diupdate dari modal.');
+    }
+
     public function render()
     {
         $startOfMonth = \Carbon\Carbon::parse($this->monthFilter)->startOfMonth()->format('Y-m-d');

@@ -1,4 +1,4 @@
-<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
+<div x-data="{ previewModalOpen: false, previewUrl: '', previewTitle: '', previewNominal: 0, previewDistCode: '' }" class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <x-slot name="title">QC Eskalink</x-slot>
 
     {{-- Tabs Navigation --}}
@@ -244,7 +244,7 @@
                                 {{-- FILE SURAT --}}
                                 <td class="border border-base-300 text-center">
                                     @if($item->file_surat)
-                                        <a href="{{ Storage::url($item->file_surat) }}" target="_blank" class="btn btn-xs btn-outline btn-primary">Lihat</a>
+                                        <button type="button" @click="previewUrl = '{{ Storage::url($item->file_surat) }}'; previewTitle = '{{ addslashes($item->distributor_name) }}'; previewNominal = {{ $item->surat_nominal ?? 0 }}; previewDistCode = '{{ $item->distributor_code }}'; previewModalOpen = true" class="btn btn-xs btn-outline btn-primary">Lihat</button>
                                     @else
                                         -
                                     @endif
@@ -595,4 +595,54 @@
         </div>
     </div>
 
+    {{-- ========== MODAL PREVIEW FILE ========== --}}
+    <div x-show="previewModalOpen" x-cloak
+         class="fixed inset-0 z-[70] overflow-y-auto">
+         
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div x-show="previewModalOpen"
+                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                 class="fixed inset-0 bg-base-100/80 backdrop-blur-sm" @click="previewModalOpen = false; setTimeout(() => previewUrl = '', 300)"></div>
+
+            <div x-show="previewModalOpen"
+                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+                 class="relative flex flex-col bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-5xl h-[85vh] ring-1 ring-base-content/5 text-base-content my-8 overflow-hidden">
+
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-6 py-4 border-b border-base-300 bg-base-200/30 shrink-0">
+                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                        <div class="p-2.5 rounded-2xl bg-info/10 text-info">
+                            <x-heroicon-s-document-text class="w-6 h-6" />
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-bold text-lg leading-none truncate" x-text="previewTitle"></h3>
+                            <p class="text-[11px] text-base-content/50 mt-1 uppercase tracking-wider font-semibold">Preview Surat</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-end">
+                        <div class="flex items-center gap-2 bg-base-100 px-3 py-1.5 rounded-xl border border-base-300" x-data="{ isSaving: false }">
+                            <span class="text-xs font-bold text-base-content/60 uppercase tracking-wider">Nominal:</span>
+                            <input type="number" x-model="previewNominal" class="input input-xs input-bordered w-32 font-mono text-right" />
+                            <button @click="isSaving = true; $wire.updateNominalSurat(previewDistCode, previewNominal).then(() => { isSaving = false; previewModalOpen = false })" :disabled="isSaving" class="btn btn-xs btn-primary shadow-sm normal-case">
+                                <span x-show="!isSaving">Simpan</span>
+                                <span x-show="isSaving" class="loading loading-spinner loading-xs"></span>
+                            </button>
+                        </div>
+                        <button @click="previewModalOpen = false; setTimeout(() => previewUrl = '', 300)" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300 shrink-0">
+                            <x-heroicon-s-x-mark class="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 bg-base-200 p-2 sm:p-4 overflow-hidden relative">
+                    <template x-if="previewUrl">
+                        <iframe :src="previewUrl" class="w-full h-full rounded-2xl border-2 border-base-300 bg-white shadow-inner"></iframe>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
