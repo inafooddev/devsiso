@@ -608,7 +608,7 @@
             <div x-show="previewModalOpen"
                  x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
                  x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-                 class="relative flex flex-col bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-5xl h-[85vh] ring-1 ring-base-content/5 text-base-content my-8 overflow-hidden">
+                 class="relative flex flex-col bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-[95vw] max-w-7xl h-[95vh] ring-1 ring-base-content/5 text-base-content my-4 overflow-hidden">
 
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-6 py-4 border-b border-base-300 bg-base-200/30 shrink-0">
                     <div class="flex items-center gap-3 w-full sm:w-auto">
@@ -624,7 +624,7 @@
                     <div class="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-end">
                         <div class="flex items-center gap-2 bg-base-100 px-3 py-1.5 rounded-xl border border-base-300" x-data="{ isSaving: false }">
                             <span class="text-xs font-bold text-base-content/60 uppercase tracking-wider">Nominal:</span>
-                            <input type="number" x-model="previewNominal" class="input input-xs input-bordered w-32 font-mono text-right" />
+                            <input type="number" x-model="previewNominal" class="input input-xs input-bordered w-36 font-mono text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                             <button @click="isSaving = true; $wire.updateNominalSurat(previewDistCode, previewNominal).then(() => { isSaving = false; previewModalOpen = false })" :disabled="isSaving" class="btn btn-xs btn-primary shadow-sm normal-case">
                                 <span x-show="!isSaving">Simpan</span>
                                 <span x-show="isSaving" class="loading loading-spinner loading-xs"></span>
