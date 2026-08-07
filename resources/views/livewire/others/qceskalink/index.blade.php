@@ -1,4 +1,4 @@
-<div x-data="{ previewModalOpen: false, previewUrl: '', previewTitle: '', previewNominal: 0, previewDistCode: '' }" class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
+<div x-data="{ previewModalOpen: false, previewUrl: '', previewTitle: '', previewNominal: 0, previewDistCode: '', previewScale: 1, get isPreviewImage() { return this.previewUrl.match(/\.(jpeg|jpg|gif|png)$/i) != null; } }" class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <x-slot name="title">QC Eskalink</x-slot>
 
     {{-- Tabs Navigation --}}
@@ -244,7 +244,7 @@
                                 {{-- FILE SURAT --}}
                                 <td class="border border-base-300 text-center">
                                     @if($item->file_surat)
-                                        <button type="button" @click="previewUrl = '{{ Storage::url($item->file_surat) }}'; previewTitle = '{{ addslashes($item->distributor_name) }}'; previewNominal = {{ $item->surat_nominal ?? 0 }}; previewDistCode = '{{ $item->distributor_code }}'; previewModalOpen = true" class="btn btn-xs btn-outline btn-primary">Lihat</button>
+                                        <button type="button" @click="previewUrl = '{{ Storage::url($item->file_surat) }}'; previewTitle = '{{ addslashes($item->distributor_name) }}'; previewNominal = {{ $item->surat_nominal ?? 0 }}; previewDistCode = '{{ $item->distributor_code }}'; previewScale = 1; previewModalOpen = true" class="btn btn-xs btn-outline btn-primary">Lihat</button>
                                     @else
                                         -
                                     @endif
@@ -636,9 +636,41 @@
                     </div>
                 </div>
 
-                <div class="flex-1 bg-base-200 p-2 sm:p-4 overflow-hidden relative">
+                <div class="flex-1 bg-base-200 p-2 sm:p-4 overflow-hidden relative flex flex-col">
                     <template x-if="previewUrl">
-                        <iframe :src="previewUrl" class="w-full h-full rounded-2xl border-2 border-base-300 bg-white shadow-inner"></iframe>
+                        <div class="w-full h-full relative rounded-2xl border-2 border-base-300 bg-white shadow-inner overflow-hidden flex flex-col">
+                            
+                            {{-- Image Zoom Toolbar --}}
+                            <template x-if="isPreviewImage">
+                                <div class="absolute bottom-4 right-4 z-10 flex gap-1 bg-base-100/90 backdrop-blur shadow-lg p-1.5 rounded-xl border border-base-300">
+                                    <button @click="previewScale = Math.max(0.25, previewScale - 0.25)" class="btn btn-sm btn-circle btn-ghost">
+                                        <x-heroicon-s-minus class="w-4 h-4"/>
+                                    </button>
+                                    <div class="flex items-center px-2 font-mono text-xs w-14 justify-center" x-text="Math.round(previewScale * 100) + '%'"></div>
+                                    <button @click="previewScale = Math.min(4, previewScale + 0.25)" class="btn btn-sm btn-circle btn-ghost">
+                                        <x-heroicon-s-plus class="w-4 h-4"/>
+                                    </button>
+                                    <button @click="previewScale = 1" class="btn btn-sm btn-circle btn-ghost" title="Reset">
+                                        <x-heroicon-s-arrow-path class="w-4 h-4"/>
+                                    </button>
+                                </div>
+                            </template>
+
+                            {{-- Viewer --}}
+                            <div class="w-full h-full overflow-auto bg-base-200 relative">
+                                <template x-if="isPreviewImage">
+                                    <div class="min-w-full min-h-full flex items-center justify-center p-4">
+                                        <img :src="previewUrl" 
+                                             :style="`height: ${previewScale * 80}vh; width: auto; max-width: none;`" 
+                                             class="shadow-sm transition-all duration-200 object-contain" />
+                                    </div>
+                                </template>
+                                <template x-if="!isPreviewImage">
+                                    <iframe :src="previewUrl" class="w-full h-full border-0"></iframe>
+                                </template>
+                            </div>
+
+                        </div>
                     </template>
                 </div>
             </div>
