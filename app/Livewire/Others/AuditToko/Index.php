@@ -217,11 +217,11 @@ class Index extends Component
         if (!empty($this->search)) {
             $q = '%' . trim($this->search) . '%';
             $query->where(function ($sub) use ($q) {
-                $sub->where('hat.customer_name', 'like', $q)
-                    ->orWhere('hat.customer_code', 'like', $q)
-                    ->orWhere('hat.auditor', 'like', $q)
-                    ->orWhere('md.distributor_name', 'like', $q)
-                    ->orWhere('md.branch_name', 'like', $q);
+                $sub->where('hat.customer_name', 'ilike', $q)
+                    ->orWhere('hat.customer_code', 'ilike', $q)
+                    ->orWhere('hat.auditor', 'ilike', $q)
+                    ->orWhere('md.distributor_name', 'ilike', $q)
+                    ->orWhere('md.branch_name', 'ilike', $q);
             });
         }
 
