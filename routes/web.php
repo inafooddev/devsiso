@@ -353,6 +353,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/others/perbaikantikor-elite', AdminPerbaikantikorEliteIndex::class)->name('others.perbaikantikor.elite');
     Route::get('/others/audit-toko', AdminAuditTokoIndex::class)->name('others.audit-toko');
     Route::get('/others/audit-toko/master-customer', AdminAuditTokoMasterCustomer::class)->name('others.audit-toko.master');
+    Route::get('/others/produk-lama', \App\Livewire\Others\ProdukLama\Index::class)->name('others.produk-lama');
     Route::get('/others/bug-report-request', \App\Livewire\Others\BugReportRequest\Index::class)->name('others.bug-report-request');
     Route::get('/others/target-per-se-untuk-eska', TargetPerSeUntukEskaIndex::class)->name('others.target-per-se-untuk-eska.index');
     Route::get('/mapping-supervisor-code', MappingSupervisorCodeIndex::class)->name('mapping-supervisor-code.index');
