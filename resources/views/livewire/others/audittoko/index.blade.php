@@ -135,7 +135,7 @@
 
                 {{-- Filter Distributor (Multi Select) --}}
                 @if(count($distributors) > 1)
-                <details class="dropdown">
+                <details class="dropdown dropdown-end">
                     <summary class="btn btn-sm btn-outline border-base-300 bg-base-100 rounded-xl gap-2 font-normal justify-between w-full sm:w-48 hover:bg-base-200 hover:border-base-300">
                         <span class="truncate">
                             @if(empty($selectedDistributor))
