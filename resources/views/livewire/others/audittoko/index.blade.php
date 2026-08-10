@@ -133,6 +133,40 @@
                 </select>
                 @endif
 
+                {{-- Filter Distributor (Multi Select) --}}
+                @if(count($distributors) > 1)
+                <details class="dropdown">
+                    <summary class="btn btn-sm btn-outline border-base-300 bg-base-100 rounded-xl gap-2 font-normal justify-between w-full sm:w-48 hover:bg-base-200 hover:border-base-300">
+                        <span class="truncate">
+                            @if(empty($selectedDistributor))
+                                Semua Distributor
+                            @elseif(count($selectedDistributor) === 1)
+                                {{ $selectedDistributor[0] }}
+                            @else
+                                {{ count($selectedDistributor) }} Distributor
+                            @endif
+                        </span>
+                        <x-heroicon-s-chevron-down class="w-3 h-3 text-base-content/50" />
+                    </summary>
+                    <div class="dropdown-content z-50 menu p-3 shadow-xl bg-base-100 rounded-2xl w-max max-w-md border border-base-200 mt-2">
+                        <div class="flex items-center justify-between mb-2 px-1">
+                            <span class="text-[10px] font-bold text-base-content/50 uppercase tracking-wider">Pilih Distributor</span>
+                            @if(!empty($selectedDistributor))
+                                <button type="button" wire:click="$set('selectedDistributor', [])" class="text-[10px] text-error hover:underline font-bold">Reset</button>
+                            @endif
+                        </div>
+                        <div class="max-h-48 overflow-y-auto space-y-1 pr-1">
+                            @foreach($distributors as $d)
+                            <label class="flex items-center gap-3 p-2 hover:bg-base-200 rounded-lg cursor-pointer transition-colors">
+                                <input type="checkbox" wire:model.live="selectedDistributor" value="{{ $d }}" class="checkbox checkbox-sm checkbox-primary rounded-md shrink-0" />
+                                <span class="text-xs font-semibold whitespace-nowrap pr-2">{{ $d }}</span>
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+                </details>
+                @endif
+
                 {{-- Export Button --}}
                 <div class="flex items-center gap-1 md:gap-2">
                     <button wire:click="openExportModal" class="btn btn-sm btn-success text-white rounded-xl gap-2 font-bold shadow-sm">

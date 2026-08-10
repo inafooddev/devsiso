@@ -29,7 +29,7 @@ class Index extends Component
     public $selectedArea = '';
 
     #[Url]
-    public $selectedDistributor = '';
+    public $selectedDistributor = [];
 
     public $perPage = 100;
     public $selectedId = null;
@@ -73,13 +73,13 @@ class Index extends Component
     public function updatingSelectedRegion()
     {
         $this->selectedArea = '';
-        $this->selectedDistributor = '';
+        $this->selectedDistributor = [];
         $this->resetPage();
     }
 
     public function updatingSelectedArea()
     {
-        $this->selectedDistributor = '';
+        $this->selectedDistributor = [];
         $this->resetPage();
     }
 
@@ -103,7 +103,7 @@ class Index extends Component
         $this->exportDateStart = $this->dateStart;
         $this->exportDateEnd = $this->dateEnd;
         $this->exportStatusFilter = $this->statusFilter;
-        $this->exportDistributors = !empty($this->selectedDistributor) ? [$this->selectedDistributor] : [];
+        $this->exportDistributors = !empty($this->selectedDistributor) ? (array) $this->selectedDistributor : [];
         $this->selectAllExportDistributors = false;
         
         $this->dispatch('open-export-modal');
@@ -203,7 +203,7 @@ class Index extends Component
         }
 
         if (!empty($this->selectedDistributor)) {
-            $query->where('md.distributor_name', $this->selectedDistributor);
+            $query->whereIn('md.distributor_name', (array) $this->selectedDistributor);
         }
 
         if (!empty($this->dateStart) && !empty($this->dateEnd)) {
