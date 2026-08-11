@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Livewire\Dashboard;
+namespace App\Livewire\Dashboard\SellIn;
 
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-class SupervisorSellInDashboard extends Component
+class Cabang extends Component
 {
     use WithPagination;
 
@@ -16,17 +16,17 @@ class SupervisorSellInDashboard extends Component
     // ======================
     // FILTER STATE
     // ======================
-    public int    $selectedYear      = 0;
+    public int    $selectedYear     = 0;
     public int    $selectedMonthFrom = 1;
     public int    $selectedMonthTo   = 12;
-    public string $selectedArea      = '';
-    public string $selectedRegFest   = 'ALL'; // ALL | REG | FEST
+    public string $selectedSupervisor   = ''; 
+    public string $selectedRegFest  = 'ALL'; // ALL | REG | FEST
 
     // ======================
     // OPTIONS
     // ======================
     public array $yearOptions    = [];
-    public array $areasOption    = [];
+    public array $supervisorsOption  = [];
     public array $regFestOptions = ['ALL', 'REG', 'FEST'];
 
     // ======================
@@ -37,20 +37,20 @@ class SupervisorSellInDashboard extends Component
     // ======================
     // CHART DATA (JSON strings for ApexCharts)
     // ======================
-    public string $chartSupervisorContribution = '[]';
-    public string $chartSalesTrend             = '[]';
-    public string $chartMonthlyBar             = '[]';
-    public string $chartGrowthArea             = '[]';
-    public string $chartSupervisorHBar         = '[]';
-    public string $chartCombo                  = '[]';
+    public string $chartCabangContribution = '[]';
+    public string $chartSalesTrend         = '[]';
+    public string $chartMonthlyBar         = '[]';
+    public string $chartGrowthCabang         = '[]';
+    public string $chartCabangHBar         = '[]';
+    public string $chartCombo              = '[]';
 
     // ======================
     // TABLE DATA
     // ======================
-    public array $topByAch      = [];
-    public array $topByGrowth   = [];
-    public array $gapVsTarget   = [];
-    public array $gapYoY        = [];
+    public array $topByAch     = [];
+    public array $topByGrowth  = [];
+    public array $gapVsTarget  = [];
+    public array $gapYoY       = [];
     public array $yoyComparison = [];
 
     // ======================
@@ -83,19 +83,19 @@ class SupervisorSellInDashboard extends Component
 
         // Load area options with access control
         $query = DB::table('v_sellinvstarget')
-            ->select('area')
-            ->whereNotNull('area')
-            ->where('area', '!=', '')
+            ->select('supervisor')
+            ->whereNotNull('supervisor')
+            ->where('supervisor', '!=', '')
             ->distinct()
-            ->orderBy('area');
+            ->orderBy('supervisor');
 
         $this->applyRegionAccess($query, 'region_code');
 
-        $this->areasOption = $query->pluck('area', 'area')->toArray();
+        $this->supervisorsOption = $query->pluck('supervisor', 'supervisor')->toArray();
 
         // Auto-select the first area available
-        if (!empty($this->areasOption)) {
-            $this->selectedArea = array_key_first($this->areasOption);
+        if (!empty($this->supervisorsOption)) {
+            $this->selectedSupervisor = array_key_first($this->supervisorsOption);
         }
 
         $this->loadDashboardData();
@@ -124,9 +124,9 @@ class SupervisorSellInDashboard extends Component
         $query->whereRaw('EXTRACT(MONTH FROM bulan) >= ?', [$this->selectedMonthFrom])
               ->whereRaw('EXTRACT(MONTH FROM bulan) <= ?', [$this->selectedMonthTo]);
 
-        // Area filter
-        if (!empty($this->selectedArea)) {
-            $query->where('area', $this->selectedArea);
+        // Area (Single select)
+        if (!empty($this->selectedSupervisor)) {
+            $query->where('supervisor', $this->selectedSupervisor);
         }
 
         // Reg/Fest
@@ -145,8 +145,8 @@ class SupervisorSellInDashboard extends Component
         $query->whereRaw('EXTRACT(MONTH FROM bulan) >= ?', [$this->selectedMonthFrom])
               ->whereRaw('EXTRACT(MONTH FROM bulan) <= ?', [$this->selectedMonthTo]);
 
-        if (!empty($this->selectedArea)) {
-            $query->where('area', $this->selectedArea);
+        if (!empty($this->selectedSupervisor)) {
+            $query->where('supervisor', $this->selectedSupervisor);
         }
 
         if ($this->selectedRegFest !== 'ALL') {
@@ -161,9 +161,9 @@ class SupervisorSellInDashboard extends Component
         $query->whereYear('bulan', $this->selectedYear)
               ->whereRaw('EXTRACT(MONTH FROM bulan) >= ?', [$this->selectedMonthFrom])
               ->whereRaw('EXTRACT(MONTH FROM bulan) <= ?', [$this->selectedMonthTo]);
-
-        if (!empty($this->selectedArea)) {
-            $query->where('area', $this->selectedArea);
+        
+        if (!empty($this->selectedSupervisor)) {
+            $query->where('supervisor', $this->selectedSupervisor);
         }
 
         if ($this->selectedRegFest !== 'ALL') {
@@ -175,11 +175,9 @@ class SupervisorSellInDashboard extends Component
     private function applyTrendFilters($query): void
     {
         $query->whereYear('bulan', $this->selectedYear);
-
-        if (!empty($this->selectedArea)) {
-            $query->where('area', $this->selectedArea);
+        if (!empty($this->selectedSupervisor)) {
+            $query->where('supervisor', $this->selectedSupervisor);
         }
-
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
@@ -189,11 +187,9 @@ class SupervisorSellInDashboard extends Component
     private function applyTrendLastYearFilters($query): void
     {
         $query->whereYear('bulan', $this->selectedYear - 1);
-
-        if (!empty($this->selectedArea)) {
-            $query->where('area', $this->selectedArea);
+        if (!empty($this->selectedSupervisor)) {
+            $query->where('supervisor', $this->selectedSupervisor);
         }
-
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
@@ -205,8 +201,8 @@ class SupervisorSellInDashboard extends Component
     // ======================
     public function applyFilter(): void
     {
-        if (empty($this->selectedArea) && !empty($this->areasOption)) {
-            $this->selectedArea = array_key_first($this->areasOption);
+        if (empty($this->selectedSupervisor) && !empty($this->supervisorsOption)) {
+            $this->selectedSupervisor = array_key_first($this->supervisorsOption);
         }
 
         $this->resetPage();
@@ -236,12 +232,8 @@ class SupervisorSellInDashboard extends Component
         $this->buildInsights();
     }
 
-    // ======================
-    // KPI DATA
-    // ======================
     private function loadKpiData(): void
     {
-        // Current Year aggregates
         $ty = DB::table('v_sellinvstarget');
         $this->applyBaseFilters($ty);
         $tySums = $ty->selectRaw('
@@ -249,7 +241,6 @@ class SupervisorSellInDashboard extends Component
             COALESCE(SUM(target), 0) AS total_target
         ')->first();
 
-        // Last Year aggregates
         $ly = DB::table('v_sellinvstarget');
         $this->applyLastYearFilters($ly);
         $lySums = $ly->selectRaw('COALESCE(SUM(actual), 0) AS total_actual')->first();
@@ -258,27 +249,20 @@ class SupervisorSellInDashboard extends Component
         $totalTarget   = (float) ($tySums->total_target ?? 0);
         $totalActualLY = (float) ($lySums->total_actual ?? 0);
 
-        // Growth %
         $growthPct = $totalActualLY > 0
             ? (($totalActualTY - $totalActualLY) / $totalActualLY) * 100
             : 0;
 
-        // Achievement %
         $achievementPct = $totalTarget > 0
             ? ($totalActualTY / $totalTarget) * 100
             : 0;
 
-        // Gap vs target
         $gapVsTarget = $totalActualTY - $totalTarget;
-
-        // Gap vs LY
         $gapVsLY = $totalActualTY - $totalActualLY;
 
-        // Avg monthly sales (TY)
         $monthCount = $this->selectedMonthTo - $this->selectedMonthFrom + 1;
         $avgMonthlySales = $monthCount > 0 ? $totalActualTY / $monthCount : 0;
 
-        // Avg monthly LY
         $avgMonthlyLY = $monthCount > 0 ? $totalActualLY / $monthCount : 0;
         $avgMonthlyGrowth = $avgMonthlyLY > 0
             ? (($avgMonthlySales - $avgMonthlyLY) / $avgMonthlyLY) * 100
@@ -297,39 +281,34 @@ class SupervisorSellInDashboard extends Component
         ];
     }
 
-    // ======================
-    // CHART DATA
-    // ======================
     private function loadChartData(): void
     {
-        $this->buildSupervisorContributionChart();
+        $this->buildCabangContributionChart();
         $this->buildSalesTrendChart();
         $this->buildMonthlyBarChart();
-        $this->buildGrowthAreaChart();
-        $this->buildSupervisorHBarChart();
+        $this->buildGrowthCabangChart();
+        $this->buildCabangHBarChart();
         $this->buildComboChart();
     }
 
-    private function buildSupervisorContributionChart(): void
+    private function buildCabangContributionChart(): void
     {
         $q = DB::table('v_sellinvstarget');
         $this->applySnapshotFilters($q);
-        $rows = $q->selectRaw('supervisor, SUM(actual) AS total')
-                  ->whereNotNull('supervisor')
-                  ->where('supervisor', '!=', '')
+        $rows = $q->selectRaw('supervisor AS cabang, SUM(actual) AS total')
+                  ->whereNotNull('supervisor')->where('supervisor', '!=', '')
                   ->groupBy('supervisor')
                   ->orderByDesc('total')
                   ->get();
 
-        $this->chartSupervisorContribution = json_encode([
-            'labels' => $rows->pluck('supervisor')->toArray(),
+        $this->chartCabangContribution = json_encode([
+            'labels' => $rows->pluck('cabang')->toArray(),
             'series' => $rows->map(fn($r) => round((float)$r->total))->toArray(),
         ]);
     }
 
     private function buildSalesTrendChart(): void
     {
-        // TY
         $qTY = DB::table('v_sellinvstarget');
         $this->applyTrendFilters($qTY);
         $tyRows = $qTY->selectRaw("EXTRACT(MONTH FROM bulan)::int AS month_num, SUM(actual) AS total")
@@ -337,7 +316,6 @@ class SupervisorSellInDashboard extends Component
                       ->orderBy('month_num')
                       ->pluck('total', 'month_num');
 
-        // LY
         $qLY = DB::table('v_sellinvstarget');
         $this->applyTrendLastYearFilters($qLY);
         $lyRows = $qLY->selectRaw("EXTRACT(MONTH FROM bulan)::int AS month_num, SUM(actual) AS total")
@@ -390,7 +368,7 @@ class SupervisorSellInDashboard extends Component
         ]);
     }
 
-    private function buildGrowthAreaChart(): void
+    private function buildGrowthCabangChart(): void
     {
         $qTY = DB::table('v_sellinvstarget');
         $this->applyTrendFilters($qTY);
@@ -411,32 +389,31 @@ class SupervisorSellInDashboard extends Component
 
         $labels     = array_map(fn($m) => $monthNames[$m - 1], $months);
         $growthData = array_map(function ($m) use ($tyRows, $lyRows) {
-            if (!$tyRows->has($m)) return null;          // No TY data yet — gap in chart
+            if (!$tyRows->has($m)) return null;
             $ty = (float)$tyRows[$m];
             $ly = (float)($lyRows[$m] ?? 0);
-            if ($ly === 0.0) return null;                // Cannot compute growth without LY base
+            if ($ly === 0.0) return null;
             return round((($ty - $ly) / $ly) * 100, 2);
         }, $months);
 
-        $this->chartGrowthArea = json_encode([
+        $this->chartGrowthCabang = json_encode([
             'labels' => $labels,
             'growth' => $growthData,
         ]);
     }
 
-    private function buildSupervisorHBarChart(): void
+    private function buildCabangHBarChart(): void
     {
         $q = DB::table('v_sellinvstarget');
         $this->applySnapshotFilters($q);
-        $rows = $q->selectRaw('supervisor, SUM(actual) AS actual, SUM(target) AS target')
-                  ->whereNotNull('supervisor')
-                  ->where('supervisor', '!=', '')
+        $rows = $q->selectRaw('supervisor AS cabang, SUM(actual) AS actual, SUM(target) AS target')
+                  ->whereNotNull('supervisor')->where('supervisor', '!=', '')
                   ->groupBy('supervisor')
                   ->orderByDesc('actual')
                   ->get();
 
-        $this->chartSupervisorHBar = json_encode([
-            'labels'  => $rows->pluck('supervisor')->toArray(),
+        $this->chartCabangHBar = json_encode([
+            'labels'  => $rows->pluck('cabang')->toArray(),
             'actuals' => $rows->map(fn($r) => round((float)$r->actual))->toArray(),
             'targets' => $rows->map(fn($r) => round((float)$r->target))->toArray(),
         ]);
@@ -445,17 +422,16 @@ class SupervisorSellInDashboard extends Component
     private function buildComboChart(): void
     {
         $salesTrend = json_decode($this->chartSalesTrend, true);
-        $growthArea = json_decode($this->chartGrowthArea, true);
+        $growthCabang = json_decode($this->chartGrowthCabang, true);
 
-        if (!$salesTrend || !$growthArea) {
+        if (!$salesTrend || !$growthCabang) {
             $this->chartCombo = json_encode(['labels' => [], 'ty' => [], 'ly' => [], 'growth' => []]);
             return;
         }
 
-        // Sanitize growth: keep null (= gap in chart), replace non-finite with null
         $growth = array_map(
             fn($v) => $v === null ? null : ((is_numeric($v) && is_finite($v)) ? round((float)$v, 2) : null),
-            $growthArea['growth'] ?? []
+            $growthCabang['growth'] ?? []
         );
 
         $this->chartCombo = json_encode([
@@ -465,10 +441,6 @@ class SupervisorSellInDashboard extends Component
             'growth' => $growth,
         ]);
     }
-
-    // ======================
-    // TABLE DATA
-    // ======================
 
     private function loadTableData(): void
     {
@@ -483,19 +455,18 @@ class SupervisorSellInDashboard extends Component
     {
         $q = DB::table('v_sellinvstarget');
         $this->applyBaseFilters($q);
-        $rows = $q->selectRaw('supervisor, SUM(actual) AS actual, SUM(target) AS target')
-                  ->whereNotNull('supervisor')
-                  ->where('supervisor', '!=', '')
+        $rows = $q->selectRaw('supervisor AS cabang, SUM(actual) AS actual, SUM(target) AS target')
+                  ->whereNotNull('supervisor')->where('supervisor', '!=', '')
                   ->groupBy('supervisor')
                   ->orderByRaw('(SUM(actual) / NULLIF(SUM(target), 0)) DESC')
                   ->limit(10)
                   ->get();
 
         $this->topByAch = $rows->map(fn($r) => [
-            'supervisor' => $r->supervisor,
-            'target'     => (float)$r->target,
-            'actual'     => (float)$r->actual,
-            'ach'        => $r->target > 0 ? round(($r->actual / $r->target) * 100, 2) : 0,
+            'cabang' => $r->cabang,
+            'target' => (float)$r->target,
+            'actual' => (float)$r->actual,
+            'ach'    => $r->target > 0 ? round(($r->actual / $r->target) * 100, 2) : 0,
         ])->toArray();
     }
 
@@ -503,28 +474,26 @@ class SupervisorSellInDashboard extends Component
     {
         $qLY = DB::table('v_sellinvstarget');
         $this->applyLastYearFilters($qLY);
-        $lyMap = $qLY->selectRaw('supervisor, SUM(actual) AS actual')
-                     ->whereNotNull('supervisor')
-                     ->where('supervisor', '!=', '')
+        $lyMap = $qLY->selectRaw('supervisor AS cabang, SUM(actual) AS actual')
+                     ->whereNotNull('supervisor')->where('supervisor', '!=', '')
                      ->groupBy('supervisor')
-                     ->pluck('actual', 'supervisor');
+                     ->pluck('actual', 'cabang');
 
         $qTY = DB::table('v_sellinvstarget');
         $this->applyBaseFilters($qTY);
-        $rows = $qTY->selectRaw('supervisor, SUM(actual) AS actual')
-                    ->whereNotNull('supervisor')
-                    ->where('supervisor', '!=', '')
+        $rows = $qTY->selectRaw('supervisor AS cabang, SUM(actual) AS actual')
+                    ->whereNotNull('supervisor')->where('supervisor', '!=', '')
                     ->groupBy('supervisor')
                     ->get();
 
         $this->topByGrowth = $rows->map(function ($r) use ($lyMap) {
-            $ly = (float)($lyMap[$r->supervisor] ?? 0);
+            $ly = (float)($lyMap[$r->cabang] ?? 0);
             $ty = (float)$r->actual;
             return [
-                'supervisor' => $r->supervisor,
-                'ly'         => $ly,
-                'ty'         => $ty,
-                'growth'     => $ly > 0 ? round((($ty - $ly) / $ly) * 100, 2) : 0,
+                'cabang' => $r->cabang,
+                'ly'     => $ly,
+                'ty'     => $ty,
+                'growth' => $ly > 0 ? round((($ty - $ly) / $ly) * 100, 2) : 0,
             ];
         })->sortByDesc('growth')->values()->take(10)->toArray();
     }
@@ -533,19 +502,18 @@ class SupervisorSellInDashboard extends Component
     {
         $q = DB::table('v_sellinvstarget');
         $this->applyBaseFilters($q);
-        $rows = $q->selectRaw('supervisor, SUM(actual) AS actual, SUM(target) AS target')
-                  ->whereNotNull('supervisor')
-                  ->where('supervisor', '!=', '')
+        $rows = $q->selectRaw('supervisor AS cabang, SUM(actual) AS actual, SUM(target) AS target')
+                  ->whereNotNull('supervisor')->where('supervisor', '!=', '')
                   ->groupBy('supervisor')
                   ->orderByRaw('SUM(actual) - SUM(target) DESC')
                   ->limit(10)
                   ->get();
 
         $this->gapVsTarget = $rows->map(fn($r) => [
-            'supervisor' => $r->supervisor,
-            'target'     => (float)$r->target,
-            'actual'     => (float)$r->actual,
-            'gap'        => (float)$r->actual - (float)$r->target,
+            'cabang' => $r->cabang,
+            'target' => (float)$r->target,
+            'actual' => (float)$r->actual,
+            'gap'    => (float)$r->actual - (float)$r->target,
         ])->toArray();
     }
 
@@ -553,28 +521,26 @@ class SupervisorSellInDashboard extends Component
     {
         $qLY = DB::table('v_sellinvstarget');
         $this->applyLastYearFilters($qLY);
-        $lyMap = $qLY->selectRaw('supervisor, SUM(actual) AS actual')
-                     ->whereNotNull('supervisor')
-                     ->where('supervisor', '!=', '')
+        $lyMap = $qLY->selectRaw('supervisor AS cabang, SUM(actual) AS actual')
+                     ->whereNotNull('supervisor')->where('supervisor', '!=', '')
                      ->groupBy('supervisor')
-                     ->pluck('actual', 'supervisor');
+                     ->pluck('actual', 'cabang');
 
         $qTY = DB::table('v_sellinvstarget');
         $this->applyBaseFilters($qTY);
-        $rows = $qTY->selectRaw('supervisor, SUM(actual) AS actual')
-                    ->whereNotNull('supervisor')
-                    ->where('supervisor', '!=', '')
+        $rows = $qTY->selectRaw('supervisor AS cabang, SUM(actual) AS actual')
+                    ->whereNotNull('supervisor')->where('supervisor', '!=', '')
                     ->groupBy('supervisor')
                     ->get();
 
         $this->gapYoY = $rows->map(function ($r) use ($lyMap) {
-            $ly = (float)($lyMap[$r->supervisor] ?? 0);
+            $ly = (float)($lyMap[$r->cabang] ?? 0);
             $ty = (float)$r->actual;
             return [
-                'supervisor' => $r->supervisor,
-                'ly'         => $ly,
-                'ty'         => $ty,
-                'gap'        => $ty - $ly,
+                'cabang' => $r->cabang,
+                'ly'     => $ly,
+                'ty'     => $ty,
+                'gap'    => $ty - $ly,
             ];
         })->sortByDesc('gap')->values()->take(10)->toArray();
     }
@@ -611,67 +577,51 @@ class SupervisorSellInDashboard extends Component
         }
     }
 
-    // ======================
-    // AUTO INSIGHTS
-    // ======================
     private function buildInsights(): void
     {
-        // Best performing supervisor (highest ach)
         $best = collect($this->topByAch)->sortByDesc('ach')->first();
-
-        // Worst supervisor (lowest achievement %)
         $worst = collect($this->topByAch)->sortBy('ach')->first();
-
-        // Highest growth supervisor
         $highestGrowth = collect($this->topByGrowth)->sortByDesc('growth')->first();
-
-        // Biggest negative gap
         $biggestNegGap = collect($this->gapVsTarget)->sortBy('gap')->first();
 
         $this->insights = [
-            'best_supervisor' => $best ? [
-                'title'    => 'Best Performing Supervisor',
-                'value'    => $best['supervisor'],
+            'best_cabang' => $best ? [
+                'title'    => 'Best Performing Cabang',
+                'value'    => $best['cabang'],
                 'sub'      => 'Achievement: ' . number_format($best['ach'], 2) . '%',
                 'type'     => 'success',
             ] : null,
-            'worst_supervisor' => $worst ? [
-                'title'    => 'Worst Achievement Supervisor',
-                'value'    => $worst['supervisor'],
+            'worst_cabang' => $worst ? [
+                'title'    => 'Worst Achievement Cabang',
+                'value'    => $worst['cabang'],
                 'sub'      => 'Achievement: ' . number_format($worst['ach'], 2) . '%',
                 'type'     => 'error',
             ] : null,
             'highest_growth' => $highestGrowth ? [
-                'title'    => 'Highest Growth Supervisor',
-                'value'    => $highestGrowth['supervisor'],
+                'title'    => 'Highest Growth Cabang',
+                'value'    => $highestGrowth['cabang'],
                 'sub'      => 'Growth: +' . number_format($highestGrowth['growth'], 2) . '%',
                 'type'     => 'info',
             ] : null,
             'biggest_neg_gap' => $biggestNegGap ? [
                 'title'    => 'Biggest Negative Gap',
-                'value'    => $biggestNegGap['supervisor'],
+                'value'    => $biggestNegGap['cabang'],
                 'sub'      => 'Gap: ' . number_format($biggestNegGap['gap'], 0, ',', '.'),
                 'type'     => 'warning',
             ] : null,
         ];
     }
 
-    // ======================
-    // RENDER
-    // ======================
     public function render()
     {
-        // Paginated main detail table
         $detailQuery = DB::table('v_sellinvstarget');
         $this->applyTrendFilters($detailQuery);
 
-        // Apply search to detail table
         if (!empty($this->searchDetail)) {
             $s = $this->searchDetail;
             $detailQuery->whereRaw("TO_CHAR(bulan, 'Mon YYYY') ilike ?", ["%{$s}%"]);
         }
 
-        // LY actuals keyed by (month_num)
         $lyQuery = DB::table('v_sellinvstarget');
         $this->applyTrendLastYearFilters($lyQuery);
         $lyMap = $lyQuery->selectRaw("
@@ -682,7 +632,6 @@ class SupervisorSellInDashboard extends Component
             ->get()
             ->keyBy(fn($r) => "{$r->month_num}");
 
-        // Apply search to detail table
         if (!empty($this->searchDetail)) {
             $s = $this->searchDetail;
             $detailQuery->whereRaw("TO_CHAR(bulan, 'Mon YYYY') ilike ?", ["%{$s}%"]);
@@ -699,7 +648,6 @@ class SupervisorSellInDashboard extends Component
             ->orderBy('month_num')
             ->paginate(20);
 
-        // Attach computed columns
         $details->getCollection()->transform(function ($row) use ($lyMap) {
             $key             = "{$row->month_num}";
             $lyActual        = (float)($lyMap[$key]->ly_actual ?? 0);
@@ -713,12 +661,18 @@ class SupervisorSellInDashboard extends Component
             return $row;
         });
 
-        return view('livewire.dashboard.supervisor-sell-in-dashboard', [
+        return view('livewire.dashboard.sell-in.cabang', [
             'details'          => $details,
             'topByAchData'     => $this->topByAch,
             'topByGrowthData'  => $this->topByGrowth,
             'gapVsTargetData'  => $this->gapVsTarget,
             'gapYoYData'       => $this->gapYoY,
-        ])->layout('layouts.app', ['title' => 'Supervisor Sell In Dashboard']);
+        ])->layout('layouts.app', ['title' => 'Cabang Sell In Dashboard']);
     }
 }
+
+
+
+
+
+

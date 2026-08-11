@@ -10,6 +10,7 @@ export default {
     "./resources/**/*.tsx",
     "./resources/**/*.vue",
     "./app/Livewire/**/*.php",
+    "./vendor/robsontenorio/mary/src/View/Components/**/*.php",
   ],
   theme: {
     extend: {

@@ -1,26 +1,22 @@
-<div>
-    <x-slot name="title">Supervisor Sell In Dashboard</x-slot>
+<div class="flex flex-col h-[calc(100vh-theme(spacing.16))] sm:h-[calc(100vh-theme(spacing.20))]">
+    <x-slot name="title">Area Sell In Dashboard</x-slot>
 
-    <div class="p-6 space-y-6 bg-base-200 min-h-screen">
+    <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-base-200">
         {{-- Toolbar --}}
         <div class="flex flex-wrap items-center justify-between gap-3 bg-base-100 rounded-2xl shadow-xl px-6 py-4">
             <div class="flex flex-wrap items-center gap-2">
-                <h2 class="font-bold text-lg mr-2">Supervisor Sell In Dashboard</h2>
+                <h2 class="font-bold text-lg mr-2">Area Sell In Dashboard</h2>
                 <span class="badge badge-outline badge-primary">{{ $selectedYear }}</span>
                 <span class="badge badge-outline">{{ date('M', mktime(0,0,0,$selectedMonthFrom,1)) }} – {{ date('M', mktime(0,0,0,$selectedMonthTo,1)) }}</span>
                 @if($selectedRegFest !== 'ALL')<span class="badge badge-secondary badge-outline">{{ $selectedRegFest }}</span>@endif
-                @if(!empty($selectedArea))
-                    <span class="badge badge-outline badge-info">{{ $selectedArea }}</span>
-                @else
-                    <span class="badge badge-outline badge-info">All Areas</span>
-                @endif
+                <span class="badge badge-outline badge-info">{{ $regionsOption[$selectedRegion] ?? 'No Region' }}</span>
             </div>
             <div class="flex items-center gap-2">
                 <div class="join">
-                    <a href="{{ route('dashboard.national-sell-in') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.national-sell-in') ? 'btn-neutral' : 'btn-outline' }}">Nasional</a>
-                    <a href="{{ route('dashboard.area-sell-in') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.area-sell-in') ? 'btn-neutral' : 'btn-outline' }}">Area</a>
-                    <a href="{{ route('dashboard.supervisor-sell-in') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.supervisor-sell-in') ? 'btn-neutral' : 'btn-outline' }}">Supervisor</a>
-                    <a href="{{ route('dashboard.cabang-sell-in') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.cabang-sell-in') ? 'btn-neutral' : 'btn-outline' }}">Cabang</a>
+                    <a href="{{ route('dashboard.sellin.national') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.sellin.national') ? 'btn-neutral' : 'btn-outline' }}">Nasional</a>
+                    <a href="{{ route('dashboard.sellin.area') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.sellin.area') ? 'btn-neutral' : 'btn-outline' }}">Area</a>
+                    <a href="{{ route('dashboard.sellin.cabang') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.sellin.cabang') ? 'btn-neutral' : 'btn-outline' }}">Cabang</a>
+                    <a href="{{ route('dashboard.sellin.supervisor') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.sellin.supervisor') ? 'btn-neutral' : 'btn-outline' }}">Supervisor</a>
                 </div>
                 <button wire:click="openFilterModal" class="btn btn-primary btn-sm rounded-xl gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,7 +32,7 @@
         @if($showFilterModal)
             <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" wire:click="closeFilterModal"></div>
-                <div class="relative z-10 w-full max-w-md bg-base-100 rounded-2xl shadow-2xl">
+                <div class="relative z-10 w-full max-w-2xl bg-base-100 rounded-2xl shadow-2xl">
                     <div class="flex items-center justify-between px-6 py-4 border-b border-base-200">
                         <h3 class="font-bold text-lg">Dashboard Filters</h3>
                         <button wire:click="closeFilterModal" class="btn btn-ghost btn-sm btn-circle">✕</button>
@@ -75,14 +71,14 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="form-control col-span-2">
-                                <label class="label"><span class="label-text font-semibold">Area</span></label>
-                                <select wire:model="selectedArea" class="select select-bordered select-sm rounded-xl w-full">
-                                    @foreach($areasOption as $key => $val)
-                                        <option value="{{ $key }}">{{ $val }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">Select Region</span></label>
+                            <select wire:model="selectedRegion" class="select select-bordered select-sm rounded-xl w-full">
+                                @foreach($regionsOption as $code => $name)
+                                    <option value="{{ $code }}">{{ $name }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                     <div class="px-6 py-4 border-t border-base-200 flex justify-end gap-3">
@@ -234,33 +230,33 @@
             @endforeach
         </div>
 
-        {{-- Chart data — Livewire updates this on every render --}}
+        {{-- Chart data --}}
         <script type="application/json" id="chart-data">
             {
-                "contribution": @json(json_decode($chartSupervisorContribution, true) ?: new stdClass),
-                "trend":        @json(json_decode($chartSalesTrend, true)             ?: new stdClass),
-                "monthly":      @json(json_decode($chartMonthlyBar, true)             ?: new stdClass),
-                "growth":       @json(json_decode($chartGrowthArea, true)             ?: new stdClass),
-                "supervisorHBar": @json(json_decode($chartSupervisorHBar, true)       ?: new stdClass),
-                "combo":        @json(json_decode($chartCombo, true)                  ?: new stdClass)
+                "contribution": @json(json_decode($chartAreaContribution, true) ?: new stdClass),
+                "trend":        @json(json_decode($chartSalesTrend, true)        ?: new stdClass),
+                "monthly":      @json(json_decode($chartMonthlyBar, true)        ?: new stdClass),
+                "growth":       @json(json_decode($chartGrowthArea, true)        ?: new stdClass),
+                "areaHBar":     @json(json_decode($chartAreaHBar, true)          ?: new stdClass),
+                "combo":        @json(json_decode($chartCombo, true)             ?: new stdClass)
             }
         </script>
 
-        {{-- Row 1: Supervisor-focused charts --}}
+        {{-- Row 1: Area-focused charts --}}
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <!-- 🔥 Supervisor Contribution -->
+            <!-- 🔥 Area Contribution -->
             <div class="card bg-base-100 shadow-xl rounded-2xl md:col-span-6 xl:col-span-3" wire:ignore>
                 <div class="card-body p-4">
-                    <h3 class="font-semibold text-sm mb-0">Supervisor Contribution</h3>
-                    <div id="chartSupervisorContribution" class="w-full"></div>
+                    <h3 class="font-semibold text-sm mb-0">Area Contribution</h3>
+                    <div id="chartAreaContribution" class="w-full"></div>
                 </div>
             </div>
 
-            <!-- 🔥 Supervisor Comparison -->
+            <!-- 🔥 Area Comparison -->
             <div class="card bg-base-100 shadow-xl rounded-2xl md:col-span-6 xl:col-span-3" wire:ignore>
                 <div class="card-body p-4">
-                    <h3 class="font-semibold text-sm mb-0">Supervisor Comparison</h3>
-                    <div id="chartSupervisorHBar" class="w-full"></div>
+                    <h3 class="font-semibold text-sm mb-0">Area Comparison</h3>
+                    <div id="chartAreaHBar" class="w-full"></div>
                 </div>
             </div>
 
@@ -361,23 +357,23 @@
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
                             </svg>
-                            Top Performance by Ach%
+                            Top Area by Ach%
                         </span>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="table table-sm w-full">
                             <thead>
                                 <tr class="bg-base-200 text-[10px] uppercase">
-                                    <th>Supervisor</th>
+                                    <th>Area</th>
                                     <th class="text-right">Target</th>
                                     <th class="text-right">Sales</th>
                                     <th class="text-center">%Ach</th>
-                                </tr >
+                                </tr>
                             </thead>
                             <tbody>
                                 @foreach($topByAchData as $r)
                                     <tr class="hover:bg-base-200 transition-colors">
-                                        <td class="font-medium text-xs">{{ $r['supervisor'] }}</td>
+                                        <td class="font-medium text-xs">{{ $r['area'] }}</td>
                                         <td class="text-right text-xs font-mono">{{ number_format($r['target'], 0, ',', '.') }}</td>
                                         <td class="text-right text-xs font-mono">{{ number_format($r['actual'], 0, ',', '.') }}</td>
                                         <td class="text-center">
@@ -397,14 +393,14 @@
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                             </svg>
-                            Top Performance by Growth%
+                            Top Area by Growth%
                         </span>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="table table-sm w-full">
                             <thead>
                                 <tr class="bg-base-200 text-[10px] uppercase">
-                                    <th>Supervisor</th>
+                                    <th>Area</th>
                                     <th class="text-right">Last Year</th>
                                     <th class="text-right">Current Year</th>
                                     <th class="text-center">% Growth</th>
@@ -413,7 +409,7 @@
                             <tbody>
                                 @foreach($topByGrowthData as $r)
                                     <tr class="hover:bg-base-200 transition-colors">
-                                        <td class="font-medium text-xs">{{ $r['supervisor'] }}</td>
+                                        <td class="font-medium text-xs">{{ $r['area'] }}</td>
                                         <td class="text-right text-xs font-mono text-base-content/60">{{ number_format($r['ly'], 0, ',', '.') }}</td>
                                         <td class="text-right text-xs font-mono font-bold">{{ number_format($r['ty'], 0, ',', '.') }}</td>
                                         <td class="text-center text-xs font-bold {{ $r['growth'] >= 0 ? 'text-success' : 'text-error' }}">
@@ -434,14 +430,14 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
                             </svg>
-                            Gap Sales vs Target
+                            Gap Sales vs Target (Area)
                         </span>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="table table-sm w-full">
                             <thead>
                                 <tr class="bg-base-200 text-[10px] uppercase">
-                                    <th>Supervisor</th>
+                                    <th>Area</th>
                                     <th class="text-right">Target</th>
                                     <th class="text-right">Sales</th>
                                     <th class="text-right">Gap</th>
@@ -450,7 +446,7 @@
                             <tbody>
                                 @foreach($gapVsTargetData as $r)
                                     <tr class="hover:bg-base-200 transition-colors">
-                                        <td class="font-medium text-xs">{{ $r['supervisor'] }}</td>
+                                        <td class="font-medium text-xs">{{ $r['area'] }}</td>
                                         <td class="text-right text-xs font-mono text-base-content/60">{{ number_format($r['target'], 0, ',', '.') }}</td>
                                         <td class="text-right text-xs font-mono">{{ number_format($r['actual'], 0, ',', '.') }}</td>
                                         <td class="text-right text-xs font-mono font-bold {{ $r['gap'] >= 0 ? 'text-success' : 'text-error' }}">
@@ -470,14 +466,14 @@
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                             </svg>
-                            Gap Last Year vs Current Year
+                            Gap Last Year vs Current Year (Area)
                         </span>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="table table-sm w-full">
                             <thead>
                                 <tr class="bg-base-200 text-[10px] uppercase">
-                                    <th>Supervisor</th>
+                                    <th>Area</th>
                                     <th class="text-right">Last Year</th>
                                     <th class="text-right">Current Year</th>
                                     <th class="text-right">Gap</th>
@@ -486,7 +482,7 @@
                             <tbody>
                                 @foreach($gapYoYData as $r)
                                     <tr class="hover:bg-base-200 transition-colors">
-                                        <td class="font-medium text-xs">{{ $r['supervisor'] }}</td>
+                                        <td class="font-medium text-xs">{{ $r['area'] }}</td>
                                         <td class="text-right text-xs font-mono text-base-content/60">{{ number_format($r['ly'], 0, ',', '.') }}</td>
                                         <td class="text-right text-xs font-mono">{{ number_format($r['ty'], 0, ',', '.') }}</td>
                                         <td class="text-right text-xs font-mono font-bold {{ $r['gap'] >= 0 ? 'text-success' : 'text-error' }}">
@@ -564,8 +560,8 @@
                         return new Intl.NumberFormat('id-ID').format(val);
                     };
 
-                    // Supervisor Contribution — donut with labels
-                    const chartElement = document.querySelector('#chartSupervisorContribution');
+                    // Area Contribution — donut with labels
+                    const chartElement = document.querySelector('#chartAreaContribution');
                     if (d.contribution && chartElement) {
                         if (charts.contribution && typeof charts.contribution.destroy === 'function') {
                             charts.contribution.destroy();
@@ -616,7 +612,7 @@
                                             },
                                             total: {
                                                 show: true,
-                                                label: 'Total Sales',
+                                                label: 'Total Area Sales',
                                                 fontSize: '12px',
                                                 color: textColor,
                                                 formatter: (w) => {
@@ -668,13 +664,13 @@
                         charts.contribution.render();
                     }
 
-                    // Supervisor Comparison — horizontal bar
-                    if (d.supervisorHBar && document.querySelector('#chartSupervisorHBar')) {
-                        if (charts.supervisorH && typeof charts.supervisorH.destroy === 'function') {
-                            charts.supervisorH.destroy();
+                    // Area Comparison — horizontal bar
+                    if (d.areaHBar && document.querySelector('#chartAreaHBar')) {
+                        if (charts.areaH && typeof charts.areaH.destroy === 'function') {
+                            charts.areaH.destroy();
                         }
 
-                        charts.supervisorH = new ApexCharts(document.querySelector('#chartSupervisorHBar'), {
+                        charts.areaH = new ApexCharts(document.querySelector('#chartAreaHBar'), {
                             ...base,
                             chart: {
                                 ...base.chart,
@@ -688,8 +684,8 @@
                                 }
                             },
                             series: [
-                                { name: 'Actual', data: d.supervisorHBar.actuals || [] },
-                                { name: 'Target', data: d.supervisorHBar.targets || [] }
+                                { name: 'Actual', data: d.areaHBar.actuals || [] },
+                                { name: 'Target', data: d.areaHBar.targets || [] }
                             ],
                             plotOptions: {
                                 bar: {
@@ -713,7 +709,7 @@
                                 padding: { top: 0, right: 10, bottom: 0, left: 10 }
                             },
                             xaxis: {
-                                categories: d.supervisorHBar.labels || [],
+                                categories: d.areaHBar.labels || [],
                                 labels: {
                                     style: { fontSize: '11px', colors: textColor },
                                     formatter: fmt
@@ -779,7 +775,7 @@
                                 itemMargin: { horizontal: 8 }
                             }
                         });
-                        charts.supervisorH.render();
+                        charts.areaH.render();
                     }
 
                     // Performance Overview — combo (This Year vs Last Year + Growth %)
@@ -1035,22 +1031,25 @@
 
                 // MutationObserver to detect theme changes live
                 const observer = new MutationObserver((mutations) => {
-                    mutations.forEach((mutation) => {
-                        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
-                            Object.values(charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
-                            charts = {};
-                            setTimeout(initCharts, 150);
-                        }
+                        mutations.forEach((mutation) => {
+                            if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                                Object.values(charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
+                                charts = {};
+                                setTimeout(initCharts, 150);
+                            }
+                        });
                     });
-                });
-                observer.observe(document.documentElement, { attributes: true });
+                    observer.observe(document.documentElement, { attributes: true });
 
-                Livewire.on('charts-updated', () => {
-                    Object.values(charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
-                    charts = {};
-                    setTimeout(initCharts, 150);
-                });
+                    Livewire.on('charts-updated', () => {
+                        Object.values(charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
+                        charts = {};
+                        setTimeout(initCharts, 150);
+                    });
             });
         </script>
     @endpush
 </div>
+
+
+

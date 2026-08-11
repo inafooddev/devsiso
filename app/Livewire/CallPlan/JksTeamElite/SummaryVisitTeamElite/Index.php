@@ -27,7 +27,7 @@ class Index extends Component
     public $selectedKeterangan = '';
     
     public $isFiltered = false;
-    public $currentTab = 'summary';
+    public $currentTab = 'dashboard';
 
     public $sortField = 'selisih';
     public $sortDirection = 'desc';

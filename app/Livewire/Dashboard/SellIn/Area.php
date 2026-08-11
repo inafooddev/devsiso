@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Livewire\Dashboard;
+namespace App\Livewire\Dashboard\SellIn;
 
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-class NationalSellInDashboard extends Component
+class Area extends Component
 {
     use WithPagination;
 
@@ -19,12 +19,14 @@ class NationalSellInDashboard extends Component
     public int    $selectedYear     = 0;
     public int    $selectedMonthFrom = 1;
     public int    $selectedMonthTo   = 12;
+    public string $selectedRegion   = ''; 
     public string $selectedRegFest  = 'ALL'; // ALL | REG | FEST
 
     // ======================
     // OPTIONS
     // ======================
     public array $yearOptions    = [];
+    public array $regionsOption  = [];
     public array $regFestOptions = ['ALL', 'REG', 'FEST'];
 
     // ======================
@@ -35,11 +37,11 @@ class NationalSellInDashboard extends Component
     // ======================
     // CHART DATA (JSON strings for ApexCharts)
     // ======================
-    public string $chartRegionContribution = '[]';
+    public string $chartAreaContribution = '[]';
     public string $chartSalesTrend         = '[]';
     public string $chartMonthlyBar         = '[]';
     public string $chartGrowthArea         = '[]';
-    public string $chartRegionHBar         = '[]';
+    public string $chartAreaHBar         = '[]';
     public string $chartCombo              = '[]';
 
     // ======================
@@ -79,9 +81,38 @@ class NationalSellInDashboard extends Component
             $this->yearOptions[] = $y;
         }
 
+        // Load region options with access control
+        $query = DB::table('v_sellinvstarget')
+            ->select('region', 'region_code')
+            ->distinct()
+            ->orderBy('region');
+
+        $this->applyRegionAccess($query, 'region_code');
+
+        $this->regionsOption = $query->pluck('region', 'region_code')->toArray();
+
+        // Auto-select the first region available
+        if (!empty($this->regionsOption)) {
+            $this->selectedRegion = array_key_first($this->regionsOption);
+        }
+
         $this->loadDashboardData();
     }
 
+    // ======================
+    // REGION ACCESS HELPER
+    // ======================
+    private function applyRegionAccess($query, string $column = 'region_code'): void
+    {
+        $user = auth()->user();
+        if (!$user->hasRole('admin') && !empty($user->region_code)) {
+            $query->whereIn($column, $user->region_code);
+        }
+    }
+
+    // ======================
+    // BASE FILTER HELPER
+    // ======================
     private function applyBaseFilters($query): void
     {
         // Year filter
@@ -91,10 +122,18 @@ class NationalSellInDashboard extends Component
         $query->whereRaw('EXTRACT(MONTH FROM bulan) >= ?', [$this->selectedMonthFrom])
               ->whereRaw('EXTRACT(MONTH FROM bulan) <= ?', [$this->selectedMonthTo]);
 
+        // Region (Single select)
+        if (!empty($this->selectedRegion)) {
+            $query->where('region_code', $this->selectedRegion);
+        }
+
         // Reg/Fest
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
+
+        // User access control
+        $this->applyRegionAccess($query, 'region_code');
     }
 
     private function applyLastYearFilters($query): void
@@ -104,9 +143,15 @@ class NationalSellInDashboard extends Component
         $query->whereRaw('EXTRACT(MONTH FROM bulan) >= ?', [$this->selectedMonthFrom])
               ->whereRaw('EXTRACT(MONTH FROM bulan) <= ?', [$this->selectedMonthTo]);
 
+        if (!empty($this->selectedRegion)) {
+            $query->where('region_code', $this->selectedRegion);
+        }
+
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
+
+        $this->applyRegionAccess($query, 'region_code');
     }
 
     private function applySnapshotFilters($query): void
@@ -114,25 +159,39 @@ class NationalSellInDashboard extends Component
         $query->whereYear('bulan', $this->selectedYear)
               ->whereRaw('EXTRACT(MONTH FROM bulan) >= ?', [$this->selectedMonthFrom])
               ->whereRaw('EXTRACT(MONTH FROM bulan) <= ?', [$this->selectedMonthTo]);
+        
+        if (!empty($this->selectedRegion)) {
+            $query->where('region_code', $this->selectedRegion);
+        }
+
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
+        $this->applyRegionAccess($query, 'region_code');
     }
 
     private function applyTrendFilters($query): void
     {
         $query->whereYear('bulan', $this->selectedYear);
+        if (!empty($this->selectedRegion)) {
+            $query->where('region_code', $this->selectedRegion);
+        }
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
+        $this->applyRegionAccess($query, 'region_code');
     }
 
     private function applyTrendLastYearFilters($query): void
     {
         $query->whereYear('bulan', $this->selectedYear - 1);
+        if (!empty($this->selectedRegion)) {
+            $query->where('region_code', $this->selectedRegion);
+        }
         if ($this->selectedRegFest !== 'ALL') {
             $query->where('reg_fest', $this->selectedRegFest);
         }
+        $this->applyRegionAccess($query, 'region_code');
     }
 
     // ======================
@@ -140,6 +199,18 @@ class NationalSellInDashboard extends Component
     // ======================
     public function applyFilter(): void
     {
+        // Security: ensure selected region is valid for user
+        $user = auth()->user();
+        if (!$user->hasRole('admin') && !empty($user->region_code)) {
+            if (!in_array($this->selectedRegion, $user->region_code)) {
+                $this->selectedRegion = $user->region_code[0] ?? '';
+            }
+        }
+
+        if (empty($this->selectedRegion) && !empty($this->regionsOption)) {
+            $this->selectedRegion = array_key_first($this->regionsOption);
+        }
+
         $this->resetPage();
         $this->loadDashboardData();
         $this->showFilterModal = false;
@@ -156,6 +227,9 @@ class NationalSellInDashboard extends Component
         $this->showFilterModal = false;
     }
 
+    // ======================
+    // MAIN DATA LOADER
+    // ======================
     private function loadDashboardData(): void
     {
         $this->loadKpiData();
@@ -215,25 +289,25 @@ class NationalSellInDashboard extends Component
 
     private function loadChartData(): void
     {
-        $this->buildRegionContributionChart();
+        $this->buildAreaContributionChart();
         $this->buildSalesTrendChart();
         $this->buildMonthlyBarChart();
         $this->buildGrowthAreaChart();
-        $this->buildRegionHBarChart();
+        $this->buildAreaHBarChart();
         $this->buildComboChart();
     }
 
-    private function buildRegionContributionChart(): void
+    private function buildAreaContributionChart(): void
     {
         $q = DB::table('v_sellinvstarget');
         $this->applySnapshotFilters($q);
-        $rows = $q->selectRaw('region, SUM(actual) AS total')
-                  ->groupBy('region')
+        $rows = $q->selectRaw('area, SUM(actual) AS total')
+                  ->groupBy('area')
                   ->orderByDesc('total')
                   ->get();
 
-        $this->chartRegionContribution = json_encode([
-            'labels' => $rows->pluck('region')->toArray(),
+        $this->chartAreaContribution = json_encode([
+            'labels' => $rows->pluck('area')->toArray(),
             'series' => $rows->map(fn($r) => round((float)$r->total))->toArray(),
         ]);
     }
@@ -333,17 +407,17 @@ class NationalSellInDashboard extends Component
         ]);
     }
 
-    private function buildRegionHBarChart(): void
+    private function buildAreaHBarChart(): void
     {
         $q = DB::table('v_sellinvstarget');
         $this->applySnapshotFilters($q);
-        $rows = $q->selectRaw('region, SUM(actual) AS actual, SUM(target) AS target')
-                  ->groupBy('region')
+        $rows = $q->selectRaw('area, SUM(actual) AS actual, SUM(target) AS target')
+                  ->groupBy('area')
                   ->orderByDesc('actual')
                   ->get();
 
-        $this->chartRegionHBar = json_encode([
-            'labels'  => $rows->pluck('region')->toArray(),
+        $this->chartAreaHBar = json_encode([
+            'labels'  => $rows->pluck('area')->toArray(),
             'actuals' => $rows->map(fn($r) => round((float)$r->actual))->toArray(),
             'targets' => $rows->map(fn($r) => round((float)$r->target))->toArray(),
         ]);
@@ -385,14 +459,14 @@ class NationalSellInDashboard extends Component
     {
         $q = DB::table('v_sellinvstarget');
         $this->applyBaseFilters($q);
-        $rows = $q->selectRaw('region, SUM(actual) AS actual, SUM(target) AS target')
-                  ->groupBy('region')
+        $rows = $q->selectRaw('area, SUM(actual) AS actual, SUM(target) AS target')
+                  ->groupBy('area')
                   ->orderByRaw('(SUM(actual) / NULLIF(SUM(target), 0)) DESC')
                   ->limit(10)
                   ->get();
 
         $this->topByAch = $rows->map(fn($r) => [
-            'region' => $r->region,
+            'area' => $r->area,
             'target' => (float)$r->target,
             'actual' => (float)$r->actual,
             'ach'    => $r->target > 0 ? round(($r->actual / $r->target) * 100, 2) : 0,
@@ -403,21 +477,21 @@ class NationalSellInDashboard extends Component
     {
         $qLY = DB::table('v_sellinvstarget');
         $this->applyLastYearFilters($qLY);
-        $lyMap = $qLY->selectRaw('region, SUM(actual) AS actual')
-                     ->groupBy('region')
-                     ->pluck('actual', 'region');
+        $lyMap = $qLY->selectRaw('area, SUM(actual) AS actual')
+                     ->groupBy('area')
+                     ->pluck('actual', 'area');
 
         $qTY = DB::table('v_sellinvstarget');
         $this->applyBaseFilters($qTY);
-        $rows = $qTY->selectRaw('region, SUM(actual) AS actual')
-                    ->groupBy('region')
+        $rows = $qTY->selectRaw('area, SUM(actual) AS actual')
+                    ->groupBy('area')
                     ->get();
 
         $this->topByGrowth = $rows->map(function ($r) use ($lyMap) {
-            $ly = (float)($lyMap[$r->region] ?? 0);
+            $ly = (float)($lyMap[$r->area] ?? 0);
             $ty = (float)$r->actual;
             return [
-                'region' => $r->region,
+                'area' => $r->area,
                 'ly'     => $ly,
                 'ty'     => $ty,
                 'growth' => $ly > 0 ? round((($ty - $ly) / $ly) * 100, 2) : 0,
@@ -429,14 +503,14 @@ class NationalSellInDashboard extends Component
     {
         $q = DB::table('v_sellinvstarget');
         $this->applyBaseFilters($q);
-        $rows = $q->selectRaw('region, SUM(actual) AS actual, SUM(target) AS target')
-                  ->groupBy('region')
+        $rows = $q->selectRaw('area, SUM(actual) AS actual, SUM(target) AS target')
+                  ->groupBy('area')
                   ->orderByRaw('SUM(actual) - SUM(target) DESC')
                   ->limit(10)
                   ->get();
 
         $this->gapVsTarget = $rows->map(fn($r) => [
-            'region' => $r->region,
+            'area' => $r->area,
             'target' => (float)$r->target,
             'actual' => (float)$r->actual,
             'gap'    => (float)$r->actual - (float)$r->target,
@@ -447,21 +521,21 @@ class NationalSellInDashboard extends Component
     {
         $qLY = DB::table('v_sellinvstarget');
         $this->applyLastYearFilters($qLY);
-        $lyMap = $qLY->selectRaw('region, SUM(actual) AS actual')
-                     ->groupBy('region')
-                     ->pluck('actual', 'region');
+        $lyMap = $qLY->selectRaw('area, SUM(actual) AS actual')
+                     ->groupBy('area')
+                     ->pluck('actual', 'area');
 
         $qTY = DB::table('v_sellinvstarget');
         $this->applyBaseFilters($qTY);
-        $rows = $qTY->selectRaw('region, SUM(actual) AS actual')
-                    ->groupBy('region')
+        $rows = $qTY->selectRaw('area, SUM(actual) AS actual')
+                    ->groupBy('area')
                     ->get();
 
         $this->gapYoY = $rows->map(function ($r) use ($lyMap) {
-            $ly = (float)($lyMap[$r->region] ?? 0);
+            $ly = (float)($lyMap[$r->area] ?? 0);
             $ty = (float)$r->actual;
             return [
-                'region' => $r->region,
+                'area' => $r->area,
                 'ly'     => $ly,
                 'ty'     => $ty,
                 'gap'    => $ty - $ly,
@@ -509,27 +583,27 @@ class NationalSellInDashboard extends Component
         $biggestNegGap = collect($this->gapVsTarget)->sortBy('gap')->first();
 
         $this->insights = [
-            'best_region' => $best ? [
-                'title'    => 'Best Performing Region',
-                'value'    => $best['region'],
+            'best_area' => $best ? [
+                'title'    => 'Best Performing Area',
+                'value'    => $best['area'],
                 'sub'      => 'Achievement: ' . number_format($best['ach'], 2) . '%',
                 'type'     => 'success',
             ] : null,
-            'worst_region' => $worst ? [
-                'title'    => 'Worst Achievement Region',
-                'value'    => $worst['region'],
+            'worst_area' => $worst ? [
+                'title'    => 'Worst Achievement Area',
+                'value'    => $worst['area'],
                 'sub'      => 'Achievement: ' . number_format($worst['ach'], 2) . '%',
                 'type'     => 'error',
             ] : null,
             'highest_growth' => $highestGrowth ? [
-                'title'    => 'Highest Growth Region',
-                'value'    => $highestGrowth['region'],
+                'title'    => 'Highest Growth Area',
+                'value'    => $highestGrowth['area'],
                 'sub'      => 'Growth: +' . number_format($highestGrowth['growth'], 2) . '%',
                 'type'     => 'info',
             ] : null,
             'biggest_neg_gap' => $biggestNegGap ? [
                 'title'    => 'Biggest Negative Gap',
-                'value'    => $biggestNegGap['region'],
+                'value'    => $biggestNegGap['area'],
                 'sub'      => 'Gap: ' . number_format($biggestNegGap['gap'], 0, ',', '.'),
                 'type'     => 'warning',
             ] : null,
@@ -585,12 +659,14 @@ class NationalSellInDashboard extends Component
             return $row;
         });
 
-        return view('livewire.dashboard.national-sell-in-dashboard', [
+        return view('livewire.dashboard.sell-in.area', [
             'details'          => $details,
             'topByAchData'     => $this->topByAch,
             'topByGrowthData'  => $this->topByGrowth,
             'gapVsTargetData'  => $this->gapVsTarget,
             'gapYoYData'       => $this->gapYoY,
-        ])->layout('layouts.app', ['title' => 'National Sell In Dashboard']);
+        ])->layout('layouts.app', ['title' => 'Area Sell In Dashboard']);
     }
 }
+
+

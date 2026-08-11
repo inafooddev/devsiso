@@ -1,22 +1,21 @@
-<div>
-    <x-slot name="title">Cabang Sell In Dashboard</x-slot>
+<div class="flex flex-col h-[calc(100vh-theme(spacing.16))] sm:h-[calc(100vh-theme(spacing.20))]">
+    <x-slot name="title">National Sell In Dashboard</x-slot>
 
-    <div class="p-6 space-y-6 bg-base-200 min-h-screen">
+    <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-base-200">
         {{-- Toolbar --}}
         <div class="flex flex-wrap items-center justify-between gap-3 bg-base-100 rounded-2xl shadow-xl px-6 py-4">
             <div class="flex flex-wrap items-center gap-2">
-                <h2 class="font-bold text-lg mr-2">Cabang Sell In Dashboard</h2>
+                <h2 class="font-bold text-lg mr-2">National Sell In Dashboard</h2>
                 <span class="badge badge-outline badge-primary">{{ $selectedYear }}</span>
                 <span class="badge badge-outline">{{ date('M', mktime(0,0,0,$selectedMonthFrom,1)) }} – {{ date('M', mktime(0,0,0,$selectedMonthTo,1)) }}</span>
                 @if($selectedRegFest !== 'ALL')<span class="badge badge-secondary badge-outline">{{ $selectedRegFest }}</span>@endif
-                <span class="badge badge-outline badge-info">{{ $supervisorsOption[$selectedSupervisor] ?? 'All Supervisors' }}</span>
             </div>
             <div class="flex items-center gap-2">
                 <div class="join">
-                    <a href="{{ route('dashboard.national-sell-in') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.national-sell-in') ? 'btn-neutral' : 'btn-outline' }}">Nasional</a>
-                    <a href="{{ route('dashboard.area-sell-in') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.area-sell-in') ? 'btn-neutral' : 'btn-outline' }}">Area</a>
-                    <a href="{{ route('dashboard.supervisor-sell-in') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.supervisor-sell-in') ? 'btn-neutral' : 'btn-outline' }}">Supervisor</a>
-                    <a href="{{ route('dashboard.cabang-sell-in') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.cabang-sell-in') ? 'btn-neutral' : 'btn-outline' }}">Cabang</a>
+                    <a href="{{ route('dashboard.sellin.national') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.sellin.national') ? 'btn-neutral' : 'btn-outline' }}">Nasional</a>
+                    <a href="{{ route('dashboard.sellin.area') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.sellin.area') ? 'btn-neutral' : 'btn-outline' }}">Area</a>
+                    <a href="{{ route('dashboard.sellin.cabang') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.sellin.cabang') ? 'btn-neutral' : 'btn-outline' }}">Cabang</a>
+                    <a href="{{ route('dashboard.sellin.supervisor') }}" class="btn btn-sm join-item {{ request()->routeIs('dashboard.sellin.supervisor') ? 'btn-neutral' : 'btn-outline' }}">Supervisor</a>
                 </div>
                 <button wire:click="openFilterModal" class="btn btn-primary btn-sm rounded-xl gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,15 +70,6 @@
                                     @endforeach
                                 </select>
                             </div>
-                        </div>
-                        <div class="form-control">
-                            <label class="label"><span class="label-text font-semibold">Select Supervisor</span></label>
-                            <select wire:model="selectedSupervisor" class="select select-bordered select-sm rounded-xl w-full">
-                                <option value="">All Supervisors</option>
-                                @foreach($supervisorsOption as $code => $name)
-                                    <option value="{{ $code }}">{{ $name }}</option>
-                                @endforeach
-                            </select>
                         </div>
                     </div>
                     <div class="px-6 py-4 border-t border-base-200 flex justify-end gap-3">
@@ -231,33 +221,33 @@
             @endforeach
         </div>
 
-        {{-- Chart data --}}
+        {{-- Chart data — Livewire updates this on every render --}}
         <script type="application/json" id="chart-data">
             {
-                "contribution": @json(json_decode($chartCabangContribution, true) ?: new stdClass),
-                "trend":        @json(json_decode($chartSalesTrend, true)        ?: new stdClass),
-                "monthly":      @json(json_decode($chartMonthlyBar, true)        ?: new stdClass),
-                "growth":       @json(json_decode($chartGrowthCabang, true)        ?: new stdClass),
-                "CabangHBar":     @json(json_decode($chartCabangHBar, true)          ?: new stdClass),
-                "combo":        @json(json_decode($chartCombo, true)             ?: new stdClass)
+                "contribution": @json(json_decode($chartRegionContribution, true) ?: new stdClass),
+                "trend":        @json(json_decode($chartSalesTrend, true)         ?: new stdClass),
+                "monthly":      @json(json_decode($chartMonthlyBar, true)         ?: new stdClass),
+                "growth":       @json(json_decode($chartGrowthArea, true)         ?: new stdClass),
+                "regionHBar":   @json(json_decode($chartRegionHBar, true)         ?: new stdClass),
+                "combo":        @json(json_decode($chartCombo, true)              ?: new stdClass)
             }
         </script>
 
-        {{-- Row 1: Cabang-focused charts --}}
+        {{-- Row 1: Region-focused charts --}}
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <!-- 🔥 Cabang Contribution -->
+            <!-- 🔥 Region Contribution -->
             <div class="card bg-base-100 shadow-xl rounded-2xl md:col-span-6 xl:col-span-3" wire:ignore>
                 <div class="card-body p-4">
-                    <h3 class="font-semibold text-sm mb-0">Cabang Contribution</h3>
-                    <div id="chartCabangContribution" class="w-full"></div>
+                    <h3 class="font-semibold text-sm mb-0">Region Contribution</h3>
+                    <div id="chartRegionContribution" class="w-full"></div>
                 </div>
             </div>
 
-            <!-- 🔥 Cabang Comparison -->
+            <!-- 🔥 Region Comparison -->
             <div class="card bg-base-100 shadow-xl rounded-2xl md:col-span-6 xl:col-span-3" wire:ignore>
                 <div class="card-body p-4">
-                    <h3 class="font-semibold text-sm mb-0">Cabang Comparison</h3>
-                    <div id="chartCabangHBar" class="w-full"></div>
+                    <h3 class="font-semibold text-sm mb-0">Region Comparison</h3>
+                    <div id="chartRegionHBar" class="w-full"></div>
                 </div>
             </div>
 
@@ -287,11 +277,12 @@
             <div class="card bg-base-100 shadow-xl rounded-2xl" wire:ignore>
                 <div class="card-body p-4">
                     <h3 class="font-semibold text-sm mb-3">Growth Trend %</h3>
-                    <div id="chartGrowthCabang" class="w-full h-56"></div>
+                    <div id="chartGrowthArea" class="w-full h-56"></div>
                 </div>
             </div>
         </div>
 
+        
         {{-- Tables Section --}}
         <div class="space-y-6">
             {{-- Main Detail Table --}}
@@ -365,7 +356,7 @@
                         <table class="table table-sm w-full">
                             <thead>
                                 <tr class="bg-base-200 text-[10px] uppercase">
-                                    <th>Cabang</th>
+                                    <th>Region</th>
                                     <th class="text-right">Target</th>
                                     <th class="text-right">Sales</th>
                                     <th class="text-center">%Ach</th>
@@ -374,7 +365,7 @@
                             <tbody>
                                 @foreach($topByAchData as $r)
                                     <tr class="hover:bg-base-200 transition-colors">
-                                        <td class="font-medium text-xs">{{ $r['cabang'] }}</td>
+                                        <td class="font-medium text-xs">{{ $r['region'] }}</td>
                                         <td class="text-right text-xs font-mono">{{ number_format($r['target'], 0, ',', '.') }}</td>
                                         <td class="text-right text-xs font-mono">{{ number_format($r['actual'], 0, ',', '.') }}</td>
                                         <td class="text-center">
@@ -401,7 +392,7 @@
                         <table class="table table-sm w-full">
                             <thead>
                                 <tr class="bg-base-200 text-[10px] uppercase">
-                                    <th>Cabang</th>
+                                    <th>Region</th>
                                     <th class="text-right">Last Year</th>
                                     <th class="text-right">Current Year</th>
                                     <th class="text-center">% Growth</th>
@@ -410,7 +401,7 @@
                             <tbody>
                                 @foreach($topByGrowthData as $r)
                                     <tr class="hover:bg-base-200 transition-colors">
-                                        <td class="font-medium text-xs">{{ $r['cabang'] }}</td>
+                                        <td class="font-medium text-xs">{{ $r['region'] }}</td>
                                         <td class="text-right text-xs font-mono text-base-content/60">{{ number_format($r['ly'], 0, ',', '.') }}</td>
                                         <td class="text-right text-xs font-mono font-bold">{{ number_format($r['ty'], 0, ',', '.') }}</td>
                                         <td class="text-center text-xs font-bold {{ $r['growth'] >= 0 ? 'text-success' : 'text-error' }}">
@@ -438,7 +429,7 @@
                         <table class="table table-sm w-full">
                             <thead>
                                 <tr class="bg-base-200 text-[10px] uppercase">
-                                    <th>Cabang</th>
+                                    <th>Region</th>
                                     <th class="text-right">Target</th>
                                     <th class="text-right">Sales</th>
                                     <th class="text-right">Gap</th>
@@ -447,7 +438,7 @@
                             <tbody>
                                 @foreach($gapVsTargetData as $r)
                                     <tr class="hover:bg-base-200 transition-colors">
-                                        <td class="font-medium text-xs">{{ $r['cabang'] }}</td>
+                                        <td class="font-medium text-xs">{{ $r['region'] }}</td>
                                         <td class="text-right text-xs font-mono text-base-content/60">{{ number_format($r['target'], 0, ',', '.') }}</td>
                                         <td class="text-right text-xs font-mono">{{ number_format($r['actual'], 0, ',', '.') }}</td>
                                         <td class="text-right text-xs font-mono font-bold {{ $r['gap'] >= 0 ? 'text-success' : 'text-error' }}">
@@ -474,7 +465,7 @@
                         <table class="table table-sm w-full">
                             <thead>
                                 <tr class="bg-base-200 text-[10px] uppercase">
-                                    <th>Cabang</th>
+                                    <th>Region</th>
                                     <th class="text-right">Last Year</th>
                                     <th class="text-right">Current Year</th>
                                     <th class="text-right">Gap</th>
@@ -483,7 +474,7 @@
                             <tbody>
                                 @foreach($gapYoYData as $r)
                                     <tr class="hover:bg-base-200 transition-colors">
-                                        <td class="font-medium text-xs">{{ $r['cabang'] }}</td>
+                                        <td class="font-medium text-xs">{{ $r['region'] }}</td>
                                         <td class="text-right text-xs font-mono text-base-content/60">{{ number_format($r['ly'], 0, ',', '.') }}</td>
                                         <td class="text-right text-xs font-mono">{{ number_format($r['ty'], 0, ',', '.') }}</td>
                                         <td class="text-right text-xs font-mono font-bold {{ $r['gap'] >= 0 ? 'text-success' : 'text-error' }}">
@@ -495,6 +486,8 @@
                         </table>
                     </div>
                 </div>
+
+
             </div>
         </div>
     </div>
@@ -561,8 +554,8 @@
                         return new Intl.NumberFormat('id-ID').format(val);
                     };
 
-                    // Cabang Contribution — donut with labels
-                    const chartElement = document.querySelector('#chartCabangContribution');
+                    // Region Contribution — donut with labels
+                    const chartElement = document.querySelector('#chartRegionContribution');
                     if (d.contribution && chartElement) {
                         if (charts.contribution && typeof charts.contribution.destroy === 'function') {
                             charts.contribution.destroy();
@@ -613,7 +606,7 @@
                                             },
                                             total: {
                                                 show: true,
-                                                label: 'Total Cabang Sales',
+                                                label: 'Total Sales',
                                                 fontSize: '12px',
                                                 color: textColor,
                                                 formatter: (w) => {
@@ -665,13 +658,13 @@
                         charts.contribution.render();
                     }
 
-                    // Cabang Comparison — horizontal bar
-                    if (d.CabangHBar && document.querySelector('#chartCabangHBar')) {
-                        if (charts.CabangH && typeof charts.CabangH.destroy === 'function') {
-                            charts.CabangH.destroy();
+                    // Region Comparison — horizontal bar
+                    if (d.regionHBar && document.querySelector('#chartRegionHBar')) {
+                        if (charts.regionH && typeof charts.regionH.destroy === 'function') {
+                            charts.regionH.destroy();
                         }
 
-                        charts.CabangH = new ApexCharts(document.querySelector('#chartCabangHBar'), {
+                        charts.regionH = new ApexCharts(document.querySelector('#chartRegionHBar'), {
                             ...base,
                             chart: {
                                 ...base.chart,
@@ -685,8 +678,8 @@
                                 }
                             },
                             series: [
-                                { name: 'Actual', data: d.CabangHBar.actuals || [] },
-                                { name: 'Target', data: d.CabangHBar.targets || [] }
+                                { name: 'Actual', data: d.regionHBar.actuals || [] },
+                                { name: 'Target', data: d.regionHBar.targets || [] }
                             ],
                             plotOptions: {
                                 bar: {
@@ -710,7 +703,7 @@
                                 padding: { top: 0, right: 10, bottom: 0, left: 10 }
                             },
                             xaxis: {
-                                categories: d.CabangHBar.labels || [],
+                                categories: d.regionHBar.labels || [],
                                 labels: {
                                     style: { fontSize: '11px', colors: textColor },
                                     formatter: fmt
@@ -776,7 +769,7 @@
                                 itemMargin: { horizontal: 8 }
                             }
                         });
-                        charts.CabangH.render();
+                        charts.regionH.render();
                     }
 
                     // Performance Overview — combo (This Year vs Last Year + Growth %)
@@ -861,7 +854,7 @@
                         charts.combo.render();
                     }
 
-                    // Sales Trend — mixed Cabang + dotted line
+                    // Sales Trend — mixed area + dotted line
                     if (d.trend && document.querySelector('#chartSalesTrend')) {
                         if (charts.trend) charts.trend.destroy();
                         charts.trend = new ApexCharts(document.querySelector('#chartSalesTrend'), {
@@ -1002,10 +995,10 @@
                         charts.monthly.render();
                     }
 
-                    // Growth Trend — Cabang
-                    if (d.growth && document.querySelector('#chartGrowthCabang')) {
+                    // Growth Trend — area
+                    if (d.growth && document.querySelector('#chartGrowthArea')) {
                         if (charts.growth) charts.growth.destroy();
-                        charts.growth = new ApexCharts(document.querySelector('#chartGrowthCabang'), {
+                        charts.growth = new ApexCharts(document.querySelector('#chartGrowthArea'), {
                             ...base,
                             chart: { ...base.chart, type: 'area' },
                             series: [{ name: 'Growth %', data: d.growth.growth || [] }],
@@ -1032,21 +1025,21 @@
 
                 // MutationObserver to detect theme changes live
                 const observer = new MutationObserver((mutations) => {
-                        mutations.forEach((mutation) => {
-                            if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
-                                Object.values(charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
-                                charts = {};
-                                setTimeout(initCharts, 150);
-                            }
-                        });
+                    mutations.forEach((mutation) => {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                            Object.values(charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
+                            charts = {};
+                            setTimeout(initCharts, 150);
+                        }
                     });
-                    observer.observe(document.documentElement, { attributes: true });
+                });
+                observer.observe(document.documentElement, { attributes: true });
 
-                    Livewire.on('charts-updated', () => {
-                        Object.values(charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
-                        charts = {};
-                        setTimeout(initCharts, 150);
-                    });
+                Livewire.on('charts-updated', () => {
+                    Object.values(charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
+                    charts = {};
+                    setTimeout(initCharts, 150);
+                });
             });
         </script>
     @endpush

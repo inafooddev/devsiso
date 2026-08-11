@@ -18,10 +18,13 @@ use App\Livewire\CustomerExportComponent;
 use App\Livewire\Customers\CustomerData;
 use App\Livewire\Dashboard;
 use App\Livewire\Dashboard\AnalyticsDashboard;
-use App\Livewire\Dashboard\AreaSellInDashboard;
-use App\Livewire\Dashboard\CabangSellInDashboard;
-use App\Livewire\Dashboard\NationalSellInDashboard;
-use App\Livewire\Dashboard\SupervisorSellInDashboard;
+use App\Livewire\Dashboard\SellIn\Area;
+use App\Livewire\Dashboard\SellIn\Cabang;
+use App\Livewire\Dashboard\SellIn\National;
+use App\Livewire\Dashboard\SellIn\Supervisor;
+use App\Livewire\Dashboard\NewSellIn;
+use App\Livewire\Dashboard\V2\SellIn\Index as DashboardV2SellIn;
+use App\Livewire\Dashboard\V2\SellOut\Index as DashboardV2SellOut;
 use App\Livewire\Dashboard\DistributorMap;
 use App\Livewire\Dashboard\MetabaseDashboard;
 use App\Livewire\Others\Qceskalink\SalesComparison;
@@ -201,10 +204,19 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/distributor-map', DistributorMap::class)->name('dashboard.distributor-map');
     Route::get('/dashboard/metabase', MetabaseDashboard::class)->name('dashboard.metabase');
     Route::get('/dashboard/analytics', AnalyticsDashboard::class)->name('dashboard.analytics');
-    Route::get('/dashboard/national-sell-in', NationalSellInDashboard::class)->name('dashboard.national-sell-in');
-    Route::get('/dashboard/area-sell-in', AreaSellInDashboard::class)->name('dashboard.area-sell-in');
-    Route::get('/dashboard/cabang-sell-in', CabangSellInDashboard::class)->name('dashboard.cabang-sell-in');
-    Route::get('/dashboard/supervisor-sell-in', SupervisorSellInDashboard::class)->name('dashboard.supervisor-sell-in');
+    Route::prefix('dashboard/sellin')->name('dashboard.sellin.')->group(function () {
+        Route::get('/national', National::class)->name('national');
+        Route::get('/area', Area::class)->name('area');
+        Route::get('/cabang', Cabang::class)->name('cabang');
+        Route::get('/supervisor', Supervisor::class)->name('supervisor');
+    });
+
+    Route::prefix('dashboard/v2')->name('dashboard.v2.')->group(function () {
+        Route::get('/sellin', DashboardV2SellIn::class)->name('sellin');
+        Route::get('/sellout', DashboardV2SellOut::class)->name('sellout');
+    });
+
+    Route::get('/dashboard/newsellin', NewSellIn::class)->name('dashboard.newsellin');
     Route::get('/others/qceskalink/sales-comparison', SalesComparison::class)->name('dashboard.sales-comparison');
     Route::get('/others/qceskalink/extractor-config', ExtractorConfig::class)->name('dashboard.extractor-config');
     Route::get('/others/qceskalink/extractor-process', ExtractorProcess::class)->name('dashboard.extractor-process');

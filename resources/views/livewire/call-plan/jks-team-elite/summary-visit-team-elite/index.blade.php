@@ -2,6 +2,7 @@
     <!-- TABS -->
     <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex items-center shadow-sm relative z-10 -mb-1 md:-mb-2">
         <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
+            <button class="tab tab-xs px-4 transition-colors {{ $currentTab === 'dashboard' ? 'tab-active font-bold shadow-sm bg-base-100' : 'text-base-content/70 hover:text-base-content' }}" wire:click="setTab('dashboard')">Dashboard</button>
             <button class="tab tab-xs px-4 transition-colors {{ $currentTab === 'summary' ? 'tab-active font-bold shadow-sm bg-base-100' : 'text-base-content/70 hover:text-base-content' }}" wire:click="setTab('summary')">Summary</button>
             <button class="tab tab-xs px-4 transition-colors {{ $currentTab === 'detail' ? 'tab-active font-bold shadow-sm bg-base-100' : 'text-base-content/70 hover:text-base-content' }}" wire:click="setTab('detail')">Detail</button>
         </div>
@@ -231,7 +232,301 @@
         </div>
 
         @if($isFiltered)
-        @if($currentTab === 'summary')
+        @if($currentTab === 'dashboard')
+        <div class="flex-1 overflow-auto bg-base-200/30 w-full p-4 md:p-6" 
+             x-data="{
+                 dataSummary: @js($dataSummary),
+                 kpiData: @js($kpiData),
+                 pillarChartInstance: null,
+                 teamChartInstance: null,
+                 
+                 formatNumber(val) {
+                     return new Intl.NumberFormat('id-ID').format(val);
+                 },
+                 
+                 get topFulfillment() {
+                     return [...this.dataSummary].map(item => {
+                         const order = parseFloat(item.total_order) || 0;
+                         const invoice = parseFloat(item.total_invoice) || 0;
+                         const pct = order > 0 ? (invoice / order * 100) : (invoice > 0 ? 100 : 0);
+                         return {
+                             name: item.team_name || item.area_name || item.region_name,
+                             order: order,
+                             invoice: invoice,
+                             pct: pct.toFixed(1)
+                         };
+                     }).sort((a, b) => b.pct - a.pct).slice(0, 5);
+                 },
+                 
+                 get topLeakage() {
+                     return [...this.dataSummary].map(item => {
+                         const order = parseFloat(item.total_order) || 0;
+                         const invoice = parseFloat(item.total_invoice) || 0;
+                         const gap = invoice - order; 
+                         const gapAbs = Math.abs(gap);
+                         return {
+                             name: item.team_name || item.area_name || item.region_name,
+                             order: order,
+                             invoice: invoice,
+                             gap: gap,
+                             gapAbs: gapAbs
+                         };
+                     }).filter(item => item.gap < 0).sort((a, b) => a.gap - b.gap).slice(0, 5); // Most negative first
+                 },
+
+                 init() {
+                     if (typeof ApexCharts === 'undefined') {
+                         let script = document.createElement('script');
+                         script.src = 'https://cdn.jsdelivr.net/npm/apexcharts';
+                         script.onload = () => this.renderCharts();
+                         document.head.appendChild(script);
+                     } else {
+                         this.renderCharts();
+                     }
+                 },
+                 
+                 renderCharts() {
+                     this.renderPillarChart();
+                     this.renderTeamChart();
+                 },
+
+                 renderPillarChart() {
+                     if (!this.$refs.pillarChart) return;
+                     if (this.pillarChartInstance) {
+                         this.pillarChartInstance.destroy();
+                     }
+
+                     const rwo_pct = this.kpiData.total_rwo > 0 ? (this.kpiData.toko_order_rwo / this.kpiData.total_rwo * 100) : 0;
+                     const pnr_pct = this.kpiData.total_pnr > 0 ? (this.kpiData.toko_order_pnr / this.kpiData.total_pnr * 100) : 0;
+                     const ngvo_pct = this.kpiData.total_ngvo > 0 ? (this.kpiData.toko_order_ngvo / this.kpiData.total_ngvo * 100) : 0;
+
+                     var options = {
+                         series: [{
+                             name: 'Pencapaian',
+                             data: [rwo_pct.toFixed(1), pnr_pct.toFixed(1), ngvo_pct.toFixed(1)]
+                         }],
+                         chart: {
+                             type: 'bar',
+                             height: 250,
+                             toolbar: { show: false },
+                             parentHeightOffset: 0
+                         },
+                         plotOptions: {
+                             bar: {
+                                 borderRadius: 4,
+                                 horizontal: false,
+                                 columnWidth: '40%',
+                                 distributed: true,
+                             }
+                         },
+                         dataLabels: {
+                             enabled: true,
+                             formatter: function (val) {
+                                 return val + '%';
+                             }
+                         },
+                         colors: ['#00a96e', '#ffbe00', '#3abff8'],
+                         xaxis: {
+                             categories: ['1. RWO', '2. PNR', '3. NGVO'],
+                             labels: { style: { fontWeight: 600 } }
+                         },
+                         yaxis: { max: 100 },
+                         legend: { show: false }
+                     };
+
+                     this.pillarChartInstance = new ApexCharts(this.$refs.pillarChart, options);
+                     this.pillarChartInstance.render();
+                 },
+                 
+                 renderTeamChart() {
+                     if (!this.$refs.teamChart) return;
+                     if (this.teamChartInstance) {
+                         this.teamChartInstance.destroy();
+                     }
+                     
+                     const chartData = [...this.dataSummary].slice(0, 15);
+                     const categories = chartData.map(item => item.team_name || item.area_name || item.region_name);
+                     const orderData = chartData.map(item => parseFloat(item.total_order) || 0);
+                     const invoiceData = chartData.map(item => parseFloat(item.total_invoice) || 0);
+
+                     var options = {
+                         series: [{
+                             name: 'Order',
+                             data: orderData
+                         }, {
+                             name: 'Invoice',
+                             data: invoiceData
+                         }],
+                         chart: {
+                             type: 'bar',
+                             height: 250,
+                             toolbar: { show: false },
+                             parentHeightOffset: 0
+                         },
+                         plotOptions: {
+                             bar: {
+                                 horizontal: false,
+                                 columnWidth: '55%',
+                                 borderRadius: 3
+                             },
+                         },
+                         colors: ['#3abff8', '#00a96e'],
+                         dataLabels: { enabled: false },
+                         stroke: { show: true, width: 2, colors: ['transparent'] },
+                         xaxis: {
+                             categories: categories,
+                             labels: { trim: true, hideOverlappingLabels: true, style: { fontSize: '10px' } }
+                         },
+                         yaxis: {
+                             labels: {
+                                 formatter: function (val) {
+                                     if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M';
+                                     if (val >= 1000) return (val / 1000).toFixed(0) + 'K';
+                                     return val;
+                                 }
+                             }
+                         },
+                         tooltip: {
+                             y: {
+                                 formatter: (val) => {
+                                     return this.formatNumber(val);
+                                 }
+                             }
+                         }
+                     };
+
+                     this.teamChartInstance = new ApexCharts(this.$refs.teamChart, options);
+                     this.teamChartInstance.render();
+                 }
+             }"
+             wire:key="dashboard-{{ md5(json_encode($dataSummary)) }}">
+             
+             <!-- KPI Cards (4 cards) -->
+             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                 <!-- Card 1: Order -->
+                 <div class="bg-base-100 rounded-xl p-4 shadow-sm border border-base-200 flex items-center justify-between">
+                     <div>
+                         <div class="text-xs font-semibold text-base-content/60 uppercase tracking-wider mb-1">Total Order</div>
+                         <div class="text-2xl font-bold text-info">{{ number_format($kpiData['total_order'] ?? 0, 0, ',', '.') }}</div>
+                         <div class="text-[10px] text-base-content/50 mt-1">Estimasi pendapatan awal</div>
+                     </div>
+                     <div class="rounded-full bg-info/10 text-info p-3">
+                         <x-heroicon-o-shopping-bag class="w-8 h-8" />
+                     </div>
+                 </div>
+
+                 <!-- Card 2: Invoice -->
+                 <div class="bg-base-100 rounded-xl p-4 shadow-sm border border-base-200 flex items-center justify-between">
+                     <div>
+                         <div class="text-xs font-semibold text-base-content/60 uppercase tracking-wider mb-1">Total Invoice</div>
+                         <div class="text-2xl font-bold text-success">{{ number_format($kpiData['total_invoice'] ?? 0, 0, ',', '.') }}</div>
+                         <div class="text-[10px] text-base-content/50 mt-1">Realisasi tagihan akhir</div>
+                     </div>
+                     <div class="rounded-full bg-success/10 text-success p-3">
+                         <x-heroicon-o-document-currency-dollar class="w-8 h-8" />
+                     </div>
+                 </div>
+
+                 <!-- Card 3: Selisih / Loss -->
+                 @php
+                     $gapInvoice = ($kpiData['total_invoice'] ?? 0) - ($kpiData['total_order'] ?? 0);
+                 @endphp
+                 <div class="bg-base-100 rounded-xl p-4 shadow-sm border {{ $gapInvoice < 0 ? 'border-error/50 bg-error/5' : 'border-base-200' }} flex items-center justify-between">
+                     <div>
+                         <div class="text-xs font-semibold {{ $gapInvoice < 0 ? 'text-error/80' : 'text-base-content/60' }} uppercase tracking-wider mb-1">Selisih / Loss</div>
+                         <div class="text-2xl font-bold {{ $gapInvoice < 0 ? 'text-error' : 'text-success' }}">{{ number_format($gapInvoice, 0, ',', '.') }}</div>
+                         <div class="text-[10px] {{ $gapInvoice < 0 ? 'text-error/70' : 'text-base-content/50' }} mt-1">
+                            {{ $gapInvoice < 0 ? 'Kebocoran dari order' : 'Tidak ada kebocoran' }}
+                         </div>
+                     </div>
+                     <div class="rounded-full {{ $gapInvoice < 0 ? 'bg-error/10 text-error' : 'bg-base-200 text-base-content/50' }} p-3">
+                         @if($gapInvoice < 0)
+                             <x-heroicon-o-arrow-trending-down class="w-8 h-8" />
+                         @else
+                             <x-heroicon-o-check-circle class="w-8 h-8" />
+                         @endif
+                     </div>
+                 </div>
+
+                 <!-- Card 4: Fulfillment Rate -->
+                 <div class="bg-base-100 rounded-xl p-4 shadow-sm border border-base-200 flex items-center justify-between">
+                     <div>
+                         <div class="text-xs font-semibold text-base-content/60 uppercase tracking-wider mb-1">Fulfillment Rate</div>
+                         <div class="text-2xl font-bold">{{ number_format(($kpiData['total_order'] ?? 0) > 0 ? (($kpiData['total_invoice'] ?? 0) / ($kpiData['total_order']) * 100) : 0, 1, ',', '.') }}%</div>
+                         <div class="text-[10px] text-base-content/50 mt-1">Rasio Invoice terhadap Order</div>
+                     </div>
+                     @php
+                        $fulfillPct = ($kpiData['total_order'] ?? 0) > 0 ? (($kpiData['total_invoice'] ?? 0) / ($kpiData['total_order']) * 100) : 0;
+                        $fulfillColor = $fulfillPct >= 90 ? 'text-success bg-success/10' : ($fulfillPct >= 70 ? 'text-warning bg-warning/10' : 'text-error bg-error/10');
+                     @endphp
+                     <div class="radial-progress font-bold text-xs border-4 border-base-100 {{ $fulfillColor }}" style="--value:{{ $fulfillPct }}; --size:3.5rem;">
+                         {{ number_format($fulfillPct, 0) }}%
+                     </div>
+                 </div>
+             </div>
+
+             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                 <!-- Regional/Team Performance Chart -->
+                 <div class="bg-base-100 rounded-xl p-4 shadow-sm border border-base-200 lg:col-span-2">
+                     <h3 class="font-bold text-sm mb-4">Order vs Invoice <span class="text-base-content/50 text-xs font-normal ml-2" x-text="dataSummary.length > 0 ? (dataSummary[0].team_name ? '(per Tim)' : '(per Region)') : ''"></span></h3>
+                     <div id="teamChart" x-ref="teamChart" class="w-full"></div>
+                 </div>
+                 
+                 <!-- Pillar Chart -->
+                 <div class="bg-base-100 rounded-xl p-4 shadow-sm border border-base-200 lg:col-span-1">
+                     <h3 class="font-bold text-sm mb-4">Pencapaian 3 Pilar</h3>
+                     <div id="pillarChart" x-ref="pillarChart" class="w-full"></div>
+                 </div>
+             </div>
+             
+             <!-- Leaderboard -->
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <!-- Top Leakage (Worst) -->
+                 <div class="bg-base-100 rounded-xl p-4 shadow-sm border border-base-200">
+                     <h3 class="font-bold text-sm mb-4 flex items-center gap-2">
+                         <x-heroicon-s-exclamation-triangle class="w-4 h-4 text-error" />
+                         Top Leakage / Selisih Terbesar
+                     </h3>
+                     <div class="flex flex-col gap-3">
+                         <template x-for="(team, index) in topLeakage" :key="index">
+                             <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-error/5 transition-colors border border-transparent hover:border-error/20">
+                                 <div class="font-black text-error/30 text-lg w-5 text-center" x-text="index + 1"></div>
+                                 <div class="flex-1 min-w-0">
+                                     <div class="text-xs font-bold text-error/90 truncate" x-text="team.name" :title="team.name"></div>
+                                     <div class="text-[10px] text-base-content/60 truncate" x-text="'Order: ' + formatNumber(team.order) + ' | Invoice: ' + formatNumber(team.invoice)"></div>
+                                 </div>
+                                 <div class="text-xs font-bold px-2 py-1 rounded bg-error/10 text-error" x-text="formatNumber(team.gap)"></div>
+                             </div>
+                         </template>
+                         <div x-show="topLeakage.length === 0" class="text-xs text-success font-medium py-2 flex items-center gap-2">
+                             <x-heroicon-o-check-circle class="w-4 h-4" /> Tidak ada tim dengan selisih negatif!
+                         </div>
+                     </div>
+                 </div>
+
+                 <!-- Top Fulfillment (Best) -->
+                 <div class="bg-base-100 rounded-xl p-4 shadow-sm border border-base-200">
+                     <h3 class="font-bold text-sm mb-4 flex items-center gap-2">
+                         <x-heroicon-s-star class="w-4 h-4 text-success" />
+                         Top Fulfillment Rate
+                     </h3>
+                     <div class="flex flex-col gap-3">
+                         <template x-for="(team, index) in topFulfillment" :key="index">
+                             <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-success/5 transition-colors border border-transparent hover:border-success/20">
+                                 <div class="font-black text-success/30 text-lg w-5 text-center" x-text="index + 1"></div>
+                                 <div class="flex-1 min-w-0">
+                                     <div class="text-xs font-bold text-success/90 truncate" x-text="team.name" :title="team.name"></div>
+                                     <div class="text-[10px] text-base-content/60 truncate" x-text="'Order: ' + formatNumber(team.order) + ' | Invoice: ' + formatNumber(team.invoice)"></div>
+                                 </div>
+                                 <div class="text-xs font-bold px-2 py-1 rounded bg-success/10 text-success" x-text="team.pct + '%'"></div>
+                             </div>
+                         </template>
+                         <div x-show="topFulfillment.length === 0" class="text-xs text-base-content/50 italic py-2">Tidak ada data.</div>
+                     </div>
+                 </div>
+             </div>
+        </div>
+        @elseif($currentTab === 'summary')
         <div class="flex-1 overflow-auto bg-base-100 w-full relative">
             <table class="table table-sm table-zebra w-full whitespace-nowrap text-xs">
                 <thead class="sticky top-0 z-10 text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm [&_th]:bg-base-300">
