@@ -74,7 +74,7 @@ class User extends Authenticatable
      */
     public function getAccessLevel(): string
     {
-        if ($this->hasRole(['admin', 'spm', 'it', 'itina'])) {
+        if ($this->hasRole(['admin', 'spm'])) {
             return 'nasional';
         }
         if (!empty($this->supervisor_code)) {
