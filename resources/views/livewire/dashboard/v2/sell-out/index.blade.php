@@ -34,15 +34,22 @@
                 
                 <!-- Kiri: Breakdown -->
                 <div class="join">
-                    @hasanyrole('admin|spm')
-                        <button
-                            wire:click="$set('breakdownBy', 'Nasional')"
-                            class="join-item btn btn-sm {{ $breakdownBy === 'Nasional' ? 'btn-primary' : 'btn-ghost border border-base-300' }}"
-                        >
-                            Nasional
-                        </button>
-                    @endhasanyrole
-                    @foreach(['Region','Area','Supervisor','Cabang'] as $opt)
+                    @php
+                        $level = auth()->user() ? auth()->user()->getAccessLevel() : 'nasional';
+                        $tabs = [];
+                        if ($level === 'nasional') {
+                            $tabs = ['Nasional', 'Region', 'Area', 'Supervisor', 'Cabang'];
+                        } elseif ($level === 'region') {
+                            $tabs = ['Region', 'Area', 'Supervisor', 'Cabang'];
+                        } elseif ($level === 'area') {
+                            $tabs = ['Area', 'Supervisor', 'Cabang'];
+                        } elseif ($level === 'supervisor') {
+                            $tabs = ['Supervisor', 'Cabang'];
+                        } else {
+                            $tabs = ['Cabang'];
+                        }
+                    @endphp
+                    @foreach($tabs as $opt)
                         <button
                             wire:click="$set('breakdownBy', '{{ $opt }}')"
                             class="join-item btn btn-sm {{ $breakdownBy === $opt ? 'btn-primary' : 'btn-ghost border border-base-300' }}"
