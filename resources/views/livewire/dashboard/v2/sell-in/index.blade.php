@@ -12,10 +12,10 @@
 </style>
 <!-- Global Tab Navigation (Component already handles negative margins to touch edges) -->
 <x-ui.tab-menu>
-    <x-ui.tab-item href="{{ route('dashboard.v2.sellin') }}" :active="true" icon="o-chart-bar">
+    <x-ui.tab-item href="{{ route('dashboard.v2.sellin') }}" :active="true" :navigate="false" icon="o-chart-bar">
         Sell In
     </x-ui.tab-item>
-    <x-ui.tab-item href="{{ route('dashboard.v2.sellout') }}" :active="false" icon="o-shopping-cart">
+    <x-ui.tab-item href="{{ route('dashboard.v2.sellout') }}" :active="false" :navigate="false" icon="o-shopping-cart">
         Sell Out
     </x-ui.tab-item>
 </x-ui.tab-menu>

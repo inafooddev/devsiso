@@ -119,7 +119,12 @@ class Index extends Component
     // Reactive watchers — setiap filter berubah, grafik langsung update
     public function updatedBreakdownBy()
     {
-        // We do NOT clear filters here so the user can maintain their drill-down state across tabs
+        // Reset semua filter ketika pindah tab agar tiap tab benar-benar independent (buta terhadap tab lain)
+        $this->filterRegion = '';
+        $this->filterArea = '';
+        $this->filterSupervisor = '';
+        $this->filterCabang = '';
+        
         $this->reload();
     }
 
@@ -189,7 +194,7 @@ class Index extends Component
      */
     private function getRawData()
     {
-        $cacheKey = "sellin_raw_{$this->selectedYear}_{$this->selectedRegFest}_{$this->filterRegion}_{$this->filterArea}_{$this->filterSupervisor}_{$this->filterCabang}";
+        $cacheKey = "sellin_raw_{$this->breakdownBy}_{$this->selectedYear}_{$this->selectedRegFest}_{$this->filterRegion}_{$this->filterArea}_{$this->filterSupervisor}_{$this->filterCabang}";
         
         return \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addHours(6), function() {
             $ty = (int)$this->selectedYear;
@@ -206,10 +211,15 @@ class Index extends Component
                 ->whereIn(\Illuminate\Support\Facades\DB::raw('EXTRACT(YEAR FROM vspc.bulan)'), [$ty, $ly])
                 ->where('vspc.region', '!=', 'HOINA');
 
-            if (!empty($this->filterRegion)) $q->where('vspc.region', $this->filterRegion);
-            if (!empty($this->filterArea)) $q->where('vspc.area', $this->filterArea);
-            if (!empty($this->filterSupervisor)) $q->where('vspc.supervisor', $this->filterSupervisor);
-            if (!empty($this->filterCabang)) $q->where('vspc.cabang', $this->filterCabang);
+        if ($this->breakdownBy === 'Region' && !empty($this->filterRegion)) {
+            $q->where('vspc.region', $this->filterRegion);
+        } elseif ($this->breakdownBy === 'Area' && !empty($this->filterArea)) {
+            $q->where('vspc.area', $this->filterArea);
+        } elseif ($this->breakdownBy === 'Supervisor' && !empty($this->filterSupervisor)) {
+            $q->where('vspc.supervisor', $this->filterSupervisor);
+        } elseif ($this->breakdownBy === 'Cabang' && !empty($this->filterCabang)) {
+            $q->where('vspc.cabang', $this->filterCabang);
+        }
                 
             if (!empty($this->selectedRegFest)) {
                 if ($this->selectedRegFest === 'REG' || $this->selectedRegFest === 'FEST') {
@@ -574,10 +584,15 @@ class Index extends Component
         $q = \Illuminate\Support\Facades\DB::table('v_sellinvstarget')
             ->where('region', '!=', 'HOINA');
 
-        if (!empty($this->filterRegion)) $q->where('region', $this->filterRegion);
-        if (!empty($this->filterArea)) $q->where('area', $this->filterArea);
-        if (!empty($this->filterSupervisor)) $q->where('supervisor', $this->filterSupervisor);
-        if (!empty($this->filterCabang)) $q->where('cabang', $this->filterCabang);
+        if ($this->breakdownBy === 'Region' && !empty($this->filterRegion)) {
+            $q->where('region', $this->filterRegion);
+        } elseif ($this->breakdownBy === 'Area' && !empty($this->filterArea)) {
+            $q->where('area', $this->filterArea);
+        } elseif ($this->breakdownBy === 'Supervisor' && !empty($this->filterSupervisor)) {
+            $q->where('supervisor', $this->filterSupervisor);
+        } elseif ($this->breakdownBy === 'Cabang' && !empty($this->filterCabang)) {
+            $q->where('cabang', $this->filterCabang);
+        }
         
         if (!empty($this->selectedRegFest)) {
             if ($this->selectedRegFest === 'REG' || $this->selectedRegFest === 'FEST') {
