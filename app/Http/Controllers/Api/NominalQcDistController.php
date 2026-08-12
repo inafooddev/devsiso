@@ -62,7 +62,7 @@ class NominalQcDistController extends Controller
         $input = $request->except('file_surat');
 
         if ($request->hasFile('file_surat')) {
-            $input['file_surat'] = $request->file('file_surat')->store('public/surat_qc');
+            $input['file_surat'] = $request->file('file_surat')->storeAs('public/surat_qc', $request->file('file_surat')->getClientOriginalName());
         }
 
         $data = NominalQcDist::create($input);

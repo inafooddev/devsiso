@@ -192,7 +192,7 @@ class Index extends Component
 
         $suratPath = $this->existingFileSurat;
         if ($this->editFileSurat) {
-            $suratPath = $this->editFileSurat->store('public/surat_qc');
+            $suratPath = $this->editFileSurat->storeAs('public/surat_qc', $this->editFileSurat->getClientOriginalName());
         }
 
         \App\Models\NominalQcDist::updateOrCreate(
