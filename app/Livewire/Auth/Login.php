@@ -86,7 +86,7 @@ class Login extends Component
 
             $user = Auth::user();
             if ($user && $user->hasRole(['admin', 'user'])) {
-                return redirect()->intended(route('dashboard.national-sell-in'));
+                return redirect()->intended(route('dashboard.v2.sellin'));
             }
 
             // Jika role guest atau lainnya, arahkan ke welcome page

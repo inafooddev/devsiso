@@ -30,7 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('mobile/*')) {
                 return route('mobile.home');
             }
-            return route('dashboard');
+            return route('dashboard.v2.sellin');
         });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
