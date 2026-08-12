@@ -145,11 +145,12 @@ class Index extends Component
     // Reactive watchers — setiap filter berubah, grafik langsung update
     public function updatedBreakdownBy()
     {
-        // Reset semua filter ketika pindah tab agar tiap tab benar-benar independent (buta terhadap tab lain)
-        $this->filterRegion = '';
-        $this->filterArea = '';
-        $this->filterSupervisor = '';
-        $this->filterCabang = '';
+        // Reset semua filter ketika pindah tab agar tiap tab benar-benar independent
+        // TETAPI pertahankan nilai auto-select jika opsinya hanya ada 1 (terkunci oleh RLS)
+        $this->filterRegion = count($this->listRegions) === 1 ? $this->listRegions[0] : '';
+        $this->filterArea = count($this->listAreas) === 1 ? $this->listAreas[0] : '';
+        $this->filterSupervisor = count($this->listSupervisors) === 1 ? $this->listSupervisors[0] : '';
+        $this->filterCabang = count($this->listCabangs) === 1 ? $this->listCabangs[0] : '';
         
         $this->reload();
     }
