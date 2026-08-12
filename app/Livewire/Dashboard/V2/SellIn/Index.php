@@ -129,6 +129,17 @@ class Index extends Component
         $this->listAreas = (clone $baseQuery)->whereNotNull('area')->where('area', '!=', '')->distinct()->pluck('area')->sort()->values()->toArray();
         $this->listSupervisors = (clone $baseQuery)->whereNotNull('supervisor')->where('supervisor', '!=', '')->distinct()->pluck('supervisor')->sort()->values()->toArray();
         $this->listCabangs = (clone $baseQuery)->whereNotNull('cabang')->where('cabang', '!=', '')->distinct()->pluck('cabang')->sort()->values()->toArray();
+
+        // Auto-select filters if there is only 1 option (restricted by RLS)
+        if (count($this->listRegions) === 1) {
+            $this->filterRegion = $this->listRegions[0];
+        }
+        if (count($this->listAreas) === 1) {
+            $this->filterArea = $this->listAreas[0];
+        }
+        if (count($this->listSupervisors) === 1) {
+            $this->filterSupervisor = $this->listSupervisors[0];
+        }
     }
 
     // Reactive watchers — setiap filter berubah, grafik langsung update
