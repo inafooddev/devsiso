@@ -4,10 +4,11 @@ namespace App\Livewire\Dashboard\V2\SellOut;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Livewire\Dashboard\Traits\WithAccessFilter;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, WithAccessFilter;
 
     // Filters
     public string $selectedYear = '';
@@ -79,10 +80,13 @@ class Index extends Component
     {
         // Nanti ambil dari DB: $this->yearOptions = DB::table('sales')->selectRaw('YEAR(date) as y')->distinct()->pluck('y')->map(fn($y) => ['id' => $y, 'name' => $y])->toArray();
         // Ambil tahun unik yang tersedia di database, urutkan menurun
-        $years = \Illuminate\Support\Facades\DB::table('v_sellout_per_cabang')
+        $query = \Illuminate\Support\Facades\DB::table('v_sellout_per_cabang')
             ->selectRaw('EXTRACT(YEAR FROM bulan) as yr')
-            ->distinct()
-            ->orderBy('yr', 'desc')
+            ->distinct();
+            
+        $this->applyAccessFilter($query);
+        
+        $years = $query->orderBy('yr', 'desc')
             ->pluck('yr')
             ->toArray();
 
@@ -110,6 +114,8 @@ class Index extends Component
     {
         $baseQuery = \Illuminate\Support\Facades\DB::table('v_sellout_per_cabang')
             ->where('region', '!=', 'HOINA');
+            
+        $this->applyAccessFilter($baseQuery);
 
         $this->listRegions = (clone $baseQuery)->whereNotNull('region')->where('region', '!=', '')->distinct()->pluck('region')->sort()->values()->toArray();
         $this->listAreas = (clone $baseQuery)->whereNotNull('area')->where('area', '!=', '')->distinct()->pluck('area')->sort()->values()->toArray();
@@ -211,6 +217,8 @@ class Index extends Component
                 }, 'md', 'md.branch_name', '=', 'vspc.cabang')
                 ->whereIn(\Illuminate\Support\Facades\DB::raw('EXTRACT(YEAR FROM vspc.bulan)'), [$ty, $ly])
                 ->where('vspc.region', '!=', 'HOINA');
+
+            $this->applyAccessFilter($q, 'vspc.');
 
         if ($this->breakdownBy === 'Region' && !empty($this->filterRegion)) {
             $q->where('vspc.region', $this->filterRegion);
@@ -439,9 +447,13 @@ class Index extends Component
         // Load AO Trend Data for CY and LY
         $qAoCY = \Illuminate\Support\Facades\DB::table('ao_percabang_perbulan')
             ->where(\Illuminate\Support\Facades\DB::raw('EXTRACT(YEAR FROM bulan)'), $ty);
+            
+        $this->applyAccessFilter($qAoCY, '', 'v_sellout_per_cabang');
         
         $qAoLY = \Illuminate\Support\Facades\DB::table('ao_percabang_perbulan')
             ->where(\Illuminate\Support\Facades\DB::raw('EXTRACT(YEAR FROM bulan)'), $ly);
+            
+        $this->applyAccessFilter($qAoLY, '', 'v_sellout_per_cabang');
         
         if (!empty($this->filterRegion)) { 
             $qAoCY->where('region', $this->filterRegion); 
@@ -640,6 +652,8 @@ class Index extends Component
     {
         $q = \Illuminate\Support\Facades\DB::table('v_sellout_per_cabang')
             ->where('region', '!=', 'HOINA');
+            
+        $this->applyAccessFilter($q);
 
         if ($this->breakdownBy === 'Region' && !empty($this->filterRegion)) {
             $q->where('region', $this->filterRegion);
