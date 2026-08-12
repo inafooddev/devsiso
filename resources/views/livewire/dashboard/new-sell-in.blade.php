@@ -55,7 +55,7 @@
         <!-- Main Trend Chart -->
         <div class="col-span-1 lg:col-span-2 bg-base-100/50 backdrop-blur-md border border-base-300 rounded-2xl p-6 shadow-sm">
             <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-                <x-icon name="o-presentation-chart-line" class="w-6 h-6 text-primary" />
+                <x-mary-icon name="o-presentation-chart-line" class="w-6 h-6 text-primary" />
                 Sales Trend
             </h3>
             <div id="chartSalesTrend" class="w-full h-72"></div>
@@ -64,7 +64,7 @@
         <!-- Contribution Chart -->
         <div class="col-span-1 bg-base-100/50 backdrop-blur-md border border-base-300 rounded-2xl p-6 shadow-sm">
             <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-                <x-icon name="o-chart-pie" class="w-6 h-6 text-secondary" />
+                <x-mary-icon name="o-chart-pie" class="w-6 h-6 text-secondary" />
                 Contribution Breakdown
             </h3>
             <div id="chartContribution" class="w-full h-72"></div>
@@ -74,7 +74,7 @@
     <!-- Details Table -->
     <div class="bg-base-100/50 backdrop-blur-md border border-base-300 rounded-2xl shadow-sm overflow-hidden p-6">
         <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-            <x-icon name="o-table-cells" class="w-6 h-6 text-info" />
+            <x-mary-icon name="o-table-cells" class="w-6 h-6 text-info" />
             Detail Breakdown
         </h3>
         

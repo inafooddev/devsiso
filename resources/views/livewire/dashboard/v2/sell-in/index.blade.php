@@ -96,9 +96,9 @@
                     <!-- Month Dropdown with Checkboxes -->
                     <div class="dropdown dropdown-end">
                         <div tabindex="0" role="button" class="btn btn-sm btn-outline rounded-xl border-base-300 px-4">
-                            <x-icon name="o-calendar" class="w-4 h-4 mr-2"/>
+                            <x-mary-icon name="o-calendar" class="w-4 h-4 mr-2"/>
                             {{ count($selectedMonths) > 0 ? count($selectedMonths) . ' Bulan Terpilih' : 'Semua Bulan' }}
-                            <x-icon name="o-chevron-down" class="w-3 h-3 ml-2 opacity-50"/>
+                            <x-mary-icon name="o-chevron-down" class="w-3 h-3 ml-2 opacity-50"/>
                         </div>
                         <ul tabindex="0" class="dropdown-content menu p-2 shadow-xl bg-base-100 rounded-box w-52 z-[100] border border-base-200 mt-2 max-h-64 overflow-y-auto block">
                             @foreach($monthOptions as $m)
@@ -143,20 +143,20 @@
                         <h3 class="text-xl lg:text-2xl font-black text-white mt-1">Rp {{ number_format($this->kpiData['total_actual_ty'], 0, ',', '.') }}</h3>
                     </div>
                     <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                        <x-icon name="o-banknotes" class="w-6 h-6" />
+                        <x-mary-icon name="o-banknotes" class="w-6 h-6" />
                     </div>
                 </div>
                 
                 <div class="mt-5 flex items-center gap-3 text-[11px] font-bold flex-wrap relative z-10">
                     <!-- VS LY -->
                     <div class="flex items-center gap-1 px-2 py-1 rounded-md {{ $this->kpiData['growth_pct'] >= 0 ? 'bg-white/90 text-cyan-500' : 'bg-white/90 text-rose-400' }} shadow-sm">
-                        <x-icon name="{{ $this->kpiData['growth_pct'] >= 0 ? 'o-arrow-trending-up' : 'o-arrow-trending-down' }}" class="w-3.5 h-3.5" />
+                        <x-mary-icon name="{{ $this->kpiData['growth_pct'] >= 0 ? 'o-arrow-trending-up' : 'o-arrow-trending-down' }}" class="w-3.5 h-3.5" />
                         <span>{{ $this->kpiData['growth_pct'] > 0 ? '+' : '' }}{{ $this->kpiData['growth_pct'] }}%</span>
                         <span class="opacity-70 ml-0.5 text-slate-500">vs LY</span>
                     </div>
                     <!-- VS Target -->
                     <div class="flex items-center gap-1 px-2 py-1 rounded-md {{ $this->kpiData['achievement_pct'] >= 100 ? 'bg-white/90 text-cyan-500' : 'bg-white/90 text-rose-400' }} shadow-sm">
-                        <x-icon name="{{ $this->kpiData['achievement_pct'] >= 100 ? 'o-check-circle' : 'o-exclamation-circle' }}" class="w-3.5 h-3.5" />
+                        <x-mary-icon name="{{ $this->kpiData['achievement_pct'] >= 100 ? 'o-check-circle' : 'o-exclamation-circle' }}" class="w-3.5 h-3.5" />
                         <span>{{ $this->kpiData['achievement_pct'] }}%</span>
                         <span class="opacity-70 ml-0.5 text-slate-500">vs Target</span>
                     </div>
@@ -172,20 +172,20 @@
                         <h3 class="text-xl lg:text-2xl font-black text-white mt-1">Rp {{ number_format($this->kpiData['total_target'], 0, ',', '.') }}</h3>
                     </div>
                     <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                        <x-icon name="o-flag" class="w-6 h-6" />
+                        <x-mary-icon name="o-flag" class="w-6 h-6" />
                     </div>
                 </div>
                 
                 <div class="mt-5 flex items-center gap-3 text-[11px] font-bold flex-wrap relative z-10">
                     <!-- VS Sales -->
                     <div class="flex items-center gap-1 px-2 py-1 rounded-md {{ $this->kpiData['achievement_pct'] >= 100 ? 'bg-white/90 text-cyan-500' : 'bg-white/90 text-rose-400' }} shadow-sm">
-                        <x-icon name="o-chart-pie" class="w-3.5 h-3.5" />
+                        <x-mary-icon name="o-chart-pie" class="w-3.5 h-3.5" />
                         <span>{{ $this->kpiData['achievement_pct'] }}%</span>
                         <span class="opacity-70 ml-0.5 text-slate-500">vs Sales</span>
                     </div>
                     <!-- Gap vs Sales -->
                     <div class="flex items-center gap-1 px-2 py-1 rounded-md {{ $this->kpiData['gap_vs_target'] >= 0 ? 'bg-white/90 text-cyan-500' : 'bg-white/90 text-rose-400' }} shadow-sm">
-                        <x-icon name="{{ $this->kpiData['gap_vs_target'] >= 0 ? 'o-check-circle' : 'o-arrow-down' }}" class="w-3.5 h-3.5" />
+                        <x-mary-icon name="{{ $this->kpiData['gap_vs_target'] >= 0 ? 'o-check-circle' : 'o-arrow-down' }}" class="w-3.5 h-3.5" />
                         <span>Gap: {{ $this->kpiData['gap_vs_target'] > 0 ? '+' : '' }}{{ number_format($this->kpiData['gap_vs_target'], 0, ',', '.') }}</span>
                     </div>
                 </div>
@@ -200,20 +200,20 @@
                         <h3 class="text-xl lg:text-2xl font-black text-white mt-1">Rp {{ number_format($this->kpiData['total_ly'], 0, ',', '.') }}</h3>
                     </div>
                     <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                        <x-icon name="o-clock" class="w-6 h-6" />
+                        <x-mary-icon name="o-clock" class="w-6 h-6" />
                     </div>
                 </div>
                 
                 <div class="mt-5 flex items-center gap-3 text-[11px] font-bold flex-wrap relative z-10">
                     <!-- Growth -->
                     <div class="flex items-center gap-1 px-2 py-1 rounded-md {{ $this->kpiData['growth_pct'] >= 0 ? 'bg-white/90 text-cyan-500' : 'bg-white/90 text-rose-400' }} shadow-sm">
-                        <x-icon name="{{ $this->kpiData['growth_pct'] >= 0 ? 'o-arrow-trending-up' : 'o-arrow-trending-down' }}" class="w-3.5 h-3.5" />
+                        <x-mary-icon name="{{ $this->kpiData['growth_pct'] >= 0 ? 'o-arrow-trending-up' : 'o-arrow-trending-down' }}" class="w-3.5 h-3.5" />
                         <span>{{ $this->kpiData['growth_pct'] > 0 ? '+' : '' }}{{ $this->kpiData['growth_pct'] }}%</span>
                         <span class="opacity-70 ml-0.5 text-slate-500">Growth</span>
                     </div>
                     <!-- Gap vs Sales -->
                     <div class="flex items-center gap-1 px-2 py-1 rounded-md {{ $this->kpiData['gap_vs_ly'] >= 0 ? 'bg-white/90 text-cyan-500' : 'bg-white/90 text-rose-400' }} shadow-sm">
-                        <x-icon name="{{ $this->kpiData['gap_vs_ly'] >= 0 ? 'o-arrow-trending-up' : 'o-arrow-trending-down' }}" class="w-3.5 h-3.5" />
+                        <x-mary-icon name="{{ $this->kpiData['gap_vs_ly'] >= 0 ? 'o-arrow-trending-up' : 'o-arrow-trending-down' }}" class="w-3.5 h-3.5" />
                         <span>Gap: {{ $this->kpiData['gap_vs_ly'] > 0 ? '+' : '' }}{{ number_format($this->kpiData['gap_vs_ly'], 0, ',', '.') }}</span>
                     </div>
                 </div>
@@ -228,13 +228,13 @@
                         <h3 class="text-xl lg:text-2xl font-black text-white mt-1">Rp {{ number_format($this->kpiData['avg_sales_yoy'], 0, ',', '.') }}</h3>
                     </div>
                     <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                        <x-icon name="o-chart-bar" class="w-6 h-6" />
+                        <x-mary-icon name="o-chart-bar" class="w-6 h-6" />
                     </div>
                 </div>
                 
                 <div class="mt-5 flex items-center gap-2 text-[11px] font-bold relative z-10">
                     <div class="flex items-center gap-1 px-2 py-1 rounded-md {{ $this->kpiData['avg_sales_growth'] >= 0 ? 'bg-white/90 text-cyan-500' : 'bg-white/90 text-rose-400' }} shadow-sm">
-                        <x-icon name="{{ $this->kpiData['avg_sales_growth'] >= 0 ? 'o-arrow-trending-up' : 'o-arrow-trending-down' }}" class="w-3.5 h-3.5" />
+                        <x-mary-icon name="{{ $this->kpiData['avg_sales_growth'] >= 0 ? 'o-arrow-trending-up' : 'o-arrow-trending-down' }}" class="w-3.5 h-3.5" />
                         <span>{{ $this->kpiData['avg_sales_growth'] > 0 ? '+' : '' }}{{ $this->kpiData['avg_sales_growth'] }}%</span>
                         <span class="opacity-70 ml-0.5 text-slate-500">YoY Trend</span>
                     </div>
