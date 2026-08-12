@@ -491,7 +491,8 @@
                 if (hIdx >= raw.length) return { error: `Header row ${g.header_row} melebihi jumlah baris` };
 
                 const hmap = {};
-                raw[hIdx].map(h => String(h??'').trim()).forEach((h,i) => { if(h) hmap[h]=i; });
+                // TRIM dan UPPERCASE header dari file excel
+                raw[hIdx].map(h => String(h??'').trim().toUpperCase()).forEach((h,i) => { if(h) hmap[h]=i; });
 
                 const rawRows = raw.slice(hIdx+1).filter(r => r.some(c => c!==''&&c!==null&&c!==undefined));
 
@@ -500,7 +501,11 @@
                 if (!colDefs?.length) return { error: 'Kolom kosong pada grup: '+g.name };
 
                 const labels = colDefs.map(c => c.label);
-                const rows   = rawRows.map(r => colDefs.map(col => { const i=hmap[col.source]; return i!==undefined?r[i]:''; }));
+                const rows   = rawRows.map(r => colDefs.map(col => { 
+                    const srcKey = String(col.source || '').trim().toUpperCase();
+                    const i=hmap[srcKey]; 
+                    return i!==undefined?r[i]:''; 
+                }));
 
                 return { fileName: fObj.name.replace(/\.[^/.]+$/,''), groupId:g.id, groupName:g.name, colDefs, labels, rows, rawRows, hmap };
             },
@@ -509,7 +514,9 @@
                 const out = {};
                 res.colDefs.forEach(col => {
                     const lbl = col.label;
-                    const si  = res.hmap[col.source];
+                    // TRIM dan UPPERCASE nama kolom dari database saat mencocokkan
+                    const srcKey = String(col.source || '').trim().toUpperCase();
+                    const si  = res.hmap[srcKey];
                     if (col.type === 'text') {
                         const fv = si!==undefined ? res.rawRows.find(r=>r[si]!==''&&r[si]!==null) : null;
                         out[lbl] = fv ? String(fv[si]) : '-';
