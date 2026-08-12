@@ -176,7 +176,7 @@ return [
         |
         */
 
-        'default' => 'blade-icon',
+        'default' => 'icon',
 
     ],
 
