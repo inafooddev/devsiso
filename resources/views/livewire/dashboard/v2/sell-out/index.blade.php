@@ -96,7 +96,7 @@
                     <!-- Month Dropdown with Checkboxes -->
                     <div class="dropdown dropdown-end">
                         <div tabindex="0" role="button" class="btn btn-sm btn-outline rounded-xl border-base-300 px-4">
-                            <x-icon name="o-calendar" class="w-4 h-4 mr-2"/>
+                            <x-icon name="o-calendar-days" class="w-4 h-4 mr-2"/>
                             {{ count($selectedMonths) > 0 ? count($selectedMonths) . ' Bulan Terpilih' : 'Semua Bulan' }}
                             <x-icon name="o-chevron-down" class="w-3 h-3 ml-2 opacity-50"/>
                         </div>
