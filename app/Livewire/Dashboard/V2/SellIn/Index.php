@@ -77,6 +77,15 @@ class Index extends Component
 
     public function mount()
     {
+        $userLevel = auth()->user() ? auth()->user()->getAccessLevel() : 'nasional';
+        if ($userLevel === 'region') {
+            $this->breakdownBy = 'Region';
+        } elseif ($userLevel === 'area') {
+            $this->breakdownBy = 'Area';
+        } elseif ($userLevel === 'supervisor') {
+            $this->breakdownBy = 'Supervisor';
+        }
+
         // Nanti ambil dari DB: $this->yearOptions = DB::table('sales')->selectRaw('YEAR(date) as y')->distinct()->pluck('y')->map(fn($y) => ['id' => $y, 'name' => $y])->toArray();
         // Ambil tahun unik yang tersedia di database, urutkan menurun
         $query = \Illuminate\Support\Facades\DB::table('v_sellin_per_cabang')
