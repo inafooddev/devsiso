@@ -84,6 +84,16 @@ class ExtractorProcess extends Component
                 
                 $nominalFinal = $ocrDoc ? $ocrDoc->nominal_extracted : ($res['nominal_surat'] ?? 0);
 
+                $fileSuratPath = null;
+                if ($ocrDoc && $ocrDoc->file_name) {
+                    // Check if it already contains the directory path
+                    if (str_starts_with($ocrDoc->file_name, 'public/surat_qc/')) {
+                        $fileSuratPath = $ocrDoc->file_name;
+                    } else {
+                        $fileSuratPath = 'public/surat_qc/' . $ocrDoc->file_name;
+                    }
+                }
+
                 $insertsPermanent[] = [
                     'tanggal' => $tanggal,
                     'distributor_code' => $distCode,
@@ -92,7 +102,7 @@ class ExtractorProcess extends Component
                     'discount_8' => $disc8,
                     'neto' => $neto,
                     'nominal_surat' => $nominalFinal,
-                    'file_surat' => $ocrDoc ? $ocrDoc->file_name : ($res['nama_file'] ?? ''),
+                    'file_surat' => $fileSuratPath,
                     'timestamp' => $now,
                     'created_at' => $now,
                     'updated_at' => $now,
