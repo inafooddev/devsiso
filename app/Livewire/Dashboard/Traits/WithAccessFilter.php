@@ -28,8 +28,8 @@ trait WithAccessFilter
             return $query;
         }
 
-        // 1. Cek hak akses ke tabel Master Distributors
-        $masterQuery = DB::table('master_distributors');
+        // 1. Cek hak akses ke tabel Master Distributors (via view hierarki yang benar)
+        $masterQuery = DB::table('vw_distributor_hierarchy');
         
         if ($level === 'supervisor') {
             $masterQuery->where('supervisor_code', $user->supervisor_code);
