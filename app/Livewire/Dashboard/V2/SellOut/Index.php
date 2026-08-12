@@ -448,12 +448,12 @@ class Index extends Component
         $qAoCY = \Illuminate\Support\Facades\DB::table('ao_percabang_perbulan')
             ->where(\Illuminate\Support\Facades\DB::raw('EXTRACT(YEAR FROM bulan)'), $ty);
             
-        $this->applyAccessFilter($qAoCY, '', 'v_sellout_per_cabang');
+        $this->applyAccessFilter($qAoCY);
         
         $qAoLY = \Illuminate\Support\Facades\DB::table('ao_percabang_perbulan')
             ->where(\Illuminate\Support\Facades\DB::raw('EXTRACT(YEAR FROM bulan)'), $ly);
             
-        $this->applyAccessFilter($qAoLY, '', 'v_sellout_per_cabang');
+        $this->applyAccessFilter($qAoLY);
         
         if (!empty($this->filterRegion)) { 
             $qAoCY->where('region', $this->filterRegion); 

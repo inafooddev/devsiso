@@ -8,14 +8,13 @@ trait WithAccessFilter
 {
     /**
      * Apply row-level security (RLS) based on the logged-in user's access level.
-     * This ensures users only see data belonging to their Region, Area, or Supervisor code.
+     * Procedure: User -> Master Distributors -> Data Tables (by cabang)
      *
      * @param \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder $query
-     * @param string $prefix Prefix for the columns (e.g. 'vspc.' or '')
-     * @param string $supervisorFallbackView If the table lacks a 'supervisor' column, use this view to resolve supervisor to cabangs.
+     * @param string $prefix Prefix for the cabang column (e.g. 'vspc.' or '')
      * @return \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder
      */
-    protected function applyAccessFilter($query, $prefix = '', $supervisorFallbackView = null)
+    protected function applyAccessFilter($query, $prefix = '')
     {
         $user = auth()->user();
         
@@ -25,21 +24,30 @@ trait WithAccessFilter
 
         $level = $user->getAccessLevel();
 
+        if ($level === 'nasional') {
+            return $query;
+        }
+
+        // 1. Cek hak akses ke tabel Master Distributors
+        $masterQuery = DB::table('master_distributors');
+        
         if ($level === 'supervisor') {
-            if ($supervisorFallbackView) {
-                $cabangs = DB::table($supervisorFallbackView)
-                    ->where('supervisor', $user->supervisor_code)
-                    ->distinct()
-                    ->pluck('cabang')
-                    ->toArray();
-                $query->whereIn($prefix . 'cabang', $cabangs);
-            } else {
-                $query->where($prefix . 'supervisor', $user->supervisor_code);
-            }
+            $masterQuery->where('supervisor_code', $user->supervisor_code);
         } elseif ($level === 'area') {
-            $query->whereIn($prefix . 'area', (array)$user->area_code);
+            $masterQuery->whereIn('area_code', (array)$user->area_code);
         } elseif ($level === 'region') {
-            $query->whereIn($prefix . 'region', (array)$user->region_code);
+            $masterQuery->whereIn('region_code', (array)$user->region_code);
+        }
+
+        // 2. Dapatkan daftar cabang (branch_name) yang boleh diakses
+        $allowedCabangs = $masterQuery->distinct()->pluck('branch_name')->toArray();
+
+        // 3. Filter tabel data utama hanya untuk cabang-cabang tersebut
+        if (empty($allowedCabangs)) {
+            // Jika tidak punya akses ke cabang manapun, berikan kondisi false
+            $query->where($prefix . 'cabang', 'INVALID_ACCESS_NO_CABANG');
+        } else {
+            $query->whereIn($prefix . 'cabang', $allowedCabangs);
         }
 
         return $query;
