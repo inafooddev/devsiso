@@ -241,7 +241,7 @@
                             <!-- Data PENGGUNAAN SFA -->
                             <td class="border border-base-300 text-right">{{ number_format($row['sfa_pc'], 0, ',', '.') }}</td>
                             <td class="border border-base-300 text-right">{{ number_format($row['sfa_ac'], 0, ',', '.') }}</td>
-                            <td class="border border-base-300 text-right">{{ $row['sfa_persen'] }}%</td>
+                            <td class="border border-base-300 text-right font-bold {{ $row['sfa_persen'] < 95 ? 'text-error' : 'text-success' }}">{{ $row['sfa_persen'] }}%</td>
 
                             <!-- Data TOTAL INSENTIF -->
                             <td class="border border-base-300 text-right font-bold {{ $row['total_insentif'] > 0 ? 'text-success' : 'text-base-content/40' }}">
@@ -318,7 +318,7 @@
                         <!-- Grand Total: PENGGUNAAN SFA -->
                         <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #cffafe;">{{ number_format($grandTotalSfa['pc'], 0, ',', '.') }}</td>
                         <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #cffafe;">{{ number_format($grandTotalSfa['ac'], 0, ',', '.') }}</td>
-                        <td class="border border-base-300 text-right sticky bottom-0 font-bold text-cyan-800" style="background-color: #cffafe;">{{ $grandTotalSfa['persen'] }}%</td>
+                        <td class="border border-base-300 text-right sticky bottom-0 font-bold {{ $grandTotalSfa['persen'] < 95 ? 'text-error' : 'text-success' }}" style="background-color: #cffafe;">{{ $grandTotalSfa['persen'] }}%</td>
 
                         <!-- Grand Total: TOTAL INSENTIF -->
                         <td class="border border-base-300 text-right sticky bottom-0 font-bold text-success" style="background-color: #e5e7eb;">
