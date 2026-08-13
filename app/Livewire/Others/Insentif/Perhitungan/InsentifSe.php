@@ -303,8 +303,8 @@ class InsentifSe extends Component
                 $row['insentif_ipt'] = $insentif_ipt;
 
                 // --- 5. Penggunaan SFA ---
-                $sfa_pc = $visitsRow['pc'] ?? 0;
-                $sfa_ac = $visitsRow['ac'] ?? 0;
+                $sfa_pc = $visit['pc'] ?? 0;
+                $sfa_ac = $visit['ac'] ?? 0;
                 $sfa_persen = 0;
                 if ($sfa_pc > 0) {
                     $sfa_persen = round(($sfa_ac / $sfa_pc) * 100);
