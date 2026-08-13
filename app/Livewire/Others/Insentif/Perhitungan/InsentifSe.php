@@ -301,6 +301,11 @@ class InsentifSe extends Component
                 }
                 $row['insentif_ipt'] = $insentif_ipt;
 
+                // --- 5. Penggunaan SFA (Placeholder) ---
+                $row['sfa_pc'] = 0;
+                $row['sfa_ac'] = 0;
+                $row['sfa_persen'] = 0;
+
                 $salesmenData[] = $row;
             }
             // 6. Hitung Grand Total per Header & Value
@@ -393,6 +398,20 @@ class InsentifSe extends Component
             if ($gtIpt['ec'] > 0) {
                 $gtIpt['ipt'] = round($gtIpt['sku'] / $gtIpt['ec']);
             }
+
+            // SFA Grand Totals (Placeholder)
+            $gtSfa = [
+                'pc' => 0,
+                'ac' => 0,
+                'persen' => 0,
+            ];
+            foreach ($salesmenData as $row) {
+                $gtSfa['pc'] += $row['sfa_pc'] ?? 0;
+                $gtSfa['ac'] += $row['sfa_ac'] ?? 0;
+            }
+            if ($gtSfa['ac'] > 0) {
+                $gtSfa['persen'] = round(($gtSfa['pc'] / $gtSfa['ac']) * 100);
+            }
         }
 
         return view('livewire.others.insentif.perhitungan.insentif-se', [
@@ -406,6 +425,7 @@ class InsentifSe extends Component
             'grandTotalVtkp' => $grandTotalVtkp ?? 0,
             'grandTotalEc' => $gtEc ?? ['ro'=>0, 'ac'=>0, 'ec'=>0, 'persen_ec'=>0, 'ec_harian'=>0, 'insentif'=>0],
             'grandTotalIpt' => $gtIpt ?? ['sku'=>0, 'ec'=>0, 'ipt'=>0, 'insentif'=>0],
+            'grandTotalSfa' => $gtSfa ?? ['pc'=>0, 'ac'=>0, 'persen'=>0],
         ]);
     }
 

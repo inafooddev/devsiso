@@ -106,6 +106,16 @@
                         <th colspan="4" class="border border-base-300 text-center font-bold bg-sky-100 text-sky-900">
                             4. Insentif IPT
                         </th>
+
+                        <!-- Header Penggunaan SFA -->
+                        <th colspan="3" class="border border-base-300 text-center font-bold bg-cyan-100 text-cyan-900">
+                            Penggunaan SFA
+                        </th>
+
+                        <!-- Header TOTAL INSENTIF -->
+                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-300/50 w-32">
+                            TOTAL INSENTIF
+                        </th>
                     </tr>
                     <!-- Header Baris 2: Target | Real | Growth -->
                     <tr class="text-xs">
@@ -137,6 +147,11 @@
                         <th class="border border-base-300 text-center font-semibold bg-sky-50 text-sky-800 w-16">Total EC</th>
                         <th class="border border-base-300 text-center font-semibold bg-sky-50 text-sky-800 w-16">IPT</th>
                         <th class="border border-base-300 text-center font-semibold bg-sky-50 text-sky-800 w-24">Insentif</th>
+
+                        <!-- Sub-header PENGGUNAAN SFA -->
+                        <th class="border border-base-300 text-center font-semibold bg-cyan-50 text-cyan-800 w-16">PC</th>
+                        <th class="border border-base-300 text-center font-semibold bg-cyan-50 text-cyan-800 w-16">AC</th>
+                        <th class="border border-base-300 text-center font-semibold bg-cyan-50 text-cyan-800 w-16">%</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -222,6 +237,16 @@
                             <td class="border border-base-300 text-right font-bold {{ $row['insentif_ipt'] > 0 ? 'text-sky-600' : 'text-base-content/40' }}">
                                 {{ $row['insentif_ipt'] > 0 ? number_format($row['insentif_ipt'], 0, ',', '.') : '-' }}
                             </td>
+
+                            <!-- Data PENGGUNAAN SFA -->
+                            <td class="border border-base-300 text-right">{{ number_format($row['sfa_pc'], 0, ',', '.') }}</td>
+                            <td class="border border-base-300 text-right">{{ number_format($row['sfa_ac'], 0, ',', '.') }}</td>
+                            <td class="border border-base-300 text-right">{{ $row['sfa_persen'] }}%</td>
+
+                            <!-- Data TOTAL INSENTIF -->
+                            <td class="border border-base-300 text-right font-bold text-success">
+                                {{ number_format(0, 0, ',', '.') }}
+                            </td>
                         </tr>
                     @empty
                         @if($filterBulan && $filterRegion)
@@ -289,6 +314,16 @@
                         <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #bae6fd;">{{ number_format($grandTotalIpt['ec'], 0, ',', '.') }}</td>
                         <td class="border border-base-300 text-right sticky bottom-0 font-bold" style="background-color: #bae6fd;">{{ number_format($grandTotalIpt['ipt'], 0, ',', '.') }}</td>
                         <td class="border border-base-300 text-right sticky bottom-0 font-bold text-sky-700" style="background-color: #bae6fd;">{{ number_format($grandTotalIpt['insentif'], 0, ',', '.') }}</td>
+
+                        <!-- Grand Total: PENGGUNAAN SFA -->
+                        <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #cffafe;">{{ number_format($grandTotalSfa['pc'], 0, ',', '.') }}</td>
+                        <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #cffafe;">{{ number_format($grandTotalSfa['ac'], 0, ',', '.') }}</td>
+                        <td class="border border-base-300 text-right sticky bottom-0 font-bold text-cyan-800" style="background-color: #cffafe;">{{ $grandTotalSfa['persen'] }}%</td>
+
+                        <!-- Grand Total: TOTAL INSENTIF -->
+                        <td class="border border-base-300 text-right sticky bottom-0 font-bold text-success" style="background-color: #e5e7eb;">
+                            {{ number_format(0, 0, ',', '.') }}
+                        </td>
                     </tr>
                 </tfoot>
                 @endif
