@@ -328,6 +328,10 @@ class InsentifSe extends Component
                     $row['total_insentif'] = $sum_insentif;
                 }
 
+                // --- 7. PPH 5% & THP ---
+                $row['pph_5'] = $row['total_insentif'] * 0.05;
+                $row['thp'] = $row['total_insentif'] - $row['pph_5'];
+
                 $salesmenData[] = $row;
             }
             // 6. Hitung Grand Total per Header & Value
@@ -428,11 +432,15 @@ class InsentifSe extends Component
                 'persen' => 0,
             ];
             $grandTotalKeseluruhan = 0;
+            $grandTotalPph = 0;
+            $grandTotalThp = 0;
 
             foreach ($salesmenData as $row) {
                 $gtSfa['pc'] += $row['sfa_pc'] ?? 0;
                 $gtSfa['ac'] += $row['sfa_ac'] ?? 0;
                 $grandTotalKeseluruhan += $row['total_insentif'] ?? 0;
+                $grandTotalPph += $row['pph_5'] ?? 0;
+                $grandTotalThp += $row['thp'] ?? 0;
             }
             if ($gtSfa['pc'] == 0 && $gtSfa['ac'] == 0) {
                 $gtSfa['persen'] = 100;
@@ -454,6 +462,8 @@ class InsentifSe extends Component
             'grandTotalIpt' => $gtIpt ?? ['sku'=>0, 'ec'=>0, 'ipt'=>0, 'insentif'=>0],
             'grandTotalSfa' => $gtSfa ?? ['pc'=>0, 'ac'=>0, 'persen'=>0],
             'grandTotalKeseluruhan' => $grandTotalKeseluruhan ?? 0,
+            'grandTotalPph' => $grandTotalPph ?? 0,
+            'grandTotalThp' => $grandTotalThp ?? 0,
         ]);
     }
 

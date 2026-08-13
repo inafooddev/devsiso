@@ -112,9 +112,9 @@
                             Penggunaan SFA
                         </th>
 
-                        <!-- Header TOTAL INSENTIF -->
-                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-300/50 w-32">
-                            TOTAL INSENTIF
+                        <!-- Header FINAL -->
+                        <th colspan="3" class="border border-base-300 text-center font-bold bg-base-300/50">
+                            FINAL
                         </th>
                     </tr>
                     <!-- Header Baris 2: Target | Real | Growth -->
@@ -152,6 +152,11 @@
                         <th class="border border-base-300 text-center font-semibold bg-cyan-50 text-cyan-800 w-16">PC</th>
                         <th class="border border-base-300 text-center font-semibold bg-cyan-50 text-cyan-800 w-16">AC</th>
                         <th class="border border-base-300 text-center font-semibold bg-cyan-50 text-cyan-800 w-16">%</th>
+
+                        <!-- Sub-header FINAL -->
+                        <th class="border border-base-300 text-center font-semibold bg-base-200/50 w-28">TOTAL</th>
+                        <th class="border border-base-300 text-center font-semibold bg-error/10 text-error w-24">PPH 5%</th>
+                        <th class="border border-base-300 text-center font-bold bg-success/10 text-success-content w-32">TAKE HOME PAY</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -244,8 +249,14 @@
                             <td class="border border-base-300 text-right font-bold {{ $row['sfa_persen'] < 95 ? 'text-error' : 'text-success' }}">{{ $row['sfa_persen'] }}%</td>
 
                             <!-- Data TOTAL INSENTIF -->
-                            <td class="border border-base-300 text-right font-bold {{ $row['total_insentif'] > 0 ? 'text-success' : 'text-base-content/40' }}">
+                            <td class="border border-base-300 text-right font-bold {{ $row['total_insentif'] > 0 ? 'text-base-content' : 'text-base-content/40' }}">
                                 {{ $row['total_insentif'] > 0 ? number_format($row['total_insentif'], 0, ',', '.') : '-' }}
+                            </td>
+                            <td class="border border-base-300 text-right font-medium text-error">
+                                {{ $row['pph_5'] > 0 ? number_format($row['pph_5'], 0, ',', '.') : '-' }}
+                            </td>
+                            <td class="border border-base-300 text-right font-bold text-success bg-success/5">
+                                {{ $row['thp'] > 0 ? number_format($row['thp'], 0, ',', '.') : '-' }}
                             </td>
                         </tr>
                     @empty
@@ -321,8 +332,14 @@
                         <td class="border border-base-300 text-right sticky bottom-0 font-bold {{ $grandTotalSfa['persen'] < 95 ? 'text-error' : 'text-success' }}" style="background-color: #cffafe;">{{ $grandTotalSfa['persen'] }}%</td>
 
                         <!-- Grand Total: TOTAL INSENTIF -->
-                        <td class="border border-base-300 text-right sticky bottom-0 font-bold text-success" style="background-color: #e5e7eb;">
+                        <td class="border border-base-300 text-right sticky bottom-0 font-bold text-base-content" style="background-color: #e5e7eb;">
                             {{ number_format($grandTotalKeseluruhan, 0, ',', '.') }}
+                        </td>
+                        <td class="border border-base-300 text-right sticky bottom-0 font-bold text-error" style="background-color: #fee2e2;">
+                            {{ number_format($grandTotalPph, 0, ',', '.') }}
+                        </td>
+                        <td class="border border-base-300 text-right sticky bottom-0 font-bold text-success" style="background-color: #dcfce3;">
+                            {{ number_format($grandTotalThp, 0, ',', '.') }}
                         </td>
                     </tr>
                 </tfoot>
