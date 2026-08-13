@@ -156,6 +156,7 @@ class InsentifSe extends Component
             foreach ($visitsRaw as $v) {
                 $key = strtoupper(trim($v->distributor_code) . '_' . trim($v->salesman_code));
                 $visitsData[$key] = [
+                    'pc' => $v->pc,
                     'ac' => $v->ac,
                     'ec' => $v->ec
                 ];
@@ -301,10 +302,20 @@ class InsentifSe extends Component
                 }
                 $row['insentif_ipt'] = $insentif_ipt;
 
-                // --- 5. Penggunaan SFA (Placeholder) ---
-                $row['sfa_pc'] = 0;
-                $row['sfa_ac'] = 0;
-                $row['sfa_persen'] = 0;
+                // --- 5. Penggunaan SFA ---
+                $sfa_pc = $visitsRow['pc'] ?? 0;
+                $sfa_ac = $visitsRow['ac'] ?? 0;
+                $sfa_persen = 0;
+                if ($sfa_pc > 0) {
+                    $sfa_persen = round(($sfa_ac / $sfa_pc) * 100);
+                }
+
+                $row['sfa_pc'] = $sfa_pc;
+                $row['sfa_ac'] = $sfa_ac;
+                $row['sfa_persen'] = $sfa_persen;
+
+                // --- 6. TOTAL INSENTIF ---
+                $row['total_insentif'] = $valInsentif + $row['vtkp_insentif'] + $insentif_ec + $insentif_ipt;
 
                 $salesmenData[] = $row;
             }
@@ -399,18 +410,21 @@ class InsentifSe extends Component
                 $gtIpt['ipt'] = round($gtIpt['sku'] / $gtIpt['ec']);
             }
 
-            // SFA Grand Totals (Placeholder)
+            // SFA Grand Totals
             $gtSfa = [
                 'pc' => 0,
                 'ac' => 0,
                 'persen' => 0,
             ];
+            $grandTotalKeseluruhan = 0;
+
             foreach ($salesmenData as $row) {
                 $gtSfa['pc'] += $row['sfa_pc'] ?? 0;
                 $gtSfa['ac'] += $row['sfa_ac'] ?? 0;
+                $grandTotalKeseluruhan += $row['total_insentif'] ?? 0;
             }
-            if ($gtSfa['ac'] > 0) {
-                $gtSfa['persen'] = round(($gtSfa['pc'] / $gtSfa['ac']) * 100);
+            if ($gtSfa['pc'] > 0) {
+                $gtSfa['persen'] = round(($gtSfa['ac'] / $gtSfa['pc']) * 100);
             }
         }
 
@@ -426,6 +440,7 @@ class InsentifSe extends Component
             'grandTotalEc' => $gtEc ?? ['ro'=>0, 'ac'=>0, 'ec'=>0, 'persen_ec'=>0, 'ec_harian'=>0, 'insentif'=>0],
             'grandTotalIpt' => $gtIpt ?? ['sku'=>0, 'ec'=>0, 'ipt'=>0, 'insentif'=>0],
             'grandTotalSfa' => $gtSfa ?? ['pc'=>0, 'ac'=>0, 'persen'=>0],
+            'grandTotalKeseluruhan' => $grandTotalKeseluruhan ?? 0,
         ]);
     }
 

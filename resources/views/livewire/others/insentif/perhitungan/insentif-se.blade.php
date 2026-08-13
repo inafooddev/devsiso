@@ -244,8 +244,8 @@
                             <td class="border border-base-300 text-right">{{ $row['sfa_persen'] }}%</td>
 
                             <!-- Data TOTAL INSENTIF -->
-                            <td class="border border-base-300 text-right font-bold text-success">
-                                {{ number_format(0, 0, ',', '.') }}
+                            <td class="border border-base-300 text-right font-bold {{ $row['total_insentif'] > 0 ? 'text-success' : 'text-base-content/40' }}">
+                                {{ $row['total_insentif'] > 0 ? number_format($row['total_insentif'], 0, ',', '.') : '-' }}
                             </td>
                         </tr>
                     @empty
@@ -322,7 +322,7 @@
 
                         <!-- Grand Total: TOTAL INSENTIF -->
                         <td class="border border-base-300 text-right sticky bottom-0 font-bold text-success" style="background-color: #e5e7eb;">
-                            {{ number_format(0, 0, ',', '.') }}
+                            {{ number_format($grandTotalKeseluruhan, 0, ',', '.') }}
                         </td>
                     </tr>
                 </tfoot>
