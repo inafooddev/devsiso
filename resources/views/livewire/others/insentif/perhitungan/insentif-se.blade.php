@@ -218,7 +218,7 @@
                             <!-- Data INSENTIF IPT -->
                             <td class="border border-base-300 text-right">{{ number_format($row['ipt_sku'], 0, ',', '.') }}</td>
                             <td class="border border-base-300 text-right">{{ number_format($row['ipt_ec'], 0, ',', '.') }}</td>
-                            <td class="border border-base-300 text-right font-semibold">{{ number_format($row['ipt'], 2, ',', '.') }}</td>
+                            <td class="border border-base-300 text-right font-semibold">{{ number_format($row['ipt'], 0, ',', '.') }}</td>
                             <td class="border border-base-300 text-right font-bold {{ $row['insentif_ipt'] > 0 ? 'text-sky-600' : 'text-base-content/40' }}">
                                 {{ $row['insentif_ipt'] > 0 ? number_format($row['insentif_ipt'], 0, ',', '.') : '-' }}
                             </td>
@@ -287,7 +287,7 @@
                         <!-- Grand Total: INSENTIF IPT -->
                         <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #bae6fd;">{{ number_format($grandTotalIpt['sku'], 0, ',', '.') }}</td>
                         <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #bae6fd;">{{ number_format($grandTotalIpt['ec'], 0, ',', '.') }}</td>
-                        <td class="border border-base-300 text-right sticky bottom-0 font-bold" style="background-color: #bae6fd;">{{ number_format($grandTotalIpt['ipt'], 2, ',', '.') }}</td>
+                        <td class="border border-base-300 text-right sticky bottom-0 font-bold" style="background-color: #bae6fd;">{{ number_format($grandTotalIpt['ipt'], 0, ',', '.') }}</td>
                         <td class="border border-base-300 text-right sticky bottom-0 font-bold text-sky-700" style="background-color: #bae6fd;">{{ number_format($grandTotalIpt['insentif'], 0, ',', '.') }}</td>
                     </tr>
                 </tfoot>
