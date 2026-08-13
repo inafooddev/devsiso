@@ -315,7 +315,7 @@ class InsentifSe extends Component
                 $row['sfa_persen'] = $sfa_persen;
 
                 // --- 6. TOTAL INSENTIF ---
-                $row['total_insentif'] = $valInsentif + $row['vtkp_insentif'] + $insentif_ec + $insentif_ipt;
+                $row['total_insentif'] = $valInsentif + $row['total_insentif_vtkp'] + $insentif_ec + $insentif_ipt;
 
                 $salesmenData[] = $row;
             }
