@@ -306,7 +306,11 @@ class InsentifSe extends Component
                 $sfa_pc = $visit['pc'] ?? 0;
                 $sfa_ac = $visit['ac'] ?? 0;
                 $sfa_persen = 0;
-                if ($sfa_pc > 0) {
+                
+                if ($sfa_pc == 0 && $sfa_ac == 0) {
+                    // Pengecualian: Jika PC dan AC keduanya 0, anggap 100% (device error, dsb)
+                    $sfa_persen = 100;
+                } elseif ($sfa_pc > 0) {
                     $sfa_persen = round(($sfa_ac / $sfa_pc) * 100);
                 }
 
@@ -315,7 +319,14 @@ class InsentifSe extends Component
                 $row['sfa_persen'] = $sfa_persen;
 
                 // --- 6. TOTAL INSENTIF ---
-                $row['total_insentif'] = $valInsentif + $row['total_insentif_vtkp'] + $insentif_ec + $insentif_ipt;
+                $sum_insentif = $valInsentif + $row['total_insentif_vtkp'] + $insentif_ec + $insentif_ipt;
+                
+                if ($sfa_persen < 95) {
+                    // Penalty: Jika SFA di bawah 95%, hanya dapat 25% dari total insentif
+                    $row['total_insentif'] = 0.25 * $sum_insentif;
+                } else {
+                    $row['total_insentif'] = $sum_insentif;
+                }
 
                 $salesmenData[] = $row;
             }
@@ -423,7 +434,9 @@ class InsentifSe extends Component
                 $gtSfa['ac'] += $row['sfa_ac'] ?? 0;
                 $grandTotalKeseluruhan += $row['total_insentif'] ?? 0;
             }
-            if ($gtSfa['pc'] > 0) {
+            if ($gtSfa['pc'] == 0 && $gtSfa['ac'] == 0) {
+                $gtSfa['persen'] = 100;
+            } elseif ($gtSfa['pc'] > 0) {
                 $gtSfa['persen'] = round(($gtSfa['ac'] / $gtSfa['pc']) * 100);
             }
         }
