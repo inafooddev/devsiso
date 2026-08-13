@@ -22,8 +22,6 @@ class Login extends Component
         'password' => 'required',
     ];
 
-    public string $cfTurnstileResponse = '';
-
     /**
      * Dapatkan kunci throttle untuk membatasi login rate.
      */
@@ -53,26 +51,6 @@ class Login extends Component
 
         // Jika masih dalam masa lockout, hentikan proses (blade tampilkan countdown)
         if ($this->isRateLimited()) {
-            return;
-        }
-
-        // Verifikasi Cloudflare Turnstile
-        if (empty($this->cfTurnstileResponse)) {
-            $this->addError('cfTurnstileResponse', 'Silakan verifikasi captcha terlebih dahulu.');
-            return;
-        }
-
-        $turnstileResponse = \Illuminate\Support\Facades\Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
-            'secret' => config('services.turnstile.secret_key', env('TURNSTILE_SECRET_KEY')),
-            'response' => $this->cfTurnstileResponse,
-            'remoteip' => request()->ip(),
-        ]);
-
-        if (! $turnstileResponse->json('success')) {
-            $this->addError('cfTurnstileResponse', 'Verifikasi captcha gagal. Silakan coba lagi.');
-            $this->cfTurnstileResponse = '';
-            // Jangan lupa untuk reset widget di frontend jika gagal
-            $this->dispatch('reset-turnstile');
             return;
         }
 
