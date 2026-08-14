@@ -11,12 +11,14 @@
         <x-ui.tab-item :active="$activeTab === 'insentif-kacab'" wire:click.prevent="setTab('insentif-kacab')" :navigate="false">
             Insentif Kacab
         </x-ui.tab-item>
+        @role('admin')
         <x-ui.tab-item :active="$activeTab === 'jobs'" wire:click.prevent="setTab('jobs')" :navigate="false">
             Processing Jobs
         </x-ui.tab-item>
         <x-ui.tab-item :active="$activeTab === 'setting-header'" wire:click.prevent="setTab('setting-header')" :navigate="false">
             Setting Header
         </x-ui.tab-item>
+        @endrole
     </x-ui.tab-menu>
 
     <div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full">
@@ -26,10 +28,12 @@
             <livewire:others.insentif.perhitungan.insentif-spv />
         @elseif($activeTab === 'insentif-kacab')
             <livewire:others.insentif.perhitungan.insentif-kacab />
-        @elseif($activeTab === 'jobs')
-            <livewire:others.insentif.perhitungan.jobs />
-        @elseif($activeTab === 'setting-header')
-            <livewire:others.insentif.perhitungan.setting-header />
-        @endif
+        @role('admin')
+            @if($activeTab === 'jobs')
+                <livewire:others.insentif.perhitungan.jobs />
+            @elseif($activeTab === 'setting-header')
+                <livewire:others.insentif.perhitungan.setting-header />
+            @endif
+        @endrole
     </div>
 </div>
