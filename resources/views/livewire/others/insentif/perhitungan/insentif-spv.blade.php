@@ -68,7 +68,7 @@
                         
                         <!-- Header INSENTIF VALUE -->
                         <th colspan="5" class="border border-base-300 text-center font-bold bg-fuchsia-300 text-fuchsia-900">
-                            2. Insentif Value Selling Out (Reguler)
+                            1. Insentif Value Selling Out (Reguler)
                         </th>
                         
                         <th rowspan="2" class="border border-base-300 text-center font-bold bg-fuchsia-400 text-fuchsia-950 min-w-[120px]">
@@ -145,6 +145,33 @@
                         </tr>
                     @endforelse
                 </tbody>
+                @if(count($spvData) > 0)
+                <tfoot class="sticky bottom-0 z-10">
+                    <tr>
+                        <td colspan="4" class="border border-base-300 bg-base-300 text-right font-bold text-base-content px-4 py-2">
+                            GRAND TOTAL
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-right font-bold text-base-content py-2">
+                            {{ number_format($grandTotal['target_so'], 0, ',', '.') }}
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-right font-bold text-base-content py-2">
+                            {{ number_format($grandTotal['target_so'], 0, ',', '.') }}
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-right font-bold text-base-content py-2">
+                            {{ number_format($grandTotal['aktual_so'], 0, ',', '.') }}
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-right font-bold text-base-content py-2">
+                            {{ number_format($grandTotal['aktual_so'], 0, ',', '.') }}
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-center font-bold {{ $grandTotal['pencapaian_persen'] >= 100 ? 'text-success' : 'text-error' }} py-2">
+                            {{ number_format($grandTotal['pencapaian_persen'], 0) }}%
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-right font-bold text-success py-2">
+                            {{ number_format($grandTotal['ins_so'], 0, ',', '.') }}
+                        </td>
+                    </tr>
+                </tfoot>
+                @endif
             </table>
         </div>
     </div>

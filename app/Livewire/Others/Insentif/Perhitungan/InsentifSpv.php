@@ -141,11 +141,32 @@ class InsentifSpv extends Component
             $spvData = $groupedBySpv;
         }
 
+        // Calculate Grand Totals
+        $grandTotal = [
+            'target_so' => 0,
+            'aktual_so' => 0,
+            'ins_so' => 0,
+            'pencapaian_persen' => 0
+        ];
+
+        foreach ($spvData as $spv) {
+            foreach ($spv['distributors'] as $dist) {
+                $grandTotal['target_so'] += $dist['target_so'];
+                $grandTotal['aktual_so'] += $dist['aktual_so'];
+            }
+            $grandTotal['ins_so'] += $spv['ins_so'];
+        }
+
+        if ($grandTotal['target_so'] > 0) {
+            $grandTotal['pencapaian_persen'] = ($grandTotal['aktual_so'] / $grandTotal['target_so']) * 100;
+        }
+
         return view('livewire.others.insentif.perhitungan.insentif-spv', [
             'listBulan' => $listBulan,
             'listRegions' => $listRegions,
             'listAreas' => $listAreas,
-            'spvData' => $spvData
+            'spvData' => $spvData,
+            'grandTotal' => $grandTotal
         ]);
     }
 }
