@@ -86,7 +86,7 @@
                 <tbody>
                     @forelse($spvData as $spv)
                         @foreach($spv['distributors'] as $idx => $dist)
-                            <tr class="hover:bg-base-200/50">
+                            <tr class="hover:bg-base-200/50" wire:key="spv-{{ md5($spv['supervisor_code'].$dist['distributor_code']) }}">
                                 <td class="border border-base-300 bg-base-100 text-xs truncate max-w-[150px]" title="{{ $dist['area_name'] }}">
                                     {{ $dist['area_name'] }}
                                 </td>
