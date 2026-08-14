@@ -61,9 +61,10 @@
             <table class="table table-xs table-pin-rows table-pin-cols w-full">
                 <thead>
                     <tr>
-                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-200 text-base-content w-[100px] min-w-[100px] whitespace-nowrap">Kode SPV</th>
-                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-200 text-base-content min-w-[150px] max-w-[200px] truncate">Nama SPV</th>
+                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-200 text-base-content min-w-[150px] whitespace-nowrap">Area</th>
                         <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-200 text-base-content min-w-[150px] max-w-[200px] truncate">Distributor</th>
+                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-200 text-base-content min-w-[120px] max-w-[200px] truncate">Cabang</th>
+                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-200 text-base-content min-w-[150px] max-w-[200px] truncate">Nama Supervisor</th>
                         
                         <!-- Header INSENTIF VALUE -->
                         <th colspan="5" class="border border-base-300 text-center font-bold bg-fuchsia-300 text-fuchsia-900">
@@ -86,14 +87,21 @@
                     @forelse($spvData as $spv)
                         @foreach($spv['distributors'] as $idx => $dist)
                             <tr class="hover:bg-base-200/50">
-                                @if($idx === 0)
-                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-center bg-base-100 font-medium whitespace-nowrap">{{ $spv['supervisor_code'] }}</td>
-                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 bg-base-100 font-bold whitespace-nowrap">{{ $spv['supervisor_name'] }}</td>
-                                @endif
+                                <td class="border border-base-300 bg-base-100 text-xs truncate max-w-[150px]" title="{{ $dist['area_name'] }}">
+                                    {{ $dist['area_name'] }}
+                                </td>
                                 
                                 <td class="border border-base-300 bg-base-100 text-xs truncate max-w-[200px]" title="{{ $dist['distributor_name'] }}">
                                     {{ $dist['distributor_name'] }}
                                 </td>
+                                
+                                <td class="border border-base-300 bg-base-100 text-xs truncate max-w-[150px]" title="{{ $dist['cabang'] }}">
+                                    {{ $dist['cabang'] }}
+                                </td>
+
+                                @if($idx === 0)
+                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 bg-base-100 font-bold whitespace-nowrap">{{ $spv['supervisor_name'] }}</td>
+                                @endif
                                 
                                 <td class="border border-base-300 text-right font-medium">
                                     {{ number_format($dist['target_so'], 0, ',', '.') }}

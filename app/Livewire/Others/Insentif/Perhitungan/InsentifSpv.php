@@ -105,6 +105,7 @@ class InsentifSpv extends Component
                 $actual = isset($actuals[$distCode]) ? (float)$actuals[$distCode]->total_actual : 0;
 
                 $groupedBySpv[$spvCode]['distributors'][] = [
+                    'area_name' => $md->area_name,
                     'distributor_code' => $distCode,
                     'distributor_name' => $md->distributor_name,
                     'cabang' => $cabang,
