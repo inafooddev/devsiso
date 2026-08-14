@@ -45,11 +45,41 @@ class InsentifSpv extends Component
                 ->pluck('area_name');
         }
 
+        $headers = [];
         $spvData = [];
 
         if ($this->filterBulan && $this->filterRegion) {
             // Target bulan in target_per_depo is stored as date, e.g. '2026-07-01'
             $targetMonthFilter = $this->filterBulan . '-01';
+
+            // 1. Ambil Header Grup VTKP yang aktif untuk Region ini
+            $headers = \App\Models\InsentifHeaderGrup::whereHas('regions', function($q) {
+                $q->where('region_name', $this->filterRegion);
+            })->with('details')->orderBy('nama_header')->get();
+
+            // 2. Fetch VTKP Targets (SPV)
+            $vtkpTargetsRaw = DB::table('target_spv_vtkps')
+                ->where('bulan', $this->filterBulan)
+                ->get();
+            $vtkpTargets = [];
+            foreach ($vtkpTargetsRaw as $t) {
+                // Key: cabang + produk_grup
+                $key = strtoupper(trim($t->cabang) . '_' . trim($t->produk_grup));
+                $vtkpTargets[$key] = (float)$t->target;
+            }
+
+            // 3. Fetch Actuals VTKP (QTY per SE -> summed up per distributor)
+            $qtyActualsRaw = DB::table('insentif_qty_per_ses')
+                ->select('distributor_code', 'product_group_3', DB::raw('SUM(qty_ctn) as total_qty'))
+                ->where('bulan', $this->filterBulan)
+                ->groupBy('distributor_code', 'product_group_3')
+                ->get();
+            $qtyActuals = [];
+            foreach ($qtyActualsRaw as $a) {
+                // Key: dist_code + pg3
+                $key = strtoupper(trim($a->distributor_code) . '_' . trim($a->product_group_3));
+                $qtyActuals[$key] = (float)$a->total_qty;
+            }
 
             $query = InsentifMasterDistributor::where('bulan', $this->filterBulan)
                 ->where('region_name', $this->filterRegion);
@@ -131,7 +161,6 @@ class InsentifSpv extends Component
                 
                 // INS SO Calculation
                 $insSo = 0;
-                
                 if ($pencapaian >= 120) {
                     if ($targetTotal >= 2000000000) $insSo = 2500000;
                     elseif ($targetTotal >= 1000000000) $insSo = 2250000;
@@ -149,8 +178,45 @@ class InsentifSpv extends Component
                     elseif ($targetTotal >= 1000000000) $insSo = 400000;
                     else $insSo = 300000;
                 }
-                
                 $groupedBySpv[$spvCode]['ins_so'] = $insSo;
+
+                // VTKP Calculation
+                $groupedBySpv[$spvCode]['vtkp_achievements'] = [];
+                foreach ($headers as $h) {
+                    $targetVal = 0;
+                    $realVal = 0;
+                    
+                    $uniqueBranches = [];
+                    foreach ($spv['distributors'] as $dist) {
+                        $uniqueBranches[$dist['cabang']] = true;
+                        
+                        foreach ($h->details as $d) {
+                            $actualKey = strtoupper(trim($dist['distributor_code']) . '_' . trim($d->product_group_3));
+                            $realVal += ($qtyActuals[$actualKey] ?? 0);
+                        }
+                    }
+                    
+                    foreach (array_keys($uniqueBranches) as $cabang) {
+                        foreach ($h->details as $d) {
+                            $targetKey = strtoupper(trim($cabang) . '_' . trim($d->product_group_3));
+                            $targetVal += ($vtkpTargets[$targetKey] ?? 0);
+                        }
+                    }
+                    
+                    $growth = 0;
+                    if ($targetVal > 0) {
+                        $growth = (($realVal - $targetVal) / $targetVal) * 100;
+                    } elseif ($realVal > 0) {
+                        $growth = 100;
+                    }
+                    
+                    $groupedBySpv[$spvCode]['vtkp_achievements'][$h->nama_header] = [
+                        'target' => $targetVal,
+                        'real' => $realVal,
+                        'growth' => $growth,
+                        'insentif' => 0 // TBD mechanism
+                    ];
+                }
             }
 
             // Sort SPVs by Area then Supervisor Name
@@ -172,8 +238,18 @@ class InsentifSpv extends Component
             'target_so' => 0,
             'aktual_so' => 0,
             'ins_so' => 0,
-            'pencapaian_persen' => 0
+            'pencapaian_persen' => 0,
+            'vtkp' => []
         ];
+
+        foreach ($headers as $h) {
+            $grandTotal['vtkp'][$h->nama_header] = [
+                'target' => 0,
+                'real' => 0,
+                'growth' => 0,
+                'insentif' => 0
+            ];
+        }
 
         foreach ($spvData as $spv) {
             foreach ($spv['distributors'] as $dist) {
@@ -181,16 +257,34 @@ class InsentifSpv extends Component
                 $grandTotal['aktual_so'] += $dist['aktual_so'];
             }
             $grandTotal['ins_so'] += $spv['ins_so'];
+
+            foreach ($headers as $h) {
+                $ach = $spv['vtkp_achievements'][$h->nama_header] ?? ['target' => 0, 'real' => 0, 'growth' => 0, 'insentif' => 0];
+                $grandTotal['vtkp'][$h->nama_header]['target'] += $ach['target'];
+                $grandTotal['vtkp'][$h->nama_header]['real'] += $ach['real'];
+                $grandTotal['vtkp'][$h->nama_header]['insentif'] += $ach['insentif'];
+            }
         }
 
         if ($grandTotal['target_so'] > 0) {
             $grandTotal['pencapaian_persen'] = ($grandTotal['aktual_so'] / $grandTotal['target_so']) * 100;
         }
 
+        foreach ($headers as $h) {
+            $tgt = $grandTotal['vtkp'][$h->nama_header]['target'];
+            $real = $grandTotal['vtkp'][$h->nama_header]['real'];
+            if ($tgt > 0) {
+                $grandTotal['vtkp'][$h->nama_header]['growth'] = (($real - $tgt) / $tgt) * 100;
+            } elseif ($real > 0) {
+                $grandTotal['vtkp'][$h->nama_header]['growth'] = 100;
+            }
+        }
+
         return view('livewire.others.insentif.perhitungan.insentif-spv', [
             'listBulan' => $listBulan,
             'listRegions' => $listRegions,
             'listAreas' => $listAreas,
+            'headers' => $headers,
             'spvData' => $spvData,
             'grandTotal' => $grandTotal
         ]);

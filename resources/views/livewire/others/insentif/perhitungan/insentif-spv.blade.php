@@ -74,13 +74,38 @@
                         <th rowspan="2" class="border border-base-300 text-center font-bold bg-fuchsia-400 text-fuchsia-950 min-w-[120px]">
                             INS SO
                         </th>
+
+                        <!-- Header VTKP -->
+                        <th colspan="{{ count($headers) * 4 }}" class="border border-base-300 text-center font-bold bg-indigo-100 text-indigo-900">
+                            2. Insentif Growth Qty Produk Fokus (VTKP)
+                        </th>
                     </tr>
+                    
+                    @php
+                        $headerColors = [
+                            ['main' => 'bg-emerald-100 text-emerald-900', 'sub' => 'bg-emerald-50 text-emerald-800'],
+                            ['main' => 'bg-blue-100 text-blue-900', 'sub' => 'bg-blue-50 text-blue-800'],
+                            ['main' => 'bg-orange-100 text-orange-900', 'sub' => 'bg-orange-50 text-orange-800'],
+                            ['main' => 'bg-rose-100 text-rose-900', 'sub' => 'bg-rose-50 text-rose-800'],
+                            ['main' => 'bg-purple-100 text-purple-900', 'sub' => 'bg-purple-50 text-purple-800'],
+                            ['main' => 'bg-teal-100 text-teal-900', 'sub' => 'bg-teal-50 text-teal-800'],
+                        ];
+                    @endphp
+
                     <tr>
                         <th class="border border-base-300 text-center font-bold bg-fuchsia-200 text-fuchsia-900 min-w-[120px]">Target SO</th>
                         <th class="border border-base-300 text-center font-bold bg-fuchsia-200 text-fuchsia-900 min-w-[120px]">Target SO Reguler</th>
                         <th class="border border-base-300 text-center font-bold bg-fuchsia-200 text-fuchsia-900 min-w-[120px]">Aktual SO</th>
                         <th class="border border-base-300 text-center font-bold bg-fuchsia-200 text-fuchsia-900 min-w-[120px]">Pencapaian</th>
                         <th class="border border-base-300 text-center font-bold bg-fuchsia-200 text-fuchsia-900 w-[80px]">%</th>
+
+                        @foreach($headers as $index => $h)
+                            @php $subColor = $headerColors[$index % count($headerColors)]['sub']; @endphp
+                            <th class="border border-base-300 text-center font-semibold {{ $subColor }} w-24">Tgt ({{ $h->nama_header }})</th>
+                            <th class="border border-base-300 text-center font-semibold {{ $subColor }} w-24">Real</th>
+                            <th class="border border-base-300 text-center font-semibold {{ $subColor }} w-20">%Growth</th>
+                            <th class="border border-base-300 text-center font-semibold {{ $subColor }} w-24">Insentif</th>
+                        @endforeach
                     </tr>
                 </thead>
                 <tbody>
@@ -128,9 +153,37 @@
                                         {{ number_format($spv['pencapaian_persen'], 0) }}%
                                     </td>
                                     
-                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold text-success bg-base-100/50">
+                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold text-indigo-600 bg-base-100/50">
                                         {{ number_format($spv['ins_so'], 0, ',', '.') }}
                                     </td>
+
+                                    @foreach($headers as $h)
+                                        @php
+                                            $ach = $spv['vtkp_achievements'][$h->nama_header] ?? ['target' => 0, 'real' => 0, 'growth' => 0, 'insentif' => 0];
+                                            $achColor = 'text-base-content';
+                                            if ($ach['target'] == 0 && $ach['real'] == 0) {
+                                                $achText = '0%';
+                                                $achColor = 'text-base-content/40';
+                                            } else {
+                                                $achText = round($ach['growth']) . '%';
+                                                if ($ach['growth'] >= 30) $achColor = 'text-success font-bold';
+                                                elseif ($ach['growth'] >= 10) $achColor = 'text-warning font-bold';
+                                                else $achColor = 'text-error';
+                                            }
+                                        @endphp
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right bg-base-100/50">
+                                            {{ $ach['target'] > 0 ? number_format($ach['target'], 0, ',', '.') : '-' }}
+                                        </td>
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-semibold bg-base-100/50">
+                                            {{ $ach['real'] > 0 ? number_format($ach['real'], 0, ',', '.') : '-' }}
+                                        </td>
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right {{ $achColor }} bg-base-100/50">
+                                            {{ $achText }}
+                                        </td>
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold {{ $ach['insentif'] > 0 ? 'text-indigo-600' : 'text-base-content/40' }} bg-base-100/50">
+                                            {{ $ach['insentif'] > 0 ? number_format($ach['insentif'], 0, ',', '.') : '-' }}
+                                        </td>
+                                    @endforeach
                                 @endif
                             </tr>
                         @endforeach
@@ -169,6 +222,24 @@
                         <td class="border border-base-300 bg-base-300 text-right font-bold text-success py-2">
                             {{ number_format($grandTotal['ins_so'], 0, ',', '.') }}
                         </td>
+
+                        @foreach($headers as $h)
+                            @php
+                                $gtAch = $grandTotal['vtkp'][$h->nama_header] ?? ['target' => 0, 'real' => 0, 'growth' => 0, 'insentif' => 0];
+                            @endphp
+                            <td class="border border-base-300 bg-base-300 text-right font-bold text-base-content py-2">
+                                {{ $gtAch['target'] > 0 ? number_format($gtAch['target'], 0, ',', '.') : '-' }}
+                            </td>
+                            <td class="border border-base-300 bg-base-300 text-right font-bold text-base-content py-2">
+                                {{ $gtAch['real'] > 0 ? number_format($gtAch['real'], 0, ',', '.') : '-' }}
+                            </td>
+                            <td class="border border-base-300 bg-base-300 text-center font-bold {{ $gtAch['growth'] >= 0 ? 'text-success' : 'text-error' }} py-2">
+                                {{ round($gtAch['growth']) }}%
+                            </td>
+                            <td class="border border-base-300 bg-base-300 text-right font-bold text-indigo-600 py-2">
+                                {{ $gtAch['insentif'] > 0 ? number_format($gtAch['insentif'], 0, ',', '.') : '-' }}
+                            </td>
+                        @endforeach
                     </tr>
                 </tfoot>
                 @endif
