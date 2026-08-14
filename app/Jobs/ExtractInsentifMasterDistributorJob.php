@@ -64,6 +64,8 @@ class ExtractInsentifMasterDistributorJob implements ShouldQueue
                 distributor_code, 
                 distributor_name, 
                 cabang, 
+                supervisor_code,
+                supervisor_name,
                 created_at, 
                 updated_at
             )
@@ -76,11 +78,17 @@ class ExtractInsentifMasterDistributorJob implements ShouldQueue
                 senn.branch_code as distributor_code,
                 MAX(senn.branch_name) as distributor_name,
                 MAX(md.branch_name) as cabang,
+                MAX(t.team_elite_code) as supervisor_code,
+                MAX(ms.description) as supervisor_name,
                 NOW() as created_at,
                 NOW() as updated_at
             FROM so_eska_n_noneska senn 
             LEFT JOIN master_distributors md 
                 ON md.distributor_code = senn.branch_code 
+            LEFT JOIN team_elite_code_mappings t
+                ON t.siso_code = md.supervisor_code 
+            LEFT JOIN master_supervisors ms 
+                ON md.supervisor_code = ms.supervisor_code 
             WHERE senn.invoice_date BETWEEN ? AND ?
               AND senn.branch_code IS NOT NULL
             GROUP BY senn.branch_code
