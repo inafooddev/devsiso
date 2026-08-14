@@ -81,11 +81,29 @@ class InsentifSpv extends Component
                 $qtyActuals[$key] = (float)$a->total_qty;
             }
 
+            // 4. Fetch IPT data per distributor
+            $iptDataRaw = DB::table('insentif_se_ipts')
+                ->select('distributor_code', DB::raw('SUM(sku) as total_sku'), DB::raw('SUM(ec) as total_ec'))
+                ->where('bulan', $this->filterBulan)
+                ->groupBy('distributor_code')
+                ->get();
+            $iptData = [];
+            foreach ($iptDataRaw as $ipt) {
+                $iptData[strtoupper(trim($ipt->distributor_code))] = [
+                    'sku' => (float)$ipt->total_sku,
+                    'ec' => (float)$ipt->total_ec
+                ];
+            }
+
             $query = InsentifMasterDistributor::where('bulan', $this->filterBulan)
                 ->where('region_name', $this->filterRegion);
 
-            if ($this->filterArea) {
-                $query->where('area_name', $this->filterArea);
+            if (!empty($this->filterArea)) {
+                if (is_array($this->filterArea)) {
+                    $query->whereIn('area_name', $this->filterArea);
+                } else {
+                    $query->where('area_name', $this->filterArea);
+                }
             }
 
             if ($this->search) {
@@ -112,6 +130,12 @@ class InsentifSpv extends Component
                 ->get()
                 ->keyBy('distributor_code');
 
+            // Fetch RWO data
+            $rwoData = DB::table('insentif_spv_rwo')
+                ->where('bulan', $this->filterBulan)
+                ->get()
+                ->keyBy('distributor_code');
+
             $groupedBySpv = [];
 
             foreach ($masterData as $md) {
@@ -127,24 +151,55 @@ class InsentifSpv extends Component
                         'distributors' => [],
                         'total_target_reguler' => 0,
                         'total_aktual_so' => 0,
+                        'total_rwo_peserta' => 0,
+                        'total_rwo_achieve' => 0,
+                        'total_ipt_sku' => 0,
+                        'total_ipt_ec' => 0,
                         'rowspan' => 0
                     ];
                 }
 
                 $target = isset($targets[$cabang]) ? (float)$targets[$cabang]->target : 0;
                 $actual = isset($actuals[$distCode]) ? (float)$actuals[$distCode]->total_actual : 0;
+                
+                $rwoPeserta = isset($rwoData[$distCode]) ? (int)$rwoData[$distCode]->total_potensi : 0;
+                $rwoAchieve = isset($rwoData[$distCode]) ? (int)$rwoData[$distCode]->capai_target : 0;
+                
+                $iptSku = isset($iptData[strtoupper(trim($distCode))]) ? (float)$iptData[strtoupper(trim($distCode))]['sku'] : 0;
+                $iptEc = isset($iptData[strtoupper(trim($distCode))]) ? (float)$iptData[strtoupper(trim($distCode))]['ec'] : 0;
 
-                $groupedBySpv[$spvCode]['distributors'][] = [
+                $distributorData = [
                     'area_name' => $md->area_name,
                     'distributor_code' => $distCode,
                     'distributor_name' => $md->distributor_name,
                     'cabang' => $cabang,
                     'target_so' => $target,
                     'aktual_so' => $actual,
+                    'rwo_peserta' => $rwoPeserta,
+                    'rwo_achieve' => $rwoAchieve,
+                    'ipt_sku' => $iptSku,
+                    'ipt_ec' => $iptEc,
                 ];
+
+                if (!isset($groupedBySpv[$spvCode]['cabangs'][$cabang])) {
+                    $groupedBySpv[$spvCode]['cabangs'][$cabang] = [
+                        'cabang' => $cabang,
+                        'distributors' => [],
+                        'rowspan' => 0,
+                        'vtkp_achievements' => [],
+                        'total_insentif_vtkp' => 0
+                    ];
+                }
+
+                $groupedBySpv[$spvCode]['cabangs'][$cabang]['distributors'][] = $distributorData;
+                $groupedBySpv[$spvCode]['cabangs'][$cabang]['rowspan'] += 1;
 
                 $groupedBySpv[$spvCode]['total_target_reguler'] += $target;
                 $groupedBySpv[$spvCode]['total_aktual_so'] += $actual;
+                $groupedBySpv[$spvCode]['total_rwo_peserta'] += $rwoPeserta;
+                $groupedBySpv[$spvCode]['total_rwo_achieve'] += $rwoAchieve;
+                $groupedBySpv[$spvCode]['total_ipt_sku'] += $iptSku;
+                $groupedBySpv[$spvCode]['total_ipt_ec'] += $iptEc;
                 $groupedBySpv[$spvCode]['rowspan'] += 1;
             }
 
@@ -180,70 +235,121 @@ class InsentifSpv extends Component
                 }
                 $groupedBySpv[$spvCode]['ins_so'] = $insSo;
 
-                // VTKP Calculation
-                $groupedBySpv[$spvCode]['vtkp_achievements'] = [];
-                $totalInsentifVtkp = 0;
-                foreach ($headers as $h) {
-                    $targetVal = 0;
-                    $realVal = 0;
+                // VTKP Calculation per Cabang
+                $totalInsentifVtkpSPV = 0;
+                
+                foreach ($spv['cabangs'] as $cabang => $cabData) {
+                    $totalInsentifVtkpCabang = 0;
                     
-                    $uniqueBranches = [];
-                    foreach ($spv['distributors'] as $dist) {
-                        $uniqueBranches[$dist['cabang']] = true;
+                    foreach ($headers as $h) {
+                        $branchTarget = 0;
+                        $branchReal = 0;
                         
                         foreach ($h->details as $d) {
-                            $actualKey = strtoupper(trim($dist['distributor_code']) . '_' . trim($d->product_group_3));
-                            $realVal += ($qtyActuals[$actualKey] ?? 0);
-                        }
-                    }
-                    
-                    foreach (array_keys($uniqueBranches) as $cabang) {
-                        foreach ($h->details as $d) {
                             $targetKey = strtoupper(trim($cabang) . '_' . trim($d->product_group_3));
-                            $targetVal += ($vtkpTargets[$targetKey] ?? 0);
+                            $branchTarget += ($vtkpTargets[$targetKey] ?? 0);
                         }
-                    }
-                    
-                    $growth = 0;
-                    if ($targetVal > 0) {
-                        $growth = (($realVal - $targetVal) / $targetVal) * 100;
-                    } elseif ($realVal > 0) {
-                        $growth = 100;
-                    }
-                    
-                    $insentifVtkp = 0;
-                    if ($targetVal > 0) {
-                        if ($growth >= 30) {
-                            $insentifVtkp = ($realVal - $targetVal) * 600;
-                        } elseif ($growth >= 20) {
-                            $insentifVtkp = ($realVal - $targetVal) * 400;
-                        } elseif ($growth >= 10) {
-                            $insentifVtkp = ($realVal - $targetVal) * 250;
+                        
+                        foreach ($cabData['distributors'] as $dist) {
+                            foreach ($h->details as $d) {
+                                $actualKey = strtoupper(trim($dist['distributor_code']) . '_' . trim($d->product_group_3));
+                                $branchReal += ($qtyActuals[$actualKey] ?? 0);
+                            }
                         }
+                        
+                        $branchGrowth = 0;
+                        if ($branchTarget > 0) {
+                            $branchGrowth = (($branchReal - $branchTarget) / $branchTarget) * 100;
+                        } elseif ($branchReal > 0) {
+                            $branchGrowth = 100;
+                        }
+                        
+                        $branchInsentif = 0;
+                        if ($branchTarget > 0) {
+                            if ($branchGrowth >= 30) {
+                                $branchInsentif = ($branchReal - $branchTarget) * 600;
+                            } elseif ($branchGrowth >= 20) {
+                                $branchInsentif = ($branchReal - $branchTarget) * 400;
+                            } elseif ($branchGrowth >= 10) {
+                                $branchInsentif = ($branchReal - $branchTarget) * 250;
+                            }
+                        }
+                        
+                        // Syarat Insentif VTKP SPV: Pencapaian Value (Reguler) >= 80% (menggunakan pencapaian SPV)
+                        if ($pencapaian < 80) {
+                            $branchInsentif = 0;
+                        }
+                        
+                        $totalInsentifVtkpCabang += $branchInsentif;
+                        
+                        $groupedBySpv[$spvCode]['cabangs'][$cabang]['vtkp_achievements'][$h->nama_header] = [
+                            'target' => $branchTarget,
+                            'real' => $branchReal,
+                            'growth' => $branchGrowth,
+                            'insentif' => $branchInsentif
+                        ];
                     }
                     
-                    // Syarat Insentif VTKP SPV: Pencapaian Value (Reguler) >= 80%
-                    if ($pencapaian < 80) {
-                        $insentifVtkp = 0;
-                    }
-                    
-                    $totalInsentifVtkp += $insentifVtkp;
-                    
-                    $groupedBySpv[$spvCode]['vtkp_achievements'][$h->nama_header] = [
-                        'target' => $targetVal,
-                        'real' => $realVal,
-                        'growth' => $growth,
-                        'insentif' => $insentifVtkp
-                    ];
+                    $groupedBySpv[$spvCode]['cabangs'][$cabang]['total_insentif_vtkp'] = $totalInsentifVtkpCabang;
+                    $totalInsentifVtkpSPV += $totalInsentifVtkpCabang;
                 }
                 
-                $groupedBySpv[$spvCode]['total_insentif_vtkp'] = $totalInsentifVtkp;
+                $groupedBySpv[$spvCode]['total_insentif_vtkp'] = $totalInsentifVtkpSPV;
+
+                // RWO Calculation
+                $groupedBySpv[$spvCode]['rwo_achieve_pct'] = $groupedBySpv[$spvCode]['total_rwo_peserta'] > 0 
+                    ? ($groupedBySpv[$spvCode]['total_rwo_achieve'] / $groupedBySpv[$spvCode]['total_rwo_peserta']) * 100 
+                    : 0;
+                
+                $rwoInsentif = 0;
+                $rwoPct = $groupedBySpv[$spvCode]['rwo_achieve_pct'];
+                
+                if ($rwoPct >= 90) {
+                    $rwoInsentif = 900000;
+                } elseif ($rwoPct >= 80) {
+                    $rwoInsentif = 700000;
+                } elseif ($rwoPct >= 70) {
+                    $rwoInsentif = 500000;
+                }
+                
+                $groupedBySpv[$spvCode]['insentif_rwo'] = $rwoInsentif;
+
+                // IPT Calculation
+                $totalSku = $groupedBySpv[$spvCode]['total_ipt_sku'];
+                $totalEc = $groupedBySpv[$spvCode]['total_ipt_ec'];
+                $ipt = $totalEc > 0 ? ($totalSku / $totalEc) : 0;
+                $groupedBySpv[$spvCode]['ipt'] = $ipt;
+
+                $iptInsentif = 0;
+                if ($ipt >= 12) {
+                    $iptInsentif = 600000;
+                } elseif ($ipt >= 8) {
+                    $iptInsentif = 500000;
+                } elseif ($ipt >= 7) {
+                    $iptInsentif = 250000;
+                } elseif ($ipt >= 5) {
+                    $iptInsentif = 150000;
+                }
+                $groupedBySpv[$spvCode]['insentif_ipt'] = $iptInsentif;
+
+                // Grand Total Insentif (All components)
+                $totalAllInsentif = $groupedBySpv[$spvCode]['ins_so'] 
+                                    + $groupedBySpv[$spvCode]['total_insentif_vtkp'] 
+                                    + $groupedBySpv[$spvCode]['insentif_rwo'] 
+                                    + $groupedBySpv[$spvCode]['insentif_ipt'];
+                
+                $groupedBySpv[$spvCode]['total_all_insentif'] = $totalAllInsentif;
+                $groupedBySpv[$spvCode]['tabungan_30'] = $totalAllInsentif * 0.3;
+                $groupedBySpv[$spvCode]['transfer_70'] = $totalAllInsentif * 0.7;
             }
 
             // Sort SPVs by Area then Supervisor Name
             usort($groupedBySpv, function($a, $b) {
-                $areaA = $a['distributors'][0]['area_name'] ?? '';
-                $areaB = $b['distributors'][0]['area_name'] ?? '';
+                $cabangsA = reset($a['cabangs']);
+                $areaA = $cabangsA['distributors'][0]['area_name'] ?? '';
+                
+                $cabangsB = reset($b['cabangs']);
+                $areaB = $cabangsB['distributors'][0]['area_name'] ?? '';
                 
                 if ($areaA === $areaB) {
                     return strcmp($a['supervisor_name'], $b['supervisor_name']);
@@ -261,36 +367,70 @@ class InsentifSpv extends Component
             'ins_so' => 0,
             'pencapaian_persen' => 0,
             'total_insentif_vtkp' => 0,
+            'rwo_peserta' => 0,
+            'rwo_achieve' => 0,
+            'rwo_achieve_pct' => 0,
+            'insentif_rwo' => 0,
+            'ipt_sku' => 0,
+            'ipt_ec' => 0,
+            'ipt' => 0,
+            'insentif_ipt' => 0,
+            'total_all_insentif' => 0,
+            'tabungan_30' => 0,
+            'transfer_70' => 0,
             'vtkp' => []
         ];
 
         foreach ($headers as $h) {
-            $grandTotal['vtkp'][$h->nama_header] = [
-                'target' => 0,
-                'real' => 0,
-                'growth' => 0,
-                'insentif' => 0
-            ];
+            $grandTotal['vtkp'][$h->nama_header] = ['target' => 0, 'real' => 0, 'growth' => 0, 'insentif' => 0];
         }
 
         foreach ($spvData as $spv) {
-            foreach ($spv['distributors'] as $dist) {
-                $grandTotal['target_so'] += $dist['target_so'];
-                $grandTotal['aktual_so'] += $dist['aktual_so'];
-            }
+            $grandTotal['target_so'] += $spv['total_target_reguler'];
+            $grandTotal['aktual_so'] += $spv['total_aktual_so'];
             $grandTotal['ins_so'] += $spv['ins_so'];
             $grandTotal['total_insentif_vtkp'] += $spv['total_insentif_vtkp'];
+            
+            $grandTotal['rwo_peserta'] += $spv['total_rwo_peserta'];
+            $grandTotal['rwo_achieve'] += $spv['total_rwo_achieve'];
+            $grandTotal['insentif_rwo'] += $spv['insentif_rwo'];
 
-            foreach ($headers as $h) {
-                $ach = $spv['vtkp_achievements'][$h->nama_header] ?? ['target' => 0, 'real' => 0, 'growth' => 0, 'insentif' => 0];
-                $grandTotal['vtkp'][$h->nama_header]['target'] += $ach['target'];
-                $grandTotal['vtkp'][$h->nama_header]['real'] += $ach['real'];
-                $grandTotal['vtkp'][$h->nama_header]['insentif'] += $ach['insentif'];
+            $grandTotal['ipt_sku'] += $spv['total_ipt_sku'];
+            $grandTotal['ipt_ec'] += $spv['total_ipt_ec'];
+            $grandTotal['insentif_ipt'] += $spv['insentif_ipt'];
+            
+            $grandTotal['total_all_insentif'] += $spv['total_all_insentif'];
+            $grandTotal['tabungan_30'] += $spv['tabungan_30'];
+            $grandTotal['transfer_70'] += $spv['transfer_70'];
+
+            foreach ($spv['cabangs'] as $cabData) {
+                foreach ($headers as $h) {
+                    if (isset($cabData['vtkp_achievements'][$h->nama_header])) {
+                        $ach = $cabData['vtkp_achievements'][$h->nama_header];
+                        $grandTotal['vtkp'][$h->nama_header]['target'] += $ach['target'];
+                        $grandTotal['vtkp'][$h->nama_header]['real'] += $ach['real'];
+                        $grandTotal['vtkp'][$h->nama_header]['insentif'] += $ach['insentif'];
+                    }
+                }
+            }
+        }
+        
+        foreach ($headers as $h) {
+            if ($grandTotal['vtkp'][$h->nama_header]['target'] > 0) {
+                $grandTotal['vtkp'][$h->nama_header]['growth'] = ($grandTotal['vtkp'][$h->nama_header]['real'] / $grandTotal['vtkp'][$h->nama_header]['target']) * 100;
             }
         }
 
         if ($grandTotal['target_so'] > 0) {
             $grandTotal['pencapaian_persen'] = ($grandTotal['aktual_so'] / $grandTotal['target_so']) * 100;
+        }
+        
+        if ($grandTotal['rwo_peserta'] > 0) {
+            $grandTotal['rwo_achieve_pct'] = ($grandTotal['rwo_achieve'] / $grandTotal['rwo_peserta']) * 100;
+        }
+
+        if ($grandTotal['ipt_ec'] > 0) {
+            $grandTotal['ipt'] = $grandTotal['ipt_sku'] / $grandTotal['ipt_ec'];
         }
 
         foreach ($headers as $h) {

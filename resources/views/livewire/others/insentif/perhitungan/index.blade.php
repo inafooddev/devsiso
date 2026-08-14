@@ -19,16 +19,25 @@
             Setting Header
         </x-ui.tab-item>
         @endrole
+
+        <x-slot name="actions">
+            <button wire:click="$dispatch('openExportModal')" class="btn btn-sm btn-success text-white rounded-xl normal-case gap-2 shadow-sm shadow-success/20 group hover:-translate-y-0.5 transition-all">
+                <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
+                <span>Export Global</span>
+            </button>
+        </x-slot>
     </x-ui.tab-menu>
 
     <div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full">
-        @if($activeTab === 'insentif-se')
-            <livewire:others.insentif.perhitungan.insentif-se />
-        @elseif($activeTab === 'insentif-spv')
-            <livewire:others.insentif.perhitungan.insentif-spv />
-        @elseif($activeTab === 'insentif-kacab')
-            <livewire:others.insentif.perhitungan.insentif-kacab />
-        @endif
+        <div class="mt-4 flex-1 min-h-0 flex flex-col">
+            @if ($activeTab === 'insentif-se')
+                <livewire:others.insentif.perhitungan.insentif-se />
+            @elseif ($activeTab === 'insentif-spv')
+                <livewire:others.insentif.perhitungan.insentif-spv />
+            @elseif ($activeTab === 'insentif-kacab')
+                <livewire:others.insentif.perhitungan.insentif-kacab />
+            @endif
+        </div>
 
         @role('admin')
             @if($activeTab === 'jobs')
@@ -38,4 +47,6 @@
             @endif
         @endrole
     </div>
+    
+    <livewire:others.insentif.perhitungan.export-modal />
 </div>

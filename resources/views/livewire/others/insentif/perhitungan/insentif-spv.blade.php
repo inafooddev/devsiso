@@ -97,6 +97,15 @@
                         <th colspan="{{ count($headers) * 4 + 1 }}" class="border border-base-300 text-center font-bold bg-indigo-100 text-indigo-900">
                             2. Insentif Growth Qty Produk Fokus (VTKP)
                         </th>
+                        
+                        <!-- New Columns for RWO, IPT and Totals -->
+                        <th colspan="2" class="border border-base-300 text-center font-bold bg-orange-100 text-orange-900">RWO</th>
+                        <th colspan="4" class="border border-base-300 text-center font-bold bg-orange-200 text-orange-950">Total RWO</th>
+                        <th colspan="2" class="border border-base-300 text-center font-bold bg-cyan-100 text-cyan-900">IPT</th>
+                        <th colspan="4" class="border border-base-300 text-center font-bold bg-cyan-200 text-cyan-950">Total IPT</th>
+                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-emerald-200 text-emerald-900 min-w-[120px]">Total Insentif<br>All Program</th>
+                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-yellow-200 text-yellow-900 min-w-[120px]">30% Tabungan</th>
+                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-blue-200 text-blue-900 min-w-[120px]">70% Transfer</th>
                     </tr>
                     
                     @php
@@ -128,60 +137,77 @@
                         <th class="border border-base-300 text-center font-bold bg-indigo-200 text-indigo-900 min-w-[120px]">
                             Total Insentif VTKP
                         </th>
+                        
+                        <!-- Subheaders for RWO and IPT -->
+                        <th class="border border-base-300 text-center font-bold bg-orange-50 text-orange-800 min-w-[100px]">RWO (Peserta)</th>
+                        <th class="border border-base-300 text-center font-bold bg-orange-50 text-orange-800 min-w-[100px]">RWO (Achieve)</th>
+                        <th class="border border-base-300 text-center font-bold bg-orange-100 text-orange-900 min-w-[100px]">Peserta</th>
+                        <th class="border border-base-300 text-center font-bold bg-orange-100 text-orange-900 min-w-[100px]">Achieve</th>
+                        <th class="border border-base-300 text-center font-bold bg-orange-100 text-orange-900 min-w-[80px]">%</th>
+                        <th class="border border-base-300 text-center font-bold bg-orange-100 text-orange-900 min-w-[100px]">Insentif</th>
+                        
+                        <th class="border border-base-300 text-center font-bold bg-cyan-50 text-cyan-800 min-w-[100px]">SKU</th>
+                        <th class="border border-base-300 text-center font-bold bg-cyan-50 text-cyan-800 min-w-[100px]">EC</th>
+                        <th class="border border-base-300 text-center font-bold bg-cyan-100 text-cyan-900 min-w-[100px]">Total SKU</th>
+                        <th class="border border-base-300 text-center font-bold bg-cyan-100 text-cyan-900 min-w-[100px]">Total EC</th>
+                        <th class="border border-base-300 text-center font-bold bg-cyan-100 text-cyan-900 min-w-[80px]">IPT</th>
+                        <th class="border border-base-300 text-center font-bold bg-cyan-100 text-cyan-900 min-w-[100px]">Insentif</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($spvData as $spv)
-                        @foreach($spv['distributors'] as $idx => $dist)
-                            <tr class="hover:bg-base-200/50" wire:key="spv-{{ md5($spv['supervisor_code'].$dist['distributor_code']) }}">
-                                <td class="border border-base-300 bg-base-100 text-xs truncate w-[150px] min-w-[150px] max-w-[150px] sticky left-0 z-10" title="{{ $dist['area_name'] }}">
-                                    {{ $dist['area_name'] }}
-                                </td>
-                                
-                                <td class="border border-base-300 bg-base-100 text-xs truncate w-[200px] min-w-[200px] max-w-[200px] sticky left-[150px] z-10" title="{{ $dist['distributor_name'] }}">
-                                    {{ $dist['distributor_name'] }}
-                                </td>
-                                
-                                <td class="border border-base-300 bg-base-100 text-xs truncate w-[120px] min-w-[120px] max-w-[120px] sticky left-[350px] z-10" title="{{ $dist['cabang'] }}">
-                                    {{ $dist['cabang'] }}
-                                </td>
-
-                                @if($idx === 0)
-                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 bg-base-100 font-bold text-xs truncate w-[150px] min-w-[150px] max-w-[150px] sticky left-[470px] z-10 uppercase sticky-edge" title="{{ $spv['supervisor_name'] }}">
-                                        {{ $spv['supervisor_name'] }}
-                                    </td>
-                                @endif
-                                
-                                <td class="border border-base-300 text-right font-medium">
-                                    {{ number_format($dist['target_so'], 0, ',', '.') }}
-                                </td>
-
-                                @if($idx === 0)
-                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold {{ $spv['total_target_reguler'] == 0 ? 'bg-red-50 text-red-400' : 'bg-base-100/50' }}">
-                                        {{ number_format($spv['total_target_reguler'], 0, ',', '.') }}
-                                    </td>
-                                @endif
-
-                                <td class="border border-base-300 text-right font-medium">
-                                    {{ number_format($dist['aktual_so'], 0, ',', '.') }}
-                                </td>
-
-                                @if($idx === 0)
-                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold bg-base-100/50">
-                                        {{ number_format($spv['total_aktual_so'], 0, ',', '.') }}
+                    @forelse($spvData as $spvCode => $spv)
+                        @foreach($spv['cabangs'] as $cabang => $cabData)
+                            @foreach($cabData['distributors'] as $idx => $dist)
+                                <tr class="hover:bg-base-200/50" wire:key="spv-{{ md5($spv['supervisor_name'].$dist['distributor_code']) }}">
+                                    <td class="border border-base-300 bg-base-100 text-xs truncate w-[150px] min-w-[150px] max-w-[150px] sticky left-0 z-10" title="{{ $dist['area_name'] }}">
+                                        {{ $dist['area_name'] }}
                                     </td>
                                     
-                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-center font-bold {{ $spv['pencapaian_persen'] >= 100 ? 'text-success' : 'text-error' }} bg-base-100/50">
-                                        {{ number_format($spv['pencapaian_persen'], 0) }}%
+                                    <td class="border border-base-300 bg-base-100 text-xs truncate w-[200px] min-w-[200px] max-w-[200px] sticky left-[150px] z-10" title="{{ $dist['distributor_name'] }}">
+                                        {{ $dist['distributor_name'] }}
                                     </td>
                                     
-                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold text-indigo-600 bg-base-100/50">
-                                        {{ number_format($spv['ins_so'], 0, ',', '.') }}
+                                    <td class="border border-base-300 bg-base-100 text-xs truncate w-[120px] min-w-[120px] max-w-[120px] sticky left-[350px] z-10" title="{{ $dist['cabang'] }}">
+                                        {{ $dist['cabang'] }}
                                     </td>
+
+                                    @if($idx === 0 && $cabang === array_key_first($spv['cabangs']))
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 bg-base-100 font-bold text-xs truncate w-[150px] min-w-[150px] max-w-[150px] sticky left-[470px] z-10 uppercase sticky-edge" title="{{ $spv['supervisor_name'] }}">
+                                            {{ $spv['supervisor_name'] }}
+                                        </td>
+                                    @endif
+                                    
+                                    <td class="border border-base-300 text-right font-medium">
+                                        {{ number_format($dist['target_so'], 0, ',', '.') }}
+                                    </td>
+
+                                    @if($idx === 0 && $cabang === array_key_first($spv['cabangs']))
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold {{ $spv['total_target_reguler'] == 0 ? 'bg-red-50 text-red-400' : 'bg-base-100/50' }}">
+                                            {{ number_format($spv['total_target_reguler'], 0, ',', '.') }}
+                                        </td>
+                                    @endif
+
+                                    <td class="border border-base-300 text-right font-medium">
+                                        {{ number_format($dist['aktual_so'], 0, ',', '.') }}
+                                    </td>
+
+                                    @if($idx === 0 && $cabang === array_key_first($spv['cabangs']))
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold bg-base-100/50">
+                                            {{ number_format($spv['total_aktual_so'], 0, ',', '.') }}
+                                        </td>
+                                        
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-center font-bold {{ $spv['pencapaian_persen'] >= 100 ? 'text-success' : 'text-error' }} bg-base-100/50">
+                                            {{ number_format($spv['pencapaian_persen'], 0) }}%
+                                        </td>
+                                        
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold text-indigo-600 bg-base-100/50">
+                                            {{ number_format($spv['ins_so'], 0, ',', '.') }}
+                                        </td>
+                                    @endif
 
                                     @foreach($headers as $h)
                                         @php
-                                            $ach = $spv['vtkp_achievements'][$h->nama_header] ?? ['target' => 0, 'real' => 0, 'growth' => 0, 'insentif' => 0];
+                                            $ach = $cabData['vtkp_achievements'][$h->nama_header] ?? ['target' => 0, 'real' => 0, 'growth' => 0, 'insentif' => 0];
                                             $achColor = 'text-base-content';
                                             if ($ach['target'] == 0 && $ach['real'] == 0) {
                                                 $achText = '0%';
@@ -193,25 +219,91 @@
                                                 else $achColor = 'text-error';
                                             }
                                         @endphp
-                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right {{ $ach['target'] == 0 ? 'bg-red-50 text-red-400' : 'bg-base-100/50' }}">
-                                            {{ $ach['target'] > 0 ? number_format($ach['target'], 0, ',', '.') : '-' }}
-                                        </td>
-                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-semibold bg-base-100/50">
-                                            {{ $ach['real'] > 0 ? number_format($ach['real'], 0, ',', '.') : '-' }}
-                                        </td>
-                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right {{ $achColor }} bg-base-100/50">
-                                            {{ $achText }}
-                                        </td>
-                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold {{ $ach['insentif'] > 0 ? 'text-indigo-600' : 'text-base-content/40' }} bg-base-100/50">
-                                            {{ $ach['insentif'] > 0 ? number_format($ach['insentif'], 0, ',', '.') : '-' }}
-                                        </td>
+                                        @if($idx === 0)
+                                            <td rowspan="{{ $cabData['rowspan'] }}" class="border border-base-300 text-right {{ $ach['target'] == 0 ? 'bg-red-50 text-red-400' : 'bg-base-100/50' }}">
+                                                {{ $ach['target'] > 0 ? number_format($ach['target'], 0, ',', '.') : '-' }}
+                                            </td>
+                                            <td rowspan="{{ $cabData['rowspan'] }}" class="border border-base-300 text-right font-semibold bg-base-100/50">
+                                                {{ $ach['real'] > 0 ? number_format($ach['real'], 0, ',', '.') : '-' }}
+                                            </td>
+                                            <td rowspan="{{ $cabData['rowspan'] }}" class="border border-base-300 text-right {{ $achColor }} bg-base-100/50">
+                                                {{ $achText }}
+                                            </td>
+                                            <td rowspan="{{ $cabData['rowspan'] }}" class="border border-base-300 text-right font-bold {{ $ach['insentif'] > 0 ? 'text-indigo-600' : 'text-base-content/40' }} bg-base-100/50">
+                                                {{ $ach['insentif'] > 0 ? number_format($ach['insentif'], 0, ',', '.') : '-' }}
+                                            </td>
+                                        @endif
                                     @endforeach
                                     
-                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold {{ $spv['total_insentif_vtkp'] > 0 ? 'text-success bg-success/10' : 'text-base-content/40 bg-base-100/50' }}">
-                                        {{ $spv['total_insentif_vtkp'] > 0 ? number_format($spv['total_insentif_vtkp'], 0, ',', '.') : '-' }}
+                                    @if($idx === 0 && $cabang === array_key_first($spv['cabangs']))
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold {{ $spv['total_insentif_vtkp'] > 0 ? 'text-success bg-success/10' : 'text-base-content/40 bg-base-100/50' }}">
+                                            {{ $spv['total_insentif_vtkp'] > 0 ? number_format($spv['total_insentif_vtkp'], 0, ',', '.') : '-' }}
+                                        </td>
+                                    @endif
+                                    
+                                    <td class="border border-base-300 text-center font-medium">
+                                        {{ $dist['rwo_peserta'] > 0 ? number_format($dist['rwo_peserta'], 0, ',', '.') : '-' }}
                                     </td>
-                                @endif
-                            </tr>
+                                    
+                                    <td class="border border-base-300 text-center font-medium">
+                                        {{ $dist['rwo_achieve'] > 0 ? number_format($dist['rwo_achieve'], 0, ',', '.') : '-' }}
+                                    </td>
+                                    
+                                    @if($idx === 0 && $cabang === array_key_first($spv['cabangs']))
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-center font-bold bg-base-100/50">
+                                            {{ $spv['total_rwo_peserta'] > 0 ? number_format($spv['total_rwo_peserta'], 0, ',', '.') : '-' }}
+                                        </td>
+                                        
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-center font-bold bg-base-100/50">
+                                            {{ $spv['total_rwo_achieve'] > 0 ? number_format($spv['total_rwo_achieve'], 0, ',', '.') : '-' }}
+                                        </td>
+                                        
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-center font-bold {{ $spv['rwo_achieve_pct'] >= 80 ? 'text-success' : 'text-error' }} bg-base-100/50">
+                                            {{ number_format($spv['rwo_achieve_pct'], 1) }}%
+                                        </td>
+                                        
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold {{ $spv['insentif_rwo'] > 0 ? 'text-orange-600 bg-orange-50' : 'text-base-content/40 bg-base-100/50' }}">
+                                            {{ $spv['insentif_rwo'] > 0 ? number_format($spv['insentif_rwo'], 0, ',', '.') : '-' }}
+                                        </td>
+                                    @endif
+
+                                    <td class="border border-base-300 text-center font-medium">
+                                        {{ $dist['ipt_sku'] > 0 ? number_format($dist['ipt_sku'], 0, ',', '.') : '-' }}
+                                    </td>
+                                    
+                                    <td class="border border-base-300 text-center font-medium">
+                                        {{ $dist['ipt_ec'] > 0 ? number_format($dist['ipt_ec'], 0, ',', '.') : '-' }}
+                                    </td>
+
+                                    @if($idx === 0 && $cabang === array_key_first($spv['cabangs']))
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-center font-bold bg-base-100/50">
+                                            {{ $spv['total_ipt_sku'] > 0 ? number_format($spv['total_ipt_sku'], 0, ',', '.') : '-' }}
+                                        </td>
+                                        
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-center font-bold bg-base-100/50">
+                                            {{ $spv['total_ipt_ec'] > 0 ? number_format($spv['total_ipt_ec'], 0, ',', '.') : '-' }}
+                                        </td>
+                                        
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-center font-bold {{ $spv['ipt'] >= 5 ? 'text-success' : 'text-error' }} bg-base-100/50">
+                                            {{ number_format($spv['ipt'], 1) }}
+                                        </td>
+                                        
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold {{ $spv['insentif_ipt'] > 0 ? 'text-cyan-600 bg-cyan-50' : 'text-base-content/40 bg-base-100/50' }}">
+                                            {{ $spv['insentif_ipt'] > 0 ? number_format($spv['insentif_ipt'], 0, ',', '.') : '-' }}
+                                        </td>
+                                        
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold {{ $spv['total_all_insentif'] > 0 ? 'text-emerald-700 bg-emerald-50' : 'text-base-content/40 bg-base-100/50' }}">
+                                            {{ $spv['total_all_insentif'] > 0 ? number_format($spv['total_all_insentif'], 0, ',', '.') : '-' }}
+                                        </td>
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold {{ $spv['tabungan_30'] > 0 ? 'text-yellow-700 bg-yellow-50' : 'text-base-content/40 bg-base-100/50' }}">
+                                            {{ $spv['tabungan_30'] > 0 ? number_format($spv['tabungan_30'], 0, ',', '.') : '-' }}
+                                        </td>
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold {{ $spv['transfer_70'] > 0 ? 'text-blue-700 bg-blue-50' : 'text-base-content/40 bg-base-100/50' }}">
+                                            {{ $spv['transfer_70'] > 0 ? number_format($spv['transfer_70'], 0, ',', '.') : '-' }}
+                                        </td>
+                                    @endif
+                                </tr>
+                            @endforeach
                         @endforeach
                     @empty
                         <tr>
@@ -268,6 +360,54 @@
                         @endforeach
                         <td class="border border-base-300 bg-base-300 text-right font-bold text-success py-2">
                             {{ $grandTotal['total_insentif_vtkp'] > 0 ? number_format($grandTotal['total_insentif_vtkp'], 0, ',', '.') : '-' }}
+                        </td>
+                        
+                        <td class="border border-base-300 bg-base-300 text-center font-bold text-base-content py-2">
+                            {{ $grandTotal['rwo_peserta'] > 0 ? number_format($grandTotal['rwo_peserta'], 0, ',', '.') : '-' }}
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-center font-bold text-base-content py-2">
+                            {{ $grandTotal['rwo_achieve'] > 0 ? number_format($grandTotal['rwo_achieve'], 0, ',', '.') : '-' }}
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-center font-bold text-base-content py-2">
+                            {{ $grandTotal['rwo_peserta'] > 0 ? number_format($grandTotal['rwo_peserta'], 0, ',', '.') : '-' }}
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-center font-bold text-base-content py-2">
+                            {{ $grandTotal['rwo_achieve'] > 0 ? number_format($grandTotal['rwo_achieve'], 0, ',', '.') : '-' }}
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-center font-bold {{ $grandTotal['rwo_achieve_pct'] >= 80 ? 'text-success' : 'text-error' }} py-2">
+                            {{ number_format($grandTotal['rwo_achieve_pct'], 1) }}%
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-right font-bold text-orange-600 py-2">
+                            {{ $grandTotal['insentif_rwo'] > 0 ? number_format($grandTotal['insentif_rwo'], 0, ',', '.') : '-' }}
+                        </td>
+                        
+                        <td class="border border-base-300 bg-base-300 text-center font-bold text-base-content py-2">
+                            {{ $grandTotal['ipt_sku'] > 0 ? number_format($grandTotal['ipt_sku'], 0, ',', '.') : '-' }}
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-center font-bold text-base-content py-2">
+                            {{ $grandTotal['ipt_ec'] > 0 ? number_format($grandTotal['ipt_ec'], 0, ',', '.') : '-' }}
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-center font-bold text-base-content py-2">
+                            {{ $grandTotal['ipt_sku'] > 0 ? number_format($grandTotal['ipt_sku'], 0, ',', '.') : '-' }}
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-center font-bold text-base-content py-2">
+                            {{ $grandTotal['ipt_ec'] > 0 ? number_format($grandTotal['ipt_ec'], 0, ',', '.') : '-' }}
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-center font-bold {{ $grandTotal['ipt'] >= 5 ? 'text-success' : 'text-error' }} py-2">
+                            {{ number_format($grandTotal['ipt'], 1) }}
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-right font-bold text-cyan-600 py-2">
+                            {{ $grandTotal['insentif_ipt'] > 0 ? number_format($grandTotal['insentif_ipt'], 0, ',', '.') : '-' }}
+                        </td>
+                        
+                        <td class="border border-base-300 bg-base-300 text-right font-bold text-emerald-700 py-2">
+                            {{ $grandTotal['total_all_insentif'] > 0 ? number_format($grandTotal['total_all_insentif'], 0, ',', '.') : '-' }}
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-right font-bold text-yellow-700 py-2">
+                            {{ $grandTotal['tabungan_30'] > 0 ? number_format($grandTotal['tabungan_30'], 0, ',', '.') : '-' }}
+                        </td>
+                        <td class="border border-base-300 bg-base-300 text-right font-bold text-blue-700 py-2">
+                            {{ $grandTotal['transfer_70'] > 0 ? number_format($grandTotal['transfer_70'], 0, ',', '.') : '-' }}
                         </td>
                     </tr>
                 </tfoot>

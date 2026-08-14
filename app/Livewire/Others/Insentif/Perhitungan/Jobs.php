@@ -11,6 +11,7 @@ use App\Jobs\ExtractInsentifSeIptJob;
 use App\Jobs\ExtractInsentifProdukGrupJob;
 use App\Jobs\ExtractInsentifSeRoJob;
 use App\Jobs\ExtractInsentifSeVisitJob;
+use App\Jobs\ExtractInsentifSpvRwoJob;
 use App\Models\ImportBatch;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Bus;
@@ -81,6 +82,7 @@ class Jobs extends Component
             new ExtractInsentifProdukGrupJob($batch->id),
             new ExtractInsentifSeRoJob($bulanFormat, $batch->id),
             new ExtractInsentifSeVisitJob($bulanFormat, $batch->id),
+            new ExtractInsentifSpvRwoJob($bulanFormat, $batch->id),
         ])->dispatch();
         
         // Karena chain dijalankan, kita perlu me-refresh instance batch

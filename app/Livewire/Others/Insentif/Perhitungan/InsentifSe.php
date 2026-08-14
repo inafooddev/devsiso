@@ -67,8 +67,12 @@ class InsentifSe extends Component
                 ->where('imd.region_name', $this->filterRegion)
                 ->where('ims.jenis_se', 'se');
 
-            if ($this->filterArea) {
-                $salesmenQuery->where('imd.area_name', $this->filterArea);
+            if (!empty($this->filterArea)) {
+                if (is_array($this->filterArea)) {
+                    $salesmenQuery->whereIn('imd.area_name', $this->filterArea);
+                } else {
+                    $salesmenQuery->where('imd.area_name', $this->filterArea);
+                }
             }
 
             if (trim($this->search)) {

@@ -12,39 +12,43 @@ class TargetKacabExport implements FromQuery, WithHeadings, WithMapping
 {
     use Exportable;
 
-    protected $monthFilter;
+    protected $yearFilter;
 
-    public function __construct($monthFilter = null)
+    public function __construct($yearFilter = null)
     {
-        $this->monthFilter = $monthFilter;
+        $this->yearFilter = $yearFilter;
     }
 
     public function query()
     {
         $query = TargetKacab::query();
 
-        if (!empty($this->monthFilter)) {
-            $query->where('bulan', $this->monthFilter);
+        if (!empty($this->yearFilter)) {
+            $query->where('tahun', $this->yearFilter);
         }
 
-        return $query->orderBy('bulan', 'desc')->orderBy('cabang');
+        return $query->orderBy('tahun', 'desc')->orderBy('cabang');
     }
 
     public function headings(): array
     {
         return [
-            'Bulan',
+            'Tahun',
             'Cabang',
+            'Nama Kacab',
             'Target',
+            'Insentif',
         ];
     }
 
     public function map($row): array
     {
         return [
-            $row->bulan,
+            $row->tahun,
             $row->cabang,
+            $row->nama_kacab,
             $row->target,
+            $row->insentif,
         ];
     }
 }

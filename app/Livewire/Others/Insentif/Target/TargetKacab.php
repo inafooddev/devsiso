@@ -16,7 +16,7 @@ class TargetKacab extends Component
     use WithPagination, WithFileUploads;
 
     public $search = '';
-    public $monthFilter = '';
+    public $yearFilter = '';
 
     // Modal Import
     public $isImportModalOpen = false;
@@ -25,13 +25,15 @@ class TargetKacab extends Component
     // Modal Edit
     public $isEditModalOpen = false;
     public $editId;
-    public $editBulan = '';
+    public $editTahun = '';
     public $editCabang = '';
+    public $editNamaKacab = '';
     public $editTarget = 0;
+    public $editInsentif = 0;
 
     public function mount()
     {
-        $this->monthFilter = date('Y-m');
+        $this->yearFilter = date('Y');
     }
 
     public function updatingSearch()
@@ -39,7 +41,7 @@ class TargetKacab extends Component
         $this->resetPage();
     }
 
-    public function updatingMonthFilter()
+    public function updatingYearFilter()
     {
         $this->resetPage();
     }
@@ -108,8 +110,8 @@ class TargetKacab extends Component
     public function export()
     {
         $timestamp = date('Ymd_His');
-        $monthStr = $this->monthFilter ?: 'ALL';
-        return Excel::download(new TargetKacabExport($this->monthFilter), "Target_Kacab_{$monthStr}_{$timestamp}.xlsx");
+        $yearStr = $this->yearFilter ?: 'ALL';
+        return Excel::download(new TargetKacabExport($this->yearFilter), "Target_Kacab_{$yearStr}_{$timestamp}.xlsx");
     }
 
     // -- EDIT --
@@ -118,9 +120,11 @@ class TargetKacab extends Component
         $record = TargetKacabModel::find($id);
         if ($record) {
             $this->editId = $record->id;
-            $this->editBulan = $record->bulan;
+            $this->editTahun = $record->tahun;
             $this->editCabang = $record->cabang;
+            $this->editNamaKacab = $record->nama_kacab;
             $this->editTarget = $record->target;
+            $this->editInsentif = $record->insentif;
             
             $this->isEditModalOpen = true;
         }
@@ -129,20 +133,23 @@ class TargetKacab extends Component
     public function closeEditModal()
     {
         $this->isEditModalOpen = false;
-        $this->reset(['editId', 'editBulan', 'editCabang', 'editTarget']);
+        $this->reset(['editId', 'editTahun', 'editCabang', 'editNamaKacab', 'editTarget', 'editInsentif']);
     }
 
     public function saveEdit()
     {
         $this->validate([
             'editTarget' => 'required|numeric|min:0',
+            'editInsentif' => 'required|numeric|min:0',
         ]);
 
         if ($this->editId) {
             $record = TargetKacabModel::find($this->editId);
             if ($record) {
                 $record->update([
+                    'nama_kacab' => $this->editNamaKacab,
                     'target' => $this->editTarget,
+                    'insentif' => $this->editInsentif,
                 ]);
                 
                 session()->flash('message', 'Data berhasil diperbarui.');
@@ -166,11 +173,11 @@ class TargetKacab extends Component
             $query->where('cabang', 'ilike', '%' . $this->search . '%');
         }
 
-        if (!empty($this->monthFilter)) {
-            $query->where('bulan', $this->monthFilter);
+        if (!empty($this->yearFilter)) {
+            $query->where('tahun', $this->yearFilter);
         }
 
-        $data = $query->orderBy('bulan', 'desc')
+        $data = $query->orderBy('tahun', 'desc')
                       ->orderBy('cabang')
                       ->paginate(100);
 

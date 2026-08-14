@@ -21,40 +21,50 @@ class TargetKacabImport implements ToModel, WithHeadingRow, WithCalculatedFormul
             return null;
         }
 
-        $rawBulan = $row['bulan'] ?? null;
+        $rawTahun = $row['tahun'] ?? null;
         $cabang = $row['cabang'] ?? null;
+        $namaKacab = $row['nama_kacab'] ?? null;
         $target = $row['target'] ?? 0;
+        $insentif = $row['insentif'] ?? 0;
 
-        if (empty($rawBulan) || empty($cabang)) {
-            $this->errors[] = "Bulan dan Cabang harus diisi. Baris diabaikan: " . json_encode($row);
+        if (empty($rawTahun) || empty($cabang)) {
+            $this->errors[] = "Tahun dan Cabang harus diisi. Baris diabaikan: " . json_encode($row);
             return null;
         }
 
-        // Parsing tanggal fleksibel
-        $parsedBulan = null;
+        // Parsing tahun fleksibel
+        $parsedTahun = null;
         try {
-            if (is_numeric($rawBulan)) {
-                $dateObj = Date::excelToDateTimeObject($rawBulan);
-                $parsedBulan = $dateObj->format('Y-m');
+            if (is_numeric($rawTahun)) {
+                // If it's just a 4 digit year
+                if (strlen(trim($rawTahun)) == 4) {
+                    $parsedTahun = trim($rawTahun);
+                } else {
+                    $dateObj = Date::excelToDateTimeObject($rawTahun);
+                    $parsedTahun = $dateObj->format('Y');
+                }
             } else {
-                $parsedBulan = Carbon::parse($rawBulan)->format('Y-m');
+                $parsedTahun = Carbon::parse($rawTahun)->format('Y');
             }
         } catch (\Exception $e) {
-            $this->errors[] = "Format bulan tidak valid ('$rawBulan') untuk Cabang '$cabang'. Baris diabaikan.";
+            $this->errors[] = "Format tahun tidak valid ('$rawTahun') untuk Cabang '$cabang'. Baris diabaikan.";
             return null;
         }
 
         // Bersihkan data
-        $targetVal = preg_replace('/[^0-9\.\-]/', '', $target);
+        $targetVal = preg_replace('/[^0-9\.\-]/', '', (string)$target);
+        $insentifVal = preg_replace('/[^0-9\.\-]/', '', (string)$insentif);
 
-        // Upsert berdasar Bulan + Cabang
+        // Upsert berdasar Tahun + Cabang
         TargetKacab::updateOrCreate(
             [
-                'bulan' => $parsedBulan,
+                'tahun' => $parsedTahun,
                 'cabang' => strtoupper(trim($cabang)),
             ],
             [
+                'nama_kacab' => $namaKacab,
                 'target' => (float) $targetVal,
+                'insentif' => (float) $insentifVal,
             ]
         );
 

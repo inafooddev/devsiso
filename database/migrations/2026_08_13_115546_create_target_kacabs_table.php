@@ -13,13 +13,15 @@ return new class extends Migration
     {
         Schema::create('target_kacabs', function (Blueprint $table) {
             $table->id();
-            $table->string('bulan', 7); // Format: YYYY-MM
+            $table->string('tahun', 4); // Format: YYYY
             $table->string('cabang');
+            $table->string('nama_kacab')->nullable();
             $table->decimal('target', 20, 2)->default(0);
+            $table->decimal('insentif', 20, 2)->default(0);
             $table->timestamps();
 
             // Constraint unik untuk upsert
-            $table->unique(['bulan', 'cabang'], 'tgt_kacab_unique');
+            $table->unique(['tahun', 'cabang'], 'tgt_kacab_unique');
         });
     }
 

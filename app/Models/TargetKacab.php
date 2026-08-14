@@ -10,8 +10,10 @@ class TargetKacab extends Model
     use HasFactory;
 
     protected $fillable = [
-        'bulan',
+        'tahun',
         'cabang',
+        'nama_kacab',
         'target',
+        'insentif',
     ];
 }

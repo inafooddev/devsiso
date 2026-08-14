@@ -57,8 +57,26 @@
             </div>
         @endif
 
+        <style>
+            .table-border-fix {
+                border-collapse: separate !important;
+                border-spacing: 0 !important;
+                border-top: 1px solid var(--fallback-b3,oklch(var(--b3)/1)) !important;
+                border-left: 1px solid var(--fallback-b3,oklch(var(--b3)/1)) !important;
+            }
+            .table-border-fix th, .table-border-fix td {
+                border-top: none !important;
+                border-left: none !important;
+                border-bottom: 1px solid var(--fallback-b3,oklch(var(--b3)/1)) !important;
+                border-right: 1px solid var(--fallback-b3,oklch(var(--b3)/1)) !important;
+                background-clip: padding-box !important;
+            }
+            .table-border-fix th.sticky-edge, .table-border-fix td.sticky-edge {
+                border-right: 2px solid var(--fallback-b3,oklch(var(--b3)/1)) !important;
+            }
+        </style>
         <div class="flex-1 overflow-auto custom-scrollbar js-table-scroll">
-            <table class="table table-xs w-full border-collapse">
+            <table class="table table-xs w-full table-border-fix">
                 <thead class="sticky top-0 z-20" style="background-color: white;">
                     @php
                         $headerColors = [
@@ -71,92 +89,102 @@
                         ];
                     @endphp
 
-                    <!-- Header Baris 1: Grup Header Produk -->
+                    <!-- Header Baris 1: Super Header -->
                     <tr class="text-xs">
-                        <th rowspan="2" class="border border-base-300 text-center font-bold sticky left-0 z-30 bg-base-200 text-base-content w-[40px] min-w-[40px] max-w-[40px]">No</th>
-                        <th rowspan="2" class="border border-base-300 text-center font-bold sticky left-[40px] z-30 bg-base-200 text-base-content w-[150px] min-w-[150px] max-w-[150px] truncate">Area</th>
-                        <th rowspan="2" class="border border-base-300 text-center font-bold sticky left-[190px] z-30 bg-base-200 text-base-content w-[100px] min-w-[100px] max-w-[100px] truncate">KD DIST</th>
-                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-200 text-base-content min-w-[150px] max-w-[200px] truncate">Distributor</th>
-                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-200 text-base-content w-[100px] min-w-[100px] whitespace-nowrap">Kode SE</th>
-                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-200 text-base-content min-w-[150px] max-w-[200px] truncate">Nama SE</th>
+                        <th rowspan="3" class="border border-slate-300 text-center font-bold sticky left-0 z-30 bg-base-200 text-base-content w-[40px] min-w-[40px] max-w-[40px]">No</th>
+                        <th rowspan="3" class="border border-slate-300 text-center font-bold bg-base-200 text-base-content w-[150px] min-w-[150px] max-w-[150px] truncate">Area</th>
+                        <th rowspan="3" class="border border-slate-300 text-center font-bold bg-base-200 text-base-content w-[100px] min-w-[100px] max-w-[100px] truncate">KD DIST</th>
+                        <th rowspan="3" class="border border-slate-300 text-center font-bold bg-base-200 text-base-content min-w-[150px] max-w-[200px] truncate">Distributor</th>
+                        <th rowspan="3" class="border border-slate-300 text-center font-bold bg-base-200 text-base-content w-[100px] min-w-[100px] whitespace-nowrap">Kode SE</th>
+                        <th rowspan="3" class="border border-slate-300 text-center font-bold sticky left-[40px] z-30 bg-base-200 text-base-content w-[200px] min-w-[200px] max-w-[200px] truncate sticky-edge">Nama SE</th>
                         
-                        <!-- Header INSENTIF VALUE -->
-                        <th colspan="4" class="border border-base-300 text-center font-bold bg-indigo-100 text-indigo-900">
-                            INSENTIF VALUE
+                        <!-- Header 1. INSENTIF VALUE -->
+                        <th colspan="4" rowspan="2" class="border border-indigo-300 text-center font-bold bg-indigo-100 text-indigo-900">
+                            1. Insentif Value Reguler
                         </th>
 
-                        @foreach($headers as $index => $h)
-                            @php $color = $headerColors[$index % count($headerColors)]['main']; @endphp
-                            <th colspan="4" class="border border-base-300 text-center font-bold {{ $color }}">
-                                {{ $h->nama_header }}
-                            </th>
-                        @endforeach
+                        <!-- Header 2. VTKP -->
+                        <th colspan="{{ count($headers) * 4 }}" class="border border-purple-300 text-center font-bold bg-purple-100 text-purple-900">
+                            2. Insentif Growth Qty Produk Fokus (VTKP)
+                        </th>
 
                         <!-- Header Total Insentif VTKP -->
-                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-200 text-base-content min-w-[120px]">
-                            Total Insentif<br>VTKP
+                        <th rowspan="3" class="border border-purple-400 text-center font-bold bg-purple-200 text-purple-950 min-w-[120px]">
+                            TOTAL INSENTIF VTKP
                         </th>
 
-                        <!-- Header INSENTIF EC -->
-                        <th colspan="7" class="border border-base-300 text-center font-bold bg-yellow-100 text-yellow-900">
+                        <!-- Header 3. EC -->
+                        <th colspan="7" rowspan="2" class="border border-yellow-300 text-center font-bold bg-yellow-100 text-yellow-900">
                             3. Insentif Effective Call (EC)
                         </th>
 
-                        <!-- Header INSENTIF IPT -->
-                        <th colspan="4" class="border border-base-300 text-center font-bold bg-sky-100 text-sky-900">
+                        <!-- Header 4. IPT -->
+                        <th colspan="4" rowspan="2" class="border border-sky-300 text-center font-bold bg-sky-100 text-sky-900">
                             4. Insentif IPT
                         </th>
 
-                        <!-- Header Penggunaan SFA -->
-                        <th colspan="3" class="border border-base-300 text-center font-bold bg-cyan-100 text-cyan-900">
-                            Penggunaan SFA
+                        <!-- Header 5. SFA -->
+                        <th colspan="3" rowspan="2" class="border border-cyan-300 text-center font-bold bg-cyan-100 text-cyan-900">
+                            5. Penggunaan SFA
                         </th>
 
                         <!-- Header FINAL -->
-                        <th colspan="3" class="border border-base-300 text-center font-bold bg-base-300/50">
+                        <th colspan="3" rowspan="2" class="border border-slate-400 text-center font-bold bg-base-300 text-base-content">
                             FINAL
                         </th>
                     </tr>
-                    <!-- Header Baris 2: Target | Real | Growth -->
+
+                    <!-- Header Baris 2: Nama Produk VTKP -->
+                    <tr class="text-xs">
+                        @foreach($headers as $index => $h)
+                            @php $color = $headerColors[$index % count($headerColors)]['main']; @endphp
+                            <th colspan="4" class="border border-purple-300 text-center font-bold {{ $color }}">
+                                {{ $h->nama_header }}
+                            </th>
+                        @endforeach
+                    </tr>
+
+                    <!-- Header Baris 3: Sub-headers -->
                     <tr class="text-xs">
                         <!-- Sub-header INSENTIF VALUE -->
-                        <th class="border border-base-300 text-center font-semibold bg-indigo-50 text-indigo-800 w-24">Tgt</th>
-                        <th class="border border-base-300 text-center font-semibold bg-indigo-50 text-indigo-800 w-24">Real</th>
-                        <th class="border border-base-300 text-center font-semibold bg-indigo-50 text-indigo-800 w-20">%Ach</th>
-                        <th class="border border-base-300 text-center font-semibold bg-indigo-50 text-indigo-800 w-24">Insentif</th>
+                        <th class="border border-indigo-200 text-center font-semibold bg-indigo-50 text-indigo-800 whitespace-nowrap px-3">Tgt</th>
+                        <th class="border border-indigo-200 text-center font-semibold bg-indigo-50 text-indigo-800 whitespace-nowrap px-3">Real</th>
+                        <th class="border border-indigo-200 text-center font-semibold bg-indigo-50 text-indigo-800 whitespace-nowrap px-3">%Ach</th>
+                        <th class="border border-indigo-200 text-center font-semibold bg-indigo-50 text-indigo-800 whitespace-nowrap px-3">Insentif</th>
 
+                        <!-- Sub-header VTKP -->
                         @foreach($headers as $index => $h)
                             @php $subColor = $headerColors[$index % count($headerColors)]['sub']; @endphp
-                            <th class="border border-base-300 text-center font-semibold {{ $subColor }} w-16">Tgt</th>
-                            <th class="border border-base-300 text-center font-semibold {{ $subColor }} w-16">Real</th>
-                            <th class="border border-base-300 text-center font-semibold {{ $subColor }} w-20">%Growth</th>
-                            <th class="border border-base-300 text-center font-semibold {{ $subColor }} w-24">Insentif</th>
+                            <th class="border border-purple-200 text-center font-semibold {{ $subColor }} whitespace-nowrap px-3">Tgt</th>
+                            <th class="border border-purple-200 text-center font-semibold {{ $subColor }} whitespace-nowrap px-3">Real</th>
+                            <th class="border border-purple-200 text-center font-semibold {{ $subColor }} whitespace-nowrap px-3">%Growth</th>
+                            <th class="border border-purple-200 text-center font-semibold {{ $subColor }} whitespace-nowrap px-3">Insentif</th>
                         @endforeach
                         
                         <!-- Sub-header INSENTIF EC -->
-                        <th class="border border-base-300 text-center font-semibold bg-yellow-50 text-yellow-800 w-16">F</th>
-                        <th class="border border-base-300 text-center font-semibold bg-yellow-50 text-yellow-800 w-16">RO</th>
-                        <th class="border border-base-300 text-center font-semibold bg-yellow-50 text-yellow-800 w-16">AC</th>
-                        <th class="border border-base-300 text-center font-semibold bg-yellow-50 text-yellow-800 w-16">EC</th>
-                        <th class="border border-base-300 text-center font-semibold bg-yellow-50 text-yellow-800 w-20">%EC</th>
-                        <th class="border border-base-300 text-center font-semibold bg-yellow-50 text-yellow-800 w-20">EC Harian</th>
-                        <th class="border border-base-300 text-center font-semibold bg-yellow-50 text-yellow-800 w-24">Insentif</th>
+                        <th class="border border-yellow-200 text-center font-semibold bg-yellow-50 text-yellow-800 whitespace-nowrap px-3">F</th>
+                        <th class="border border-yellow-200 text-center font-semibold bg-yellow-50 text-yellow-800 whitespace-nowrap px-3">RO</th>
+                        <th class="border border-yellow-200 text-center font-semibold bg-yellow-50 text-yellow-800 whitespace-nowrap px-3">AC</th>
+                        <th class="border border-yellow-200 text-center font-semibold bg-yellow-50 text-yellow-800 whitespace-nowrap px-3">EC</th>
+                        <th class="border border-yellow-200 text-center font-semibold bg-yellow-50 text-yellow-800 whitespace-nowrap px-3">%EC</th>
+                        <th class="border border-yellow-200 text-center font-semibold bg-yellow-50 text-yellow-800 whitespace-nowrap px-3">EC Harian</th>
+                        <th class="border border-yellow-200 text-center font-semibold bg-yellow-50 text-yellow-800 whitespace-nowrap px-3">Insentif</th>
 
                         <!-- Sub-header INSENTIF IPT -->
-                        <th class="border border-base-300 text-center font-semibold bg-sky-50 text-sky-800 w-16">Total SKU</th>
-                        <th class="border border-base-300 text-center font-semibold bg-sky-50 text-sky-800 w-16">Total EC</th>
-                        <th class="border border-base-300 text-center font-semibold bg-sky-50 text-sky-800 w-16">IPT</th>
-                        <th class="border border-base-300 text-center font-semibold bg-sky-50 text-sky-800 w-24">Insentif</th>
+                        <th class="border border-sky-200 text-center font-semibold bg-sky-50 text-sky-800 whitespace-nowrap px-3">Total SKU</th>
+                        <th class="border border-sky-200 text-center font-semibold bg-sky-50 text-sky-800 whitespace-nowrap px-3">Total EC</th>
+                        <th class="border border-sky-200 text-center font-semibold bg-sky-50 text-sky-800 whitespace-nowrap px-3">IPT</th>
+                        <th class="border border-sky-200 text-center font-semibold bg-sky-50 text-sky-800 whitespace-nowrap px-3">Insentif</th>
 
                         <!-- Sub-header PENGGUNAAN SFA -->
-                        <th class="border border-base-300 text-center font-semibold bg-cyan-50 text-cyan-800 w-16">PC</th>
-                        <th class="border border-base-300 text-center font-semibold bg-cyan-50 text-cyan-800 w-16">AC</th>
-                        <th class="border border-base-300 text-center font-semibold bg-cyan-50 text-cyan-800 w-16">%</th>
+                        <th class="border border-cyan-200 text-center font-semibold bg-cyan-50 text-cyan-800 whitespace-nowrap px-3">PC</th>
+                        <th class="border border-cyan-200 text-center font-semibold bg-cyan-50 text-cyan-800 whitespace-nowrap px-3">AC</th>
+                        <th class="border border-cyan-200 text-center font-semibold bg-cyan-50 text-cyan-800 whitespace-nowrap px-3">%</th>
 
                         <!-- Sub-header FINAL -->
-                        <th class="border border-base-300 text-center font-semibold bg-base-200/50 w-28">TOTAL</th>
-                        <th class="border border-base-300 text-center font-semibold bg-error/10 text-error w-24">PPH 5%</th>
-                        <th class="border border-base-300 text-center font-bold bg-success/10 text-success-content w-32">TAKE HOME PAY</th>
+                        <th class="border border-slate-300 text-center font-semibold bg-base-200 text-base-content whitespace-nowrap px-3">TOTAL</th>
+                        <th class="border border-red-200 text-center font-semibold bg-red-100 text-red-900 whitespace-nowrap px-3">PPH 5%</th>
+                        <th class="border border-green-200 text-center font-bold bg-green-100 text-green-900 whitespace-nowrap px-3">TAKE HOME PAY</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -164,11 +192,11 @@
                         <tr class="hover:bg-base-200/50 transition-colors group text-xs">
                             {{-- Sticky kolom saja = z-10 --}}
                             <td class="border border-base-300 text-center bg-base-100 group-hover:bg-base-200/50 sticky left-0 z-10 w-[40px] min-w-[40px] max-w-[40px]">{{ $index + 1 }}</td>
-                            <td class="border border-base-300 text-center bg-base-100 group-hover:bg-base-200/50 sticky left-[40px] z-10 w-[150px] min-w-[150px] max-w-[150px] truncate" title="{{ $row['area'] }}">{{ $row['area'] }}</td>
-                            <td class="border border-base-300 text-center bg-base-100 group-hover:bg-base-200/50 sticky left-[190px] z-10 w-[100px] min-w-[100px] max-w-[100px] truncate" title="{{ $row['kd_dist'] }}">{{ $row['kd_dist'] }}</td>
+                            <td class="border border-base-300 text-center w-[150px] min-w-[150px] max-w-[150px] truncate" title="{{ $row['area'] }}">{{ $row['area'] }}</td>
+                            <td class="border border-base-300 text-center w-[100px] min-w-[100px] max-w-[100px] truncate" title="{{ $row['kd_dist'] }}">{{ $row['kd_dist'] }}</td>
                             <td class="border border-base-300 truncate min-w-[150px] max-w-[200px]" title="{{ $row['distributor'] }}">{{ $row['distributor'] }}</td>
                             <td class="border border-base-300 text-center font-mono w-[100px] min-w-[100px] whitespace-nowrap">{{ $row['kode_se'] }}</td>
-                            <td class="border border-base-300 font-semibold truncate min-w-[150px] max-w-[200px] {{ stripos($row['nama_se'], 'vacant') !== false ? 'text-error' : '' }}" title="{{ $row['nama_se'] }}">
+                            <td class="border border-base-300 bg-base-100 group-hover:bg-base-200/50 font-semibold sticky left-[40px] z-10 w-[200px] min-w-[200px] max-w-[200px] truncate sticky-edge {{ stripos($row['nama_se'], 'vacant') !== false ? 'text-error' : '' }}" title="{{ $row['nama_se'] }}">
                                 {{ $row['nama_se'] }}
                             </td>
 
@@ -272,11 +300,13 @@
                 @if(count($salesmenData) > 0)
                 <tfoot>
                     <tr class="font-bold text-xs">
-                        <td colspan="3" class="border border-base-300 text-center sticky left-0 z-30 sticky bottom-0" style="background-color: #e5e7eb;">
+                        <td class="border border-base-300 text-center sticky left-0 z-10 sticky bottom-0" style="background-color: #e5e7eb;"></td>
+                        <td class="border border-base-300 text-center sticky bottom-0" style="background-color: #e5e7eb;"></td>
+                        <td class="border border-base-300 text-center sticky bottom-0" style="background-color: #e5e7eb;"></td>
+                        <td class="border border-base-300 text-center sticky bottom-0" style="background-color: #e5e7eb;"></td>
+                        <td class="border border-base-300 text-center sticky bottom-0" style="background-color: #e5e7eb;"></td>
+                        <td class="border border-base-300 text-right font-bold sticky left-[40px] z-10 sticky bottom-0 sticky-edge pr-4" style="background-color: #e5e7eb;">
                             GRAND TOTAL
-                        </td>
-                        <td colspan="3" class="border border-base-300 text-center sticky bottom-0" style="background-color: #e5e7eb;">
-                            
                         </td>
                         
                         {{-- Grand Total INSENTIF VALUE --}}

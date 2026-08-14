@@ -12,9 +12,9 @@ class TargetKacabTemplateExport implements FromArray
     public function array(): array
     {
         return [
-            ['Bulan', 'Cabang', 'Target'],
-            ['2025-01', 'JAKARTA', 500000000],
-            ['2025-01', 'BANDUNG', 450000000],
+            ['Tahun', 'Cabang', 'Nama Kacab', 'Target', 'Insentif'],
+            ['2025', 'JAKARTA', 'BUDI', 500000000, 1000000],
+            ['2025', 'BANDUNG', 'ANDI', 450000000, 900000],
         ];
     }
 }
