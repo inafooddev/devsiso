@@ -118,14 +118,39 @@ class InsentifSpv extends Component
                 $groupedBySpv[$spvCode]['rowspan'] += 1;
             }
 
-            // Calculate Percentages
+            // Calculate Percentages and Insentif SO
             foreach ($groupedBySpv as $spvCode => $spv) {
                 $pencapaian = 0;
-                if ($spv['total_target_reguler'] > 0) {
-                    $pencapaian = ($spv['total_aktual_so'] / $spv['total_target_reguler']) * 100;
+                $targetTotal = $spv['total_target_reguler'];
+                
+                if ($targetTotal > 0) {
+                    $pencapaian = ($spv['total_aktual_so'] / $targetTotal) * 100;
                 }
+                
                 $groupedBySpv[$spvCode]['pencapaian_persen'] = $pencapaian;
-                $groupedBySpv[$spvCode]['ins_so'] = 0; // TBD mechanism
+                
+                // INS SO Calculation
+                $insSo = 0;
+                
+                if ($pencapaian >= 120) {
+                    if ($targetTotal >= 2000000000) $insSo = 2500000;
+                    elseif ($targetTotal >= 1000000000) $insSo = 2250000;
+                    else $insSo = 2000000;
+                } elseif ($pencapaian >= 110) {
+                    if ($targetTotal >= 2000000000) $insSo = 2250000;
+                    elseif ($targetTotal >= 1000000000) $insSo = 2000000;
+                    else $insSo = 1750000;
+                } elseif ($pencapaian >= 100) {
+                    if ($targetTotal >= 2000000000) $insSo = 2000000;
+                    elseif ($targetTotal >= 1000000000) $insSo = 1750000;
+                    else $insSo = 1500000;
+                } elseif ($pencapaian >= 90) {
+                    if ($targetTotal >= 2000000000) $insSo = 500000;
+                    elseif ($targetTotal >= 1000000000) $insSo = 400000;
+                    else $insSo = 300000;
+                }
+                
+                $groupedBySpv[$spvCode]['ins_so'] = $insSo;
             }
 
             // Sort SPVs by Area then Supervisor Name
