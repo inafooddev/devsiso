@@ -1,0 +1,86 @@
+<?php
+
+namespace App\Jobs;
+
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use App\Models\ImportBatch;
+
+class ExtractInsentifValuePerSalesmanJob implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public $bulan; // Format: YYYY-MM
+    public $batchId;
+    public $timeout = 3600;
+
+    /**
+     * Create a new job instance.
+     */
+    public function __construct($bulan, $batchId = null)
+    {
+        $this->bulan = $bulan;
+        $this->batchId = $batchId;
+    }
+
+    /**
+     * Execute the job.
+     */
+    public function handle(): void
+    {
+        $carbonBulan = Carbon::createFromFormat('Y-m', $this->bulan);
+        $startDate = $carbonBulan->copy()->startOfMonth()->format('Y-m-d');
+        $endDate = $carbonBulan->copy()->endOfMonth()->format('Y-m-d');
+
+        if ($this->batchId) {
+            $batch = ImportBatch::find($this->batchId);
+            if ($batch) {
+                $batch->addLog('info', '[3/X] Memulai perhitungan Actual Value per Salesman...');
+                $batch->addLog('warning', '[3/X] Membersihkan data lama Value per Salesman untuk bulan ' . $this->bulan);
+            }
+        }
+
+        // 1. Bersihkan data bulan ini
+        DB::table('insentif_value_per_salesmans')->where('bulan', $this->bulan)->delete();
+
+        if (isset($batch)) {
+            $batch->addLog('info', '[3/X] Mengeksekusi kueri agregasi (SUM) Actual Value...');
+        }
+
+        // 2. Eksekusi Raw Query
+        $query = "
+            INSERT INTO insentif_value_per_salesmans (
+                bulan, 
+                distributor_code, 
+                sales_code, 
+                actual, 
+                created_at, 
+                updated_at
+            )
+            SELECT 
+                ? as bulan,
+                senn.branch_code as distributor_code,
+                senn.sales_code,
+                SUM(senn.nett_amount) as actual,
+                NOW() as created_at,
+                NOW() as updated_at
+            FROM so_eska_n_noneska senn 
+            WHERE senn.invoice_date BETWEEN ? AND ?
+              AND senn.branch_code IS NOT NULL
+              AND senn.sales_code IS NOT NULL
+              AND senn.product_group_2 = 'IREG'
+            GROUP BY senn.branch_code, senn.sales_code
+        ";
+
+        DB::statement($query, [$this->bulan, $startDate, $endDate]);
+
+        if (isset($batch)) {
+            $batch->addLog('success', '[3/X] Sukses menghitung Actual Value per Salesman!');
+        }
+    }
+}

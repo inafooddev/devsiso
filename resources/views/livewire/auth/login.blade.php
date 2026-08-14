@@ -21,9 +21,6 @@
                 secs: 0,
                 timer: null,
                 init() {
-                    window.onTurnstileSuccess = (token) => {
-                        $wire.set('cfTurnstileResponse', token);
-                    };
                     $wire.on('reset-turnstile', () => {
                         if (typeof turnstile !== 'undefined') {
                             turnstile.reset();
@@ -38,6 +35,21 @@
                             this.startCountdown();
                         }
                     });
+
+                    // Render turnstile manually
+                    this.renderTurnstile();
+                },
+                renderTurnstile() {
+                    if (typeof turnstile !== 'undefined') {
+                        turnstile.render('#turnstile-widget', {
+                            sitekey: '{{ config('services.turnstile.site_key', env('TURNSTILE_SITE_KEY')) }}',
+                            callback: (token) => {
+                                $wire.cfTurnstileResponse = token;
+                            }
+                        });
+                    } else {
+                        setTimeout(() => this.renderTurnstile(), 100);
+                    }
                 },
                 startCountdown() {
                     if (this.timer) clearInterval(this.timer);
@@ -101,7 +113,7 @@
 
             <!-- Turnstile Widget -->
             <div class="form-control" wire:ignore>
-                <div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.site_key', env('TURNSTILE_SITE_KEY')) }}" data-callback="onTurnstileSuccess"></div>
+                <div id="turnstile-widget"></div>
             </div>
             @error('cfTurnstileResponse') 
                 <span class="text-error text-xs mt-2 flex items-center">
@@ -149,5 +161,5 @@
     </div>
     
     <!-- Cloudflare Turnstile Script -->
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </div>

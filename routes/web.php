@@ -97,6 +97,9 @@ use App\Livewire\Others\AuditToko\Index as AdminAuditTokoIndex;
 use App\Livewire\Others\AuditToko\MasterCustomer as AdminAuditTokoMasterCustomer;
 use App\Livewire\Others\TargetPerSeUntukEska\Index as TargetPerSeUntukEskaIndex;
 use App\Livewire\MonitoringDevice\Index as MonitoringDeviceIndex;
+use App\Livewire\Others\Insentif\Index as InsentifIndex;
+use App\Livewire\Others\Insentif\Target\Index as InsentifTargetIndex;
+use App\Livewire\Others\Insentif\Perhitungan\Index as InsentifPerhitunganIndex;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -368,6 +371,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/others/produk-lama', \App\Livewire\Others\ProdukLama\Index::class)->name('others.produk-lama');
     Route::get('/others/bug-report-request', \App\Livewire\Others\BugReportRequest\Index::class)->name('others.bug-report-request');
     Route::get('/others/target-per-se-untuk-eska', TargetPerSeUntukEskaIndex::class)->name('others.target-per-se-untuk-eska.index');
+    Route::get('/others/insentif', InsentifIndex::class)->name('others.insentif.index');
+    Route::get('/others/insentif/target', InsentifTargetIndex::class)->name('others.insentif.target.index');
+    Route::get('/others/insentif/perhitungan', InsentifPerhitunganIndex::class)->name('others.insentif.perhitungan.index');
     Route::get('/mapping-supervisor-code', MappingSupervisorCodeIndex::class)->name('mapping-supervisor-code.index');
     Route::get('/qceskalink', QceskalinkIndex::class)->name('qceskalink.index');
     Route::get('/monitoring-device', MonitoringDeviceIndex::class)->name('monitoring-device.index');
