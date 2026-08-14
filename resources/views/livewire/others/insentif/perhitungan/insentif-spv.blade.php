@@ -94,7 +94,7 @@
                         </th>
 
                         <!-- Header VTKP -->
-                        <th colspan="{{ count($headers) * 4 }}" class="border border-base-300 text-center font-bold bg-indigo-100 text-indigo-900">
+                        <th colspan="{{ count($headers) * 4 + 1 }}" class="border border-base-300 text-center font-bold bg-indigo-100 text-indigo-900">
                             2. Insentif Growth Qty Produk Fokus (VTKP)
                         </th>
                     </tr>
@@ -124,6 +124,10 @@
                             <th class="border border-base-300 text-center font-semibold {{ $subColor }} w-20">%Growth</th>
                             <th class="border border-base-300 text-center font-semibold {{ $subColor }} w-24">Insentif</th>
                         @endforeach
+                        
+                        <th class="border border-base-300 text-center font-bold bg-indigo-200 text-indigo-900 min-w-[120px]">
+                            Total Insentif VTKP
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -202,6 +206,10 @@
                                             {{ $ach['insentif'] > 0 ? number_format($ach['insentif'], 0, ',', '.') : '-' }}
                                         </td>
                                     @endforeach
+                                    
+                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold {{ $spv['total_insentif_vtkp'] > 0 ? 'text-success bg-success/10' : 'text-base-content/40 bg-base-100/50' }}">
+                                        {{ $spv['total_insentif_vtkp'] > 0 ? number_format($spv['total_insentif_vtkp'], 0, ',', '.') : '-' }}
+                                    </td>
                                 @endif
                             </tr>
                         @endforeach
@@ -258,6 +266,9 @@
                                 {{ $gtAch['insentif'] > 0 ? number_format($gtAch['insentif'], 0, ',', '.') : '-' }}
                             </td>
                         @endforeach
+                        <td class="border border-base-300 bg-base-300 text-right font-bold text-success py-2">
+                            {{ $grandTotal['total_insentif_vtkp'] > 0 ? number_format($grandTotal['total_insentif_vtkp'], 0, ',', '.') : '-' }}
+                        </td>
                     </tr>
                 </tfoot>
                 @endif

@@ -182,6 +182,7 @@ class InsentifSpv extends Component
 
                 // VTKP Calculation
                 $groupedBySpv[$spvCode]['vtkp_achievements'] = [];
+                $totalInsentifVtkp = 0;
                 foreach ($headers as $h) {
                     $targetVal = 0;
                     $realVal = 0;
@@ -211,13 +212,22 @@ class InsentifSpv extends Component
                     }
                     
                     $insentifVtkp = 0;
-                    if ($growth >= 30) {
-                        $insentifVtkp = ($realVal - $targetVal) * 600;
-                    } elseif ($growth >= 20) {
-                        $insentifVtkp = ($realVal - $targetVal) * 400;
-                    } elseif ($growth >= 10) {
-                        $insentifVtkp = ($realVal - $targetVal) * 250;
+                    if ($targetVal > 0) {
+                        if ($growth >= 30) {
+                            $insentifVtkp = ($realVal - $targetVal) * 600;
+                        } elseif ($growth >= 20) {
+                            $insentifVtkp = ($realVal - $targetVal) * 400;
+                        } elseif ($growth >= 10) {
+                            $insentifVtkp = ($realVal - $targetVal) * 250;
+                        }
                     }
+                    
+                    // Syarat Insentif VTKP SPV: Pencapaian Value (Reguler) >= 80%
+                    if ($pencapaian < 80) {
+                        $insentifVtkp = 0;
+                    }
+                    
+                    $totalInsentifVtkp += $insentifVtkp;
                     
                     $groupedBySpv[$spvCode]['vtkp_achievements'][$h->nama_header] = [
                         'target' => $targetVal,
@@ -226,6 +236,8 @@ class InsentifSpv extends Component
                         'insentif' => $insentifVtkp
                     ];
                 }
+                
+                $groupedBySpv[$spvCode]['total_insentif_vtkp'] = $totalInsentifVtkp;
             }
 
             // Sort SPVs by Area then Supervisor Name
@@ -248,6 +260,7 @@ class InsentifSpv extends Component
             'aktual_so' => 0,
             'ins_so' => 0,
             'pencapaian_persen' => 0,
+            'total_insentif_vtkp' => 0,
             'vtkp' => []
         ];
 
@@ -266,6 +279,7 @@ class InsentifSpv extends Component
                 $grandTotal['aktual_so'] += $dist['aktual_so'];
             }
             $grandTotal['ins_so'] += $spv['ins_so'];
+            $grandTotal['total_insentif_vtkp'] += $spv['total_insentif_vtkp'];
 
             foreach ($headers as $h) {
                 $ach = $spv['vtkp_achievements'][$h->nama_header] ?? ['target' => 0, 'real' => 0, 'growth' => 0, 'insentif' => 0];
