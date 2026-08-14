@@ -210,11 +210,20 @@ class InsentifSpv extends Component
                         $growth = 100;
                     }
                     
+                    $insentifVtkp = 0;
+                    if ($growth >= 30) {
+                        $insentifVtkp = ($realVal - $targetVal) * 600;
+                    } elseif ($growth >= 20) {
+                        $insentifVtkp = ($realVal - $targetVal) * 400;
+                    } elseif ($growth >= 10) {
+                        $insentifVtkp = ($realVal - $targetVal) * 250;
+                    }
+                    
                     $groupedBySpv[$spvCode]['vtkp_achievements'][$h->nama_header] = [
                         'target' => $targetVal,
                         'real' => $realVal,
                         'growth' => $growth,
-                        'insentif' => 0 // TBD mechanism
+                        'insentif' => $insentifVtkp
                     ];
                 }
             }
