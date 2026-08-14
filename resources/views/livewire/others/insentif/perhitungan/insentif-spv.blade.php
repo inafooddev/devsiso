@@ -64,7 +64,7 @@
                         <th rowspan="2" class="border border-base-300 text-center font-bold sticky left-0 z-30 bg-base-200 text-base-content w-[150px] min-w-[150px] max-w-[150px] truncate">Area</th>
                         <th rowspan="2" class="border border-base-300 text-center font-bold sticky left-[150px] z-30 bg-base-200 text-base-content w-[200px] min-w-[200px] max-w-[200px] truncate">Distributor</th>
                         <th rowspan="2" class="border border-base-300 text-center font-bold sticky left-[350px] z-30 bg-base-200 text-base-content w-[120px] min-w-[120px] max-w-[120px] truncate">Cabang</th>
-                        <th rowspan="2" class="border-l border-r-2 !border-r-gray-300 border-base-300 text-center font-bold sticky left-[470px] z-30 bg-base-200 text-base-content w-[150px] min-w-[150px] max-w-[150px] truncate">Nama Supervisor</th>
+                        <th rowspan="2" class="border border-base-300 text-center font-bold sticky left-[470px] z-30 bg-base-200 text-base-content w-[150px] min-w-[150px] max-w-[150px] truncate">Nama Supervisor</th>
                         
                         <!-- Header INSENTIF VALUE -->
                         <th colspan="5" class="border border-base-300 text-center font-bold bg-fuchsia-300 text-fuchsia-900">
@@ -124,11 +124,11 @@
                                     {{ $dist['cabang'] }}
                                 </td>
 
-                                <td class="border-l border-r-2 !border-r-gray-300 border-base-300 bg-base-100 font-bold text-xs truncate w-[150px] min-w-[150px] max-w-[150px] sticky left-[470px] z-10 uppercase {{ $idx === 0 ? 'border-t-base-300' : '!border-t-transparent' }} {{ $idx === count($spv['distributors']) - 1 ? 'border-b-base-300' : '!border-b-transparent' }}" title="{{ $spv['supervisor_name'] }}">
-                                    @if($idx === 0)
+                                @if($idx === 0)
+                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 bg-base-100 font-bold text-xs truncate w-[150px] min-w-[150px] max-w-[150px] sticky left-[470px] z-10 uppercase" title="{{ $spv['supervisor_name'] }}">
                                         {{ $spv['supervisor_name'] }}
-                                    @endif
-                                </td>
+                                    </td>
+                                @endif
                                 
                                 <td class="border border-base-300 text-right font-medium">
                                     {{ number_format($dist['target_so'], 0, ',', '.') }}
@@ -201,7 +201,7 @@
                 @if(count($spvData) > 0)
                 <tfoot class="sticky bottom-0 z-40">
                     <tr>
-                        <td colspan="4" class="border-l border-r-2 !border-r-gray-300 border-base-300 bg-base-300 text-right font-bold text-base-content px-4 py-2 sticky left-0 z-40">
+                        <td colspan="4" class="border border-base-300 bg-base-300 text-right font-bold text-base-content px-4 py-2 sticky left-0 z-40">
                             GRAND TOTAL
                         </td>
                         <td class="border border-base-300 bg-base-300 text-right font-bold text-base-content py-2">
