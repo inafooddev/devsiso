@@ -28,6 +28,8 @@
             <livewire:others.insentif.perhitungan.insentif-spv />
         @elseif($activeTab === 'insentif-kacab')
             <livewire:others.insentif.perhitungan.insentif-kacab />
+        @endif
+
         @role('admin')
             @if($activeTab === 'jobs')
                 <livewire:others.insentif.perhitungan.jobs />
