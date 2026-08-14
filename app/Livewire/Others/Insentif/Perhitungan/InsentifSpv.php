@@ -119,12 +119,13 @@ class InsentifSpv extends Component
             }
 
             // Calculate Percentages
-            foreach ($groupedBySpv as $spvCode => &$spv) {
-                $spv['pencapaian_persen'] = 0;
+            foreach ($groupedBySpv as $spvCode => $spv) {
+                $pencapaian = 0;
                 if ($spv['total_target_reguler'] > 0) {
-                    $spv['pencapaian_persen'] = ($spv['total_aktual_so'] / $spv['total_target_reguler']) * 100;
+                    $pencapaian = ($spv['total_aktual_so'] / $spv['total_target_reguler']) * 100;
                 }
-                $spv['ins_so'] = 0; // TBD mechanism
+                $groupedBySpv[$spvCode]['pencapaian_persen'] = $pencapaian;
+                $groupedBySpv[$spvCode]['ins_so'] = 0; // TBD mechanism
             }
 
             // Sort SPVs by Area then Supervisor Name
