@@ -127,9 +127,15 @@ class InsentifSpv extends Component
                 $spv['ins_so'] = 0; // TBD mechanism
             }
 
-            // Sort SPVs alphabetically
+            // Sort SPVs by Area then Supervisor Name
             usort($groupedBySpv, function($a, $b) {
-                return strcmp($a['supervisor_name'], $b['supervisor_name']);
+                $areaA = $a['distributors'][0]['area_name'] ?? '';
+                $areaB = $b['distributors'][0]['area_name'] ?? '';
+                
+                if ($areaA === $areaB) {
+                    return strcmp($a['supervisor_name'], $b['supervisor_name']);
+                }
+                return strcmp($areaA, $areaB);
             });
 
             $spvData = $groupedBySpv;

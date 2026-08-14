@@ -100,7 +100,9 @@
                                 </td>
 
                                 @if($idx === 0)
-                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 bg-base-100 font-bold whitespace-nowrap">{{ $spv['supervisor_name'] }}</td>
+                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 bg-base-100 font-bold text-xs truncate max-w-[200px] uppercase" title="{{ $spv['supervisor_name'] }}">
+                                        {{ $spv['supervisor_name'] }}
+                                    </td>
                                 @endif
                                 
                                 <td class="border border-base-300 text-right font-medium">
