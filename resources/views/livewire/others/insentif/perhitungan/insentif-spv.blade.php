@@ -61,10 +61,10 @@
             <table class="table table-xs w-full border-collapse">
                 <thead class="sticky top-0 z-20" style="background-color: white;">
                     <tr>
-                        <th rowspan="2" class="border border-base-300 text-center font-bold sticky left-0 z-30 bg-base-200 text-base-content w-[150px] min-w-[150px] max-w-[150px] truncate">Area</th>
-                        <th rowspan="2" class="border border-base-300 text-center font-bold sticky left-[150px] z-30 bg-base-200 text-base-content w-[200px] min-w-[200px] max-w-[200px] truncate">Distributor</th>
-                        <th rowspan="2" class="border border-base-300 text-center font-bold sticky left-[350px] z-30 bg-base-200 text-base-content w-[120px] min-w-[120px] max-w-[120px] truncate">Cabang</th>
-                        <th rowspan="2" class="border-l border-r-2 !border-r-gray-300 border-base-300 text-center font-bold sticky left-[470px] z-30 bg-base-200 text-base-content w-[150px] min-w-[150px] max-w-[150px] truncate">Nama Supervisor</th>
+                        <th class="border-x border-t border-base-300 border-b-transparent text-center font-bold sticky left-0 z-30 bg-base-200 text-base-content w-[150px] min-w-[150px] max-w-[150px] truncate">Area</th>
+                        <th class="border-x border-t border-base-300 border-b-transparent text-center font-bold sticky left-[150px] z-30 bg-base-200 text-base-content w-[200px] min-w-[200px] max-w-[200px] truncate">Distributor</th>
+                        <th class="border-x border-t border-base-300 border-b-transparent text-center font-bold sticky left-[350px] z-30 bg-base-200 text-base-content w-[120px] min-w-[120px] max-w-[120px] truncate">Cabang</th>
+                        <th class="border-l border-t border-r-2 !border-r-gray-300 border-base-300 border-b-transparent text-center font-bold sticky left-[470px] z-30 bg-base-200 text-base-content w-[150px] min-w-[150px] max-w-[150px] truncate">Nama Supervisor</th>
                         
                         <!-- Header INSENTIF VALUE -->
                         <th colspan="5" class="border border-base-300 text-center font-bold bg-fuchsia-300 text-fuchsia-900">
@@ -93,6 +93,11 @@
                     @endphp
 
                     <tr>
+                        <th class="border-x border-b border-base-300 border-t-transparent sticky left-0 z-30 bg-base-200 w-[150px] min-w-[150px] max-w-[150px]"></th>
+                        <th class="border-x border-b border-base-300 border-t-transparent sticky left-[150px] z-30 bg-base-200 w-[200px] min-w-[200px] max-w-[200px]"></th>
+                        <th class="border-x border-b border-base-300 border-t-transparent sticky left-[350px] z-30 bg-base-200 w-[120px] min-w-[120px] max-w-[120px]"></th>
+                        <th class="border-l border-b border-r-2 !border-r-gray-300 border-base-300 border-t-transparent sticky left-[470px] z-30 bg-base-200 w-[150px] min-w-[150px] max-w-[150px]"></th>
+
                         <th class="border border-base-300 text-center font-bold bg-fuchsia-200 text-fuchsia-900 min-w-[120px]">Target SO</th>
                         <th class="border border-base-300 text-center font-bold bg-fuchsia-200 text-fuchsia-900 min-w-[120px]">Target SO Reguler</th>
                         <th class="border border-base-300 text-center font-bold bg-fuchsia-200 text-fuchsia-900 min-w-[120px]">Aktual SO</th>
