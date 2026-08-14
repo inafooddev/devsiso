@@ -209,7 +209,7 @@
                                         elseif ($ach['growth'] < 0) $growthColor = 'text-error';
                                     }
                                 @endphp
-                                <td class="border border-base-300 text-right">{{ $ach['target'] ?: '-' }}</td>
+                                <td class="border border-base-300 text-right {{ $ach['target'] == 0 ? 'bg-red-50 text-red-400' : '' }}">{{ $ach['target'] ?: '-' }}</td>
                                 <td class="border border-base-300 text-right font-semibold">{{ $ach['real'] ?: '-' }}</td>
                                 <td class="border border-base-300 text-right {{ $growthColor }}">
                                     {{ $growthText }}

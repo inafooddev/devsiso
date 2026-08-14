@@ -153,7 +153,7 @@
                                 </td>
 
                                 @if($idx === 0)
-                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold bg-base-100/50">
+                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold {{ $spv['total_target_reguler'] == 0 ? 'bg-red-50 text-red-400' : 'bg-base-100/50' }}">
                                         {{ number_format($spv['total_target_reguler'], 0, ',', '.') }}
                                     </td>
                                 @endif
@@ -189,7 +189,7 @@
                                                 else $achColor = 'text-error';
                                             }
                                         @endphp
-                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right bg-base-100/50">
+                                        <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right {{ $ach['target'] == 0 ? 'bg-red-50 text-red-400' : 'bg-base-100/50' }}">
                                             {{ $ach['target'] > 0 ? number_format($ach['target'], 0, ',', '.') : '-' }}
                                         </td>
                                         <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-semibold bg-base-100/50">
