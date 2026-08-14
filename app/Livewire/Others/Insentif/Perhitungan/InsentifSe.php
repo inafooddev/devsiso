@@ -224,7 +224,7 @@ class InsentifSe extends Component
 
                     // Hitung VTKP Insentif (Syarat: Value Ach >= 60%)
                     $insentif = 0;
-                    if ($valAch >= 60) {
+                    if ($targetVal > 0 && $valAch >= 60) {
                         $insentif = $this->hitungInsentifVtkp(round($growth), round($realVal));
                     }
                     $total_insentif_vtkp += $insentif;
