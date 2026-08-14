@@ -101,7 +101,7 @@
 
                         @foreach($headers as $index => $h)
                             @php $subColor = $headerColors[$index % count($headerColors)]['sub']; @endphp
-                            <th class="border border-base-300 text-center font-semibold {{ $subColor }} w-24">Tgt ({{ $h->nama_header }})</th>
+                            <th class="border border-base-300 text-center font-semibold {{ $subColor }} w-24">{{ $h->nama_header }}</th>
                             <th class="border border-base-300 text-center font-semibold {{ $subColor }} w-24">Real</th>
                             <th class="border border-base-300 text-center font-semibold {{ $subColor }} w-20">%Growth</th>
                             <th class="border border-base-300 text-center font-semibold {{ $subColor }} w-24">Insentif</th>
