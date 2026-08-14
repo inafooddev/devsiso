@@ -58,13 +58,13 @@
         @endif
 
         <div class="flex-1 overflow-auto custom-scrollbar">
-            <table class="table table-xs table-pin-rows table-pin-cols w-full">
-                <thead>
+            <table class="table table-xs w-full border-collapse">
+                <thead class="sticky top-0 z-20" style="background-color: white;">
                     <tr>
-                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-200 text-base-content min-w-[150px] whitespace-nowrap">Area</th>
-                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-200 text-base-content min-w-[150px] max-w-[200px] truncate">Distributor</th>
-                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-200 text-base-content min-w-[120px] max-w-[200px] truncate">Cabang</th>
-                        <th rowspan="2" class="border border-base-300 text-center font-bold bg-base-200 text-base-content min-w-[150px] max-w-[200px] truncate">Nama Supervisor</th>
+                        <th rowspan="2" class="border border-base-300 text-center font-bold sticky left-0 z-30 bg-base-200 text-base-content w-[150px] min-w-[150px] max-w-[150px] truncate">Area</th>
+                        <th rowspan="2" class="border border-base-300 text-center font-bold sticky left-[150px] z-30 bg-base-200 text-base-content w-[200px] min-w-[200px] max-w-[200px] truncate">Distributor</th>
+                        <th rowspan="2" class="border border-base-300 text-center font-bold sticky left-[350px] z-30 bg-base-200 text-base-content w-[120px] min-w-[120px] max-w-[120px] truncate">Cabang</th>
+                        <th rowspan="2" class="border border-base-300 text-center font-bold sticky left-[470px] z-30 bg-base-200 text-base-content w-[150px] min-w-[150px] max-w-[150px] truncate">Nama Supervisor</th>
                         
                         <!-- Header INSENTIF VALUE -->
                         <th colspan="5" class="border border-base-300 text-center font-bold bg-fuchsia-300 text-fuchsia-900">
@@ -112,20 +112,20 @@
                     @forelse($spvData as $spv)
                         @foreach($spv['distributors'] as $idx => $dist)
                             <tr class="hover:bg-base-200/50" wire:key="spv-{{ md5($spv['supervisor_code'].$dist['distributor_code']) }}">
-                                <td class="border border-base-300 bg-base-100 text-xs truncate max-w-[150px]" title="{{ $dist['area_name'] }}">
+                                <td class="border border-base-300 bg-base-100 text-xs truncate w-[150px] min-w-[150px] max-w-[150px] sticky left-0 z-10" title="{{ $dist['area_name'] }}">
                                     {{ $dist['area_name'] }}
                                 </td>
                                 
-                                <td class="border border-base-300 bg-base-100 text-xs truncate max-w-[200px]" title="{{ $dist['distributor_name'] }}">
+                                <td class="border border-base-300 bg-base-100 text-xs truncate w-[200px] min-w-[200px] max-w-[200px] sticky left-[150px] z-10" title="{{ $dist['distributor_name'] }}">
                                     {{ $dist['distributor_name'] }}
                                 </td>
                                 
-                                <td class="border border-base-300 bg-base-100 text-xs truncate max-w-[150px]" title="{{ $dist['cabang'] }}">
+                                <td class="border border-base-300 bg-base-100 text-xs truncate w-[120px] min-w-[120px] max-w-[120px] sticky left-[350px] z-10" title="{{ $dist['cabang'] }}">
                                     {{ $dist['cabang'] }}
                                 </td>
 
                                 @if($idx === 0)
-                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 bg-base-100 font-bold text-xs truncate max-w-[200px] uppercase" title="{{ $spv['supervisor_name'] }}">
+                                    <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 bg-base-100 font-bold text-xs truncate w-[150px] min-w-[150px] max-w-[150px] sticky left-[470px] z-10 uppercase" title="{{ $spv['supervisor_name'] }}">
                                         {{ $spv['supervisor_name'] }}
                                     </td>
                                 @endif
@@ -199,9 +199,9 @@
                     @endforelse
                 </tbody>
                 @if(count($spvData) > 0)
-                <tfoot class="sticky bottom-0 z-10">
+                <tfoot class="sticky bottom-0 z-40">
                     <tr>
-                        <td colspan="4" class="border border-base-300 bg-base-300 text-right font-bold text-base-content px-4 py-2">
+                        <td colspan="4" class="border border-base-300 bg-base-300 text-right font-bold text-base-content px-4 py-2 sticky left-0 z-40">
                             GRAND TOTAL
                         </td>
                         <td class="border border-base-300 bg-base-300 text-right font-bold text-base-content py-2">
