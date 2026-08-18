@@ -14,9 +14,11 @@
         <x-ui.tab-item :active="$activeTab === 'insentif-kacab'" wire:click.prevent="setTab('insentif-kacab')" :navigate="false">
             Insentif Kacab
         </x-ui.tab-item>
+        @role('admin')
         <x-ui.tab-item :active="$activeTab === 'setting-header'" wire:click.prevent="setTab('setting-header')" :navigate="false">
             Setting Header
         </x-ui.tab-item>
+        @endrole
 
         <x-slot name="actions">
             <button wire:click="$dispatch('openExportModal')" class="btn btn-sm btn-success text-white rounded-xl normal-case gap-2 shadow-sm shadow-success/20 group hover:-translate-y-0.5 transition-all">
@@ -38,9 +40,11 @@
                 <livewire:others.insentif.perhitungan.insentif-kacab />
             @endif
 
+            @role('admin')
             @if($activeTab === 'setting-header')
                 <livewire:others.insentif.perhitungan.setting-header />
             @endif
+            @endrole
         </div>
     
     <livewire:others.insentif.perhitungan.export-modal />
