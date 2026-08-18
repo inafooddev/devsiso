@@ -14,6 +14,7 @@ class ExportModal extends Component
     public $filterBulan = '';
     public $filterRegion = '';
     public $filterArea = []; // Multi-select array
+    public $selectedSheets = ['SE', 'SPV', 'KACAB', 'SUMMARY'];
 
     #[On('openExportModal')]
     public function openModal()
@@ -30,7 +31,8 @@ class ExportModal extends Component
             $this->filterRegion = $firstRegion ?? '';
         }
         
-        $this->filterArea = []; // By default empty meaning "all"
+        $this->filterArea = [];
+        $this->selectedSheets = ['SE', 'SPV', 'KACAB', 'SUMMARY'];
     }
 
     public function closeModal()
@@ -48,11 +50,15 @@ class ExportModal extends Component
         $this->validate([
             'filterBulan' => 'required',
             'filterRegion' => 'required',
+            'selectedSheets' => 'required|array|min:1',
+        ], [
+            'selectedSheets.required' => 'Anda harus memilih minimal 1 lembar laporan (Sheet).',
+            'selectedSheets.min' => 'Anda harus memilih minimal 1 lembar laporan (Sheet).',
         ]);
 
         $this->isOpen = false;
 
-        return Excel::download(new InsentifGlobalExport($this->filterBulan, $this->filterRegion, $this->filterArea), "Insentif_All_{$this->filterRegion}_{$this->filterBulan}.xlsx");
+        return Excel::download(new InsentifGlobalExport($this->filterBulan, $this->filterRegion, $this->filterArea, $this->selectedSheets), "Insentif_All_{$this->filterRegion}_{$this->filterBulan}.xlsx");
     }
 
     public function render()

@@ -38,7 +38,11 @@ class InsentifKacab extends Component
         $this->filterArea = '';
     }
 
-
+    #[On('refreshKacabData')]
+    public function refreshData()
+    {
+        // This will trigger a re-render automatically
+    }
 
     public function render()
     {
@@ -84,6 +88,38 @@ class InsentifKacab extends Component
                 return strtoupper(trim($item->distributor_code));
             });
 
+        // Build map of cabang -> distCode from masterData
+        $cabangToDistCode = [];
+        foreach ($masterData as $md) {
+            $c = strtoupper(trim($md->cabang));
+            $dc = strtoupper(trim($md->distributor_code));
+            $cabangToDistCode[$c] = $dc;
+        }
+
+        // 4. Apply Mappings
+        $mappings = \App\Models\InsentifKacabMapping::all();
+        $childToParentMap = $mappings->pluck('parent_cabang', 'child_cabang')->toArray();
+        $parentToChildrenMap = [];
+        foreach ($mappings as $m) {
+            $parentToChildrenMap[$m->parent_cabang][] = $m->child_cabang;
+        }
+
+        foreach ($childToParentMap as $child => $parent) {
+            $childDistCode = $cabangToDistCode[$child] ?? null;
+            $parentDistCode = $cabangToDistCode[$parent] ?? null;
+
+            if ($childDistCode && $actuals->has($childDistCode)) {
+                $childActual = $actuals->get($childDistCode)->total_actual;
+                if ($parentDistCode) {
+                    if ($actuals->has($parentDistCode)) {
+                        $actuals->get($parentDistCode)->total_actual += $childActual;
+                    } else {
+                        $actuals->put($parentDistCode, (object)['distributor_code' => $parentDistCode, 'total_actual' => $childActual]);
+                    }
+                }
+            }
+        }
+
         $kacabData = [];
         $totalTarget = 0;
         $totalInsentif = 0;
@@ -96,6 +132,11 @@ class InsentifKacab extends Component
             $cabang = strtoupper(trim($md->cabang));
             $distCode = strtoupper(trim($md->distributor_code));
             
+            // Skip rendering child cabangs
+            if (array_key_exists($cabang, $childToParentMap)) {
+                continue;
+            }
+
             $targetData = $targets->get($cabang);
             $target = $targetData ? (float) $targetData->target : 0;
             $insentif = $targetData ? (float) $targetData->insentif : 0;
@@ -103,6 +144,12 @@ class InsentifKacab extends Component
 
             $actualData = $actuals->get($distCode);
             $sellOut = $actualData ? (float) $actualData->total_actual : 0;
+
+            // Rename cabang if it has children mapped to it
+            $displayCabang = $cabang;
+            if (isset($parentToChildrenMap[$cabang])) {
+                $displayCabang .= ', ' . implode(', ', $parentToChildrenMap[$cabang]);
+            }
 
             $percentage = $target > 0 ? ($sellOut / $target) * 100 : 0;
             
@@ -114,7 +161,7 @@ class InsentifKacab extends Component
             $kacabData[] = [
                 'area_name' => $md->area_name,
                 'distributor_name' => $md->distributor_name,
-                'cabang' => $md->cabang,
+                'cabang' => $displayCabang,
                 'nama_kacab' => $namaKacab,
                 'target' => $target,
                 'insentif' => $insentif,

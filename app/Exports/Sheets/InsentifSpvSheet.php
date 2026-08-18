@@ -5,32 +5,38 @@ namespace App\Exports\Sheets;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\WithCustomStartCell;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use App\Livewire\Others\Insentif\Perhitungan\InsentifSpv;
 use Carbon\Carbon;
 
-class InsentifSpvSheet implements FromArray, WithHeadings, WithStyles, ShouldAutoSize, WithEvents, WithTitle
+class InsentifSpvSheet implements FromArray, WithHeadings, WithStyles, WithEvents, WithTitle, WithCustomStartCell
 {
     protected $bulan;
     protected $region;
     protected $areas;
     
-    protected $spvData = [];
+    protected $spvData    = [];
     protected $grandTotal = [];
-    protected $headers = [];
+    protected $headers    = [];
     protected $monthName;
+    protected $titleMonthYear;
+    protected $regionLabel;
 
     public function __construct($bulan, $region, $areas = [])
     {
-        $this->bulan = $bulan;
+        $this->bulan  = $bulan;
         $this->region = $region;
-        $this->areas = $areas;
-        $this->monthName = Carbon::parse($bulan . '-01')->translatedFormat("F'y");
-        
+        $this->areas  = $areas;
+
+        $carbon = Carbon::parse($bulan . '-01');
+        $this->monthName      = $carbon->translatedFormat("F'y");
+        $this->titleMonthYear = mb_strtoupper($carbon->translatedFormat('F Y'));
+        $this->regionLabel    = mb_strtoupper($region);
+
         $this->fetchData();
     }
     
@@ -52,6 +58,12 @@ class InsentifSpvSheet implements FromArray, WithHeadings, WithStyles, ShouldAut
     public function title(): string
     {
         return 'SPV';
+    }
+
+    public function startCell(): string
+    {
+        // Rows 1 & 2 reserved for report titles
+        return 'A3';
     }
 
     public function array(): array
@@ -79,7 +91,7 @@ class InsentifSpvSheet implements FromArray, WithHeadings, WithStyles, ShouldAut
                     $row[] = $dist['aktual_so'];
                     
                     if ($idx === 0) {
-                        $row[] = number_format($spv['pencapaian_persen'], 1, ',', '.') . '%';
+                        $row[] = $spv['pencapaian_persen'] / 100;
                         $row[] = $spv['ins_so'];
                     } else {
                         $row[] = '';
@@ -91,7 +103,7 @@ class InsentifSpvSheet implements FromArray, WithHeadings, WithStyles, ShouldAut
                             $ach = $cabData['vtkp_achievements'][$h->nama_header] ?? ['target' => 0, 'real' => 0, 'growth' => 0, 'insentif' => 0];
                             $row[] = $ach['target'];
                             $row[] = $ach['real'];
-                            $row[] = number_format($ach['growth'], 1, ',', '.') . '%';
+                            $row[] = ($ach['growth'] ?? 0) / 100;
                             $row[] = $ach['insentif'];
                         }
                         
@@ -110,7 +122,7 @@ class InsentifSpvSheet implements FromArray, WithHeadings, WithStyles, ShouldAut
                     if ($idx === 0) {
                         $row[] = $spv['total_rwo_peserta'];
                         $row[] = $spv['total_rwo_achieve'];
-                        $row[] = number_format($spv['rwo_achieve_pct'], 1, ',', '.') . '%';
+                        $row[] = $spv['rwo_achieve_pct'] / 100;
                         $row[] = $spv['insentif_rwo'];
                     } else {
                         $row[] = ''; $row[] = ''; $row[] = ''; $row[] = '';
@@ -122,7 +134,7 @@ class InsentifSpvSheet implements FromArray, WithHeadings, WithStyles, ShouldAut
                     if ($idx === 0) {
                         $row[] = $spv['total_ipt_sku'];
                         $row[] = $spv['total_ipt_ec'];
-                        $row[] = number_format($spv['ipt'], 1, ',', '.');
+                        $row[] = $spv['ipt'];
                         $row[] = $spv['insentif_ipt'];
                         
                         $row[] = $spv['total_all_insentif'];
@@ -148,19 +160,19 @@ class InsentifSpvSheet implements FromArray, WithHeadings, WithStyles, ShouldAut
             $gtRow[0] = ''; $gtRow[1] = ''; $gtRow[2] = ''; $gtRow[3] = 'GRAND TOTAL';
             $gtRow[4] = $this->grandTotal['target_so'];
             $gtRow[5] = $this->grandTotal['aktual_so'];
-            $gtRow[6] = number_format($this->grandTotal['pencapaian_persen'], 1, ',', '.') . '%';
+            $gtRow[6] = ($this->grandTotal['pencapaian_persen'] ?? 0) / 100;
             $gtRow[7] = $this->grandTotal['ins_so'];
             
             $colIdx = 8;
             foreach ($this->headers as $h) {
-                $tgt = $this->grandTotal['vtkp'][$h->nama_header]['target'] ?? 0;
-                $real = $this->grandTotal['vtkp'][$h->nama_header]['real'] ?? 0;
-                $growth = $this->grandTotal['vtkp'][$h->nama_header]['growth'] ?? 0;
-                $ins = $this->grandTotal['vtkp'][$h->nama_header]['insentif'] ?? 0;
+                $tgt    = $this->grandTotal['vtkp'][$h->nama_header]['target']   ?? 0;
+                $real   = $this->grandTotal['vtkp'][$h->nama_header]['real']     ?? 0;
+                $growth = $this->grandTotal['vtkp'][$h->nama_header]['growth']   ?? 0;
+                $ins    = $this->grandTotal['vtkp'][$h->nama_header]['insentif'] ?? 0;
                 
                 $gtRow[$colIdx++] = $tgt;
                 $gtRow[$colIdx++] = $real;
-                $gtRow[$colIdx++] = number_format($growth, 1, ',', '.') . '%';
+                $gtRow[$colIdx++] = $growth / 100;
                 $gtRow[$colIdx++] = $ins;
             }
             
@@ -170,14 +182,14 @@ class InsentifSpvSheet implements FromArray, WithHeadings, WithStyles, ShouldAut
             $gtRow[$colIdx++] = $this->grandTotal['rwo_achieve'];
             $gtRow[$colIdx++] = $this->grandTotal['rwo_peserta'];
             $gtRow[$colIdx++] = $this->grandTotal['rwo_achieve'];
-            $gtRow[$colIdx++] = number_format($this->grandTotal['rwo_achieve_pct'], 1, ',', '.') . '%';
+            $gtRow[$colIdx++] = ($this->grandTotal['rwo_achieve_pct'] ?? 0) / 100;
             $gtRow[$colIdx++] = $this->grandTotal['insentif_rwo'];
 
             $gtRow[$colIdx++] = $this->grandTotal['ipt_sku'];
             $gtRow[$colIdx++] = $this->grandTotal['ipt_ec'];
             $gtRow[$colIdx++] = $this->grandTotal['ipt_sku'];
             $gtRow[$colIdx++] = $this->grandTotal['ipt_ec'];
-            $gtRow[$colIdx++] = number_format($this->grandTotal['ipt'], 1, ',', '.');
+            $gtRow[$colIdx++] = $this->grandTotal['ipt'] ?? 0;
             $gtRow[$colIdx++] = $this->grandTotal['insentif_ipt'];
 
             $gtRow[$colIdx++] = $this->grandTotal['total_all_insentif'];
@@ -237,193 +249,329 @@ class InsentifSpvSheet implements FromArray, WithHeadings, WithStyles, ShouldAut
 
     public function styles(Worksheet $sheet)
     {
-        $cols = count($this->headings()[0]);
-        $highestColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($cols);
-        $lastRow = count($this->spvData) > 0 ? (count($this->array()) + 2) : 2;
-        
-        $sheet->getStyle('A1:' . $highestColumn . ($lastRow - 2))->applyFromArray([
-            'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
-        ]);
-        
-        $sheet->getStyle('A' . $lastRow . ':' . $highestColumn . $lastRow)->applyFromArray([
-            'font' => ['bold' => true],
-            'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
-        ]);
-
-        return [
-            1 => ['alignment' => ['horizontal' => 'center', 'vertical' => 'center'], 'font' => ['bold' => true]],
-            2 => ['alignment' => ['horizontal' => 'center', 'vertical' => 'center'], 'font' => ['bold' => true]],
-        ];
+        return [];
     }
 
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function(AfterSheet $event) {
-                $sheet = $event->sheet->getDelegate();
-                
-                // Freeze Panes (Row 1-2, Col A-D)
-                $sheet->freezePane('E3');
-                
-                // Merge common headers
-                $sheet->mergeCells('A1:A2');
-                $sheet->mergeCells('B1:B2');
-                $sheet->mergeCells('C1:C2');
-                $sheet->mergeCells('D1:D2');
-                $sheet->mergeCells('E1:H1'); // Pencapaian Bulan
-                
-                $colIdx = 9; // I
+            AfterSheet::class => function (AfterSheet $event) {
+                $ws = $event->sheet->getDelegate();
+                $ws->setShowGridlines(false);
+
+                // ── Color palette ────────────────────────────────────────────
+                $colors = [
+                    'header_id'         => '1F3864',
+                    'header_so'         => '1F497D',
+                    'header_vtkp'       => '215732',
+                    'header_total_vtkp' => '375623',
+                    'header_rwo'        => '7B3F00',
+                    'header_total_rwo'  => '6E3600',
+                    'header_ipt'        => '4A235A',
+                    'header_total_ipt'  => '3D1A4F',
+                    'header_grand'      => '78281F',
+                    'gt_row'            => 'FCF3CF',
+                    'zebra'             => 'EBF5FB',
+                    'font_white'        => 'FFFFFF',
+                ];
+
+                $totalCols  = count($this->headings()[0]);
+                $highestCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($totalCols);
+                $lastRow    = count($this->spvData) > 0 ? (count($this->array()) + 4) : 4;
+
+                // ── 0. Title rows 1 & 2 ──────────────────────────────────
+                $ws->setCellValue('A1', 'PROGRAM INSENTIF SALES INAFOOD REGION ' . $this->regionLabel);
+                $ws->setCellValue('A2', 'PERIODE ' . $this->titleMonthYear);
+                $ws->mergeCells('A1:' . $highestCol . '1');
+                $ws->mergeCells('A2:' . $highestCol . '2');
+                $ws->getStyle('A1')->applyFromArray([
+                    'font'      => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill'      => ['fillType' => 'solid', 'startColor' => ['rgb' => '1A237E']],
+                    'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],
+                ]);
+                $ws->getStyle('A2')->applyFromArray([
+                    'font'      => ['bold' => true, 'size' => 11, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill'      => ['fillType' => 'solid', 'startColor' => ['rgb' => '283593']],
+                    'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],
+                ]);
+                $ws->getRowDimension(1)->setRowHeight(32);
+                $ws->getRowDimension(2)->setRowHeight(22);
+
+                // ── 1. Merge identity cols A-D rows 3-4 ───────────────────
+                foreach (['A', 'B', 'C', 'D'] as $col) {
+                    $ws->mergeCells($col . '3:' . $col . '4');
+                }
+
+                // ── 2. Merge & colour group headers ─────────────────────────
+                $ws->mergeCells('E3:H3');
+
+                $colIdx = 9;
                 foreach ($this->headers as $h) {
-                    $startCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
-                    $endCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx + 3);
-                    $sheet->mergeCells($startCol . '1:' . $endCol . '1');
-                    
-                    // Style VTKP Headers
-                    $sheet->getStyle($startCol . '1:' . $endCol . '2')->applyFromArray([
-                        'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFE6E6FA']]
+                    $s = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+                    $e = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx + 3);
+                    $ws->mergeCells($s . '3:' . $e . '3');
+                    $ws->getStyle($s . '3:' . $e . '4')->applyFromArray([
+                        'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => $colors['header_vtkp']]],
+                        'font' => ['color' => ['rgb' => $colors['font_white']]],
                     ]);
-                    
                     $colIdx += 4;
                 }
-                
-                // TOTAL INSENTIF VTKP
-                $totalVtkpCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
-                $sheet->mergeCells($totalVtkpCol . '1:' . $totalVtkpCol . '2');
-                $sheet->getStyle($totalVtkpCol . '1:' . $totalVtkpCol . '2')->applyFromArray([
-                    'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFD8BFD8']]
+
+                $tvCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+                $ws->mergeCells($tvCol . '3:' . $tvCol . '4');
+                $ws->getStyle($tvCol . '3:' . $tvCol . '4')->applyFromArray([
+                    'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => $colors['header_total_vtkp']]],
+                    'font' => ['color' => ['rgb' => $colors['font_white']], 'bold' => true],
                 ]);
                 $colIdx++;
-                
-                // RWO
-                $rwoStart = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
-                $rwoEnd = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx + 1);
-                $sheet->mergeCells($rwoStart . '1:' . $rwoEnd . '1');
-                $sheet->getStyle($rwoStart . '1:' . $rwoEnd . '2')->applyFromArray([
-                    'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFFE4B5']]
-                ]);
-                $colIdx += 2;
-                
-                // Total RWO
-                $totRwoStart = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
-                $totRwoEnd = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx + 3);
-                $sheet->mergeCells($totRwoStart . '1:' . $totRwoEnd . '1');
-                $sheet->getStyle($totRwoStart . '1:' . $totRwoEnd . '2')->applyFromArray([
-                    'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFFDAB9']]
-                ]);
-                $colIdx += 4;
 
-                // IPT
-                $iptStart = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
-                $iptEnd = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx + 1);
-                $sheet->mergeCells($iptStart . '1:' . $iptEnd . '1');
-                $sheet->getStyle($iptStart . '1:' . $iptEnd . '2')->applyFromArray([
-                    'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFE0FFFF']]
+                $rwoS = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+                $rwoE = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx + 1);
+                $ws->mergeCells($rwoS . '3:' . $rwoE . '3');
+                $ws->getStyle($rwoS . '3:' . $rwoE . '4')->applyFromArray([
+                    'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => $colors['header_rwo']]],
+                    'font' => ['color' => ['rgb' => $colors['font_white']]],
                 ]);
                 $colIdx += 2;
 
-                // Total IPT
-                $totIptStart = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
-                $totIptEnd = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx + 3);
-                $sheet->mergeCells($totIptStart . '1:' . $totIptEnd . '1');
-                $sheet->getStyle($totIptStart . '1:' . $totIptEnd . '2')->applyFromArray([
-                    'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFAFEEEE']]
+                $trwoS = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+                $trwoE = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx + 3);
+                $ws->mergeCells($trwoS . '3:' . $trwoE . '3');
+                $ws->getStyle($trwoS . '3:' . $trwoE . '4')->applyFromArray([
+                    'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => $colors['header_total_rwo']]],
+                    'font' => ['color' => ['rgb' => $colors['font_white']]],
                 ]);
                 $colIdx += 4;
-                
-                // Totals
-                $totalColors = ['FF98FB98', 'FFFFE066', 'FFADD8E6']; // Emerald, Yellow, Blue
-                for ($i=0; $i<3; $i++) {
-                    $c = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
-                    $sheet->mergeCells($c . '1:' . $c . '2');
-                    $sheet->getStyle($c . '1:' . $c . '2')->applyFromArray([
-                        'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => $totalColors[$i]]]
+
+                $iptS = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+                $iptE = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx + 1);
+                $ws->mergeCells($iptS . '3:' . $iptE . '3');
+                $ws->getStyle($iptS . '3:' . $iptE . '4')->applyFromArray([
+                    'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => $colors['header_ipt']]],
+                    'font' => ['color' => ['rgb' => $colors['font_white']]],
+                ]);
+                $colIdx += 2;
+
+                $tiptS = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+                $tiptE = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx + 3);
+                $ws->mergeCells($tiptS . '3:' . $tiptE . '3');
+                $ws->getStyle($tiptS . '3:' . $tiptE . '4')->applyFromArray([
+                    'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => $colors['header_total_ipt']]],
+                    'font' => ['color' => ['rgb' => $colors['font_white']]],
+                ]);
+                $colIdx += 4;
+
+                for ($i = 0; $i < 3; $i++) {
+                    $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx + $i);
+                    $ws->mergeCells($col . '3:' . $col . '4');
+                    $ws->getStyle($col . '3:' . $col . '4')->applyFromArray([
+                        'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => $colors['header_grand']]],
+                        'font' => ['color' => ['rgb' => $colors['font_white']], 'bold' => true],
                     ]);
-                    $colIdx++;
                 }
-                
-                // Base Info Style
-                $sheet->getStyle('A1:D2')->applyFromArray([
-                    'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFF5F5F5']]
+
+                // ── 3. Identity & SO header colours ──────────────────────
+                $ws->getStyle('A3:D4')->applyFromArray([
+                    'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => $colors['header_id']]],
+                    'font' => ['color' => ['rgb' => $colors['font_white']], 'bold' => true],
                 ]);
-                
-                // SO Style
-                $sheet->getStyle('E1:H2')->applyFromArray([
-                    'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFE6F2FF']]
+                $ws->getStyle('E3:H4')->applyFromArray([
+                    'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => $colors['header_so']]],
+                    'font' => ['color' => ['rgb' => $colors['font_white']], 'bold' => true],
                 ]);
 
-                // Format numbers & alignments
-                $lastRow = count($this->spvData) > 0 ? (count($this->array()) + 2) : 2;
-                $highestCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx - 1);
-                $sheet->getStyle('E3:' . $highestCol . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
-                
-                // Set Auto Width for all columns, except A to C where we might want some width
-                foreach (range('A', $highestCol) as $col) {
-                    $sheet->getColumnDimension($col)->setAutoSize(true);
+                // ── 4. Header alignment, wrapText, row height ────────────────
+                $ws->getStyle('A3:' . $highestCol . '4')->applyFromArray([
+                    'alignment' => ['horizontal' => 'center', 'vertical' => 'center', 'wrapText' => true],
+                    'font'      => ['bold' => true],
+                ]);
+                $ws->getRowDimension(3)->setRowHeight(28);
+                $ws->getRowDimension(4)->setRowHeight(36);
+
+                // ── 5. Borders ────────────────────────────────────────────
+                $ws->getStyle('A3:' . $highestCol . $lastRow)->applyFromArray([
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                            'color'       => ['rgb' => 'B0BEC5'],
+                        ],
+                    ],
+                ]);
+
+                $groupEndCols = [];
+                $gi = 8;
+                $groupEndCols[] = $gi;
+                foreach ($this->headers as $h) { $gi += 4; }
+                $groupEndCols[] = $gi;
+                $gi++;
+                $groupEndCols[] = $gi + 1;
+                $gi += 2;
+                $groupEndCols[] = $gi + 3;
+                $gi += 4;
+                $groupEndCols[] = $gi + 1;
+                $gi += 2;
+                $groupEndCols[] = $gi + 3;
+
+                foreach ($groupEndCols as $gbCol) {
+                    $gbLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($gbCol);
+                    $ws->getStyle($gbLetter . '3:' . $gbLetter . $lastRow)->applyFromArray([
+                        'borders' => [
+                            'right' => [
+                                'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_MEDIUM,
+                                'color'       => ['rgb' => '546E7A'],
+                            ],
+                        ],
+                    ]);
                 }
-                
-                // Apply Rowspans for Grouping
-                $currentRow = 3;
+
+                // ── 6. Zebra striping (row 5+) ──────────────────────────────
+                for ($r = 5; $r <= $lastRow - 2; $r++) {
+                    $distName = $ws->getCell('B' . $r)->getValue();
+                    if ($distName === 'VACANT') {
+                        $ws->getStyle('A' . $r . ':' . $highestCol . $r)->applyFromArray([
+                            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => 'FFCCCC']],
+                            'font' => ['color' => ['rgb' => 'FF0000'], 'bold' => true],
+                        ]);
+                    } elseif ($r % 2 === 0) {
+                        $ws->getStyle('A' . $r . ':' . $highestCol . $r)->applyFromArray([
+                            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => $colors['zebra']]],
+                        ]);
+                    }
+                }
+
+                // ── 7. Grand Total row ────────────────────────────────────
+                $ws->getStyle('A' . $lastRow . ':' . $highestCol . $lastRow)->applyFromArray([
+                    'fill'    => ['fillType' => 'solid', 'startColor' => ['rgb' => $colors['gt_row']]],
+                    'font'    => ['bold' => true, 'size' => 11],
+                    'borders' => [
+                        'allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN, 'color' => ['rgb' => 'B0BEC5']],
+                        'top'        => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_MEDIUM, 'color' => ['rgb' => '78281F']],
+                        'bottom'     => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_MEDIUM, 'color' => ['rgb' => '78281F']],
+                    ],
+                ]);
+
+                // ── 8. Number formats ───────────────────────────────────────
+                $dataStart    = 5;
+                $lastDataRow  = $lastRow;
+                $rupiahFormat = '#,##0';
+                $pctFormat    = '0.0%';
+                $iptFormat    = '#,##0';
+
+                $ws->getStyle('E' . $dataStart . ':E' . $lastDataRow)->getNumberFormat()->setFormatCode($rupiahFormat);
+                $ws->getStyle('F' . $dataStart . ':F' . $lastDataRow)->getNumberFormat()->setFormatCode($rupiahFormat);
+                $ws->getStyle('G' . $dataStart . ':G' . $lastDataRow)->getNumberFormat()->setFormatCode($pctFormat);
+                $ws->getStyle('H' . $dataStart . ':H' . $lastDataRow)->getNumberFormat()->setFormatCode($rupiahFormat);
+
+                $vIdx = 9;
+                foreach ($this->headers as $h) {
+                    $cT = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($vIdx);
+                    $cR = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($vIdx + 1);
+                    $cG = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($vIdx + 2);
+                    $cI = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($vIdx + 3);
+                    $ws->getStyle($cT . $dataStart . ':' . $cT . $lastDataRow)->getNumberFormat()->setFormatCode($rupiahFormat);
+                    $ws->getStyle($cR . $dataStart . ':' . $cR . $lastDataRow)->getNumberFormat()->setFormatCode($rupiahFormat);
+                    $ws->getStyle($cG . $dataStart . ':' . $cG . $lastDataRow)->getNumberFormat()->setFormatCode($pctFormat);
+                    $ws->getStyle($cI . $dataStart . ':' . $cI . $lastDataRow)->getNumberFormat()->setFormatCode($rupiahFormat);
+                    $vIdx += 4;
+                }
+
+                $tvCol2 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($vIdx);
+                $ws->getStyle($tvCol2 . $dataStart . ':' . $tvCol2 . $lastDataRow)->getNumberFormat()->setFormatCode($rupiahFormat);
+                $vIdx += 3; // skip Total VTKP + 2 RWO dist cols
+
+                $trwoPct = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($vIdx + 2);
+                $trwoIns = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($vIdx + 3);
+                $ws->getStyle($trwoPct . $dataStart . ':' . $trwoPct . $lastDataRow)->getNumberFormat()->setFormatCode($pctFormat);
+                $ws->getStyle($trwoIns . $dataStart . ':' . $trwoIns . $lastDataRow)->getNumberFormat()->setFormatCode($rupiahFormat);
+                $vIdx += 6; // Total RWO (4) + 2 IPT dist cols
+
+                $tiptIpt = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($vIdx + 2);
+                $tiptIns = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($vIdx + 3);
+                $ws->getStyle($tiptIpt . $dataStart . ':' . $tiptIpt . $lastDataRow)->getNumberFormat()->setFormatCode($iptFormat);
+                $ws->getStyle($tiptIns . $dataStart . ':' . $tiptIns . $lastDataRow)->getNumberFormat()->setFormatCode($rupiahFormat);
+                $vIdx += 4;
+
+                for ($i = 0; $i < 3; $i++) {
+                    $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($vIdx + $i);
+                    $ws->getStyle($col . $dataStart . ':' . $col . $lastDataRow)->getNumberFormat()->setFormatCode($rupiahFormat);
+                }
+
+                // ── 9. Freeze panes ──────────────────────────────────────────
+                $ws->freezePane('E5');
+
+                // ── 10. Row heights ──────────────────────────────────────────
+                for ($r = 5; $r <= $lastRow; $r++) {
+                    $ws->getRowDimension($r)->setRowHeight(18);
+                }
+
+                // ── 11. Alignment ────────────────────────────────────────────
+                $ws->getStyle('A5:' . $highestCol . $lastRow)->applyFromArray([
+                    'alignment' => ['vertical' => 'center'],
+                ]);
+                $ws->getStyle('E5:' . $highestCol . $lastRow)->applyFromArray([
+                    'alignment' => ['horizontal' => 'center'],
+                ]);
+                $ws->getStyle('A5:D' . $lastRow)->applyFromArray([
+                    'alignment' => ['horizontal' => 'left'],
+                ]);
+
+                // ── 12. Column widths ──────────────────────────────────────────
+                $ws->getColumnDimension('A')->setWidth(13);  // Area
+                $ws->getColumnDimension('B')->setWidth(22);  // Distributor Name
+                $ws->getColumnDimension('C')->setWidth(13);  // Cabang
+                $ws->getColumnDimension('D')->setWidth(20);  // Nama SPV
+                $ws->getStyle('D5:D' . $lastRow)->getAlignment()->setWrapText(true);
+
+                for ($ci = 5; $ci <= $totalCols; $ci++) {
+                    $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($ci);
+                    $ws->getColumnDimension($colLetter)->setAutoSize(true);
+                }
+
+                // ── 13. Row-span merges for SPV grouping ───────────────────
+                $currentRow = 5;
                 foreach ($this->spvData as $spv) {
                     $rowspan = $spv['rowspan'];
                     if ($rowspan > 1) {
                         $endRow = $currentRow + $rowspan - 1;
-                        // Nama SPV is at D
-                        $sheet->mergeCells("D{$currentRow}:D{$endRow}");
-                        
-                        // Percentage and Ins SO are at G and H
-                        $sheet->mergeCells("G{$currentRow}:G{$endRow}");
-                        $sheet->mergeCells("H{$currentRow}:H{$endRow}");
-                        
-                        $c = 9; // VTKP starts at column I (9)
-                        $numVtkpProductCols = count($this->headers) * 4;
-                        
-                        // We merge VTKP products in a separate loop for cabangs
-                        $c += $numVtkpProductCols;
-                        
-                        // Merge TOTAL INSENTIF VTKP per SPV
-                        $totalVtkpCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c++);
-                        $sheet->mergeCells("{$totalVtkpCol}{$currentRow}:{$totalVtkpCol}{$endRow}");
-                        
-                        $c += 2; // Skip RWO (Peserta) & RWO (Achieve)
-                        for($i=0; $i<4; $i++) { // Total RWO
+
+                        $ws->mergeCells("D{$currentRow}:D{$endRow}");
+                        $ws->mergeCells("G{$currentRow}:G{$endRow}");
+                        $ws->mergeCells("H{$currentRow}:H{$endRow}");
+
+                        $c = 9 + (count($this->headers) * 4);
+                        $tvColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c++);
+                        $ws->mergeCells("{$tvColLetter}{$currentRow}:{$tvColLetter}{$endRow}");
+
+                        $c += 2;
+                        for ($i = 0; $i < 4; $i++) {
                             $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c++);
-                            $sheet->mergeCells("{$col}{$currentRow}:{$col}{$endRow}");
+                            $ws->mergeCells("{$col}{$currentRow}:{$col}{$endRow}");
                         }
-                        
-                        $c += 2; // Skip IPT SKU & EC
-                        for($i=0; $i<7; $i++) { // Total IPT & All Totals
+
+                        $c += 2;
+                        for ($i = 0; $i < 7; $i++) {
                             $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c++);
-                            $sheet->mergeCells("{$col}{$currentRow}:{$col}{$endRow}");
+                            $ws->mergeCells("{$col}{$currentRow}:{$col}{$endRow}");
                         }
                     }
-                    
-                    // Now loop cabangs for VTKP merging
+
                     $cabangRow = $currentRow;
                     foreach ($spv['cabangs'] as $cabData) {
                         $cRowspan = $cabData['rowspan'];
                         if ($cRowspan > 1) {
                             $cEndRow = $cabangRow + $cRowspan - 1;
-                            
-                            $c = 9; // VTKP starts at column I (9)
+                            $c = 9;
                             foreach ($this->headers as $h) {
-                                $c1 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
-                                $c2 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c+1);
-                                $c3 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c+2);
-                                $c4 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c+3);
-                                $sheet->mergeCells("{$c1}{$cabangRow}:{$c1}{$cEndRow}");
-                                $sheet->mergeCells("{$c2}{$cabangRow}:{$c2}{$cEndRow}");
-                                $sheet->mergeCells("{$c3}{$cabangRow}:{$c3}{$cEndRow}");
-                                $sheet->mergeCells("{$c4}{$cabangRow}:{$c4}{$cEndRow}");
+                                for ($i = 0; $i < 4; $i++) {
+                                    $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c + $i);
+                                    $ws->mergeCells("{$col}{$cabangRow}:{$col}{$cEndRow}");
+                                }
                                 $c += 4;
                             }
                         }
                         $cabangRow += $cRowspan;
                     }
-                    
-                    // Vertical alignment top for merged cells
-                    $sheet->getStyle("A{$currentRow}:" . $highestCol . ($currentRow + $rowspan - 1))
-                        ->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
-                        
+
                     $currentRow += $rowspan;
                 }
             },

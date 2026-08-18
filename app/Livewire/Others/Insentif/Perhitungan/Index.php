@@ -6,7 +6,7 @@ use Livewire\Component;
 
 class Index extends Component
 {
-    public $activeTab = 'insentif-se';
+    public $activeTab = 'summary';
 
     protected $queryString = ['activeTab'];
 

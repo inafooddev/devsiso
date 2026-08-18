@@ -288,7 +288,7 @@ class InsentifSe extends Component
                 $row['ipt']     = 0;
                 
                 if ($row['ipt_ec'] > 0) {
-                    $row['ipt'] = round($row['ipt_sku'] / $row['ipt_ec']);
+                    $row['ipt'] = floor($row['ipt_sku'] / $row['ipt_ec']);
                 }
 
                 $insentif_ipt = 0;
@@ -426,7 +426,7 @@ class InsentifSe extends Component
                 $gtIpt['insentif'] += $row['insentif_ipt'] ?? 0;
             }
             if ($gtIpt['ec'] > 0) {
-                $gtIpt['ipt'] = round($gtIpt['sku'] / $gtIpt['ec']);
+                $gtIpt['ipt'] = floor($gtIpt['sku'] / $gtIpt['ec']);
             }
 
             // SFA Grand Totals

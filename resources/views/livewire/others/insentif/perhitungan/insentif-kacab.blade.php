@@ -48,6 +48,13 @@
                 <span class="loading loading-spinner loading-xs"></span>
                 Memuat data...
             </div>
+            
+            <div class="ml-auto flex items-center gap-2">
+                <button wire:click="$dispatch('openSettingKacabModal')" class="btn btn-sm btn-outline btn-primary rounded-xl gap-2 font-semibold">
+                    <x-heroicon-s-cog-6-tooth class="w-4 h-4" />
+                    Setting Mapping
+                </button>
+            </div>
         </div>
     </div>
 
@@ -176,4 +183,6 @@
             </table>
         </div>
     </div>
+    
+    <livewire:others.insentif.perhitungan.setting-kacab-mapping />
 </div>

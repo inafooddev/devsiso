@@ -4,10 +4,9 @@ namespace App\Exports\Sheets;
 
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\WithCustomStartCell;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use App\Models\InsentifMasterDistributor;
@@ -15,14 +14,18 @@ use App\Models\TargetKacab;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-class InsentifKacabSheet implements FromArray, WithHeadings, WithStyles, ShouldAutoSize, WithEvents, WithTitle
+class InsentifKacabSheet implements FromArray, WithHeadings, WithEvents, WithTitle, WithCustomStartCell
 {
     protected $kacabData = [];
     protected $totals = [];
     protected $monthName;
+    protected $bulanFilter;
+    protected $regionFilter;
 
     public function __construct($bulan, $region, $areas = [])
     {
+        $this->bulanFilter = $bulan;
+        $this->regionFilter = $region;
         $this->monthName = Carbon::parse($bulan . '-01')->translatedFormat("F'y");
         $yearFilter = Carbon::parse($bulan . '-01')->format('Y');
 
@@ -48,10 +51,47 @@ class InsentifKacabSheet implements FromArray, WithHeadings, WithStyles, ShouldA
         $totalTarget = 0; $totalInsentif = 0; $totalSellOut = 0;
         $totalNilaiInsentif = 0; $totalPph = 0; $totalTrf = 0;
 
+        // Build map of cabang -> distCode from masterData
+        $cabangToDistCode = [];
+        foreach ($masterData as $md) {
+            $c = strtoupper(trim($md->cabang));
+            $dc = strtoupper(trim($md->distributor_code));
+            $cabangToDistCode[$c] = $dc;
+        }
+
+        // Apply Mappings
+        $mappings = \App\Models\InsentifKacabMapping::all();
+        $childToParentMap = $mappings->pluck('parent_cabang', 'child_cabang')->toArray();
+        $parentToChildrenMap = [];
+        foreach ($mappings as $m) {
+            $parentToChildrenMap[$m->parent_cabang][] = $m->child_cabang;
+        }
+
+        foreach ($childToParentMap as $child => $parent) {
+            $childDistCode = $cabangToDistCode[$child] ?? null;
+            $parentDistCode = $cabangToDistCode[$parent] ?? null;
+
+            if ($childDistCode && $actuals->has($childDistCode)) {
+                $childActual = $actuals->get($childDistCode)->total_actual;
+                if ($parentDistCode) {
+                    if ($actuals->has($parentDistCode)) {
+                        $actuals->get($parentDistCode)->total_actual += $childActual;
+                    } else {
+                        $actuals->put($parentDistCode, (object)['distributor_code' => $parentDistCode, 'total_actual' => $childActual]);
+                    }
+                }
+            }
+        }
+
         foreach ($masterData as $md) {
             $cabang = strtoupper(trim($md->cabang));
             $distCode = strtoupper(trim($md->distributor_code));
             
+            // Skip rendering child cabangs
+            if (array_key_exists($cabang, $childToParentMap)) {
+                continue;
+            }
+
             $targetData = $targets->get($cabang);
             $target = $targetData ? (float) $targetData->target : 0;
             $insentif = $targetData ? (float) $targetData->insentif : 0;
@@ -59,6 +99,12 @@ class InsentifKacabSheet implements FromArray, WithHeadings, WithStyles, ShouldA
 
             $actualData = $actuals->get($distCode);
             $sellOut = $actualData ? (float) $actualData->total_actual : 0;
+
+            // Rename cabang if it has children mapped to it
+            $displayCabang = $cabang;
+            if (isset($parentToChildrenMap[$cabang])) {
+                $displayCabang .= ', ' . implode(', ', $parentToChildrenMap[$cabang]);
+            }
 
             $percentage = $target > 0 ? ($sellOut / $target) * 100 : 0;
             $nilaiInsentif = $percentage >= 100 ? $insentif : 0;
@@ -68,7 +114,7 @@ class InsentifKacabSheet implements FromArray, WithHeadings, WithStyles, ShouldA
             $this->kacabData[] = [
                 'area_name' => $md->area_name,
                 'distributor_name' => $md->distributor_name,
-                'cabang' => $md->cabang,
+                'cabang' => $displayCabang,
                 'nama_kacab' => $namaKacab,
                 'target' => $target,
                 'insentif' => $insentif,
@@ -87,6 +133,11 @@ class InsentifKacabSheet implements FromArray, WithHeadings, WithStyles, ShouldA
             'target' => $totalTarget, 'insentif' => $totalInsentif, 'sell_out' => $totalSellOut,
             'nilai_insentif' => $totalNilaiInsentif, 'pph' => $totalPph, 'trf' => $totalTrf,
         ];
+    }
+
+    public function startCell(): string
+    {
+        return 'A3';
     }
 
     public function title(): string
@@ -109,7 +160,7 @@ class InsentifKacabSheet implements FromArray, WithHeadings, WithStyles, ShouldA
                 $row['target'],
                 $row['insentif'],
                 $row['sell_out'],
-                number_format($row['percentage'], 1, ',', '.') . '%',
+                $row['percentage'] / 100, // For Excel percentage format
                 $row['nilai_insentif'],
                 $row['pph'],
                 $row['trf'],
@@ -127,7 +178,7 @@ class InsentifKacabSheet implements FromArray, WithHeadings, WithStyles, ShouldA
             $this->totals['target'],
             $this->totals['insentif'],
             $this->totals['sell_out'],
-            number_format($totalPercentage, 1, ',', '.') . '%',
+            $totalPercentage / 100, // For Excel percentage format
             $this->totals['nilai_insentif'],
             $this->totals['pph'],
             $this->totals['trf'],
@@ -151,69 +202,145 @@ class InsentifKacabSheet implements FromArray, WithHeadings, WithStyles, ShouldA
         ];
     }
 
-    public function styles(Worksheet $sheet)
-    {
-        $lastRow = count($this->kacabData) + 4; // 2 headings + data + 1 empty + 1 grand total
-        
-        // Borders for all data
-        $sheet->getStyle('A1:L' . ($lastRow - 2))->applyFromArray([
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                ],
-            ],
-        ]);
-        
-        // Borders for grand total
-        $sheet->getStyle('E' . $lastRow . ':L' . $lastRow)->applyFromArray([
-            'font' => ['bold' => true],
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                ],
-            ],
-        ]);
-
-        return [
-            // Center headers
-            1    => ['alignment' => ['horizontal' => 'center', 'vertical' => 'center'], 'font' => ['bold' => true]],
-            2    => ['alignment' => ['horizontal' => 'center', 'vertical' => 'center'], 'font' => ['bold' => true]],
-        ];
-    }
-
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function(AfterSheet $event) {
-                // Merge cells for headers
-                $event->sheet->getDelegate()->mergeCells('A1:A2');
-                $event->sheet->getDelegate()->mergeCells('B1:B2');
-                $event->sheet->getDelegate()->mergeCells('C1:C2');
-                $event->sheet->getDelegate()->mergeCells('D1:D2');
-                $event->sheet->getDelegate()->mergeCells('E1:E2');
-                $event->sheet->getDelegate()->mergeCells('F1:F2');
-                $event->sheet->getDelegate()->mergeCells('G1:G2');
+            AfterSheet::class => function (AfterSheet $event) {
+                $ws = $event->sheet->getDelegate();
+                $ws->setShowGridlines(false);
+                $totalRows = count($this->kacabData);
+                $lastRow = $totalRows + 6; // 2 titles (1,2) + 2 headers (3,4) + data + empty + grand total
+
+                $colors = [
+                    'identity'   => '1A237E', // Navy
+                    'header_id'  => '1A237E', // Navy
+                    'header_ach' => '1B4F72', // Blue dark
+                    'font_white' => 'FFFFFF',
+                    'zebra'      => 'F0F8FF', // AliceBlue
+                    'gt_row'     => 'FCF3CF', // Light yellow
+                ];
+
+                // ── 1. Dynamic Titles ──────────────────────────────────────────
+                $regionText = $this->regionFilter ?: 'SEMUA REGION';
+                $periodText = mb_strtoupper(Carbon::parse($this->bulanFilter . '-01')->translatedFormat('F Y'));
                 
-                // Merge Super Header
-                $event->sheet->getDelegate()->mergeCells('H1:L1');
+                $ws->setCellValue('A1', "PROGRAM INSENTIF SALES INAFOOD REGION {$regionText}");
+                $ws->setCellValue('A2', "PERIODE {$periodText}");
+
+                $ws->getStyle('A1:A2')->applyFromArray([
+                    'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => $colors['identity']]],
+                ]);
+
+                // ── 2. Merge Headers ──────────────────────────────────────────
+                // Identity + Target + Insentif
+                foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G'] as $col) {
+                    $ws->mergeCells($col . '3:' . $col . '4');
+                }
                 
-                // Format numbers
-                $lastRow = count($this->kacabData) + 4;
-                $event->sheet->getStyle('F3:H' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
-                $event->sheet->getStyle('J3:L' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+                // Pencapaian
+                $ws->mergeCells('H3:L3');
+
+                // ── 3. Header Styling ─────────────────────────────────────────
+                // Identity
+                $ws->getStyle('A3:G4')->applyFromArray([
+                    'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => $colors['header_id']]],
+                    'font' => ['color' => ['rgb' => $colors['font_white']], 'bold' => true],
+                    'alignment' => ['horizontal' => 'center', 'vertical' => 'center', 'wrapText' => true],
+                ]);
+
+                // Pencapaian
+                $ws->getStyle('H3:L4')->applyFromArray([
+                    'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => $colors['header_ach']]],
+                    'font' => ['color' => ['rgb' => $colors['font_white']], 'bold' => true],
+                    'alignment' => ['horizontal' => 'center', 'vertical' => 'center', 'wrapText' => true],
+                ]);
+
+                // ── 4. Row Heights ────────────────────────────────────────────
+                $ws->getRowDimension(3)->setRowHeight(25);
+                $ws->getRowDimension(4)->setRowHeight(25);
+                for ($r = 5; $r <= $lastRow; $r++) {
+                    $ws->getRowDimension($r)->setRowHeight(18);
+                }
+
+                // ── 5. Borders ───────────────────────────────────────────────
+                $ws->getStyle('A3:L' . $lastRow)->applyFromArray([
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                            'color'       => ['rgb' => 'B0BEC5'],
+                        ],
+                    ],
+                ]);
+
+                // Thick right border for group boundaries
+                foreach (['G', 'L'] as $col) {
+                    $ws->getStyle($col . '3:' . $col . $lastRow)->applyFromArray([
+                        'borders' => [
+                            'right' => [
+                                'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_MEDIUM,
+                                'color'       => ['rgb' => '546E7A'],
+                            ],
+                        ],
+                    ]);
+                }
+
+                // ── 6. Zebra striping (row 5+) ──────────────────────────────
+                for ($r = 5; $r <= $lastRow - 2; $r++) {
+                    if ($r % 2 === 0) {
+                        $ws->getStyle('A' . $r . ':L' . $r)->applyFromArray([
+                            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => $colors['zebra']]],
+                        ]);
+                    }
+                }
+
+                // ── 7. Grand Total row ────────────────────────────────────
+                $ws->getStyle('A' . $lastRow . ':L' . $lastRow)->applyFromArray([
+                    'fill'    => ['fillType' => 'solid', 'startColor' => ['rgb' => $colors['gt_row']]],
+                    'font'    => ['bold' => true, 'size' => 11],
+                    'borders' => [
+                        'top'        => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_MEDIUM, 'color' => ['rgb' => '78281F']],
+                        'bottom'     => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_MEDIUM, 'color' => ['rgb' => '78281F']],
+                    ],
+                ]);
+
+                // ── 8. Number formats ───────────────────────────────────────
+                $rupiahFormat = '#,##0';
+                $pctFormat    = '0.0%';
+
+                // Target, Insentif, Sell Out
+                $ws->getStyle('F5:H' . $lastRow)->getNumberFormat()->setFormatCode($rupiahFormat);
                 
-                // Colors
-                $event->sheet->getStyle('F1:G2')->getFill()
-                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                    ->getStartColor()->setARGB('FFE2E8F0'); // Indigo-like
+                // %
+                $ws->getStyle('I5:I' . $lastRow)->getNumberFormat()->setFormatCode($pctFormat);
                 
-                $event->sheet->getStyle('H1:L1')->getFill()
-                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                    ->getStartColor()->setARGB('FFD1FAE5'); // Emerald-like
-                    
-                $event->sheet->getStyle('H2:L2')->getFill()
-                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                    ->getStartColor()->setARGB('FFECFDF5'); // Light emerald
+                // Nilai Insentif, PPH, TRF
+                $ws->getStyle('J5:L' . $lastRow)->getNumberFormat()->setFormatCode($rupiahFormat);
+
+                // ── 9. Freeze panes ──────────────────────────────────────────
+                $ws->freezePane('F5');
+
+                // ── 10. Alignment ────────────────────────────────────────────
+                $ws->getStyle('A5:L' . $lastRow)->applyFromArray([
+                    'alignment' => ['vertical' => 'center'],
+                ]);
+                $ws->getStyle('F5:L' . $lastRow)->applyFromArray([
+                    'alignment' => ['horizontal' => 'center'],
+                ]);
+                $ws->getStyle('A5:E' . $lastRow)->applyFromArray([
+                    'alignment' => ['horizontal' => 'left'],
+                ]);
+                
+                // ── 11. Column widths ──────────────────────────────────────────
+                $ws->getColumnDimension('A')->setWidth(5);   // No
+                $ws->getColumnDimension('B')->setWidth(13);  // Area
+                $ws->getColumnDimension('C')->setWidth(25);  // Distributor
+                $ws->getColumnDimension('D')->setWidth(15);  // Cabang
+                $ws->getColumnDimension('E')->setWidth(20);  // Nama Kacab
+                $ws->getStyle('E5:E' . $lastRow)->getAlignment()->setWrapText(true);
+
+                foreach (['F', 'G', 'H', 'I', 'J', 'K', 'L'] as $col) {
+                    $ws->getColumnDimension($col)->setAutoSize(true);
+                }
             },
         ];
     }

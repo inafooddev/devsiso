@@ -95,26 +95,36 @@ class InsentifSpv extends Component
                 ];
             }
 
-            $query = InsentifMasterDistributor::where('bulan', $this->filterBulan)
+            // 1. Ambil pondasi MPP (Master SPV)
+            $spvQuery = \App\Models\InsentifMasterSpv::where('bulan', $this->filterBulan)
                 ->where('region_name', $this->filterRegion);
 
             if (!empty($this->filterArea)) {
                 if (is_array($this->filterArea)) {
-                    $query->whereIn('area_name', $this->filterArea);
+                    $spvQuery->whereIn('area_name', $this->filterArea);
                 } else {
-                    $query->where('area_name', $this->filterArea);
+                    $spvQuery->where('area_name', $this->filterArea);
                 }
             }
 
+            // Jika ada pencarian
             if ($this->search) {
-                $query->where(function($q) {
+                $spvQuery->where(function($q) {
                     $q->where('supervisor_name', 'ilike', '%' . $this->search . '%')
                       ->orWhere('supervisor_code', 'ilike', '%' . $this->search . '%')
-                      ->orWhere('distributor_name', 'ilike', '%' . $this->search . '%');
+                      ->orWhere('cabang', 'ilike', '%' . $this->search . '%')
+                      ->orWhereExists(function($sub) {
+                          $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                              ->from('insentif_master_distributors as imd')
+                              ->whereColumn('imd.cabang', 'insentif_master_spvs.cabang')
+                              ->where('imd.bulan', $this->filterBulan)
+                              ->where('imd.distributor_name', 'ilike', '%' . $this->search . '%');
+                      });
                 });
             }
 
-            $masterData = $query->get();
+            $spvMasterData = $spvQuery->orderBy('area_name')->orderBy('cabang')->get();
+            $cabangList = $spvMasterData->pluck('cabang')->toArray();
 
             // Fetch Targets
             $targets = DB::table('target_per_depo')
@@ -136,54 +146,38 @@ class InsentifSpv extends Component
                 ->get()
                 ->keyBy('distributor_code');
 
+            $distributorDataRaw = InsentifMasterDistributor::where('bulan', $this->filterBulan)
+                ->whereIn('cabang', $cabangList)
+                ->get()
+                ->groupBy('cabang');
+
             $groupedBySpv = [];
 
-            foreach ($masterData as $md) {
-                $spvCode = $md->supervisor_code ?? 'NO_SPV';
-                $spvName = $md->supervisor_name ?? 'Tanpa Supervisor';
-                $cabang = $md->cabang;
-                $distCode = $md->distributor_code;
+            foreach ($spvMasterData as $spvMaster) {
+                $spvKey = $spvMaster->supervisor_code ?: 'VACANT_' . $spvMaster->id;
+                $spvCode = $spvMaster->supervisor_code ?: 'Vacant';
+                $spvName = $spvMaster->supervisor_name ?: 'Vacant';
+                $cabang = $spvMaster->cabang;
 
-                if (!isset($groupedBySpv[$spvCode])) {
-                    $groupedBySpv[$spvCode] = [
+                if (!isset($groupedBySpv[$spvKey])) {
+                    $groupedBySpv[$spvKey] = [
                         'supervisor_code' => $spvCode,
                         'supervisor_name' => $spvName,
-                        'distributors' => [],
                         'total_target_reguler' => 0,
                         'total_aktual_so' => 0,
                         'total_rwo_peserta' => 0,
                         'total_rwo_achieve' => 0,
                         'total_ipt_sku' => 0,
                         'total_ipt_ec' => 0,
-                        'rowspan' => 0
+                        'rowspan' => 0,
+                        'cabangs' => []
                     ];
                 }
 
-                $target = isset($targets[$cabang]) ? (float)$targets[$cabang]->target : 0;
-                $actual = isset($actuals[$distCode]) ? (float)$actuals[$distCode]->total_actual : 0;
-                
-                $rwoPeserta = isset($rwoData[$distCode]) ? (int)$rwoData[$distCode]->total_potensi : 0;
-                $rwoAchieve = isset($rwoData[$distCode]) ? (int)$rwoData[$distCode]->capai_target : 0;
-                
-                $iptSku = isset($iptData[strtoupper(trim($distCode))]) ? (float)$iptData[strtoupper(trim($distCode))]['sku'] : 0;
-                $iptEc = isset($iptData[strtoupper(trim($distCode))]) ? (float)$iptData[strtoupper(trim($distCode))]['ec'] : 0;
-
-                $distributorData = [
-                    'area_name' => $md->area_name,
-                    'distributor_code' => $distCode,
-                    'distributor_name' => $md->distributor_name,
-                    'cabang' => $cabang,
-                    'target_so' => $target,
-                    'aktual_so' => $actual,
-                    'rwo_peserta' => $rwoPeserta,
-                    'rwo_achieve' => $rwoAchieve,
-                    'ipt_sku' => $iptSku,
-                    'ipt_ec' => $iptEc,
-                ];
-
-                if (!isset($groupedBySpv[$spvCode]['cabangs'][$cabang])) {
-                    $groupedBySpv[$spvCode]['cabangs'][$cabang] = [
+                if (!isset($groupedBySpv[$spvKey]['cabangs'][$cabang])) {
+                    $groupedBySpv[$spvKey]['cabangs'][$cabang] = [
                         'cabang' => $cabang,
+                        'area_name' => $spvMaster->area_name,
                         'distributors' => [],
                         'rowspan' => 0,
                         'vtkp_achievements' => [],
@@ -191,16 +185,63 @@ class InsentifSpv extends Component
                     ];
                 }
 
-                $groupedBySpv[$spvCode]['cabangs'][$cabang]['distributors'][] = $distributorData;
-                $groupedBySpv[$spvCode]['cabangs'][$cabang]['rowspan'] += 1;
+                // Tambahkan target reguler hanya SEKALI per cabang
+                $target = isset($targets[$cabang]) ? (float)$targets[$cabang]->target : 0;
+                $groupedBySpv[$spvKey]['total_target_reguler'] += $target;
 
-                $groupedBySpv[$spvCode]['total_target_reguler'] += $target;
-                $groupedBySpv[$spvCode]['total_aktual_so'] += $actual;
-                $groupedBySpv[$spvCode]['total_rwo_peserta'] += $rwoPeserta;
-                $groupedBySpv[$spvCode]['total_rwo_achieve'] += $rwoAchieve;
-                $groupedBySpv[$spvCode]['total_ipt_sku'] += $iptSku;
-                $groupedBySpv[$spvCode]['total_ipt_ec'] += $iptEc;
-                $groupedBySpv[$spvCode]['rowspan'] += 1;
+                $dists = $distributorDataRaw->get($cabang, []);
+
+                if (count($dists) == 0) {
+                    // Create dummy distributor row
+                    $groupedBySpv[$spvKey]['cabangs'][$cabang]['distributors'][] = [
+                        'area_name' => $spvMaster->area_name,
+                        'distributor_code' => '-',
+                        'distributor_name' => 'VACANT',
+                        'cabang' => $cabang,
+                        'target_so' => $target,
+                        'aktual_so' => 0,
+                        'rwo_peserta' => 0,
+                        'rwo_achieve' => 0,
+                        'ipt_sku' => 0,
+                        'ipt_ec' => 0,
+                    ];
+                    $groupedBySpv[$spvKey]['cabangs'][$cabang]['rowspan'] += 1;
+                    $groupedBySpv[$spvKey]['rowspan'] += 1;
+                } else {
+                    foreach ($dists as $idx => $md) {
+                        $distCode = $md->distributor_code;
+                        $actual = isset($actuals[$distCode]) ? (float)$actuals[$distCode]->total_actual : 0;
+                        
+                        $rwoPeserta = isset($rwoData[$distCode]) ? (int)$rwoData[$distCode]->total_potensi : 0;
+                        $rwoAchieve = isset($rwoData[$distCode]) ? (int)$rwoData[$distCode]->capai_target : 0;
+                        
+                        $iptSku = isset($iptData[strtoupper(trim($distCode))]) ? (float)$iptData[strtoupper(trim($distCode))]['sku'] : 0;
+                        $iptEc = isset($iptData[strtoupper(trim($distCode))]) ? (float)$iptData[strtoupper(trim($distCode))]['ec'] : 0;
+
+                        $distributorData = [
+                            'area_name' => $md->area_name,
+                            'distributor_code' => $distCode,
+                            'distributor_name' => $md->distributor_name,
+                            'cabang' => $cabang,
+                            'target_so' => $target,
+                            'aktual_so' => $actual,
+                            'rwo_peserta' => $rwoPeserta,
+                            'rwo_achieve' => $rwoAchieve,
+                            'ipt_sku' => $iptSku,
+                            'ipt_ec' => $iptEc,
+                        ];
+
+                        $groupedBySpv[$spvKey]['cabangs'][$cabang]['distributors'][] = $distributorData;
+                        $groupedBySpv[$spvKey]['cabangs'][$cabang]['rowspan'] += 1;
+                        $groupedBySpv[$spvKey]['rowspan'] += 1;
+
+                        $groupedBySpv[$spvKey]['total_aktual_so'] += $actual;
+                        $groupedBySpv[$spvKey]['total_rwo_peserta'] += $rwoPeserta;
+                        $groupedBySpv[$spvKey]['total_rwo_achieve'] += $rwoAchieve;
+                        $groupedBySpv[$spvKey]['total_ipt_sku'] += $iptSku;
+                        $groupedBySpv[$spvKey]['total_ipt_ec'] += $iptEc;
+                    }
+                }
             }
 
             // Calculate Percentages and Insentif SO
@@ -317,7 +358,7 @@ class InsentifSpv extends Component
                 // IPT Calculation
                 $totalSku = $groupedBySpv[$spvCode]['total_ipt_sku'];
                 $totalEc = $groupedBySpv[$spvCode]['total_ipt_ec'];
-                $ipt = $totalEc > 0 ? ($totalSku / $totalEc) : 0;
+                $ipt = $totalEc > 0 ? floor($totalSku / $totalEc) : 0;
                 $groupedBySpv[$spvCode]['ipt'] = $ipt;
 
                 $iptInsentif = 0;
@@ -430,7 +471,7 @@ class InsentifSpv extends Component
         }
 
         if ($grandTotal['ipt_ec'] > 0) {
-            $grandTotal['ipt'] = $grandTotal['ipt_sku'] / $grandTotal['ipt_ec'];
+            $grandTotal['ipt'] = floor($grandTotal['ipt_sku'] / $grandTotal['ipt_ec']);
         }
 
         foreach ($headers as $h) {

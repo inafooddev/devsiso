@@ -2,6 +2,9 @@
     <x-slot name="title">Perhitungan Insentif</x-slot>
 
     <x-ui.tab-menu>
+        <x-ui.tab-item :active="$activeTab === 'summary'" wire:click.prevent="setTab('summary')" :navigate="false">
+            <x-heroicon-o-chart-pie class="w-4 h-4 inline-block mr-1" /> Summary
+        </x-ui.tab-item>
         <x-ui.tab-item :active="$activeTab === 'insentif-se'" wire:click.prevent="setTab('insentif-se')" :navigate="false">
             Insentif SE
         </x-ui.tab-item>
@@ -29,24 +32,25 @@
     </x-ui.tab-menu>
 
     <div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full">
-        <div class="mt-4 flex-1 min-h-0 flex flex-col">
-            @if ($activeTab === 'insentif-se')
+        <div class="mt-4 flex-1 min-h-0 flex flex-col w-full h-full">
+            @if ($activeTab === 'summary')
+                <livewire:others.insentif.perhitungan.summary />
+            @elseif ($activeTab === 'insentif-se')
                 <livewire:others.insentif.perhitungan.insentif-se />
             @elseif ($activeTab === 'insentif-spv')
                 <livewire:others.insentif.perhitungan.insentif-spv />
             @elseif ($activeTab === 'insentif-kacab')
                 <livewire:others.insentif.perhitungan.insentif-kacab />
             @endif
-        </div>
 
-        @role('admin')
-            @if($activeTab === 'jobs')
-                <livewire:others.insentif.perhitungan.jobs />
-            @elseif($activeTab === 'setting-header')
-                <livewire:others.insentif.perhitungan.setting-header />
-            @endif
-        @endrole
-    </div>
+            @role('admin')
+                @if($activeTab === 'jobs')
+                    <livewire:others.insentif.perhitungan.jobs />
+                @elseif($activeTab === 'setting-header')
+                    <livewire:others.insentif.perhitungan.setting-header />
+                @endif
+            @endrole
+        </div>
     
     <livewire:others.insentif.perhitungan.export-modal />
 </div>

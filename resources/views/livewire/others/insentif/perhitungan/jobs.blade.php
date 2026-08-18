@@ -9,15 +9,20 @@
                 </div>
 
                 <div class="flex flex-wrap items-center justify-start lg:justify-end gap-2 md:gap-3 w-full lg:w-auto">
-                    <x-ui.action-button
-                        type="filter"
-                        label="Filter Periode"
-                        wire:click="$set('isFilterModalOpen', true)"
-                    />
+                    <select wire:model.live="monthFilter" class="select select-bordered select-sm bg-base-100 rounded-xl focus:ring-2 focus:ring-primary/50 text-xs w-32">
+                        @for ($m = 1; $m <= 12; $m++)
+                            <option value="{{ $m }}">{{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}</option>
+                        @endfor
+                    </select>
                     
+                    <select wire:model.live="yearFilter" class="select select-bordered select-sm bg-base-100 rounded-xl focus:ring-2 focus:ring-primary/50 text-xs w-24">
+                        @for ($y = now()->year; $y >= now()->year - 5; $y--)
+                            <option value="{{ $y }}">{{ $y }}</option>
+                        @endfor
+                    </select>
+
                     <button wire:click="startProcess" wire:loading.attr="disabled" wire:target="startProcess"
-                        @if(!$hasAppliedFilters) disabled @endif
-                        class="btn btn-sm btn-primary rounded-xl normal-case shadow-sm shadow-primary/20 {{ !$hasAppliedFilters ? 'btn-disabled opacity-50' : '' }}">
+                        class="btn btn-sm btn-primary rounded-xl normal-case shadow-sm shadow-primary/20">
                         <span wire:loading.remove wire:target="startProcess" class="flex items-center gap-2">
                             <x-heroicon-o-play class="w-4 h-4" />
                             Mulai Proses
@@ -51,11 +56,28 @@
                     </div>
                 </div>
 
+                @if(!empty($logLines))
+                <div class="mb-4 shrink-0 p-4 bg-base-200/50 rounded-2xl border border-base-300">
+                    <div class="flex justify-between items-end mb-2">
+                        <div>
+                            <span class="text-xs font-bold text-base-content/50 uppercase tracking-wider block mb-1">Status Progress</span>
+                            <span class="text-sm font-semibold text-base-content line-clamp-1 truncate max-w-md" title="{{ $this->currentTask }}">{{ $this->currentTask }}</span>
+                        </div>
+                        <div class="text-right shrink-0 ml-4">
+                            <span class="text-lg font-black {{ $batchStatus === 'failed' ? 'text-error' : ($this->progress == 100 ? 'text-success' : 'text-primary') }}">{{ $this->progress }}%</span>
+                        </div>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-2.5 overflow-hidden">
+                        <div class="h-full transition-all duration-500 {{ $batchStatus === 'failed' ? 'bg-error' : ($this->progress == 100 ? 'bg-success' : 'bg-primary') }}" style="width: {{ $this->progress }}%"></div>
+                    </div>
+                </div>
+                @endif
+
                 <div class="relative group flex-1 overflow-hidden flex flex-col">
                     <!-- Glass effect overlay -->
                     <div class="absolute -inset-0.5 bg-gradient-to-b from-primary/10 to-transparent rounded-2xl blur opacity-20 transition duration-1000 group-hover:opacity-30"></div>
                     
-                    <div class="relative flex-1 w-full bg-slate-950 text-slate-300 rounded-2xl shadow-2xl p-6 font-mono text-[13px] leading-relaxed overflow-y-auto custom-scrollbar border border-white/5">
+                    <div class="relative flex-1 w-full bg-slate-950 text-slate-300 rounded-2xl shadow-2xl p-6 font-mono text-[13px] leading-relaxed overflow-y-auto custom-scrollbar border border-white/5" id="terminal-console">
                         @if(empty($logLines))
                             <div class="flex flex-col items-center justify-center h-full text-slate-500 space-y-3">
                                 <x-heroicon-o-cpu-chip class="w-12 h-12 opacity-20" />
@@ -90,64 +112,6 @@
                     </div>
                 </div>
             </div>
-        </div>
     </div>
-
-    <!-- Modal Filter -->
-    <div x-data="{ open: @entangle('isFilterModalOpen') }" x-show="open" x-cloak wire:ignore.self class="fixed z-50 inset-0 flex items-center justify-center">
-        <!-- Backdrop Blur -->
-        <div x-show="open" x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-             x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-             class="fixed inset-0 bg-base-100/80 backdrop-blur-sm" @click="open = false"></div>
-
-        <div x-show="open"
-             x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
-             x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-             class="relative bg-base-200 rounded-2xl shadow-2xl ring-1 ring-base-300 w-full max-w-md mx-4 overflow-visible">
-
-            <form wire:submit.prevent="applyFilters">
-                <div class="px-6 pt-6 pb-4">
-                    <div class="flex justify-between items-center mb-5">
-                        <h3 class="text-lg font-bold text-base-content flex items-center gap-2">
-                            <x-heroicon-o-funnel class="w-5 h-5 text-primary" />
-                            Filter Data Proses
-                        </h3>
-                        <button @click="open = false" type="button" class="btn btn-ghost btn-sm btn-square rounded-xl">
-                            <x-heroicon-o-x-mark class="h-5 w-5" />
-                        </button>
-                    </div>
-
-                    <div class="space-y-4">
-                        <!-- Periode (Month & Year) -->
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label for="monthFilter" class="block text-sm font-medium text-base-content/70 mb-1.5">Bulan</label>
-                                <select wire:model.defer="monthFilter" id="monthFilter" 
-                                    class="select select-bordered select-sm w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-primary/50">
-                                    @for ($m = 1; $m <= 12; $m++)
-                                        <option value="{{ $m }}">{{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}</option>
-                                    @endfor
-                                </select>
-                            </div>
-                            <div>
-                                <label for="yearFilter" class="block text-sm font-medium text-base-content/70 mb-1.5">Tahun</label>
-                                <select wire:model.defer="yearFilter" id="yearFilter" 
-                                    class="select select-bordered select-sm w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-primary/50">
-                                    @for ($y = now()->year; $y >= now()->year - 5; $y--)
-                                        <option value="{{ $y }}">{{ $y }}</option>
-                                    @endfor
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="px-6 py-4 border-t border-base-300 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-                    <button @click="open = false" type="button" class="btn btn-ghost rounded-xl normal-case sm:mr-auto">Batal</button>
-                    <button wire:click="resetFilters" type="button" class="btn btn-ghost border border-base-300 hover:bg-base-300 rounded-xl normal-case">Reset</button>
-                    <button type="submit" class="btn btn-primary rounded-xl normal-case shadow-sm shadow-primary/20">Terapkan</button>
-                </div>
-            </form>
-        </div>
-    </div>
+</div>
 </div>

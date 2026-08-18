@@ -1,4 +1,4 @@
-<div class="flex-1 flex flex-col w-full h-full min-h-0">
+<div x-data="{ showInfoModal: false }" class="flex-1 flex flex-col w-full h-full min-h-0">
     
     <!-- Filter Section -->
     <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 mb-4 shrink-0 flex flex-wrap gap-4 items-end">
@@ -39,10 +39,15 @@
             <input type="text" wire:model.live.debounce.300ms="search" placeholder="Ketik nama atau kode..." class="input input-bordered input-sm rounded-lg min-w-[200px]">
         </div>
 
-        <div class="ml-auto">
+        <div class="ml-auto flex items-center gap-3">
             <div wire:loading class="text-xs font-semibold text-primary animate-pulse flex items-center gap-2">
                 <span class="loading loading-spinner loading-xs"></span> Menghitung Data...
             </div>
+
+            <button @click="showInfoModal = true" class="btn btn-sm btn-ghost rounded-lg border border-base-300 text-base-content/70 hover:text-info hover:border-info/50 hover:bg-info/10">
+                <x-heroicon-o-information-circle class="w-4 h-4" />
+                Mekanisme Insentif
+            </button>
         </div>
     </div>
 
@@ -375,6 +380,221 @@
                 </tfoot>
                 @endif
             </table>
+        </div>
+    </div>
+
+    <!-- Modal Mekanisme Insentif -->
+    <div x-show="showInfoModal" x-cloak class="fixed z-[100] inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div x-show="showInfoModal" x-transition.opacity class="fixed inset-0 bg-base-100/80 backdrop-blur-sm transition-opacity" @click="showInfoModal = false" aria-hidden="true"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <!-- Modal panel -->
+            <div x-show="showInfoModal" 
+                 x-transition:enter="ease-out duration-300" 
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" 
+                 x-transition:leave="ease-in duration-200" 
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" 
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
+                 class="inline-block align-bottom bg-base-100 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl w-full border border-base-300">
+                
+                <div class="bg-base-200/50 px-6 py-4 border-b border-base-300 flex justify-between items-center">
+                    <h3 class="text-lg leading-6 font-bold text-base-content flex items-center gap-2" id="modal-title">
+                        <x-heroicon-o-information-circle class="w-6 h-6 text-info" />
+                        Mekanisme Perhitungan Insentif SE (Sales Executive)
+                    </h3>
+                    <button @click="showInfoModal = false" class="btn btn-sm btn-circle btn-ghost">
+                        <x-heroicon-o-x-mark class="w-5 h-5" />
+                    </button>
+                </div>
+
+                <div class="px-6 py-6 overflow-y-auto custom-scrollbar space-y-6" style="max-height: calc(100vh - 12rem);">
+                    
+                    <!-- 1. Insentif Value -->
+                    <div class="bg-base-200/30 rounded-xl p-4 border border-base-300">
+                        <h4 class="font-bold text-md mb-2 flex items-center gap-2 text-primary">
+                            <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-xs">1</span>
+                            Insentif Value (Target Reguler Rupiah)
+                        </h4>
+                        <p class="text-sm mb-3">Dihitung berdasarkan target bulanan dan persentase pencapaian (Achievement). <span class="font-semibold text-error">Syarat minimal target adalah Rp 250 Juta.</span></p>
+                        <div class="overflow-x-auto">
+                            <table class="table table-sm table-zebra w-full text-xs">
+                                <thead>
+                                    <tr class="bg-base-300/50">
+                                        <th>Target Reguler</th>
+                                        <th>Ach &ge; 125%</th>
+                                        <th>Ach &ge; 100%</th>
+                                        <th>Ach &ge; 90%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="font-semibold">&ge; Rp 450 Juta</td>
+                                        <td class="text-success font-bold">Rp 1.200.000</td>
+                                        <td class="text-success">Rp 1.000.000</td>
+                                        <td class="text-warning">Rp 300.000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold">&ge; Rp 350 Juta</td>
+                                        <td class="text-success font-bold">Rp 1.000.000</td>
+                                        <td class="text-success">Rp 800.000</td>
+                                        <td class="text-warning">Rp 150.000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold">&ge; Rp 250 Juta</td>
+                                        <td class="text-success font-bold">Rp 800.000</td>
+                                        <td class="text-success">Rp 500.000</td>
+                                        <td class="text-error">Rp 0</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 2. Insentif VTKP -->
+                    <div class="bg-base-200/30 rounded-xl p-4 border border-base-300">
+                        <h4 class="font-bold text-md mb-2 flex items-center gap-2 text-primary">
+                            <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-xs">2</span>
+                            Insentif VTKP (Volume Transaksi Kelompok Produk)
+                        </h4>
+                        <p class="text-sm mb-3">Diukur dari Pertumbuhan (Growth %) dan Jumlah Aktual (Real Qty). <br/><span class="badge badge-error badge-sm">Syarat Mutlak</span> Pencapaian Insentif Value (Target Reguler) harus <span class="font-bold">&ge; 60%</span>.</p>
+                        <div class="overflow-x-auto">
+                            <table class="table table-sm table-zebra w-full text-xs">
+                                <thead>
+                                    <tr class="bg-base-300/50">
+                                        <th>Growth</th>
+                                        <th>Real &ge; 1500</th>
+                                        <th>Real &ge; 1000</th>
+                                        <th>Real &ge; 500</th>
+                                        <th>Real &ge; 200</th>
+                                        <th>Real &ge; 50</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="font-semibold">&ge; 30%</td>
+                                        <td class="text-success font-bold">Rp 500.000</td>
+                                        <td>Rp 350.000</td>
+                                        <td>Rp 250.000</td>
+                                        <td>Rp 150.000</td>
+                                        <td>Rp 50.000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold">&ge; 20%</td>
+                                        <td class="text-success font-bold">Rp 350.000</td>
+                                        <td>Rp 250.000</td>
+                                        <td>Rp 150.000</td>
+                                        <td>Rp 100.000</td>
+                                        <td>Rp 35.000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold">&ge; 10%</td>
+                                        <td class="text-success font-bold">Rp 200.000</td>
+                                        <td>Rp 150.000</td>
+                                        <td>Rp 100.000</td>
+                                        <td>Rp 75.000</td>
+                                        <td>Rp 25.000</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 3. Insentif EC -->
+                    <div class="bg-base-200/30 rounded-xl p-4 border border-base-300">
+                        <h4 class="font-bold text-md mb-2 flex items-center gap-2 text-primary">
+                            <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-xs">3</span>
+                            Insentif Kunjungan Efektif (EC)
+                        </h4>
+                        <p class="text-sm mb-3">Dihitung dari Persentase Kunjungan (% EC = EC / AC) dan Rata-rata EC Harian (EC / 25 hari kerja). <br/><span class="badge badge-error badge-sm">Syarat Mutlak</span> Pencapaian Insentif Value (Target Reguler) harus <span class="font-bold">&ge; 60%</span>.</p>
+                        <div class="overflow-x-auto">
+                            <table class="table table-sm table-zebra w-full text-xs">
+                                <thead>
+                                    <tr class="bg-base-300/50">
+                                        <th>% EC (EC/AC)</th>
+                                        <th>EC Harian</th>
+                                        <th>Insentif</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="font-semibold">&ge; 80%</td>
+                                        <td class="font-semibold">&ge; 16 Toko/Hari</td>
+                                        <td class="text-success font-bold">Rp 800.000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold">&ge; 70%</td>
+                                        <td class="font-semibold">&ge; 14 Toko/Hari</td>
+                                        <td class="text-success font-bold">Rp 500.000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold">&ge; 60%</td>
+                                        <td class="font-semibold">&ge; 12 Toko/Hari</td>
+                                        <td class="text-success font-bold">Rp 300.000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold">&ge; 50%</td>
+                                        <td class="font-semibold">&ge; 10 Toko/Hari</td>
+                                        <td class="text-success font-bold">Rp 50.000</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 4. Insentif IPT -->
+                    <div class="bg-base-200/30 rounded-xl p-4 border border-base-300">
+                        <h4 class="font-bold text-md mb-2 flex items-center gap-2 text-primary">
+                            <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-xs">4</span>
+                            Insentif Item Per Transaction (IPT)
+                        </h4>
+                        <p class="text-sm mb-3">Dihitung dari rata-rata SKU per Kunjungan Efektif (IPT = SKU / EC). <br/><span class="badge badge-error badge-sm">Syarat Mutlak</span> Total Customer/Toko (RO) harus <span class="font-bold">&ge; 250 Toko</span>.</p>
+                        <div class="overflow-x-auto">
+                            <table class="table table-sm table-zebra w-full text-xs">
+                                <thead>
+                                    <tr class="bg-base-300/50">
+                                        <th>Nilai IPT (SKU/EC)</th>
+                                        <th>Insentif</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td class="font-semibold">&ge; 12</td><td class="text-success font-bold">Rp 600.000</td></tr>
+                                    <tr><td class="font-semibold">&ge; 8</td><td class="text-success font-bold">Rp 500.000</td></tr>
+                                    <tr><td class="font-semibold">&ge; 7</td><td class="text-success font-bold">Rp 250.000</td></tr>
+                                    <tr><td class="font-semibold">&ge; 5</td><td class="text-success font-bold">Rp 150.000</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 5. Penalti SFA -->
+                    <div class="bg-error/10 rounded-xl p-4 border border-error/20">
+                        <h4 class="font-bold text-md mb-2 flex items-center gap-2 text-error">
+                            <span class="flex items-center justify-center w-6 h-6 rounded-full bg-error/20 text-xs">5</span>
+                            Penalti Penggunaan SFA
+                        </h4>
+                        <p class="text-sm">Diukur dari absensi di aplikasi SFA (% SFA = AC / PC). <br/><br/>
+                        Jika persentase SFA <span class="font-bold text-error">&lt; 95%</span>, maka total seluruh insentif (Value + VTKP + EC + IPT) akan dipotong penalti sebesar 75% <span class="font-bold underline">sehingga hanya dibayarkan 25% saja.</span><br/>
+                        <span class="text-xs opacity-75 mt-1 block">*Pengecualian: Jika PC dan AC bernilai 0 (karena kendala device), maka persentase SFA dianggap 100%.</span></p>
+                    </div>
+
+                    <!-- 6. PPH -->
+                    <div class="bg-base-200/30 rounded-xl p-4 border border-base-300">
+                        <h4 class="font-bold text-md mb-2 flex items-center gap-2 text-primary">
+                            <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-xs">6</span>
+                            Potongan Pajak (PPH 5%)
+                        </h4>
+                        <p class="text-sm">Total Take Home Pay (THP) yang diterima adalah total insentif (setelah penalti jika ada) dikurangi pajak penghasilan sebesar 5%.</p>
+                    </div>
+
+                </div>
+                <div class="bg-base-200/50 px-6 py-4 border-t border-base-300 flex justify-end">
+                    <button @click="showInfoModal = false" type="button" class="btn btn-primary rounded-xl px-8 shadow-sm">Mengerti</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>

@@ -21,11 +21,6 @@ class Jobs extends Component
     // Filter
     public $monthFilter;
     public $yearFilter;
-
-    // State
-    public $isFilterModalOpen = false;
-    public $hasAppliedFilters = false;
-
     // Log Process
     public $batchId;
     public $logLines = [];
@@ -37,28 +32,19 @@ class Jobs extends Component
         $this->yearFilter = now()->year;
     }
 
-    public function applyFilters()
+    // State
+    public function updatedMonthFilter()
     {
-        $this->hasAppliedFilters = true;
-        $this->isFilterModalOpen = false;
         $this->reset(['batchId', 'logLines', 'batchStatus']);
     }
 
-    public function resetFilters()
+    public function updatedYearFilter()
     {
-        $this->reset(['monthFilter', 'yearFilter']);
-        $this->monthFilter = now()->month;
-        $this->yearFilter = now()->year;
-        $this->hasAppliedFilters = false;
         $this->reset(['batchId', 'logLines', 'batchStatus']);
     }
 
     public function startProcess()
     {
-        if (!$this->hasAppliedFilters) {
-            session()->flash('error', 'Silakan terapkan filter terlebih dahulu.');
-            return;
-        }
 
         $bulanFormat = sprintf('%04d-%02d', $this->yearFilter, $this->monthFilter);
 
@@ -75,6 +61,7 @@ class Jobs extends Component
         // Dispatch Job berantai (Chain)
         Bus::chain([
             new ExtractInsentifMasterDistributorJob($bulanFormat, $batch->id),
+            new \App\Jobs\ExtractInsentifMasterSpvJob($bulanFormat, $batch->id),
             new ExtractInsentifMasterSalesmanJob($bulanFormat, $batch->id),
             new ExtractInsentifValuePerSalesmanJob($bulanFormat, $batch->id),
             new ExtractInsentifQtyPerSeJob($bulanFormat, $batch->id),
@@ -101,6 +88,29 @@ class Jobs extends Component
                 $this->batchStatus = $batch->status;
             }
         }
+    }
+
+    public function getProgressProperty()
+    {
+        if (empty($this->logLines)) return 0;
+        
+        $completed = collect($this->logLines)->filter(function ($log) {
+            return ($log['type'] ?? '') === 'success' && str_contains($log['message'], 'Sukses');
+        })->count();
+        
+        $total = 10;
+        return min(100, round(($completed / $total) * 100));
+    }
+
+    public function getCurrentTaskProperty()
+    {
+        if ($this->progress == 100) return 'Proses Selesai';
+        if ($this->batchStatus === 'failed') return 'Proses Gagal / Berhenti';
+        if (empty($this->logLines)) return 'Menunggu Instruksi...';
+        
+        // Find the last info/warning message to show as current task
+        $lastLog = collect($this->logLines)->last();
+        return $lastLog['message'] ?? 'Memproses...';
     }
 
     public function render()

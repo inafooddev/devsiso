@@ -55,6 +55,32 @@
                         @endif
                     </div>
                 </div>
+
+                <!-- Pilihan Sheet -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Pilih Lembar Laporan</span>
+                    </label>
+                    <div class="flex flex-col gap-2 bg-base-200 p-3 rounded-lg border border-base-300">
+                        <label class="cursor-pointer label justify-start gap-3 py-1">
+                            <input type="checkbox" wire:model="selectedSheets" value="SE" class="checkbox checkbox-sm checkbox-primary" />
+                            <span class="label-text">Laporan Insentif SE</span>
+                        </label>
+                        <label class="cursor-pointer label justify-start gap-3 py-1">
+                            <input type="checkbox" wire:model="selectedSheets" value="SPV" class="checkbox checkbox-sm checkbox-primary" />
+                            <span class="label-text">Laporan Insentif SPV</span>
+                        </label>
+                        <label class="cursor-pointer label justify-start gap-3 py-1">
+                            <input type="checkbox" wire:model="selectedSheets" value="KACAB" class="checkbox checkbox-sm checkbox-primary" />
+                            <span class="label-text">Laporan Insentif Kepala Cabang</span>
+                        </label>
+                        <label class="cursor-pointer label justify-start gap-3 py-1">
+                            <input type="checkbox" wire:model="selectedSheets" value="SUMMARY" class="checkbox checkbox-sm checkbox-success" />
+                            <span class="label-text font-semibold text-success">Rekapan Summary THP <span class="badge badge-success badge-xs ml-1">Semua Jabatan</span></span>
+                        </label>
+                    </div>
+                    @error('selectedSheets') <span class="text-error text-xs mt-1 font-medium">{{ $message }}</span> @enderror
+                </div>
             </div>
 
             <div class="modal-action mt-6">

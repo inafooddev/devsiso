@@ -1,6 +1,6 @@
 <div class="flex flex-col gap-4 flex-1 min-h-0 w-full">
     {{-- Teleported Form Toolbar to Tab Bar --}}
-    <template x-teleport="#clustering-toolbar-teleport">
+    @teleport('#clustering-toolbar-teleport')
         <div class="flex items-center gap-2 flex-wrap lg:flex-nowrap w-full lg:w-auto justify-end">
             
             {{-- Distributor Input --}}
@@ -60,7 +60,7 @@
                 <x-heroicon-o-information-circle class="w-5 h-5" />
             </button>
         </div>
-    </template>
+    @endteleport
 
     @php
         $summary = [];
