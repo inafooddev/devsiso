@@ -100,6 +100,7 @@ use App\Livewire\MonitoringDevice\Index as MonitoringDeviceIndex;
 use App\Livewire\Others\Insentif\Index as InsentifIndex;
 use App\Livewire\Others\Insentif\Target\Index as InsentifTargetIndex;
 use App\Livewire\Others\Insentif\Perhitungan\Index as InsentifPerhitunganIndex;
+use App\Livewire\Others\Insentif\Perhitungan\Jobs as InsentifJobs;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -374,6 +375,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/others/insentif', InsentifIndex::class)->name('others.insentif.index');
     Route::get('/others/insentif/target', InsentifTargetIndex::class)->name('others.insentif.target.index');
     Route::get('/others/insentif/perhitungan', InsentifPerhitunganIndex::class)->name('others.insentif.perhitungan.index');
+    Route::get('/others/insentif/jobs', InsentifJobs::class)->name('others.insentif.jobs');
     Route::get('/mapping-supervisor-code', MappingSupervisorCodeIndex::class)->name('mapping-supervisor-code.index');
     Route::get('/qceskalink', QceskalinkIndex::class)->name('qceskalink.index');
     Route::get('/monitoring-device', MonitoringDeviceIndex::class)->name('monitoring-device.index');
