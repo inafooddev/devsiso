@@ -115,6 +115,6 @@ class Jobs extends Component
 
     public function render()
     {
-        return view('livewire.others.insentif.perhitungan.jobs');
+        return view('livewire.others.insentif.perhitungan.jobs')->layout('layouts.app');
     }
 }
