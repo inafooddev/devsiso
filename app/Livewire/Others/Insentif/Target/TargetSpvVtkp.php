@@ -107,8 +107,11 @@ class TargetSpvVtkp extends Component
                     'content' => 'data:text/plain;base64,' . $base64
                 ]);
 
+                \App\Helpers\ActivityLogger::log('Import Target SPV VTKP', "Import selesai dengan $success baris sukses, namun terdapat " . count($errors) . " error.");
+
                 session()->flash('warning', "Import selesai dengan $success baris sukses, namun terdapat " . count($errors) . " error. (File error otomatis didownload)");
             } else {
+                \App\Helpers\ActivityLogger::log('Import Target SPV VTKP', "Data berhasil di-import ($success baris sukses).");
                 session()->flash('message', "Data berhasil di-import ($success baris).");
             }
         } catch (\Exception $e) {
@@ -125,6 +128,9 @@ class TargetSpvVtkp extends Component
         $this->authorizeAction('can_export');
         $timestamp = date('Ymd_His');
         $yearStr = $this->yearFilter ?: 'ALL';
+        
+        \App\Helpers\ActivityLogger::log('Export Target SPV VTKP', "Mengekspor data Target SPV VTKP kuartal {$this->quarterFilter} tahun {$yearStr}");
+        
         return Excel::download(new TargetSpvVtkpExport($this->yearFilter, $this->quarterFilter), "Target_SPV_VTKP_{$yearStr}_{$this->quarterFilter}_{$timestamp}.xlsx");
     }
 
@@ -196,12 +202,13 @@ class TargetSpvVtkp extends Component
                 }
             }
 
+            \App\Helpers\ActivityLogger::log('Edit Target SPV VTKP', "Memperbarui data Target SPV VTKP kuartal {$this->quarterFilter} {$this->yearFilter} untuk Cabang {$this->editCabang}");
+
             session()->flash('message', 'Data berhasil diperbarui.');
             $this->closeEditModal();
         }
     }
 
-    // -- DELETE --
     public function deleteData($cabang)
     {
         $this->authorizeAction('can_delete');
@@ -209,6 +216,8 @@ class TargetSpvVtkp extends Component
         TargetSpvVtkpModel::whereIn('bulan', $months)
                      ->where('cabang', $cabang)
                      ->delete();
+                     
+        \App\Helpers\ActivityLogger::log('Delete Target SPV VTKP', "Menghapus data Target SPV VTKP kuartal {$this->quarterFilter} {$this->yearFilter} untuk Cabang {$cabang}");
                      
         session()->flash('message', 'Data berhasil dihapus.');
     }

@@ -99,8 +99,11 @@ class TargetSpvValue extends Component
                     'content' => 'data:text/plain;base64,' . $base64
                 ]);
 
+                \App\Helpers\ActivityLogger::log('Import Target SPV Value', "Import selesai dengan $success baris sukses, namun terdapat " . count($errors) . " error.");
+
                 session()->flash('warning', "Import selesai dengan $success baris sukses, namun terdapat " . count($errors) . " error. (File error otomatis didownload)");
             } else {
+                \App\Helpers\ActivityLogger::log('Import Target SPV Value', "Data berhasil di-import ($success baris sukses).");
                 session()->flash('message', "Data berhasil di-import ($success baris).");
             }
         } catch (\Exception $e) {
@@ -117,6 +120,9 @@ class TargetSpvValue extends Component
         $this->authorizeAction('can_export');
         $timestamp = date('Ymd_His');
         $yearStr = $this->yearFilter ?: 'ALL';
+        
+        \App\Helpers\ActivityLogger::log('Export Target SPV Value', "Mengekspor data Target SPV Value tahun {$yearStr}");
+        
         return Excel::download(new TargetSpvValueExport($this->yearFilter), "Target_SPV_Value_{$yearStr}_{$timestamp}.xlsx");
     }
 
@@ -197,18 +203,21 @@ class TargetSpvValue extends Component
                 ]
             );
 
+            \App\Helpers\ActivityLogger::log('Edit Target SPV Value', "Memperbarui data Target SPV Value bulan {$this->editBulan} untuk Cabang {$this->editCabang}");
+
             session()->flash('message', 'Data berhasil diperbarui.');
             $this->closeEditModal();
         }
     }
 
-    // -- DELETE --
     public function deleteData($bulan, $cabang)
     {
         $this->authorizeAction('can_delete');
         TargetPerDepo::where('bulan', $bulan)
                      ->where('cabang', $cabang)
                      ->delete();
+                     
+        \App\Helpers\ActivityLogger::log('Delete Target SPV Value', "Menghapus data Target SPV Value bulan {$bulan} untuk Cabang {$cabang}");
                      
         session()->flash('message', 'Data berhasil dihapus.');
     }

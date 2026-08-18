@@ -93,8 +93,11 @@ class TargetSeValue extends Component
                     'content' => 'data:text/plain;base64,' . $base64
                 ]);
 
+                \App\Helpers\ActivityLogger::log('Import Target SE Value', "Import selesai dengan $success baris sukses, namun terdapat " . count($errors) . " error.");
+
                 session()->flash('warning', "Import selesai dengan $success baris sukses, namun terdapat " . count($errors) . " error. (File error otomatis didownload)");
             } else {
+                \App\Helpers\ActivityLogger::log('Import Target SE Value', "Data berhasil di-import ($success baris sukses).");
                 session()->flash('message', "Data berhasil di-import ($success baris).");
             }
         } catch (\Exception $e) {
@@ -110,8 +113,11 @@ class TargetSeValue extends Component
     {
         $this->authorizeAction('can_export');
         $timestamp = date('Ymd_His');
-        $monthStr = $this->monthFilter ?: 'ALL';
-        return Excel::download(new TargetSeValueExport($this->monthFilter), "Target_SE_Value_{$monthStr}_{$timestamp}.xlsx");
+        $yearStr = $this->yearFilter ?: 'ALL';
+        
+        \App\Helpers\ActivityLogger::log('Export Target SE Value', "Mengekspor data Target SE Value tahun {$yearStr}");
+        
+        return Excel::download(new TargetSeValueExport($this->yearFilter), "Target_SE_Value_{$yearStr}_{$timestamp}.xlsx");
     }
 
     // -- EDIT --
@@ -148,6 +154,8 @@ class TargetSeValue extends Component
                 'target' => $this->editTarget,
             ]);
 
+            \App\Helpers\ActivityLogger::log('Edit Target SE Value', "Memperbarui data Target SE Value bulan {$this->editBulan} untuk Salesman {$this->editSalesmanCode}");
+
             session()->flash('message', 'Data berhasil diperbarui.');
             $this->closeEditModal();
         }
@@ -157,7 +165,11 @@ class TargetSeValue extends Component
     public function deleteData($id)
     {
         $this->authorizeAction('can_delete');
-        TargetSeValueModel::findOrFail($id)->delete();
+        $data = TargetSeValueModel::findOrFail($id);
+        
+        \App\Helpers\ActivityLogger::log('Delete Target SE Value', "Menghapus data Target SE Value bulan {$data->bulan} untuk Salesman {$data->salesman_code}");
+        
+        $data->delete();
         session()->flash('message', 'Data berhasil dihapus.');
     }
 

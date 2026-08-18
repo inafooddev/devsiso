@@ -108,8 +108,11 @@ class TargetSeVtkp extends Component
                     'content' => 'data:text/plain;base64,' . $base64
                 ]);
 
+                \App\Helpers\ActivityLogger::log('Import Target SE VTKP', "Import selesai dengan $success baris sukses, namun terdapat " . count($errors) . " error.");
+
                 session()->flash('warning', "Import selesai dengan $success baris sukses, namun terdapat " . count($errors) . " error. (File error otomatis didownload)");
             } else {
+                \App\Helpers\ActivityLogger::log('Import Target SE VTKP', "Data berhasil di-import ($success baris sukses).");
                 session()->flash('message', "Data berhasil di-import ($success baris).");
             }
         } catch (\Exception $e) {
@@ -126,6 +129,9 @@ class TargetSeVtkp extends Component
         $this->authorizeAction('can_export');
         $timestamp = date('Ymd_His');
         $monthStr = $this->yearFilter . '_' . $this->quarterFilter;
+        
+        \App\Helpers\ActivityLogger::log('Export Target SE VTKP', "Mengekspor data Target SE VTKP {$monthStr}");
+        
         // Kita sementara biarkan logic export karena view yang difokuskan. 
         // Jika TargetSeVtkpExport belum mendukung quarter filter, kita panggil seperti awal saja dulu,
         // namun untuk menghindari error, kita sesuaikan passing parameternya.
@@ -204,6 +210,8 @@ class TargetSeVtkp extends Component
                 }
             }
 
+            \App\Helpers\ActivityLogger::log('Edit Target SE VTKP', "Memperbarui data Target SE VTKP kuartal {$this->quarterFilter} {$this->yearFilter} untuk Distributor {$this->editDistributorCode} dan Salesman {$this->editSalesmanCode}");
+
             session()->flash('message', 'Data berhasil diperbarui.');
             $this->closeEditModal();
         }
@@ -218,6 +226,8 @@ class TargetSeVtkp extends Component
                      ->where('distributor_code', $distributorCode)
                      ->where('salesman_code', $salesmanCode)
                      ->delete();
+                     
+        \App\Helpers\ActivityLogger::log('Delete Target SE VTKP', "Menghapus data Target SE VTKP kuartal {$this->quarterFilter} {$this->yearFilter} untuk Distributor {$distributorCode} dan Salesman {$salesmanCode}");
                      
         session()->flash('message', 'Data berhasil dihapus.');
     }

@@ -99,8 +99,11 @@ class TargetKacab extends Component
                     'content' => 'data:text/plain;base64,' . $base64
                 ]);
 
+                \App\Helpers\ActivityLogger::log('Import Target Kacab', "Import selesai dengan $success baris sukses, namun terdapat " . count($errors) . " error.");
+
                 session()->flash('warning', "Import selesai dengan $success baris sukses, namun terdapat " . count($errors) . " error. (File error otomatis didownload)");
             } else {
+                \App\Helpers\ActivityLogger::log('Import Target Kacab', "Data berhasil di-import ($success baris sukses).");
                 session()->flash('message', "Data berhasil di-import ($success baris).");
             }
         } catch (\Exception $e) {
@@ -117,6 +120,9 @@ class TargetKacab extends Component
         $this->authorizeAction('can_export');
         $timestamp = date('Ymd_His');
         $yearStr = $this->yearFilter ?: 'ALL';
+        
+        \App\Helpers\ActivityLogger::log('Export Target Kacab', "Mengekspor data Target Kacab tahun {$yearStr}");
+        
         return Excel::download(new TargetKacabExport($this->yearFilter), "Target_Kacab_{$yearStr}_{$timestamp}.xlsx");
     }
 
@@ -160,18 +166,23 @@ class TargetKacab extends Component
                     'insentif' => $this->editInsentif,
                 ]);
                 
+                \App\Helpers\ActivityLogger::log('Edit Target Kacab', "Memperbarui data Target Kacab tahun {$this->editTahun} untuk Cabang {$this->editCabang}");
+                
                 session()->flash('message', 'Data berhasil diperbarui.');
                 $this->closeEditModal();
             }
         }
     }
 
-    // -- DELETE --
     public function deleteData($id)
     {
         $this->authorizeAction('can_delete');
-        TargetKacabModel::destroy($id);
-        session()->flash('message', 'Data berhasil dihapus.');
+        $record = TargetKacabModel::find($id);
+        if ($record) {
+            \App\Helpers\ActivityLogger::log('Delete Target Kacab', "Menghapus data Target Kacab tahun {$record->tahun} untuk Cabang {$record->cabang}");
+            $record->delete();
+            session()->flash('message', 'Data berhasil dihapus.');
+        }
     }
 
     public function render()
