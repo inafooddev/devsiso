@@ -6,6 +6,7 @@ use App\Exports\TargetSeValueExport;
 use App\Exports\TargetSeValueTemplateExport;
 use App\Imports\TargetSeValueImport;
 use App\Models\TargetSeValue as TargetSeValueModel;
+use App\Traits\EnforcesMenuPermissions;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
@@ -13,7 +14,9 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class TargetSeValue extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'others.insentif.target.index';
 
     public $search = '';
     public $monthFilter = '';
@@ -43,6 +46,7 @@ class TargetSeValue extends Component
     // -- IMPORT --
     public function openImportModal()
     {
+        $this->authorizeAction('can_import');
         $this->reset(['importExcel']);
         $this->isImportModalOpen = true;
     }
@@ -61,6 +65,7 @@ class TargetSeValue extends Component
 
     public function processImport()
     {
+        $this->authorizeAction('can_import');
         $this->validate([
             'importExcel' => 'required|mimes:xlsx,xls,csv|max:10240',
         ]);
@@ -103,6 +108,7 @@ class TargetSeValue extends Component
     // -- EXPORT --
     public function export()
     {
+        $this->authorizeAction('can_export');
         $timestamp = date('Ymd_His');
         $monthStr = $this->monthFilter ?: 'ALL';
         return Excel::download(new TargetSeValueExport($this->monthFilter), "Target_SE_Value_{$monthStr}_{$timestamp}.xlsx");
@@ -111,6 +117,7 @@ class TargetSeValue extends Component
     // -- EDIT --
     public function openEditModal($id)
     {
+        $this->authorizeAction('can_edit');
         $data = TargetSeValueModel::findOrFail($id);
         
         $this->editId = $data->id;
@@ -130,6 +137,7 @@ class TargetSeValue extends Component
 
     public function saveEdit()
     {
+        $this->authorizeAction('can_edit');
         $this->validate([
             'editTarget' => 'required|numeric|min:0',
         ]);
@@ -148,8 +156,8 @@ class TargetSeValue extends Component
     // -- DELETE --
     public function deleteData($id)
     {
-        $data = TargetSeValueModel::findOrFail($id);
-        $data->delete();
+        $this->authorizeAction('can_delete');
+        TargetSeValueModel::findOrFail($id)->delete();
         session()->flash('message', 'Data berhasil dihapus.');
     }
 

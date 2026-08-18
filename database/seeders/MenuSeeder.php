@@ -1028,6 +1028,18 @@ class MenuSeeder extends Seeder
             ),
             81 => 
             array (
+                'id' => 107,
+                'name' => 'Target Insentif',
+                'route' => 'others.insentif.target.index',
+                'icon' => '',
+                'parent_id' => 76,
+                'order_number' => 8,
+                'is_active' => true,
+                'created_at' => '2026-08-18 15:00:00',
+                'updated_at' => '2026-08-18 15:00:00',
+            ),
+            82 => 
+            array (
                 'id' => 54,
                 'name' => 'Portal',
                 'route' => NULL,
@@ -1041,7 +1053,7 @@ class MenuSeeder extends Seeder
                 'created_at' => '2026-05-12 13:28:21',
                 'updated_at' => '2026-08-04 14:22:50',
             ),
-            82 => 
+            83 => 
             array (
                 'id' => 61,
                 'name' => 'Power BI',
@@ -1057,7 +1069,7 @@ class MenuSeeder extends Seeder
                 'created_at' => '2026-05-15 13:26:53',
                 'updated_at' => '2026-08-04 13:53:27',
             ),
-            83 => 
+            84 => 
             array (
                 'id' => 105,
                 'name' => 'Dashboard',

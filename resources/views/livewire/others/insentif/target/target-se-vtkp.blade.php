@@ -63,16 +63,20 @@
         </div>
         
         <div class="flex flex-wrap items-center gap-2">
+            @if(auth()->check() && auth()->user()->hasMenuAccess('others.insentif.target.index', 'can_import'))
             <button wire:click="openImportModal" class="btn btn-sm btn-info text-white rounded-xl normal-case gap-2 shadow-sm shadow-info/20">
                 <x-heroicon-s-arrow-up-tray class="w-4 h-4" />
                 <span class="hidden sm:inline">Import</span>
             </button>
+            @endif
             
+            @if(auth()->check() && auth()->user()->hasMenuAccess('others.insentif.target.index', 'can_export'))
             <button wire:click="export" class="btn btn-sm btn-success text-white rounded-xl normal-case gap-2 shadow-sm shadow-success/20">
                 <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
                 <span class="hidden sm:inline">Export</span>
                 <span wire:loading wire:target="export" class="loading loading-spinner loading-xs ml-1"></span>
             </button>
+            @endif
         </div>
     </div>
 
@@ -110,18 +114,22 @@
 
                         <td class="border border-base-300 text-center">
                             <div class="flex items-center justify-center gap-1">
+                                @if(auth()->check() && auth()->user()->hasMenuAccess('others.insentif.target.index', 'can_edit'))
                                 <button wire:click="openEditModal('{{ addslashes($item->distributor_code) }}', '{{ addslashes($item->salesman_code) }}')" 
                                         class="btn btn-xs btn-square btn-outline btn-primary" 
                                         title="Edit Manual">
                                     <x-heroicon-s-pencil-square class="w-4 h-4" />
                                 </button>
+                                @endif
                                 
+                                @if(auth()->check() && auth()->user()->hasMenuAccess('others.insentif.target.index', 'can_delete'))
                                 <button wire:click="deleteData('{{ addslashes($item->distributor_code) }}', '{{ addslashes($item->salesman_code) }}')" 
                                         onclick="return confirm('Yakin ingin menghapus data Salesman {{ addslashes($item->salesman_code) }} di kuartal ini?')"
                                         class="btn btn-xs btn-square btn-outline btn-error" 
                                         title="Hapus Data">
                                     <x-heroicon-s-trash class="w-4 h-4" />
                                 </button>
+                                @endif
                             </div>
                         </td>
                     </tr>

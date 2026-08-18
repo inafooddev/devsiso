@@ -6,6 +6,7 @@ use App\Exports\TargetSeVtkpExport;
 use App\Exports\TargetSeVtkpTemplateExport;
 use App\Imports\TargetSeVtkpImport;
 use App\Models\TargetSeVtkp as TargetSeVtkpModel;
+use App\Traits\EnforcesMenuPermissions;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
@@ -13,7 +14,9 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class TargetSeVtkp extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'others.insentif.target.index';
 
     public $search = '';
     public $yearFilter = '';
@@ -58,6 +61,7 @@ class TargetSeVtkp extends Component
     // -- IMPORT --
     public function openImportModal()
     {
+        $this->authorizeAction('can_import');
         $this->reset(['importExcel']);
         $this->isImportModalOpen = true;
     }
@@ -76,6 +80,7 @@ class TargetSeVtkp extends Component
 
     public function processImport()
     {
+        $this->authorizeAction('can_import');
         $this->validate([
             'importExcel' => 'required|mimes:xlsx,xls,csv|max:10240',
         ]);
@@ -118,6 +123,7 @@ class TargetSeVtkp extends Component
     // -- EXPORT --
     public function export()
     {
+        $this->authorizeAction('can_export');
         $timestamp = date('Ymd_His');
         $monthStr = $this->yearFilter . '_' . $this->quarterFilter;
         // Kita sementara biarkan logic export karena view yang difokuskan. 
@@ -140,6 +146,7 @@ class TargetSeVtkp extends Component
     // -- EDIT --
     public function openEditModal($distributorCode, $salesmanCode)
     {
+        $this->authorizeAction('can_edit');
         $this->editDistributorCode = $distributorCode;
         $this->editSalesmanCode = $salesmanCode;
         $this->editTargets = [];
@@ -166,6 +173,7 @@ class TargetSeVtkp extends Component
 
     public function saveEdit()
     {
+        $this->authorizeAction('can_edit');
         $rules = [];
         foreach ($this->productGroups as $idx => $pg) {
             $rules["editTargets.{$idx}"] = 'required|numeric|min:0';
@@ -204,6 +212,7 @@ class TargetSeVtkp extends Component
     // -- DELETE --
     public function deleteData($distributorCode, $salesmanCode)
     {
+        $this->authorizeAction('can_delete');
         $months = $this->getMonthsInQuarter();
         TargetSeVtkpModel::whereIn('bulan', $months)
                      ->where('distributor_code', $distributorCode)

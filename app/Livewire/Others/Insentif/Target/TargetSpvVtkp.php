@@ -6,6 +6,7 @@ use App\Exports\TargetSpvVtkpExport;
 use App\Exports\TargetSpvVtkpTemplateExport;
 use App\Imports\TargetSpvVtkpImport;
 use App\Models\TargetSpvVtkp as TargetSpvVtkpModel;
+use App\Traits\EnforcesMenuPermissions;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
@@ -13,7 +14,9 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class TargetSpvVtkp extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'others.insentif.target.index';
 
     public $search = '';
     public $yearFilter = '';
@@ -57,6 +60,7 @@ class TargetSpvVtkp extends Component
     // -- IMPORT --
     public function openImportModal()
     {
+        $this->authorizeAction('can_import');
         $this->reset(['importExcel']);
         $this->isImportModalOpen = true;
     }
@@ -75,6 +79,7 @@ class TargetSpvVtkp extends Component
 
     public function processImport()
     {
+        $this->authorizeAction('can_import');
         $this->validate([
             'importExcel' => 'required|mimes:xlsx,xls,csv|max:10240',
         ]);
@@ -117,6 +122,7 @@ class TargetSpvVtkp extends Component
     // -- EXPORT --
     public function export()
     {
+        $this->authorizeAction('can_export');
         $timestamp = date('Ymd_His');
         $yearStr = $this->yearFilter ?: 'ALL';
         return Excel::download(new TargetSpvVtkpExport($this->yearFilter, $this->quarterFilter), "Target_SPV_VTKP_{$yearStr}_{$this->quarterFilter}_{$timestamp}.xlsx");
@@ -135,6 +141,7 @@ class TargetSpvVtkp extends Component
     // -- EDIT --
     public function openEditModal($cabang)
     {
+        $this->authorizeAction('can_edit');
         $this->editCabang = $cabang;
         $this->editTargets = [];
 
@@ -159,6 +166,7 @@ class TargetSpvVtkp extends Component
 
     public function saveEdit()
     {
+        $this->authorizeAction('can_edit');
         $rules = [];
         foreach ($this->productGroups as $idx => $pg) {
             $rules["editTargets.{$idx}"] = 'required|numeric|min:0';
@@ -196,6 +204,7 @@ class TargetSpvVtkp extends Component
     // -- DELETE --
     public function deleteData($cabang)
     {
+        $this->authorizeAction('can_delete');
         $months = $this->getMonthsInQuarter();
         TargetSpvVtkpModel::whereIn('bulan', $months)
                      ->where('cabang', $cabang)

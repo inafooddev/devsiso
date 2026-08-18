@@ -6,6 +6,7 @@ use App\Exports\TargetSpvValueExport;
 use App\Exports\TargetSpvValueTemplateExport;
 use App\Imports\TargetSpvValueImport;
 use App\Models\TargetPerDepo;
+use App\Traits\EnforcesMenuPermissions;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
@@ -13,7 +14,9 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class TargetSpvValue extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'others.insentif.target.index';
 
     public $search = '';
     public $yearFilter = '';
@@ -49,6 +52,7 @@ class TargetSpvValue extends Component
     // -- IMPORT --
     public function openImportModal()
     {
+        $this->authorizeAction('can_import');
         $this->reset(['importExcel']);
         $this->isImportModalOpen = true;
     }
@@ -67,6 +71,7 @@ class TargetSpvValue extends Component
 
     public function processImport()
     {
+        $this->authorizeAction('can_import');
         $this->validate([
             'importExcel' => 'required|mimes:xlsx,xls,csv|max:10240',
         ]);
@@ -109,6 +114,7 @@ class TargetSpvValue extends Component
     // -- EXPORT --
     public function export()
     {
+        $this->authorizeAction('can_export');
         $timestamp = date('Ymd_His');
         $yearStr = $this->yearFilter ?: 'ALL';
         return Excel::download(new TargetSpvValueExport($this->yearFilter), "Target_SPV_Value_{$yearStr}_{$timestamp}.xlsx");
@@ -117,6 +123,7 @@ class TargetSpvValue extends Component
     // -- EDIT --
     public function openEditModal($bulan, $cabang)
     {
+        $this->authorizeAction('can_edit');
         // Ambil data untuk cabang dan bulan tersebut
         $records = TargetPerDepo::where('bulan', $bulan)
                                 ->where('cabang', $cabang)
@@ -155,6 +162,7 @@ class TargetSpvValue extends Component
 
     public function saveEdit()
     {
+        $this->authorizeAction('can_edit');
         $this->validate([
             'editTargetReg' => 'required|numeric|min:0',
             'editTargetFest' => 'required|numeric|min:0',
@@ -197,6 +205,7 @@ class TargetSpvValue extends Component
     // -- DELETE --
     public function deleteData($bulan, $cabang)
     {
+        $this->authorizeAction('can_delete');
         TargetPerDepo::where('bulan', $bulan)
                      ->where('cabang', $cabang)
                      ->delete();

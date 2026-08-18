@@ -6,6 +6,7 @@ use App\Exports\TargetKacabExport;
 use App\Exports\TargetKacabTemplateExport;
 use App\Imports\TargetKacabImport;
 use App\Models\TargetKacab as TargetKacabModel;
+use App\Traits\EnforcesMenuPermissions;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
@@ -13,7 +14,9 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class TargetKacab extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, EnforcesMenuPermissions;
+
+    protected string $menuRoute = 'others.insentif.target.index';
 
     public $search = '';
     public $yearFilter = '';
@@ -49,6 +52,7 @@ class TargetKacab extends Component
     // -- IMPORT --
     public function openImportModal()
     {
+        $this->authorizeAction('can_import');
         $this->reset(['importExcel']);
         $this->isImportModalOpen = true;
     }
@@ -67,6 +71,7 @@ class TargetKacab extends Component
 
     public function processImport()
     {
+        $this->authorizeAction('can_import');
         $this->validate([
             'importExcel' => 'required|mimes:xlsx,xls,csv|max:10240',
         ]);
@@ -109,6 +114,7 @@ class TargetKacab extends Component
     // -- EXPORT --
     public function export()
     {
+        $this->authorizeAction('can_export');
         $timestamp = date('Ymd_His');
         $yearStr = $this->yearFilter ?: 'ALL';
         return Excel::download(new TargetKacabExport($this->yearFilter), "Target_Kacab_{$yearStr}_{$timestamp}.xlsx");
@@ -117,6 +123,7 @@ class TargetKacab extends Component
     // -- EDIT --
     public function openEditModal($id)
     {
+        $this->authorizeAction('can_edit');
         $record = TargetKacabModel::find($id);
         if ($record) {
             $this->editId = $record->id;
@@ -138,6 +145,7 @@ class TargetKacab extends Component
 
     public function saveEdit()
     {
+        $this->authorizeAction('can_edit');
         $this->validate([
             'editTarget' => 'required|numeric|min:0',
             'editInsentif' => 'required|numeric|min:0',
@@ -161,6 +169,7 @@ class TargetKacab extends Component
     // -- DELETE --
     public function deleteData($id)
     {
+        $this->authorizeAction('can_delete');
         TargetKacabModel::destroy($id);
         session()->flash('message', 'Data berhasil dihapus.');
     }
