@@ -19,6 +19,10 @@ class SettingKacabMapping extends Component
     #[On('openSettingKacabModal')]
     public function openModal()
     {
+        if (auth()->user()->getAccessLevel() !== 'nasional') {
+            abort(403, 'Unauthorized action.');
+        }
+
         $this->isOpen = true;
         $this->resetForm();
         $this->loadCabangList();
@@ -50,6 +54,10 @@ class SettingKacabMapping extends Component
 
     public function save()
     {
+        if (auth()->user()->getAccessLevel() !== 'nasional') {
+            abort(403, 'Unauthorized action.');
+        }
+
         $this->validate([
             'parent_cabang' => 'required',
             'child_cabang' => 'required|different:parent_cabang',
@@ -93,6 +101,10 @@ class SettingKacabMapping extends Component
 
     public function delete($id)
     {
+        if (auth()->user()->getAccessLevel() !== 'nasional') {
+            abort(403, 'Unauthorized action.');
+        }
+
         InsentifKacabMapping::findOrFail($id)->delete();
         session()->flash('success', 'Mapping berhasil dihapus.');
         

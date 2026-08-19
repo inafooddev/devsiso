@@ -64,10 +64,12 @@
             </div>
             
             <div class="ml-auto flex items-center gap-2">
+                @if(($accessLevel ?? '') === 'nasional')
                 <button wire:click="$dispatch('openSettingKacabModal')" class="btn btn-sm btn-outline btn-primary rounded-xl gap-2 font-semibold">
                     <x-heroicon-s-cog-6-tooth class="w-4 h-4" />
                     Setting Mapping
                 </button>
+                @endif
             </div>
         </div>
     </div>
