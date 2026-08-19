@@ -13,9 +13,18 @@
         </div>
 
         <div>
-            <label class="block text-xs font-semibold text-base-content/70 mb-1">Region</label>
-            <select wire:model.live="filterRegion" class="select select-bordered select-sm rounded-lg min-w-[160px]">
-                <option value="">Semua Region</option>
+            <label class="block text-xs font-semibold text-base-content/70 mb-1">
+                Region
+                @if(in_array($accessLevel, ['region','area']))
+                    <span class="badge badge-warning badge-xs ml-1">Terbatas</span>
+                @endif
+            </label>
+            <select wire:model.live="filterRegion"
+                class="select select-bordered select-sm rounded-lg min-w-[160px] {{ in_array($accessLevel, ['region','area']) && count($listRegion) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
+                @if(in_array($accessLevel, ['region','area']) && count($listRegion) === 1) disabled @endif>
+                @if(!in_array($accessLevel, ['region','area']))
+                    <option value="">Semua Region</option>
+                @endif
                 @foreach($listRegion as $r)
                     <option value="{{ $r }}">{{ $r }}</option>
                 @endforeach
@@ -23,9 +32,18 @@
         </div>
 
         <div>
-            <label class="block text-xs font-semibold text-base-content/70 mb-1">Area</label>
-            <select wire:model.live="filterArea" class="select select-bordered select-sm rounded-lg min-w-[160px]" @if($listArea->isEmpty()) disabled @endif>
-                <option value="">Semua Area</option>
+            <label class="block text-xs font-semibold text-base-content/70 mb-1">
+                Area
+                @if($accessLevel === 'area')
+                    <span class="badge badge-warning badge-xs ml-1">Terbatas</span>
+                @endif
+            </label>
+            <select wire:model.live="filterArea"
+                class="select select-bordered select-sm rounded-lg min-w-[160px] {{ $accessLevel === 'area' && count($listArea) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
+                @if($listArea->isEmpty() || ($accessLevel === 'area' && count($listArea) === 1)) disabled @endif>
+                @if($accessLevel !== 'area')
+                    <option value="">Semua Area</option>
+                @endif
                 @foreach($listArea as $a)
                     <option value="{{ $a }}">{{ $a }}</option>
                 @endforeach

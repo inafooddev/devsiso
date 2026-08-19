@@ -93,6 +93,12 @@
                         <td class="border border-base-300 text-center">
                             <div class="flex items-center justify-center gap-1">
                                 @if(auth()->check() && auth()->user()->hasMenuAccess('others.insentif.target.index', 'can_edit'))
+                                <button wire:click="openSwapModal({{ $item->id }})" 
+                                        class="btn btn-xs btn-square btn-outline btn-warning" 
+                                        title="Tukar Target (Swap)">
+                                    <x-heroicon-s-arrows-right-left class="w-4 h-4" />
+                                </button>
+                                
                                 <button wire:click="openEditModal({{ $item->id }})" 
                                         class="btn btn-xs btn-square btn-outline btn-primary" 
                                         title="Edit Manual">
@@ -245,7 +251,91 @@
             </div>
         </div>
     </div>
+    {{-- ========== MODAL SWAP TARGET ========== --}}
+    <div x-show="$wire.isSwapModalOpen" x-cloak class="fixed inset-0 z-[60] overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div x-show="$wire.isSwapModalOpen"
+                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                 class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" wire:click="closeSwapModal"></div>
 
+            <div x-show="$wire.isSwapModalOpen"
+                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+                 class="relative text-left bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-lg ring-1 ring-base-content/5 text-base-content my-8">
+
+                <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-warning/10 rounded-t-3xl">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 rounded-2xl bg-warning/20 text-warning-content">
+                            <x-heroicon-s-arrows-right-left class="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg leading-none">Tukar Target (Swap)</h3>
+                            <p class="text-[11px] text-base-content/50 mt-1 uppercase tracking-wider font-semibold">Tukar Nilai Target antar SE</p>
+                        </div>
+                    </div>
+                    <button wire:click="closeSwapModal" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300">
+                        <x-heroicon-s-x-mark class="w-5 h-5" />
+                    </button>
+                </div>
+
+                <form wire:submit.prevent="processSwap">
+                    <div class="p-6 space-y-5">
+                        
+                        @if($swapSourceData)
+                        <div class="bg-base-200 p-4 rounded-xl space-y-2 border border-base-300">
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-base-content/70">Bulan</span>
+                                <span class="font-bold">{{ $swapSourceData->bulan }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-base-content/70">Distributor</span>
+                                <span class="font-bold">{{ $swapSourceData->distributor_code }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-base-content/70">SE Sumber (A)</span>
+                                <span class="font-bold text-primary">{{ $swapSourceData->salesman_code }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-base-content/70">Target SE A</span>
+                                <span class="font-bold text-success">Rp {{ number_format($swapSourceData->target, 0, ',', '.') }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-center -my-2 relative z-10">
+                            <div class="bg-base-100 border border-base-300 p-2 rounded-full text-warning shadow-sm">
+                                <x-heroicon-s-arrows-up-down class="w-5 h-5" />
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Pilih SE Tujuan (B) <span class="text-error">*</span></label>
+                            <select wire:model="swapTargetId" class="select select-bordered w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-warning/50">
+                                <option value="">-- Pilih Salesman (SE) --</option>
+                                @foreach($swapListSE as $se)
+                                    <option value="{{ $se->id }}">{{ $se->salesman_code }} (Target: Rp {{ number_format($se->target, 0, ',', '.') }})</option>
+                                @endforeach
+                            </select>
+                            @error('swapTargetId') <span class="text-error text-[10px] font-medium ml-1">{{ $message }}</span> @enderror
+                        </div>
+                        
+                        <p class="text-xs text-base-content/60 text-center mt-2">
+                            Nilai target <strong>SE A</strong> akan diberikan ke <strong>SE B</strong>, dan sebaliknya.
+                        </p>
+                        @endif
+
+                    </div>
+
+                    <div class="flex items-center justify-end gap-3 px-6 py-5 border-t border-base-300 bg-base-200/30 rounded-b-3xl">
+                        <button type="button" wire:click="closeSwapModal" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300">Batal</button>
+                        <button type="submit" class="btn btn-warning text-warning-content rounded-xl px-10 normal-case shadow-sm shadow-warning/20 gap-2" {{ empty($swapListSE) ? 'disabled' : '' }}>
+                            Proses Tukar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     @script
     <script>
         $wire.on('download-error-file', (event) => {

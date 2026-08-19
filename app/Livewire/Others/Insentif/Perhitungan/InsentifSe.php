@@ -7,6 +7,7 @@ use App\Models\InsentifMasterSalesman;
 use App\Models\InsentifMasterDistributor;
 use App\Models\InsentifHeaderGrup;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class InsentifSe extends Component
@@ -16,17 +17,56 @@ class InsentifSe extends Component
     public $filterArea;
     public $search = '';
 
+    protected $lockedRegions = null;
+    protected $lockedAreas = null;
+
     public function mount()
     {
-        $this->filterBulan = date('Y-m'); // Default current month
+        $latest = InsentifMasterDistributor::max('bulan');
+        $this->filterBulan = $latest ?: date('Y-m');
         
-        // Coba ambil default region dari db jika ada
-        $firstRegion = DB::table('insentif_master_distributors')
-            ->whereNotNull('region_name')
-            ->orderBy('region_name')
-            ->value('region_name');
-            
-        $this->filterRegion = $firstRegion ?? '';
+        $user = Auth::user();
+        $level = $user->getAccessLevel();
+
+        if ($level === 'region') {
+            $regionCodes = (array) $user->region_code;
+            $this->lockedRegions = InsentifMasterDistributor::whereIn('region_code', $regionCodes)
+                ->whereNotNull('region_name')
+                ->distinct()
+                ->pluck('region_name')
+                ->toArray();
+
+            if (count($this->lockedRegions) === 1) {
+                $this->filterRegion = $this->lockedRegions[0];
+            } elseif (count($this->lockedRegions) > 0) {
+                $this->filterRegion = $this->lockedRegions[0]; // Set default
+            }
+
+        } elseif ($level === 'area') {
+            $areaCodes = (array) $user->area_code;
+            $rows = InsentifMasterDistributor::whereIn('area_code', $areaCodes)
+                ->whereNotNull('area_name')
+                ->distinct()
+                ->get(['region_name', 'area_name']);
+
+            $this->lockedAreas   = $rows->pluck('area_name')->unique()->values()->toArray();
+            $this->lockedRegions = $rows->pluck('region_name')->unique()->values()->toArray();
+
+            if (count($this->lockedRegions) === 1) {
+                $this->filterRegion = $this->lockedRegions[0];
+            }
+            if (count($this->lockedAreas) === 1) {
+                $this->filterArea = $this->lockedAreas[0];
+            }
+        } else {
+            // Coba ambil default region dari db jika ada
+            $firstRegion = DB::table('insentif_master_distributors')
+                ->whereNotNull('region_name')
+                ->orderBy('region_name')
+                ->value('region_name');
+                
+            $this->filterRegion = $firstRegion ?? '';
+        }
     }
 
     public function updatedFilterRegion()
@@ -36,17 +76,29 @@ class InsentifSe extends Component
 
     public function render()
     {
+        $user = Auth::user();
+        $accessLevel = $user->getAccessLevel();
+
         $listBulan = InsentifMasterSalesman::select('bulan')->distinct()->orderBy('bulan', 'desc')->pluck('bulan');
-        $listRegions = InsentifMasterDistributor::select('region_name')->whereNotNull('region_name')->distinct()->orderBy('region_name')->pluck('region_name');
+        
+        $regionQuery = InsentifMasterDistributor::select('region_name')->whereNotNull('region_name')->distinct()->orderBy('region_name');
+        if ($this->lockedRegions !== null) {
+            $regionQuery->whereIn('region_name', $this->lockedRegions);
+        }
+        $listRegions = $regionQuery->pluck('region_name');
         
         $listAreas = collect();
         if ($this->filterRegion) {
-            $listAreas = InsentifMasterDistributor::select('area_name')
+            $areaQuery = InsentifMasterDistributor::select('area_name')
                 ->where('region_name', $this->filterRegion)
                 ->whereNotNull('area_name')
                 ->distinct()
-                ->orderBy('area_name')
-                ->pluck('area_name');
+                ->orderBy('area_name');
+
+            if ($this->lockedAreas !== null) {
+                $areaQuery->whereIn('area_name', $this->lockedAreas);
+            }
+            $listAreas = $areaQuery->pluck('area_name');
         }
 
         $headers = [];
@@ -468,6 +520,7 @@ class InsentifSe extends Component
             'grandTotalKeseluruhan' => $grandTotalKeseluruhan ?? 0,
             'grandTotalPph' => $grandTotalPph ?? 0,
             'grandTotalThp' => $grandTotalThp ?? 0,
+            'accessLevel' => $accessLevel,
         ]);
     }
 

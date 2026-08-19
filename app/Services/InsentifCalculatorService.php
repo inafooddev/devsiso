@@ -598,6 +598,7 @@ class InsentifCalculatorService
         foreach ($visitsRaw as $v) {
             $key = strtoupper(trim($v->distributor_code) . '_' . trim($v->salesman_code));
             $visitsData[$key] = [
+                'pc' => $v->pc,
                 'ac' => $v->ac,
                 'ec' => $v->ec
             ];
@@ -616,115 +617,135 @@ class InsentifCalculatorService
 
         foreach ($salesmen as $sm) {
             $valKey = strtoupper(trim($sm->kd_dist) . '_' . trim($sm->kode_se));
-            
+
+            // --- Value (SO) ---
             $valTarget = $valueTargets[$valKey] ?? 0;
-            $valReal = $valueActuals[$valKey] ?? 0;
-            $valAch = 0;
+            $valReal   = $valueActuals[$valKey] ?? 0;
+            $valAch    = 0;
             if ($valTarget > 0) {
                 $valAch = ($valReal / $valTarget) * 100;
             } elseif ($valReal > 0) {
                 $valAch = 100;
             }
 
+            // hitungInsentifValue — sesuai tabel asli InsentifSe.php
             $valInsentif = 0;
             if ($valTarget >= 450000000) {
-                if ($valAch >= 125) $valInsentif = 2500000;
-                elseif ($valAch >= 100) $valInsentif = 2000000;
-                elseif ($valAch >= 90) $valInsentif = 300000;
+                if ($valAch >= 125)     $valInsentif = 1200000;
+                elseif ($valAch >= 100) $valInsentif = 1000000;
+                elseif ($valAch >= 90)  $valInsentif = 300000;
             } elseif ($valTarget >= 350000000) {
-                if ($valAch >= 125) $valInsentif = 2250000;
-                elseif ($valAch >= 100) $valInsentif = 1750000;
-                elseif ($valAch >= 90) $valInsentif = 250000;
+                if ($valAch >= 125)     $valInsentif = 1000000;
+                elseif ($valAch >= 100) $valInsentif = 800000;
+                elseif ($valAch >= 90)  $valInsentif = 150000;
             } elseif ($valTarget >= 250000000) {
-                if ($valAch >= 125) $valInsentif = 2000000;
-                elseif ($valAch >= 100) $valInsentif = 1500000;
-                elseif ($valAch >= 90) $valInsentif = 200000;
+                if ($valAch >= 125)     $valInsentif = 800000;
+                elseif ($valAch >= 100) $valInsentif = 500000;
+                // ach >= 90 = 0
             }
 
+            // --- VTKP ---
             $totalInsentifVtkp = 0;
-            
             foreach ($headers as $h) {
                 $targetVal = 0;
-                $realVal = 0;
-                
+                $realVal   = 0;
                 foreach ($h->details as $d) {
-                    $targetKey = strtoupper(trim($sm->kd_dist) . '_' . trim($sm->kode_se) . '_' . trim($d->product_group_3));
-                    $targetVal += ($targets[$targetKey] ?? 0);
-                    
-                    $actualKey = strtoupper(trim($sm->kd_dist) . '_' . trim($sm->kode_se) . '_' . trim($d->product_group_3));
-                    $realVal += ($actuals[$actualKey] ?? 0);
+                    $k = strtoupper(trim($sm->kd_dist) . '_' . trim($sm->kode_se) . '_' . trim($d->product_group_3));
+                    $targetVal += ($targets[$k] ?? 0);
+                    $realVal   += ($actuals[$k] ?? 0);
                 }
-                
+
                 $growth = 0;
                 if ($targetVal > 0) {
                     $growth = (($realVal - $targetVal) / $targetVal) * 100;
                 } elseif ($realVal > 0) {
                     $growth = 100;
                 }
-                
+
+                // hitungInsentifVtkp — lookup berdasarkan real qty, bukan (real-target)*600
                 $insVtkp = 0;
                 if ($targetVal > 0 && $valAch >= 60) {
-                    if ($growth >= 30) {
-                        $insVtkp = ($realVal - $targetVal) * 600;
-                    } elseif ($growth >= 20) {
-                        $insVtkp = ($realVal - $targetVal) * 400;
-                    } elseif ($growth >= 10) {
-                        $insVtkp = ($realVal - $targetVal) * 250;
+                    $g = round($growth);
+                    $r = round($realVal);
+                    if ($g >= 30) {
+                        if ($r >= 1500)      $insVtkp = 500000;
+                        elseif ($r >= 1000)  $insVtkp = 350000;
+                        elseif ($r >= 500)   $insVtkp = 250000;
+                        elseif ($r >= 200)   $insVtkp = 150000;
+                        elseif ($r >= 50)    $insVtkp = 50000;
+                    } elseif ($g >= 20) {
+                        if ($r >= 1500)      $insVtkp = 350000;
+                        elseif ($r >= 1000)  $insVtkp = 250000;
+                        elseif ($r >= 500)   $insVtkp = 150000;
+                        elseif ($r >= 200)   $insVtkp = 100000;
+                        elseif ($r >= 50)    $insVtkp = 35000;
+                    } elseif ($g >= 10) {
+                        if ($r >= 1500)      $insVtkp = 200000;
+                        elseif ($r >= 1000)  $insVtkp = 150000;
+                        elseif ($r >= 500)   $insVtkp = 100000;
+                        elseif ($r >= 200)   $insVtkp = 75000;
+                        elseif ($r >= 50)    $insVtkp = 25000;
                     }
                 }
                 $totalInsentifVtkp += $insVtkp;
             }
 
-            $ro = $roData[$valKey] ?? 0;
-            $visit = $visitsData[$valKey] ?? ['ac' => 0, 'ec' => 0];
-            $ecPct = 0;
-            if ($ro > 0) {
-                $ecPct = ($visit['ec'] / $ro) * 100;
-            }
+            // --- EC ---
+            $roRow  = $roData[$valKey]     ?? ['frekuensi' => '-', 'total_customer' => 0];
+            $visit  = $visitsData[$valKey] ?? ['pc' => 0, 'ac' => 0, 'ec' => 0];
+            $ro     = $roRow['total_customer'] ?? 0;
+            $ac     = $visit['ac'];
+            $ec     = $visit['ec'];
 
-            $ecInsentif = 0;
+            $persen_ec  = ($ac > 0) ? round(($ec / $ac) * 100) : 0;
+            $ec_harian  = ($ec > 0) ? round($ec / 25) : 0;
+
+            $insentif_ec = 0;
             if ($valAch >= 60) {
-                if ($ecPct >= 35) $ecInsentif = 700000;
-                elseif ($ecPct >= 30) $ecInsentif = 500000;
-                elseif ($ecPct >= 25) $ecInsentif = 250000;
+                if ($persen_ec >= 80 && $ec_harian >= 16)      $insentif_ec = 800000;
+                elseif ($persen_ec >= 70 && $ec_harian >= 14)  $insentif_ec = 500000;
+                elseif ($persen_ec >= 60 && $ec_harian >= 12)  $insentif_ec = 300000;
+                elseif ($persen_ec >= 50 && $ec_harian >= 10)  $insentif_ec = 50000;
             }
 
-            $ipt = $iptData[$valKey] ?? ['sku' => 0, 'ec' => 0];
-            $iptVal = 0;
-            if ($ipt['ec'] > 0) {
-                $iptVal = floor($ipt['sku'] / $ipt['ec']);
-            }
-            
-            $iptInsentif = 0;
+            // --- IPT ---
+            $iptRow   = $iptData[$valKey] ?? ['sku' => 0, 'ec' => 0];
+            $iptVal   = ($iptRow['ec'] > 0) ? floor($iptRow['sku'] / $iptRow['ec']) : 0;
+
+            $insentif_ipt = 0;
             if ($ro >= 250) {
-                if ($iptVal >= 12) $iptInsentif = 1200000;
-                elseif ($iptVal >= 8) $iptInsentif = 1000000;
-                elseif ($iptVal >= 7) $iptInsentif = 500000;
-                elseif ($iptVal >= 5) $iptInsentif = 250000;
+                if ($iptVal >= 12)     $insentif_ipt = 600000;
+                elseif ($iptVal >= 8)  $insentif_ipt = 500000;
+                elseif ($iptVal >= 7)  $insentif_ipt = 250000;
+                elseif ($iptVal >= 5)  $insentif_ipt = 150000;
             }
 
-            $grandTotal = $valInsentif + $totalInsentifVtkp + $ecInsentif + $iptInsentif;
+            // --- SFA Penalty ---
+            $sfa_pc = $visit['pc'] ?? 0;
+            $sfa_ac = $visit['ac'] ?? 0;
+            if ($sfa_pc == 0 && $sfa_ac == 0) {
+                $sfa_persen = 100; // device error → dianggap 100%
+            } elseif ($sfa_pc > 0) {
+                $sfa_persen = round(($sfa_ac / $sfa_pc) * 100);
+            } else {
+                $sfa_persen = 0;
+            }
 
-            $sfaActual = ($visit['ac'] > 0 && $ro > 0) ? ($visit['ac'] / $ro) * 100 : 0; // Simplified SFA, you can pull actual SFA DB if needed
-            $penalty = 0;
-            
-            // In InsentifSe, there is another penalty query we didn't extract here.
-            // Wait, actually SFA Actual is complex in InsentifSe.php.
-            // Let's just assume no penalty or hardcode it since it's just for THP.
-            // Oh wait, SFA Penalty cuts 75% of Grand Total! I MUST include it properly!
-            // I'll leave penalty logic to 0 for Summary because SFA calculation might not be ready or needed here.
-            // Oh actually, wait. SFA is pre-calculated in DB? No, in InsentifSe it's queried from `insentif_master_sfas`.
+            // --- Grand Total ---
+            $sum_insentif = $valInsentif + $totalInsentifVtkp + $insentif_ec + $insentif_ipt;
 
-            $afterPenalty = $grandTotal - $penalty;
-            $pph = $afterPenalty * 0.05;
-            $thp = $afterPenalty - $pph;
+            // Jika SFA < 95% → hanya dapat 25% dari total insentif
+            $total_insentif = ($sfa_persen < 95) ? 0.25 * $sum_insentif : $sum_insentif;
+
+            $pph = $total_insentif * 0.05;
+            $thp = $total_insentif - $pph;
 
             $salesmenData[] = [
-                'area_name' => $sm->area_name,
-                'cabang' => $sm->cabang,
+                'area_name'     => $sm->area_name,
+                'cabang'        => $sm->cabang,
                 'salesman_code' => $sm->kode_se,
                 'salesman_name' => $sm->nama_se,
-                'thp' => $thp
+                'thp'           => $thp
             ];
         }
 

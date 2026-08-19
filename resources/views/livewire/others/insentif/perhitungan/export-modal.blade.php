@@ -24,9 +24,20 @@
 
                 <!-- Filter Region -->
                 <div class="form-control">
-                    <label class="label"><span class="label-text font-medium">Region</span></label>
-                    <select wire:model.live="filterRegion" class="select select-bordered select-sm w-full">
-                        <option value="">Pilih Region (Wajib 1)</option>
+                    <label class="label">
+                        <span class="label-text font-medium">
+                            Region
+                            @if(in_array($accessLevel ?? '', ['region','area']))
+                                <span class="badge badge-warning badge-xs ml-1">Terbatas</span>
+                            @endif
+                        </span>
+                    </label>
+                    <select wire:model.live="filterRegion" 
+                        class="select select-bordered select-sm w-full {{ in_array($accessLevel ?? '', ['region','area']) && count($listRegions) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
+                        @if(in_array($accessLevel ?? '', ['region','area']) && count($listRegions) === 1) disabled @endif>
+                        @if(!in_array($accessLevel ?? '', ['region','area']))
+                            <option value="">Pilih Region (Wajib 1)</option>
+                        @endif
                         @foreach($listRegions as $region)
                             <option value="{{ $region }}">{{ $region }}</option>
                         @endforeach
@@ -36,14 +47,21 @@
                 <!-- Filter Area -->
                 <div class="form-control">
                     <label class="label">
-                        <span class="label-text font-medium">Area <span class="text-xs text-base-content/50 font-normal">(Kosongkan untuk ekspor semua area)</span></span>
+                        <span class="label-text font-medium">
+                            Area 
+                            @if(($accessLevel ?? '') === 'area')
+                                <span class="badge badge-warning badge-xs ml-1">Terbatas</span>
+                            @endif
+                            <span class="text-xs text-base-content/50 font-normal ml-1">(Kosongkan untuk ekspor semua area)</span>
+                        </span>
                     </label>
-                    <div class="bg-base-200 p-3 rounded-lg max-h-40 overflow-y-auto custom-scrollbar border border-base-300">
+                    <div class="bg-base-200 p-3 rounded-lg max-h-40 overflow-y-auto custom-scrollbar border border-base-300 {{ ($accessLevel ?? '') === 'area' && count($listAreas) === 1 ? 'opacity-70 pointer-events-none' : '' }}">
                         @if($filterRegion && count($listAreas) > 0)
                             <div class="flex flex-col gap-2">
                                 @foreach($listAreas as $area)
                                 <label class="cursor-pointer label justify-start gap-3 py-1">
-                                    <input type="checkbox" wire:model="filterArea" value="{{ $area }}" class="checkbox checkbox-sm checkbox-primary" />
+                                    <input type="checkbox" wire:model="filterArea" value="{{ $area }}" class="checkbox checkbox-sm checkbox-primary" 
+                                        @if(($accessLevel ?? '') === 'area' && count($listAreas) === 1) checked disabled @endif />
                                     <span class="label-text">{{ $area }}</span>
                                 </label>
                                 @endforeach

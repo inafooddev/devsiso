@@ -13,9 +13,18 @@
         </div>
         
         <div>
-            <label class="block text-xs font-semibold text-base-content/70 mb-1">Pilih Region</label>
-            <select wire:model.live="filterRegion" class="select select-bordered select-sm rounded-lg min-w-[200px]">
-                <option value="">-- Pilih Region --</option>
+            <label class="block text-xs font-semibold text-base-content/70 mb-1">
+                Pilih Region
+                @if(in_array($accessLevel ?? '', ['region','area']))
+                    <span class="badge badge-warning badge-xs ml-1">Terbatas</span>
+                @endif
+            </label>
+            <select wire:model.live="filterRegion"
+                class="select select-bordered select-sm rounded-lg min-w-[200px] {{ in_array($accessLevel ?? '', ['region','area']) && count($listRegions) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
+                @if(in_array($accessLevel ?? '', ['region','area']) && count($listRegions) === 1) disabled @endif>
+                @if(!in_array($accessLevel ?? '', ['region','area']))
+                    <option value="">-- Pilih Region --</option>
+                @endif
                 @foreach($listRegions as $r)
                     <option value="{{ $r }}">{{ $r }}</option>
                 @endforeach
@@ -23,9 +32,18 @@
         </div>
 
         <div>
-            <label class="block text-xs font-semibold text-base-content/70 mb-1">Filter Area (Opsional)</label>
-            <select wire:model.live="filterArea" class="select select-bordered select-sm rounded-lg min-w-[200px]" {{ empty($filterRegion) ? 'disabled' : '' }}>
-                <option value="">-- Semua Area --</option>
+            <label class="block text-xs font-semibold text-base-content/70 mb-1">
+                Filter Area (Opsional)
+                @if(($accessLevel ?? '') === 'area')
+                    <span class="badge badge-warning badge-xs ml-1">Terbatas</span>
+                @endif
+            </label>
+            <select wire:model.live="filterArea"
+                class="select select-bordered select-sm rounded-lg min-w-[200px] {{ ($accessLevel ?? '') === 'area' && count($listAreas) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
+                @if(empty($filterRegion) || (($accessLevel ?? '') === 'area' && count($listAreas) === 1)) disabled @endif>
+                @if(($accessLevel ?? '') !== 'area')
+                    <option value="">-- Semua Area --</option>
+                @endif
                 @if(isset($listAreas))
                     @foreach($listAreas as $a)
                         <option value="{{ $a }}">{{ $a }}</option>

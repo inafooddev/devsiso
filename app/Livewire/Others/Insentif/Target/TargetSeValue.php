@@ -33,6 +33,13 @@ class TargetSeValue extends Component
     public $editSalesmanCode = '';
     public $editTarget = 0;
 
+    // Modal Swap
+    public $isSwapModalOpen = false;
+    public $swapSourceId = null;
+    public $swapTargetId = '';
+    public $swapListSE = [];
+    public $swapSourceData = null;
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -171,6 +178,60 @@ class TargetSeValue extends Component
         
         $data->delete();
         session()->flash('message', 'Data berhasil dihapus.');
+    }
+
+    // -- SWAP TARGET --
+    public function openSwapModal($id)
+    {
+        $this->authorizeAction('can_edit');
+        
+        $this->swapSourceData = TargetSeValueModel::findOrFail($id);
+        $this->swapSourceId = $this->swapSourceData->id;
+        
+        // Cari SE lain di bulan yang sama dan distributor yang sama
+        $this->swapListSE = TargetSeValueModel::where('bulan', $this->swapSourceData->bulan)
+            ->where('distributor_code', $this->swapSourceData->distributor_code)
+            ->where('id', '!=', $this->swapSourceId)
+            ->orderBy('salesman_code')
+            ->get();
+            
+        $this->swapTargetId = '';
+        $this->isSwapModalOpen = true;
+    }
+
+    public function closeSwapModal()
+    {
+        $this->isSwapModalOpen = false;
+        $this->reset(['swapSourceId', 'swapTargetId', 'swapListSE', 'swapSourceData']);
+    }
+
+    public function processSwap()
+    {
+        $this->authorizeAction('can_edit');
+        
+        $this->validate([
+            'swapTargetId' => 'required',
+        ], [
+            'swapTargetId.required' => 'Pilih Salesman tujuan untuk ditukar targetnya.',
+        ]);
+
+        if ($this->swapSourceId && $this->swapTargetId) {
+            $source = TargetSeValueModel::findOrFail($this->swapSourceId);
+            $target = TargetSeValueModel::findOrFail($this->swapTargetId);
+
+            // Simpan nilai lama
+            $sourceOldTarget = $source->target;
+            $targetOldTarget = $target->target;
+
+            // Tukar nilai target
+            $source->update(['target' => $targetOldTarget]);
+            $target->update(['target' => $sourceOldTarget]);
+
+            \App\Helpers\ActivityLogger::log('Swap Target SE Value', "Menukar Target SE Value bulan {$source->bulan} di Distributor {$source->distributor_code} antara Salesman {$source->salesman_code} dan {$target->salesman_code}");
+
+            session()->flash('message', 'Target berhasil ditukar.');
+            $this->closeSwapModal();
+        }
     }
 
     public function render()

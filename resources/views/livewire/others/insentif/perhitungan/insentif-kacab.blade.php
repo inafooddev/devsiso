@@ -15,22 +15,36 @@
 
             {{-- Region Filter --}}
             <div class="relative group grow sm:grow-0">
-                <select wire:model.live="filterRegion" class="select select-sm select-bordered w-full sm:w-48 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 font-semibold transition-all duration-300 text-sm">
-                    <option value="">Semua Region</option>
+                <select wire:model.live="filterRegion"
+                    class="select select-sm select-bordered w-full sm:w-48 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 font-semibold transition-all duration-300 text-sm {{ in_array($accessLevel ?? '', ['region','area']) && count($listRegions) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
+                    @if(in_array($accessLevel ?? '', ['region','area']) && count($listRegions) === 1) disabled @endif>
+                    @if(!in_array($accessLevel ?? '', ['region','area']))
+                        <option value="">Semua Region</option>
+                    @endif
                     @foreach($listRegions as $region)
                         <option value="{{ $region }}">{{ $region }}</option>
                     @endforeach
                 </select>
+                @if(in_array($accessLevel ?? '', ['region','area']))
+                    <div class="absolute -top-2 -right-2"><span class="badge badge-warning badge-xs">Terbatas</span></div>
+                @endif
             </div>
 
             {{-- Area Filter --}}
             <div class="relative group grow sm:grow-0">
-                <select wire:model.live="filterArea" class="select select-sm select-bordered w-full sm:w-48 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 font-semibold transition-all duration-300 text-sm" {{ empty($filterRegion) ? 'disabled' : '' }}>
-                    <option value="">Semua Area</option>
+                <select wire:model.live="filterArea"
+                    class="select select-sm select-bordered w-full sm:w-48 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 font-semibold transition-all duration-300 text-sm {{ ($accessLevel ?? '') === 'area' && count($listAreas) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
+                    @if(empty($filterRegion) || (($accessLevel ?? '') === 'area' && count($listAreas) === 1)) disabled @endif>
+                    @if(($accessLevel ?? '') !== 'area')
+                        <option value="">Semua Area</option>
+                    @endif
                     @foreach($listAreas as $area)
                         <option value="{{ $area }}">{{ $area }}</option>
                     @endforeach
                 </select>
+                @if(($accessLevel ?? '') === 'area')
+                    <div class="absolute -top-2 -right-2"><span class="badge badge-warning badge-xs">Terbatas</span></div>
+                @endif
             </div>
 
             {{-- Search --}}
