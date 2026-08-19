@@ -98,11 +98,10 @@ class ExtractInsentifSpvRwoJob implements ShouldQueue
                 'p.distributor_code',
                 'md.branch_name as cabang',
                 DB::raw('COUNT(DISTINCT p.customer_code) as total_potensi'),
-                DB::raw("SUM(
+                DB::raw("COUNT(DISTINCT 
                     CASE 
                         WHEN COALESCE(so.total_neto_akumulasi, 0) >= ((p.total_target / 3) * {$multiplier}) 
-                        THEN 1 
-                        ELSE 0 
+                        THEN p.customer_code 
                     END
                 ) as capai_target"),
                 DB::raw("NOW() as created_at"),

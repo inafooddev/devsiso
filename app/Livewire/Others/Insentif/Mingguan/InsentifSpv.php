@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Others\Insentif\Perhitungan;
+namespace App\Livewire\Others\Insentif\Mingguan;
 
 use Livewire\Component;
 use App\Models\InsentifMasterDistributor;
@@ -536,7 +536,7 @@ class InsentifSpv extends Component
             }
         }
 
-        return view('livewire.others.insentif.perhitungan.insentif-spv', [
+        return view('livewire.others.insentif.mingguan.insentif-spv', [
             'listBulan' => $listBulan,
             'listRegions' => $listRegions,
             'listAreas' => $listAreas,
