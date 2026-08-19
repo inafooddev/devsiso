@@ -18,6 +18,11 @@ class OcrScanner extends Component
 
     public function saveOcrResults($data, $tanggal, $saveNominal = true, $saveFile = true)
     {
+        \Log::info('OcrScanner: saveOcrResults called.', [
+            'count_data' => count($data),
+            'count_uploadedFiles' => count($this->uploadedFiles),
+        ]);
+        
         DB::transaction(function () use ($data, $tanggal, $saveNominal, $saveFile) {
             foreach ($data as $index => $item) {
                 $fileName = $item['file_name'];
@@ -26,8 +31,9 @@ class OcrScanner extends Component
                 // If there's an uploaded file for this index and user wants to save it
                 if ($saveFile && isset($this->uploadedFiles[$index])) {
                     $file = $this->uploadedFiles[$index];
-                    // Store the file in public/surat_qc to match the existing QC Eskalink
-                    $path = $file->storeAs('public/surat_qc', $file->getClientOriginalName());
+                    // Store the file in 'surat_qc' folder using the 'public' disk
+                    // This ensures it goes to storage/app/public/surat_qc
+                    $path = $file->storeAs('surat_qc', $file->getClientOriginalName(), 'public');
                     $fileName = $file->getClientOriginalName();
                 }
 
