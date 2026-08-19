@@ -63,7 +63,7 @@ class InsentifKacab extends Component
                 $this->filterArea = $this->lockedAreas[0];
             }
         } else {
-            $firstRegion = DB::table('insentif_master_distributors')
+            $firstRegion = DB::table('insentif_mingguan_master_distributors')
                 ->whereNotNull('region_name')
                 ->orderBy('region_name')
                 ->value('region_name');
@@ -120,7 +120,7 @@ class InsentifKacab extends Component
         });
 
         // 3. Get Actuals (Sell Out) for the month per distributor
-        $actuals = DB::table('insentif_value_per_salesmans')
+        $actuals = DB::table('insentif_mingguan_value_per_salesmans')
             ->select('distributor_code', DB::raw('SUM(actual) as total_actual'))
             ->where('bulan', $this->filterBulan)
             ->groupBy('distributor_code')

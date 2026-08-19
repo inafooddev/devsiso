@@ -56,7 +56,7 @@ class InsentifSpv extends Component
                 $this->filterArea = $this->lockedAreas[0];
             }
         } else {
-            $firstRegion = DB::table('insentif_master_distributors')
+            $firstRegion = DB::table('insentif_mingguan_master_distributors')
                 ->whereNotNull('region_name')
                 ->orderBy('region_name')
                 ->value('region_name');
@@ -121,7 +121,7 @@ class InsentifSpv extends Component
             }
 
             // 3. Fetch Actuals VTKP (QTY per SE -> summed up per distributor)
-            $qtyActualsRaw = DB::table('insentif_qty_per_ses')
+            $qtyActualsRaw = DB::table('insentif_mingguan_qty_per_ses')
                 ->select('distributor_code', 'product_group_3', DB::raw('SUM(qty_ctn) as total_qty'))
                 ->where('bulan', $this->filterBulan)
                 ->groupBy('distributor_code', 'product_group_3')
@@ -134,7 +134,7 @@ class InsentifSpv extends Component
             }
 
             // 4. Fetch IPT data per distributor
-            $iptDataRaw = DB::table('insentif_se_ipts')
+            $iptDataRaw = DB::table('insentif_mingguan_se_ipts')
                 ->select('distributor_code', DB::raw('SUM(sku) as total_sku'), DB::raw('SUM(ec) as total_ec'))
                 ->where('bulan', $this->filterBulan)
                 ->groupBy('distributor_code')
@@ -167,7 +167,7 @@ class InsentifSpv extends Component
                       ->orWhere('cabang', 'ilike', '%' . $this->search . '%')
                       ->orWhereExists(function($sub) {
                           $sub->select(\Illuminate\Support\Facades\DB::raw(1))
-                              ->from('insentif_master_distributors as imd')
+                              ->from('insentif_mingguan_master_distributors as imd')
                               ->whereColumn('imd.cabang', 'insentif_master_spvs.cabang')
                               ->where('imd.bulan', $this->filterBulan)
                               ->where('imd.distributor_name', 'ilike', '%' . $this->search . '%');
@@ -185,7 +185,7 @@ class InsentifSpv extends Component
                 ->keyBy('cabang');
 
             // Fetch Actuals per distributor
-            $actuals = DB::table('insentif_value_per_salesmans')
+            $actuals = DB::table('insentif_mingguan_value_per_salesmans')
                 ->select('distributor_code', DB::raw('SUM(actual) as total_actual'))
                 ->where('bulan', $this->filterBulan)
                 ->groupBy('distributor_code')

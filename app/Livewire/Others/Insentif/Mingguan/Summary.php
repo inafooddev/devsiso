@@ -3,8 +3,8 @@
 namespace App\Livewire\Others\Insentif\Mingguan;
 
 use Livewire\Component;
-use App\Models\InsentifMasterDistributor;
-use App\Services\InsentifCalculatorService;
+use App\Models\InsentifMingguanMasterDistributor as InsentifMasterDistributor;
+use App\Services\MingguanInsentifCalculatorService as InsentifCalculatorService;
 use Illuminate\Support\Facades\Auth;
 
 class Summary extends Component

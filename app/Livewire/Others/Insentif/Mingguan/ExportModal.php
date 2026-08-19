@@ -6,7 +6,7 @@ use Livewire\Component;
 use App\Models\InsentifMasterDistributor;
 use Livewire\Attributes\On;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\InsentifGlobalExport;
+use App\Exports\MingguanInsentifGlobalExport;
 use Illuminate\Support\Facades\Auth;
 
 class ExportModal extends Component
@@ -97,7 +97,7 @@ class ExportModal extends Component
 
         $this->isOpen = false;
 
-        return Excel::download(new InsentifGlobalExport($this->filterBulan, $this->filterRegion, $this->filterArea, $this->selectedSheets), "Insentif_All_{$this->filterRegion}_{$this->filterBulan}.xlsx");
+        return Excel::download(new MingguanInsentifGlobalExport($this->filterBulan, $this->filterRegion, $this->filterArea, $this->selectedSheets), "Insentif_All_{$this->filterRegion}_{$this->filterBulan}.xlsx");
     }
 
     public function render()

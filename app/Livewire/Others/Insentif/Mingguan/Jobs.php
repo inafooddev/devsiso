@@ -60,16 +60,16 @@ class Jobs extends Component
 
         // Dispatch Job berantai (Chain)
         Bus::chain([
-            new ExtractInsentifMasterDistributorJob($bulanFormat, $batch->id),
-            new \App\Jobs\ExtractInsentifMasterSpvJob($bulanFormat, $batch->id),
-            new ExtractInsentifMasterSalesmanJob($bulanFormat, $batch->id),
-            new ExtractInsentifValuePerSalesmanJob($bulanFormat, $batch->id),
-            new ExtractInsentifQtyPerSeJob($bulanFormat, $batch->id),
-            new ExtractInsentifSeIptJob($bulanFormat, $batch->id),
-            new ExtractInsentifProdukGrupJob($batch->id),
-            new ExtractInsentifSeRoJob($bulanFormat, $batch->id),
-            new ExtractInsentifSeVisitJob($bulanFormat, $batch->id),
-            new ExtractInsentifSpvRwoJob($bulanFormat, $batch->id),
+            new \App\Jobs\ExtractMingguanMasterDistributorJob($bulanFormat, $batch->id),
+            new \App\Jobs\ExtractMingguanMasterSpvJob($bulanFormat, $batch->id),
+            new \App\Jobs\ExtractMingguanMasterSalesmanJob($bulanFormat, $batch->id),
+            new \App\Jobs\ExtractMingguanValuePerSalesmanJob($bulanFormat, $batch->id),
+            new \App\Jobs\ExtractMingguanQtyPerSeJob($bulanFormat, $batch->id),
+            new \App\Jobs\ExtractMingguanSeIptJob($bulanFormat, $batch->id),
+            new \App\Jobs\ExtractMingguanProdukGrupJob($batch->id),
+            new \App\Jobs\ExtractInsentifSeRoJob($bulanFormat, $batch->id),
+            new \App\Jobs\ExtractInsentifSeVisitJob($bulanFormat, $batch->id),
+            new \App\Jobs\ExtractInsentifSpvRwoJob($bulanFormat, $batch->id),
         ])->dispatch();
         
         // Karena chain dijalankan, kita perlu me-refresh instance batch

@@ -60,7 +60,7 @@ class InsentifSe extends Component
             }
         } else {
             // Coba ambil default region dari db jika ada
-            $firstRegion = DB::table('insentif_master_distributors')
+            $firstRegion = DB::table('insentif_mingguan_master_distributors')
                 ->whereNotNull('region_name')
                 ->orderBy('region_name')
                 ->value('region_name');
@@ -110,8 +110,8 @@ class InsentifSe extends Component
                 $q->where('region_name', $this->filterRegion);
             })->with('details')->orderBy('nama_header')->get();
 
-            $salesmenQuery = DB::table('insentif_master_salesmans as ims')
-                ->join('insentif_master_distributors as imd', function($join) {
+            $salesmenQuery = DB::table('insentif_mingguan_master_salesmans as ims')
+                ->join('insentif_mingguan_master_distributors as imd', function($join) {
                     $join->on('ims.bulan', '=', 'imd.bulan')
                          ->on('ims.distributor_code', '=', 'imd.distributor_code');
                 })
@@ -161,7 +161,7 @@ class InsentifSe extends Component
             }
 
             // 4. Pre-load Actual Qty (CTN) untuk Bulan ini
-            $actualsRaw = DB::table('insentif_qty_per_ses')
+            $actualsRaw = DB::table('insentif_mingguan_qty_per_ses')
                 ->where('bulan', $this->filterBulan)
                 ->get();
             $actuals = [];
@@ -182,7 +182,7 @@ class InsentifSe extends Component
             }
 
             // 4b. Pre-load Value Actuals
-            $valueActualsRaw = DB::table('insentif_value_per_salesmans')
+            $valueActualsRaw = DB::table('insentif_mingguan_value_per_salesmans')
                 ->where('bulan', $this->filterBulan)
                 ->get();
             $valueActuals = [];
@@ -219,7 +219,7 @@ class InsentifSe extends Component
             }
 
             // 4e. Pre-load IPT Data
-            $iptRaw = DB::table('insentif_se_ipts')
+            $iptRaw = DB::table('insentif_mingguan_se_ipts')
                 ->where('bulan', $this->filterBulan)
                 ->get();
             $iptData = [];
