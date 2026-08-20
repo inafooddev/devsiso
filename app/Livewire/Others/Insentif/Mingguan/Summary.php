@@ -112,6 +112,11 @@ class Summary extends Component
         // ── Kalkulasi data ───────────────────────────────────────────────
         $service          = new InsentifCalculatorService();
         $summaryData      = collect();
+        
+        $totalKacab = 0; $kacabGetIncentive = 0;
+        $totalSpv = 0; $spvGetIncentive = 0;
+        $totalSe = 0; $seGetIncentive = 0;
+        
         $grandTotalInsentif = 0;
 
         if ($this->filterBulan) {
@@ -133,8 +138,10 @@ class Summary extends Component
             // Get KACAB
             if ($this->filterLevel == '' || $this->filterLevel == 'KACAB') {
                 $kacabDataRaw = $service->calculateKacab($this->filterBulan, $region, $area, $this->search);
+                $totalKacab += count($kacabDataRaw);
                 foreach ($kacabDataRaw as $kacab) {
                     if ($kacab['trf'] > 0) {
+                        $kacabGetIncentive++;
                         $summaryData->push([
                             'level'       => 'KACAB',
                             'level_order' => 1,
@@ -152,8 +159,10 @@ class Summary extends Component
             // Get SPV
             if ($this->filterLevel == '' || $this->filterLevel == 'SPV') {
                 $spvDataRaw = $service->calculateSpv($this->filterBulan, $region, $area, $this->search);
+                $totalSpv += count($spvDataRaw['spvData']);
                 foreach ($spvDataRaw['spvData'] as $spv) {
                     if ($spv['transfer_70'] > 0) {
+                        $spvGetIncentive++;
                         $areaName = '';
                         $cabangs  = [];
                         foreach ($spv['cabangs'] as $c => $cData) {
@@ -180,8 +189,10 @@ class Summary extends Component
             // Get SE
             if ($this->filterLevel == '' || $this->filterLevel == 'SE') {
                 $seDataRaw = $service->calculateSe($this->filterBulan, $region, $area, $this->search);
+                $totalSe += count($seDataRaw['salesmenData']);
                 foreach ($seDataRaw['salesmenData'] as $se) {
                     if ($se['thp'] > 0) {
+                        $seGetIncentive++;
                         $summaryData->push([
                             'level'       => 'SE',
                             'level_order' => 3,
@@ -210,6 +221,14 @@ class Summary extends Component
             'listRegion'         => $listRegion,
             'listArea'           => $listArea,
             'summaryData'        => $summaryData,
+            
+            'totalKacab'         => $totalKacab,
+            'kacabGetIncentive'  => $kacabGetIncentive,
+            'totalSpv'           => $totalSpv,
+            'spvGetIncentive'    => $spvGetIncentive,
+            'totalSe'            => $totalSe,
+            'seGetIncentive'     => $seGetIncentive,
+            
             'grandTotalInsentif' => $grandTotalInsentif,
             'accessLevel'        => $accessLevel,
         ]);

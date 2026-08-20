@@ -69,11 +69,56 @@
             <div wire:loading class="text-xs font-semibold text-primary animate-pulse flex items-center gap-2">
                 <span class="loading loading-spinner loading-xs"></span> Mengkalkulasi...
             </div>
-            
-            <div class="bg-success/10 border border-success/30 rounded-xl px-4 py-2 text-right">
-                <p class="text-xs font-bold text-success-content/70">Grand Total THP</p>
-                <p class="text-xl font-black text-success">Rp {{ number_format($grandTotalInsentif, 0, ',', '.') }}</p>
+        </div>
+    </div>
+
+    <!-- KPI Cards Section -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 shrink-0">
+        <!-- SE Card -->
+        <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <x-heroicon-o-users class="w-6 h-6" />
             </div>
+            <div>
+                <p class="text-xs font-bold text-base-content/60 uppercase tracking-wider mb-1">SE Dapat Insentif</p>
+                <p class="text-xl font-black text-base-content">
+                    {{ $seGetIncentive }} <span class="text-sm font-medium text-base-content/50">/ {{ $totalSe }} Orang</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- SPV Card -->
+        <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
+                <x-heroicon-o-user-group class="w-6 h-6" />
+            </div>
+            <div>
+                <p class="text-xs font-bold text-base-content/60 uppercase tracking-wider mb-1">SPV Dapat Insentif</p>
+                <p class="text-xl font-black text-base-content">
+                    {{ $spvGetIncentive }} <span class="text-sm font-medium text-base-content/50">/ {{ $totalSpv }} Orang</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Kacab Card -->
+        <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0">
+                <x-heroicon-o-briefcase class="w-6 h-6" />
+            </div>
+            <div>
+                <p class="text-xs font-bold text-base-content/60 uppercase tracking-wider mb-1">KACAB Dapat Insentif</p>
+                <p class="text-xl font-black text-base-content">
+                    {{ $kacabGetIncentive }} <span class="text-sm font-medium text-base-content/50">/ {{ $totalKacab }} Orang</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Grand Total Card -->
+        <div class="bg-success text-success-content rounded-xl shadow-sm p-4 flex flex-col justify-center">
+            <p class="text-xs font-bold text-success-content/80 uppercase tracking-wider mb-1">Grand Total Insentif</p>
+            <p class="text-2xl font-black">
+                Rp {{ number_format($grandTotalInsentif, 0, ',', '.') }}
+            </p>
         </div>
     </div>
 
