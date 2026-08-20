@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Circle, CircleMarker, Popup, Marker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Circle, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { SkbRwoItem } from './StoreCard';
@@ -16,13 +16,10 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-interface RadarMapProps {
+export interface RadarMapProps {
     data: SkbRwoItem[];
     showToast: (msg: string, type?: 'success' | 'error') => void;
 }
-
-const RADAR_RADIUS_KM = 10;
-const RADAR_RADIUS_M = RADAR_RADIUS_KM * 1000;
 
 function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }) {
     const map = useMap();
@@ -40,6 +37,16 @@ export default function RadarMap({ data, showToast }: RadarMapProps) {
     const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
     const [gpsError, setGpsError] = useState<string | null>(null);
     const [isLoadingGps, setIsLoadingGps] = useState(true);
+    const [radiusKm, setRadiusKm] = useState(5);
+
+    const getDynamicZoom = (radius: number) => {
+        if (radius <= 5) return 13;
+        if (radius <= 10) return 12;
+        if (radius <= 20) return 11;
+        if (radius <= 30) return 10;
+        if (radius <= 50) return 9;
+        return 8;
+    };
 
     const requestGps = () => {
         setIsLoadingGps(true);
@@ -90,18 +97,18 @@ export default function RadarMap({ data, showToast }: RadarMapProps) {
             if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return null;
 
             const distance = haversineDistance(userLocation.lat, userLocation.lng, lat, lng);
-            if (distance <= RADAR_RADIUS_KM) {
+            if (distance <= radiusKm) {
                 return { ...item, distance, parsedLat: lat, parsedLng: lng };
             }
             return null;
         }).filter(Boolean) as (SkbRwoItem & { distance: number; parsedLat: number; parsedLng: number })[];
-    }, [data, userLocation]);
+    }, [data, userLocation, radiusKm]);
 
     const getColorForTarget = (target?: number) => {
         const val = Number(target) || 0;
         if (val >= INCENTIVE_THRESHOLDS.TIER_1.minTarget) return '#eab308'; // Emas
         if (val >= INCENTIVE_THRESHOLDS.TIER_2.minTarget) return '#4f46e5'; // Biru
-        return '#94a3b8'; // Abu
+        return '#ef4444'; // Merah (sebelumnya Abu)
     };
 
     const getRewardText = (target?: number) => {
@@ -109,6 +116,18 @@ export default function RadarMap({ data, showToast }: RadarMapProps) {
         if (val >= INCENTIVE_THRESHOLDS.TIER_1.minTarget) return INCENTIVE_THRESHOLDS.TIER_1.rewardPct;
         if (val >= INCENTIVE_THRESHOLDS.TIER_2.minTarget) return INCENTIVE_THRESHOLDS.TIER_2.rewardPct;
         return INCENTIVE_THRESHOLDS.DEFAULT.rewardPct;
+    };
+
+    const createPinIcon = (color: string) => {
+        return L.divIcon({
+            className: 'custom-pin-icon',
+            html: `<svg viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="1" width="32" height="32" style="filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));">
+                     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                   </svg>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, -32]
+        });
     };
 
     if (isLoadingGps) {
@@ -142,11 +161,28 @@ export default function RadarMap({ data, showToast }: RadarMapProps) {
 
     return (
         <div className="flex-1 flex flex-col relative w-full animate-fade-in" style={{ minHeight: 'calc(100vh - 120px)' }}>
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[400] bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-md shadow-slate-200/50 border border-slate-100 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span className="text-[10px] font-bold tracking-wider uppercase text-slate-700">
-                    {storesInRadius.length} Toko dalam 10 km
-                </span>
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[400] flex items-center gap-2">
+                <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-md shadow-slate-200/50 border border-slate-100 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span className="text-[10px] font-bold tracking-wider uppercase text-slate-700 whitespace-nowrap">
+                        {storesInRadius.length} Toko
+                    </span>
+                </div>
+                
+                <select 
+                    value={radiusKm}
+                    onChange={(e) => setRadiusKm(Number(e.target.value))}
+                    className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-md shadow-slate-200/50 border border-slate-100 text-[10px] font-bold tracking-wider uppercase text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none"
+                    style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
+                >
+                    <option value={5}>Radius 5 KM</option>
+                    <option value={10}>Radius 10 KM</option>
+                    <option value={20}>Radius 20 KM</option>
+                    <option value={30}>Radius 30 KM</option>
+                    <option value={40}>Radius 40 KM</option>
+                    <option value={50}>Radius 50 KM</option>
+                    <option value={100}>Radius 100 KM</option>
+                </select>
             </div>
 
             <button 
@@ -159,7 +195,7 @@ export default function RadarMap({ data, showToast }: RadarMapProps) {
             
             <MapContainer 
                 center={[userLocation.lat, userLocation.lng]} 
-                zoom={12} 
+                zoom={getDynamicZoom(radiusKm)} 
                 className="w-full h-full z-0 absolute inset-0"
                 zoomControl={false}
                 style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
@@ -169,19 +205,12 @@ export default function RadarMap({ data, showToast }: RadarMapProps) {
                     attribution='&copy; OpenStreetMap'
                 />
                 
-                <ChangeView center={[userLocation.lat, userLocation.lng]} zoom={12} />
+                <ChangeView center={[userLocation.lat, userLocation.lng]} zoom={getDynamicZoom(radiusKm)} />
 
-                {/* Marker Posisi User */}
-                <Marker position={[userLocation.lat, userLocation.lng]}>
-                    <Popup>
-                        <div className="font-bold text-slate-700 text-center text-xs">Lokasi Anda</div>
-                    </Popup>
-                </Marker>
-
-                {/* Lingkaran 5km */}
+                {/* Lingkaran Radius Aktif */}
                 <Circle 
                     center={[userLocation.lat, userLocation.lng]} 
-                    radius={RADAR_RADIUS_M} 
+                    radius={radiusKm * 1000} 
                     pathOptions={{ color: '#6366f1', fillColor: '#6366f1', fillOpacity: 0.08, weight: 1 }} 
                 />
 
@@ -189,16 +218,10 @@ export default function RadarMap({ data, showToast }: RadarMapProps) {
                 {storesInRadius.map(store => {
                     const color = getColorForTarget(store.total_target);
                     return (
-                        <CircleMarker 
+                        <Marker 
                             key={store.customer_code}
-                            center={[store.parsedLat, store.parsedLng]} 
-                            radius={8}
-                            pathOptions={{ 
-                                color: 'white', 
-                                fillColor: color, 
-                                fillOpacity: 1,
-                                weight: 2 
-                            }}
+                            position={[store.parsedLat, store.parsedLng]} 
+                            icon={createPinIcon(color)}
                         >
                             <Popup className="radar-popup">
                                 <div className="flex flex-col gap-1 min-w-[160px]">
@@ -224,7 +247,7 @@ export default function RadarMap({ data, showToast }: RadarMapProps) {
                                     </a>
                                 </div>
                             </Popup>
-                        </CircleMarker>
+                        </Marker>
                     );
                 })}
             </MapContainer>
@@ -241,6 +264,10 @@ export default function RadarMap({ data, showToast }: RadarMapProps) {
                 .leaflet-container a.leaflet-popup-close-button {
                     padding: 4px;
                     color: #94a3b8;
+                }
+                .custom-pin-icon {
+                    background: transparent;
+                    border: none;
                 }
             `}</style>
         </div>
