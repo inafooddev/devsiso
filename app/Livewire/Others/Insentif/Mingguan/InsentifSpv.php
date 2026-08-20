@@ -3,7 +3,7 @@
 namespace App\Livewire\Others\Insentif\Mingguan;
 
 use Livewire\Component;
-use App\Models\InsentifMasterDistributor;
+use App\Models\InsentifMingguanMasterDistributor as InsentifMasterDistributor;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -126,11 +126,26 @@ class InsentifSpv extends Component
                 ->where('bulan', $this->filterBulan)
                 ->groupBy('distributor_code', 'product_group_3')
                 ->get();
+
+            // Load Mappings
+            $mappingsRaw = DB::table('insentif_mingguan_pg3_mappings')->get();
+            $mappingMingguanToBulanan = [];
+            foreach ($mappingsRaw as $m) {
+                $mappingMingguanToBulanan[trim($m->pg3_mingguan)] = trim($m->pg3_bulanan);
+            }
+
             $qtyActuals = [];
             foreach ($qtyActualsRaw as $a) {
-                // Key: dist_code + pg3
-                $key = strtoupper(trim($a->distributor_code) . '_' . trim($a->product_group_3));
-                $qtyActuals[$key] = (float)$a->total_qty;
+                // Translate pg3_mingguan to pg3_bulanan
+                $pg3 = trim($a->product_group_3);
+                $mappedPg3 = $mappingMingguanToBulanan[$pg3] ?? $pg3;
+
+                // Key: dist_code + mapped_pg3
+                $key = strtoupper(trim($a->distributor_code) . '_' . $mappedPg3);
+                if (!isset($qtyActuals[$key])) {
+                    $qtyActuals[$key] = 0;
+                }
+                $qtyActuals[$key] += (float)$a->total_qty;
             }
 
             // 4. Fetch IPT data per distributor
@@ -148,7 +163,7 @@ class InsentifSpv extends Component
             }
 
             // 1. Ambil pondasi MPP (Master SPV)
-            $spvQuery = \App\Models\InsentifMasterSpv::where('bulan', $this->filterBulan)
+            $spvQuery = \App\Models\InsentifMingguanMasterSpv::where('bulan', $this->filterBulan)
                 ->where('region_name', $this->filterRegion);
 
             if (!empty($this->filterArea)) {

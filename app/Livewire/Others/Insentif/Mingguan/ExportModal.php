@@ -3,7 +3,7 @@
 namespace App\Livewire\Others\Insentif\Mingguan;
 
 use Livewire\Component;
-use App\Models\InsentifMasterDistributor;
+use App\Models\InsentifMingguanMasterDistributor as InsentifMasterDistributor;
 use Livewire\Attributes\On;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\MingguanInsentifGlobalExport;

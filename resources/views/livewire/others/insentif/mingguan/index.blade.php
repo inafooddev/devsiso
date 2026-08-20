@@ -18,6 +18,9 @@
         <x-ui.tab-item :active="$activeTab === 'setting-header'" wire:click.prevent="setTab('setting-header')" :navigate="false">
             Setting Header
         </x-ui.tab-item>
+        <x-ui.tab-item :active="$activeTab === 'setting-mapping-pg3'" wire:click.prevent="setTab('setting-mapping-pg3')" :navigate="false">
+            Mapping Grup
+        </x-ui.tab-item>
         @endrole
 
         <x-slot name="actions">
@@ -43,6 +46,8 @@
             @role('admin')
             @if($activeTab === 'setting-header')
                 <livewire:others.insentif.mingguan.setting-header />
+            @elseif($activeTab === 'setting-mapping-pg3')
+                <livewire:others.insentif.mingguan.setting-mapping-pg3 />
             @endif
             @endrole
         </div>

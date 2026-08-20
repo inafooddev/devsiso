@@ -4,7 +4,7 @@ namespace App\Livewire\Others\Insentif\Mingguan;
 
 use Livewire\Component;
 use App\Models\InsentifKacabMapping;
-use App\Models\InsentifMasterDistributor;
+use App\Models\InsentifMingguanMasterDistributor as InsentifMasterDistributor;
 use Livewire\Attributes\On;
 
 class SettingKacabMapping extends Component

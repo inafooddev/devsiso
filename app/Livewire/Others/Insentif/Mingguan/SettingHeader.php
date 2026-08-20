@@ -7,7 +7,7 @@ use App\Models\InsentifHeaderGrup;
 use App\Models\InsentifHeaderGrupDetail;
 use App\Models\InsentifHeaderGrupRegion;
 use App\Models\InsentifProdukGrup;
-use App\Models\InsentifMasterDistributor;
+use App\Models\InsentifMingguanMasterDistributor as InsentifMasterDistributor;
 
 class SettingHeader extends Component
 {

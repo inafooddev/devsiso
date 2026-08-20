@@ -3,8 +3,8 @@
 namespace App\Livewire\Others\Insentif\Mingguan;
 
 use Livewire\Component;
-use App\Models\InsentifMasterSalesman;
-use App\Models\InsentifMasterDistributor;
+use App\Models\InsentifMingguanMasterSalesman as InsentifMasterSalesman;
+use App\Models\InsentifMingguanMasterDistributor as InsentifMasterDistributor;
 use App\Models\InsentifHeaderGrup;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -145,6 +145,7 @@ class InsentifSe extends Component
                     'ims.sales_code as kode_se',
                     'ims.sales_name as nama_se'
                 )
+                ->orderBy('imd.area_name')
                 ->orderBy('imd.distributor_name')
                 ->orderBy('ims.sales_name')
                 ->get();
@@ -164,11 +165,26 @@ class InsentifSe extends Component
             $actualsRaw = DB::table('insentif_mingguan_qty_per_ses')
                 ->where('bulan', $this->filterBulan)
                 ->get();
+            
+            // Load Mappings
+            $mappingsRaw = DB::table('insentif_mingguan_pg3_mappings')->get();
+            $mappingMingguanToBulanan = [];
+            foreach ($mappingsRaw as $m) {
+                $mappingMingguanToBulanan[trim($m->pg3_mingguan)] = trim($m->pg3_bulanan);
+            }
+
             $actuals = [];
             foreach ($actualsRaw as $a) {
-                // Key: dist_code + sales_code + pg3
-                $key = strtoupper(trim($a->distributor_code) . '_' . trim($a->sales_code) . '_' . trim($a->product_group_3));
-                $actuals[$key] = (float)$a->qty_ctn;
+                // Translate pg3_mingguan to pg3_bulanan using mapping
+                $pg3 = trim($a->product_group_3);
+                $mappedPg3 = $mappingMingguanToBulanan[$pg3] ?? $pg3;
+
+                // Key: dist_code + sales_code + mapped_pg3
+                $key = strtoupper(trim($a->distributor_code) . '_' . trim($a->sales_code) . '_' . $mappedPg3);
+                if (!isset($actuals[$key])) {
+                    $actuals[$key] = 0;
+                }
+                $actuals[$key] += (float)$a->qty_ctn;
             }
 
             // 4a. Pre-load Value Targets

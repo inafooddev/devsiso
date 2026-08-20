@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\InsentifMasterDistributor;
-use App\Models\InsentifMasterSalesman;
-use App\Models\InsentifMasterSpv;
+use App\Models\InsentifMingguanMasterDistributor;
+use App\Models\InsentifMingguanMasterSalesman;
+use App\Models\InsentifMingguanMasterSpv;
 use App\Models\InsentifHeaderGrup;
 use App\Models\TargetKacab;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +17,7 @@ class MingguanInsentifCalculatorService
      */
     public function getRegions()
     {
-        return InsentifMasterDistributor::select('region_name')
+        return InsentifMingguanMasterDistributor::select('region_name')
             ->whereNotNull('region_name')
             ->distinct()
             ->orderBy('region_name')
@@ -27,10 +27,12 @@ class MingguanInsentifCalculatorService
     /**
      * Get unique areas for a region
      */
-    public function getAreas($region)
+    public function getAreas($region = null)
     {
-        return InsentifMasterDistributor::select('area_name')
-            ->where('region_name', $region)
+        return InsentifMingguanMasterDistributor::select('area_name')
+            ->when($region, function ($query) use ($region) {
+                return $query->where('region_name', $region);
+            })
             ->whereNotNull('area_name')
             ->distinct()
             ->orderBy('area_name')
@@ -45,7 +47,7 @@ class MingguanInsentifCalculatorService
     {
         $yearFilter = Carbon::parse($bulan . '-01')->format('Y');
 
-        $query = InsentifMasterDistributor::where('bulan', $bulan);
+        $query = InsentifMingguanMasterDistributor::where('bulan', $bulan);
 
         if ($region) {
             $query->where('region_name', $region);
@@ -167,14 +169,37 @@ class MingguanInsentifCalculatorService
         $headers = [];
         $spvData = [];
         
-        $queryCabang = InsentifMasterDistributor::where('bulan', $bulan);
-        if ($region) $queryCabang->where('region_name', $region);
-        if ($area) {
-            if (is_array($area)) $queryCabang->whereIn('area_name', $area);
-            else $queryCabang->where('area_name', $area);
+        $spvQuery = InsentifMingguanMasterSpv::where('bulan', $bulan);
+        
+        if ($region) {
+            $spvQuery->where('region_name', $region);
         }
-        $distributorDataRaw = $queryCabang->get()->groupBy('cabang');
-        $cabangList = $distributorDataRaw->keys()->toArray();
+
+        if (!empty($area)) {
+            if (is_array($area)) {
+                $spvQuery->whereIn('area_name', $area);
+            } else {
+                $spvQuery->where('area_name', $area);
+            }
+        }
+
+        if ($search) {
+            $spvQuery->where(function($q) use ($search, $bulan) {
+                $q->where('supervisor_name', 'ilike', '%' . $search . '%')
+                  ->orWhere('supervisor_code', 'ilike', '%' . $search . '%')
+                  ->orWhere('cabang', 'ilike', '%' . $search . '%')
+                  ->orWhereExists(function($sub) use ($search, $bulan) {
+                      $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                          ->from('insentif_mingguan_master_distributors as imd')
+                          ->whereColumn('imd.cabang', 'insentif_mingguan_master_spvs.cabang')
+                          ->where('imd.bulan', $bulan)
+                          ->where('imd.distributor_name', 'ilike', '%' . $search . '%');
+                  });
+            });
+        }
+
+        $spvMasterData = $spvQuery->orderBy('area_name')->orderBy('cabang')->get();
+        $cabangList = $spvMasterData->pluck('cabang')->toArray();
 
         if (empty($cabangList)) {
             return ['headers' => [], 'spvData' => []];
@@ -186,17 +211,10 @@ class MingguanInsentifCalculatorService
             }
         })->with('details')->orderBy('nama_header')->get();
 
-        $querySpv = InsentifMasterSpv::where('bulan', $bulan)
-            ->whereIn('cabang', $cabangList);
-        
-        if ($search) {
-            $querySpv->where(function($q) use ($search) {
-                $q->where('supervisor_code', 'ilike', '%' . $search . '%')
-                  ->orWhere('supervisor_name', 'ilike', '%' . $search . '%')
-                  ->orWhere('cabang', 'ilike', '%' . $search . '%');
-            });
-        }
-        $spvMasterData = $querySpv->get();
+        $distributorDataRaw = InsentifMingguanMasterDistributor::where('bulan', $bulan)
+            ->whereIn('cabang', $cabangList)
+            ->get()
+            ->groupBy('cabang');
 
         // Target diambil dari target_per_depo dengan format bulan YYYY-MM-01
         $targetMonthFilter = $bulan . '-01';
@@ -223,20 +241,36 @@ class MingguanInsentifCalculatorService
             $vtkpTargets[$key] = (float)$t->target;
         }
 
+        // Load Mappings
+        $mappingsRaw = DB::table('insentif_mingguan_pg3_mappings')->get();
+        $mappingMingguanToBulanan = [];
+        foreach ($mappingsRaw as $m) {
+            $mappingMingguanToBulanan[trim($m->pg3_mingguan)] = trim($m->pg3_bulanan);
+        }
+
         // VTKP Actuals dari qty_ctn (bukan actual)
-        $qtyActuals = DB::table('insentif_mingguan_qty_per_ses')
+        $qtyActualsRaw = DB::table('insentif_mingguan_qty_per_ses')
             ->select('distributor_code', 'product_group_3', DB::raw('SUM(qty_ctn) as total_qty'))
             ->where('bulan', $bulan)
             ->groupBy('distributor_code', 'product_group_3')
-            ->get()
-            ->mapWithKeys(function($item) {
-                return [strtoupper(trim($item->distributor_code) . '_' . trim($item->product_group_3)) => (float)$item->total_qty];
-            })->toArray();
+            ->get();
+            
+        $qtyActuals = [];
+        foreach ($qtyActualsRaw as $item) {
+            $pg3 = trim($item->product_group_3);
+            $mappedPg3 = $mappingMingguanToBulanan[$pg3] ?? $pg3;
+            $key = strtoupper(trim($item->distributor_code) . '_' . $mappedPg3);
+            
+            if (!isset($qtyActuals[$key])) {
+                $qtyActuals[$key] = 0;
+            }
+            $qtyActuals[$key] += (float)$item->total_qty;
+        }
 
         $rwoData = DB::table('insentif_spv_rwo')
             ->where('bulan', $bulan)
             ->get()
-            ->keyBy('distributor_code');
+            ->keyBy('cabang');
 
         $iptDataRaw = DB::table('insentif_mingguan_se_ipts')
             ->where('bulan', $bulan)
@@ -311,8 +345,8 @@ class MingguanInsentifCalculatorService
                     $distCode = $md->distributor_code;
                     $actual = isset($actuals[$distCode]) ? (float)$actuals[$distCode]->total_actual : 0;
                     
-                    $rwoPeserta = isset($rwoData[$distCode]) ? (int)$rwoData[$distCode]->total_potensi : 0;
-                    $rwoAchieve = isset($rwoData[$distCode]) ? (int)$rwoData[$distCode]->capai_target : 0;
+                    $rwoPeserta = isset($rwoData[$cabang]) ? (int)$rwoData[$cabang]->total_potensi : 0;
+                    $rwoAchieve = isset($rwoData[$cabang]) ? (int)$rwoData[$cabang]->capai_target : 0;
                     
                     $iptSku = isset($iptData[strtoupper(trim($distCode))]) ? (float)$iptData[strtoupper(trim($distCode))]['sku'] : 0;
                     $iptEc = isset($iptData[strtoupper(trim($distCode))]) ? (float)$iptData[strtoupper(trim($distCode))]['ec'] : 0;
@@ -508,8 +542,29 @@ class MingguanInsentifCalculatorService
         }
         $headers = $headersQuery->with('details')->orderBy('nama_header')->get();
 
+        // 1. Fetch Target SO per SE (from target_se_values)
+        $targetsSeRaw = DB::table('target_se_values')
+            ->where('bulan', $bulan)
+            ->get();
+        $targetsSe = [];
+        foreach ($targetsSeRaw as $t) {
+            $targetsSe[strtoupper(trim($t->salesman_code))] = (float)$t->target;
+        }
+
+        // 2. Fetch Actual SO per SE (from insentif_mingguan_value_per_salesmans)
+        $actualsSeRaw = DB::table('insentif_mingguan_value_per_salesmans')
+            ->select('sales_code', DB::raw('SUM(actual) as total_actual'))
+            ->where('bulan', $bulan)
+            ->groupBy('sales_code')
+            ->get();
+        $actualsSe = [];
+        foreach ($actualsSeRaw as $a) {
+            $actualsSe[strtoupper(trim($a->sales_code))] = (float)$a->total_actual;
+        }
+
+        // 3. Fetch Master Salesman Data
         $salesmenQuery = DB::table('insentif_mingguan_master_salesmans as ims')
-            ->join('insentif_mingguan_master_distributors as imd', function($join) {
+            ->leftJoin('insentif_mingguan_master_distributors as imd', function ($join) {
                 $join->on('ims.bulan', '=', 'imd.bulan')
                      ->on('ims.distributor_code', '=', 'imd.distributor_code');
             })
@@ -561,11 +616,24 @@ class MingguanInsentifCalculatorService
         }
 
         // 4. Pre-load Actual Qty (CTN)
+        // Load Mappings
+        $mappingsRaw = DB::table('insentif_mingguan_pg3_mappings')->get();
+        $mappingMingguanToBulanan = [];
+        foreach ($mappingsRaw as $m) {
+            $mappingMingguanToBulanan[trim($m->pg3_mingguan)] = trim($m->pg3_bulanan);
+        }
+
         $actualsRaw = DB::table('insentif_mingguan_qty_per_ses')->where('bulan', $bulan)->get();
         $actuals = [];
         foreach ($actualsRaw as $a) {
-            $key = strtoupper(trim($a->distributor_code) . '_' . trim($a->sales_code) . '_' . trim($a->product_group_3));
-            $actuals[$key] = (float)$a->qty_ctn;
+            $pg3 = trim($a->product_group_3);
+            $mappedPg3 = $mappingMingguanToBulanan[$pg3] ?? $pg3;
+            $key = strtoupper(trim($a->distributor_code) . '_' . trim($a->sales_code) . '_' . $mappedPg3);
+            
+            if (!isset($actuals[$key])) {
+                $actuals[$key] = 0;
+            }
+            $actuals[$key] += (float)$a->qty_ctn;
         }
 
         // 4a. Pre-load Value Targets
@@ -589,7 +657,10 @@ class MingguanInsentifCalculatorService
         $roData = [];
         foreach ($roRaw as $r) {
             $key = strtoupper(trim($r->kodecabang) . '_' . trim($r->slsno));
-            $roData[$key] = $r->total_customer;
+            $roData[$key] = [
+                'frekuensi' => $r->frekuensi,
+                'total_customer' => $r->total_customer,
+            ];
         }
 
         // 4d. Pre-load Visits

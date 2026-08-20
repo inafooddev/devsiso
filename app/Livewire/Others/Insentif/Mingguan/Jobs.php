@@ -3,15 +3,7 @@
 namespace App\Livewire\Others\Insentif\Mingguan;
 
 use Livewire\Component;
-use App\Jobs\ExtractInsentifMasterDistributorJob;
-use App\Jobs\ExtractInsentifMasterSalesmanJob;
-use App\Jobs\ExtractInsentifValuePerSalesmanJob;
-use App\Jobs\ExtractInsentifQtyPerSeJob;
-use App\Jobs\ExtractInsentifSeIptJob;
-use App\Jobs\ExtractInsentifProdukGrupJob;
-use App\Jobs\ExtractInsentifSeRoJob;
-use App\Jobs\ExtractInsentifSeVisitJob;
-use App\Jobs\ExtractInsentifSpvRwoJob;
+
 use App\Models\ImportBatch;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Bus;

@@ -3,7 +3,7 @@
 namespace App\Livewire\Others\Insentif\Mingguan;
 
 use Livewire\Component;
-use App\Models\InsentifMasterDistributor;
+use App\Models\InsentifMingguanMasterDistributor as InsentifMasterDistributor;
 use App\Models\TargetKacab;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
