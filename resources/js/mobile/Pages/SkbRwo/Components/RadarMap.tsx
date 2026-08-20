@@ -21,13 +21,17 @@ interface RadarMapProps {
     showToast: (msg: string, type?: 'success' | 'error') => void;
 }
 
-const RADAR_RADIUS_KM = 5;
+const RADAR_RADIUS_KM = 10;
 const RADAR_RADIUS_M = RADAR_RADIUS_KM * 1000;
 
 function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }) {
     const map = useMap();
     useEffect(() => {
         map.setView(center, zoom);
+        // Force leafet to recalculate size after mount to prevent missing tiles/markers
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 300);
     }, [center, zoom, map]);
     return null;
 }
@@ -78,8 +82,10 @@ export default function RadarMap({ data, showToast }: RadarMapProps) {
         if (!userLocation) return [];
 
         return data.map(item => {
-            const lat = parseFloat(String(item.latitude || ''));
-            const lng = parseFloat(String(item.longitude || ''));
+            const latStr = String(item.latitude || '').replace(',', '.').trim();
+            const lngStr = String(item.longitude || '').replace(',', '.').trim();
+            const lat = parseFloat(latStr);
+            const lng = parseFloat(lngStr);
 
             if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return null;
 
@@ -135,26 +141,35 @@ export default function RadarMap({ data, showToast }: RadarMapProps) {
     }
 
     return (
-        <div className="flex-1 flex flex-col relative w-full h-full animate-fade-in">
+        <div className="flex-1 flex flex-col relative w-full animate-fade-in" style={{ minHeight: 'calc(100vh - 120px)' }}>
             <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[400] bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-md shadow-slate-200/50 border border-slate-100 flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                 <span className="text-[10px] font-bold tracking-wider uppercase text-slate-700">
-                    {storesInRadius.length} Toko dalam 5 km
+                    {storesInRadius.length} Toko dalam 10 km
                 </span>
             </div>
+
+            <button 
+                onClick={requestGps}
+                className="absolute top-2 right-2 z-[400] bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-md shadow-slate-200/50 border border-slate-100 text-slate-500 hover:text-indigo-600 transition-colors"
+                title="Refresh GPS"
+            >
+                <ArrowPathIcon className="w-5 h-5" />
+            </button>
             
             <MapContainer 
                 center={[userLocation.lat, userLocation.lng]} 
-                zoom={13} 
-                className="w-full h-full min-h-[400px] flex-1 z-0"
+                zoom={12} 
+                className="w-full h-full z-0 absolute inset-0"
                 zoomControl={false}
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
             >
                 <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution='&copy; OpenStreetMap'
                 />
                 
-                <ChangeView center={[userLocation.lat, userLocation.lng]} zoom={13} />
+                <ChangeView center={[userLocation.lat, userLocation.lng]} zoom={12} />
 
                 {/* Marker Posisi User */}
                 <Marker position={[userLocation.lat, userLocation.lng]}>
