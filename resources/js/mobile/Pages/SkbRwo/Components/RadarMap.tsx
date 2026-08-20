@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Circle, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Circle, Marker, Popup, useMap, LayerGroup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { SkbRwoItem } from './StoreCard';
@@ -32,6 +32,24 @@ function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }
     }, [center, zoom, map]);
     return null;
 }
+
+const createStaticIcon = (color: string) => {
+    return L.divIcon({
+        className: 'custom-pin-icon',
+        html: `<svg viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="1" width="32" height="32" style="filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));">
+                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+               </svg>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+    });
+};
+
+const PIN_ICONS = {
+    GOLD: createStaticIcon('#eab308'),
+    BLUE: createStaticIcon('#4f46e5'),
+    RED: createStaticIcon('#ef4444')
+};
 
 export default function RadarMap({ data, showToast }: RadarMapProps) {
     const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
@@ -104,30 +122,11 @@ export default function RadarMap({ data, showToast }: RadarMapProps) {
         }).filter(Boolean) as (SkbRwoItem & { distance: number; parsedLat: number; parsedLng: number })[];
     }, [data, userLocation, radiusKm]);
 
-    const getColorForTarget = (target?: number) => {
+    const getIconForTarget = (target?: number) => {
         const val = Number(target) || 0;
-        if (val >= INCENTIVE_THRESHOLDS.TIER_1.minTarget) return '#eab308'; // Emas
-        if (val >= INCENTIVE_THRESHOLDS.TIER_2.minTarget) return '#4f46e5'; // Biru
-        return '#ef4444'; // Merah (sebelumnya Abu)
-    };
-
-    const getRewardText = (target?: number) => {
-        const val = Number(target) || 0;
-        if (val >= INCENTIVE_THRESHOLDS.TIER_1.minTarget) return INCENTIVE_THRESHOLDS.TIER_1.rewardPct;
-        if (val >= INCENTIVE_THRESHOLDS.TIER_2.minTarget) return INCENTIVE_THRESHOLDS.TIER_2.rewardPct;
-        return INCENTIVE_THRESHOLDS.DEFAULT.rewardPct;
-    };
-
-    const createPinIcon = (color: string) => {
-        return L.divIcon({
-            className: 'custom-pin-icon',
-            html: `<svg viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="1" width="32" height="32" style="filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));">
-                     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                   </svg>`,
-            iconSize: [32, 32],
-            iconAnchor: [16, 32],
-            popupAnchor: [0, -32]
-        });
+        if (val >= INCENTIVE_THRESHOLDS.TIER_1.minTarget) return PIN_ICONS.GOLD;
+        if (val >= INCENTIVE_THRESHOLDS.TIER_2.minTarget) return PIN_ICONS.BLUE;
+        return PIN_ICONS.RED;
     };
 
     if (isLoadingGps) {
@@ -215,41 +214,57 @@ export default function RadarMap({ data, showToast }: RadarMapProps) {
                 />
 
                 {/* Marker Toko */}
-                {storesInRadius.map(store => {
-                    const color = getColorForTarget(store.total_target);
-                    return (
-                        <Marker 
-                            key={store.customer_code}
-                            position={[store.parsedLat, store.parsedLng]} 
-                            icon={createPinIcon(color)}
-                        >
-                            <Popup className="radar-popup">
-                                <div className="flex flex-col gap-1 min-w-[160px]">
-                                    <h3 className="font-black text-sm text-slate-800 leading-tight m-0">{store.customer_name}</h3>
-                                    <p className="text-[10px] text-slate-400 font-medium m-0">{store.customer_code}</p>
-                                    
-                                    <div className="flex items-center gap-2 mt-1 mb-2">
-                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold text-white" style={{ backgroundColor: color }}>
-                                            {getRewardText(store.total_target)} Reward
-                                        </span>
-                                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                                            {formatDistance(store.distance)}
-                                        </span>
-                                    </div>
+                <LayerGroup>
+                    {storesInRadius.map(store => {
+                        const val = Number(store.total_target) || 0;
+                        let color = '#ef4444';
+                        let icon = PIN_ICONS.RED;
+                        if (val >= INCENTIVE_THRESHOLDS.TIER_1.minTarget) {
+                            color = '#eab308';
+                            icon = PIN_ICONS.GOLD;
+                        } else if (val >= INCENTIVE_THRESHOLDS.TIER_2.minTarget) {
+                            color = '#4f46e5';
+                            icon = PIN_ICONS.BLUE;
+                        }
 
-                                    <a
-                                        href={`https://www.google.com/maps/dir/?api=1&destination=${store.parsedLat},${store.parsedLng}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center justify-center gap-1.5 w-full py-1.5 bg-sky-50 text-sky-600 hover:bg-sky-100 rounded-md font-bold text-[10px] transition-colors border border-sky-100 no-underline"
-                                    >
-                                        <ArrowTopRightOnSquareIcon className="w-3 h-3" /> Arahkan
-                                    </a>
-                                </div>
-                            </Popup>
-                        </Marker>
-                    );
-                })}
+                        let rewardText = INCENTIVE_THRESHOLDS.DEFAULT.rewardPct;
+                        if (val >= INCENTIVE_THRESHOLDS.TIER_1.minTarget) rewardText = INCENTIVE_THRESHOLDS.TIER_1.rewardPct;
+                        else if (val >= INCENTIVE_THRESHOLDS.TIER_2.minTarget) rewardText = INCENTIVE_THRESHOLDS.TIER_2.rewardPct;
+
+                        return (
+                            <Marker 
+                                key={store.customer_code}
+                                position={[store.parsedLat, store.parsedLng]} 
+                                icon={icon}
+                            >
+                                <Popup className="radar-popup">
+                                    <div className="flex flex-col gap-1 min-w-[160px]">
+                                        <h3 className="font-black text-sm text-slate-800 leading-tight m-0">{store.customer_name}</h3>
+                                        <p className="text-[10px] text-slate-400 font-medium m-0">{store.customer_code}</p>
+                                        
+                                        <div className="flex items-center gap-2 mt-1 mb-2">
+                                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold text-white" style={{ backgroundColor: color }}>
+                                                {rewardText} Reward
+                                            </span>
+                                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                                {formatDistance(store.distance)}
+                                            </span>
+                                        </div>
+
+                                        <a
+                                            href={`https://www.google.com/maps/dir/?api=1&destination=${store.parsedLat},${store.parsedLng}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center justify-center gap-1.5 w-full py-1.5 bg-sky-50 text-sky-600 hover:bg-sky-100 rounded-md font-bold text-[10px] transition-colors border border-sky-100 no-underline"
+                                        >
+                                            <ArrowTopRightOnSquareIcon className="w-3 h-3" /> Arahkan
+                                        </a>
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        );
+                    })}
+                </LayerGroup>
             </MapContainer>
             
             {/* Custom CSS untuk popup Leaflet agar lebih rapi */}
