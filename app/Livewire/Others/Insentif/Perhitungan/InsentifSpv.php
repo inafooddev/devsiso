@@ -241,6 +241,11 @@ class InsentifSpv extends Component
                 $target = isset($targets[$cabang]) ? (float)$targets[$cabang]->target : 0;
                 $groupedBySpv[$spvKey]['total_target_reguler'] += $target;
 
+                $rwoPeserta = isset($rwoData[$cabang]) ? (int)$rwoData[$cabang]->total_potensi : 0;
+                $rwoAchieve = isset($rwoData[$cabang]) ? (int)$rwoData[$cabang]->capai_target : 0;
+                $groupedBySpv[$spvKey]['total_rwo_peserta'] += $rwoPeserta;
+                $groupedBySpv[$spvKey]['total_rwo_achieve'] += $rwoAchieve;
+
                 $dists = $distributorDataRaw->get($cabang, []);
 
                 if (count($dists) == 0) {
@@ -264,8 +269,7 @@ class InsentifSpv extends Component
                         $distCode = $md->distributor_code;
                         $actual = isset($actuals[$distCode]) ? (float)$actuals[$distCode]->total_actual : 0;
                         
-                        $rwoPeserta = isset($rwoData[$cabang]) ? (int)$rwoData[$cabang]->total_potensi : 0;
-                        $rwoAchieve = isset($rwoData[$cabang]) ? (int)$rwoData[$cabang]->capai_target : 0;
+                        // RWO logic moved to cabang level to avoid double counting
                         
                         $iptSku = isset($iptData[strtoupper(trim($distCode))]) ? (float)$iptData[strtoupper(trim($distCode))]['sku'] : 0;
                         $iptEc = isset($iptData[strtoupper(trim($distCode))]) ? (float)$iptData[strtoupper(trim($distCode))]['ec'] : 0;
@@ -277,8 +281,8 @@ class InsentifSpv extends Component
                             'cabang' => $cabang,
                             'target_so' => $target,
                             'aktual_so' => $actual,
-                            'rwo_peserta' => $rwoPeserta,
-                            'rwo_achieve' => $rwoAchieve,
+                            'rwo_peserta' => $idx === 0 ? $rwoPeserta : 0,
+                            'rwo_achieve' => $idx === 0 ? $rwoAchieve : 0,
                             'ipt_sku' => $iptSku,
                             'ipt_ec' => $iptEc,
                         ];
@@ -288,8 +292,7 @@ class InsentifSpv extends Component
                         $groupedBySpv[$spvKey]['rowspan'] += 1;
 
                         $groupedBySpv[$spvKey]['total_aktual_so'] += $actual;
-                        $groupedBySpv[$spvKey]['total_rwo_peserta'] += $rwoPeserta;
-                        $groupedBySpv[$spvKey]['total_rwo_achieve'] += $rwoAchieve;
+                        // RWO accumulated at cabang level
                         $groupedBySpv[$spvKey]['total_ipt_sku'] += $iptSku;
                         $groupedBySpv[$spvKey]['total_ipt_ec'] += $iptEc;
                     }
