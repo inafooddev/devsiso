@@ -1,0 +1,233 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { MapContainer, TileLayer, Circle, CircleMarker, Popup, Marker, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import { SkbRwoItem } from './StoreCard';
+import { INCENTIVE_THRESHOLDS } from '../constants';
+import { haversineDistance, formatDistance } from '../utils/geo';
+import { ArrowTopRightOnSquareIcon, MapPinIcon, ShieldExclamationIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { UserLocation } from '../hooks/useNearby';
+
+// Fix untuk default icon leaflet di react-leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+interface RadarMapProps {
+    data: SkbRwoItem[];
+    showToast: (msg: string, type?: 'success' | 'error') => void;
+}
+
+const RADAR_RADIUS_KM = 5;
+const RADAR_RADIUS_M = RADAR_RADIUS_KM * 1000;
+
+function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }) {
+    const map = useMap();
+    useEffect(() => {
+        map.setView(center, zoom);
+    }, [center, zoom, map]);
+    return null;
+}
+
+export default function RadarMap({ data, showToast }: RadarMapProps) {
+    const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+    const [gpsError, setGpsError] = useState<string | null>(null);
+    const [isLoadingGps, setIsLoadingGps] = useState(true);
+
+    const requestGps = () => {
+        setIsLoadingGps(true);
+        setGpsError(null);
+
+        if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
+            setGpsError('GPS tidak tersedia di perangkat ini.');
+            setIsLoadingGps(false);
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setUserLocation({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                });
+                setIsLoadingGps(false);
+            },
+            (error) => {
+                setIsLoadingGps(false);
+                if (error.code === error.PERMISSION_DENIED) {
+                    setGpsError('Izin GPS ditolak. Aktifkan izin lokasi untuk melihat peta Nearby.');
+                } else if (error.code === error.TIMEOUT) {
+                    setGpsError('Pencarian GPS timeout. Coba lagi di area terbuka.');
+                } else {
+                    setGpsError('Gagal mendapatkan lokasi GPS.');
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+        );
+    };
+
+    useEffect(() => {
+        requestGps();
+    }, []);
+
+    // Filter toko yang dalam radius 5km dan punya koordinat
+    const storesInRadius = useMemo(() => {
+        if (!userLocation) return [];
+
+        return data.map(item => {
+            const lat = parseFloat(String(item.latitude || ''));
+            const lng = parseFloat(String(item.longitude || ''));
+
+            if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return null;
+
+            const distance = haversineDistance(userLocation.lat, userLocation.lng, lat, lng);
+            if (distance <= RADAR_RADIUS_KM) {
+                return { ...item, distance, parsedLat: lat, parsedLng: lng };
+            }
+            return null;
+        }).filter(Boolean) as (SkbRwoItem & { distance: number; parsedLat: number; parsedLng: number })[];
+    }, [data, userLocation]);
+
+    const getColorForTarget = (target?: number) => {
+        const val = Number(target) || 0;
+        if (val >= INCENTIVE_THRESHOLDS.TIER_1.minTarget) return '#eab308'; // Emas
+        if (val >= INCENTIVE_THRESHOLDS.TIER_2.minTarget) return '#4f46e5'; // Biru
+        return '#94a3b8'; // Abu
+    };
+
+    const getRewardText = (target?: number) => {
+        const val = Number(target) || 0;
+        if (val >= INCENTIVE_THRESHOLDS.TIER_1.minTarget) return INCENTIVE_THRESHOLDS.TIER_1.rewardPct;
+        if (val >= INCENTIVE_THRESHOLDS.TIER_2.minTarget) return INCENTIVE_THRESHOLDS.TIER_2.rewardPct;
+        return INCENTIVE_THRESHOLDS.DEFAULT.rewardPct;
+    };
+
+    if (isLoadingGps) {
+        return (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+                <ArrowPathIcon className="w-12 h-12 text-indigo-400 animate-spin mb-4" />
+                <h3 className="text-lg font-black text-slate-700">Mencari Sinyal GPS...</h3>
+                <p className="text-sm text-slate-500 mt-2">Mohon tunggu, sedang menyesuaikan peta Nearby dengan lokasi Anda.</p>
+            </div>
+        );
+    }
+
+    if (gpsError || !userLocation) {
+        return (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+                <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center text-rose-400 mb-4">
+                    <ShieldExclamationIcon className="w-10 h-10" />
+                </div>
+                <h3 className="text-lg font-black text-slate-700 mb-2">Aktifkan GPS</h3>
+                <p className="text-sm text-slate-500 mb-6 max-w-xs">{gpsError || 'Fitur Nearby membutuhkan lokasi Anda untuk mencari toko terdekat.'}</p>
+                <button 
+                    onClick={requestGps}
+                    className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-sm shadow-indigo-200 hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                >
+                    <MapPinIcon className="w-5 h-5" />
+                    Coba Lagi
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex-1 flex flex-col relative w-full h-full animate-fade-in">
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[400] bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-md shadow-slate-200/50 border border-slate-100 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-[10px] font-bold tracking-wider uppercase text-slate-700">
+                    {storesInRadius.length} Toko dalam 5 km
+                </span>
+            </div>
+            
+            <MapContainer 
+                center={[userLocation.lat, userLocation.lng]} 
+                zoom={13} 
+                className="w-full h-full min-h-[400px] flex-1 z-0"
+                zoomControl={false}
+            >
+                <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; OpenStreetMap'
+                />
+                
+                <ChangeView center={[userLocation.lat, userLocation.lng]} zoom={13} />
+
+                {/* Marker Posisi User */}
+                <Marker position={[userLocation.lat, userLocation.lng]}>
+                    <Popup>
+                        <div className="font-bold text-slate-700 text-center text-xs">Lokasi Anda</div>
+                    </Popup>
+                </Marker>
+
+                {/* Lingkaran 5km */}
+                <Circle 
+                    center={[userLocation.lat, userLocation.lng]} 
+                    radius={RADAR_RADIUS_M} 
+                    pathOptions={{ color: '#6366f1', fillColor: '#6366f1', fillOpacity: 0.08, weight: 1 }} 
+                />
+
+                {/* Marker Toko */}
+                {storesInRadius.map(store => {
+                    const color = getColorForTarget(store.total_target);
+                    return (
+                        <CircleMarker 
+                            key={store.customer_code}
+                            center={[store.parsedLat, store.parsedLng]} 
+                            radius={8}
+                            pathOptions={{ 
+                                color: 'white', 
+                                fillColor: color, 
+                                fillOpacity: 1,
+                                weight: 2 
+                            }}
+                        >
+                            <Popup className="radar-popup">
+                                <div className="flex flex-col gap-1 min-w-[160px]">
+                                    <h3 className="font-black text-sm text-slate-800 leading-tight m-0">{store.customer_name}</h3>
+                                    <p className="text-[10px] text-slate-400 font-medium m-0">{store.customer_code}</p>
+                                    
+                                    <div className="flex items-center gap-2 mt-1 mb-2">
+                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold text-white" style={{ backgroundColor: color }}>
+                                            {getRewardText(store.total_target)} Reward
+                                        </span>
+                                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                            {formatDistance(store.distance)}
+                                        </span>
+                                    </div>
+
+                                    <a
+                                        href={`https://www.google.com/maps/dir/?api=1&destination=${store.parsedLat},${store.parsedLng}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center justify-center gap-1.5 w-full py-1.5 bg-sky-50 text-sky-600 hover:bg-sky-100 rounded-md font-bold text-[10px] transition-colors border border-sky-100 no-underline"
+                                    >
+                                        <ArrowTopRightOnSquareIcon className="w-3 h-3" /> Arahkan
+                                    </a>
+                                </div>
+                            </Popup>
+                        </CircleMarker>
+                    );
+                })}
+            </MapContainer>
+            
+            {/* Custom CSS untuk popup Leaflet agar lebih rapi */}
+            <style>{`
+                .leaflet-popup-content-wrapper {
+                    border-radius: 12px;
+                    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+                }
+                .leaflet-popup-content {
+                    margin: 12px;
+                }
+                .leaflet-container a.leaflet-popup-close-button {
+                    padding: 4px;
+                    color: #94a3b8;
+                }
+            `}</style>
+        </div>
+    );
+}

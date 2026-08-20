@@ -49,6 +49,9 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
     const [historyProduk, setHistoryProduk] = useState<{headers: string[], data: any[]}>({headers: [], data: []});
     const [isLoadingProduk, setIsLoadingProduk] = useState(false);
 
+    const [historyValue, setHistoryValue] = useState<{monthly: any[], stats: any}>({monthly: [], stats: null});
+    const [isLoadingValue, setIsLoadingValue] = useState(false);
+
     const ktpRef = useRef<HTMLInputElement>(null);
     const toko2Ref = useRef<HTMLInputElement>(null);
     const toko3Ref = useRef<HTMLInputElement>(null);
@@ -113,6 +116,18 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                 })
                 .finally(() => {
                     setIsLoadingProduk(false);
+                });
+
+            setIsLoadingValue(true);
+            axios.get(`/mobile/skb-rwo/history-value?kd_dist=${data.distributor_code}&uniq_kd=${data.customer_code}`)
+                .then(res => {
+                    setHistoryValue(res.data || {monthly: [], stats: null});
+                })
+                .catch(err => {
+                    console.error('Failed to fetch history value', err);
+                })
+                .finally(() => {
+                    setIsLoadingValue(false);
                 });
         }
     }, [data, isMonitoring]);
@@ -478,29 +493,56 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                             <div className="mb-6 bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm animate-fade-in mx-1">
                                                 <div className="flex items-center gap-2 mb-3">
                                                     <ChartBarIcon className="w-4 h-4 text-indigo-600" />
-                                                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-700">Statistik Transaksi (2026)</h4>
+                                                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-700">Statistik Transaksi (6 Bulan Terakhir)</h4>
                                                 </div>
                                                 <div className="grid grid-cols-1 gap-2">
                                                     <div className="flex justify-between items-center p-2 bg-indigo-50 rounded-lg border border-indigo-100 shadow-sm mb-1">
                                                         <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Total Transaction</span>
-                                                        <span className="text-xs font-black text-indigo-700">Rp {new Intl.NumberFormat('id-ID').format(data.total_transaction || 0)}</span>
+                                                        <span className="text-xs font-black text-indigo-700">Rp {new Intl.NumberFormat('id-ID').format(historyValue?.stats?.total_transaction || 0)}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-100 shadow-sm">
                                                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Last Transaction</span>
                                                         <div className="text-right flex flex-col">
-                                                            <span className="text-xs font-black text-indigo-700">Rp {new Intl.NumberFormat('id-ID').format(data.last_transaction_value || 0)}</span>
-                                                            <span className="text-[9px] font-semibold text-slate-400 mt-0.5">{data.last_transaction_date ? new Date(data.last_transaction_date).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) : '-'}</span>
+                                                            <span className="text-xs font-black text-indigo-700">Rp {new Intl.NumberFormat('id-ID').format(historyValue?.stats?.last_transaction_value || 0)}</span>
+                                                            <span className="text-[9px] font-semibold text-slate-400 mt-0.5">{historyValue?.stats?.last_transaction_date ? new Date(historyValue.stats.last_transaction_date).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) : '-'}</span>
                                                         </div>
                                                     </div>
                                                     <div className="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-100 shadow-sm">
                                                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Max Transaction</span>
-                                                        <span className="text-xs font-black text-indigo-700">Rp {new Intl.NumberFormat('id-ID').format(data.max_transaction || 0)}</span>
+                                                        <span className="text-xs font-black text-indigo-700">Rp {new Intl.NumberFormat('id-ID').format(historyValue?.stats?.max_transaction || 0)}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-100 shadow-sm">
                                                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Average Transaction</span>
-                                                        <span className="text-xs font-black text-indigo-700">Rp {new Intl.NumberFormat('id-ID').format(data.avg_transaction || 0)}</span>
+                                                        <span className="text-xs font-black text-indigo-700">Rp {new Intl.NumberFormat('id-ID').format(historyValue?.stats?.avg_transaction || 0)}</span>
                                                     </div>
                                                 </div>
+                                            </div>
+                                            
+                                            {/* History by Value (6 Bulan Terakhir) */}
+                                            <div className="mb-6 bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm animate-fade-in mx-1">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <ChartBarIcon className="w-4 h-4 text-indigo-600" />
+                                                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-700">History by Value (6 Bulan Terakhir)</h4>
+                                                </div>
+                                                
+                                                {isLoadingValue ? (
+                                                    <div className="flex justify-center p-4">
+                                                        <ArrowPathIcon className="w-5 h-5 animate-spin text-slate-400" />
+                                                    </div>
+                                                ) : historyValue?.monthly && historyValue.monthly.length > 0 ? (
+                                                    <div className="flex flex-col gap-2">
+                                                        {historyValue.monthly.map((item, idx) => (
+                                                            <div key={idx} className="flex justify-between items-center p-2.5 bg-white rounded-lg border border-slate-100 shadow-sm hover:border-indigo-200 transition-colors">
+                                                                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">{item.month_name}</span>
+                                                                <span className="text-xs font-black text-indigo-600">Rp {new Intl.NumberFormat('id-ID').format(item.value)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-center p-4 border border-dashed border-slate-200 rounded-xl bg-white">
+                                                        <span className="text-[10px] text-slate-400 font-medium">Belum ada history transaksi 6 bulan terakhir.</span>
+                                                    </div>
+                                                )}
                                             </div>
                                             
                                             {/* Table History Produk */}

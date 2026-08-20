@@ -438,12 +438,12 @@ class IndexController extends Controller
             ->where('KDUNIQ', $uniq_kd)
             ->select(
                 DB::raw("DATE_TRUNC('month', TO_DATE(\"THN\" || '-' || \"BLN\" || '-01', 'YYYY-MM-DD'))::date AS bulan"),
-                'NAMAITEMPRC as produk_subbrand',
+                'SUBBRAND as produk_subbrand',
                 DB::raw('SUM("TTL_QTY_KTN") as qty')
             )
             ->groupBy(
                 DB::raw("DATE_TRUNC('month', TO_DATE(\"THN\" || '-' || \"BLN\" || '-01', 'YYYY-MM-DD'))::date"),
-                'NAMAITEMPRC'
+                'SUBBRAND'
             )
             ->get();
 
@@ -503,6 +503,82 @@ class IndexController extends Controller
         return response()->json([
             'headers' => $headers,
             'data' => $resultData
+        ]);
+    }
+    public function getHistoryValue(Request $request)
+    {
+        $kd_dist = $request->input('kd_dist');
+        $uniq_kd = $request->input('uniq_kd');
+
+        $months = [];
+        $currentMonth = date('n');
+        $currentYear = date('Y');
+        
+        for ($i = 5; $i >= 0; $i--) {
+            $m = $currentMonth - $i;
+            $y = $currentYear;
+            if ($m <= 0) {
+                $m += 12;
+                $y -= 1;
+            }
+            $monthKey = $y . '-' . str_pad($m, 2, '0', STR_PAD_LEFT);
+            $months[$monthKey] = [
+                'month_name' => date('M y', mktime(0, 0, 0, $m, 1, $y)),
+                'value' => 0
+            ];
+        }
+
+        $startDate = date('Y-m-01', mktime(0, 0, 0, $currentMonth - 5, 1, $currentYear));
+        $endDate = date('Y-m-t', mktime(0, 0, 0, $currentMonth, 1, $currentYear));
+
+        $query = DB::table('zv_so_per_toko_2026')
+            ->where('kd_dist', $kd_dist)
+            ->where('uniq_kd', $uniq_kd)
+            ->whereBetween('bulan', [$startDate, $endDate])
+            ->select(
+                DB::raw("DATE_TRUNC('month', bulan)::date as bulan_t"),
+                DB::raw('SUM(neto) as total_value')
+            )
+            ->groupBy(DB::raw("DATE_TRUNC('month', bulan)::date"))
+            ->orderBy('bulan_t', 'asc')
+            ->get();
+
+        $total_transaction = 0;
+        $max_transaction = 0;
+        $active_months = 0;
+        $last_transaction_value = 0;
+        $last_transaction_date = null;
+
+        foreach ($query as $row) {
+            $monthKey = date('Y-m', strtotime($row->bulan_t));
+            $val = (float) $row->total_value;
+
+            if (isset($months[$monthKey])) {
+                $months[$monthKey]['value'] = $val;
+            }
+
+            $total_transaction += $val;
+            if ($val > $max_transaction) {
+                $max_transaction = $val;
+            }
+            if ($val > 0) {
+                $active_months++;
+                $last_transaction_value = $val;
+                $last_transaction_date = $row->bulan_t;
+            }
+        }
+
+        $avg_transaction = $active_months > 0 ? $total_transaction / $active_months : 0;
+
+        return response()->json([
+            'monthly' => array_values($months),
+            'stats' => [
+                'total_transaction' => $total_transaction,
+                'max_transaction' => $max_transaction,
+                'avg_transaction' => $avg_transaction,
+                'last_transaction_value' => $last_transaction_value,
+                'last_transaction_date' => $last_transaction_date
+            ]
         ]);
     }
 }

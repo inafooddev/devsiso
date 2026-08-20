@@ -1,9 +1,13 @@
 import React from 'react';
 import {
     MapPinIcon, ShieldCheckIcon, IdentificationIcon,
-    InformationCircleIcon, ClipboardDocumentCheckIcon, ChartPieIcon
+    InformationCircleIcon, ClipboardDocumentCheckIcon, ChartPieIcon,
+    ArrowTopRightOnSquareIcon
 } from '@heroicons/react/24/outline';
 import { ShieldExclamationIcon } from '@heroicons/react/24/solid';
+import { formatDistance } from '../utils/geo';
+
+import { INCENTIVE_THRESHOLDS } from '../constants';
 
 export interface SkbRwoItem {
     customer_code: string;
@@ -20,7 +24,9 @@ export interface SkbRwoItem {
     month_1_value?: number;
     month_2_value?: number;
     month_3_value?: number;
-    [key: string]: any; // Allow other properties like no_hp, etc.
+    latitude?: string | null;
+    longitude?: string | null;
+    [key: string]: any;
 }
 
 export interface StoreCardProps {
@@ -28,6 +34,8 @@ export interface StoreCardProps {
     showProgress?: boolean;
     showSkbAction?: boolean;
     showActualAction?: boolean;
+    showDirection?: boolean;
+    distance?: number | null;
     onOpenDetail?: (item: SkbRwoItem) => void;
     onOpenActual?: (item: SkbRwoItem) => void;
     onOpenSkb?: (item: SkbRwoItem) => void;
@@ -56,7 +64,7 @@ export const getProratedTarget = (totalTarget: number, kuartalStr?: string | nul
     return (totalTarget / 3) * multiplier;
 };
 
-export default function StoreCard({ item, showProgress, showSkbAction = true, showActualAction = false, onOpenDetail, onOpenActual, onOpenSkb }: StoreCardProps) {
+export default function StoreCard({ item, showProgress, showSkbAction = true, showActualAction = false, showDirection = false, distance = null, onOpenDetail, onOpenActual, onOpenSkb }: StoreCardProps) {
     const isApproved = item.is_approved === 1 || item.is_approved === true;
     const isRejected = item.is_approved === 0 || item.is_approved === false;
     
@@ -93,7 +101,9 @@ export default function StoreCard({ item, showProgress, showSkbAction = true, sh
     }
     
     const targetAmount = Number(item.total_target) || 0;
-    const rewardPct = targetAmount >= 90000000 ? '2.5%' : (targetAmount >= 30000000 ? '2%' : '1.5%');
+    const rewardPct = targetAmount >= INCENTIVE_THRESHOLDS.TIER_1.minTarget 
+        ? INCENTIVE_THRESHOLDS.TIER_1.rewardPct 
+        : (targetAmount >= INCENTIVE_THRESHOLDS.TIER_2.minTarget ? INCENTIVE_THRESHOLDS.TIER_2.rewardPct : INCENTIVE_THRESHOLDS.DEFAULT.rewardPct);
     
     return (
         <div className={`bg-white p-3 rounded-2xl shadow-sm flex flex-col gap-3 animate-fade-in relative overflow-hidden group ${borderClass}`}>
@@ -103,6 +113,12 @@ export default function StoreCard({ item, showProgress, showSkbAction = true, sh
                     <h3 className="text-sm font-black text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors truncate">
                         {item.customer_name}
                     </h3>
+                    {distance !== null && distance !== undefined && (
+                        <span className="inline-flex items-center gap-0.5 mt-0.5 px-1.5 py-0.5 bg-emerald-50 border border-emerald-200 rounded-md text-[9px] font-bold text-emerald-600">
+                            <MapPinIcon className="w-2.5 h-2.5" />
+                            {formatDistance(distance)}
+                        </span>
+                    )}
                 </div>
                 
                 <div className="flex items-center justify-end gap-1.5 shrink-0">
@@ -189,6 +205,16 @@ export default function StoreCard({ item, showProgress, showSkbAction = true, sh
                             <ClipboardDocumentCheckIcon className="w-3.5 h-3.5" /> Form SKB
                         </button>
                     )
+                )}
+                {showDirection && item.latitude && item.longitude && (
+                    <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${item.latitude},${item.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 py-2 px-1 flex items-center justify-center gap-1.5 rounded-lg text-sky-600 bg-sky-50 hover:bg-sky-100 font-bold text-[10px] sm:text-[11px] uppercase tracking-wider transition-colors border border-sky-100 whitespace-nowrap min-w-[90px]"
+                    >
+                        <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" /> Arah
+                    </a>
                 )}
             </div>
 
