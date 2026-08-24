@@ -1,0 +1,1 @@
+$m=0; foreach(\App\Models\RewardOutlet::get() as $o){ $sql=\App\Models\RewardOutlet::where('id', $o->id)->filterType('lengkap')->exists(); $php=($o->status==='Complete'); if($sql!==$php) { echo "ID {$o->id} SQL:{$sql} PHP:{$php}\n"; $m++; } } echo "Mismatches: {$m}\n";

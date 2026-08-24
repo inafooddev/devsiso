@@ -61,6 +61,7 @@ use App\Livewire\MasterData\Product\CategoriesProduct\Index as CategoryIndex;
 use App\Livewire\MasterData\Product\GroupProduct\Index as ProductGroupIndex;
 use App\Livewire\MasterData\Product\LineProduct\Index as ProductLineIndex;
 use App\Livewire\MasterData\Product\MasterProduct\Index as ProductMasterIndex;
+use App\Livewire\MasterData\Product\MasterProdukLama\Index as MasterProdukLamaIndex;
 use App\Livewire\MasterData\Product\ProductCategories\Index as ProductCategoryIndex;
 use App\Livewire\MasterData\Product\SubBrandProduct\Index as ProductSubBrandIndex;
 use App\Livewire\Mapping\UnitMapping\Index as UnitMappingIndex;
@@ -70,7 +71,7 @@ use App\Livewire\Settings\Profile;
 use App\Livewire\Settings\RoleManagement;
 use App\Livewire\Settings\AccessGroupManagement;
 use App\Livewire\Settings\ActivityLogManagement;
-use App\Livewire\Rwo\Index as RwoIndex;
+use App\Livewire\Rwo\MasterCustomer\Index as RwoIndex;
 use App\Livewire\SalesConfig\Create as SalesConfigCreate;
 use App\Livewire\SalesConfig\Edit as SalesConfigEdit;
 use App\Livewire\SalesConfig\Index as SalesConfigIndex;
@@ -251,6 +252,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/categories', CategoryIndex::class)->name('categories.index');
     Route::get('/product-categories', ProductCategoryIndex::class)->name('product-categories.index');
     Route::get('/product-masters', ProductMasterIndex::class)->name('product-masters.index');
+    Route::get('/master-data/product/master-produk-lama', MasterProdukLamaIndex::class)->name('master-produk-lama.index');
     Route::get('/product-unit-mappings', UnitMappingIndex::class)->name('product-unit-mappings.index');
 
     // ==========================================
@@ -385,7 +387,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/qceskalink', QceskalinkIndex::class)->name('qceskalink.index');
     Route::get('/monitoring-device', MonitoringDeviceIndex::class)->name('monitoring-device.index');
     Route::get('/rwo', RwoIndex::class)->name('rwo.index');
-    Route::get('/rwo/summary', \App\Livewire\Rwo\Summary::class)->name('rwo.summary');
+    Route::get('/rwo/summary', \App\Livewire\Rwo\MasterCustomer\Summary::class)->name('rwo.summary');
     Route::get('/rwo/plan-kunjungan', \App\Livewire\Rwo\PlanKunjungan::class)->name('rwo.plan-kunjungan');
     Route::get('/rwo/dashboard', \App\Livewire\Rwo\DashboardRwo::class)->name('rwo.dashboard');
     Route::get('/rwo/summary-list-potensi', \App\Livewire\Rwo\SummaryListPotensi::class)->name('rwo.summarylistpotensi');

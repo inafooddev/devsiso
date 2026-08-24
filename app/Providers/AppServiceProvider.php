@@ -51,5 +51,9 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Blade::if('canDelete', function ($routeName) {
             return auth()->check() && auth()->user()->hasMenuAccess($routeName, 'can_delete');
         });
+
+        \Illuminate\Support\Facades\Blade::if('canFinalize', function ($routeName) {
+            return auth()->check() && (auth()->user()->hasRole('finance') || auth()->user()->hasRole('admin'));
+        });
     }
 }
