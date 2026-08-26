@@ -172,8 +172,8 @@ class Index extends Component
     {
         $this->authorizeAction('can_edit');
         
-        if ($this->form->outlet) {
-            $outlet = RewardOutlet::find($this->form->outlet->id);
+        if ($this->form->outletId) {
+            $outlet = RewardOutlet::find($this->form->outletId);
             if ($outlet && $outlet->isFinalized()) {
                 $this->dispatch('notify', type: 'error', message: 'Data ini telah difinalisasi dan tidak dapat diedit.');
                 return;

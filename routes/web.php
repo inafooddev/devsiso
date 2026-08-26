@@ -344,6 +344,8 @@ Route::middleware(['auth'])->group(function () {
     // ==========================================
     Route::get('/selling-in', SellingInIndex::class)->name('selling-in.index');
     Route::get('/selling-in/import', SellingInImport::class)->name('selling-in.import');
+    Route::get('/selling-in/import-raw', \App\Livewire\SellingIn\ImportRaw::class)->name('selling-in.import-raw');
+    Route::get('/selling-in/distributor-mapping', \App\Livewire\SellingIn\DistributorMapping::class)->name('selling-in.distributor-mapping');
     Route::get('/selling-out-eskalink', SellingOutEskalinkIndex::class)->name('selling-out-eskalink.index');
     Route::get('/sell-out/process', SellOutProcessIndex::class)->name('sell-out.process');
     Route::get('/sell-out/process-v2', SellOutProcessIndexV2::class)->name('sell-out.process-v2');
