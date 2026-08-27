@@ -154,12 +154,12 @@
                     </x-ui.action-button>
                     @endcanExport
 
-                    @canEdit('call-plan.jks-team-elite.master-customer')
+                    @canImport('call-plan.jks-team-elite.master-customer')
                     <button type="button" wire:click="openSyncModal" class="btn btn-sm btn-outline btn-info gap-2 hidden sm:inline-flex rounded-lg border-info/30 hover:border-info">
                         <x-heroicon-s-map class="w-4 h-4" />
                         Sync Wilayah
                     </button>
-                    @endcanEdit
+                    @endcanImport
                 </div>
             </div>
         </div>

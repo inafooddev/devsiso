@@ -866,7 +866,7 @@ class Index extends Component
     // --- SYNC WILAYAH DENGAN POSTGIS ---
     public function openSyncModal()
     {
-        $this->authorizeAction('can_edit');
+        $this->authorizeAction('can_import');
         $this->isSyncModalOpen = true;
         $this->isSyncing = false;
         $this->syncCompleted = false;
