@@ -4,8 +4,9 @@ namespace App\Exports;
 
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
-class JksMasterCustomerTemplateExport implements FromArray, WithHeadings
+class JksMasterCustomerTemplateExport implements FromArray, WithHeadings, ShouldAutoSize
 {
     public function array(): array
     {
@@ -25,13 +26,16 @@ class JksMasterCustomerTemplateExport implements FromArray, WithHeadings
             'Desa',
             'Latitude',
             'Longitude',
+            'Channel',
+            'Classification',
+            'Segment',
             'Pilar',
             'Pilar Q1',
             'Pilar Q2',
             'Pilar Q3',
             'Pilar Q4',
             'Target',
-            'Keterangan',
+            'Remarks SPM',
         ];
     }
 }

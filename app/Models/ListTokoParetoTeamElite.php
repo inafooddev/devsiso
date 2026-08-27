@@ -38,6 +38,9 @@ class ListTokoParetoTeamElite extends Model
         'target',
         'keterangan',
         'uniq_kd',
+        'channel_outlet',
+        'classification_outlet',
+        'segment_outlet',
     ];
 
     /**

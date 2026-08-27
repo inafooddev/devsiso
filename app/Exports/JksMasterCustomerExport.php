@@ -6,11 +6,12 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Cell\Cell;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 
-class JksMasterCustomerExport extends DefaultValueBinder implements FromCollection, WithHeadings, WithMapping, WithCustomValueBinder
+class JksMasterCustomerExport extends DefaultValueBinder implements FromCollection, WithHeadings, WithMapping, WithCustomValueBinder, ShouldAutoSize
 {
     protected $query;
 
@@ -56,15 +57,17 @@ class JksMasterCustomerExport extends DefaultValueBinder implements FromCollecti
             'Desa',
             'Latitude',
             'Longitude',
+            'Channel',
+            'Classification',
+            'Segment',
             'Pilar',
             'Pilar Q1',
             'Pilar Q2',
             'Pilar Q3',
             'Pilar Q4',
             'Target',
-            'Keterangan',
+            'Remarks SPM',
             'On Plan',
-            'Pareto',
         ];
     }
 
@@ -87,6 +90,9 @@ class JksMasterCustomerExport extends DefaultValueBinder implements FromCollecti
             $row->desa,
             $row->latitude !== null ? str_replace(',', '.', (string) $row->latitude) : null,
             $row->longitude !== null ? str_replace(',', '.', (string) $row->longitude) : null,
+            $row->channel_outlet,
+            $row->classification_outlet,
+            $row->segment_outlet,
             $row->pilar,
             $row->pilar_q1,
             $row->pilar_q2,
@@ -95,7 +101,6 @@ class JksMasterCustomerExport extends DefaultValueBinder implements FromCollecti
             $row->target,
             $row->keterangan,
             $row->on_plan,
-            $row->pareto,
         ];
     }
 }

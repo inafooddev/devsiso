@@ -40,11 +40,27 @@ class Index extends Component
     // State Modal Tambah Customer
     public $isCreateModalOpen = false;
 
+    // State Export Customer
+    public $isExportModalOpen = false;
+    public $exportTotalRows = 0;
+
     // State Import Customer
     public $isImportModalOpen = false;
     public $importFile;
     public $importErrorLogUrl = null;
     public $importLogCount = 0;
+    public $importMethod = 'upsert';
+    
+    // Live Progress Queue Properties
+    public $importJobId = null;
+    public $isImporting = false;
+    public $importCompleted = false;
+    public $liveSuccessCount = 0;
+    public $liveSkipCount = 0;
+    public $liveErrorCount = 0;
+    
+    public $importErrorLogs = [];
+    public $importSkipLogs = [];
 
     // Pencarian Distributor di Form Tambah Toko
     public $searchDistributor = '';
@@ -52,6 +68,7 @@ class Index extends Component
     // Properti Form Create/Edit
     public $distributor_code, $customer_code_prc, $customer_name, $uniq_kd, $customer_address;
     public $kecamatan, $desa, $latitude, $longitude, $pilar, $target, $keterangan;
+    public $channel_outlet, $classification_outlet, $segment_outlet;
     public $pilar_q1, $pilar_q2, $pilar_q3, $pilar_q4;
     
     // State Edit & Delete
@@ -233,6 +250,9 @@ class Index extends Component
                 'l.pilar_q4',
                 'l.target',
                 'l.keterangan',
+                'l.channel_outlet',
+                'l.classification_outlet',
+                'l.segment_outlet',
                 DB::raw("case when j.custno is null then 'N' else 'Y' end as on_plan"),
                 DB::raw("case when l.pilar in ('1. RWO','2. PNR','3. NGVO') then 'PARETO' else 'NON PARETO' end as pareto")
             );
@@ -244,6 +264,7 @@ class Index extends Component
         if ($this->search && !$excludeSearch) {
             $query->where(function($q) {
                 $q->where('l.customer_code_prc', 'ilike', "%{$this->search}%")
+                  ->orWhere('l.uniq_kd', 'ilike', "%{$this->search}%")
                   ->orWhere('l.customer_name', 'ilike', "%{$this->search}%")
                   ->orWhere('l.customer_address', 'ilike', "%{$this->search}%")
                   ->orWhere('l.kecamatan', 'ilike', "%{$this->search}%")
@@ -427,7 +448,7 @@ class Index extends Component
 
     public function openCreateModal()
     {
-        $this->reset(['distributor_code', 'customer_code_prc', 'customer_name', 'uniq_kd', 'customer_address', 'kecamatan', 'desa', 'latitude', 'longitude', 'pilar', 'target', 'keterangan', 'searchDistributor', 'pilar_q1', 'pilar_q2', 'pilar_q3', 'pilar_q4']);
+        $this->reset(['distributor_code', 'customer_code_prc', 'customer_name', 'uniq_kd', 'customer_address', 'kecamatan', 'desa', 'latitude', 'longitude', 'pilar', 'target', 'keterangan', 'searchDistributor', 'pilar_q1', 'pilar_q2', 'pilar_q3', 'pilar_q4', 'channel_outlet', 'classification_outlet', 'segment_outlet']);
         $this->isCreateModalOpen = true;
     }
 
@@ -445,6 +466,9 @@ class Index extends Component
             'longitude' => 'nullable|numeric|between:-180,180',
             'target' => 'required|numeric',
             'keterangan' => 'nullable|string',
+            'channel_outlet' => 'nullable|string|max:255',
+            'classification_outlet' => 'nullable|string|max:255',
+            'segment_outlet' => 'nullable|string|max:255',
         ]);
 
         // Security Check: Pastikan user berhak menambah data di distributor ini
@@ -486,6 +510,9 @@ class Index extends Component
                 'pilar_q2' => $this->pilar_q2,
                 'pilar_q3' => $this->pilar_q3,
                 'pilar_q4' => $this->pilar_q4,
+                'channel_outlet' => $this->channel_outlet,
+                'classification_outlet' => $this->classification_outlet,
+                'segment_outlet' => $this->segment_outlet,
             ]
         );
 
@@ -496,12 +523,28 @@ class Index extends Component
     }
 
     // --- EXPORT TO EXCEL ---
+    public function openExportModal()
+    {
+        $this->authorizeAction('can_export');
+        $this->exportTotalRows = $this->getBaseQuery()->count();
+        $this->isExportModalOpen = true;
+    }
+
+    public function closeExportModal()
+    {
+        $this->isExportModalOpen = false;
+    }
+
     public function export()
     {
         $this->authorizeAction('can_export');
         
-        \App\Helpers\ActivityLogger::log('Export Master Customer JKS', "Mengekspor data Master Customer JKS Team Elite.");
+        \App\Helpers\ActivityLogger::log('Export Master Customer JKS', "Mengekspor data Master Customer JKS Team Elite sejumlah {$this->exportTotalRows} baris.");
         $filename = 'Master_Customer_JKS_Team_Elite_' . date('Ymd_His') . '.xlsx';
+        
+        // Tutup modal export
+        $this->closeExportModal();
+
         return Excel::download(new JksMasterCustomerExport($this->getBaseQuery()), $filename);
     }
 
@@ -556,6 +599,9 @@ class Index extends Component
             $this->pilar_q2 = $record->pilar_q2;
             $this->pilar_q3 = $record->pilar_q3;
             $this->pilar_q4 = $record->pilar_q4;
+            $this->channel_outlet = $record->channel_outlet;
+            $this->classification_outlet = $record->classification_outlet;
+            $this->segment_outlet = $record->segment_outlet;
             
             $this->searchDistributor = $record->distributor_code;
             $this->isEditModalOpen = true;
@@ -576,6 +622,9 @@ class Index extends Component
             'longitude' => 'nullable|numeric|between:-180,180',
             'target' => 'required|numeric',
             'keterangan' => 'nullable|string',
+            'channel_outlet' => 'nullable|string|max:255',
+            'classification_outlet' => 'nullable|string|max:255',
+            'segment_outlet' => 'nullable|string|max:255',
         ], [
             'distributor_code.required' => 'Distributor Code wajib diisi',
             'distributor_code.exists' => 'Distributor Code tidak valid',
@@ -620,6 +669,9 @@ class Index extends Component
                 'pilar_q2' => $this->pilar_q2,
                 'pilar_q3' => $this->pilar_q3,
                 'pilar_q4' => $this->pilar_q4,
+                'channel_outlet' => $this->channel_outlet,
+                'classification_outlet' => $this->classification_outlet,
+                'segment_outlet' => $this->segment_outlet,
             ]);
 
             \App\Helpers\ActivityLogger::log('Edit Master Customer JKS', "Mengedit Customer: {$this->customer_name} ({$this->uniq_kd})");
@@ -664,14 +716,21 @@ class Index extends Component
 
     public function openImportModal()
     {
-        $this->authorizeAction('can_edit');
-        $this->reset(['importFile', 'importErrorLogUrl', 'importLogCount']);
+        $this->authorizeAction('can_import');
+        $this->resetErrorBag();
+        $this->importFile = null;
+        $this->isImporting = false;
+        $this->importCompleted = false;
+        $this->importMethod = 'upsert';
+        $this->importErrorLogUrl = null;
+        $this->importErrorLogs = [];
+        $this->importSkipLogs = [];
         $this->isImportModalOpen = true;
     }
 
     public function closeImportModal()
     {
-        $this->reset(['importFile', 'importErrorLogUrl', 'importLogCount']);
+        $this->reset(['importFile', 'importErrorLogUrl', 'importLogCount', 'importMethod', 'importJobId', 'isImporting', 'importCompleted', 'liveSuccessCount', 'liveSkipCount', 'liveErrorCount']);
         $this->isImportModalOpen = false;
     }
 
@@ -682,6 +741,7 @@ class Index extends Component
         
         $this->validate([
             'importFile' => 'required|file|max:5120', // Maksimal 5MB, dihapus mimes karena Livewire upload sering gagal membaca mime xlsx
+            'importMethod' => 'required|in:upsert,insert_only',
         ]);
 
         \Illuminate\Support\Facades\Log::info("File validated successfully");
@@ -697,67 +757,94 @@ class Index extends Component
         }
 
         try {
-            $import = new JksMasterCustomerImport($isAdmin, $allowedDistributors);
-            \Illuminate\Support\Facades\Log::info("Starting Excel::import with file " . $this->importFile->getRealPath());
-            Excel::import($import, $this->importFile);
-            \Illuminate\Support\Facades\Log::info("Excel::import finished. Errors: " . count($import->errorLogs));
+            $this->importJobId = (string) \Illuminate\Support\Str::uuid();
+            $filename = 'import_jks_' . $this->importJobId . '.' . $this->importFile->getClientOriginalExtension();
+            // Simpan file sementara agar bisa dibaca worker
+            $this->importFile->storeAs('temp_imports', $filename, 'local');
+            $fullPath = \Illuminate\Support\Facades\Storage::disk('local')->path('temp_imports/' . $filename);
 
-            $this->importLogCount = count($import->errorLogs);
+            \Illuminate\Support\Facades\Cache::put("import_progress_{$this->importJobId}", [
+                'status' => 'processing',
+                'success' => 0,
+                'insert' => 0,
+                'update' => 0,
+                'skip' => 0,
+                'error' => 0,
+                'logs' => [],
+                'skipLogs' => []
+            ], 3600);
+
+            $this->isImporting = true;
+            $this->importCompleted = false;
+
+            $queueConnection = env('IMPORT_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'sync'));
+            \Illuminate\Support\Facades\Log::info("Dispatching JksMasterCustomerImportJob with ID {$this->importJobId} to connection {$queueConnection} on queue 'imports'");
             
-            // Generate Error Log File ALWAYS
-            $logContent = "Log Hasil Import Master Customer JKS Team Elite\n";
-            $logContent .= "Tanggal: " . now()->format('Y-m-d H:i:s') . "\n";
-            $logContent .= "Total Sukses: {$import->successCount} (Insert: {$import->insertCount}, Update: {$import->updateCount})\n";
-            $logContent .= "Total Gagal: {$this->importLogCount}\n";
-            $logContent .= "---------------------------------------------------\n\n";
-
-            if ($this->importLogCount > 0) {
-                $logContent .= "Rincian Gagal:\n";
-                foreach ($import->errorLogs as $error) {
-                    $logContent .= $error . "\n";
-                }
-                $logContent .= "\n---------------------------------------------------\n\n";
-            }
-
-            if ($import->insertCount > 0) {
-                $logContent .= "Rincian Insert (Data Baru):\n";
-                foreach ($import->insertLogs as $log) {
-                    $logContent .= $log . "\n";
-                }
-                $logContent .= "\n---------------------------------------------------\n\n";
-            }
-
-            if ($import->updateCount > 0) {
-                $logContent .= "Rincian Update (Perubahan Data):\n";
-                foreach ($import->updateLogs as $log) {
-                    $logContent .= $log . "\n";
-                }
-                $logContent .= "\n---------------------------------------------------\n\n";
-            }
-
-            if ($this->importLogCount == 0) {
-                $logContent .= "Semua data berhasil di-import tanpa ada error.\n";
-            }
-
-            $fileName = 'log_' . date('Ymd_His') . '.txt';
-
-            \App\Helpers\ActivityLogger::log('Import Master Customer JKS', "Melakukan import data Master Customer JKS Team Elite. Sukses: {$import->successCount} (Insert: {$import->insertCount}, Update: {$import->updateCount}), Error: {$this->importLogCount}");
-            
-            $this->isImportModalOpen = false;
-            $this->reset('importFile');
-
-            $msgType = $this->importLogCount > 0 ? 'warning' : 'message';
-            session()->flash($msgType, "Proses import selesai. Berhasil: {$import->successCount} (Insert: {$import->insertCount}, Update: {$import->updateCount}), Gagal: {$this->importLogCount}.");
-            
-            return response()->streamDownload(function () use ($logContent) {
-                echo $logContent;
-            }, $fileName);
+            $job = new \App\Jobs\JksMasterCustomerImportJob($fullPath, $isAdmin, $allowedDistributors, $this->importMethod, $this->importJobId);
+            dispatch($job)->onConnection($queueConnection)->onQueue('imports');
 
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Import error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
-            session()->flash('error', "Terjadi kesalahan sistem saat membaca file Excel: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error("Failed to dispatch import: " . $e->getMessage());
+            $this->addError('importFile', 'Gagal memproses file: ' . $e->getMessage());
+            $this->isImporting = false;
         }
 
         $this->resetPage();
     }
+
+    public function checkImportProgress()
+    {
+        if (!$this->isImporting || !$this->importJobId) return;
+
+        $progress = \Illuminate\Support\Facades\Cache::get("import_progress_{$this->importJobId}");
+
+        if ($progress) {
+            $this->liveSuccessCount = $progress['success'] ?? 0;
+            $this->liveSkipCount = $progress['skip'] ?? 0;
+            $this->liveErrorCount = $progress['error'] ?? 0;
+
+            if (isset($progress['status']) && in_array($progress['status'], ['completed', 'failed'])) {
+                $this->isImporting = false;
+                $this->importCompleted = true;
+                
+                $this->importLogCount = count($progress['logs'] ?? []);
+                $this->importErrorLogs = $progress['logs'] ?? [];
+                $this->importSkipLogs = $progress['skipLogs'] ?? [];
+                
+                // Generate Log File
+                $logContent = "Log Hasil Import Master Customer JKS Team Elite\n";
+                $logContent .= "Tanggal: " . now()->format('Y-m-d H:i:s') . "\n";
+                $logContent .= "Metode Import: " . ($this->importMethod == 'upsert' ? 'Update & Insert' : 'Insert Only') . "\n";
+                $logContent .= "Status: " . strtoupper($progress['status']) . "\n";
+                $logContent .= "Total Sukses: {$this->liveSuccessCount} (Insert: {$progress['insert']}, Update: {$progress['update']})\n";
+                $logContent .= "Total Dilewati: {$this->liveSkipCount}\n";
+                $logContent .= "Total Gagal: {$this->importLogCount}\n";
+                $logContent .= "---------------------------------------------------\n\n";
+
+                if ($this->liveSkipCount > 0 && !empty($progress['skipLogs'])) {
+                    $logContent .= "Rincian Dilewati (Data Sudah Ada):\n";
+                    foreach ($progress['skipLogs'] as $log) {
+                        $logContent .= $log . "\n";
+                    }
+                    $logContent .= "\n---------------------------------------------------\n\n";
+                }
+
+                if ($this->importLogCount > 0 && !empty($progress['logs'])) {
+                    $logContent .= "Rincian Gagal:\n";
+                    foreach ($progress['logs'] as $error) {
+                        $logContent .= $error . "\n";
+                    }
+                    $logContent .= "\n---------------------------------------------------\n\n";
+                }
+
+                $filename = 'Error_Log_Import_Master_Customer_JKS_' . date('Ymd_His') . '.txt';
+                \Illuminate\Support\Facades\Storage::disk('public')->put('exports/' . $filename, $logContent);
+                $this->importErrorLogUrl = \Illuminate\Support\Facades\Storage::url('exports/' . $filename);
+                
+                \Illuminate\Support\Facades\Cache::forget("import_progress_{$this->importJobId}");
+                session()->flash('message', 'Import selesai diproses.');
+            }
+        }
+    }
 }
+

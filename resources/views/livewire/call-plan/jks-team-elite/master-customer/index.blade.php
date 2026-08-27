@@ -147,8 +147,8 @@
                     <div class="w-[1px] h-6 bg-base-300 hidden sm:block mx-1"></div>
 
                     @canExport('call-plan.jks-team-elite.master-customer')
-                    <x-ui.action-button type="export" wire:click="export" wire:loading.attr="disabled" wire:target="export">
-                        <span wire:loading wire:target="export" class="ml-1">
+                    <x-ui.action-button type="export" wire:click="openExportModal" wire:loading.attr="disabled" wire:target="openExportModal">
+                        <span wire:loading wire:target="openExportModal" class="ml-1">
                             <span class="loading loading-spinner loading-xs"></span>
                         </span>
                     </x-ui.action-button>
@@ -232,6 +232,27 @@
                             </div>
                         </th>
                         
+                        <th wire:click="sortBy('l.channel_outlet')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Channel</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.channel_outlet')" class="{{ $getSortClass('l.channel_outlet') }}" />
+                            </div>
+                        </th>
+                        
+                        <th wire:click="sortBy('l.classification_outlet')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Classification</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.classification_outlet')" class="{{ $getSortClass('l.classification_outlet') }}" />
+                            </div>
+                        </th>
+                        
+                        <th wire:click="sortBy('l.segment_outlet')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Segment</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.segment_outlet')" class="{{ $getSortClass('l.segment_outlet') }}" />
+                            </div>
+                        </th>
+                        
                         <th wire:click="sortBy('l.pilar')" class="cursor-pointer hover:bg-base-200 text-center select-none transition-colors">
                             <div class="flex items-center justify-center gap-2">
                                 <span>Pilar</span>
@@ -248,7 +269,7 @@
                         
                         <th wire:click="sortBy('l.keterangan')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
                             <div class="flex items-center justify-between gap-2">
-                                <span>Keterangan</span>
+                                <span>Remarks SPM</span>
                                 <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.keterangan')" class="{{ $getSortClass('l.keterangan') }}" />
                             </div>
                         </th>
@@ -272,6 +293,9 @@
                         <td class="max-w-[200px] truncate text-xs text-base-content/60" title="{{ $item->customer_address }}">{{ $item->customer_address }}</td>
                         <td class="text-xs text-base-content/70">{{ $item->kecamatan }}</td>
                         <td class="text-xs text-base-content/70">{{ $item->desa }}</td>
+                        <td class="text-xs text-base-content/70 whitespace-nowrap">{{ $item->channel_outlet ?? '-' }}</td>
+                        <td class="text-xs text-base-content/70 whitespace-nowrap">{{ $item->classification_outlet ?? '-' }}</td>
+                        <td class="text-xs text-base-content/70 whitespace-nowrap">{{ $item->segment_outlet ?? '-' }}</td>
                         <td class="text-center">
                             @php
                                 $badgeColor = match($item->pilar) { 
@@ -481,9 +505,45 @@
                     </select>
                 </div>
                 <x-input-text label="Target *" wire:model="target" type="number" step="0.01" />
-                <x-input-text label="Keterangan" wire:model="keterangan" />
+                <x-input-text label="Remarks SPM" wire:model="keterangan" />
                 
-                <div class="md:col-span-2 form-control mt-2 pt-2 border-t border-base-200">
+                <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 mt-2 pt-3 border-t border-base-200">
+                    <div class="form-control">
+                        <label class="label pb-1"><span class="label-text text-xs font-medium text-base-content/85">Channel Outlet</span></label>
+                        <select wire:model="channel_outlet" class="select select-sm select-bordered w-full focus:select-primary text-xs">
+                            <option value="">-- Pilih --</option>
+                            <option value="GT">GT</option>
+                            <option value="MT">MT</option>
+                            <option value="LMT">LMT</option>
+                            <option value="OTH">OTH</option>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label pb-1"><span class="label-text text-xs font-medium text-base-content/85">Classification</span></label>
+                        <select wire:model="classification_outlet" class="select select-sm select-bordered w-full focus:select-primary text-xs">
+                            <option value="">-- Pilih --</option>
+                            <option value="PARETO">PARETO</option>
+                            <option value="NON PARETO">NON PARETO</option>
+                            <option value="DUMMY BRIEF">DUMMY BRIEF</option>
+                            <option value="DUMMY EVALUASI">DUMMY EVALUASI</option>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label pb-1"><span class="label-text text-xs font-medium text-base-content/85">Segment</span></label>
+                        <select wire:model="segment_outlet" class="select select-sm select-bordered w-full focus:select-primary text-xs">
+                            <option value="">-- Pilih --</option>
+                            <option value="STAR OUTLET">STAR OUTLET</option>
+                            <option value="GROSIR">GROSIR</option>
+                            <option value="SEMI-GROSIR">SEMI-GROSIR</option>
+                            <option value="RETAIL">RETAIL</option>
+                            <option value="PENGRAJIN">PENGRAJIN</option>
+                            <option value="TRADER">TRADER</option>
+                            <option value="SEASONAL/HAJATAN">SEASONAL/HAJATAN</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="md:col-span-2 form-control mt-2 pt-3 border-t border-base-200">
                     <label class="label pb-2"><span class="label-text text-xs font-bold text-base-content/70 uppercase tracking-wider">Histori Pilar</span></label>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
                         <div class="form-control">
@@ -580,9 +640,45 @@
                     </select>
                 </div>
                 <x-input-text label="Target *" wire:model="target" type="number" step="0.01" />
-                <x-input-text label="Keterangan" wire:model="keterangan" />
+                <x-input-text label="Remarks SPM" wire:model="keterangan" />
                 
-                <div class="md:col-span-2 form-control mt-2 pt-2 border-t border-base-200">
+                <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 mt-2 pt-3 border-t border-base-200">
+                    <div class="form-control">
+                        <label class="label pb-1"><span class="label-text text-xs font-medium text-base-content/85">Channel Outlet</span></label>
+                        <select wire:model="channel_outlet" class="select select-sm select-bordered w-full focus:select-primary text-xs">
+                            <option value="">-- Pilih --</option>
+                            <option value="GT">GT</option>
+                            <option value="MT">MT</option>
+                            <option value="LMT">LMT</option>
+                            <option value="OTH">OTH</option>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label pb-1"><span class="label-text text-xs font-medium text-base-content/85">Classification</span></label>
+                        <select wire:model="classification_outlet" class="select select-sm select-bordered w-full focus:select-primary text-xs">
+                            <option value="">-- Pilih --</option>
+                            <option value="PARETO">PARETO</option>
+                            <option value="NON PARETO">NON PARETO</option>
+                            <option value="DUMMY BRIEF">DUMMY BRIEF</option>
+                            <option value="DUMMY EVALUASI">DUMMY EVALUASI</option>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label pb-1"><span class="label-text text-xs font-medium text-base-content/85">Segment</span></label>
+                        <select wire:model="segment_outlet" class="select select-sm select-bordered w-full focus:select-primary text-xs">
+                            <option value="">-- Pilih --</option>
+                            <option value="STAR OUTLET">STAR OUTLET</option>
+                            <option value="GROSIR">GROSIR</option>
+                            <option value="SEMI-GROSIR">SEMI-GROSIR</option>
+                            <option value="RETAIL">RETAIL</option>
+                            <option value="PENGRAJIN">PENGRAJIN</option>
+                            <option value="TRADER">TRADER</option>
+                            <option value="SEASONAL/HAJATAN">SEASONAL/HAJATAN</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="md:col-span-2 form-control mt-2 pt-3 border-t border-base-200">
                     <label class="label pb-2"><span class="label-text text-xs font-bold text-base-content/70 uppercase tracking-wider">Histori Pilar</span></label>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
                         <div class="form-control">
@@ -649,8 +745,165 @@
         </x-slot:footer>
     </x-ui.modal>
 
+    <!-- MODAL EXPORT CUSTOMER -->
+    <x-ui.modal wire:key="modal-export-key" id="modal-export" title="Konfirmasi Export Data" icon="arrow-up-tray" :open="$isExportModalOpen" wire:close="closeExportModal">
+        
+        <div class="alert alert-warning shadow-sm text-sm p-3 border border-warning/20 flex flex-col items-start gap-2 mb-4">
+            <div class="flex items-start gap-2">
+                <x-heroicon-o-exclamation-triangle class="w-5 h-5 shrink-0" />
+                <span>
+                    Anda akan mengekspor <b>{{ number_format($this->getBaseQuery()->count(), 0, ',', '.') }} baris data</b> ke dalam format Excel. 
+                    Semakin banyak data, waktu unduh mungkin akan sedikit lebih lama.
+                </span>
+            </div>
+        </div>
+
+        <div class="form-control w-full mb-3">
+            <label class="label"><span class="label-text font-semibold">Filter Wilayah (Opsional)</span></label>
+            <div class="grid grid-cols-2 gap-2">
+                <select wire:model.live="filterRegion" class="select select-bordered select-sm w-full focus:select-primary">
+                    <option value="">Semua Region</option>
+                    @foreach($regions as $r) <option value="{{ $r->region_code }}">{{ $r->region_name }}</option> @endforeach
+                </select>
+                <select wire:model.live="filterArea" class="select select-bordered select-sm w-full focus:select-primary">
+                    <option value="">Semua Area</option>
+                    @foreach($areas as $a) <option value="{{ $a->area_code }}">{{ $a->area_name }}</option> @endforeach
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-control w-full mb-3">
+            <label class="label"><span class="label-text font-semibold">Filter Pengguna (Opsional)</span></label>
+            <div class="grid grid-cols-2 gap-2">
+                <select wire:model.live="filterSupervisor" class="select select-bordered select-sm w-full focus:select-primary">
+                    <option value="">Semua SPV/DSR</option>
+                    @foreach($supervisors as $s) <option value="{{ $s->supervisor_code }}">{{ $s->supervisor_name ?? $s->supervisor_code }}</option> @endforeach
+                </select>
+                <select wire:model.live="filterDistributor" class="select select-bordered select-sm w-full focus:select-primary">
+                    <option value="">Semua Distributor</option>
+                    @foreach($distributors as $d) <option value="{{ $d->distributor_code }}">{{ $d->distributor_name }}</option> @endforeach
+                </select>
+            </div>
+        </div>
+
+        <div class="form-control w-full mb-3">
+            <label class="label"><span class="label-text font-semibold">Kategori Toko (Opsional)</span></label>
+            <div class="grid grid-cols-2 gap-2">
+                <select wire:model.live="filterPareto" class="select select-bordered select-sm w-full focus:select-primary">
+                    <option value="">Semua Pareto</option>
+                    <option value="PARETO">PARETO</option>
+                    <option value="NON PARETO">NON PARETO</option>
+                </select>
+                <select wire:model.live="filterPilar" class="select select-bordered select-sm w-full focus:select-primary">
+                    <option value="">Semua Pilar</option>
+                    <option value="1. RWO">1. RWO</option>
+                    <option value="2. PNR">2. PNR</option>
+                    <option value="3. NGVO">3. NGVO</option>
+                    <option value="4. GRO">4. GRO</option>
+                </select>
+            </div>
+        </div>
+
+        <x-slot:footer>
+            <x-ui.button type="button" variant="neutral" outline wire:click="closeExportModal">Batal</x-ui.button>
+            <x-ui.button type="button" variant="primary" icon="arrow-down-tray" wire:click="export" wire:loading.attr="disabled" wire:target="export">
+                <span wire:loading.remove wire:target="export">Mulai Export ({{ number_format($this->getBaseQuery()->count(), 0, ',', '.') }})</span>
+                <span wire:loading wire:target="export" class="flex items-center gap-1">
+                    <span class="loading loading-spinner loading-xs"></span> Mengunduh...
+                </span>
+            </x-ui.button>
+        </x-slot:footer>
+    </x-ui.modal>
+
     <!-- MODAL IMPORT CUSTOMER -->
     <x-ui.modal wire:key="modal-import-key" id="modal-import" title="Import Master Customer" icon="arrow-down-on-square" :open="$isImportModalOpen" wire:close="closeImportModal">
+        
+        @if($isImporting)
+        <div class="py-4" wire:poll.1500ms="checkImportProgress">
+            <div class="flex flex-col items-center justify-center space-y-4">
+                <span class="loading loading-spinner loading-lg text-primary"></span>
+                <h3 class="font-bold text-lg">Memproses Import...</h3>
+                <p class="text-sm text-base-content/70 text-center">Harap tunggu, proses ini berjalan di latar belakang.</p>
+                
+                <div class="stats shadow w-full max-w-sm mt-4">
+                    <div class="stat place-items-center">
+                        <div class="stat-title">Sukses</div>
+                        <div class="stat-value text-success text-3xl">{{ number_format($liveSuccessCount, 0, ',', '.') }}</div>
+                    </div>
+                    <div class="stat place-items-center">
+                        <div class="stat-title">Dilewati</div>
+                        <div class="stat-value text-warning text-3xl">{{ number_format($liveSkipCount, 0, ',', '.') }}</div>
+                    </div>
+                    <div class="stat place-items-center">
+                        <div class="stat-title">Error</div>
+                        <div class="stat-value text-error text-3xl">{{ number_format($liveErrorCount, 0, ',', '.') }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @elseif($importCompleted)
+        <div class="py-4">
+            <div class="flex flex-col items-center justify-center space-y-4">
+                <div class="w-16 h-16 rounded-full bg-success/20 flex items-center justify-center text-success">
+                    <x-heroicon-s-check-circle class="w-10 h-10" />
+                </div>
+                <h3 class="font-bold text-lg">Import Selesai!</h3>
+                
+                <div class="stats shadow w-full max-w-sm mt-4">
+                    <div class="stat place-items-center">
+                        <div class="stat-title">Sukses</div>
+                        <div class="stat-value text-success text-3xl">{{ number_format($liveSuccessCount, 0, ',', '.') }}</div>
+                    </div>
+                    <div class="stat place-items-center">
+                        <div class="stat-title">Dilewati</div>
+                        <div class="stat-value text-warning text-3xl">{{ number_format($liveSkipCount, 0, ',', '.') }}</div>
+                    </div>
+                    <div class="stat place-items-center">
+                        <div class="stat-title">Error</div>
+                        <div class="stat-value text-error text-3xl">{{ number_format($liveErrorCount, 0, ',', '.') }}</div>
+                    </div>
+                </div>
+                
+                @if($importLogCount > 0 || $liveSkipCount > 0)
+                <p class="text-sm text-center mt-2 px-4 text-base-content/70">Terdapat <b>{{ $importLogCount }}</b> baris gagal dan <b>{{ $liveSkipCount }}</b> baris dilewati.</p>
+                
+                <div class="w-full text-left mt-2">
+                    <div class="bg-base-200 rounded-lg p-3 max-h-48 overflow-y-auto text-xs font-mono">
+                        @if(count($importErrorLogs) > 0)
+                            <div class="font-bold text-error mb-1 border-b border-base-300 pb-1">Rincian Gagal:</div>
+                            <ul class="list-disc pl-4 mb-3 text-error/80">
+                                @foreach($importErrorLogs as $err)
+                                    <li>{{ $err }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+
+                        @if(count($importSkipLogs) > 0)
+                            <div class="font-bold text-warning mb-1 border-b border-base-300 pb-1">Rincian Dilewati:</div>
+                            <ul class="list-disc pl-4 text-warning/80">
+                                @foreach($importSkipLogs as $skip)
+                                    <li>{{ $skip }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                </div>
+
+                <a href="{{ $importErrorLogUrl }}" target="_blank" class="btn btn-sm btn-outline btn-warning mt-2 w-full" download>
+                    <x-heroicon-s-arrow-down-tray class="w-4 h-4" /> Download Full Log (.txt)
+                </a>
+                @endif
+            </div>
+        </div>
+        @else
+        <div class="form-control w-full mb-3">
+            <label class="label"><span class="label-text font-semibold">Metode Import</span></label>
+            <select wire:model="importMethod" class="select select-bordered select-sm w-full focus:select-primary">
+                <option value="upsert">Update & Insert (Timpa data lama)</option>
+                <option value="insert_only">Insert Only (Lewati data lama)</option>
+            </select>
+        </div>
+        
         <div class="form-control w-full mb-4">
             <label class="label">
                 <span class="label-text font-semibold">Pilih File Excel (.xlsx, .xls)</span>
@@ -674,114 +927,181 @@
                 </span>
             </button>
         </div>
+        @endif
 
         <x-slot:footer>
-            <x-ui.button type="button" variant="neutral" outline wire:click="closeImportModal">Batal</x-ui.button>
-            <x-ui.button type="button" variant="primary" icon="arrow-up-tray" wire:click="import" wire:loading.attr="disabled" wire:target="import">
-                <span wire:loading.remove wire:target="import">Mulai Import</span>
-                <span wire:loading wire:target="import" class="flex items-center gap-1">
-                    <span class="loading loading-spinner loading-xs"></span> Memproses...
-                </span>
-            </x-ui.button>
+            @if($isImporting)
+                <x-ui.button type="button" variant="neutral" outline wire:click="closeImportModal" disabled>Tutup</x-ui.button>
+            @elseif($importCompleted)
+                <x-ui.button type="button" variant="neutral" outline wire:click="closeImportModal">Tutup</x-ui.button>
+            @else
+                <x-ui.button type="button" variant="neutral" outline wire:click="closeImportModal">Batal</x-ui.button>
+                <x-ui.button type="button" variant="primary" icon="arrow-up-tray" wire:click="import" wire:loading.attr="disabled" wire:target="import">
+                    <span wire:loading.remove wire:target="import">Mulai Import</span>
+                    <span wire:loading wire:target="import" class="flex items-center gap-1">
+                        <span class="loading loading-spinner loading-xs"></span> Memproses...
+                    </span>
+                </x-ui.button>
+            @endif
         </x-slot:footer>
     </x-ui.modal>
 
     <!-- MODAL DETAIL CUSTOMER -->
-    <x-ui.modal wire:key="modal-detail-key" id="modal-detail" title="Detail Customer" icon="eye" size="lg" :open="$isDetailModalOpen" wire:close="$set('isDetailModalOpen', false)">
+    <x-ui.modal wire:key="modal-detail-key" id="modal-detail" title="Detail Customer" icon="eye" size="xl" :open="$isDetailModalOpen" wire:close="$set('isDetailModalOpen', false)">
         @if($detailData)
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            <div>
-                <span class="block text-xs font-semibold text-base-content/50">Region</span>
-                <span class="block font-medium">{{ $detailData->region_name ?? '-' }}</span>
-            </div>
-            <div>
-                <span class="block text-xs font-semibold text-base-content/50">Area</span>
-                <span class="block font-medium">{{ $detailData->area_name ?? '-' }}</span>
-            </div>
-            <div>
-                <span class="block text-xs font-semibold text-base-content/50">Supervisor</span>
-                <span class="block font-medium">{{ $detailData->supervisor_name ?? '-' }}</span>
-            </div>
-            <div>
-                <span class="block text-xs font-semibold text-base-content/50">Distributor</span>
-                <span class="block font-medium">{{ $detailData->distributor_name ?? '-' }} ({{ $detailData->distributor_code }})</span>
-            </div>
-            <div>
-                <span class="block text-xs font-semibold text-base-content/50">Customer Code</span>
-                <span class="block font-mono text-xs">{{ $detailData->customer_code_prc ?? '-' }}</span>
-            </div>
-            <div>
-                <span class="block text-xs font-semibold text-base-content/50">Uniq Kd</span>
-                <span class="block font-mono text-xs">{{ $detailData->uniq_kd ?? '-' }}</span>
-            </div>
-            <div class="sm:col-span-2">
-                <span class="block text-xs font-semibold text-base-content/50">Nama Toko</span>
-                <span class="block font-bold">{{ $detailData->customer_name ?? '-' }}</span>
-            </div>
-            <div class="sm:col-span-2">
-                <span class="block text-xs font-semibold text-base-content/50">Alamat</span>
-                <span class="block">{{ $detailData->customer_address ?? '-' }}</span>
-            </div>
-            <div>
-                <span class="block text-xs font-semibold text-base-content/50">Kecamatan</span>
-                <span class="block">{{ $detailData->kecamatan ?? '-' }}</span>
-            </div>
-            <div>
-                <span class="block text-xs font-semibold text-base-content/50">Desa</span>
-                <span class="block">{{ $detailData->desa ?? '-' }}</span>
-            </div>
-            <div>
-                <span class="block text-xs font-semibold text-base-content/50">Latitude</span>
-                <span class="block font-mono text-xs">{{ $detailData->latitude ?? '-' }}</span>
-            </div>
-            <div>
-                <span class="block text-xs font-semibold text-base-content/50">Longitude</span>
-                <span class="block font-mono text-xs">{{ $detailData->longitude ?? '-' }}</span>
-            </div>
-            <div>
-                <span class="block text-xs font-semibold text-base-content/50">Pilar</span>
-                <span class="block">
-                    @php
-                        $badgeColor = match($detailData->pilar) { 
-                            '1. RWO' => 'error', 
-                            '2. PNR' => 'warning', 
-                            '3. NGVO' => 'success', 
-                            '4. GRO' => 'info', 
-                            default => 'neutral' 
-                        };
-                    @endphp
-                    <span class="badge badge-sm badge-outline badge-{{ $badgeColor }}">{{ $detailData->pilar ?? '-' }}</span>
-                </span>
-            </div>
-            <div>
-                <span class="block text-xs font-semibold text-base-content/50">Target</span>
-                <span class="block font-mono">Rp {{ number_format((float)($detailData->target ?? 0), 0, ',', '.') }}</span>
-            </div>
-            <div class="sm:col-span-2">
-                <span class="block text-xs font-semibold text-base-content/50">Keterangan</span>
-                <span class="block">{{ $detailData->keterangan ?? '-' }}</span>
-            </div>
-            
-            <div class="sm:col-span-2 mt-2 pt-4 border-t border-base-300">
-                <h4 class="text-xs font-bold text-base-content/70 mb-3 uppercase tracking-wider">Histori Pilar</h4>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div class="bg-base-200/50 p-2 rounded-lg border border-base-300">
-                        <span class="block text-[10px] font-semibold text-base-content/50 uppercase">Q1</span>
-                        <span class="block font-medium text-sm mt-0.5">{{ $detailData->pilar_q1 ?? '-' }}</span>
-                    </div>
-                    <div class="bg-base-200/50 p-2 rounded-lg border border-base-300">
-                        <span class="block text-[10px] font-semibold text-base-content/50 uppercase">Q2</span>
-                        <span class="block font-medium text-sm mt-0.5">{{ $detailData->pilar_q2 ?? '-' }}</span>
-                    </div>
-                    <div class="bg-base-200/50 p-2 rounded-lg border border-base-300">
-                        <span class="block text-[10px] font-semibold text-base-content/50 uppercase">Q3</span>
-                        <span class="block font-medium text-sm mt-0.5">{{ $detailData->pilar_q3 ?? '-' }}</span>
-                    </div>
-                    <div class="bg-base-200/50 p-2 rounded-lg border border-base-300">
-                        <span class="block text-[10px] font-semibold text-base-content/50 uppercase">Q4</span>
-                        <span class="block font-medium text-sm mt-0.5">{{ $detailData->pilar_q4 ?? '-' }}</span>
+        @php
+            $detailBadgeColor = match($detailData->pilar) { 
+                '1. RWO' => 'error', '2. PNR' => 'warning', '3. NGVO' => 'success', '4. GRO' => 'info', default => 'neutral' 
+            };
+            $q1Color = match($detailData->pilar_q1 ?? '') { '1. RWO' => 'badge-error', '2. PNR' => 'badge-warning', '3. NGVO' => 'badge-success', '4. GRO' => 'badge-info', default => 'badge-ghost' };
+            $q2Color = match($detailData->pilar_q2 ?? '') { '1. RWO' => 'badge-error', '2. PNR' => 'badge-warning', '3. NGVO' => 'badge-success', '4. GRO' => 'badge-info', default => 'badge-ghost' };
+            $q3Color = match($detailData->pilar_q3 ?? '') { '1. RWO' => 'badge-error', '2. PNR' => 'badge-warning', '3. NGVO' => 'badge-success', '4. GRO' => 'badge-info', default => 'badge-ghost' };
+            $q4Color = match($detailData->pilar_q4 ?? '') { '1. RWO' => 'badge-error', '2. PNR' => 'badge-warning', '3. NGVO' => 'badge-success', '4. GRO' => 'badge-info', default => 'badge-ghost' };
+        @endphp
+
+        <div class="flex flex-col gap-0 -mx-1">
+
+            {{-- ① Hero / Identitas Toko --}}
+            <div class="px-1 pb-4 mb-4 border-b border-base-200 flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="text-xs font-semibold text-base-content/40 uppercase tracking-widest mb-1">Nama Toko</p>
+                    <h3 class="text-xl font-extrabold text-base-content leading-snug">{{ $detailData->customer_name ?? '-' }}</h3>
+                    <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                        <span class="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-base-content/60 bg-base-200 px-2 py-0.5 rounded border border-base-300">
+                            <x-heroicon-o-identification class="w-3 h-3" /> {{ $detailData->customer_code_prc ?? '-' }}
+                        </span>
+                        <span class="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-base-content/60 bg-base-200 px-2 py-0.5 rounded border border-base-300">
+                            <x-heroicon-o-key class="w-3 h-3" /> {{ $detailData->uniq_kd ?? '-' }}
+                        </span>
                     </div>
                 </div>
+                <span class="badge badge-lg badge-{{ $detailBadgeColor }} font-bold shrink-0 px-4 py-3 shadow">{{ $detailData->pilar ?? '-' }}</span>
+            </div>
+
+            {{-- ② Info Baris (label kiri, value kanan — pola konsisten) --}}
+            <div class="flex flex-col gap-0 px-1">
+                
+                {{-- Group: Organisasi --}}
+                <div class="mb-3">
+                    <p class="text-[10px] font-black text-base-content/30 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                        <x-heroicon-s-building-office-2 class="w-3.5 h-3.5" /> Organisasi
+                    </p>
+                    <div class="rounded-xl border border-base-200 divide-y divide-base-100 overflow-hidden bg-base-100">
+                        <div class="flex items-center px-4 py-2.5 gap-4 hover:bg-base-50">
+                            <span class="w-28 shrink-0 text-xs text-base-content/40 font-medium">Region</span>
+                            <span class="text-sm font-semibold text-base-content/90">{{ $detailData->region_name ?? '-' }}</span>
+                        </div>
+                        <div class="flex items-center px-4 py-2.5 gap-4 hover:bg-base-50">
+                            <span class="w-28 shrink-0 text-xs text-base-content/40 font-medium">Area</span>
+                            <span class="text-sm font-semibold text-base-content/90">{{ $detailData->area_name ?? '-' }}</span>
+                        </div>
+                        <div class="flex items-center px-4 py-2.5 gap-4 hover:bg-base-50">
+                            <span class="w-28 shrink-0 text-xs text-base-content/40 font-medium">Supervisor</span>
+                            <span class="text-sm font-semibold text-base-content/90">{{ $detailData->supervisor_name ?? '-' }}</span>
+                        </div>
+                        <div class="flex items-start px-4 py-2.5 gap-4 hover:bg-base-50">
+                            <span class="w-28 shrink-0 text-xs text-base-content/40 font-medium pt-0.5">Distributor</span>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-sm font-semibold text-base-content/90">{{ $detailData->distributor_name ?? '-' }}</span>
+                                <span class="font-mono text-[10px] bg-base-200 border border-base-300 text-base-content/50 px-1.5 py-0.5 rounded">{{ $detailData->distributor_code }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Group: Lokasi --}}
+                <div class="mb-3">
+                    <p class="text-[10px] font-black text-base-content/30 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                        <x-heroicon-s-map-pin class="w-3.5 h-3.5" /> Lokasi
+                    </p>
+                    <div class="rounded-xl border border-base-200 divide-y divide-base-100 overflow-hidden bg-base-100">
+                        <div class="flex items-start px-4 py-2.5 gap-4 hover:bg-base-50">
+                            <span class="w-28 shrink-0 text-xs text-base-content/40 font-medium pt-0.5">Alamat</span>
+                            <span class="text-sm font-semibold text-base-content/90 leading-relaxed">{{ $detailData->customer_address ?? '-' }}</span>
+                        </div>
+                        <div class="flex items-center px-4 py-2.5 gap-4 hover:bg-base-50">
+                            <span class="w-28 shrink-0 text-xs text-base-content/40 font-medium">Kecamatan</span>
+                            <span class="text-sm font-semibold text-base-content/90">{{ $detailData->kecamatan ?? '-' }}</span>
+                        </div>
+                        <div class="flex items-center px-4 py-2.5 gap-4 hover:bg-base-50">
+                            <span class="w-28 shrink-0 text-xs text-base-content/40 font-medium">Desa</span>
+                            <span class="text-sm font-semibold text-base-content/90">{{ $detailData->desa ?? '-' }}</span>
+                        </div>
+                        @if($detailData->latitude || $detailData->longitude)
+                        <div class="flex items-center px-4 py-2.5 gap-4 hover:bg-base-50">
+                            <span class="w-28 shrink-0 text-xs text-base-content/40 font-medium">Koordinat</span>
+                            <span class="font-mono text-xs text-base-content/70 bg-base-200 px-2 py-0.5 rounded">{{ $detailData->latitude ?? '-' }}, {{ $detailData->longitude ?? '-' }}</span>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Group: Klasifikasi Outlet --}}
+                <div class="mb-3">
+                    <p class="text-[10px] font-black text-base-content/30 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                        <x-heroicon-s-tag class="w-3.5 h-3.5" /> Klasifikasi Outlet
+                    </p>
+                    <div class="rounded-xl border border-base-200 divide-y divide-base-100 overflow-hidden bg-base-100">
+                        <div class="flex items-center px-4 py-2.5 gap-4 hover:bg-base-50">
+                            <span class="w-28 shrink-0 text-xs text-base-content/40 font-medium">Channel</span>
+                            <span class="text-sm font-semibold text-base-content/90">{{ $detailData->channel_outlet ?? '-' }}</span>
+                        </div>
+                        <div class="flex items-center px-4 py-2.5 gap-4 hover:bg-base-50">
+                            <span class="w-28 shrink-0 text-xs text-base-content/40 font-medium">Classification</span>
+                            <span class="text-sm font-semibold text-base-content/90">{{ $detailData->classification_outlet ?? '-' }}</span>
+                        </div>
+                        <div class="flex items-center px-4 py-2.5 gap-4 hover:bg-base-50">
+                            <span class="w-28 shrink-0 text-xs text-base-content/40 font-medium">Segment</span>
+                            <span class="text-sm font-semibold text-base-content/90">{{ $detailData->segment_outlet ?? '-' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Group: Target & Pilar --}}
+                <div class="mb-3">
+                    <p class="text-[10px] font-black text-base-content/30 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                        <x-heroicon-s-chart-bar class="w-3.5 h-3.5" /> Target & Pilar
+                    </p>
+                    <div class="rounded-xl border border-base-200 overflow-hidden bg-base-100">
+                        <div class="flex items-center px-4 py-3 gap-4 border-b border-base-100">
+                            <span class="w-28 shrink-0 text-xs text-base-content/40 font-medium">Target</span>
+                            <span class="text-base font-black font-mono text-primary">Rp {{ number_format((float)($detailData->target ?? 0), 0, ',', '.') }}</span>
+                        </div>
+                        <div class="flex items-center px-4 py-3 gap-4">
+                            <span class="w-28 shrink-0 text-xs text-base-content/40 font-medium">Histori Pilar</span>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[9px] font-bold text-base-content/30 uppercase">Q1</span>
+                                    <span class="badge badge-sm {{ $q1Color }} badge-outline font-bold">{{ $detailData->pilar_q1 ?? '-' }}</span>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[9px] font-bold text-base-content/30 uppercase">Q2</span>
+                                    <span class="badge badge-sm {{ $q2Color }} badge-outline font-bold">{{ $detailData->pilar_q2 ?? '-' }}</span>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[9px] font-bold text-base-content/30 uppercase">Q3</span>
+                                    <span class="badge badge-sm {{ $q3Color }} badge-outline font-bold">{{ $detailData->pilar_q3 ?? '-' }}</span>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[9px] font-bold text-base-content/30 uppercase">Q4</span>
+                                    <span class="badge badge-sm {{ $q4Color }} badge-outline font-bold">{{ $detailData->pilar_q4 ?? '-' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Remarks SPM --}}
+                @if(!empty($detailData->keterangan))
+                <div class="bg-warning/10 border border-warning/20 p-3.5 rounded-xl text-sm flex gap-3">
+                    <x-heroicon-s-chat-bubble-left-ellipsis class="w-4 h-4 text-warning shrink-0 mt-0.5" />
+                    <div>
+                        <span class="block text-[10px] font-black text-warning uppercase tracking-wider mb-0.5">Remarks SPM</span>
+                        <p class="text-base-content/80 leading-relaxed text-sm">{{ $detailData->keterangan }}</p>
+                    </div>
+                </div>
+                @endif
+
             </div>
         </div>
         @endif
