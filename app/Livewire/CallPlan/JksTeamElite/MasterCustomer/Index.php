@@ -778,7 +778,7 @@ class Index extends Component
             $filename = 'import_jks_' . $this->importJobId . '.' . $this->importFile->getClientOriginalExtension();
             // Simpan file sementara agar bisa dibaca worker
             $this->importFile->storeAs('temp_imports', $filename, 'local');
-            $fullPath = \Illuminate\Support\Facades\Storage::disk('local')->path('temp_imports/' . $filename);
+            $relativePath = 'temp_imports/' . $filename;
 
             \Illuminate\Support\Facades\Cache::put("import_progress_{$this->importJobId}", [
                 'status' => 'processing',
@@ -797,7 +797,7 @@ class Index extends Component
             $queueConnection = env('IMPORT_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'sync'));
             \Illuminate\Support\Facades\Log::info("Dispatching JksMasterCustomerImportJob with ID {$this->importJobId} to connection {$queueConnection} on queue 'imports'");
             
-            $job = new \App\Jobs\JksMasterCustomerImportJob($fullPath, $isAdmin, $allowedDistributors, $this->importMethod, $this->importJobId);
+            $job = new \App\Jobs\JksMasterCustomerImportJob($relativePath, $isAdmin, $allowedDistributors, $this->importMethod, $this->importJobId);
             dispatch($job)->onConnection($queueConnection)->onQueue('imports');
 
         } catch (\Exception $e) {
