@@ -62,12 +62,22 @@ class Index extends Component
     public $importErrorLogs = [];
     public $importSkipLogs = [];
 
+    // State Sync Wilayah
+    public $isSyncModalOpen = false;
+    public $syncJobId = null;
+    public $isSyncing = false;
+    public $syncCompleted = false;
+    public $syncProcessed = 0;
+    public $syncTotal = 0;
+    public $syncUpdatedCount = 0;
+    public $syncMessage = '';
+
     // Pencarian Distributor di Form Tambah Toko
     public $searchDistributor = '';
 
     // Properti Form Create/Edit
     public $distributor_code, $customer_code_prc, $customer_name, $uniq_kd, $customer_address;
-    public $kecamatan, $desa, $latitude, $longitude, $pilar, $target, $keterangan;
+    public $kabupaten, $kecamatan, $desa, $latitude, $longitude, $pilar, $target, $keterangan;
     public $channel_outlet, $classification_outlet, $segment_outlet;
     public $pilar_q1, $pilar_q2, $pilar_q3, $pilar_q4;
     
@@ -239,6 +249,7 @@ class Index extends Component
                 'l.uniq_kd',
                 'l.customer_name',
                 'l.customer_address',
+                'l.kabupaten',
                 'l.kecamatan',
                 'l.desa',
                 'l.latitude',
@@ -267,6 +278,7 @@ class Index extends Component
                   ->orWhere('l.uniq_kd', 'ilike', "%{$this->search}%")
                   ->orWhere('l.customer_name', 'ilike', "%{$this->search}%")
                   ->orWhere('l.customer_address', 'ilike', "%{$this->search}%")
+                  ->orWhere('l.kabupaten', 'ilike', "%{$this->search}%")
                   ->orWhere('l.kecamatan', 'ilike', "%{$this->search}%")
                   ->orWhere('l.desa', 'ilike', "%{$this->search}%")
                   ->orWhere('l.pilar', 'ilike', "%{$this->search}%")
@@ -448,7 +460,7 @@ class Index extends Component
 
     public function openCreateModal()
     {
-        $this->reset(['distributor_code', 'customer_code_prc', 'customer_name', 'uniq_kd', 'customer_address', 'kecamatan', 'desa', 'latitude', 'longitude', 'pilar', 'target', 'keterangan', 'searchDistributor', 'pilar_q1', 'pilar_q2', 'pilar_q3', 'pilar_q4', 'channel_outlet', 'classification_outlet', 'segment_outlet']);
+        $this->reset(['distributor_code', 'customer_code_prc', 'customer_name', 'uniq_kd', 'customer_address', 'kabupaten', 'kecamatan', 'desa', 'latitude', 'longitude', 'pilar', 'target', 'keterangan', 'searchDistributor', 'pilar_q1', 'pilar_q2', 'pilar_q3', 'pilar_q4', 'channel_outlet', 'classification_outlet', 'segment_outlet']);
         $this->isCreateModalOpen = true;
     }
 
@@ -462,6 +474,7 @@ class Index extends Component
             'customer_name' => 'required|string|max:255',
             'uniq_kd' => 'required|string|max:255',
             'pilar' => 'required|string|in:1. RWO,2. PNR,3. NGVO,4. GRO',
+            'kabupaten' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'target' => 'required|numeric',
@@ -499,6 +512,7 @@ class Index extends Component
                 'customer_code_prc' => $this->customer_code_prc,
                 'customer_name' => $this->customer_name,
                 'customer_address' => $this->customer_address,
+                'kabupaten' => $this->kabupaten,
                 'kecamatan' => $this->kecamatan,
                 'desa' => $this->desa,
                 'latitude' => $this->latitude,
@@ -588,6 +602,7 @@ class Index extends Component
             $this->customer_name = $record->customer_name;
             $this->uniq_kd = $record->uniq_kd;
             $this->customer_address = $record->customer_address;
+            $this->kabupaten = $record->kabupaten;
             $this->kecamatan = $record->kecamatan;
             $this->desa = $record->desa;
             $this->latitude = $record->latitude;
@@ -618,6 +633,7 @@ class Index extends Component
             'customer_name' => 'required|string|max:255',
             'uniq_kd' => 'required|string|max:255',
             'pilar' => 'required|string|in:1. RWO,2. PNR,3. NGVO,4. GRO',
+            'kabupaten' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'target' => 'required|numeric',
@@ -658,6 +674,7 @@ class Index extends Component
                 'customer_name' => $this->customer_name,
                 'uniq_kd' => $this->uniq_kd,
                 'customer_address' => $this->customer_address,
+                'kabupaten' => $this->kabupaten,
                 'kecamatan' => $this->kecamatan,
                 'desa' => $this->desa,
                 'latitude' => $this->latitude,
@@ -761,7 +778,7 @@ class Index extends Component
             $filename = 'import_jks_' . $this->importJobId . '.' . $this->importFile->getClientOriginalExtension();
             // Simpan file sementara agar bisa dibaca worker
             $this->importFile->storeAs('temp_imports', $filename, 'local');
-            $relativePath = 'temp_imports/' . $filename;
+            $fullPath = \Illuminate\Support\Facades\Storage::disk('local')->path('temp_imports/' . $filename);
 
             \Illuminate\Support\Facades\Cache::put("import_progress_{$this->importJobId}", [
                 'status' => 'processing',
@@ -780,7 +797,7 @@ class Index extends Component
             $queueConnection = env('IMPORT_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'sync'));
             \Illuminate\Support\Facades\Log::info("Dispatching JksMasterCustomerImportJob with ID {$this->importJobId} to connection {$queueConnection} on queue 'imports'");
             
-            $job = new \App\Jobs\JksMasterCustomerImportJob($relativePath, $isAdmin, $allowedDistributors, $this->importMethod, $this->importJobId);
+            $job = new \App\Jobs\JksMasterCustomerImportJob($fullPath, $isAdmin, $allowedDistributors, $this->importMethod, $this->importJobId);
             dispatch($job)->onConnection($queueConnection)->onQueue('imports');
 
         } catch (\Exception $e) {
@@ -843,6 +860,66 @@ class Index extends Component
                 
                 \Illuminate\Support\Facades\Cache::forget("import_progress_{$this->importJobId}");
                 session()->flash('message', 'Import selesai diproses.');
+            }
+        }
+    }
+    // --- SYNC WILAYAH DENGAN POSTGIS ---
+    public function openSyncModal()
+    {
+        $this->authorizeAction('can_edit');
+        $this->isSyncModalOpen = true;
+        $this->isSyncing = false;
+        $this->syncCompleted = false;
+        $this->syncProcessed = 0;
+        $this->syncTotal = 0;
+        $this->syncJobId = null;
+        $this->syncMessage = '';
+    }
+
+    public function closeSyncModal()
+    {
+        $this->isSyncModalOpen = false;
+    }
+
+    public function startSync()
+    {
+        $this->authorizeAction('can_edit');
+        
+        $this->syncJobId = (string) \Illuminate\Support\Str::uuid();
+        $this->isSyncing = true;
+        $this->syncCompleted = false;
+        
+        try {
+            $queueConnection = env('IMPORT_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'sync'));
+            \Illuminate\Support\Facades\Log::info("Dispatching JksSyncWilayahJob with ID {$this->syncJobId}");
+            
+            $job = new \App\Jobs\JksSyncWilayahJob($this->syncJobId);
+            dispatch($job)->onConnection($queueConnection)->onQueue('imports');
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to dispatch sync job: " . $e->getMessage());
+            $this->isSyncing = false;
+            $this->syncMessage = 'Gagal memulai sinkronisasi: ' . $e->getMessage();
+        }
+    }
+
+    public function checkSyncProgress()
+    {
+        if (!$this->isSyncing || !$this->syncJobId) return;
+
+        $progress = \Illuminate\Support\Facades\Cache::get("sync_wilayah_progress_{$this->syncJobId}");
+
+        if ($progress) {
+            $this->syncMessage = $progress['message'] ?? 'Memproses...';
+            $this->syncProcessed = $progress['processed'] ?? 0;
+            $this->syncTotal = $progress['total'] ?? 0;
+            $this->syncUpdatedCount = $progress['updated'] ?? 0;
+
+            if (isset($progress['status']) && in_array($progress['status'], ['completed', 'error'])) {
+                $this->isSyncing = false;
+                $this->syncCompleted = true;
+                \Illuminate\Support\Facades\Cache::forget("sync_wilayah_progress_{$this->syncJobId}");
+                $this->resetPage(); // Refresh table
             }
         }
     }

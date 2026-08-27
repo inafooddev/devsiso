@@ -26,6 +26,7 @@ class ListTokoParetoTeamElite extends Model
         'customer_code_prc',
         'customer_name',
         'customer_address',
+        'kabupaten',
         'kecamatan',
         'desa',
         'latitude',

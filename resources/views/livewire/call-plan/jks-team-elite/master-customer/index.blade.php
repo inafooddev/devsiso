@@ -153,6 +153,13 @@
                         </span>
                     </x-ui.action-button>
                     @endcanExport
+
+                    @canEdit('call-plan.jks-team-elite.master-customer')
+                    <button type="button" wire:click="openSyncModal" class="btn btn-sm btn-outline btn-info gap-2 hidden sm:inline-flex rounded-lg border-info/30 hover:border-info">
+                        <x-heroicon-s-map class="w-4 h-4" />
+                        Sync Wilayah
+                    </button>
+                    @endcanEdit
                 </div>
             </div>
         </div>
@@ -218,6 +225,13 @@
                             </div>
                         </th>
                         
+                        <th wire:click="sortBy('l.kabupaten')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Kabupaten</span>
+                                <x-dynamic-component :component="'heroicon-s-' . $getSortIcon('l.kabupaten')" class="{{ $getSortClass('l.kabupaten') }}" />
+                            </div>
+                        </th>
+                        
                         <th wire:click="sortBy('l.kecamatan')" class="cursor-pointer hover:bg-base-200 select-none transition-colors">
                             <div class="flex items-center justify-between gap-2">
                                 <span>Kecamatan</span>
@@ -280,19 +294,20 @@
                 <tbody class="text-sm">
                     @forelse($data as $item)
                     <tr wire:key="cust-row-{{ $item->customer_code }}-{{ $item->distributor_code }}" class="hover:bg-base-200/50 transition-colors">
-                        <td class="text-xs text-base-content/70">{{ $item->region_name }}</td>
-                        <td class="text-xs text-base-content/70">{{ $item->area_name }}</td>
-                        <td class="text-xs text-base-content/70">{{ $item->supervisor_name ?? '-' }}</td>
+                        <td class="text-xs text-base-content/70 max-w-[120px] truncate" title="{{ $item->region_name }}">{{ $item->region_name }}</td>
+                        <td class="text-xs text-base-content/70 max-w-[120px] truncate" title="{{ $item->area_name }}">{{ $item->area_name }}</td>
+                        <td class="text-xs text-base-content/70 max-w-[150px] truncate" title="{{ $item->supervisor_name }}">{{ $item->supervisor_name ?? '-' }}</td>
                         <td class="text-xs">
                             <div class="max-w-[150px] truncate text-base-content/80 font-medium" title="{{ $item->distributor_name }}">{{ $item->distributor_name }}</div>
                             <div class="text-[10px] text-base-content/50 font-mono mt-0.5">{{ $item->distributor_code }}</div>
                         </td>
                         <td class="max-w-[120px] truncate font-mono text-xs text-base-content/70" title="{{ $item->customer_code }}">{{ $item->customer_code }}</td>
-                        <td class="font-mono text-xs">{{ $item->uniq_kd ?? '-' }}</td>
-                        <td class="min-w-[200px] font-bold text-base-content/90">{{ $item->customer_name }}</td>
+                        <td class="font-mono text-xs max-w-[100px] truncate" title="{{ $item->uniq_kd }}">{{ $item->uniq_kd ?? '-' }}</td>
+                        <td class="min-w-[200px] max-w-[250px] truncate font-bold text-base-content/90" title="{{ $item->customer_name }}">{{ $item->customer_name }}</td>
                         <td class="max-w-[200px] truncate text-xs text-base-content/60" title="{{ $item->customer_address }}">{{ $item->customer_address }}</td>
-                        <td class="text-xs text-base-content/70">{{ $item->kecamatan }}</td>
-                        <td class="text-xs text-base-content/70">{{ $item->desa }}</td>
+                        <td class="text-xs text-base-content/70 max-w-[120px] truncate" title="{{ $item->kabupaten }}">{{ $item->kabupaten }}</td>
+                        <td class="text-xs text-base-content/70 max-w-[120px] truncate" title="{{ $item->kecamatan }}">{{ $item->kecamatan }}</td>
+                        <td class="text-xs text-base-content/70 max-w-[120px] truncate" title="{{ $item->desa }}">{{ $item->desa }}</td>
                         <td class="text-xs text-base-content/70 whitespace-nowrap">{{ $item->channel_outlet ?? '-' }}</td>
                         <td class="text-xs text-base-content/70 whitespace-nowrap">{{ $item->classification_outlet ?? '-' }}</td>
                         <td class="text-xs text-base-content/70 whitespace-nowrap">{{ $item->segment_outlet ?? '-' }}</td>
@@ -488,6 +503,7 @@
                     <textarea wire:model="customer_address" class="textarea textarea-bordered focus:textarea-primary w-full" rows="2"></textarea>
                 </div>
                 
+                <x-input-text label="Kabupaten" wire:model="kabupaten" />
                 <x-input-text label="Kecamatan" wire:model="kecamatan" />
                 <x-input-text label="Desa" wire:model="desa" />
                 <x-input-text label="Latitude" wire:model="latitude" />
@@ -623,6 +639,7 @@
                     <textarea wire:model="customer_address" class="textarea textarea-bordered focus:textarea-primary w-full" rows="2"></textarea>
                 </div>
                 
+                <x-input-text label="Kabupaten" wire:model="kabupaten" />
                 <x-input-text label="Kecamatan" wire:model="kecamatan" />
                 <x-input-text label="Desa" wire:model="desa" />
                 <x-input-text label="Latitude" wire:model="latitude" />
@@ -1020,6 +1037,10 @@
                             <span class="text-sm font-semibold text-base-content/90 leading-relaxed">{{ $detailData->customer_address ?? '-' }}</span>
                         </div>
                         <div class="flex items-center px-4 py-2.5 gap-4 hover:bg-base-50">
+                            <span class="w-28 shrink-0 text-xs text-base-content/40 font-medium">Kabupaten</span>
+                            <span class="text-sm font-semibold text-base-content/90">{{ $detailData->kabupaten ?? '-' }}</span>
+                        </div>
+                        <div class="flex items-center px-4 py-2.5 gap-4 hover:bg-base-50">
                             <span class="w-28 shrink-0 text-xs text-base-content/40 font-medium">Kecamatan</span>
                             <span class="text-sm font-semibold text-base-content/90">{{ $detailData->kecamatan ?? '-' }}</span>
                         </div>
@@ -1108,6 +1129,80 @@
         <x-slot:footer>
             <x-ui.button type="button" variant="neutral" outline wire:click="$set('isDetailModalOpen', false)">Tutup</x-ui.button>
         </x-slot:footer>
-    </x-ui.modal>
+        </x-ui.modal>
 
-</div>
+        {{-- MODAL SYNC WILAYAH GEOSPASIAL --}}
+        <x-ui.modal id="modal-sync" :open="$isSyncModalOpen" wire:close="$set('isSyncModalOpen', false)" size="md">
+            <div class="p-6">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 rounded-full bg-info/10 flex items-center justify-center shrink-0">
+                        <x-heroicon-s-map class="w-6 h-6 text-info" />
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-base-content">Sinkronisasi Wilayah Geospasial</h3>
+                        <p class="text-sm text-base-content/60 mt-1">Mengisi Kabupaten, Kecamatan, dan Desa otomatis berdasarkan titik koordinat (PostGIS).</p>
+                    </div>
+                </div>
+
+                @if(!$isSyncing && !$syncCompleted)
+                <div class="bg-base-200/50 rounded-xl p-4 mb-6 border border-base-200">
+                    <p class="text-sm text-base-content/80 text-center">
+                        Sistem akan menjalankan kueri spasial untuk seluruh data toko yang memiliki latitude & longitude, lalu menimpanya dengan data dari Peta Batas Wilayah <b>(Overwrite All)</b>.<br><br>
+                        Proses ini mungkin memakan waktu beberapa saat tergantung jumlah data.
+                    </p>
+                </div>
+                
+                @if($syncMessage)
+                    <div class="alert alert-error mb-4 shadow-sm text-sm p-3">
+                        <x-heroicon-s-x-circle class="w-5 h-5 shrink-0"/>
+                        <span>{{ $syncMessage }}</span>
+                    </div>
+                @endif
+                
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" wire:click="closeSyncModal" class="btn btn-ghost btn-sm">Batal</button>
+                    <button type="button" wire:click="startSync" class="btn btn-info btn-sm gap-2">
+                        <x-heroicon-s-play class="w-4 h-4" />
+                        Mulai Sync
+                    </button>
+                </div>
+                
+                @elseif($isSyncing)
+                <div wire:poll.2s="checkSyncProgress">
+                    <div class="text-center py-4">
+                        <span class="loading loading-spinner loading-lg text-info mb-4"></span>
+                        <h4 class="font-bold text-base-content">Sinkronisasi Sedang Berjalan</h4>
+                        <p class="text-sm text-base-content/60 mt-1 mb-4">{{ $syncMessage }}</p>
+                        
+                        <div class="bg-base-100 rounded-lg p-3 text-center border border-base-200 shadow-sm mx-auto w-3/4 mb-4">
+                            <div class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-1">Diproses</div>
+                            <div class="text-2xl font-bold text-info">{{ number_format($syncProcessed, 0, ',', '.') }} <span class="text-sm text-base-content/40 font-normal">/ {{ number_format($syncTotal, 0, ',', '.') }}</span></div>
+                        </div>
+
+                        <progress class="progress progress-info w-full" value="{{ $syncTotal > 0 ? ($syncProcessed / $syncTotal) * 100 : 0 }}" max="100"></progress>
+                        
+                        <p class="text-xs text-base-content/50 mt-4">Mohon jangan tutup jendela ini.</p>
+                    </div>
+                </div>
+                @elseif($syncCompleted)
+                <div class="text-center py-6">
+                    <div class="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <x-heroicon-s-check-circle class="w-10 h-10 text-success" />
+                    </div>
+                    <h4 class="font-bold text-base-content text-xl mb-2">Sinkronisasi Selesai!</h4>
+                    
+                    <div class="bg-base-100 rounded-lg p-4 text-center border border-base-200 shadow-sm mx-auto w-full max-w-sm mb-4">
+                        <div class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-1">Total Diperbarui</div>
+                        <div class="text-3xl font-bold text-success">{{ number_format($syncUpdatedCount, 0, ',', '.') }} <span class="text-sm text-base-content/40 font-normal">Toko</span></div>
+                    </div>
+                    
+                    <p class="text-sm text-base-content/70 mt-2">{{ $syncMessage }}</p>
+                </div>
+                
+                <div class="flex justify-center mt-6">
+                    <button type="button" wire:click="closeSyncModal" class="btn btn-primary btn-sm px-8">Tutup</button>
+                </div>
+                @endif
+            </div>
+        </x-ui.modal>
+    </div>

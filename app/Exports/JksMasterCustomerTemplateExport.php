@@ -22,6 +22,7 @@ class JksMasterCustomerTemplateExport implements FromArray, WithHeadings, Should
             'Uniq Kd',
             'Customer Name',
             'Customer Address',
+            'Kabupaten',
             'Kecamatan',
             'Desa',
             'Latitude',

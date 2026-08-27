@@ -109,6 +109,7 @@ class JksMasterCustomerImport implements ToCollection, WithHeadingRow, WithChunk
                         'pilar_q2' => 'nullable|string',
                         'pilar_q3' => 'nullable|string',
                         'pilar_q4' => 'nullable|string',
+                        'kabupaten' => 'nullable|string|max:255',
                         'latitude' => 'nullable|numeric|between:-90,90',
                         'longitude' => 'nullable|numeric|between:-180,180',
                         'target' => 'nullable|numeric',
@@ -149,6 +150,7 @@ class JksMasterCustomerImport implements ToCollection, WithHeadingRow, WithChunk
                             $existing->update([
                                 'customer_name' => trim($row['customer_name']),
                                 'customer_address' => $row['customer_address'] ?? null,
+                                'kabupaten' => $row['kabupaten'] ?? null,
                                 'kecamatan' => $row['kecamatan'] ?? null,
                                 'desa' => $row['desa'] ?? null,
                                 'latitude' => $row['latitude'] ?? null,
@@ -174,6 +176,7 @@ class JksMasterCustomerImport implements ToCollection, WithHeadingRow, WithChunk
                             'customer_code_prc' => $customerCode,
                             'customer_name' => trim($row['customer_name']),
                             'customer_address' => $row['customer_address'] ?? null,
+                            'kabupaten' => $row['kabupaten'] ?? null,
                             'kecamatan' => $row['kecamatan'] ?? null,
                             'desa' => $row['desa'] ?? null,
                             'latitude' => $row['latitude'] ?? null,

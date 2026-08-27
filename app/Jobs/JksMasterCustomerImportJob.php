@@ -39,7 +39,7 @@ class JksMasterCustomerImportJob implements ShouldQueue
             $import = new JksMasterCustomerImport($this->isAdmin, $this->allowedDistributors, $this->importMethod, $this->jobId);
             
             Log::info("Starting Background Excel::import with file {$this->filePath} for Job ID {$this->jobId}");
-            Excel::import($import, $this->filePath, 'local');
+            Excel::import($import, $this->filePath);
             Log::info("Background Excel::import finished for Job ID {$this->jobId}");
 
             // The 'completed' status should ideally be set after the entire file is processed.
