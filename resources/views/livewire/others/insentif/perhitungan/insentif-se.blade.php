@@ -277,7 +277,15 @@
 
                             <!-- Data INSENTIF EC -->
                             <td class="border border-base-300 text-center">{{ $row['frekuensi'] }}</td>
-                            <td class="border border-base-300 text-right">{{ number_format($row['ro'], 0, ',', '.') }}</td>
+                            @php
+                                $roColor = '';
+                                if (trim($row['frekuensi']) === 'F2' && $row['ro'] < 250) {
+                                    $roColor = 'bg-error/20 text-error font-bold';
+                                } elseif (trim($row['frekuensi']) === 'F4' && $row['ro'] < 125) {
+                                    $roColor = 'bg-error/20 text-error font-bold';
+                                }
+                            @endphp
+                            <td class="border border-base-300 text-right {{ $roColor }}">{{ number_format($row['ro'], 0, ',', '.') }}</td>
                             <td class="border border-base-300 text-right">{{ number_format($row['ac'], 0, ',', '.') }}</td>
                             <td class="border border-base-300 text-right">{{ number_format($row['ec'], 0, ',', '.') }}</td>
                             <td class="border border-base-300 text-right">{{ $row['persen_ec'] }}%</td>
@@ -527,7 +535,7 @@
                             <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-xs">3</span>
                             Insentif Kunjungan Efektif (EC)
                         </h4>
-                        <p class="text-sm mb-3">Dihitung dari Persentase Kunjungan (% EC = EC / AC) dan Rata-rata EC Harian (EC / 25 hari kerja). <br/><span class="badge badge-error badge-sm">Syarat Mutlak</span> Pencapaian Insentif Value (Target Reguler) harus <span class="font-bold">&ge; 60%</span>.</p>
+                        <p class="text-sm mb-3">Dihitung dari Persentase Kunjungan (% EC = EC / AC) dan Rata-rata EC Harian (EC / 25 hari kerja). <br/><span class="badge badge-error badge-sm">Syarat Mutlak</span> Pencapaian Insentif Value (Target Reguler) harus <span class="font-bold">&ge; 60%</span>. <br/><span class="badge badge-error badge-sm">Syarat RO</span> Jika rute F2 maka RO harus <span class="font-bold">&ge; 250 Toko</span>, jika F4 maka RO harus <span class="font-bold">&ge; 125 Toko</span>.</p>
                         <div class="overflow-x-auto">
                             <table class="table table-sm table-zebra w-full text-xs">
                                 <thead>

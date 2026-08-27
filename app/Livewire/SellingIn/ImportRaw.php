@@ -17,7 +17,9 @@ class ImportRaw extends Component
     protected string $menuRoute = 'selling-in.index'; // Sesuaikan jika ada menu spesifik
 
     public $excel_file;
-    public $selectedMonth;
+    public $importMonth;
+    public $generateMonth;
+    public $lamaMonth;
     public $batchId;
     public $batchStatus;
     public $logLines = [];
@@ -27,10 +29,10 @@ class ImportRaw extends Component
     public function import()
     {
         $this->validate([
-            'selectedMonth' => 'required|date_format:Y-m',
+            'importMonth' => 'required|date_format:Y-m',
             'excel_file' => 'required|mimes:xls,xlsx|max:20480', // Maks 20MB
         ], [
-            'selectedMonth.required' => 'Pilih periode bulan dan tahun terlebih dahulu.',
+            'importMonth.required' => 'Pilih periode bulan dan tahun terlebih dahulu.',
             'excel_file.required' => 'Pilih file Excel terlebih dahulu.',
             'excel_file.mimes' => 'Format file harus berupa .xls atau .xlsx.',
             'excel_file.max' => 'Ukuran file maksimal adalah 20MB.'
@@ -54,10 +56,10 @@ class ImportRaw extends Component
         $this->batchId = $batch->id;
         $this->syncLog(); // Tampilkan log awal
         
-        \App\Helpers\ActivityLogger::log('Import Selling-In Raw', "Memulai antrean import file: {$originalFilename} untuk periode {$this->selectedMonth}");
+        \App\Helpers\ActivityLogger::log('Import Selling-In Raw', "Memulai antrean import file: {$originalFilename} untuk periode {$this->importMonth}");
         
         // Dispatch job ke background
-        ProcessSellingInRawImport::dispatch($filePath, $this->batchId, $this->selectedMonth);
+        ProcessSellingInRawImport::dispatch($filePath, $this->batchId, $this->importMonth);
         
         $this->reset('excel_file');
     }
@@ -67,8 +69,14 @@ class ImportRaw extends Component
     public $generateProgress = 0;
     public $generateTotal = 0;
 
-    // Stepper UX
-    public $currentStep = 1;
+    // Job Lama State
+    public $lamaBatchId;
+    public $lamaStatus;
+    public $lamaProgress = 0;
+    public $lamaTotal = 0;
+
+    // Tabs UX
+    public $currentTab = 'import';
 
     // Dapodik Validation Properties
     public $unmappedDistributors = [];
@@ -85,32 +93,31 @@ class ImportRaw extends Component
                                         ->orderBy('distributor_name')->get();
     }
 
-    public function setStep($step)
+    public function switchTab($tab)
     {
-        if ($step == 2 && $this->batchStatus !== 'completed') {
-            return; // Cegah lompat ke step 2 jika import belum selesai
+        $this->currentTab = $tab;
+        
+        // Refresh validasi otomatis jika masuk ke tab generate (untuk antisipasi ada mapping baru dari tab 3)
+        if ($tab === 'generate') {
+            $this->checkValidation();
         }
-        if ($step == 3 && $this->isGenerateLocked) {
-            return; // Cegah lompat ke step 3 jika validasi belum beres
-        }
-        $this->currentStep = $step;
     }
 
-    public function updatedSelectedMonth()
+    public function updatedGenerateMonth()
     {
         $this->checkValidation();
     }
 
     public function checkValidation()
     {
-        if (empty($this->selectedMonth)) {
+        if (empty($this->generateMonth)) {
             $this->unmappedDistributors = [];
             $this->unregisteredProducts = [];
             $this->isGenerateLocked = false;
             return;
         }
 
-        $parsedDate = \Carbon\Carbon::createFromFormat('Y-m', $this->selectedMonth);
+        $parsedDate = \Carbon\Carbon::createFromFormat('Y-m', $this->generateMonth);
         $year = $parsedDate->year;
         $month = $parsedDate->month;
 
@@ -203,7 +210,19 @@ class ImportRaw extends Component
             $this->generateProgress = \Illuminate\Support\Facades\Cache::get("generate_clean_progress_{$this->generateBatchId}", 0);
             
             $logs = \Illuminate\Support\Facades\Cache::get("generate_clean_logs_{$this->generateBatchId}", []);
-            if (!empty($logs)) {
+            if (!empty($logs) && $this->currentTab === 'generate') {
+                $this->logLines = $logs; // Override log terminal display
+            }
+        }
+
+        // 3. Sync Job Lama Log
+        if ($this->lamaBatchId) {
+            $this->lamaStatus = \Illuminate\Support\Facades\Cache::get("lama_job_status_{$this->lamaBatchId}", 'pending');
+            $this->lamaTotal = \Illuminate\Support\Facades\Cache::get("lama_job_total_{$this->lamaBatchId}", 0);
+            $this->lamaProgress = \Illuminate\Support\Facades\Cache::get("lama_job_progress_{$this->lamaBatchId}", 0);
+            
+            $logs = \Illuminate\Support\Facades\Cache::get("lama_job_logs_{$this->lamaBatchId}", []);
+            if (!empty($logs) && $this->currentTab === 'lama') {
                 $this->logLines = $logs; // Override log terminal display
             }
         }
@@ -217,9 +236,9 @@ class ImportRaw extends Component
         }
 
         $this->validate([
-            'selectedMonth' => 'required|date_format:Y-m',
+            'generateMonth' => 'required|date_format:Y-m',
         ], [
-            'selectedMonth.required' => 'Pilih periode bulan dan tahun terlebih dahulu.',
+            'generateMonth.required' => 'Pilih periode bulan dan tahun terlebih dahulu.',
         ]);
 
         $this->reset(['batchId', 'batchStatus', 'logLines', 'totalRows', 'processedRows']);
@@ -234,7 +253,30 @@ class ImportRaw extends Component
         \Illuminate\Support\Facades\Cache::put("generate_clean_status_{$this->generateBatchId}", 'pending', 3600);
         \Illuminate\Support\Facades\Cache::put("generate_clean_logs_{$this->generateBatchId}", $this->logLines, 3600);
 
-        \App\Jobs\ProcessSellingInGenerateClean::dispatch($this->generateBatchId, $this->selectedMonth);
+        \App\Jobs\ProcessSellingInGenerateClean::dispatch($this->generateBatchId, $this->generateMonth);
+    }
+
+    public function runJobLama()
+    {
+        $this->validate([
+            'lamaMonth' => 'required|date_format:Y-m',
+        ], [
+            'lamaMonth.required' => 'Pilih periode bulan dan tahun terlebih dahulu.',
+        ]);
+
+        $this->reset(['batchId', 'generateBatchId', 'logLines']);
+        
+        $this->lamaBatchId = uniqid('lama_');
+        $this->lamaStatus = 'pending';
+        $this->lamaProgress = 0;
+        $this->lamaTotal = 0;
+        $this->logLines = [['type' => 'info', 'message' => 'Memasukkan perintah Job Sell In Lama ke antrean...']];
+
+        // Set awal cache
+        \Illuminate\Support\Facades\Cache::put("lama_job_status_{$this->lamaBatchId}", 'pending', 3600);
+        \Illuminate\Support\Facades\Cache::put("lama_job_logs_{$this->lamaBatchId}", $this->logLines, 3600);
+
+        \App\Jobs\ProcessSellingInLamaJob::dispatch($this->lamaBatchId, $this->lamaMonth);
     }
     
     public function render()

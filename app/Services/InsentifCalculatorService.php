@@ -174,7 +174,17 @@ class InsentifCalculatorService
             else $queryCabang->where('area_name', $area);
         }
         $distributorDataRaw = $queryCabang->get()->groupBy('cabang');
-        $cabangList = $distributorDataRaw->keys()->toArray();
+        $distCabangList = $distributorDataRaw->keys()->toArray();
+
+        $querySpv = InsentifMasterSpv::where('bulan', $bulan);
+        if ($region) $querySpv->where('region_name', $region);
+        if ($area) {
+            if (is_array($area)) $querySpv->whereIn('area_name', $area);
+            else $querySpv->where('area_name', $area);
+        }
+        $spvCabangList = $querySpv->pluck('cabang')->toArray();
+
+        $cabangList = array_unique(array_merge($distCabangList, $spvCabangList));
 
         if (empty($cabangList)) {
             return ['headers' => [], 'spvData' => []];
@@ -186,9 +196,6 @@ class InsentifCalculatorService
             }
         })->with('details')->orderBy('nama_header')->get();
 
-        $querySpv = InsentifMasterSpv::where('bulan', $bulan)
-            ->whereIn('cabang', $cabangList);
-        
         if ($search) {
             $querySpv->where(function($q) use ($search) {
                 $q->where('supervisor_code', 'ilike', '%' . $search . '%')
@@ -589,7 +596,10 @@ class InsentifCalculatorService
         $roData = [];
         foreach ($roRaw as $r) {
             $key = strtoupper(trim($r->kodecabang) . '_' . trim($r->slsno));
-            $roData[$key] = $r->total_customer;
+            $roData[$key] = [
+                'total_customer' => $r->total_customer,
+                'frekuensi' => $r->frekuensi ?? ''
+            ];
         }
 
         // 4d. Pre-load Visits
@@ -623,7 +633,7 @@ class InsentifCalculatorService
             $valReal   = $valueActuals[$valKey] ?? 0;
             $valAch    = 0;
             if ($valTarget > 0) {
-                $valAch = ($valReal / $valTarget) * 100;
+                $valAch = floor(($valReal / $valTarget) * 100);
             } elseif ($valReal > 0) {
                 $valAch = 100;
             }
@@ -657,7 +667,7 @@ class InsentifCalculatorService
 
                 $growth = 0;
                 if ($targetVal > 0) {
-                    $growth = (($realVal - $targetVal) / $targetVal) * 100;
+                    $growth = floor((($realVal - $targetVal) / $targetVal) * 100);
                 } elseif ($realVal > 0) {
                     $growth = 100;
                 }
@@ -665,8 +675,8 @@ class InsentifCalculatorService
                 // hitungInsentifVtkp — lookup berdasarkan real qty, bukan (real-target)*600
                 $insVtkp = 0;
                 if ($targetVal > 0 && $valAch >= 60) {
-                    $g = round($growth);
-                    $r = round($realVal);
+                    $g = $growth;
+                    $r = floor($realVal);
                     if ($g >= 30) {
                         if ($r >= 1500)      $insVtkp = 500000;
                         elseif ($r >= 1000)  $insVtkp = 350000;
@@ -691,14 +701,15 @@ class InsentifCalculatorService
             }
 
             // --- EC ---
-            $roRow  = $roData[$valKey]     ?? ['frekuensi' => '-', 'total_customer' => 0];
+            $roRow  = $roData[$valKey]     ?? ['total_customer' => 0, 'frekuensi' => '-'];
             $visit  = $visitsData[$valKey] ?? ['pc' => 0, 'ac' => 0, 'ec' => 0];
-            $ro     = $roRow['total_customer'] ?? 0;
+            $ro     = $roRow['total_customer'];
+            $frekuensi = $roRow['frekuensi'];
             $ac     = $visit['ac'];
             $ec     = $visit['ec'];
 
-            $persen_ec  = ($ac > 0) ? round(($ec / $ac) * 100) : 0;
-            $ec_harian  = ($ec > 0) ? round($ec / 25) : 0;
+            $persen_ec  = ($ac > 0) ? floor(($ec / $ac) * 100) : 0;
+            $ec_harian  = ($ec > 0) ? floor($ec / 25) : 0;
 
             $insentif_ec = 0;
             if ($valAch >= 60) {
@@ -706,6 +717,13 @@ class InsentifCalculatorService
                 elseif ($persen_ec >= 70 && $ec_harian >= 14)  $insentif_ec = 500000;
                 elseif ($persen_ec >= 60 && $ec_harian >= 12)  $insentif_ec = 300000;
                 elseif ($persen_ec >= 50 && $ec_harian >= 10)  $insentif_ec = 50000;
+            }
+            
+            // --- Syarat Mutlak Tambahan RO berdasarkan Frekuensi untuk EC ---
+            if (trim($frekuensi) === 'F2' && $ro < 250) {
+                $insentif_ec = 0;
+            } elseif (trim($frekuensi) === 'F4' && $ro < 125) {
+                $insentif_ec = 0;
             }
 
             // --- IPT ---
@@ -726,7 +744,7 @@ class InsentifCalculatorService
             if ($sfa_pc == 0 && $sfa_ac == 0) {
                 $sfa_persen = 100; // device error → dianggap 100%
             } elseif ($sfa_pc > 0) {
-                $sfa_persen = round(($sfa_ac / $sfa_pc) * 100);
+                $sfa_persen = floor(($sfa_ac / $sfa_pc) * 100);
             } else {
                 $sfa_persen = 0;
             }

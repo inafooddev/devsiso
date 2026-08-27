@@ -281,14 +281,14 @@ class InsentifSe extends Component
                     // Hitung VTKP Insentif (Syarat: Value Ach >= 60%)
                     $insentif = 0;
                     if ($targetVal > 0 && $valAch >= 60) {
-                        $insentif = $this->hitungInsentifVtkp(round($growth), round($realVal));
+                        $insentif = $this->hitungInsentifVtkp(floor($growth), floor($realVal));
                     }
                     $total_insentif_vtkp += $insentif;
 
                     $row['achievements'][$h->nama_header] = [
                         'target' => round($targetVal),
-                        'real' => round($realVal),
-                        'growth' => round($growth),
+                        'real' => floor($realVal),
+                        'growth' => floor($growth),
                         'insentif' => $insentif,
                     ];
                 }
@@ -306,12 +306,12 @@ class InsentifSe extends Component
                 
                 $persen_ec = 0;
                 if ($row['ac'] > 0) {
-                    $persen_ec = round(($row['ec'] / $row['ac']) * 100);
+                    $persen_ec = floor(($row['ec'] / $row['ac']) * 100);
                 }
                 
                 $ec_harian = 0;
                 if ($row['ec'] > 0) {
-                    $ec_harian = round($row['ec'] / 25);
+                    $ec_harian = floor($row['ec'] / 25);
                 }
                 
                 $row['persen_ec'] = $persen_ec;
@@ -331,6 +331,14 @@ class InsentifSe extends Component
                         $insentif_ec = 50000;
                     }
                 }
+                
+                // --- Syarat Mutlak Tambahan RO berdasarkan Frekuensi untuk EC ---
+                if (trim($row['frekuensi']) === 'F2' && $row['ro'] < 250) {
+                    $insentif_ec = 0;
+                } elseif (trim($row['frekuensi']) === 'F4' && $row['ro'] < 125) {
+                    $insentif_ec = 0;
+                }
+
                 $row['insentif_ec'] = $insentif_ec;
 
                 // --- 4. IPT ---
@@ -367,7 +375,7 @@ class InsentifSe extends Component
                     // Pengecualian: Jika PC dan AC keduanya 0, anggap 100% (device error, dsb)
                     $sfa_persen = 100;
                 } elseif ($sfa_pc > 0) {
-                    $sfa_persen = round(($sfa_ac / $sfa_pc) * 100);
+                    $sfa_persen = floor(($sfa_ac / $sfa_pc) * 100);
                 }
 
                 $row['sfa_pc'] = $sfa_pc;
@@ -404,7 +412,7 @@ class InsentifSe extends Component
             
             $gtValueAch = 0;
             if ($gtValueTarget > 0) {
-                $gtValueAch = round(($gtValueReal / $gtValueTarget) * 100);
+                $gtValueAch = floor(($gtValueReal / $gtValueTarget) * 100);
             } elseif ($gtValueReal > 0) {
                 $gtValueAch = 100;
             }
@@ -430,7 +438,7 @@ class InsentifSe extends Component
                 }
                 $totalGrowth = 0;
                 if ($totalTarget > 0) {
-                    $totalGrowth = round((($totalReal - $totalTarget) / $totalTarget) * 100);
+                    $totalGrowth = floor((($totalReal - $totalTarget) / $totalTarget) * 100);
                 } elseif ($totalReal > 0) {
                     $totalGrowth = 100;
                 }
@@ -459,10 +467,10 @@ class InsentifSe extends Component
                 $gtEc['insentif'] += $row['insentif_ec'] ?? 0;
             }
             if ($gtEc['ac'] > 0) {
-                $gtEc['persen_ec'] = round(($gtEc['ec'] / $gtEc['ac']) * 100);
+                $gtEc['persen_ec'] = floor(($gtEc['ec'] / $gtEc['ac']) * 100);
             }
             if ($gtEc['ec'] > 0) {
-                $gtEc['ec_harian'] = round($gtEc['ec'] / 25);
+                $gtEc['ec_harian'] = floor($gtEc['ec'] / 25);
             }
             
             // IPT Grand Totals

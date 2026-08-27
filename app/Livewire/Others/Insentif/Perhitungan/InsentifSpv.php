@@ -196,7 +196,7 @@ class InsentifSpv extends Component
             $rwoData = DB::table('insentif_spv_rwo')
                 ->where('bulan', $this->filterBulan)
                 ->get()
-                ->keyBy('cabang');
+                ->keyBy('distributor_code');
 
             $distributorDataRaw = InsentifMasterDistributor::where('bulan', $this->filterBulan)
                 ->whereIn('cabang', $cabangList)
@@ -235,17 +235,13 @@ class InsentifSpv extends Component
                         'vtkp_achievements' => [],
                         'total_insentif_vtkp' => 0
                     ];
+
+                    // Tambahkan target reguler hanya SEKALI per cabang
+                    $target = isset($targets[$cabang]) ? (float)$targets[$cabang]->target : 0;
+                    $groupedBySpv[$spvKey]['total_target_reguler'] += $target;
                 }
 
-                // Tambahkan target reguler hanya SEKALI per cabang
                 $target = isset($targets[$cabang]) ? (float)$targets[$cabang]->target : 0;
-                $groupedBySpv[$spvKey]['total_target_reguler'] += $target;
-
-                $rwoPeserta = isset($rwoData[$cabang]) ? (int)$rwoData[$cabang]->total_potensi : 0;
-                $rwoAchieve = isset($rwoData[$cabang]) ? (int)$rwoData[$cabang]->capai_target : 0;
-                $groupedBySpv[$spvKey]['total_rwo_peserta'] += $rwoPeserta;
-                $groupedBySpv[$spvKey]['total_rwo_achieve'] += $rwoAchieve;
-
                 $dists = $distributorDataRaw->get($cabang, []);
 
                 if (count($dists) == 0) {
@@ -269,7 +265,8 @@ class InsentifSpv extends Component
                         $distCode = $md->distributor_code;
                         $actual = isset($actuals[$distCode]) ? (float)$actuals[$distCode]->total_actual : 0;
                         
-                        // RWO logic moved to cabang level to avoid double counting
+                        $rwoPeserta = isset($rwoData[$distCode]) ? (int)$rwoData[$distCode]->total_potensi : 0;
+                        $rwoAchieve = isset($rwoData[$distCode]) ? (int)$rwoData[$distCode]->capai_target : 0;
                         
                         $iptSku = isset($iptData[strtoupper(trim($distCode))]) ? (float)$iptData[strtoupper(trim($distCode))]['sku'] : 0;
                         $iptEc = isset($iptData[strtoupper(trim($distCode))]) ? (float)$iptData[strtoupper(trim($distCode))]['ec'] : 0;
@@ -281,8 +278,8 @@ class InsentifSpv extends Component
                             'cabang' => $cabang,
                             'target_so' => $target,
                             'aktual_so' => $actual,
-                            'rwo_peserta' => $idx === 0 ? $rwoPeserta : 0,
-                            'rwo_achieve' => $idx === 0 ? $rwoAchieve : 0,
+                            'rwo_peserta' => $rwoPeserta,
+                            'rwo_achieve' => $rwoAchieve,
                             'ipt_sku' => $iptSku,
                             'ipt_ec' => $iptEc,
                         ];
@@ -292,7 +289,8 @@ class InsentifSpv extends Component
                         $groupedBySpv[$spvKey]['rowspan'] += 1;
 
                         $groupedBySpv[$spvKey]['total_aktual_so'] += $actual;
-                        // RWO accumulated at cabang level
+                        $groupedBySpv[$spvKey]['total_rwo_peserta'] += $rwoPeserta;
+                        $groupedBySpv[$spvKey]['total_rwo_achieve'] += $rwoAchieve;
                         $groupedBySpv[$spvKey]['total_ipt_sku'] += $iptSku;
                         $groupedBySpv[$spvKey]['total_ipt_ec'] += $iptEc;
                     }
