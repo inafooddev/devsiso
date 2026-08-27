@@ -327,6 +327,13 @@ class Index extends Component
             } else {
                 $query->orderBy($this->sortColumn, $this->sortDirection);
             }
+            
+            // Stabilize sorting so rows don't jump around when updated
+            if ($this->sortColumn !== 'md.region_name') $query->orderBy('md.region_name', 'asc');
+            if ($this->sortColumn !== 'md.area_name') $query->orderBy('md.area_name', 'asc');
+            if ($this->sortColumn !== 'f.SLSNAME') $query->orderBy('f.SLSNAME', 'asc');
+            if ($this->sortColumn !== 'md.distributor_name') $query->orderBy('md.distributor_name', 'asc');
+            if ($this->sortColumn !== 'l.customer_code_prc') $query->orderBy('l.customer_code_prc', 'asc');
         } else {
             $query->orderBy('md.region_name')
                   ->orderBy('md.area_name')
