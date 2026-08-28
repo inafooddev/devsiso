@@ -1154,7 +1154,10 @@
                 drawMap(data) {
                     if (!this.salesMapInstance) {
                         this.salesMapInstance = L.map('salesMap').setView([-2.5489, 118.0149], 4); // Center of Indonesia
-                        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(this.salesMapInstance);
+                        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 19,
+                            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        }).addTo(this.salesMapInstance);
                     }
                     
                     // Force invalidate size in case container was hidden/resized

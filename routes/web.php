@@ -78,6 +78,7 @@ use App\Livewire\SalesConfig\Index as SalesConfigIndex;
 use App\Livewire\SalesInvoiceImport;
 use App\Livewire\SalesInvoiceReport\Index as SalesInvoiceReportIndex;
 use App\Livewire\Report\AnalisaKunjungan\Index as AnalisaKunjunganIndex;
+use App\Livewire\Report\MonitoringTopItem\Index as MonitoringTopItemIndex;
 use App\Livewire\MasterData\Salesmans\Index as SalesmanIndex;
 use App\Livewire\SellOut\Export\Index as SellOutExportIndex;
 use App\Livewire\SellOut\Process\Index as SellOutProcessIndex;
@@ -355,6 +356,7 @@ Route::middleware(['auth'])->group(function () {
     // SALES INVOICE & CONFIGURATION
     // ==========================================
     Route::get('/report/analisa-kunjungan', AnalisaKunjunganIndex::class)->name('report.analisa-kunjungan.index');
+    Route::get('/report/monitoring-top-item', MonitoringTopItemIndex::class)->name('report.monitoring-top-item.index');
     Route::get('/sales-invoice-report', SalesInvoiceReportIndex::class)->name('sales-invoice-report.index');
     Route::get('/import-sales-invoices', SalesInvoiceImport::class)->name('sales-invoices.import');
     
