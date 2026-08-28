@@ -82,20 +82,21 @@ class Monitoring extends Component
         $accessLevel = $user ? $user->getAccessLevel() : 'nasional';
 
         // Fetch Master Filter Options with Cascading (Chained) Logic
-        $mdQuery = DB::table('master_distributors');
+        $mdQuery = DB::table('master_distributors as md')
+            ->leftJoin('team_elite_code_mappings as tecm', 'md.supervisor_code', '=', 'tecm.siso_code');
         if ($accessLevel === 'region') {
-            $mdQuery->whereIn('region_code', (array) $user->region_code);
+            $mdQuery->whereIn('md.region_code', (array) $user->region_code);
         } elseif ($accessLevel === 'area') {
-            $mdQuery->whereIn('area_code', (array) $user->area_code);
+            $mdQuery->whereIn('md.area_code', (array) $user->area_code);
         } elseif ($accessLevel === 'supervisor') {
-            $mdQuery->where('supervisor_code', $user->supervisor_code);
+            $mdQuery->where('tecm.team_elite_code', $user->supervisor_code);
         }
         
-        $regions = (clone $mdQuery)->distinct()->pluck('region_name')->filter()->sort();
+        $regions = (clone $mdQuery)->distinct()->pluck('md.region_name')->filter()->sort();
         
         $areaQuery = clone $mdQuery;
-        if ($this->filterRegion) $areaQuery->where('region_name', $this->filterRegion);
-        $areas = $areaQuery->distinct()->pluck('area_name')->filter()->sort();
+        if ($this->filterRegion) $areaQuery->where('md.region_name', $this->filterRegion);
+        $areas = $areaQuery->distinct()->pluck('md.area_name')->filter()->sort();
 
         $supQuery = DB::table('master_distributors as md')
             ->join('team_elite_code_mappings as tecm', 'md.supervisor_code', '=', 'tecm.siso_code')
@@ -105,7 +106,7 @@ class Monitoring extends Component
         } elseif ($accessLevel === 'area') {
             $supQuery->whereIn('md.area_code', (array) $user->area_code);
         } elseif ($accessLevel === 'supervisor') {
-            $supQuery->where('md.supervisor_code', $user->supervisor_code);
+            $supQuery->where('tecm.team_elite_code', $user->supervisor_code);
         }
         if ($this->filterRegion) $supQuery->where('md.region_name', $this->filterRegion);
         if ($this->filterArea) $supQuery->where('md.area_name', $this->filterArea);
@@ -119,7 +120,7 @@ class Monitoring extends Component
         } elseif ($accessLevel === 'area') {
             $distQuery->whereIn('md.area_code', (array) $user->area_code);
         } elseif ($accessLevel === 'supervisor') {
-            $distQuery->where('md.supervisor_code', $user->supervisor_code);
+            $distQuery->where('tecm.team_elite_code', $user->supervisor_code);
         }
         if ($this->filterRegion) $distQuery->where('md.region_name', $this->filterRegion);
         if ($this->filterArea) $distQuery->where('md.area_name', $this->filterArea);
@@ -165,7 +166,7 @@ class Monitoring extends Component
             } elseif ($accessLevel === 'area') {
                 $query->whereIn('md.area_code', (array) $user->area_code);
             } elseif ($accessLevel === 'supervisor') {
-                $query->where('md.supervisor_code', $user->supervisor_code);
+                $query->where('tecm.team_elite_code', $user->supervisor_code);
             }
 
             // Apply User Filter Selections

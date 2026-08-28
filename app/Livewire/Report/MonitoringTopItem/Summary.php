@@ -25,21 +25,22 @@ class Summary extends Component
         $user = auth()->user();
         $accessLevel = $user ? $user->getAccessLevel() : 'nasional';
 
-        $regionsQuery = DB::table('master_distributors')
-            ->select('region_name')
+        $regionsQuery = DB::table('master_distributors as md')
+            ->leftJoin('team_elite_code_mappings as tecm', 'md.supervisor_code', '=', 'tecm.siso_code')
+            ->select('md.region_name')
             ->distinct()
-            ->whereNotNull('region_name');
+            ->whereNotNull('md.region_name');
 
         // Hak Akses untuk filter dropdown
         if ($accessLevel === 'region') {
-            $regionsQuery->whereIn('region_code', (array) $user->region_code);
+            $regionsQuery->whereIn('md.region_code', (array) $user->region_code);
         } elseif ($accessLevel === 'area') {
-            $regionsQuery->whereIn('area_code', (array) $user->area_code);
+            $regionsQuery->whereIn('md.area_code', (array) $user->area_code);
         } elseif ($accessLevel === 'supervisor') {
-            $regionsQuery->where('supervisor_code', $user->supervisor_code);
+            $regionsQuery->where('tecm.team_elite_code', $user->supervisor_code);
         }
 
-        $regions = $regionsQuery->orderBy('region_name')->pluck('region_name');
+        $regions = $regionsQuery->orderBy('md.region_name')->pluck('md.region_name');
 
         // Subquery: Calculate how many products each store bought
         $innerQuery = DB::table('top_item_achievement as tia')
@@ -59,7 +60,7 @@ class Summary extends Component
         } elseif ($accessLevel === 'area') {
             $innerQuery->whereIn('md.area_code', (array) $user->area_code);
         } elseif ($accessLevel === 'supervisor') {
-            $innerQuery->where('md.supervisor_code', $user->supervisor_code);
+            $innerQuery->where('tecm.team_elite_code', $user->supervisor_code);
         }
 
         $innerQuery->select(
