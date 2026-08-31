@@ -664,10 +664,10 @@
                             'raster-tiles': {
                                 'type': 'raster',
                                 'tiles': [
-                                    'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                                    'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                                    'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                                    'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+                                    'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                    'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                    'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                    'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc'
                                 ],
                                 'tileSize': 256,
                                 'attribution': '© OpenStreetMap contributors, © CARTO'
@@ -1008,10 +1008,10 @@
                                 'raster-tiles': {
                                     'type': 'raster',
                                     'tiles': [
-                                        'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                                        'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                                        'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                                        'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+                                        'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                        'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                        'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                        'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc'
                                     ],
                                     'tileSize': 256,
                                     'attribution': '© OpenStreetMap contributors, © CARTO'

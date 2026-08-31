@@ -916,7 +916,7 @@
                 'sources': {
                     'raster-tiles': {
                         'type': 'raster',
-                        'tiles': ['https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'],
+                        'tiles': ['https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc'],
                         'tileSize': 256,
                         'attribution': '&copy; OpenStreetMap contributors, &copy; CARTO'
                     }
