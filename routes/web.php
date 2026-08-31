@@ -111,6 +111,7 @@ use App\Livewire\Jobs\UpdateSellinPerCabang;
 use App\Livewire\Jobs\SelloutPerCabangSqlServer;
 use App\Livewire\Jobs\UpdateSalesmans;
 use App\Livewire\Jobs\UpdateAoPercabang;
+use App\Livewire\Jobs\SoFullJoin;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -414,5 +415,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/jobs/sellout-per-cabang-sqlserver', SelloutPerCabangSqlServer::class)->name('jobs.sellout-per-cabang-sqlserver');
     Route::get('/jobs/update-salesmans', UpdateSalesmans::class)->name('jobs.update-salesmans');
     Route::get('/jobs/update-ao-percabang', UpdateAoPercabang::class)->name('jobs.update-ao-percabang');
+    Route::get('/jobs/so-full-join', SoFullJoin::class)->name('jobs.so-full-join');
 
 });

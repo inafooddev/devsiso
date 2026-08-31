@@ -1,5 +1,5 @@
 <div class="flex-1 flex flex-col w-full h-full min-h-0">
-    <x-slot name="title">Jobs - Update Salesmans</x-slot>
+    <x-slot name="title">Jobs - SO Full Join</x-slot>
 
     <x-ui.tab-menu class="!mx-0 !mt-0 !mb-0 rounded-xl">
         <a href="{{ route('jobs.zv-summary-team-elite') }}" wire:navigate class="tab {{ request()->routeIs('jobs.zv-summary-team-elite') ? 'tab-active' : '' }}">Analisa Kunjungan</a>
@@ -11,18 +11,34 @@
         <a href="{{ route('jobs.update-ao-percabang') }}" wire:navigate class="tab {{ request()->routeIs('jobs.update-ao-percabang') ? 'tab-active' : '' }}">Ao Per Cabang</a>
     </x-ui.tab-menu>
 
-    <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
+    <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full mt-4">
         <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
             <!-- Header & Actions -->
             <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-base-200/30">
                 <div class="shrink-0 w-full lg:w-auto">
-                    <h2 class="text-base md:text-lg font-bold">Pemrosesan Data Salesmans</h2>
-                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Migrasi Data dari PostgreSQL ke SQL Server</p>
+                    <h2 class="text-base md:text-lg font-bold">Pemrosesan Data SO Full Join</h2>
+                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Integrasi Master Data (PostgreSQL Native)</p>
                 </div>
 
                 <div class="flex flex-wrap items-center justify-start lg:justify-end gap-2 md:gap-3 w-full lg:w-auto">
-                    <button wire:click="startProcess" wire:loading.attr="disabled" wire:target="startProcess"
-                        class="btn btn-sm btn-primary rounded-xl normalcase shadow-sm shadow-primary/20">
+                    
+                    <select wire:model.live="monthFilter" class="select select-bordered select-sm bg-base-100 rounded-xl focus:ring-2 focus:ring-primary/50 text-xs w-32">
+                        @for ($m = 1; $m <= 12; $m++)
+                            <option value="{{ $m }}">{{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}</option>
+                        @endfor
+                    </select>
+                    
+                    <select wire:model.live="yearFilter" class="select select-bordered select-sm bg-base-100 rounded-xl focus:ring-2 focus:ring-primary/50 text-xs w-24">
+                        @for ($y = now()->year + 1; $y >= now()->year - 5; $y--)
+                            <option value="{{ $y }}">{{ $y }}</option>
+                        @endfor
+                    </select>
+
+                    <button wire:click="startProcess" 
+                        wire:loading.attr="disabled" 
+                        wire:target="startProcess"
+                        {{ in_array($batchStatus, ['pending', 'processing']) ? 'disabled' : '' }}
+                        class="btn btn-sm btn-primary rounded-xl normalcase shadow-sm shadow-primary/20 {{ in_array($batchStatus, ['pending', 'processing']) ? 'opacity-50 cursor-not-allowed' : '' }}">
                         <span wire:loading.remove wire:target="startProcess" class="flex items-center gap-2">
                             <x-heroicon-o-play class="w-4 h-4" />
                             Mulai Proses
@@ -83,7 +99,7 @@
                                 <x-heroicon-o-cpu-chip class="w-12 h-12 opacity-20" />
                                 <div class="text-center">
                                     <p class="font-bold text-slate-400">Idle - Menunggu Instruksi</p>
-                                    <p class="text-xs mt-1">Silakan klik "Mulai Proses" untuk menarik data dari PostgreSQL ke SQL Server.</p>
+                                    <p class="text-xs mt-1">Pilih periode bulan dan klik "Mulai Proses" untuk mengeksekusi.</p>
                                 </div>
                             </div>
                         @else
