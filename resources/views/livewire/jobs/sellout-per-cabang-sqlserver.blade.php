@@ -1,5 +1,15 @@
 <div class="flex-1 flex flex-col w-full h-full min-h-0">
-    <x-slot name="title">Jobs - Sellout Per Cabang (SQL Server)</x-slot>
+    <x-slot name="title">Jobs - SO Per Cabang</x-slot>
+
+    <x-ui.tab-menu class="!mx-0 !mt-0 !mb-0 rounded-xl">
+        <a href="{{ route('jobs.zv-summary-team-elite') }}" wire:navigate class="tab {{ request()->routeIs('jobs.zv-summary-team-elite') ? 'tab-active' : '' }}">Analis Kunjungan TE</a>
+        <a href="{{ route('jobs.zv-so-per-toko-2026') }}" wire:navigate class="tab {{ request()->routeIs('jobs.zv-so-per-toko-2026') ? 'tab-active' : '' }}">SO Per Toko</a>
+        <a href="{{ route('jobs.update-sellin-per-cabang') }}" wire:navigate class="tab {{ request()->routeIs('jobs.update-sellin-per-cabang') ? 'tab-active' : '' }}">SI Per Cabang</a>
+        <a href="{{ route('jobs.sellout-per-cabang-sqlserver') }}" wire:navigate class="tab {{ request()->routeIs('jobs.sellout-per-cabang-sqlserver') ? 'tab-active' : '' }}">SO Per Cabang</a>
+        <a href="{{ route('jobs.update-salesmans') }}" wire:navigate class="tab {{ request()->routeIs('jobs.update-salesmans') ? 'tab-active' : '' }}">Salesmans</a>
+        <a href="{{ route('jobs.update-ao-percabang') }}" wire:navigate class="tab {{ request()->routeIs('jobs.update-ao-percabang') ? 'tab-active' : '' }}">Ao Per Cabang</a>
+    </x-ui.tab-menu>
+
     <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
         <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
             <!-- Header & Actions -->

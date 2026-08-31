@@ -5,6 +5,7 @@
         <a href="{{ route('jobs.zv-summary-team-elite') }}" wire:navigate class="tab {{ request()->routeIs('jobs.zv-summary-team-elite') ? 'tab-active' : '' }}">Analis Kunjungan TE</a>
         <a href="{{ route('jobs.zv-so-per-toko-2026') }}" wire:navigate class="tab {{ request()->routeIs('jobs.zv-so-per-toko-2026') ? 'tab-active' : '' }}">SO Per Toko</a>
         <a href="{{ route('jobs.update-sellin-per-cabang') }}" wire:navigate class="tab {{ request()->routeIs('jobs.update-sellin-per-cabang') ? 'tab-active' : '' }}">SI Per Cabang</a>
+        <a href="{{ route('jobs.sellout-per-cabang-sqlserver') }}" wire:navigate class="tab {{ request()->routeIs('jobs.sellout-per-cabang-sqlserver') ? 'tab-active' : '' }}">SO Per Cabang</a>
         <a href="{{ route('jobs.update-salesmans') }}" wire:navigate class="tab {{ request()->routeIs('jobs.update-salesmans') ? 'tab-active' : '' }}">Salesmans</a>
         <a href="{{ route('jobs.update-ao-percabang') }}" wire:navigate class="tab {{ request()->routeIs('jobs.update-ao-percabang') ? 'tab-active' : '' }}">Ao Per Cabang</a>
     </x-ui.tab-menu>
