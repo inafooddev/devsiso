@@ -105,6 +105,12 @@ use App\Livewire\Others\Insentif\Mingguan\Index as InsentifMingguanIndex;
 use App\Livewire\Others\Insentif\Mingguan\Jobs as InsentifMingguanJobs;
 use App\Livewire\Others\Insentif\Perhitungan\Index as InsentifPerhitunganIndex;
 use App\Livewire\Others\Insentif\Perhitungan\Jobs as InsentifJobs;
+use App\Livewire\Jobs\ZvSummaryTeamElite;
+use App\Livewire\Jobs\ZvSoPerToko2026;
+use App\Livewire\Jobs\UpdateSellinPerCabang;
+use App\Livewire\Jobs\SelloutPerCabangSqlServer;
+use App\Livewire\Jobs\UpdateSalesmans;
+use App\Livewire\Jobs\UpdateAoPercabang;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -401,5 +407,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/rwo/monitoring-pareto', \App\Livewire\Rwo\MonitoringParetoRwo::class)->name('rwo.monitoring-pareto');
     Route::get('/under-construction', UnderConstruction::class)->name('under-construction');
     Route::get('/under-bounce', UnderBounce::class)->name('under-bounce');
+
+    Route::get('/jobs/zv-summary-team-elite', ZvSummaryTeamElite::class)->name('jobs.zv-summary-team-elite');
+    Route::get('/jobs/zv-so-per-toko-2026', ZvSoPerToko2026::class)->name('jobs.zv-so-per-toko-2026');
+    Route::get('/jobs/update-sellin-per-cabang', UpdateSellinPerCabang::class)->name('jobs.update-sellin-per-cabang');
+    Route::get('/jobs/sellout-per-cabang-sqlserver', SelloutPerCabangSqlServer::class)->name('jobs.sellout-per-cabang-sqlserver');
+    Route::get('/jobs/update-salesmans', UpdateSalesmans::class)->name('jobs.update-salesmans');
+    Route::get('/jobs/update-ao-percabang', UpdateAoPercabang::class)->name('jobs.update-ao-percabang');
 
 });
