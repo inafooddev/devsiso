@@ -1,7 +1,8 @@
-﻿<div class="flex-1 flex flex-col w-full h-full min-h-0">
-    <x-slot name="title">Jobs - Update Salesmans</x-slot>
+<div class="flex-1 flex flex-col w-full h-full min-h-0">
+    <x-slot name="title">Jobs - Join SO Eska Non Eksa</x-slot>
 
-    <x-ui.tab-menu class="!mx-0 !mt-0 !mb-0 rounded-xl">
+    <!-- Tab Menu -->
+    <x-ui.tab-menu class="!mx-0 !mt-0 !mb-0 rounded-xl overflow-x-auto whitespace-nowrap">
         <a href="{{ route('jobs.zv-summary-team-elite') }}" wire:navigate class="tab {{ request()->routeIs('jobs.zv-summary-team-elite') ? 'tab-active' : '' }}">Analisa Kunjungan</a>
         <a href="{{ route('jobs.update-sellin-per-cabang') }}" wire:navigate class="tab {{ request()->routeIs('jobs.update-sellin-per-cabang') ? 'tab-active' : '' }}">SI Per Cabang</a>
         <a href="{{ route('jobs.update-salesmans') }}" wire:navigate class="tab {{ request()->routeIs('jobs.update-salesmans') ? 'tab-active' : '' }}">Salesmans</a>
@@ -12,20 +13,36 @@
         <a href="{{ route('jobs.join-so-eska-non-eksa') }}" wire:navigate class="tab {{ request()->routeIs('jobs.join-so-eska-non-eksa') ? 'tab-active' : '' }}">Join SO Eska</a>
     </x-ui.tab-menu>
 
-    <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
+    <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full mt-4">
         <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
             <!-- Header & Actions -->
             <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-base-200/30">
                 <div class="shrink-0 w-full lg:w-auto">
-                    <h2 class="text-base md:text-lg font-bold">Pemrosesan Data Salesmans</h2>
-                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Migrasi Data dari PostgreSQL ke SQL Server</p>
+                    <h2 class="text-base md:text-lg font-bold">Pemrosesan Data Join SO Eska Non Eksa</h2>
+                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">PostgreSQL Native Data Migration</p>
                 </div>
 
                 <div class="flex flex-wrap items-center justify-start lg:justify-end gap-2 md:gap-3 w-full lg:w-auto">
-                    <button wire:click="startProcess" wire:loading.attr="disabled" wire:target="startProcess"
-                        class="btn btn-sm btn-primary rounded-xl normalcase shadow-sm shadow-primary/20">
+                    
+                    <select wire:model.live="monthFilter" class="select select-bordered select-sm bg-base-100 rounded-xl focus:ring-2 focus:ring-primary/50 text-xs w-32">
+                        @for ($m = 1; $m <= 12; $m++)
+                            <option value="{{ $m }}">{{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}</option>
+                        @endfor
+                    </select>
+                    
+                    <select wire:model.live="yearFilter" class="select select-bordered select-sm bg-base-100 rounded-xl focus:ring-2 focus:ring-primary/50 text-xs w-24">
+                        @for ($y = now()->year + 1; $y >= now()->year - 5; $y--)
+                            <option value="{{ $y }}">{{ $y }}</option>
+                        @endfor
+                    </select>
+
+                    <button wire:click="startProcess" 
+                        wire:loading.attr="disabled" 
+                        wire:target="startProcess"
+                        {{ in_array($batchStatus, ['pending', 'processing']) ? 'disabled' : '' }}
+                        class="btn btn-sm btn-primary rounded-xl normalcase shadow-sm shadow-primary/20 {{ in_array($batchStatus, ['pending', 'processing']) ? 'opacity-50 cursor-not-allowed' : '' }}">
                         <span wire:loading.remove wire:target="startProcess" class="flex items-center gap-2">
-                            <x-heroicon-o-play class="w-4 h-4" />
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                             Mulai Proses
                         </span>
                         <span wire:loading wire:target="startProcess" class="flex items-center gap-2">
@@ -36,7 +53,6 @@
 
                     @if (session()->has('error'))
                         <div class="alert alert-error py-2 px-4 rounded-xl text-xs w-full sm:w-auto shadow-sm ml-auto">
-                            <x-heroicon-o-exclamation-triangle class="w-4 h-4" />
                             <span>{{ session('error') }}</span>
                         </div>
                     @endif
@@ -47,7 +63,7 @@
             <div class="p-4 md:p-5 bg-base-100 flex-1 flex flex-col overflow-hidden" wire:poll.1500ms="syncLog">
                 <div class="flex items-center justify-between mb-4 shrink-0">
                     <h4 class="text-sm font-bold text-base-content/70 flex items-center gap-2">
-                        <x-heroicon-o-command-line class="w-4 h-4 text-primary" />
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M4 17a2 2 0 100 4 2 2 0 000-4zm16 0a2 2 0 100 4 2 2 0 000-4z"/></svg>
                         Terminal Eksekusi Job ETL
                     </h4>
                     <div class="flex gap-1.5">
@@ -75,16 +91,15 @@
                 @endif
 
                 <div class="relative group flex-1 overflow-hidden flex flex-col">
-                    <!-- Glass effect overlay -->
                     <div class="absolute -inset-0.5 bg-gradient-to-b from-primary/10 to-transparent rounded-2xl blur opacity-20 transition duration-1000 group-hover:opacity-30"></div>
                     
                     <div class="relative flex-1 w-full bg-slate-950 text-slate-300 rounded-2xl shadow-2xl p-6 font-mono text-[13px] leading-relaxed overflow-y-auto custom-scrollbar border border-white/5" id="terminal-console">
                         @if(empty($logLines))
                             <div class="flex flex-col items-center justify-center h-full text-slate-500 space-y-3">
-                                <x-heroicon-o-cpu-chip class="w-12 h-12 opacity-20" />
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 <div class="text-center">
                                     <p class="font-bold text-slate-400">Idle - Menunggu Instruksi</p>
-                                    <p class="text-xs mt-1">Silakan klik "Mulai Proses" untuk menarik data dari PostgreSQL ke SQL Server.</p>
+                                    <p class="text-xs mt-1">Pilih periode bulan dan klik "Mulai Proses" untuk mengeksekusi.</p>
                                 </div>
                             </div>
                         @else
@@ -107,12 +122,12 @@
                                         </span>
                                     </div>
                                 @endforeach
-                                <div class="h-4"></div> <!-- Spacer at bottom -->
+                                <div class="h-4"></div>
                             </div>
                         @endif
                     </div>
                 </div>
             </div>
+        </div>
     </div>
 </div>
-

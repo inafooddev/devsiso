@@ -112,6 +112,7 @@ use App\Livewire\Jobs\SelloutPerCabangSqlServer;
 use App\Livewire\Jobs\UpdateSalesmans;
 use App\Livewire\Jobs\UpdateAoPercabang;
 use App\Livewire\Jobs\SoFullJoin;
+use App\Livewire\Jobs\JoinSoEskaNonEksa\Index as JoinSoEskaNonEksa;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -410,6 +411,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/under-bounce', UnderBounce::class)->name('under-bounce');
 
     Route::get('/jobs/zv-summary-team-elite', ZvSummaryTeamElite::class)->name('jobs.zv-summary-team-elite');
+    Route::get('/jobs/so-full-join', SoFullJoin::class)->name('jobs.so-full-join');
+    Route::get('/jobs/join-so-eska-non-eksa', JoinSoEskaNonEksa::class)->name('jobs.join-so-eska-non-eksa');
     Route::get('/jobs/zv-so-per-toko-2026', ZvSoPerToko2026::class)->name('jobs.zv-so-per-toko-2026');
     Route::get('/jobs/update-sellin-per-cabang', UpdateSellinPerCabang::class)->name('jobs.update-sellin-per-cabang');
     Route::get('/jobs/sellout-per-cabang-sqlserver', SelloutPerCabangSqlServer::class)->name('jobs.sellout-per-cabang-sqlserver');

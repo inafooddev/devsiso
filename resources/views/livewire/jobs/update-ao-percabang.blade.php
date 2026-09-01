@@ -1,4 +1,4 @@
-<div class="flex-1 flex flex-col w-full h-full min-h-0">
+﻿<div class="flex-1 flex flex-col w-full h-full min-h-0">
     <x-slot name="title">Jobs - Update AO Per Cabang</x-slot>
 
     <x-ui.tab-menu class="!mx-0 !mt-0 !mb-0 rounded-xl">
@@ -9,6 +9,7 @@
         <a href="{{ route('jobs.zv-so-per-toko-2026') }}" wire:navigate class="tab {{ request()->routeIs('jobs.zv-so-per-toko-2026') ? 'tab-active' : '' }}">SO Per Toko</a>
         <a href="{{ route('jobs.sellout-per-cabang-sqlserver') }}" wire:navigate class="tab {{ request()->routeIs('jobs.sellout-per-cabang-sqlserver') ? 'tab-active' : '' }}">SO Per Cabang</a>
         <a href="{{ route('jobs.update-ao-percabang') }}" wire:navigate class="tab {{ request()->routeIs('jobs.update-ao-percabang') ? 'tab-active' : '' }}">Ao Per Cabang</a>
+        <a href="{{ route('jobs.join-so-eska-non-eksa') }}" wire:navigate class="tab {{ request()->routeIs('jobs.join-so-eska-non-eksa') ? 'tab-active' : '' }}">Join SO Eska</a>
     </x-ui.tab-menu>
 
     <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
