@@ -15,6 +15,13 @@ class SelloutPerCabangSqlServer extends Component
     
     public function startProcess()
     {
+        if ($this->batchId) {
+            $existing = ImportBatch::find($this->batchId);
+            if ($existing && in_array($existing->status, ['pending', 'processing'])) {
+                return; // Prevent double dispatch
+            }
+        }
+
         $batch = ImportBatch::create([
             'file_name' => 'Proses ETL Sellout Per Cabang (SQL Server to PostgreSQL)',
             'status' => 'pending',

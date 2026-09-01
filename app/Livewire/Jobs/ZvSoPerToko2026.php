@@ -15,6 +15,13 @@ class ZvSoPerToko2026 extends Component
     
     public function startProcess()
     {
+        if ($this->batchId) {
+            $existing = ImportBatch::find($this->batchId);
+            if ($existing && in_array($existing->status, ['pending', 'processing'])) {
+                return; // Prevent double dispatch
+            }
+        }
+
         // Membuat log batch baru
         $batch = ImportBatch::create([
             'file_name' => 'Proses ETL ZV SO Per Toko 2026',
