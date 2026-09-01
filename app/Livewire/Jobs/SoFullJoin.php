@@ -29,6 +29,14 @@ class SoFullJoin extends Component
 
     public function startProcess()
     {
+        // Guard: Cegah double dispatch jika proses sebelumnya masih berjalan
+        if ($this->batchId) {
+            $existing = ImportBatch::find($this->batchId);
+            if ($existing && $existing->status === 'processing') {
+                return; // Batalkan, proses sedang berjalan
+            }
+        }
+
         $batch = ImportBatch::create([
             'file_name' => 'Proses ETL SO Full Join (PostgreSQL Native)',
             'status' => 'processing',

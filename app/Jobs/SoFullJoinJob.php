@@ -166,27 +166,69 @@ SQL;
             // Truncate SQL Server target table
             DB::connection('sqlsrv')->table('temp_selling_out')->truncate();
 
-            // Ambil data dari postgres per 1000 baris (memory safe)
+            // 4. Tahap 4: Pindahkan data dari Postgres (t_tempsell) ke SQL Server (temp_selling_out)
             $totalMigrated = 0;
+            $dataToInsert = [];
             
-            DB::connection('pgsql')->table('t_tempsell')->orderBy('COM_ID')->chunk(1000, function ($records) use ($batch, &$totalMigrated) {
-                $dataToInsert = [];
-                foreach ($records as $record) {
-                    $dataToInsert[] = (array) $record;
-                }
-
-                // Pecah lagi menjadi 50 baris per eksekusi untuk SQL Server limit 2100 params
-                $chunks = array_chunk($dataToInsert, 50);
+            // MENGGUNAKAN CURSOR: Karena t_tempsell tidak punya Primary Key (ID),
+            // menggunakan chunk() dengan orderBy akan melompat-lompat dan menduplikasi/melewatkan data.
+            // cursor() mengeksekusi 1 query dan membaca baris satu per satu tanpa membebani memori.
+            foreach (DB::connection('pgsql')->table('t_tempsell')->cursor() as $record) {
+                // MAPPING EKSPLISIT: Untuk menjamin urutan array selalu sama persis dan tidak bergeser
+                // saat Laravel melakukan compile SQL untuk batch insert 50 baris sekaligus.
+                $dataToInsert[] = [
+                    'COM_ID' => $record->COM_ID,
+                    'BLN' => $record->BLN,
+                    'THN' => $record->THN,
+                    'RSM' => $record->RSM,
+                    'REGION' => $record->REGION,
+                    'AREA' => $record->AREA,
+                    'KD_CABANG' => $record->KD_CABANG,
+                    'CABANG' => $record->CABANG,
+                    'KD_DISTRIBUTOR' => $record->KD_DISTRIBUTOR,
+                    'DISTRIBUTOR' => $record->DISTRIBUTOR,
+                    'KD_SPV' => $record->KD_SPV,
+                    'SPV_NAME' => $record->SPV_NAME,
+                    'KD SALES' => $record->{'KD SALES'},
+                    'SALES_NAME' => $record->SALES_NAME,
+                    'UNIQKD_TOKO' => $record->UNIQKD_TOKO,
+                    'KD_TOKO' => $record->KD_TOKO,
+                    'NAMA_TOKO' => $record->NAMA_TOKO,
+                    'ALAMAT' => $record->ALAMAT,
+                    'BASE_TIPE' => $record->BASE_TIPE,
+                    'TIPE_BLN' => $record->TIPE_BLN,
+                    'NOO' => $record->NOO,
+                    'NMR_NOTA' => $record->NMR_NOTA,
+                    'TGL_NOTA' => $record->TGL_NOTA,
+                    'PRODUK' => $record->PRODUK,
+                    'MAPING_PRODUK' => $record->MAPING_PRODUK,
+                    'REG_FEST' => $record->REG_FEST,
+                    'KATEGORI' => $record->KATEGORI,
+                    'TOP_ITEM' => $record->TOP_ITEM,
+                    'BRAND' => $record->BRAND,
+                    'SUB_BRAND' => $record->SUB_BRAND,
+                    'QTY_(KTN)' => $record->{'QTY_(KTN)'},
+                    'VALUE_(NETTO)' => $record->{'VALUE_(NETTO)'},
+                ];
                 
-                foreach ($chunks as $chunk) {
-                    DB::connection('sqlsrv')->table('temp_selling_out')->insert($chunk);
-                    $totalMigrated += count($chunk);
+                // Karena batas parameter SQL Server (2100), kita insert per 50 baris
+                if (count($dataToInsert) === 50) {
+                    DB::connection('sqlsrv')->table('temp_selling_out')->insert($dataToInsert);
+                    $totalMigrated += 50;
+                    $dataToInsert = [];
+                    
+                    // Log tiap kelipatan 5.000 agar UI terminal tidak lag
+                    if ($totalMigrated % 5000 === 0 && $batch) {
+                        $batch->addLog('info', "Progress SQL Server: {$totalMigrated} baris telah disalin...");
+                    }
                 }
-
-                if ($batch) {
-                    $batch->addLog('info', "Progress SQL Server: {$totalMigrated} baris telah disalin...");
-                }
-            });
+            }
+            
+            // Insert sisa baris terakhir
+            if (count($dataToInsert) > 0) {
+                DB::connection('sqlsrv')->table('temp_selling_out')->insert($dataToInsert);
+                $totalMigrated += count($dataToInsert);
+            }
 
             if ($batch) {
                 $batch->addLog('success', "Tahap 4 Selesai! Sebanyak {$totalMigrated} baris data berhasil disalin ke SQL Server.");
