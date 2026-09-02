@@ -15,22 +15,24 @@ class ZvSummaryTeamElite extends Component
     
     public function startProcess()
     {
-        // Membuat log batch baru
+        // Guard: cegah double dispatch
+        if ($this->batchId) {
+            $existing = ImportBatch::find($this->batchId);
+            if ($existing && in_array($existing->status, ['pending', 'processing'])) {
+                return;
+            }
+        }
+
         $batch = ImportBatch::create([
             'file_name' => 'Proses ETL ZV Summary Team Elite',
-            'status' => 'pending',
-            'log_lines' => [['type' => 'info', 'message' => 'Proses ekstraksi ditambahkan ke antrian...']]
+            'status' => 'processing',
+            'log_lines' => [['type' => 'info', 'message' => 'Proses ditambahkan ke antrian...']]
         ]);
 
         $this->batchId = $batch->id;
         $this->syncLog();
 
-        // Dispatch Job
         ZvSummaryTeamEliteJob::dispatch($batch->id);
-        
-        $batch->refresh();
-        $batch->addLog('success', 'Job telah berhasil dikirim ke background!');
-        $batch->update(['status' => 'processing']);
     }
 
     public function syncLog()

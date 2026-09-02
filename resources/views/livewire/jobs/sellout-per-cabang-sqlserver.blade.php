@@ -1,17 +1,6 @@
 ﻿<div class="flex-1 flex flex-col w-full h-full min-h-0">
     <x-slot name="title">Jobs - SO Per Cabang</x-slot>
 
-    <x-ui.tab-menu class="!mx-0 !mt-0 !mb-0 rounded-xl">
-        <a href="{{ route('jobs.zv-summary-team-elite') }}" wire:navigate class="tab {{ request()->routeIs('jobs.zv-summary-team-elite') ? 'tab-active' : '' }}">Analisa Kunjungan</a>
-        <a href="{{ route('jobs.update-sellin-per-cabang') }}" wire:navigate class="tab {{ request()->routeIs('jobs.update-sellin-per-cabang') ? 'tab-active' : '' }}">SI Per Cabang</a>
-        <a href="{{ route('jobs.update-salesmans') }}" wire:navigate class="tab {{ request()->routeIs('jobs.update-salesmans') ? 'tab-active' : '' }}">Salesmans</a>
-        <a href="{{ route('jobs.so-full-join') }}" wire:navigate class="tab {{ request()->routeIs('jobs.so-full-join') ? 'tab-active' : '' }}">SO Full Join</a>
-        <a href="{{ route('jobs.zv-so-per-toko-2026') }}" wire:navigate class="tab {{ request()->routeIs('jobs.zv-so-per-toko-2026') ? 'tab-active' : '' }}">SO Per Toko</a>
-        <a href="{{ route('jobs.sellout-per-cabang-sqlserver') }}" wire:navigate class="tab {{ request()->routeIs('jobs.sellout-per-cabang-sqlserver') ? 'tab-active' : '' }}">SO Per Cabang</a>
-        <a href="{{ route('jobs.update-ao-percabang') }}" wire:navigate class="tab {{ request()->routeIs('jobs.update-ao-percabang') ? 'tab-active' : '' }}">Ao Per Cabang</a>
-        <a href="{{ route('jobs.join-so-eska-non-eksa') }}" wire:navigate class="tab {{ request()->routeIs('jobs.join-so-eska-non-eksa') ? 'tab-active' : '' }}">Join SO Eska</a>
-    </x-ui.tab-menu>
-
     <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
         <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
             <!-- Header & Actions -->
@@ -22,8 +11,11 @@
                 </div>
 
                 <div class="flex flex-wrap items-center justify-start lg:justify-end gap-2 md:gap-3 w-full lg:w-auto">
-                    <button wire:click="startProcess" wire:loading.attr="disabled" wire:target="startProcess"
-                        class="btn btn-sm btn-primary rounded-xl normalcase shadow-sm shadow-primary/20">
+                    <button wire:click="startProcess" 
+                        wire:loading.attr="disabled" 
+                        wire:target="startProcess"
+                        {{ in_array($batchStatus, ['pending', 'processing']) ? 'disabled' : '' }}
+                        class="btn btn-sm btn-primary rounded-xl normal-case shadow-sm shadow-primary/20 {{ in_array($batchStatus, ['pending', 'processing']) ? 'opacity-50 cursor-not-allowed' : '' }}">
                         <span wire:loading.remove wire:target="startProcess" class="flex items-center gap-2">
                             <x-heroicon-o-play class="w-4 h-4" />
                             Mulai Proses
@@ -113,6 +105,6 @@
                     </div>
                 </div>
             </div>
+        </div>
     </div>
 </div>
-

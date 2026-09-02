@@ -25,8 +25,8 @@ class ZvSoPerToko2026 extends Component
         // Membuat log batch baru
         $batch = ImportBatch::create([
             'file_name' => 'Proses ETL ZV SO Per Toko 2026',
-            'status' => 'pending',
-            'log_lines' => [['type' => 'info', 'message' => 'Proses ekstraksi ditambahkan ke antrian...']]
+            'status' => 'processing',
+            'log_lines' => [['type' => 'info', 'message' => 'Proses ditambahkan ke antrian...']]
         ]);
 
         $this->batchId = $batch->id;
@@ -34,10 +34,6 @@ class ZvSoPerToko2026 extends Component
 
         // Dispatch Job
         ZvSoPerToko2026Job::dispatch($batch->id);
-        
-        $batch->refresh();
-        $batch->addLog('success', 'Job telah berhasil dikirim ke background!');
-        $batch->update(['status' => 'processing']);
     }
 
     public function syncLog()

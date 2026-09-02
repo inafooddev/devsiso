@@ -40,7 +40,7 @@ class SoFullJoin extends Component
         $batch = ImportBatch::create([
             'file_name' => 'Proses ETL SO Full Join (PostgreSQL Native)',
             'status' => 'processing',
-            'log_lines' => [['type' => 'info', 'message' => 'Proses ekstraksi ditambahkan ke antrian...']]
+            'log_lines' => [['type' => 'info', 'message' => 'Proses ditambahkan ke antrian...']]
         ]);
 
         $this->batchId = $batch->id;

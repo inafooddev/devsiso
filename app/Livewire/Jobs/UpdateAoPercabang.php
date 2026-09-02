@@ -24,18 +24,14 @@ class UpdateAoPercabang extends Component
 
         $batch = ImportBatch::create([
             'file_name' => 'Proses ETL Update AO Per Cabang (SQL Server to PostgreSQL)',
-            'status' => 'pending',
-            'log_lines' => [['type' => 'info', 'message' => 'Proses ekstraksi ditambahkan ke antrian...']]
+            'status' => 'processing',
+            'log_lines' => [['type' => 'info', 'message' => 'Proses ditambahkan ke antrian...']]
         ]);
 
         $this->batchId = $batch->id;
         $this->syncLog();
 
         UpdateAoPercabangJob::dispatch($batch->id);
-        
-        $batch->refresh();
-        $batch->addLog('success', 'Job telah berhasil dikirim ke background!');
-        $batch->update(['status' => 'processing']);
     }
 
     public function syncLog()

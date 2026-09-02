@@ -24,6 +24,7 @@ class UpdateSalesmansJob implements ShouldQueue
 
     public function handle(): void
     {
+        $batch = null;
         if ($this->batchId) {
             $batch = ImportBatch::find($this->batchId);
             if ($batch) {
@@ -31,6 +32,8 @@ class UpdateSalesmansJob implements ShouldQueue
                 $batch->addLog('warning', 'Membersihkan data lama dari tabel salesmans (SQL Server)');
             }
         }
+
+        try {
 
         // Truncate SQL Server table
         DB::connection('sqlsrv')->table('salesmans')->truncate();
@@ -83,8 +86,17 @@ SQL;
             }
         }
 
-        if (isset($batch)) {
+        if ($batch) {
             $batch->addLog('success', 'Sukses memigrasi data Salesmans dari PostgreSQL ke SQL Server!');
+            $batch->update(['status' => 'completed']);
+        }
+        
+        } catch (\Throwable $e) {
+            if (isset($batch)) {
+                $batch->addLog('error', 'Terjadi kesalahan: ' . $e->getMessage());
+                $batch->update(['status' => 'failed']);
+            }
+            throw $e;
         }
     }
 }
