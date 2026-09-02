@@ -26,30 +26,31 @@ class SyncCustomerEskaCommand extends Command
      */
     public function handle()
     {
-        $regions = [
+        $validRegions = [
+            'all',
             'CSTINAJWA1',
             'CSTINAJWA2',
             'CSTINAPUL1',
             'CSTINASUM1',
             'CSTINASUM2',
+            'CSTHOINA', // Khusus pilih
         ];
 
-        $regionOpt = $this->option('region');
+        $regionOpt = $this->option('region') ?: 'all';
 
-        if ($regionOpt) {
-            if (!in_array($regionOpt, $regions)) {
-                $this->error("Region {$regionOpt} tidak valid!");
-                return;
-            }
-            $this->info("Dispatching job untuk region: {$regionOpt}");
-            SyncCustomerEskaJob::dispatch($regionOpt);
-        } else {
-            $this->info("Dispatching job untuk semua region...");
-            foreach ($regions as $region) {
-                SyncCustomerEskaJob::dispatch($region);
-            }
+        if (!in_array($regionOpt, $validRegions)) {
+            $this->error("Region {$regionOpt} tidak valid!");
+            return;
         }
 
-        $this->info("Semua job telah didispatch ke queue!");
+        if ($regionOpt === 'all') {
+            $this->info("Dispatching job untuk semua region (kecuali CSTHOINA)...");
+        } else {
+            $this->info("Dispatching job untuk region: {$regionOpt}");
+        }
+
+        SyncCustomerEskaJob::dispatch($regionOpt);
+
+        $this->info("Job telah didispatch ke queue!");
     }
 }

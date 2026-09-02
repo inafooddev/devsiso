@@ -19,6 +19,7 @@
                         <option value="CSTINAPUL1">CSTINAPUL1</option>
                         <option value="CSTINASUM1">CSTINASUM1</option>
                         <option value="CSTINASUM2">CSTINASUM2</option>
+                        <option value="CSTHOINA">CSTHOINA (Khusus Pilih)</option>
                     </select>
 
                     <button wire:click="startProcess" 
