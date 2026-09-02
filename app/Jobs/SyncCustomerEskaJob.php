@@ -46,6 +46,11 @@ class SyncCustomerEskaJob implements ShouldQueue
         try {
             $regionsToProcess = [];
             if ($this->region === 'all') {
+                if ($batch) {
+                    $batch->addLog('warning', "Melakukan TRUNCATE (kosongkan) tabel customer_prc_eska...");
+                }
+                DB::table('customer_prc_eska')->truncate();
+
                 $regionsToProcess = [
                     'CSTINAJWA1',
                     'CSTINAJWA2',
@@ -70,9 +75,21 @@ class SyncCustomerEskaJob implements ShouldQueue
                 $response = Http::withToken($token)->timeout(300)->get("https://jobs.asiatop.co.id:9080/trx/export?block={$r}");
 
                 if ($response->successful()) {
-                    $data = $response->json();
+                    $responseData = $response->json();
+                    $data = $responseData['data'] ?? [];
                     
                     if (is_array($data) && count($data) > 0) {
+                        // Jika bukan 'all', lakukan delete per region sebelum insert
+                        if ($this->region !== 'all') {
+                            $regionCodeFromApi = $data[0]['REGION_CODE'] ?? null;
+                            if ($regionCodeFromApi) {
+                                if ($batch) {
+                                    $batch->addLog('warning', "Menghapus data lama untuk region: {$regionCodeFromApi}");
+                                }
+                                DB::table('customer_prc_eska')->where('region_code', $regionCodeFromApi)->delete();
+                            }
+                        }
+
                         $insertData = [];
                         $now = Carbon::now();
 
