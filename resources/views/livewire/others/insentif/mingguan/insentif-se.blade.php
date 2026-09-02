@@ -277,11 +277,11 @@
 
                             <!-- Data INSENTIF EC -->
                             <td class="border border-base-300 text-center">{{ $row['frekuensi'] }}</td>
-                            <td class="border border-base-300 text-right">{{ number_format($row['ro'], 0, ',', '.') }}</td>
+                            <td class="border border-base-300 text-right {{ $row['ro'] < 250 ? 'bg-red-100 text-error font-bold' : 'bg-yellow-50 font-semibold' }}">{{ number_format($row['ro'], 0, ',', '.') }}</td>
                             <td class="border border-base-300 text-right">{{ number_format($row['ac'], 0, ',', '.') }}</td>
                             <td class="border border-base-300 text-right">{{ number_format($row['ec'], 0, ',', '.') }}</td>
-                            <td class="border border-base-300 text-right">{{ $row['persen_ec'] }}%</td>
-                            <td class="border border-base-300 text-right">{{ number_format($row['ec_harian'], 0, ',', '.') }}</td>
+                            <td class="border border-base-300 text-right {{ $row['persen_ec'] < 50 ? 'bg-red-100 text-error font-bold' : 'bg-yellow-50 font-semibold' }}">{{ $row['persen_ec'] }}%</td>
+                            <td class="border border-base-300 text-right {{ $row['ec_harian'] < 10 ? 'bg-red-100 text-error font-bold' : 'bg-yellow-50 font-semibold' }}">{{ number_format($row['ec_harian'], 0, ',', '.') }}</td>
                             <td class="border border-base-300 text-right font-bold {{ $row['insentif_ec'] > 0 ? 'text-yellow-600' : 'text-base-content/40' }}">
                                 {{ $row['insentif_ec'] > 0 ? number_format($row['insentif_ec'], 0, ',', '.') : '-' }}
                             </td>
@@ -527,7 +527,7 @@
                             <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-xs">3</span>
                             Insentif Kunjungan Efektif (EC)
                         </h4>
-                        <p class="text-sm mb-3">Dihitung dari Persentase Kunjungan (% EC = EC / AC) dan Rata-rata EC Harian (EC / 25 hari kerja). <br/><span class="badge badge-error badge-sm">Syarat Mutlak</span> Pencapaian Insentif Value (Target Reguler) harus <span class="font-bold">&ge; 60%</span>.</p>
+                        <p class="text-sm mb-3">Dihitung dari Persentase Kunjungan (% EC = EC / AC) dan Rata-rata EC Harian (EC / 25 hari kerja). <br/><span class="badge badge-error badge-sm">Syarat Mutlak</span> Pencapaian Insentif Value (Target Reguler) harus <span class="font-bold">&ge; 60%</span> dan Total Customer/Toko (RO) harus <span class="font-bold">&ge; 250 Toko</span>.</p>
                         <div class="overflow-x-auto">
                             <table class="table table-sm table-zebra w-full text-xs">
                                 <thead>

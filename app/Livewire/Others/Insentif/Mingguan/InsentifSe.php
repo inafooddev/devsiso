@@ -335,8 +335,8 @@ class InsentifSe extends Component
                 
                 // Hitung Insentif EC
                 $insentif_ec = 0;
-                // Syarat: Value (Persen Ach) >= 60%
-                if ($row['value_ach'] >= 60) {
+                // Syarat: Value (Persen Ach) >= 60% dan RO >= 250
+                if ($row['value_ach'] >= 60 && $row['ro'] >= 250) {
                     if ($persen_ec >= 80 && $ec_harian >= 16) {
                         $insentif_ec = 800000;
                     } elseif ($persen_ec >= 70 && $ec_harian >= 14) {

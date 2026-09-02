@@ -775,7 +775,7 @@ class MingguanInsentifCalculatorService
             $ec_harian  = ($ec > 0) ? round($ec / 25) : 0;
 
             $insentif_ec = 0;
-            if ($valAch >= 60) {
+            if ($valAch >= 60 && $ro >= 250) {
                 if ($persen_ec >= 80 && $ec_harian >= 16)      $insentif_ec = 800000;
                 elseif ($persen_ec >= 70 && $ec_harian >= 14)  $insentif_ec = 500000;
                 elseif ($persen_ec >= 60 && $ec_harian >= 12)  $insentif_ec = 300000;
