@@ -27,8 +27,8 @@
                     <button wire:click="startProcess" 
                         wire:loading.attr="disabled" 
                         wire:target="startProcess"
-                        {{ in_array($batchStatus, ['pending', 'processing']) ? 'disabled' : '' }}
-                        class="btn btn-sm btn-primary rounded-xl normalcase shadow-sm shadow-primary/20 {{ in_array($batchStatus, ['pending', 'processing']) ? 'opacity-50 cursor-not-allowed' : '' }}">
+                        {{ in_array($this->batchStatus, ['pending', 'processing']) ? 'disabled' : '' }}
+                        class="btn btn-sm btn-primary rounded-xl normalcase shadow-sm shadow-primary/20 {{ in_array($this->batchStatus, ['pending', 'processing']) ? 'opacity-50 cursor-not-allowed' : '' }}">
                         <span wire:loading.remove wire:target="startProcess" class="flex items-center gap-2">
                             <x-heroicon-o-play class="w-4 h-4" />
                             Mulai Proses
@@ -49,7 +49,7 @@
             </div>
 
             <!-- Log Proses Console -->
-            <div class="p-4 md:p-5 bg-base-100 flex-1 flex flex-col overflow-hidden" wire:poll.keep-alive.1500ms="syncLog">
+            <div class="p-4 md:p-5 bg-base-100 flex-1 flex flex-col overflow-hidden" wire:poll.keep-alive.1500ms>
                 <div class="flex items-center justify-between mb-4 shrink-0">
                     <h4 class="text-sm font-bold text-base-content/70 flex items-center gap-2">
                         <x-heroicon-o-command-line class="w-4 h-4 text-primary" />
@@ -62,7 +62,7 @@
                     </div>
                 </div>
 
-                @if(!empty($logLines))
+                @if(!empty($this->logLines))
                 <div class="mb-4 shrink-0 p-4 bg-base-200/50 rounded-2xl border border-base-300">
                     <div class="flex justify-between items-end mb-2">
                         <div>
@@ -70,11 +70,11 @@
                             <span class="text-sm font-semibold text-base-content line-clamp-1 truncate max-w-md" title="{{ $this->currentTask }}">{{ $this->currentTask }}</span>
                         </div>
                         <div class="text-right shrink-0 ml-4">
-                            <span class="text-lg font-black {{ $batchStatus === 'failed' ? 'text-error' : ($this->progress == 100 ? 'text-success' : 'text-primary') }}">{{ $this->progress }}%</span>
+                            <span class="text-lg font-black {{ $this->batchStatus === 'failed' ? 'text-error' : ($this->progress == 100 ? 'text-success' : 'text-primary') }}">{{ $this->progress }}%</span>
                         </div>
                     </div>
                     <div class="w-full bg-base-300 rounded-full h-2.5 overflow-hidden">
-                        <div class="h-full transition-all duration-500 {{ $batchStatus === 'failed' ? 'bg-error' : ($this->progress == 100 ? 'bg-success' : 'bg-primary') }}" style="width: {{ $this->progress }}%"></div>
+                        <div class="h-full transition-all duration-500 {{ $this->batchStatus === 'failed' ? 'bg-error' : ($this->progress == 100 ? 'bg-success' : 'bg-primary') }}" style="width: {{ $this->progress }}%"></div>
                     </div>
                 </div>
                 @endif
@@ -84,7 +84,7 @@
                     <div class="absolute -inset-0.5 bg-gradient-to-b from-primary/10 to-transparent rounded-2xl blur opacity-20 transition duration-1000 group-hover:opacity-30"></div>
                     
                     <div class="relative flex-1 w-full bg-slate-950 text-slate-300 rounded-2xl shadow-2xl p-6 font-mono text-[13px] leading-relaxed overflow-y-auto custom-scrollbar border border-white/5" id="terminal-console">
-                        @if(empty($logLines))
+                        @if(empty($this->logLines))
                             <div class="flex flex-col items-center justify-center h-full text-slate-500 space-y-3">
                                 <x-heroicon-o-cpu-chip class="w-12 h-12 opacity-20" />
                                 <div class="text-center">
@@ -94,7 +94,7 @@
                             </div>
                         @else
                             <div class="space-y-1.5">
-                                @foreach($logLines as $index => $log)
+                                @foreach($this->logLines as $index => $log)
                                     <div wire:key="log-{{ $this->batchId }}-{{ $index }}" class="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-300">
                                         <span class="text-slate-600 shrink-0 select-none">[{{ now()->format('H:i:s') }}]</span>
                                         <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0 mt-0.5

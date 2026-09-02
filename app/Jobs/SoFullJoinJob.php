@@ -389,6 +389,38 @@ SQL;
             if ($batch) {
                 $batch->addLog('success', "Tahap 12 Selesai! Sebanyak {$updatedMappingSe} baris mapping_se berhasil di-update.");
                 
+                // 13. Tahap Validasi Data
+                $batch->addLog('info', "Memulai Tahap 13 (Validasi): Membandingkan total baris dan nilai (VALUE_NETTO) di ketiga tabel...");
+                
+                // PostgreSQL: t_tempsell
+                $pgValidation = DB::connection('pgsql')->selectOne('SELECT COUNT(*) as total_row, SUM("VALUE_(NETTO)") as total_value FROM t_tempsell');
+                
+                // SQL Server: temp_selling_out
+                $sqlTempValidation = DB::connection('sqlsrv')->selectOne('SELECT COUNT(*) as total_row, SUM([VALUE_(NETTO)]) as total_value FROM temp_selling_out');
+                
+                // SQL Server: selling_out (filtered by BLN)
+                $sqlMainValidation = DB::connection('sqlsrv')->selectOne('SELECT COUNT(*) as total_row, SUM([VALUE_(NETTO)]) as total_value FROM selling_out WHERE BLN = ?', [$tglMulai]);
+                
+                // Format numbers
+                $pgRow = number_format($pgValidation->total_row ?? 0, 0, ',', '.');
+                $pgVal = number_format((float)($pgValidation->total_value ?? 0), 2, ',', '.');
+                
+                $sqlTempRow = number_format($sqlTempValidation->total_row ?? 0, 0, ',', '.');
+                $sqlTempVal = number_format((float)($sqlTempValidation->total_value ?? 0), 2, ',', '.');
+                
+                $sqlMainRow = number_format($sqlMainValidation->total_row ?? 0, 0, ',', '.');
+                $sqlMainVal = number_format((float)($sqlMainValidation->total_value ?? 0), 2, ',', '.');
+                
+                $batch->addLog('info', "Validasi t_tempsell (PostgreSQL) -> Baris: {$pgRow} | Total Value: {$pgVal}");
+                $batch->addLog('info', "Validasi temp_selling_out (SQL Server) -> Baris: {$sqlTempRow} | Total Value: {$sqlTempVal}");
+                $batch->addLog('info', "Validasi selling_out (SQL Server) -> Baris: {$sqlMainRow} | Total Value: {$sqlMainVal}");
+                
+                if ($pgValidation->total_row == $sqlMainValidation->total_row && round((float)$pgValidation->total_value, 2) == round((float)$sqlMainValidation->total_value, 2)) {
+                    $batch->addLog('success', "Validasi MATCH! Jumlah data dan total value COCOK sempurna di semua tabel.");
+                } else {
+                    $batch->addLog('warning', "Perhatian! Terdapat selisih jumlah data atau total value antara PostgreSQL dan SQL Server.");
+                }
+
                 if (!$this->isChained) {
                     $batch->updateStatus('completed', "SELURUH PROSES SO FULL JOIN TELAH BERHASIL DISELESAIKAN!");
                 } else {

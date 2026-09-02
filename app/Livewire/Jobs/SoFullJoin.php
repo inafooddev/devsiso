@@ -3,6 +3,7 @@
 namespace App\Livewire\Jobs;
 
 use Livewire\Component;
+use Livewire\Attributes\Computed;
 use App\Jobs\SoFullJoinJob;
 use App\Jobs\ZvSoPerToko2026Job;
 use App\Jobs\ExtractSelloutPerCabangSqlServerJob;
@@ -18,8 +19,6 @@ class SoFullJoin extends Component
 
     // Log Process
     public $batchId;
-    public $logLines = [];
-    public $batchStatus;
     
     public function mount()
     {
@@ -44,7 +43,6 @@ class SoFullJoin extends Component
         ]);
 
         $this->batchId = $batch->id;
-        $this->syncLog();
 
         SoFullJoinJob::withChain([
             new ZvSoPerToko2026Job($batch->id),
@@ -54,15 +52,24 @@ class SoFullJoin extends Component
         ])->dispatch($batch->id, $this->monthFilter, $this->yearFilter, true);
     }
 
-    public function syncLog()
+    #[Computed]
+    public function logLines()
     {
         if ($this->batchId) {
             $batch = ImportBatch::find($this->batchId);
-            if ($batch) {
-                $this->logLines = $batch->log_lines ?? [];
-                $this->batchStatus = $batch->status;
-            }
+            return $batch ? ($batch->log_lines ?? []) : [];
         }
+        return [];
+    }
+
+    #[Computed]
+    public function batchStatus()
+    {
+        if ($this->batchId) {
+            $batch = ImportBatch::find($this->batchId);
+            return $batch ? $batch->status : null;
+        }
+        return null;
     }
 
     public function getProgressProperty()
