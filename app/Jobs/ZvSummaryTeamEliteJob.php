@@ -30,6 +30,7 @@ class ZvSummaryTeamEliteJob implements ShouldQueue
      */
     public function handle(): void
     {
+        $batch = null;
         if ($this->batchId) {
             $batch = ImportBatch::find($this->batchId);
             if ($batch) {
@@ -37,6 +38,8 @@ class ZvSummaryTeamEliteJob implements ShouldQueue
                 $batch->addLog('warning', 'Membersihkan data lama ZV Summary Team Elite');
             }
         }
+
+        try {
 
         if (isset($batch)) {
             $batch->addLog('info', 'Mengeksekusi kueri ZV Summary Team Elite...');
@@ -262,8 +265,17 @@ SQL;
 
         DB::unprepared($query);
 
-        if (isset($batch)) {
+        if ($batch) {
             $batch->addLog('success', 'Sukses menarik data ZV Summary Team Elite!');
+            $batch->update(['status' => 'completed']);
+        }
+
+        } catch (\Throwable $e) {
+            if (isset($batch)) {
+                $batch->addLog('error', 'Terjadi kesalahan: ' . $e->getMessage());
+                $batch->update(['status' => 'failed']);
+            }
+            throw $e;
         }
     }
 }

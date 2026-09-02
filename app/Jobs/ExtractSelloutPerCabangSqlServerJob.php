@@ -24,6 +24,7 @@ class ExtractSelloutPerCabangSqlServerJob implements ShouldQueue
 
     public function handle(): void
     {
+        $batch = null;
         if ($this->batchId) {
             $batch = ImportBatch::find($this->batchId);
             if ($batch) {
@@ -31,6 +32,8 @@ class ExtractSelloutPerCabangSqlServerJob implements ShouldQueue
                 $batch->addLog('warning', 'Membersihkan data lama dari tabel sellout_per_cabang (PostgreSQL)');
             }
         }
+
+        try {
 
         // Truncate PostgreSQL table
         DB::connection('pgsql')->table('sellout_per_cabang')->truncate();
@@ -82,8 +85,17 @@ SQL;
         DB::connection('pgsql')->statement("UPDATE sellout_per_cabang SET cabang = 'KOTA METRO' WHERE cabang = 'METRO'");
         DB::connection('pgsql')->statement("UPDATE sellout_per_cabang SET reg_fest = 'FEST' WHERE reg_fest = 'fest'");
 
-        if (isset($batch)) {
+        if ($batch) {
             $batch->addLog('success', 'Sukses memigrasi data Sellout Per Cabang dari SQL Server ke PostgreSQL!');
+            $batch->update(['status' => 'completed']);
+        }
+
+        } catch (\Throwable $e) {
+            if (isset($batch)) {
+                $batch->addLog('error', 'Terjadi kesalahan: ' . $e->getMessage());
+                $batch->update(['status' => 'failed']);
+            }
+            throw $e;
         }
     }
 }

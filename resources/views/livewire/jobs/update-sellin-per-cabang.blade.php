@@ -1,4 +1,4 @@
-﻿<div class="flex-1 flex flex-col w-full h-full min-h-0">
+<div class="flex-1 flex flex-col w-full h-full min-h-0">
     <x-slot name="title">Jobs - Update Sell-In Per Cabang</x-slot>
 
     <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
@@ -36,7 +36,7 @@
             </div>
 
             <!-- Log Proses Console -->
-            <div class="p-4 md:p-5 bg-base-100 flex-1 flex flex-col overflow-hidden" wire:poll.1500ms="syncLog">
+            <div class="p-4 md:p-5 bg-base-100 flex-1 flex flex-col overflow-hidden" wire:poll.keep-alive.1500ms="syncLog">
                 <div class="flex items-center justify-between mb-4 shrink-0">
                     <h4 class="text-sm font-bold text-base-content/70 flex items-center gap-2">
                         <x-heroicon-o-command-line class="w-4 h-4 text-primary" />
@@ -81,8 +81,8 @@
                             </div>
                         @else
                             <div class="space-y-1.5">
-                                @foreach($logLines as $log)
-                                    <div class="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-300">
+                                @foreach($logLines as $index => $log)
+                                    <div wire:key="log-{{ $this->batchId }}-{{ $index }}" class="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-300">
                                         <span class="text-slate-600 shrink-0 select-none">[{{ now()->format('H:i:s') }}]</span>
                                         <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0 mt-0.5
                                             {{ ($log['type'] ?? 'info') == 'error' ? 'bg-error/20 text-error border border-error/20' : 

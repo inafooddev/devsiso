@@ -49,7 +49,7 @@
             </div>
 
             <!-- Log Proses Console -->
-            <div class="p-4 md:p-5 bg-base-100 flex-1 flex flex-col overflow-hidden" wire:poll.1500ms="syncLog">
+            <div class="p-4 md:p-5 bg-base-100 flex-1 flex flex-col overflow-hidden" wire:poll.keep-alive.1500ms="syncLog">
                 <div class="flex items-center justify-between mb-4 shrink-0">
                     <h4 class="text-sm font-bold text-base-content/70 flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M4 17a2 2 0 100 4 2 2 0 000-4zm16 0a2 2 0 100 4 2 2 0 000-4z"/></svg>
@@ -93,8 +93,8 @@
                             </div>
                         @else
                             <div class="space-y-1.5">
-                                @foreach($logLines as $log)
-                                    <div class="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-300">
+                                @foreach($logLines as $index => $log)
+                                    <div wire:key="log-{{ $this->batchId }}-{{ $index }}" class="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-300">
                                         <span class="text-slate-600 shrink-0 select-none">[{{ now()->format('H:i:s') }}]</span>
                                         <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0 mt-0.5
                                             {{ ($log['type'] ?? 'info') == 'error' ? 'bg-error/20 text-error border border-error/20' : 

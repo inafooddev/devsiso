@@ -24,6 +24,7 @@ class UpdateSellinPerCabangJob implements ShouldQueue
 
     public function handle(): void
     {
+        $batch = null;
         if ($this->batchId) {
             $batch = ImportBatch::find($this->batchId);
             if ($batch) {
@@ -31,6 +32,8 @@ class UpdateSellinPerCabangJob implements ShouldQueue
                 $batch->addLog('warning', 'Membersihkan data lama dari tabel v_sellinvstarget');
             }
         }
+
+        try {
 
         if (isset($batch)) {
             $batch->addLog('info', 'Menarik data dari vw_sellinvstarget...');
@@ -43,8 +46,17 @@ SQL;
 
         DB::unprepared($query);
 
-        if (isset($batch)) {
+        if ($batch) {
             $batch->addLog('success', 'Sukses update data Sell-In Per Cabang!');
+            $batch->update(['status' => 'completed']);
+        }
+
+        } catch (\Throwable $e) {
+            if (isset($batch)) {
+                $batch->addLog('error', 'Terjadi kesalahan: ' . $e->getMessage());
+                $batch->update(['status' => 'failed']);
+            }
+            throw $e;
         }
     }
 }

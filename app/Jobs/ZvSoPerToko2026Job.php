@@ -24,6 +24,7 @@ class ZvSoPerToko2026Job implements ShouldQueue
 
     public function handle(): void
     {
+        $batch = null;
         if ($this->batchId) {
             $batch = ImportBatch::find($this->batchId);
             if ($batch) {
@@ -31,6 +32,8 @@ class ZvSoPerToko2026Job implements ShouldQueue
                 $batch->addLog('warning', 'Membersihkan data lama ZV SO Per Toko 2026');
             }
         }
+
+        try {
 
         if (isset($batch)) {
             $batch->addLog('info', 'Mengeksekusi kueri ZV SO Per Toko 2026...');
@@ -80,8 +83,17 @@ SQL;
 
         DB::unprepared($query);
 
-        if (isset($batch)) {
+        if ($batch) {
             $batch->addLog('success', 'Sukses menarik data ZV SO Per Toko 2026!');
+            $batch->update(['status' => 'completed']);
+        }
+
+        } catch (\Throwable $e) {
+            if (isset($batch)) {
+                $batch->addLog('error', 'Terjadi kesalahan: ' . $e->getMessage());
+                $batch->update(['status' => 'failed']);
+            }
+            throw $e;
         }
     }
 }

@@ -24,6 +24,7 @@ class UpdateAoPercabangJob implements ShouldQueue
 
     public function handle(): void
     {
+        $batch = null;
         if ($this->batchId) {
             $batch = ImportBatch::find($this->batchId);
             if ($batch) {
@@ -31,6 +32,8 @@ class UpdateAoPercabangJob implements ShouldQueue
                 $batch->addLog('warning', 'Membersihkan data lama dari tabel ao_percabang_perbulan (PostgreSQL)');
             }
         }
+
+        try {
 
         // Truncate PostgreSQL table
         DB::connection('pgsql')->table('ao_percabang_perbulan')->truncate();
@@ -73,8 +76,17 @@ SQL;
             DB::connection('pgsql')->table('ao_percabang_perbulan')->insert($chunk);
         }
 
-        if (isset($batch)) {
+        if ($batch) {
             $batch->addLog('success', 'Sukses memigrasi data AO Per Cabang dari SQL Server ke PostgreSQL!');
+            $batch->update(['status' => 'completed']);
+        }
+
+        } catch (\Throwable $e) {
+            if (isset($batch)) {
+                $batch->addLog('error', 'Terjadi kesalahan: ' . $e->getMessage());
+                $batch->update(['status' => 'failed']);
+            }
+            throw $e;
         }
     }
 }
