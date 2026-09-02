@@ -128,9 +128,67 @@ class JoinSoEskaNonEksaJob implements ShouldQueue
                   AND prd_code = '1-FS-005'
             ";
             DB::connection('pgsql')->statement($updateProduct1);
-            DB::connection('pgsql')->statement($updateProduct2);
-            $batch->addLog('success', "Tahap 5 Selesai: Update Produk berhasil.");
+            // Tahap 6: UPDATE PRODUCT GROUP 3 & VTKP
+            $batch->addLog('warning', "Tahap 6: Menjalankan Update Product Group 3 & VTKP...");
+            
+            $queries = [
+                // GOODBIS 36
+                "UPDATE so_eska_n_noneska SET product_group_3 = 'GOODBIS CREAM 36' WHERE invoice_date BETWEEN ? AND ? AND prd_code IN ('36-BC-033','36-BC-035','36-BC-032','36-BC-021','36-BC-020','36-BC-023','36-BC-034','36-BC-036','36-BC-024','36-BC-022','36-BC-010','36-BC-008','36-BC-012')",
+                // HM 36
+                "UPDATE so_eska_n_noneska SET product_group_3 = 'HITAM MANIS CREAM 36' WHERE invoice_date BETWEEN ? AND ? AND prd_code IN ('36-BC-031','36-BC-027','36-BC-030','36-BC-028','36-BC-017','36-BC-026','36-BC-025','36-BC-015','36-BC-016','36-BC-029','36-BC-018','36-BC-002','36-BC-006','36-BC-014','36-BC-013','36-BC-019','36-BC-001','36-BC-007','36-BC-004')",
+                // OKB KLP & COK 28
+                "UPDATE so_eska_n_noneska SET product_group_3 = 'OKEBIS BISKUIT 28' WHERE invoice_date BETWEEN ? AND ? AND prd_code IN ('28-BC-001','28-BC-004','28-BC-002','28-BC-014','28-BC-015')",
+                // OKB JAHE 28
+                "UPDATE so_eska_n_noneska SET product_group_3 = 'OKEBIS JAHE 28' WHERE invoice_date BETWEEN ? AND ? AND prd_code = '28-BC-003'",
+                // OKB CREAM 28
+                "UPDATE so_eska_n_noneska SET product_group_3 = 'OKEBIS CREAM 28' WHERE invoice_date BETWEEN ? AND ? AND prd_code IN ('28-BC-009','28-BC-010')",
+                // FORTIUS WAFER 10
+                "UPDATE so_eska_n_noneska SET product_group_3 = 'FORTIUS WAFER 10' WHERE invoice_date BETWEEN ? AND ? AND prd_code IN ('10-WB-004','10-WB-005','10-WB-006','10-WB-003','10-WB-001','10-WB-002')",
+                // FORTIUS WAFER 30
+                "UPDATE so_eska_n_noneska SET product_group_3 = 'FORTIUS WAFER 30' WHERE invoice_date BETWEEN ? AND ? AND prd_code IN ('30-WB-016','30-WB-019','30-WB-015','30-WB-017','30-WB-018','30-WB-010','30-WB-011','30-WB-014','30-WB-012','30-WB-013','30-WB-001','30-WB-002','30-WB-005','30-WB-004')",
+                // OCC 20
+                "UPDATE so_eska_n_noneska SET product_group_3 = 'OKEBIS COOKIES 20' WHERE invoice_date BETWEEN ? AND ? AND prd_code IN ('20-BC-011','20-BC-013','20-BC-009','20-BC-008','20-BC-010','20-BC-004','20-BC-007','20-BC-003','20-BC-002')",
+                // OKEBIS CREAM 72
+                "UPDATE so_eska_n_noneska SET product_group_3 = 'OKEBIS CREAM 72' WHERE invoice_date BETWEEN ? AND ? AND prd_code IN ('72-BC-002','72-BC-001')",
+                // OKEBIS COOKIES 72
+                "UPDATE so_eska_n_noneska SET product_group_3 = 'OKEBIS COOKIES 72' WHERE invoice_date BETWEEN ? AND ? AND prd_code = '72-BC-003'",
+                // VTKP FLAG
+                "UPDATE so_eska_n_noneska SET vtkp = 'VTKP' WHERE invoice_date BETWEEN ? AND ? AND product_group_3 IN ('OKEBIS COOKIES 20', 'OKEBIS CREAM 72', 'OKEBIS CREAM 28', 'OKEBIS BISKUIT 28', 'FORTIUS WAFER 30', 'HITAM MANIS CREAM 36', 'FORTIUS WAFER 10', 'GOODBIS CREAM 36')"
+            ];
+            
+            foreach ($queries as $q) {
+                DB::connection('pgsql')->statement($q, [$startDate, $endDate]);
+            }
+            $batch->addLog('success', "Tahap 6 Selesai: Update Product Group 3 & VTKP berhasil.");
 
+            // Tahap 7: UPDATE BASE QTY & KALKULASI QTY1_CAR
+            $batch->addLog('warning', "Tahap 7: Menjalankan Update base_qty & Kalkulasi Ulang qty1_car...");
+            $tahap7Queries = [
+                // Update base_qty = 20
+                "UPDATE so_eska_n_noneska SET base_qty = 20 WHERE prd_code = '20-BC-024'",
+                // Update base_qty = 28
+                "UPDATE so_eska_n_noneska SET base_qty = 28 WHERE prd_code = '28-KK-CHO'",
+                // Update base_qty = 1
+                "UPDATE so_eska_n_noneska SET base_qty = 1 WHERE prd_code IN ('3-TL-CCN','3-TL-DRN','3-TL-DRS')",
+                // Update base_qty = 6
+                "UPDATE so_eska_n_noneska SET base_qty = 6 WHERE prd_code = '6-FS-028'",
+                // Kalkulasi ulang qty1_car
+                "UPDATE so_eska_n_noneska SET qty1_car = qty3_pcs / base_qty WHERE prd_code IN ('20-BC-024','28-KK-CHO','3-TL-CCN','3-TL-DRN','3-TL-DRS','6-FS-028') AND base_qty > 0"
+            ];
+
+            foreach ($tahap7Queries as $t7q) {
+                DB::connection('pgsql')->statement($t7q);
+            }
+            $batch->addLog('success', "Tahap 7 Selesai: Update base_qty dan Kalkulasi berhasil.");
+
+            // CALCULATE TOTAL NETTO
+            $totalNetto = DB::connection('pgsql')->selectOne("
+                SELECT SUM(nett_amount) as total 
+                FROM so_eska_n_noneska 
+                WHERE invoice_date BETWEEN ? AND ?
+            ", [$startDate, $endDate])->total ?? 0;
+
+            $batch->addLog('info', "TOTAL NETTO Hasil Join: Rp " . number_format((float)$totalNetto, 0, ',', '.'));
             $batch->addLog('success', "SELURUH PROSES BERHASIL DISELESAIKAN!");
             $batch->update(['status' => 'completed']);
         } catch (Throwable $e) {

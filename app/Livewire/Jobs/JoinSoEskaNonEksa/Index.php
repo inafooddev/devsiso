@@ -78,6 +78,12 @@ class Index extends Component
             $progress = 85;
         }
         if ($logs->contains(fn($l) => str_contains($l['message'] ?? '', 'Tahap 5 Selesai'))) {
+            $progress = 89;
+        }
+        if ($logs->contains(fn($l) => str_contains($l['message'] ?? '', 'Tahap 6 Selesai'))) {
+            $progress = 95;
+        }
+        if ($logs->contains(fn($l) => str_contains($l['message'] ?? '', 'Tahap 7 Selesai'))) {
             $progress = 98;
         }
         
