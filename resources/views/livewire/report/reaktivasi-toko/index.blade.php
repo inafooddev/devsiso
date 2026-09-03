@@ -84,7 +84,7 @@
                 </button>
                 
                 <div class="flex flex-wrap items-center gap-1 md:gap-2">
-                    <x-ui.action-button type="export" />
+                    <x-ui.action-button type="export" wire:click="export" wire:loading.attr="disabled" />
                 </div>
             </div>
         </div>

@@ -73,6 +73,24 @@ class Index extends Component
         $this->resetPage();
     }
 
+    public function export()
+    {
+        $filters = [
+            'search' => $this->search,
+            'region' => $this->filterRegion,
+            'area' => $this->filterArea,
+            'supervisor' => $this->filterSupervisor,
+            'distributor' => $this->filterDistributor,
+            'status' => $this->filterStatus,
+            'type' => $this->filterType,
+            'bulan' => $this->filterBulan,
+            'tahun' => $this->filterTahun,
+        ];
+
+        $fileName = 'Report_Reaktivasi_Toko_' . date('Ymd_His') . '.xlsx';
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ReportReaktivasiTokoExport($filters, auth()->user()), $fileName);
+    }
+
     public function applyRbac($query)
     {
         $user = auth()->user();
@@ -226,7 +244,7 @@ class Index extends Component
             }
         }
 
-        return $query->paginate(30);
+        return $query->paginate(100);
     }
 
     public function render()
