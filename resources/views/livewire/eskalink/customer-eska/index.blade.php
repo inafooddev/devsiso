@@ -89,6 +89,7 @@
                                 <th class="w-32 text-xs">Cust No</th>
                                 <th class="text-xs">Nama Customer</th>
                                 <th class="text-xs">Alamat</th>
+                                <th class="text-xs">Koordinat (La, Lg)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -120,10 +121,16 @@
                                             {{ $row->custadd1 ?? '-' }}
                                         </div>
                                     </td>
+                                    <td>
+                                        <div class="flex flex-col gap-0.5">
+                                            <span class="text-xs font-mono text-base-content/80" title="Latitude">La: {{ $row->la ?? '-' }}</span>
+                                            <span class="text-xs font-mono text-base-content/80" title="Longitude">Lg: {{ $row->lg ?? '-' }}</span>
+                                        </div>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center py-8 text-base-content/50">
+                                    <td colspan="8" class="text-center py-8 text-base-content/50">
                                         <div class="flex flex-col items-center justify-center gap-2">
                                             <x-heroicon-o-inbox class="w-8 h-8 text-base-content/30" />
                                             <span>Tidak ada data customer yang ditemukan untuk distributor ini.</span>
@@ -183,7 +190,9 @@
                                 class="select select-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
                             <option value="">-- Pilih Region --</option>
                             @foreach($regions as $region)
-                                <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
+                                @if($region->region_code !== 'HOINA')
+                                    <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
+                                @endif
                             @endforeach
                         </select>
                         @error('regionFilter') <span class="text-error text-[10px] font-medium ml-1">{{ $message }}</span> @enderror

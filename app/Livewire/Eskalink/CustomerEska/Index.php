@@ -206,7 +206,9 @@ class Index extends Component
                     'md.distributor_name',
                     'cpe.custno',
                     'cpe.custname',
-                    'cpe.custadd1'
+                    'cpe.custadd1',
+                    'cpe.la',
+                    'cpe.lg'
                 )
                 ->leftJoin('distributor_implementasi_eskalink as die', 'cpe.kodecabang', '=', 'die.eskalink_code')
                 ->leftJoin('master_distributors as md', 'die.distributor_code', '=', 'md.distributor_code')
