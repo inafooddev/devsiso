@@ -15,6 +15,9 @@ return new class extends Migration
         DB::statement("
             CREATE OR REPLACE VIEW v_report_reaktivasi_toko AS
             SELECT 
+                m.region_code,
+                m.area_code,
+                m.supervisor_code,
                 m.region_name AS region,
                 m.area_name AS area,
                 m.supervisor_name AS supervisor,

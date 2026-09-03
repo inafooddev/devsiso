@@ -73,14 +73,33 @@ class Index extends Component
         $this->resetPage();
     }
 
+    public function applyRbac($query)
+    {
+        $user = auth()->user();
+        if (!$user) return $query;
+
+        $accessLevel = $user->getAccessLevel();
+
+        if ($accessLevel === 'supervisor') {
+            $query->where('supervisor_code', $user->supervisor_code);
+        } elseif ($accessLevel === 'area') {
+            $query->whereIn('area_code', (array) $user->area_code);
+        } elseif ($accessLevel === 'region') {
+            $query->whereIn('region_code', (array) $user->region_code);
+        }
+
+        return $query;
+    }
+
     #[Computed]
     public function hierarchy()
     {
-        return \Illuminate\Support\Facades\Cache::remember('reaktivasi_toko_hierarchy', 3600, function () {
-            return ReportReaktivasiToko::select('region', 'area', 'supervisor', 'distributor')
+        $userId = auth()->id();
+        return \Illuminate\Support\Facades\Cache::remember('reaktivasi_toko_hierarchy_' . $userId, 3600, function () {
+            $query = ReportReaktivasiToko::select('region', 'area', 'supervisor', 'distributor')
                 ->whereNotNull('region')
-                ->distinct()
-                ->get();
+                ->distinct();
+            return $this->applyRbac($query)->get();
         });
     }
 
@@ -119,7 +138,7 @@ class Index extends Component
     public function stores()
     {
         $selectedDate = Carbon::createFromDate($this->filterTahun ?: date('Y'), $this->filterBulan ?: date('m'), 1);
-        $monthStart = $selectedDate->format('Y-m-01');
+        $monthStart = $selectedDate->copy()->startOfMonth()->format('Y-m-d');
         $monthEnd = $selectedDate->copy()->endOfMonth()->format('Y-m-d');
         
         // 6 months average (prior to selected month)
@@ -144,6 +163,8 @@ class Index extends Component
                 DB::raw("SUM(CASE WHEN bulan >= '$avgMonthStart' AND bulan <= '$avgMonthEnd' THEN neto ELSE 0 END) / 6 as avg_6_months"),
                 DB::raw("SUM(CASE WHEN bulan >= '$monthStart' AND bulan <= '$monthEnd' THEN neto ELSE 0 END) as pencapaian_bulan_ini")
             );
+
+        $query = $this->applyRbac($query);
 
         // Add 12 columns for the selected year
         for ($i = 1; $i <= 12; $i++) {
