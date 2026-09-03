@@ -645,7 +645,7 @@
 
     <!-- Reminder Modal -->
     <div class="modal {{ $showReminderModal ? 'modal-open' : '' }} backdrop-blur-sm bg-base-900/40 transition-all duration-300 z-50">
-        <div class="modal-box rounded-3xl shadow-2xl p-0 overflow-hidden max-w-5xl w-full mx-4">
+        <div class="modal-box rounded-3xl shadow-2xl p-0 overflow-hidden max-w-7xl w-full mx-4">
             <div class="bg-gradient-to-br from-warning to-warning/80 p-6 flex flex-col items-center justify-center relative">
                 <button wire:click="$set('showReminderModal', false)" class="btn btn-circle btn-sm btn-ghost absolute top-3 right-3 text-warning-content/70 hover:bg-black/10">
                     <x-heroicon-s-x-mark class="w-4 h-4" />
@@ -659,7 +659,7 @@
             
             <div class="p-6">
                 <div class="overflow-x-auto overflow-y-auto max-h-[50vh] rounded-xl border border-base-200">
-                    <table class="table table-sm table-pin-rows w-full text-xs">
+                    <table class="table table-sm table-pin-rows w-full text-xs whitespace-nowrap">
                         <thead>
                             <tr class="bg-base-200/50">
                                 <th>Distributor</th>

@@ -51,7 +51,6 @@ class Index extends Component
         // 1. Initial regions with access control
         $query = DB::table('master_distributors')
             ->select('region_code', 'region_name')
-            ->where('region_code', '!=', 'HOINA')
             ->whereNotNull('region_code')
             ->distinct();
 
