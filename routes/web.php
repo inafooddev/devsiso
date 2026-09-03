@@ -116,6 +116,7 @@ use App\Livewire\Jobs\UpdateSalesmans;
 use App\Livewire\Jobs\UpdateAoPercabang;
 use App\Livewire\Jobs\SoFullJoin;
 use App\Livewire\Jobs\JoinSoEskaNonEksa\Index as JoinSoEskaNonEksa;
+use App\Livewire\Report\ReaktivasiToko\Index as ReportReaktivasiTokoIndex;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -369,6 +370,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/report/analisa-kunjungan', AnalisaKunjunganIndex::class)->name('report.analisa-kunjungan.index');
     Route::get('/report/monitoring-top-item', MonitoringTopItemIndex::class)->name('report.monitoring-top-item.index');
     Route::get('/sales-invoice-report', SalesInvoiceReportIndex::class)->name('sales-invoice-report.index');
+    Route::get('/report/reaktivasi-toko', ReportReaktivasiTokoIndex::class)->name('report.reaktivasi-toko.index');
     Route::get('/import-sales-invoices', SalesInvoiceImport::class)->name('sales-invoices.import');
     
     Route::prefix('sales-configs')->name('sales-configs.')->group(function () {
