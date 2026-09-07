@@ -38,8 +38,11 @@ class UpdateApplicationJob implements ShouldQueue
         try {
             $basePath = base_path();
 
+            // STEP 0: Fix dubious ownership (Git Security Update)
+            $this->runCommand("git config --global --add safe.directory {$basePath}", "Tahap 0 (Konfigurasi Git)", $basePath, $batch);
+
             // STEP 1: Git Pull
-            $this->runCommand("git pull", "Tahap 1", $basePath, $batch);
+            $this->runCommand("git pull", "Tahap 1 (Pull Git)", $basePath, $batch);
 
             // STEP 2: NPM Build
             $this->runCommand("npm run build", "Tahap 2", $basePath, $batch);
