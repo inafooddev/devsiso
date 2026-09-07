@@ -504,6 +504,8 @@ class Index extends Component
                 SUM(target) as total_target,
                 SUM(order_val) as total_order,
                 SUM(CASE WHEN COALESCE(order_val, 0) > 0 THEN invoice ELSE 0 END) as total_invoice,
+                SUM(CASE WHEN COALESCE(order_val, 0) > 0 THEN 1 ELSE 0 END) as total_toko_order,
+                SUM(CASE WHEN COALESCE(order_val, 0) > 0 AND COALESCE(invoice, 0) > 0 THEN 1 ELSE 0 END) as total_toko_invoice,
                 SUM(CASE WHEN UPPER(pilar) LIKE '%1. RWO%' THEN 1 ELSE 0 END) as rwo_toko,
                 SUM(CASE WHEN UPPER(pilar) LIKE '%1. RWO%' AND status_visit = 'Y' THEN 1 ELSE 0 END) as rwo_visit,
                 SUM(CASE WHEN UPPER(pilar) LIKE '%2. PNR%' THEN 1 ELSE 0 END) as pnr_toko,
@@ -552,6 +554,7 @@ class Index extends Component
             
             $total_noo = $data->filter(fn($item) => str_contains(strtoupper($item->keterangan ?? ''), 'NOO'))->count();
             $total_toko_order = $data->filter(fn($item) => (float)($item->order_val ?? 0) > 0)->count();
+            $total_toko_invoice = $data->filter(fn($item) => (float)($item->order_val ?? 0) > 0 && (float)($item->invoice ?? 0) > 0)->count();
         } else {
             $total_toko = $data->sum('total_toko');
             $total_visit = $data->sum('total_visit');
@@ -572,7 +575,8 @@ class Index extends Component
             $toko_order_ngvo = $data->sum('ngvo_visit');
             
             $total_noo = $data->sum('noo_toko');
-            $total_toko_order = 0; // maybe proxy to total_visit
+            $total_toko_order = $data->sum('total_toko_order');
+            $total_toko_invoice = $data->sum('total_toko_invoice');
         }
 
         return [
@@ -580,6 +584,7 @@ class Index extends Component
             'total_visit' => $total_visit,
             'total_order' => $total_order,
             'total_toko_order' => $total_toko_order,
+            'total_toko_invoice' => $total_toko_invoice ?? 0,
             'total_target' => $total_target,
             'total_invoice' => $total_invoice,
             'total_rwo' => $total_rwo,

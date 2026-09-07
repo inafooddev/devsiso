@@ -401,7 +401,50 @@
              }"
              wire:key="dashboard-{{ md5(json_encode($dataSummary)) }}">
              
-             <!-- KPI Cards (4 cards) -->
+             <!-- KPI Toko (3 cards) -->
+             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                 <!-- Card 1: Toko Order -->
+                 <div class="bg-base-100 rounded-xl p-4 shadow-sm border border-base-200 flex items-center justify-between">
+                     <div>
+                         <div class="text-xs font-semibold text-base-content/60 uppercase tracking-wider mb-1">Toko Order</div>
+                         <div class="text-2xl font-bold text-info">{{ number_format($kpiData['total_toko_order'] ?? 0, 0, ',', '.') }}</div>
+                         <div class="text-[10px] text-base-content/50 mt-1">Total toko yang memesan</div>
+                     </div>
+                     <div class="rounded-full bg-info/10 text-info p-3">
+                         <x-heroicon-o-shopping-cart class="w-8 h-8" />
+                     </div>
+                 </div>
+
+                 <!-- Card 2: Toko Invoiced -->
+                 <div class="bg-base-100 rounded-xl p-4 shadow-sm border border-base-200 flex items-center justify-between">
+                     <div>
+                         <div class="text-xs font-semibold text-base-content/60 uppercase tracking-wider mb-1">Toko Invoiced</div>
+                         <div class="text-2xl font-bold text-success">{{ number_format($kpiData['total_toko_invoice'] ?? 0, 0, ',', '.') }}</div>
+                         <div class="text-[10px] text-base-content/50 mt-1">Total toko berhasil ditagih</div>
+                     </div>
+                     <div class="rounded-full bg-success/10 text-success p-3">
+                         <x-heroicon-o-receipt-percent class="w-8 h-8" />
+                     </div>
+                 </div>
+
+                 <!-- Card 3: Toko Fulfillment Rate -->
+                 <div class="bg-base-100 rounded-xl p-4 shadow-sm border border-base-200 flex items-center justify-between">
+                     <div>
+                         <div class="text-xs font-semibold text-base-content/60 uppercase tracking-wider mb-1">Toko Fulfillment</div>
+                         <div class="text-2xl font-bold">{{ number_format(($kpiData['total_toko_order'] ?? 0) > 0 ? (($kpiData['total_toko_invoice'] ?? 0) / ($kpiData['total_toko_order']) * 100) : 0, 1, ',', '.') }}%</div>
+                         <div class="text-[10px] text-base-content/50 mt-1">Rasio Toko Invoiced / Order</div>
+                     </div>
+                     @php
+                        $tokoFulfillPct = ($kpiData['total_toko_order'] ?? 0) > 0 ? (($kpiData['total_toko_invoice'] ?? 0) / ($kpiData['total_toko_order']) * 100) : 0;
+                        $tokoFulfillColor = $tokoFulfillPct >= 90 ? 'text-success bg-success/10' : ($tokoFulfillPct >= 70 ? 'text-warning bg-warning/10' : 'text-error bg-error/10');
+                     @endphp
+                     <div class="radial-progress font-bold text-xs border-4 border-base-100 {{ $tokoFulfillColor }}" style="--value:{{ $tokoFulfillPct }}; --size:3.5rem;">
+                         {{ number_format($tokoFulfillPct, 0) }}%
+                     </div>
+                 </div>
+             </div>
+             
+             <!-- KPI Value (4 cards) -->
              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                  <!-- Card 1: Order -->
                  <div class="bg-base-100 rounded-xl p-4 shadow-sm border border-base-200 flex items-center justify-between">
@@ -535,6 +578,7 @@
                     <th rowspan="2" class="align-middle border-b border-r border-base-200">Area</th>
                     <th rowspan="2" class="align-middle border-b border-r border-base-200">Team</th>
                     <th colspan="3" class="text-center border-b border-r border-base-200">Total Toko</th>
+                    <th colspan="3" class="text-center border-b border-r border-base-200">Fulfillment Toko</th>
                     <th colspan="5" class="text-center border-b border-r border-base-200">Value</th>
                     <th colspan="3" class="text-center border-b border-r border-base-200">1. RWO</th>
                     <th colspan="3" class="text-center border-b border-r border-base-200">2. PNR</th>
@@ -543,6 +587,10 @@
                 <tr>
                     <th class="text-center border-b border-base-200">JKS</th>
                     <th class="text-center border-b border-base-200">Visit</th>
+                    <th class="text-center border-b border-r border-base-200">%</th>
+                    
+                    <th class="text-center border-b border-base-200">Order</th>
+                    <th class="text-center border-b border-base-200">Inv</th>
                     <th class="text-center border-b border-r border-base-200">%</th>
                     
                     <th class="text-right border-b border-base-200">Target</th>
@@ -589,6 +637,17 @@
                         @endphp
                         <x-ui.badge variant="{{ $pct >= 80 ? 'success' : ($pct >= 50 ? 'warning' : 'error') }}">
                             {{ number_format($pct, 1, ',', '.') }}%
+                        </x-ui.badge>
+                    </td>
+                    
+                    <td class="whitespace-nowrap text-center">{{ number_format($row->total_toko_order ?? 0, 0, ',', '.') }}</td>
+                    <td class="whitespace-nowrap text-center">{{ number_format($row->total_toko_invoice ?? 0, 0, ',', '.') }}</td>
+                    <td class="whitespace-nowrap text-center border-r border-base-200/50">
+                        @php
+                            $tokoPct = ($row->total_toko_order ?? 0) > 0 ? (($row->total_toko_invoice ?? 0) / $row->total_toko_order) * 100 : 0;
+                        @endphp
+                        <x-ui.badge variant="{{ $tokoPct >= 80 ? 'success' : ($tokoPct >= 50 ? 'warning' : 'error') }}">
+                            {{ number_format($tokoPct, 1, ',', '.') }}%
                         </x-ui.badge>
                     </td>
                     
@@ -652,6 +711,15 @@
                             $pctTotal = ($kpiData['total_toko'] ?? 0) > 0 ? (($kpiData['total_visit'] ?? 0) / ($kpiData['total_toko'] ?? 1) * 100) : 0;
                         @endphp
                         {{ number_format($pctTotal, 1, ',', '.') }}%
+                    </td>
+                    
+                    <td class="text-center">{{ number_format($kpiData['total_toko_order'] ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-center">{{ number_format($kpiData['total_toko_invoice'] ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-center border-r border-base-200/50">
+                        @php
+                            $tokoPctTotal = ($kpiData['total_toko_order'] ?? 0) > 0 ? (($kpiData['total_toko_invoice'] ?? 0) / $kpiData['total_toko_order']) * 100 : 0;
+                        @endphp
+                        {{ number_format($tokoPctTotal, 1, ',', '.') }}%
                     </td>
                     
                     <td class="text-right font-mono">{{ number_format($kpiData['total_target'] ?? 0, 0, ',', '.') }}</td>
