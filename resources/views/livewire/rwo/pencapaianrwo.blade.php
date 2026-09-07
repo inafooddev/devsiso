@@ -26,6 +26,7 @@
         $totalToko = $kpi->total_toko ?? 0;
         $tokoTransaksi = $kpi->toko_transaksi ?? 0;
         $tokoTransaksiPct = $totalToko > 0 ? ($tokoTransaksi / $totalToko) * 100 : 0;
+        $tokoBelumTransaksi = $totalToko - $tokoTransaksi;
         
         $overallPct = $kpi->total_target > 0 ? ($kpi->total_achievement / $kpi->total_target) * 100 : 0;
         
@@ -45,8 +46,9 @@
             <div class="stat">
                 <div class="stat-title text-xs font-bold uppercase tracking-wider text-base-content/60">Total Transaksi / Toko</div>
                 <div class="stat-value text-2xl text-primary">{{ number_format($tokoTransaksi, 0, ',', '.') }}</div>
-                <div class="stat-desc text-[11px] font-semibold text-primary/80 mt-1">
-                    dari Total {{ number_format($totalToko, 0, ',', '.') }} Toko ({{ number_format($tokoTransaksiPct, 1, ',', '.') }}%)
+                <div class="stat-desc text-[11px] font-semibold text-primary/80 mt-1 flex justify-between items-center">
+                    <span>dari Total {{ number_format($totalToko, 0, ',', '.') }} Toko ({{ number_format($tokoTransaksiPct, 1, ',', '.') }}%)</span>
+                    <span class="text-[10px] font-bold text-error">Gap: {{ number_format($tokoBelumTransaksi, 0, ',', '.') }}</span>
                 </div>
                 <div class="w-full mt-2">
                     <progress class="progress progress-primary w-full h-1.5" value="{{ min($tokoTransaksiPct, 100) }}" max="100"></progress>
