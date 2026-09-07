@@ -126,9 +126,9 @@
         {{-- Charts Row 2 --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 shrink-0 pb-4">
             {{-- Horizontal Bar Chart: Top 5 Distributor --}}
-            <div class="bg-base-100 rounded-xl shadow-md border border-base-300 p-4">
+            <div class="bg-base-100 rounded-xl shadow-md border border-base-300 p-4 overflow-hidden">
                 <h3 class="text-sm font-bold text-base-content mb-4 uppercase tracking-wider">Top 5 Distributor (% Aktif)</h3>
-                <div class="w-full" x-ref="topDistrChart"></div>
+                <div class="w-full relative overflow-hidden" x-ref="topDistrChart"></div>
             </div>
 
             {{-- Summary Breakdown --}}
@@ -169,7 +169,7 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('alpine:init', () => {
+    const setupDashboard = () => {
         Alpine.data('reaktivasiDashboard', () => ({
             pieChart: null,
             typeBarChart: null,
@@ -178,10 +178,14 @@
             init() {
                 this.renderCharts();
                 
-                // Watch for Livewire updates to re-render charts
-                Livewire.hook('morph.updated', (el, component) => {
-                    this.renderCharts();
-                });
+                // Watch for Livewire updates to the payload element
+                const el = document.getElementById('chart-data');
+                if (el) {
+                    const observer = new MutationObserver(() => {
+                        this.renderCharts();
+                    });
+                    observer.observe(el, { attributes: true, attributeFilter: ['data-payload'] });
+                }
             },
 
             renderCharts() {
@@ -321,6 +325,11 @@
                         max: 100,
                         labels: { formatter: function (val) { return val + "%" } }
                     },
+                    grid: {
+                        padding: {
+                            right: 25
+                        }
+                    },
                     theme: { mode: localStorage.getItem('neon-theme') === 'neon-dark' ? 'dark' : 'light' },
                 };
 
@@ -328,6 +337,12 @@
                 this.topDistrChart.render();
             }
         }));
-    });
+    };
+
+    if (window.Alpine) {
+        setupDashboard();
+    } else {
+        document.addEventListener('alpine:init', setupDashboard);
+    }
 </script>
 @endpush
