@@ -28,12 +28,14 @@ class Pencapaianrwo extends Component
     public $appliedStatusSkb = 'Semua';
     public $appliedStatusData = 'Semua';
     public $appliedStatusReward = 'Semua';
+    public $appliedStatusTransaksi = 'Semua';
 
     // Status Filters
     public $statusProgress = 'Semua';
     public $statusSkb = 'Semua';
     public $statusData = 'Semua';
     public $statusReward = 'Semua';
+    public $statusTransaksi = 'Semua';
 
     protected $listeners = ['apply-rwo-filter' => 'applyModalFilter'];
 
@@ -112,6 +114,12 @@ class Pencapaianrwo extends Component
         $this->resetPage();
     }
 
+    public function updatedStatusTransaksi()
+    {
+        $this->appliedStatusTransaksi = $this->statusTransaksi;
+        $this->resetPage();
+    }
+
     public function resetFilter()
     {
         $this->search = '';
@@ -126,11 +134,13 @@ class Pencapaianrwo extends Component
         $this->statusSkb = 'Semua';
         $this->statusData = 'Semua';
         $this->statusReward = 'Semua';
+        $this->statusTransaksi = 'Semua';
 
         $this->appliedStatusProgress = 'Semua';
         $this->appliedStatusSkb = 'Semua';
         $this->appliedStatusData = 'Semua';
         $this->appliedStatusReward = 'Semua';
+        $this->appliedStatusTransaksi = 'Semua';
         
         $this->resetPage();
         
@@ -359,6 +369,14 @@ class Pencapaianrwo extends Component
             }
         }
 
+        if ($this->appliedStatusTransaksi !== 'Semua') {
+            if ($this->appliedStatusTransaksi === 'Sudah') {
+                $query->whereRaw("COALESCE($achievementSql, 0) > 0");
+            } elseif ($this->appliedStatusTransaksi === 'Belum') {
+                $query->whereRaw("COALESCE($achievementSql, 0) <= 0");
+            }
+        }
+
         // KPI Card Stats (CLONE BEFORE PAGINATE!)
         $kpiQuery = clone $query;
         $kpiQuery->orders = null;
@@ -540,6 +558,14 @@ class Pencapaianrwo extends Component
             }
         }
 
+        if ($this->appliedStatusTransaksi !== 'Semua') {
+            if ($this->appliedStatusTransaksi === 'Sudah') {
+                $query->whereRaw("COALESCE($achievementSql, 0) > 0");
+            } elseif ($this->appliedStatusTransaksi === 'Belum') {
+                $query->whereRaw("COALESCE($achievementSql, 0) <= 0");
+            }
+        }
+
         $query->orderBy('md.region_name', 'asc')
               ->orderBy('md.area_name', 'asc')
               ->orderBy('md.supervisor_name', 'asc')
@@ -564,6 +590,7 @@ class Pencapaianrwo extends Component
             'appliedStatusData' => $this->appliedStatusData,
             'appliedStatusReward' => $this->appliedStatusReward,
             'appliedStatusProgress' => $this->appliedStatusProgress,
+            'appliedStatusTransaksi' => $this->appliedStatusTransaksi,
         ];
         
         $this->dispatch('load-map-data', filters: $filters)->to(PencapaianrwoMap::class);

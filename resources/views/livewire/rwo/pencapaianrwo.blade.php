@@ -171,6 +171,15 @@
                     </select>
                 </div>
 
+                <div class="form-control min-w-[110px]">
+                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Transaksi</span></label>
+                    <select wire:model.live="statusTransaksi" class="select select-sm select-bordered">
+                        <option value="Semua">Semua</option>
+                        <option value="Sudah">Sudah</option>
+                        <option value="Belum">Belum</option>
+                    </select>
+                </div>
+
                 <div class="flex gap-2">
                     <button wire:click="resetFilter" class="btn btn-sm btn-outline btn-neutral">Reset</button>
                     <button type="button" wire:click="export" wire:loading.attr="disabled" wire:target="export" class="btn btn-sm btn-success text-white">
