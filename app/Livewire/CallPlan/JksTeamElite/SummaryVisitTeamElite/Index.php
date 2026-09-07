@@ -503,7 +503,7 @@ class Index extends Component
                 SUM(CASE WHEN status_visit = 'Y' THEN 1 ELSE 0 END) as total_visit,
                 SUM(target) as total_target,
                 SUM(order_val) as total_order,
-                SUM(invoice) as total_invoice,
+                SUM(CASE WHEN COALESCE(order_val, 0) > 0 THEN invoice ELSE 0 END) as total_invoice,
                 SUM(CASE WHEN UPPER(pilar) LIKE '%1. RWO%' THEN 1 ELSE 0 END) as rwo_toko,
                 SUM(CASE WHEN UPPER(pilar) LIKE '%1. RWO%' AND status_visit = 'Y' THEN 1 ELSE 0 END) as rwo_visit,
                 SUM(CASE WHEN UPPER(pilar) LIKE '%2. PNR%' THEN 1 ELSE 0 END) as pnr_toko,
@@ -536,7 +536,7 @@ class Index extends Component
             $total_visit = $data->filter(fn($item) => $item->status_visit === 'Y')->count();
             $total_order = $data->sum('order_val');
             $total_target = $data->sum('target');
-            $total_invoice = $data->sum('invoice');
+            $total_invoice = $data->filter(fn($item) => (float)($item->order_val ?? 0) > 0)->sum('invoice');
             
             $total_rwo = $data->filter(fn($item) => str_contains(strtoupper($item->pilar ?? ''), '1. RWO'))->count();
             $total_pnr = $data->filter(fn($item) => str_contains(strtoupper($item->pilar ?? ''), '2. PNR'))->count();

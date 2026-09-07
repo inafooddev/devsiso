@@ -764,8 +764,12 @@
                     </td>
                     <td class="whitespace-nowrap font-mono text-right">{{ number_format($row->target ?? 0, 0, ',', '.') }}</td>
                     <td class="whitespace-nowrap font-mono text-right">{{ number_format($row->order_val ?? 0, 0, ',', '.') }}</td>
-                    <td class="whitespace-nowrap font-mono text-right font-bold">{{ number_format($row->invoice ?? 0, 0, ',', '.') }}</td>
-                    <td class="whitespace-nowrap font-mono text-right {{ (($row->invoice ?? 0) - ($row->order_val ?? 0)) < 0 ? 'text-error' : 'text-success' }}">{{ number_format(($row->invoice ?? 0) - ($row->order_val ?? 0), 0, ',', '.') }}</td>
+                    <td class="whitespace-nowrap font-mono text-right font-bold">
+                        {{ ($row->order_val ?? 0) > 0 ? number_format($row->invoice ?? 0, 0, ',', '.') : '-' }}
+                    </td>
+                    <td class="whitespace-nowrap font-mono text-right {{ ($row->order_val ?? 0) > 0 ? ((($row->invoice ?? 0) - ($row->order_val ?? 0)) < 0 ? 'text-error' : 'text-success') : '' }}">
+                        {{ ($row->order_val ?? 0) > 0 ? number_format(($row->invoice ?? 0) - ($row->order_val ?? 0), 0, ',', '.') : '-' }}
+                    </td>
                     <td class="whitespace-nowrap text-center">
                         <div class="flex items-center justify-center gap-1">
                             @if(!empty($row->remark))
@@ -785,13 +789,24 @@
                 @endif
                 </tbody>
                 @if(!empty($dataKunjungan))
+                @php
+                    $detailCol = collect($dataKunjungan);
+                    $detailTarget = $detailCol->sum('target');
+                    $detailOrder = $detailCol->sum('order_val');
+                    $detailInvoice = $detailCol->filter(function($item) {
+                        return (is_object($item) ? ($item->order_val ?? 0) : ($item['order_val'] ?? 0)) > 0;
+                    })->sum(function($item) {
+                        return is_object($item) ? ($item->invoice ?? 0) : ($item['invoice'] ?? 0);
+                    });
+                    $detailSelisih = $detailInvoice - $detailOrder;
+                @endphp
                 <tfoot class="sticky bottom-0 z-10 bg-base-200 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
                     <tr class="font-bold border-t-2 border-base-300">
                     <td colspan="10" class="text-right uppercase tracking-wider">Subtotal</td>
-                    <td class="text-right font-mono text-sm text-base-content">{{ number_format($kpiData['total_target'] ?? 0, 0, ',', '.') }}</td>
-                    <td class="text-right font-mono text-sm text-base-content">{{ number_format($kpiData['total_order'] ?? 0, 0, ',', '.') }}</td>
-                    <td class="text-right font-mono text-sm text-base-content">{{ number_format($kpiData['total_invoice'] ?? 0, 0, ',', '.') }}</td>
-                    <td class="text-right font-mono text-sm {{ (($kpiData['total_invoice'] ?? 0) - ($kpiData['total_order'] ?? 0)) < 0 ? 'text-error' : 'text-success' }}">{{ number_format(($kpiData['total_invoice'] ?? 0) - ($kpiData['total_order'] ?? 0), 0, ',', '.') }}</td>
+                    <td class="text-right font-mono text-sm text-base-content">{{ number_format($detailTarget, 0, ',', '.') }}</td>
+                    <td class="text-right font-mono text-sm text-base-content">{{ number_format($detailOrder, 0, ',', '.') }}</td>
+                    <td class="text-right font-mono text-sm text-base-content">{{ number_format($detailInvoice, 0, ',', '.') }}</td>
+                    <td class="text-right font-mono text-sm {{ $detailSelisih < 0 ? 'text-error' : 'text-success' }}">{{ number_format($detailSelisih, 0, ',', '.') }}</td>
                     <td></td>
                 </tr>
                 </tfoot>
