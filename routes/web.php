@@ -111,6 +111,7 @@ use App\Livewire\Jobs\UpdateSellinPerCabang;
 use App\Livewire\Jobs\SyncCustomerEska;
 use App\Livewire\Jobs\SyncCustomerMapEska;
 use App\Livewire\Jobs\UnmappingCustomerEska;
+use App\Livewire\Jobs\UpdateAoListToko;
 use App\Livewire\Jobs\SelloutPerCabangSqlServer;
 use App\Livewire\Jobs\UpdateSalesmans;
 use App\Livewire\Jobs\UpdateAoPercabang;
@@ -371,6 +372,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/report/monitoring-top-item', MonitoringTopItemIndex::class)->name('report.monitoring-top-item.index');
     Route::get('/sales-invoice-report', SalesInvoiceReportIndex::class)->name('sales-invoice-report.index');
     Route::get('/report/reaktivasi-toko', ReportReaktivasiTokoIndex::class)->name('report.reaktivasi-toko.index');
+    Route::get('/report/reaktivasi-toko/summary', \App\Livewire\Report\ReaktivasiToko\Summary::class)->name('report.reaktivasi-toko.summary');
+    Route::get('/report/reaktivasi-toko/dashboard', \App\Livewire\Report\ReaktivasiToko\Dashboard::class)->name('report.reaktivasi-toko.dashboard');
     Route::get('/import-sales-invoices', SalesInvoiceImport::class)->name('sales-invoices.import');
     
     Route::prefix('sales-configs')->name('sales-configs.')->group(function () {
@@ -423,6 +426,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/jobs/sync-customer-eska', SyncCustomerEska::class)->name('jobs.sync-customer-eska');
     Route::get('/jobs/sync-customer-map-eska', SyncCustomerMapEska::class)->name('jobs.sync-customer-map-eska');
     Route::get('/jobs/unmapping-customer-eska', UnmappingCustomerEska::class)->name('jobs.unmapping-customer-eska');
+    Route::get('/jobs/update-ao-list-toko', UpdateAoListToko::class)->name('jobs.update-ao-list-toko');
     Route::get('/jobs/sellout-per-cabang-sqlserver', SelloutPerCabangSqlServer::class)->name('jobs.sellout-per-cabang-sqlserver');
     Route::get('/jobs/update-salesmans', UpdateSalesmans::class)->name('jobs.update-salesmans');
     Route::get('/jobs/update-ao-percabang', UpdateAoPercabang::class)->name('jobs.update-ao-percabang');

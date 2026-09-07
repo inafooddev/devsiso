@@ -153,6 +153,121 @@ class Index extends Component
     }
 
     #[Computed]
+    public function kpiStats()
+    {
+        $selectedDate = Carbon::createFromDate($this->filterTahun ?: date('Y'), $this->filterBulan ?: date('m'), 1);
+        $monthStart = $selectedDate->copy()->startOfMonth()->format('Y-m-d');
+        $monthEnd = $selectedDate->copy()->endOfMonth()->format('Y-m-d');
+        
+        $avgMonthStart = $selectedDate->copy()->subMonths(6)->format('Y-m-01');
+        $avgMonthEnd = $selectedDate->copy()->subMonth()->endOfMonth()->format('Y-m-d');
+
+        $query = ReportReaktivasiToko::query()
+            ->select(
+                'uniq_kd', 'custno',
+                DB::raw("SUM(CASE WHEN bulan >= '$avgMonthStart' AND bulan <= '$avgMonthEnd' THEN neto ELSE 0 END) / 6 as avg_6_months"),
+                DB::raw("SUM(CASE WHEN bulan >= '$monthStart' AND bulan <= '$monthEnd' THEN neto ELSE 0 END) as pencapaian_bulan_ini")
+            );
+
+        $query = $this->applyRbac($query);
+        $query->groupBy('uniq_kd', 'custno');
+
+        if (!empty($this->search)) {
+            $query->where(function($q) {
+                $q->where('custname', 'ilike', '%' . $this->search . '%')
+                  ->orWhere('custno', 'ilike', '%' . $this->search . '%');
+            });
+        }
+        if (!empty($this->filterRegion)) $query->where('region', $this->filterRegion);
+        if (!empty($this->filterArea)) $query->where('area', $this->filterArea);
+        if (!empty($this->filterSupervisor)) $query->where('supervisor', $this->filterSupervisor);
+        if (!empty($this->filterDistributor)) $query->where('distributor', $this->filterDistributor);
+
+        if ($this->filterStatus === 'aktif') {
+            $query->having(DB::raw("SUM(CASE WHEN bulan >= '$monthStart' AND bulan <= '$monthEnd' THEN neto ELSE 0 END)"), '>', 0);
+        } elseif ($this->filterStatus === 'tidak_aktif') {
+            $query->having(DB::raw("SUM(CASE WHEN bulan >= '$monthStart' AND bulan <= '$monthEnd' THEN neto ELSE 0 END)"), '<=', 0)
+                  ->orHavingRaw("SUM(CASE WHEN bulan >= '$monthStart' AND bulan <= '$monthEnd' THEN neto ELSE 0 END) IS NULL");
+        }
+
+        $avgCalc = "SUM(CASE WHEN bulan >= '$avgMonthStart' AND bulan <= '$avgMonthEnd' THEN neto ELSE 0 END) / 6";
+        if (!empty($this->filterType)) {
+            if ($this->filterType === 'SO') {
+                $query->having(DB::raw($avgCalc), '>', 10000000);
+            } elseif ($this->filterType === 'G') {
+                $query->having(DB::raw($avgCalc), '>=', 5000000)
+                      ->having(DB::raw($avgCalc), '<=', 10000000);
+            } elseif ($this->filterType === 'SG') {
+                $query->having(DB::raw($avgCalc), '>=', 3000000)
+                      ->having(DB::raw($avgCalc), '<', 5000000);
+            } elseif ($this->filterType === 'R') {
+                $query->having(DB::raw($avgCalc), '<', 3000000)
+                      ->orHavingRaw("($avgCalc) IS NULL");
+            }
+        }
+
+        $stats = DB::table(DB::raw("({$query->toSql()}) as sub"))
+            ->mergeBindings($query->getQuery())
+            ->select(
+                DB::raw('COUNT(*) as total_toko'),
+                DB::raw('SUM(CASE WHEN pencapaian_bulan_ini > 0 THEN 1 ELSE 0 END) as total_aktif'),
+                
+                // SO
+                DB::raw('SUM(CASE WHEN avg_6_months > 10000000 THEN 1 ELSE 0 END) as total_so'),
+                DB::raw('SUM(CASE WHEN avg_6_months > 10000000 AND pencapaian_bulan_ini > 0 THEN 1 ELSE 0 END) as aktif_so'),
+                
+                // G
+                DB::raw('SUM(CASE WHEN avg_6_months >= 5000000 AND avg_6_months <= 10000000 THEN 1 ELSE 0 END) as total_g'),
+                DB::raw('SUM(CASE WHEN avg_6_months >= 5000000 AND avg_6_months <= 10000000 AND pencapaian_bulan_ini > 0 THEN 1 ELSE 0 END) as aktif_g'),
+                
+                // SG
+                DB::raw('SUM(CASE WHEN avg_6_months >= 3000000 AND avg_6_months < 5000000 THEN 1 ELSE 0 END) as total_sg'),
+                DB::raw('SUM(CASE WHEN avg_6_months >= 3000000 AND avg_6_months < 5000000 AND pencapaian_bulan_ini > 0 THEN 1 ELSE 0 END) as aktif_sg'),
+                
+                // R
+                DB::raw('SUM(CASE WHEN avg_6_months < 3000000 OR avg_6_months IS NULL THEN 1 ELSE 0 END) as total_r'),
+                DB::raw('SUM(CASE WHEN (avg_6_months < 3000000 OR avg_6_months IS NULL) AND pencapaian_bulan_ini > 0 THEN 1 ELSE 0 END) as aktif_r')
+            )
+            ->first();
+
+        $total = $stats->total_toko ?? 0;
+        $aktif = $stats->total_aktif ?? 0;
+        $gap = $total - $aktif;
+        $pctAktif = $total > 0 ? round(($aktif / $total) * 100, 1) : 0;
+        $pctGap = $total > 0 ? round(($gap / $total) * 100, 1) : 0;
+
+        $typesData = [
+            'SO' => ['total' => $stats->total_so ?? 0, 'aktif' => $stats->aktif_so ?? 0],
+            'G'  => ['total' => $stats->total_g ?? 0, 'aktif' => $stats->aktif_g ?? 0],
+            'SG' => ['total' => $stats->total_sg ?? 0, 'aktif' => $stats->aktif_sg ?? 0],
+            'R'  => ['total' => $stats->total_r ?? 0, 'aktif' => $stats->aktif_r ?? 0],
+        ];
+
+        $types = [];
+        foreach ($typesData as $k => $v) {
+            $t = $v['total'];
+            $a = $v['aktif'];
+            $g = $t - $a;
+            $types[$k] = [
+                'total' => $t,
+                'aktif' => $a,
+                'gap' => $g,
+                'pct_aktif' => $t > 0 ? round(($a / $t) * 100, 1) : 0,
+                'pct_gap' => $t > 0 ? round(($g / $t) * 100, 1) : 0,
+            ];
+        }
+
+        return [
+            'total_toko' => $total,
+            'total_aktif' => $aktif,
+            'pct_aktif' => $pctAktif,
+            'gap' => $gap,
+            'pct_gap' => $pctGap,
+            'types' => $types,
+        ];
+    }
+
+    #[Computed]
     public function stores()
     {
         $selectedDate = Carbon::createFromDate($this->filterTahun ?: date('Y'), $this->filterBulan ?: date('m'), 1);

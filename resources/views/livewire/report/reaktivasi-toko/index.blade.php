@@ -1,6 +1,65 @@
 <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
     <x-slot name="title">Report Reaktivasi Toko</x-slot>
 
+    <x-ui.tab-menu>
+        <a href="{{ Route::has('report.reaktivasi-toko.dashboard') ? route('report.reaktivasi-toko.dashboard') : '#' }}" class="tab text-xs md:text-sm h-8 min-h-8 hover:text-primary transition-colors">Dashboard</a>
+        <a href="{{ Route::has('report.reaktivasi-toko.summary') ? route('report.reaktivasi-toko.summary') : '#' }}" class="tab text-xs md:text-sm h-8 min-h-8 hover:text-primary transition-colors">Summary</a>
+        <a href="#" class="tab tab-active bg-base-100 shadow-sm text-xs md:text-sm font-bold h-8 min-h-8">Detail</a>
+    </x-ui.tab-menu>
+
+    {{-- KPI Cards (Terpisah dari Tabel) --}}
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+        <!-- 1. Total Toko -->
+        <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 p-3 md:p-4 flex flex-col">
+            <div class="text-[10px] md:text-xs font-semibold text-base-content/60 uppercase tracking-wide">Total Toko</div>
+            <div class="text-xl md:text-2xl font-bold text-base-content mt-1">{{ number_format($this->kpiStats['total_toko'], 0, ',', '.') }}</div>
+            <div class="text-[9px] xl:text-[10px] mt-2 flex justify-between items-center text-base-content/60">
+                <div>Aktif: <span class="font-bold text-success">{{ number_format($this->kpiStats['total_aktif'], 0, ',', '.') }} ({{ $this->kpiStats['pct_aktif'] }}%)</span></div>
+                <div>Gap: <span class="font-bold text-error">{{ number_format($this->kpiStats['gap'], 0, ',', '.') }} ({{ $this->kpiStats['pct_gap'] }}%)</span></div>
+            </div>
+        </div>
+        
+        <!-- 3. Type SO -->
+        <div class="bg-base-100 rounded-xl shadow-xl border border-primary/30 p-3 md:p-4 flex flex-col">
+            <div class="text-[10px] md:text-xs font-bold text-primary uppercase tracking-wide">Type SO</div>
+            <div class="text-lg md:text-xl font-bold text-base-content mt-1">{{ number_format($this->kpiStats['types']['SO']['total'], 0, ',', '.') }}</div>
+            <div class="text-[9px] xl:text-[10px] mt-2 flex justify-between items-center text-base-content/60">
+                <div>Aktif: <span class="font-bold text-success">{{ number_format($this->kpiStats['types']['SO']['aktif'], 0, ',', '.') }} ({{ $this->kpiStats['types']['SO']['pct_aktif'] }}%)</span></div>
+                <div>Gap: <span class="font-bold text-error">{{ number_format($this->kpiStats['types']['SO']['gap'], 0, ',', '.') }} ({{ $this->kpiStats['types']['SO']['pct_gap'] }}%)</span></div>
+            </div>
+        </div>
+        
+        <!-- 4. Type G -->
+        <div class="bg-base-100 rounded-xl shadow-xl border border-info/30 p-3 md:p-4 flex flex-col">
+            <div class="text-[10px] md:text-xs font-bold text-info uppercase tracking-wide">Type G</div>
+            <div class="text-lg md:text-xl font-bold text-base-content mt-1">{{ number_format($this->kpiStats['types']['G']['total'], 0, ',', '.') }}</div>
+            <div class="text-[9px] xl:text-[10px] mt-2 flex justify-between items-center text-base-content/60">
+                <div>Aktif: <span class="font-bold text-success">{{ number_format($this->kpiStats['types']['G']['aktif'], 0, ',', '.') }} ({{ $this->kpiStats['types']['G']['pct_aktif'] }}%)</span></div>
+                <div>Gap: <span class="font-bold text-error">{{ number_format($this->kpiStats['types']['G']['gap'], 0, ',', '.') }} ({{ $this->kpiStats['types']['G']['pct_gap'] }}%)</span></div>
+            </div>
+        </div>
+        
+        <!-- 5. Type SG -->
+        <div class="bg-base-100 rounded-xl shadow-xl border border-warning/30 p-3 md:p-4 flex flex-col">
+            <div class="text-[10px] md:text-xs font-bold text-warning uppercase tracking-wide">Type SG</div>
+            <div class="text-lg md:text-xl font-bold text-base-content mt-1">{{ number_format($this->kpiStats['types']['SG']['total'], 0, ',', '.') }}</div>
+            <div class="text-[9px] xl:text-[10px] mt-2 flex justify-between items-center text-base-content/60">
+                <div>Aktif: <span class="font-bold text-success">{{ number_format($this->kpiStats['types']['SG']['aktif'], 0, ',', '.') }} ({{ $this->kpiStats['types']['SG']['pct_aktif'] }}%)</span></div>
+                <div>Gap: <span class="font-bold text-error">{{ number_format($this->kpiStats['types']['SG']['gap'], 0, ',', '.') }} ({{ $this->kpiStats['types']['SG']['pct_gap'] }}%)</span></div>
+            </div>
+        </div>
+        
+        <!-- 6. Type R -->
+        <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 p-3 md:p-4 flex flex-col">
+            <div class="text-[10px] md:text-xs font-bold text-base-content/70 uppercase tracking-wide">Type R</div>
+            <div class="text-lg md:text-xl font-bold text-base-content mt-1">{{ number_format($this->kpiStats['types']['R']['total'], 0, ',', '.') }}</div>
+            <div class="text-[9px] xl:text-[10px] mt-2 flex justify-between items-center text-base-content/60">
+                <div>Aktif: <span class="font-bold text-success">{{ number_format($this->kpiStats['types']['R']['aktif'], 0, ',', '.') }} ({{ $this->kpiStats['types']['R']['pct_aktif'] }}%)</span></div>
+                <div>Gap: <span class="font-bold text-error">{{ number_format($this->kpiStats['types']['R']['gap'], 0, ',', '.') }} ({{ $this->kpiStats['types']['R']['pct_gap'] }}%)</span></div>
+            </div>
+        </div>
+    </div>
+
     {{-- Main Card (Tabel) yang mengambil sisa ruang flex --}}
     <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
         
@@ -88,6 +147,7 @@
                 </div>
             </div>
         </div>
+
 
         {{-- Body Card (Tabel Scrollable area) --}}
         <div class="flex-1 overflow-auto bg-base-100 w-full relative">
