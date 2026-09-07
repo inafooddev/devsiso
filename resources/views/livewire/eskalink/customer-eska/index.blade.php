@@ -190,9 +190,7 @@
                                 class="select select-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300">
                             <option value="">-- Pilih Region --</option>
                             @foreach($regions as $region)
-                                @if($region->region_code !== 'HOINA')
-                                    <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
-                                @endif
+                                <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
                             @endforeach
                         </select>
                         @error('regionFilter') <span class="text-error text-[10px] font-medium ml-1">{{ $message }}</span> @enderror
