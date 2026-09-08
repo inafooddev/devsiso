@@ -353,6 +353,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/call-plan/jks-team-elite/route-efficiency', RouteEfficiencyIndex::class)->name('call-plan.jks-team-elite.route-efficiency');
     Route::get('/call-plan/jks-team-elite/clustering', ClusteringIndex::class)->name('call-plan.jks-team-elite.clustering');
     Route::get('/call-plan/management-cluster', \App\Livewire\CallPlan\ClusterManagement\Index::class)->name('call-plan.cluster-management');
+    Route::get('/call-plan/jks-salesmans', \App\Livewire\CallPlan\JksSalesmans\Index::class)->name('call-plan.jks-salesmans');
 
     // ==========================================
     // SELLING IN & OUT
