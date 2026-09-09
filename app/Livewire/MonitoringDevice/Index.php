@@ -39,6 +39,30 @@ class Index extends Component
     {
         $this->authorizeAction('can_export');
 
+        // Mencegah Out Of Memory (OOM) dengan validasi ukuran data
+        $monthsCount = 1;
+        if ($this->start_month && $this->end_month) {
+            $start = Carbon::createFromFormat('Y-m', $this->start_month)->startOfMonth();
+            $end = Carbon::createFromFormat('Y-m', $this->end_month)->startOfMonth();
+            
+            if ($start->gt($end)) {
+                $temp = $start;
+                $start = $end;
+                $end = $temp;
+            }
+            
+            $monthsCount = $start->diffInMonths($end) + 1;
+        }
+
+        // Jika user tidak memilih filter wilayah sama sekali
+        if (empty($this->filter_region) && empty($this->filter_area) && empty($this->filter_distributor)) {
+            // Dan mencoba menarik data lebih dari 3 bulan
+            if ($monthsCount > 3) {
+                session()->flash('error', 'Volume data terlalu besar untuk diexport sekaligus. Silakan persempit rentang waktu (maksimal 3 bulan), ATAU terapkan Filter Region / Area terlebih dahulu jika ingin menarik data dalam jangka panjang.');
+                return;
+            }
+        }
+
         $filters = [
             'search' => $this->search,
             'filter_region' => $this->filter_region,
