@@ -1,4 +1,4 @@
-<div class="navbar h-16 min-h-[4rem] px-4 bg-base-200 sticky top-0 z-20 border-b border-base-content/10 shadow-sm backdrop-blur-sm shrink-0">
+<div class="navbar h-16 min-h-[4rem] px-4 bg-base-200 sticky top-0 z-[9999] border-b border-base-content/10 shadow-sm backdrop-blur-sm shrink-0">
     {{-- Left: Hamburger (mobile) + Page Title --}}
     <div class="navbar-start gap-2 h-full flex items-center">
         <label for="sidebar-drawer" class="btn btn-ghost btn-sm lg:hidden">
@@ -10,10 +10,9 @@
     {{-- Right: Theme Toggle + User Dropdown --}}
     <div class="navbar-end gap-1 h-full flex items-center">
 
-        {{-- Mapping Notifications --}}
-        @hasanyrole('admin|user|edp')
-            @livewire('mapping-notification')
-            @livewire('perbaikan-tikor-notification')
+        {{-- Global Notifications Center --}}
+        @hasanyrole('admin|user|spm|edp')
+            @livewire('global-notification')
         @endhasanyrole
 
         {{-- Theme Toggle --}}

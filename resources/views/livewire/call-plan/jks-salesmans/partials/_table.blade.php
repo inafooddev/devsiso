@@ -60,7 +60,16 @@
                         <div class="text-[9px] text-base-content/50">{{ $row->customer_code }}</div>
                     </td>
                     <td>
-                        <div class="font-bold truncate max-w-[200px]" title="{{ $row->customer_name ?? '-' }}">{{ $row->customer_name ?? '-' }}</div>
+                        <div class="flex items-center">
+                            @if(in_array($row->customer_code, $collidingCustomerCodes))
+                                <div class="font-bold truncate max-w-[170px] text-error" title="{{ $row->customer_name ?? '-' }}">{{ $row->customer_name ?? '-' }}</div>
+                                <button type="button" wire:click="showCollisionDetails('{{ $row->customer_code }}', '{{ addslashes($row->customer_name ?? '') }}')" class="btn btn-xs btn-circle btn-error btn-outline border-none ml-1 shadow-sm" title="Toko ini bentrok dengan Salesman lain!">
+                                    <x-heroicon-s-exclamation-triangle class="w-4 h-4 animate-pulse" />
+                                </button>
+                            @else
+                                <div class="font-bold truncate max-w-[200px]" title="{{ $row->customer_name ?? '-' }}">{{ $row->customer_name ?? '-' }}</div>
+                            @endif
+                        </div>
                         <div class="text-[9px] text-base-content/50 truncate max-w-[200px]" title="{{ $row->customer_address }}">{{ $row->customer_address }}</div>
                     </td>
                     <td>
@@ -109,6 +118,6 @@
 {{-- Pagination (Footer Card) --}}
 @if($jksData->hasPages())
 <div class="p-3 border-t border-base-300 bg-base-200/30 shrink-0">
-    {{ $jksData->links('pagination::tailwind') }}
+    {{ $jksData->links(data: ['scrollTo' => false]) }}
 </div>
 @endif

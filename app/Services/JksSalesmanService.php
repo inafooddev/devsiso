@@ -14,16 +14,19 @@ class JksSalesmanService
      * @param int $perPage
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function getFilteredPaginatedList($search = '', $filters = [], $perPage = 100)
+    /**
+     * Build the base query for JKS Salesman.
+     *
+     * @param string $search
+     * @param array $filters
+     * @return \Illuminate\Database\Query\Builder
+     */
+    protected function getBaseQuery($search = '', $filters = [])
     {
-        // Jika tidak ada filter yang aktif dan pencarian kosong, kembalikan paginator kosong
-        if (empty($search) && empty($filters['region']) && empty($filters['area']) && empty($filters['supervisor']) && empty($filters['distributor'])) {
-            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
-        }
-
         return DB::table('jks_salesmans as js')
             ->select([
                 'js.id',
+                'js.bulan',
                 'md.region_code',
                 'md.region_name',
                 'md.area_code',
@@ -72,21 +75,16 @@ class JksSalesmanService
                 return $q->where('js.salesman_code', $salesman);
             })
             ->when($filters['bulan'] ?? null, function ($q, $bulan) {
-                // $bulan is 'YYYY-MM', DB stores 'YYYY-MM-DD', so match prefix
                 return $q->where('js.bulan', 'like', $bulan . '%');
             })
             ->when($filters['hari'] ?? null, function ($q, $hari) {
-                // $hari = h1, h2, ... h7
-                // the database stores 'Y' or 'T' for the day columns
                 return $q->where('js.' . $hari, 'Y');
             })
             ->when($filters['minggu'] ?? null, function ($q, $minggu) {
                 return $q->where(function ($sub) use ($minggu) {
                     if ($minggu === 'ganjil') {
-                        // Jika m1 dan m3 atau m1 atau m3 -> sama dengan m1=Y ATAU m3=Y
                         $sub->where('js.w1', 'Y')->orWhere('js.w3', 'Y');
                     } elseif ($minggu === 'genap') {
-                        // Jika m2 dan m4 atau m2 atau m4 -> sama dengan m2=Y ATAU m4=Y
                         $sub->where('js.w2', 'Y')->orWhere('js.w4', 'Y');
                     }
                 });
@@ -98,7 +96,24 @@ class JksSalesmanService
                           ->orWhere('s.salesman_name', 'ilike', '%' . $search . '%')
                           ->orWhere('ltpte.customer_address', 'ilike', '%' . $search . '%');
                 }
-            })
+            });
+    }
+
+    /**
+     * Get paginated and filtered JKS Salesman list.
+     *
+     * @param string $search
+     * @param array $filters
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getFilteredPaginatedList($search = '', $filters = [], $perPage = 100)
+    {
+        if (empty($search) && empty($filters['region']) && empty($filters['area']) && empty($filters['supervisor']) && empty($filters['distributor'])) {
+            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
+        }
+
+        return $this->getBaseQuery($search, $filters)
             ->orderBy('s.salesman_name')
             ->orderByDesc('js.h1')
             ->orderByDesc('js.h2')
@@ -114,6 +129,20 @@ class JksSalesmanService
             ->orderBy('ltpte.kecamatan')
             ->orderBy('ltpte.desa')
             ->paginate($perPage);
+    }
+
+    /**
+     * Get the query builder for export.
+     *
+     * @param string $search
+     * @param array $filters
+     * @return \Illuminate\Database\Query\Builder
+     */
+    public function getExportQuery($search = '', $filters = [])
+    {
+        return $this->getBaseQuery($search, $filters)
+            ->orderBy('s.salesman_name')
+            ->orderBy('ltpte.customer_name');
     }
 
     /**

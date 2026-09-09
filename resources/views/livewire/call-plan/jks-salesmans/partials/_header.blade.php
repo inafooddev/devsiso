@@ -61,11 +61,33 @@
             @endif
         </button>
 
-        {{-- Bulk Swap Button --}}
+        {{-- Actions Button --}}
+        @if($appliedRegion || $appliedArea || $appliedSupervisor || $appliedDistributor)
+            <button type="button" wire:click="exportExcel" class="btn btn-sm btn-success text-white gap-1 shadow-sm" wire:loading.class="opacity-50 pointer-events-none" wire:target="exportExcel">
+                <span wire:loading.remove wire:target="exportExcel">
+                    <x-heroicon-s-document-arrow-down class="w-4 h-4" />
+                </span>
+                <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
+                Export
+            </button>
+        @endif
+        
+        @if($appliedDistributor)
+            @livewire('call-plan.jks-salesmans.create-modal', [
+                'appliedBulan' => $appliedBulan,
+                'appliedDistributor' => $appliedDistributor
+            ], key('create-modal-' . $appliedDistributor))
+        @endif
+        @livewire('call-plan.jks-salesmans.import-modal')
+
         @if($appliedRegion || $appliedArea || $appliedSupervisor || $appliedDistributor)
             <button type="button" wire:click="openSwapModal" class="btn btn-sm btn-primary btn-outline gap-1 shadow-sm">
                 <x-heroicon-s-arrows-right-left class="w-4 h-4" />
                 Tukar Jadwal
+            </button>
+            <button type="button" wire:click="openBulkDeleteModal" class="btn btn-sm btn-error btn-outline gap-1 shadow-sm">
+                <x-heroicon-s-trash class="w-4 h-4" />
+                Hapus Massal
             </button>
         @endif
     </div>

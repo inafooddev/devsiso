@@ -17,10 +17,17 @@ class Index extends Component
     #[Title('JKS Salesman')]
     #[Layout('layouts.app')]
 
+    protected $listeners = ['refreshTable' => '$refresh'];
+
     public $search = '';
     public $headerSalesman = '';
     public $selectedHari = 'h1';
     public $selectedMinggu = 'ganjil';
+
+    // Collision Detection
+    public $collisionCustomerName = '';
+    public $collisionDetails = [];
+    public $showCollisionModal = false;
 
     public function toggleHari($hari)
     {
@@ -119,10 +126,12 @@ class Index extends Component
     public $editSalesmanCode = '';
     public $editHari = ['h1' => false, 'h2' => false, 'h3' => false, 'h4' => false, 'h5' => false, 'h6' => false, 'h7' => false];
     public $editMinggu = ['w1' => false, 'w2' => false, 'w3' => false, 'w4' => false];
+    public $editReason = '';
 
     // State Delete
     public $showDeleteModal = false;
     public $deleteId = null;
+    public $deleteReason = '';
 
     // State Swap (Tukar Jadwal)
     public $showSwapModal = false;
@@ -131,6 +140,58 @@ class Index extends Component
     public $swapHariAsal = '';
     public $swapHariTujuan = '';
     public $swapMinggu = ['w1' => false, 'w2' => false, 'w3' => false, 'w4' => false];
+    
+    public $swapMingguAsal = '';
+    public $swapMingguTujuan = '';
+    
+    public $swapSalesmanAsal = '';
+    public $swapSalesmanTujuan = '';
+
+    // State Bulk Delete
+    public $showBulkDeleteModal = false;
+    public $bdSalesman = '';
+    public $bdHari = '';
+    public $bdMinggu = '';
+    public $bdSelectedIds = [];
+    public $bdSelectAll = false;
+    public $bdReason = '';
+
+    protected function handleJksAction($actionType, $payload, $reason, callable $executeCallback, $successMessage)
+    {
+        if (auth()->user()->hasRole('user')) {
+            // Bagian Data (Auto-Approve)
+            $executeCallback();
+            
+            \Illuminate\Support\Facades\DB::table('jks_approvals')->insert([
+                'maker_id' => auth()->id(),
+                'checker_id' => auth()->id(),
+                'distributor_code' => $this->appliedDistributor,
+                'action_type' => $actionType,
+                'payload' => json_encode($payload),
+                'reason' => $reason,
+                'status' => 'AUTO_APPROVED',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            
+            $this->dispatch('toast', ['type' => 'success', 'message' => $successMessage]);
+        } else {
+            // SPV atau Role Lain (Pending Approval)
+            \Illuminate\Support\Facades\DB::table('jks_approvals')->insert([
+                'maker_id' => auth()->id(),
+                'checker_id' => null,
+                'distributor_code' => $this->appliedDistributor,
+                'action_type' => $actionType,
+                'payload' => json_encode($payload),
+                'reason' => $reason,
+                'status' => 'PENDING',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            
+            $this->dispatch('toast', ['type' => 'success', 'message' => 'Pengajuan berhasil dikirim dan menunggu persetujuan Bagian Data.']);
+        }
+    }
 
     public function openSwapModal()
     {
@@ -138,6 +199,10 @@ class Index extends Component
         $this->swapHariAsal = '';
         $this->swapHariTujuan = '';
         $this->swapMinggu = ['w1' => false, 'w2' => false, 'w3' => false, 'w4' => false];
+        $this->swapMingguAsal = '';
+        $this->swapMingguTujuan = '';
+        $this->swapSalesmanAsal = '';
+        $this->swapSalesmanTujuan = '';
         $this->swapTab = 'hari';
         $this->showSwapModal = true;
     }
@@ -165,83 +230,437 @@ class Index extends Component
             return;
         }
 
+        $payload = [
+            'salesman_code' => $this->swapSalesmanCode,
+            'hari_asal' => $this->swapHariAsal,
+            'hari_tujuan' => $this->swapHariTujuan,
+            'minggu' => $selectedWeeks,
+        ];
+
+        $hariNames = ['h1'=>'Senin', 'h2'=>'Selasa', 'h3'=>'Rabu', 'h4'=>'Kamis', 'h5'=>'Jumat', 'h6'=>'Sabtu', 'h7'=>'Minggu'];
+        $weekNames = ['w1'=>'Minggu 1', 'w2'=>'Minggu 2', 'w3'=>'Minggu 3', 'w4'=>'Minggu 4'];
+        
+        $hariAsalName = $hariNames[$this->swapHariAsal] ?? $this->swapHariAsal;
+        $hariTujuanName = $hariNames[$this->swapHariTujuan] ?? $this->swapHariTujuan;
+        $seName = $this->headerSalesmans->firstWhere('salesman_code', $this->swapSalesmanCode)->salesman_name ?? $this->swapSalesmanCode;
+        $weeksStr = collect($selectedWeeks)->map(fn($w) => $weekNames[$w] ?? $w)->implode(', ');
+
+        $reason = "Tukar Jadwal Hari: {$hariAsalName} ditukar dengan {$hariTujuanName} | SE: {$seName} | Minggu: [{$weeksStr}]";
+
         try {
-            \Illuminate\Support\Facades\DB::transaction(function () use ($selectedWeeks) {
-                // Ambil baris yang relevan dengan hari asal ATAU tujuan, DAN mengandung minggu yang dipilih
-                $rows = \Illuminate\Support\Facades\DB::table('jks_salesmans')
-                    ->where('salesman_code', $this->swapSalesmanCode)
-                    ->where('distributor_code', $this->appliedDistributor)
-                    ->where(function($query) use ($selectedWeeks) {
-                        foreach ($selectedWeeks as $week) {
-                            $query->where($week, 'Y');
-                        }
-                    })
-                    ->where(function($query) {
-                        $query->where($this->swapHariAsal, 'Y')
-                              ->orWhere($this->swapHariTujuan, 'Y');
-                    })
-                    ->get();
+            $this->handleJksAction('TUKAR_HARI', $payload, $reason, function() use ($payload) {
+                \Illuminate\Support\Facades\DB::transaction(function () use ($payload) {
+                    $rows = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                        ->where('salesman_code', $payload['salesman_code'])
+                        ->where('distributor_code', $this->appliedDistributor)
+                        ->where(function($query) use ($payload) {
+                            foreach ($payload['minggu'] as $week) {
+                                $query->where($week, 'Y');
+                            }
+                        })
+                        ->where(function($query) use ($payload) {
+                            $query->where($payload['hari_asal'], 'Y')
+                                  ->orWhere($payload['hari_tujuan'], 'Y');
+                        })
+                        ->get();
 
-                foreach ($rows as $row) {
-                    // Cek apakah ada minggu lain (selain yang dipilih) yang aktif (Y)
-                    $unselectedWeeks = array_diff(['w1', 'w2', 'w3', 'w4'], $selectedWeeks);
-                    $hasUnselected = false;
-                    foreach ($unselectedWeeks as $uw) {
-                        if ($row->$uw === 'Y') {
-                            $hasUnselected = true;
-                            break;
-                        }
-                    }
-
-                    if ($hasUnselected) {
-                        // ROW SPLITTING (Pecah Baris)
-                        
-                        // 1. Update baris lama: Matikan minggu-minggu yang dipilih (biarkan jadwal aslinya utuh untuk minggu lainnya)
-                        $updateOriginal = ['updated_at' => now()];
-                        foreach ($selectedWeeks as $sw) {
-                            $updateOriginal[$sw] = 'T';
-                        }
-                        \Illuminate\Support\Facades\DB::table('jks_salesmans')
-                            ->where('id', $row->id)
-                            ->update($updateOriginal);
-
-                        // 2. Buat baris baru: Khusus untuk minggu yang dipilih, dengan hari yang DITUKAR
-                        $newRow = (array) $row;
-                        unset($newRow['id']);
-                        $newRow['created_at'] = now();
-                        $newRow['updated_at'] = now();
-                        
-                        // Matikan minggu yang tidak dipilih di baris baru
+                    foreach ($rows as $row) {
+                        $unselectedWeeks = array_diff(['w1', 'w2', 'w3', 'w4'], $payload['minggu']);
+                        $hasUnselected = false;
                         foreach ($unselectedWeeks as $uw) {
-                            $newRow[$uw] = 'T';
+                            if ($row->$uw === 'Y') {
+                                $hasUnselected = true;
+                                break;
+                            }
                         }
-                        
-                        // Eksekusi penukaran hari
-                        $temp = $newRow[$this->swapHariAsal];
-                        $newRow[$this->swapHariAsal] = $newRow[$this->swapHariTujuan];
-                        $newRow[$this->swapHariTujuan] = $temp;
-                        
-                        \Illuminate\Support\Facades\DB::table('jks_salesmans')->insert($newRow);
 
-                    } else {
-                        // NO SPLIT NEEDED (Semua minggu aktif adalah minggu yang dipilih)
-                        \Illuminate\Support\Facades\DB::table('jks_salesmans')
-                            ->where('id', $row->id)
-                            ->update([
-                                $this->swapHariAsal => $row->{$this->swapHariTujuan},
-                                $this->swapHariTujuan => $row->{$this->swapHariAsal},
-                                'updated_at' => now(),
-                            ]);
+                        if ($hasUnselected) {
+                            $updateOriginal = ['updated_at' => now()];
+                            foreach ($payload['minggu'] as $sw) {
+                                $updateOriginal[$sw] = 'T';
+                            }
+                            \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                                ->where('id', $row->id)
+                                ->update($updateOriginal);
+
+                            $newRow = (array) $row;
+                            unset($newRow['id']);
+                            $newRow['created_at'] = now();
+                            $newRow['updated_at'] = now();
+                            
+                            foreach ($unselectedWeeks as $uw) {
+                                $newRow[$uw] = 'T';
+                            }
+                            
+                            $temp = $newRow[$payload['hari_asal']];
+                            $newRow[$payload['hari_asal']] = $newRow[$payload['hari_tujuan']];
+                            $newRow[$payload['hari_tujuan']] = $temp;
+                            
+                            \Illuminate\Support\Facades\DB::table('jks_salesmans')->insert($newRow);
+
+                        } else {
+                            \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                                ->where('id', $row->id)
+                                ->update([
+                                    $payload['hari_asal'] => $row->{$payload['hari_tujuan']},
+                                    $payload['hari_tujuan'] => $row->{$payload['hari_asal']},
+                                    'updated_at' => now(),
+                                ]);
+                        }
                     }
-                }
-            });
+                });
+            }, 'Pertukaran jadwal massal berhasil!');
 
             $this->closeSwapModal();
-            $this->dispatch('toast', ['type' => 'success', 'message' => 'Pertukaran jadwal massal berhasil!']);
             
         } catch (\Exception $e) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal mengeksekusi pertukaran: ' . $e->getMessage()]);
         }
+    }
+
+    #[\Livewire\Attributes\Computed]
+    public function affectedMingguSummary()
+    {
+        if (empty($this->swapSalesmanCode) || empty($this->swapMingguAsal) || empty($this->swapMingguTujuan) || $this->swapMingguAsal === $this->swapMingguTujuan) {
+            return collect([]);
+        }
+
+        $days = [
+            'h1' => 'Senin',
+            'h2' => 'Selasa',
+            'h3' => 'Rabu',
+            'h4' => 'Kamis',
+            'h5' => 'Jumat',
+            'h6' => 'Sabtu',
+            'h7' => 'Minggu'
+        ];
+
+        $summary = [];
+
+        foreach ($days as $col => $label) {
+            $countAsal = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                ->where('salesman_code', $this->swapSalesmanCode)
+                ->where('distributor_code', $this->appliedDistributor)
+                ->where($col, 'Y')
+                ->where($this->swapMingguAsal, 'Y')
+                ->count();
+
+            $countTujuan = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                ->where('salesman_code', $this->swapSalesmanCode)
+                ->where('distributor_code', $this->appliedDistributor)
+                ->where($col, 'Y')
+                ->where($this->swapMingguTujuan, 'Y')
+                ->count();
+
+            if ($countAsal > 0 || $countTujuan > 0) {
+                $summary[] = (object) [
+                    'hari' => $label,
+                    'asal' => $countAsal,
+                    'tujuan' => $countTujuan
+                ];
+            }
+        }
+
+        return collect($summary);
+    }
+
+    public function executeSwapMinggu()
+    {
+        if (empty($this->swapSalesmanCode) || empty($this->swapMingguAsal) || empty($this->swapMingguTujuan)) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Lengkapi form sebelum mengeksekusi!']);
+            return;
+        }
+
+        if ($this->swapMingguAsal === $this->swapMingguTujuan) {
+            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Minggu asal dan tujuan tidak boleh sama!']);
+            return;
+        }
+
+        $summary = $this->affectedMingguSummary;
+        if ($summary->isEmpty()) {
+            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Tidak ada toko yang terdampak!']);
+            return;
+        }
+
+        $payload = [
+            'salesman_code' => $this->swapSalesmanCode,
+            'minggu_asal' => $this->swapMingguAsal,
+            'minggu_tujuan' => $this->swapMingguTujuan,
+        ];
+
+        $weekNames = ['w1'=>'Minggu 1', 'w2'=>'Minggu 2', 'w3'=>'Minggu 3', 'w4'=>'Minggu 4'];
+        $mingguAsalName = $weekNames[$this->swapMingguAsal] ?? strtoupper($this->swapMingguAsal);
+        $mingguTujuanName = $weekNames[$this->swapMingguTujuan] ?? strtoupper($this->swapMingguTujuan);
+        $seName = $this->headerSalesmans->firstWhere('salesman_code', $this->swapSalesmanCode)->salesman_name ?? $this->swapSalesmanCode;
+
+        $reason = "Tukar Jadwal Minggu: {$mingguAsalName} ditukar dengan {$mingguTujuanName} | SE: {$seName}";
+
+        try {
+            $this->handleJksAction('TUKAR_MINGGU', $payload, $reason, function() use ($payload) {
+                \Illuminate\Support\Facades\DB::transaction(function () use ($payload) {
+                    $rows = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                        ->where('salesman_code', $payload['salesman_code'])
+                        ->where('distributor_code', $this->appliedDistributor)
+                        ->where(function($query) use ($payload) {
+                            $query->where($payload['minggu_asal'], 'Y')
+                                  ->orWhere($payload['minggu_tujuan'], 'Y');
+                        })
+                        ->get();
+
+                    foreach ($rows as $row) {
+                        $newAsalVal = $row->{$payload['minggu_tujuan']};
+                        $newTujuanVal = $row->{$payload['minggu_asal']};
+
+                        \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                            ->where('id', $row->id)
+                            ->update([
+                                $payload['minggu_asal'] => $newAsalVal,
+                                $payload['minggu_tujuan'] => $newTujuanVal,
+                                'updated_at' => now(),
+                            ]);
+                    }
+                });
+            }, "Jadwal " . strtoupper($this->swapMingguAsal) . " berhasil ditukar dengan " . strtoupper($this->swapMingguTujuan) . "!");
+
+            $this->closeSwapModal();
+            $this->resetPage();
+
+        } catch (\Exception $e) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal menukar jadwal minggu: ' . $e->getMessage()]);
+        }
+    }
+
+    #[\Livewire\Attributes\Computed]
+    public function affectedSalesmanSummary()
+    {
+        if (empty($this->swapSalesmanAsal) || empty($this->swapSalesmanTujuan) || $this->swapSalesmanAsal === $this->swapSalesmanTujuan) {
+            return collect([]);
+        }
+
+        $countAsal = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+            ->where('salesman_code', $this->swapSalesmanAsal)
+            ->where('distributor_code', $this->appliedDistributor)
+            ->count();
+
+        $countTujuan = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+            ->where('salesman_code', $this->swapSalesmanTujuan)
+            ->where('distributor_code', $this->appliedDistributor)
+            ->count();
+
+        $asalName = collect($this->headerSalesmans)->firstWhere('salesman_code', $this->swapSalesmanAsal)->salesman_name ?? $this->swapSalesmanAsal;
+        $tujuanName = collect($this->headerSalesmans)->firstWhere('salesman_code', $this->swapSalesmanTujuan)->salesman_name ?? $this->swapSalesmanTujuan;
+
+        return collect([
+            'asal' => [
+                'code' => $this->swapSalesmanAsal,
+                'name' => $asalName,
+                'count' => $countAsal
+            ],
+            'tujuan' => [
+                'code' => $this->swapSalesmanTujuan,
+                'name' => $tujuanName,
+                'count' => $countTujuan
+            ]
+        ]);
+    }
+
+    public function executeSwapSalesman()
+    {
+        if (empty($this->swapSalesmanAsal) || empty($this->swapSalesmanTujuan)) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Lengkapi form sebelum mengeksekusi!']);
+            return;
+        }
+
+        if ($this->swapSalesmanAsal === $this->swapSalesmanTujuan) {
+            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Salesman asal dan tujuan tidak boleh sama!']);
+            return;
+        }
+
+        $summary = $this->affectedSalesmanSummary;
+        if ($summary['asal']['count'] == 0 && $summary['tujuan']['count'] == 0) {
+            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Kedua salesman tidak memiliki toko untuk ditukar!']);
+            return;
+        }
+
+        $payload = [
+            'salesman_asal' => $this->swapSalesmanAsal,
+            'salesman_tujuan' => $this->swapSalesmanTujuan,
+        ];
+
+        $asalName = $summary['asal']['name'] ?? $this->swapSalesmanAsal;
+        $tujuanName = $summary['tujuan']['name'] ?? $this->swapSalesmanTujuan;
+        $reason = "Tukar Salesman: {$asalName} ditukar dengan {$tujuanName}";
+
+        try {
+            $this->handleJksAction('TUKAR_SALESMAN', $payload, $reason, function() use ($payload) {
+                \Illuminate\Support\Facades\DB::transaction(function () use ($payload) {
+                    $asalIds = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                        ->where('salesman_code', $payload['salesman_asal'])
+                        ->where('distributor_code', $this->appliedDistributor)
+                        ->pluck('id');
+
+                    $tujuanIds = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                        ->where('salesman_code', $payload['salesman_tujuan'])
+                        ->where('distributor_code', $this->appliedDistributor)
+                        ->pluck('id');
+
+                    if ($asalIds->isNotEmpty()) {
+                        \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                            ->whereIn('id', $asalIds)
+                            ->update([
+                                'salesman_code' => $payload['salesman_tujuan'],
+                                'updated_at' => now(),
+                            ]);
+                    }
+
+                    if ($tujuanIds->isNotEmpty()) {
+                        \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                            ->whereIn('id', $tujuanIds)
+                            ->update([
+                                'salesman_code' => $payload['salesman_asal'],
+                                'updated_at' => now(),
+                            ]);
+                    }
+                });
+            }, "Semua toko dari salesman {$this->swapSalesmanAsal} berhasil ditukar dengan {$this->swapSalesmanTujuan}!");
+
+            $this->closeSwapModal();
+            $this->resetPage();
+        } catch (\Exception $e) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal menukar salesman: ' . $e->getMessage()]);
+        }
+    }
+
+    // --- BULK DELETE METHODS ---
+    public function openBulkDeleteModal()
+    {
+        $this->bdSalesman = '';
+        $this->bdHari = '';
+        $this->bdMinggu = '';
+        $this->bdSelectedIds = [];
+        $this->bdSelectAll = false;
+        $this->showBulkDeleteModal = true;
+    }
+
+    public function closeBulkDeleteModal()
+    {
+        $this->showBulkDeleteModal = false;
+        $this->bdSelectedIds = [];
+        $this->bdSelectAll = false;
+    }
+
+    public function updatedBdSalesman() { $this->resetBdSelection(); }
+    public function updatedBdHari() { $this->resetBdSelection(); }
+    public function updatedBdMinggu() { $this->resetBdSelection(); }
+
+    private function resetBdSelection()
+    {
+        $this->bdSelectedIds = [];
+        $this->bdSelectAll = false;
+    }
+
+    public function updatedBdSelectAll($value)
+    {
+        if ($value) {
+            $this->bdSelectedIds = $this->bdPreviewStores->pluck('id')->map(fn($id) => (string)$id)->toArray();
+        } else {
+            $this->bdSelectedIds = [];
+        }
+    }
+
+    public function updatedBdSelectedIds()
+    {
+        $previewCount = $this->bdPreviewStores->count();
+        $this->bdSelectAll = ($previewCount > 0 && count($this->bdSelectedIds) === $previewCount);
+    }
+
+    #[\Livewire\Attributes\Computed]
+    public function bdPreviewStores()
+    {
+        if (empty($this->bdSalesman)) {
+            return collect([]);
+        }
+
+        $query = \Illuminate\Support\Facades\DB::table('jks_salesmans as js')
+            ->select('js.*', 'ltpte.customer_name')
+            ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
+                $join->on('js.distributor_code', '=', 'ltpte.distributor_code')
+                     ->on('js.customer_code', '=', 'ltpte.uniq_kd');
+            })
+            ->where('js.distributor_code', $this->appliedDistributor)
+            ->where('js.salesman_code', $this->bdSalesman);
+
+        if (!empty($this->bdHari)) {
+            $query->where('js.' . $this->bdHari, 'Y');
+        }
+
+        if (!empty($this->bdMinggu)) {
+            $query->where('js.' . $this->bdMinggu, 'Y');
+        }
+
+        return $query->orderBy('js.customer_code', 'asc')->get();
+    }
+
+    public function executeBulkDelete()
+    {
+        if (empty($this->bdSelectedIds)) {
+            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Pilih minimal satu toko untuk dihapus!']);
+            return;
+        }
+
+        if (strlen(trim($this->bdReason)) < 5) {
+            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Alasan reset harus diisi (minimal 5 karakter)!']);
+            return;
+        }
+
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            $count = count($this->bdSelectedIds);
+            
+            $payload = [
+                'ids' => $this->bdSelectedIds,
+                'update' => [
+                    'h1' => 'T', 'h2' => 'T', 'h3' => 'T', 'h4' => 'T', 'h5' => 'T', 'h6' => 'T', 'h7' => 'T',
+                    'w1' => 'T', 'w2' => 'T', 'w3' => 'T', 'w4' => 'T',
+                    'reason' => $this->bdReason,
+                ]
+            ];
+
+            $hariNames = ['h1'=>'Senin', 'h2'=>'Selasa', 'h3'=>'Rabu', 'h4'=>'Kamis', 'h5'=>'Jumat', 'h6'=>'Sabtu', 'h7'=>'Minggu'];
+            $weekNames = ['w1'=>'Minggu 1', 'w2'=>'Minggu 2', 'w3'=>'Minggu 3', 'w4'=>'Minggu 4'];
+            $hariFilter = $this->bdHari ? ($hariNames[$this->bdHari] ?? $this->bdHari) : 'Semua Hari';
+            $mingguFilter = $this->bdMinggu ? ($weekNames[$this->bdMinggu] ?? $this->bdMinggu) : 'Semua Minggu';
+            $seFilter = collect($this->headerSalesmans)->firstWhere('salesman_code', $this->bdSalesman)->salesman_name ?? $this->bdSalesman ?: 'Semua Salesman';
+
+            $reasonFull = "Hapus Massal {$count} Jadwal Toko | Filter -> SE: {$seFilter}, Hari: {$hariFilter}, Minggu: {$mingguFilter} | Alasan: " . $this->bdReason;
+
+            $this->handleJksAction('DELETE_MASSAL', $payload, $reasonFull, function() use ($payload) {
+                \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                    ->whereIn('id', $payload['ids'])
+                    ->where('distributor_code', $this->appliedDistributor)
+                    ->update(array_merge($payload['update'], ['updated_at' => now()]));
+            }, "Berhasil mereset {$count} jadwal toko menjadi kosong (T)!");
+
+            \Illuminate\Support\Facades\DB::commit();
+            
+            $this->closeBulkDeleteModal();
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal mereset massal: ' . $e->getMessage()]);
+        }
+    }
+
+    public function exportExcel()
+    {
+        $filters = $this->getAppliedFilters();
+        $filters['salesman'] = $this->headerSalesman;
+        
+        $fileName = 'JKS_Export_' . date('Ymd_His') . '.xlsx';
+        
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\JksSalesmanExport($this->search, $filters), 
+            $fileName
+        );
     }
 
     public function editJadwal($id)
@@ -285,6 +704,7 @@ class Index extends Component
     {
         $this->showEditModal = false;
         $this->editId = null;
+        $this->editReason = '';
     }
 
     public function saveJadwal()
@@ -295,11 +715,16 @@ class Index extends Component
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Validasi Gagal: Pilihan Salesman tidak boleh kosong!']);
             return;
         }
+        
+        if (strlen(trim($this->editReason)) < 5) {
+            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Alasan edit harus diisi (minimal 5 karakter)!']);
+            return;
+        }
 
         try {
-            \Illuminate\Support\Facades\DB::table('jks_salesmans')
-                ->where('id', $this->editId)
-                ->update([
+            $payload = [
+                'id' => $this->editId,
+                'update' => [
                     'salesman_code' => $this->editSalesmanCode,
                     'h1' => $this->editHari['h1'] ? 'Y' : 'T',
                     'h2' => $this->editHari['h2'] ? 'Y' : 'T',
@@ -312,11 +737,29 @@ class Index extends Component
                     'w2' => $this->editMinggu['w2'] ? 'Y' : 'T',
                     'w3' => $this->editMinggu['w3'] ? 'Y' : 'T',
                     'w4' => $this->editMinggu['w4'] ? 'Y' : 'T',
-                    'updated_at' => now(),
-                ]);
+                    'reason' => $this->editReason,
+                ]
+            ];
+
+            $hariNames = ['h1'=>'Senin', 'h2'=>'Selasa', 'h3'=>'Rabu', 'h4'=>'Kamis', 'h5'=>'Jumat', 'h6'=>'Sabtu', 'h7'=>'Minggu'];
+            $weekNames = ['w1'=>'Minggu 1', 'w2'=>'Minggu 2', 'w3'=>'Minggu 3', 'w4'=>'Minggu 4'];
+
+            $activeHari = [];
+            foreach ($this->editHari as $key => $val) { if ($val) $activeHari[] = $hariNames[$key] ?? strtoupper($key); }
+            $activeMinggu = [];
+            foreach ($this->editMinggu as $key => $val) { if ($val) $activeMinggu[] = $weekNames[$key] ?? strtoupper($key); }
+            
+            $seName = $this->headerSalesmans->firstWhere('salesman_code', $this->editSalesmanCode)->salesman_name ?? $this->editSalesmanCode;
+
+            $reasonFull = "Edit Jadwal Toko: {$this->editCustomerName} (SE: {$seName}) | Hari: [" . implode(', ', $activeHari) . "] | Minggu: [" . implode(', ', $activeMinggu) . "] | Alasan: " . $this->editReason;
+
+            $this->handleJksAction('EDIT_INDIVIDU', $payload, $reasonFull, function() use ($payload) {
+                \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                    ->where('id', $payload['id'])
+                    ->update(array_merge($payload['update'], ['updated_at' => now()]));
+            }, 'Jadwal berhasil diperbarui!');
 
             $this->closeEditModal();
-            $this->dispatch('toast', ['type' => 'success', 'message' => 'Jadwal berhasil diperbarui!']);
         } catch (\Exception $e) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal memperbarui jadwal: ' . $e->getMessage()]);
         }
@@ -325,6 +768,7 @@ class Index extends Component
     public function confirmDelete($id)
     {
         $this->deleteId = $id;
+        $this->deleteReason = '';
         $this->showDeleteModal = true;
     }
 
@@ -332,27 +776,64 @@ class Index extends Component
     {
         $this->showDeleteModal = false;
         $this->deleteId = null;
+        $this->deleteReason = '';
     }
 
     public function executeDelete()
     {
         if (!$this->deleteId) return;
 
+        if (strlen(trim($this->deleteReason)) < 5) {
+            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Alasan reset harus diisi (minimal 5 karakter)!']);
+            return;
+        }
+
         try {
-            $deleted = \Illuminate\Support\Facades\DB::table('jks_salesmans')->where('id', $this->deleteId)->delete();
+            $payload = [
+                'id' => $this->deleteId,
+                'update' => [
+                    'h1' => 'T', 'h2' => 'T', 'h3' => 'T', 'h4' => 'T', 'h5' => 'T', 'h6' => 'T', 'h7' => 'T',
+                    'w1' => 'T', 'w2' => 'T', 'w3' => 'T', 'w4' => 'T',
+                    'reason' => $this->deleteReason,
+                ]
+            ];
+
+            $jks = \Illuminate\Support\Facades\DB::table('jks_salesmans as js')
+                ->select('js.*', 'ltpte.customer_name')
+                ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
+                    $join->on('js.distributor_code', '=', 'ltpte.distributor_code')
+                         ->on('js.customer_code', '=', 'ltpte.uniq_kd');
+                })
+                ->where('js.id', $this->deleteId)
+                ->first();
+
+            $customerName = $jks->customer_name ?? $jks->customer_code ?? '-';
+            $salesmanCode = $jks->salesman_code ?? '-';
+            $seName = $this->headerSalesmans->firstWhere('salesman_code', $salesmanCode)->salesman_name ?? $salesmanCode;
             
-            if (!$deleted) {
-                $this->closeDeleteModal();
-                $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal: Data jadwal tidak ditemukan atau sudah dihapus.']);
-                return;
-            }
+            $hariNames = ['h1'=>'Senin', 'h2'=>'Selasa', 'h3'=>'Rabu', 'h4'=>'Kamis', 'h5'=>'Jumat', 'h6'=>'Sabtu', 'h7'=>'Minggu'];
+            $weekNames = ['w1'=>'Minggu 1', 'w2'=>'Minggu 2', 'w3'=>'Minggu 3', 'w4'=>'Minggu 4'];
+            
+            $activeHari = [];
+            foreach (['h1','h2','h3','h4','h5','h6','h7'] as $h) { if (isset($jks->$h) && $jks->$h === 'Y') $activeHari[] = $hariNames[$h]; }
+            $activeMinggu = [];
+            foreach (['w1','w2','w3','w4'] as $w) { if (isset($jks->$w) && $jks->$w === 'Y') $activeMinggu[] = $weekNames[$w]; }
+
+            $reasonFull = "Hapus Jadwal Toko: {$customerName} | SE: {$seName} | Hari: [" . implode(', ', $activeHari) . "] | Minggu: [" . implode(', ', $activeMinggu) . "] | Alasan: " . $this->deleteReason;
+
+            $this->handleJksAction('DELETE_INDIVIDU', $payload, $reasonFull, function() use ($payload) {
+                \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                    ->where('id', $payload['id'])
+                    ->update(array_merge($payload['update'], ['updated_at' => now()]));
+            }, 'Jadwal berhasil dihapus (reset ke T)!');
 
             $this->closeDeleteModal();
-            $this->dispatch('toast', ['type' => 'success', 'message' => 'Jadwal berhasil dihapus!']);
         } catch (\Exception $e) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal menghapus jadwal: ' . $e->getMessage()]);
         }
     }
+
+
 
     public function openCalendarModal($week)
     {
@@ -391,10 +872,60 @@ class Index extends Component
         $kpiSummary = $service->getKpiSummary($filters);
         $mingguDates = $service->getMingguDateRanges($filters['bulan'] ?? null);
 
+        // Find collisions for the current page
+        $collidingCustomerCodes = [];
+        if (!empty($filters['bulan']) && count($data->items()) > 0) {
+            $customerCodesOnPage = collect($data->items())->pluck('customer_code')->unique()->toArray();
+            
+            $collisions = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                ->select('customer_code')
+                ->where('bulan', 'like', $filters['bulan'] . '%')
+                ->whereIn('customer_code', $customerCodesOnPage)
+                ->groupBy('customer_code')
+                ->havingRaw('COUNT(DISTINCT salesman_code) > 1')
+                ->pluck('customer_code')
+                ->toArray();
+                
+            $collidingCustomerCodes = $collisions;
+        }
+
         return view('livewire.call-plan.jks-salesmans.index', [
             'jksData' => $data,
             'kpiSummary' => $kpiSummary,
-            'mingguDates' => $mingguDates
+            'mingguDates' => $mingguDates,
+            'collidingCustomerCodes' => $collidingCustomerCodes
         ]);
     }
+
+    // ---------------------------------------------------------
+    // COLLISION DETECTION
+    // ---------------------------------------------------------
+    public function showCollisionDetails($customerCode, $customerName)
+    {
+        $filters = $this->getAppliedFilters();
+        if (empty($filters['bulan'])) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Pilih bulan terlebih dahulu.']);
+            return;
+        }
+
+        $this->collisionCustomerName = $customerName;
+        
+        // Fetch all schedules for this customer in this month
+        $schedules = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+            ->where('bulan', 'like', $filters['bulan'] . '%')
+            ->where('customer_code', $customerCode)
+            ->join('salesmans', 'jks_salesmans.salesman_code', '=', 'salesmans.salesman_code')
+            ->select('jks_salesmans.*', 'salesmans.salesman_name')
+            ->get();
+
+        $this->collisionDetails = $schedules->toArray();
+        $this->showCollisionModal = true;
+    }
+
+    public function closeCollisionModal()
+    {
+        $this->showCollisionModal = false;
+        $this->collisionDetails = [];
+    }
+
 }

@@ -354,6 +354,19 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/call-plan/jks-team-elite/clustering', ClusteringIndex::class)->name('call-plan.jks-team-elite.clustering');
     Route::get('/call-plan/management-cluster', \App\Livewire\CallPlan\ClusterManagement\Index::class)->name('call-plan.cluster-management');
     Route::get('/call-plan/jks-salesmans', \App\Livewire\CallPlan\JksSalesmans\Index::class)->name('call-plan.jks-salesmans');
+    Route::get('/call-plan/jks-salesmans/export-error', function (\Illuminate\Http\Request $request) {
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\JksImportErrorExport($request->query('batchId')),
+            'error_log_import_jks.xlsx'
+        );
+    })->name('call-plan.jks-salesmans.export-error');
+    Route::get('/call-plan/jks-salesmans/export-template', function () {
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\JksImportTemplateExport(),
+            'template_import_jks.xlsx'
+        );
+    })->name('call-plan.jks-salesmans.export-template');
+    Route::get('/call-plan/jks-approvals', \App\Livewire\CallPlan\JksApprovals\Index::class)->name('call-plan.jks-approvals');
 
     // ==========================================
     // SELLING IN & OUT
