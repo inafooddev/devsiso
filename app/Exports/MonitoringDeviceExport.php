@@ -142,68 +142,88 @@ class MonitoringDeviceExport implements FromView, WithDrawings, WithEvents, Shou
                 if ($mData) {
                     if (!empty($mData['foto_tampak_depan']) && Storage::disk('public')->exists($mData['foto_tampak_depan'])) {
                         $path = storage_path('app/public/' . $mData['foto_tampak_depan']);
-                        $drawing = new Drawing();
-                        $drawing->setName('Foto Depan');
-                        $drawing->setDescription('Foto Depan');
-                        $drawing->setPath($path);
                         
+                        $isValidImage = false;
                         $iWidth = 0; $iHeight = 0;
                         if (file_exists($path)) {
-                            $info = @getimagesize($path);
-                            if ($info) {
-                                $iWidth = $info[0];
-                                $iHeight = $info[1];
+                            try {
+                                $info = getimagesize($path);
+                                if ($info) {
+                                    $isValidImage = true;
+                                    $iWidth = $info[0];
+                                    $iHeight = $info[1];
+                                }
+                            } catch (\Throwable $e) {
+                                // Image is corrupt or not readable, skip it
+                                $isValidImage = false;
                             }
                         }
                         
-                        if ($iWidth && $iHeight) {
-                            $ratio = $iWidth / $iHeight;
-                            if ($ratio > (120 / 80)) {
-                                $drawing->setWidth(120);
+                        if ($isValidImage) {
+                            $drawing = new Drawing();
+                            $drawing->setName('Foto Depan');
+                            $drawing->setDescription('Foto Depan');
+                            $drawing->setPath($path);
+                            
+                            if ($iWidth && $iHeight) {
+                                $ratio = $iWidth / $iHeight;
+                                if ($ratio > (120 / 80)) {
+                                    $drawing->setWidth(120);
+                                } else {
+                                    $drawing->setHeight(80);
+                                }
                             } else {
                                 $drawing->setHeight(80);
                             }
-                        } else {
-                            $drawing->setHeight(80);
+                            
+                            $drawing->setOffsetX(10);
+                            $drawing->setOffsetY(10);
+                            $drawing->setCoordinates(Coordinate::stringFromColumnIndex($startCol) . $rowNum);
+                            $this->drawings[] = $drawing;
                         }
-                        
-                        $drawing->setOffsetX(10);
-                        $drawing->setOffsetY(10);
-                        $drawing->setCoordinates(Coordinate::stringFromColumnIndex($startCol) . $rowNum);
-                        $this->drawings[] = $drawing;
                     }
                     
                     if (!empty($mData['foto_tampak_belakang']) && Storage::disk('public')->exists($mData['foto_tampak_belakang'])) {
                         $path = storage_path('app/public/' . $mData['foto_tampak_belakang']);
-                        $drawing = new Drawing();
-                        $drawing->setName('Foto Belakang');
-                        $drawing->setDescription('Foto Belakang');
-                        $drawing->setPath($path);
                         
+                        $isValidImage = false;
                         $iWidth = 0; $iHeight = 0;
                         if (file_exists($path)) {
-                            $info = @getimagesize($path);
-                            if ($info) {
-                                $iWidth = $info[0];
-                                $iHeight = $info[1];
+                            try {
+                                $info = getimagesize($path);
+                                if ($info) {
+                                    $isValidImage = true;
+                                    $iWidth = $info[0];
+                                    $iHeight = $info[1];
+                                }
+                            } catch (\Throwable $e) {
+                                // Image is corrupt or not readable, skip it
+                                $isValidImage = false;
                             }
                         }
                         
-                        if ($iWidth && $iHeight) {
-                            $ratio = $iWidth / $iHeight;
-                            if ($ratio > (120 / 80)) {
-                                $drawing->setWidth(120);
+                        if ($isValidImage) {
+                            $drawing = new Drawing();
+                            $drawing->setName('Foto Belakang');
+                            $drawing->setDescription('Foto Belakang');
+                            $drawing->setPath($path);
+                            
+                            if ($iWidth && $iHeight) {
+                                $ratio = $iWidth / $iHeight;
+                                if ($ratio > (120 / 80)) {
+                                    $drawing->setWidth(120);
+                                } else {
+                                    $drawing->setHeight(80);
+                                }
                             } else {
                                 $drawing->setHeight(80);
                             }
-                        } else {
-                            $drawing->setHeight(80);
+                            
+                            $drawing->setOffsetX(10);
+                            $drawing->setOffsetY(10);
+                            $drawing->setCoordinates(Coordinate::stringFromColumnIndex($startCol + 1) . $rowNum);
+                            $this->drawings[] = $drawing;
                         }
-                        
-                        $drawing->setOffsetX(10);
-                        $drawing->setOffsetY(10);
-                        $drawing->setCoordinates(Coordinate::stringFromColumnIndex($startCol + 1) . $rowNum);
-                        $this->drawings[] = $drawing;
                     }
                 }
                 $startCol += 4;
