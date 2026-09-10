@@ -82,7 +82,7 @@ class SyncFruteJob implements ShouldQueue
                         'kodecabang' => $row['KODECABANG'] === '' ? null : $row['KODECABANG'],
                         'cabang' => $row['ENTITY'] === '' ? null : $row['ENTITY'],
                         'slsno' => $row['KODESALES'] === '' ? null : $row['KODESALES'],
-                        'norute' => $row['NORUTE'] === '' ? null : $row['NORUTE'],
+                        'norute' => $row['NORUTE'] === '' ? '0' : $row['NORUTE'],
                         'custno' => $row['KODECUST'] === '' ? null : $row['KODECUST'],
                         'h1' => $row['DAY1'] === '' ? null : $row['DAY1'],
                         'h2' => $row['DAY2'] === '' ? null : $row['DAY2'],
