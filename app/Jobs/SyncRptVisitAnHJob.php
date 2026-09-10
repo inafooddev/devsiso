@@ -87,11 +87,14 @@ class SyncRptVisitAnHJob implements ShouldQueue
             $inserted = 0;
             
             foreach ($chunks as $chunk) {
-                // Formatting data agar NULL masuk dengan benar & tipe data terjaga
                 $insertData = [];
                 foreach ($chunk as $row) {
-                    // Karena array associative dari API sudah 99% match dengan tabel
-                    $insertData[] = $row;
+                    $formattedRow = [];
+                    foreach ($row as $key => $value) {
+                        // Mengubah string kosong menjadi null untuk menghindari error cast tipe data di Postgres (misal integer/date)
+                        $formattedRow[$key] = ($value === '') ? null : $value;
+                    }
+                    $insertData[] = $formattedRow;
                 }
                 
                 DB::table('rpt_visit_an_h')->insert($insertData);
