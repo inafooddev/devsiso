@@ -29,6 +29,7 @@
     'dismissible' => true,
     'open'        => false,
     'boxClass'    => '',
+    'position'    => 'middle',
 ])
 
 @php
@@ -39,14 +40,22 @@
         'full' => 'w-[95vw] max-w-[95vw]',
         default => 'max-w-lg',
     };
+
+    $dialogPositionClass = 'sm:modal-middle';
+    $boxPositionClass = '';
+
+    if ($position === 'top') {
+        $dialogPositionClass = 'sm:modal-middle !items-start';
+        $boxPositionClass = 'mt-6 sm:mt-16 mb-auto';
+    }
 @endphp
 
 <dialog id="{{ $id }}" 
     @if($attributes->has('wire:close'))
         onclose="const btn = this.querySelector('[wire\\:click=\'{{ $attributes->get('wire:close') }}\']'); if(btn) btn.click();"
     @endif
-    {{ $attributes->merge(['class' => 'modal modal-bottom sm:modal-middle ' . ($open ? 'modal-open' : '')]) }}>
-    <div class="modal-box bg-base-100 border border-base-300 {{ $sizeClass }} p-0 {{ $boxClass }}">
+    {{ $attributes->merge(['class' => 'modal modal-bottom z-[10000] ' . $dialogPositionClass . ' ' . ($open ? 'modal-open' : '')]) }}>
+    <div class="modal-box bg-base-100 border border-base-300 {{ $sizeClass }} p-0 {{ $boxPositionClass }} {{ $boxClass }}">
 
         {{-- Header --}}
         <div class="flex items-center justify-between px-6 py-4 border-b border-base-300">

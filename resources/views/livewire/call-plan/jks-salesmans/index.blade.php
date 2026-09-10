@@ -45,7 +45,7 @@
 
     {{-- Calendar Modal --}}
     @if($showCalendarModal)
-        <x-ui.modal id="modal-calendar" title="Kalender Minggu M{{ $selectedWeekForCalendar }}" icon="calendar-days" size="sm" open="true" wire:close="closeCalendarModal">
+        <x-ui.modal id="modal-calendar" title="Kalender Minggu M{{ $selectedWeekForCalendar }}" icon="calendar-days" size="sm" open="true" wire:close="closeCalendarModal" position="top">
             <div class="px-2 pb-2">
                 <div class="grid grid-cols-7 gap-1 text-center mb-2">
                     <div class="text-[10px] font-bold text-base-content/50 uppercase text-error">Min</div>
@@ -90,7 +90,7 @@
 
     {{-- Edit Modal --}}
     @if($showEditModal)
-        <x-ui.modal id="modal-edit" title="Modifikasi Jadwal" icon="pencil-square" size="md" open="true" wire:close="closeEditModal">
+        <x-ui.modal id="modal-edit" title="Modifikasi Jadwal" icon="pencil-square" size="md" open="true" wire:close="closeEditModal" position="top">
             <div class="px-2 pb-2">
                 <div class="mb-4">
                     <label class="text-xs text-base-content/50 font-bold uppercase">Nama Toko</label>
@@ -155,7 +155,7 @@
 
     {{-- Delete Modal --}}
     @if($showDeleteModal)
-        <x-ui.modal id="modal-delete" title="Konfirmasi Reset" icon="trash" size="sm" open="true" wire:close="closeDeleteModal">
+        <x-ui.modal id="modal-delete" title="Konfirmasi Reset" icon="trash" size="sm" open="true" wire:close="closeDeleteModal" position="top">
             <div class="px-2 pb-2">
                 <p class="text-sm text-base-content/80 mb-4">Apakah Anda yakin ingin mereset seluruh jadwal kunjungan untuk toko ini menjadi kosong (T)?</p>
                 <div class="form-control">
@@ -177,7 +177,7 @@
 
     {{-- Bulk Swap Modal --}}
     @if($showSwapModal)
-        <x-ui.modal id="modal-swap" title="Tukar Jadwal Massal" icon="arrows-right-left" size="lg" open="true" wire:close="closeSwapModal" class="!items-start" boxClass="!mt-8">
+        <x-ui.modal id="modal-swap" title="Tukar Jadwal Massal" icon="arrows-right-left" size="lg" open="true" wire:close="closeSwapModal" position="top" class="!items-start" boxClass="!mt-8">
             <div class="px-2 pb-2">
                 {{-- Tabs --}}
                 <div class="tabs tabs-boxed mb-6 bg-base-200/50">
@@ -482,7 +482,7 @@
 
     {{-- Bulk Delete Modal --}}
     @if($showBulkDeleteModal)
-        <x-ui.modal id="modal-bulk-delete" title="Hapus Jadwal Massal" icon="trash" size="xl" open="true" wire:close="closeBulkDeleteModal" class="!items-start" boxClass="!mt-8 border-t-4 border-error">
+        <x-ui.modal id="modal-bulk-delete" title="Hapus Jadwal Massal" icon="trash" size="xl" open="true" wire:close="closeBulkDeleteModal" position="top" class="!items-start" boxClass="!mt-8 border-t-4 border-error">
             <div class="px-2 pb-2">
                 {{-- Form Filters --}}
                 <div class="flex flex-wrap gap-4 bg-error/5 p-4 rounded-lg border border-error/20 mb-6">
@@ -604,7 +604,7 @@
 
     {{-- Collision Detection Modal --}}
     @if($showCollisionModal)
-        <x-ui.modal id="collision_modal" title="Detail Bentrok Jadwal" width="max-w-3xl" icon="heroicon-s-exclamation-triangle" iconClass="text-error" onClose="closeCollisionModal">
+        <x-ui.modal id="collision_modal" title="Detail Bentrok Jadwal" width="max-w-3xl" icon="heroicon-s-exclamation-triangle" iconClass="text-error" onClose="closeCollisionModal" position="top">
             <div class="p-6">
                 <div class="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-error/10 border border-error/20 rounded-lg shadow-sm gap-4">
                     <div>

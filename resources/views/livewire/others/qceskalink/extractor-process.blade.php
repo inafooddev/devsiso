@@ -434,7 +434,8 @@
 
             passFilter(rawRow, col, hmap) {
                 if (col.type !== 'filtered_sum') return true;
-                const idx = hmap[col.filterCol];
+                const filterKey = String(col.filterCol || '').trim().toUpperCase();
+                const idx = hmap[filterKey];
                 if (idx === undefined) return true;
                 const cell = String(rawRow[idx] ?? '').trim().toLowerCase();
                 const fv   = String(col.filterVal ?? '').trim().toLowerCase();

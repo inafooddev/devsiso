@@ -233,8 +233,8 @@
     </div>
 
     {{-- Modal Penolakan --}}
-    <div class="modal" :class="showRejectModal ? 'modal-open' : ''">
-        <div class="modal-box relative">
+    <div class="modal modal-bottom sm:modal-middle !items-start z-[10000]" :class="showRejectModal ? 'modal-open' : ''">
+        <div class="modal-box relative mt-6 sm:mt-16 mb-auto">
             <button @click="showRejectModal = false" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
             <h3 class="text-lg font-bold text-error flex items-center gap-2">
                 <x-heroicon-o-exclamation-triangle class="w-6 h-6" />

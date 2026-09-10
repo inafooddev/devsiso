@@ -6,38 +6,39 @@
     </div>
     
     <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
-        {{-- Day Filter (Active Button) --}}
-        <div class="join shadow-sm border border-base-300">
-            <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h1' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h1')">Sen</button>
-            <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h2' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h2')">Sel</button>
-            <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h3' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h3')">Rab</button>
-            <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h4' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h4')">Kam</button>
-            <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h5' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h5')">Jum</button>
-            <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h6' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h6')">Sab</button>
-            <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h7' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h7')">Min</button>
-        </div>
+        @if($appliedRegion || $appliedArea || $appliedSupervisor || $appliedDistributor)
+            {{-- Day Filter (Active Button) --}}
+            <div class="join shadow-sm border border-base-300">
+                <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h1' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h1')">Sen</button>
+                <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h2' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h2')">Sel</button>
+                <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h3' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h3')">Rab</button>
+                <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h4' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h4')">Kam</button>
+                <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h5' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h5')">Jum</button>
+                <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h6' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h6')">Sab</button>
+                <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h7' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h7')">Min</button>
+            </div>
 
-        {{-- Week Filter (Active Button) --}}
-        <div class="join shadow-sm border border-base-300">
-            <button type="button" class="btn btn-sm join-item {{ $selectedMinggu === 'ganjil' ? 'btn-active btn-secondary' : '' }}" wire:click="toggleMinggu('ganjil')">Ganjil</button>
-            <button type="button" class="btn btn-sm join-item {{ $selectedMinggu === 'genap' ? 'btn-active btn-secondary' : '' }}" wire:click="toggleMinggu('genap')">Genap</button>
-        </div>
-
-        {{-- Salesman Dropdown --}}
-        <div class="w-full sm:w-56 z-30">
-            @php
-                $salesmanOptions = $this->headerSalesmans->map(fn($s) => ['value' => $s->salesman_code, 'label' => $s->salesman_code . ' - ' . $s->salesman_name])->toArray();
-                if ($appliedDistributor) {
-                    array_unshift($salesmanOptions, ['value' => '', 'label' => '-- Semua Salesman --']);
-                }
-            @endphp
-            <x-searchable-select 
-                wire:key="header-salesman-{{ $appliedDistributor ?: 'empty' }}"
-                wire:model.live="headerSalesman"
-                :options="$salesmanOptions"
-                placeholder="{{ $appliedDistributor ? '-- Pilih Salesman --' : '-- Pilih Distributor --' }}"
-            />
-        </div>
+            {{-- Week Filter (Active Button) --}}
+            <div class="join shadow-sm border border-base-300">
+                <button type="button" class="btn btn-sm join-item {{ $selectedMinggu === 'ganjil' ? 'btn-active btn-secondary' : '' }}" wire:click="toggleMinggu('ganjil')">Ganjil</button>
+                <button type="button" class="btn btn-sm join-item {{ $selectedMinggu === 'genap' ? 'btn-active btn-secondary' : '' }}" wire:click="toggleMinggu('genap')">Genap</button>
+            </div>
+            {{-- Salesman Dropdown --}}
+            <div class="w-full sm:w-56 z-30">
+                @php
+                    $salesmanOptions = $this->headerSalesmans->map(fn($s) => ['value' => $s->salesman_code, 'label' => $s->salesman_code . ' - ' . $s->salesman_name])->toArray();
+                    if ($appliedDistributor) {
+                        array_unshift($salesmanOptions, ['value' => '', 'label' => '-- Semua Salesman --']);
+                    }
+                @endphp
+                <x-searchable-select 
+                    wire:key="header-salesman-{{ $appliedDistributor ?: 'empty' }}"
+                    wire:model.live="headerSalesman"
+                    :options="$salesmanOptions"
+                    placeholder="{{ $appliedDistributor ? '-- Pilih Salesman --' : '-- Pilih Distributor --' }}"
+                />
+            </div>
+        @endif
 
         {{-- Search --}}
         <div class="join">

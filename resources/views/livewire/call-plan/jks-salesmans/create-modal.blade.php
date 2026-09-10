@@ -6,8 +6,8 @@
     </button>
 
     {{-- The Modal --}}
-    <dialog id="modal-create-jks" class="modal modal-bottom sm:modal-middle" wire:ignore.self>
-        <div class="modal-box p-0 overflow-hidden relative" style="width: 90%; max-width: 900px;">
+    <dialog id="modal-create-jks" class="modal modal-bottom sm:modal-middle !items-start z-[10000]" wire:ignore.self>
+        <div class="modal-box p-0 overflow-hidden relative mt-6 sm:mt-16 mb-auto" style="width: 90%; max-width: 900px;">
             
             {{-- Header --}}
             <div class="bg-base-200/50 p-4 border-b border-base-300 flex justify-between items-center">
