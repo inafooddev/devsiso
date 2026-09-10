@@ -117,6 +117,7 @@ use App\Livewire\Jobs\SyncRptVisitAnH;
 use App\Livewire\Jobs\SyncRptVisitAnR;
 use App\Livewire\Jobs\SyncAoListToko;
 use App\Livewire\Jobs\SyncFrute;
+use App\Livewire\Jobs\SyncFsalesman;
 use App\Livewire\Jobs\SelloutPerCabangSqlServer;
 use App\Livewire\Jobs\UpdateSalesmans;
 use App\Livewire\Jobs\UpdateAoPercabang;
@@ -450,6 +451,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/jobs/sync-rpt-visit-an-h', SyncRptVisitAnH::class)->name('jobs.sync-rpt-visit-an-h');
     Route::get('/jobs/sync-rpt-visit-an-r', SyncRptVisitAnR::class)->name('jobs.sync-rpt-visit-an-r');
     Route::get('/jobs/sync-frute', SyncFrute::class)->name('jobs.sync-frute');
+    Route::get('/jobs/sync-fsalesman', SyncFsalesman::class)->name('jobs.sync-fsalesman');
     Route::get('/jobs/sellout-per-cabang-sqlserver', SelloutPerCabangSqlServer::class)->name('jobs.sellout-per-cabang-sqlserver');
     Route::get('/jobs/update-salesmans', UpdateSalesmans::class)->name('jobs.update-salesmans');
     Route::get('/jobs/update-ao-percabang', UpdateAoPercabang::class)->name('jobs.update-ao-percabang');
