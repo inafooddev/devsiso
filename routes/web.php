@@ -114,6 +114,8 @@ use App\Livewire\Jobs\UnmappingCustomerEska;
 use App\Livewire\Jobs\UpdateAoListToko;
 use App\Livewire\Jobs\UpdateApplication;
 use App\Livewire\Jobs\SyncRptVisitAnH;
+use App\Livewire\Jobs\SyncRptVisitAnR;
+use App\Livewire\Jobs\SyncAoListToko;
 use App\Livewire\Jobs\SelloutPerCabangSqlServer;
 use App\Livewire\Jobs\UpdateSalesmans;
 use App\Livewire\Jobs\UpdateAoPercabang;
@@ -445,6 +447,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/jobs/update-ao-list-toko', UpdateAoListToko::class)->name('jobs.update-ao-list-toko');
     Route::get('/jobs/update-application', UpdateApplication::class)->name('jobs.update-application');
     Route::get('/jobs/sync-rpt-visit-an-h', SyncRptVisitAnH::class)->name('jobs.sync-rpt-visit-an-h');
+    Route::get('/jobs/sync-rpt-visit-an-r', SyncRptVisitAnR::class)->name('jobs.sync-rpt-visit-an-r');
     Route::get('/jobs/sellout-per-cabang-sqlserver', SelloutPerCabangSqlServer::class)->name('jobs.sellout-per-cabang-sqlserver');
     Route::get('/jobs/update-salesmans', UpdateSalesmans::class)->name('jobs.update-salesmans');
     Route::get('/jobs/update-ao-percabang', UpdateAoPercabang::class)->name('jobs.update-ao-percabang');
