@@ -34,16 +34,18 @@ class ZvSummaryTeamEliteJob implements ShouldQueue
         if ($this->batchId) {
             $batch = ImportBatch::find($this->batchId);
             if ($batch) {
-                $batch->addLog('info', 'Memulai penarikan data ZV Summary Team Elite...');
-                $batch->addLog('warning', 'Membersihkan data lama ZV Summary Team Elite');
+                $batch->update(['status' => 'processing']);
+                $this->logMessage($batch, 'info', 'Memulai penarikan data ZV Summary Team Elite...');
+                $this->logMessage($batch, 'warning', 'Membersihkan data lama ZV Summary Team Elite');
             }
+        } else {
+            $this->logMessage(null, 'info', 'Memulai penarikan data ZV Summary Team Elite...');
+            $this->logMessage(null, 'warning', 'Membersihkan data lama ZV Summary Team Elite');
         }
 
         try {
 
-        if (isset($batch)) {
-            $batch->addLog('info', 'Mengeksekusi kueri ZV Summary Team Elite...');
-        }
+        $this->logMessage($batch, 'info', 'Mengeksekusi kueri ZV Summary Team Elite...');
 
         $query = <<<'SQL'
 TRUNCATE TABLE zv_summary_visit_team_elite;
@@ -265,17 +267,30 @@ SQL;
 
         DB::unprepared($query);
 
+        $this->logMessage($batch, 'success', 'Sukses menarik data ZV Summary Team Elite!');
         if ($batch) {
-            $batch->addLog('success', 'Sukses menarik data ZV Summary Team Elite!');
             $batch->update(['status' => 'completed']);
         }
 
         } catch (\Throwable $e) {
-            if (isset($batch)) {
-                $batch->addLog('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            $this->logMessage($batch, 'error', 'Terjadi kesalahan: ' . $e->getMessage());
+            if ($batch) {
                 $batch->update(['status' => 'failed']);
             }
             throw $e;
+        }
+    }
+
+    private function logMessage($batch, $type, $message)
+    {
+        if ($batch) {
+            $batch->addLog($type, $message);
+        }
+        
+        if (app()->runningInConsole()) {
+            $timestamp = now()->format('Y-m-d H:i:s');
+            $typeUpper = strtoupper($type);
+            echo "[$timestamp] [$typeUpper] $message\n";
         }
     }
 }
