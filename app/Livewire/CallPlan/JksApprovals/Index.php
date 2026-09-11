@@ -21,6 +21,13 @@ class Index extends Component
     public $actionIdToReject = null;
     public $isBulkReject = false;
 
+    // PRC Input State
+    public $showPrcModal = false;
+    public $prcApprovalId = null;
+    public $prcCustomerCode = '';
+    public $prcCustomerName = '';
+    public $prcCustomerEska = '';
+
     public function mount()
     {
         // if (!auth()->user()->hasRole('user')) {
@@ -217,6 +224,47 @@ class Index extends Component
                         $now = now();
                         $insertData = [];
                         foreach ($payload['tokos'] as $toko) {
+                            $customerCode = $toko['code'];
+
+                            // 1. Get OOL data for Pareto Injection
+                            $oolData = DB::table('jks_se_master_toko_ool')->where('customer_code', $customerCode)->first();
+                            
+                            if ($oolData) {
+                                // Calculate Pilar
+                                $avg = floatval($oolData->avg_value_net);
+                                $pilar = null;
+                                if ($avg >= 3000000) {
+                                    $pilar = '2. PNR';
+                                } elseif ($avg >= 1500000) {
+                                    $pilar = '3. NGVO';
+                                } else {
+                                    $pilar = '4. GRO';
+                                }
+
+                                // Check if Pareto exists
+                                $paretoExists = DB::table('list_toko_pareto_team_elite')
+                                    ->where('distributor_code', $payload['distributor_code'])
+                                    ->where('uniq_kd', $customerCode)
+                                    ->exists();
+                                    
+                                if (!$paretoExists) {
+                                    DB::table('list_toko_pareto_team_elite')->insert([
+                                        'distributor_code' => $payload['distributor_code'],
+                                        'uniq_kd' => $customerCode,
+                                        'customer_code_prc' => $oolData->customer_eska,
+                                        'customer_name' => $oolData->customer_name,
+                                        'customer_address' => $oolData->alamat,
+                                        'target' => $avg,
+                                        'pilar' => $pilar,
+                                        'kabupaten' => null,
+                                        'desa' => null,
+                                        'created_at' => $now,
+                                        'updated_at' => $now,
+                                    ]);
+                                }
+                            }
+
+                            // 2. Prepare JKS Schedule
                             $row = [
                                 'bulan' => $payload['bulan'],
                                 'distributor_code' => $payload['distributor_code'],
@@ -227,10 +275,10 @@ class Index extends Component
                                 'created_at' => $now,
                                 'updated_at' => $now,
                             ];
-                            foreach ($payload['hari'] as $h) {
+                            foreach ($payload['hari'] ?? [] as $h) {
                                 $row[$h] = 'Y';
                             }
-                            foreach ($payload['minggu'] as $w) {
+                            foreach ($payload['minggu'] ?? [] as $w) {
                                 $row[$w] = 'Y';
                             }
                             $insertData[] = $row;
@@ -262,12 +310,58 @@ class Index extends Component
             return;
         }
 
+        $approval = DB::table('jks_approvals')->where('id', $id)->first();
+        if ($approval && $approval->action_type === 'TAMBAH_JADWAL') {
+            $payload = json_decode($approval->payload, true);
+            // Check for missing customer_eska on the first toko (assuming single request for now)
+            if (!empty($payload['tokos'])) {
+                $toko = $payload['tokos'][0];
+                $oolToko = DB::table('jks_se_master_toko_ool')->where('customer_code', $toko['code'])->first();
+                if ($oolToko && empty($oolToko->customer_eska)) {
+                    $this->prcApprovalId = $id;
+                    $this->prcCustomerCode = $toko['code'];
+                    $this->prcCustomerName = $toko['name'];
+                    $this->prcCustomerEska = '';
+                    $this->showPrcModal = true;
+                    return; // Pause approval to show modal
+                }
+            }
+        }
+
         $success = $this->executeApprovalLogic($id);
         
         if ($success) {
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Pengajuan berhasil disetujui & dieksekusi!']);
         } else {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal mengeksekusi pengajuan! Pastikan data masih valid.']);
+        }
+    }
+
+    public function submitPrcAndApprove()
+    {
+        if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('user')) return;
+
+        $this->validate([
+            'prcCustomerEska' => 'required|min:3'
+        ], [
+            'prcCustomerEska.required' => 'Customer Kode PRC wajib diisi.',
+            'prcCustomerEska.min' => 'Kode PRC minimal 3 karakter.'
+        ]);
+
+        // Update master OOL
+        DB::table('jks_se_master_toko_ool')
+            ->where('customer_code', $this->prcCustomerCode)
+            ->update(['customer_eska' => $this->prcCustomerEska]);
+            
+        $this->showPrcModal = false;
+        
+        // Proceed with approval
+        $success = $this->executeApprovalLogic($this->prcApprovalId);
+        
+        if ($success) {
+            $this->dispatch('toast', ['type' => 'success', 'message' => 'Kode PRC disimpan & Pengajuan disetujui!']);
+        } else {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal mengeksekusi pengajuan!']);
         }
     }
 

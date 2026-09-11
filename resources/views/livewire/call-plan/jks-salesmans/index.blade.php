@@ -21,7 +21,7 @@
         <a href="#" class="tab">Summary</a>
         <a href="{{ route('call-plan.jks-salesmans') }}" class="tab tab-active bg-primary text-primary-content">Detail</a>
         <a href="#" class="tab">Maps</a>
-        <a href="#" class="tab">Outlet non JKS</a>
+        <a href="{{ route('call-plan.jks-non-route') }}" class="tab">Outlet non JKS</a>
         <a href="{{ route('call-plan.jks-approvals') }}" class="tab">
             Persetujuan
             @if($pendingApprovalsCount > 0)

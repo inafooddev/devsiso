@@ -27,7 +27,7 @@
         <a href="#" class="tab">Summary</a>
         <a href="{{ route('call-plan.jks-salesmans') }}" class="tab">Detail</a>
         <a href="#" class="tab">Maps</a>
-        <a href="#" class="tab">Outlet non JKS</a>
+        <a href="{{ route('call-plan.jks-non-route') }}" class="tab">Outlet non JKS</a>
         <a href="{{ route('call-plan.jks-approvals') }}" class="tab tab-active bg-primary text-primary-content">
             Persetujuan
             @if($pendingApprovalsCount > 0)
@@ -273,6 +273,43 @@
         </div>
         <div class="modal-backdrop" @click="showRejectModal = false"></div>
     </div>
+
+    {{-- PRC Input Modal --}}
+    <dialog class="modal modal-bottom sm:modal-middle" @if($showPrcModal) open @endif>
+        <div class="modal-box">
+            <h3 class="font-bold text-lg mb-4 text-warning flex items-center gap-2">
+                <x-heroicon-o-exclamation-triangle class="w-6 h-6" />
+                Customer Kode PRC KOSONG
+            </h3>
+            
+            <p class="text-sm text-base-content/80 mb-4">
+                Toko ini belum memiliki Customer Kode PRC. Sesuai aturan, Anda wajib mengisinya sebelum pengajuan dapat disetujui untuk diinjeksi ke Master Pareto.
+            </p>
+
+            <div class="bg-base-200/50 p-3 rounded-lg mb-4">
+                <div class="text-xs text-base-content/60">Toko:</div>
+                <div class="font-bold">{{ $prcCustomerName }}</div>
+                <div class="font-mono text-xs text-primary mt-1">{{ $prcCustomerCode }}</div>
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-bold">Input Customer Kode PRC (eska) <span class="text-error">*</span></span>
+                </label>
+                <input type="text" wire:model="prcCustomerEska" class="input input-bordered w-full font-mono @error('prcCustomerEska') input-error @enderror" placeholder="Contoh: 0012345" />
+                @error('prcCustomerEska') <span class="text-error text-sm mt-1 block">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="modal-action">
+                <button wire:click="$set('showPrcModal', false)" class="btn btn-ghost">Batal Approve</button>
+                <button wire:click="submitPrcAndApprove" class="btn btn-primary" wire:loading.attr="disabled" wire:target="submitPrcAndApprove">
+                    <span wire:loading.remove wire:target="submitPrcAndApprove">Simpan & Setujui Pengajuan</span>
+                    <span wire:loading wire:target="submitPrcAndApprove" class="loading loading-spinner loading-sm"></span>
+                </button>
+            </div>
+        </div>
+        <div class="modal-backdrop bg-neutral/40" wire:click="$set('showPrcModal', false)"></div>
+    </dialog>
 
     {{-- Toast Container --}}
     <div class="toast toast-top toast-right z-[9999] mt-16" style="position: fixed;">
