@@ -86,6 +86,22 @@ class JksSalesmanService
                         $sub->where('js.w1', 'Y')->orWhere('js.w3', 'Y');
                     } elseif ($minggu === 'genap') {
                         $sub->where('js.w2', 'Y')->orWhere('js.w4', 'Y');
+                    } elseif ($minggu === 'non_rute') {
+                        // Semua hari kosong ATAU semua minggu kosong (artinya JKS tidak valid/dihapus/kosong)
+                        $sub->where(function ($q1) {
+                            $q1->where(fn($q) => $q->whereNull('js.h1')->orWhere('js.h1', '!=', 'Y'))
+                               ->where(fn($q) => $q->whereNull('js.h2')->orWhere('js.h2', '!=', 'Y'))
+                               ->where(fn($q) => $q->whereNull('js.h3')->orWhere('js.h3', '!=', 'Y'))
+                               ->where(fn($q) => $q->whereNull('js.h4')->orWhere('js.h4', '!=', 'Y'))
+                               ->where(fn($q) => $q->whereNull('js.h5')->orWhere('js.h5', '!=', 'Y'))
+                               ->where(fn($q) => $q->whereNull('js.h6')->orWhere('js.h6', '!=', 'Y'))
+                               ->where(fn($q) => $q->whereNull('js.h7')->orWhere('js.h7', '!=', 'Y'));
+                        })->orWhere(function ($q2) {
+                            $q2->where(fn($q) => $q->whereNull('js.w1')->orWhere('js.w1', '!=', 'Y'))
+                               ->where(fn($q) => $q->whereNull('js.w2')->orWhere('js.w2', '!=', 'Y'))
+                               ->where(fn($q) => $q->whereNull('js.w3')->orWhere('js.w3', '!=', 'Y'))
+                               ->where(fn($q) => $q->whereNull('js.w4')->orWhere('js.w4', '!=', 'Y'));
+                        });
                     }
                 });
             })
@@ -179,7 +195,11 @@ class JksSalesmanService
                 return $q->where('js.bulan', 'like', $bulan . '%');
             })
             ->selectRaw("
-                COUNT(*) as total_toko,
+                SUM(CASE WHEN 
+                    (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y' OR js.h7 = 'Y') 
+                    AND 
+                    (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y') 
+                THEN 1 ELSE 0 END) as total_toko,
                 SUM(CASE WHEN js.w1 = 'Y' OR js.w3 = 'Y' THEN 1 ELSE 0 END) as total_ganjil,
                 SUM(CASE WHEN js.w2 = 'Y' OR js.w4 = 'Y' THEN 1 ELSE 0 END) as total_genap,
                 SUM(CASE WHEN js.h1 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as h1_ganjil,

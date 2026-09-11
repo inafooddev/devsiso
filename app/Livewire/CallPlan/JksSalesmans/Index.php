@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use App\Traits\WithCallPlanFilters;
 use App\Services\JksSalesmanService;
 
@@ -35,6 +36,11 @@ class Index extends Component
             $this->selectedHari = '';
         } else {
             $this->selectedHari = $hari;
+            
+            // Jika memilih hari spesifik saat berada di 'non_rute', otomatis ubah minggu menjadi 'ganjil'
+            if ($this->selectedMinggu === 'non_rute') {
+                $this->selectedMinggu = 'ganjil';
+            }
         }
         $this->resetPage();
     }
@@ -45,6 +51,16 @@ class Index extends Component
             $this->selectedMinggu = '';
         } else {
             $this->selectedMinggu = $minggu;
+            
+            if ($minggu === 'non_rute') {
+                // Jika memilih 'non_rute', otomatis reset filter hari karena non_rute tidak punya jadwal hari
+                $this->selectedHari = '';
+            } else {
+                // Jika memilih 'ganjil' atau 'genap' dan hari kosong, otomatis pilih 'h1' (Senin)
+                if (empty($this->selectedHari)) {
+                    $this->selectedHari = 'h1';
+                }
+            }
         }
         $this->resetPage();
     }
@@ -155,6 +171,200 @@ class Index extends Component
     public $bdSelectedIds = [];
     public $bdSelectAll = false;
     public $bdReason = '';
+
+    // Modals: Copy
+    public $showCopyModal = false;
+    public $copyRegion = '';
+    public $copyArea = '';
+    public $copyDistributor = '';
+    public $copySalesmanCode = '';
+    public $copySourceMonth = '';
+    public $copyTargetMonth = '';
+
+    public function updatedCopyRegion()
+    {
+        $this->copyArea = '';
+        $this->copyDistributor = '';
+        $this->copySalesmanCode = '';
+    }
+
+    public function updatedCopyArea()
+    {
+        $this->copyDistributor = '';
+        $this->copySalesmanCode = '';
+    }
+
+    public function updatedCopyDistributor()
+    {
+        $this->copySalesmanCode = '';
+    }
+
+    #[\Livewire\Attributes\Computed]
+    public function copyFilterAreas()
+    {
+        if (!$this->copyRegion) return collect([]);
+        return \Illuminate\Support\Facades\DB::table('master_areas')
+            ->select('area_code', 'area_name')
+            ->where('region_code', $this->copyRegion)
+            ->orderBy('area_name')->get();
+    }
+
+    #[\Livewire\Attributes\Computed]
+    public function copyFilterDistributors()
+    {
+        $query = \Illuminate\Support\Facades\DB::table('master_distributors')->select('distributor_code', 'distributor_name');
+        if ($this->copyRegion) $query->where('region_code', $this->copyRegion);
+        if ($this->copyArea) $query->where('area_code', $this->copyArea);
+        return $query->orderBy('distributor_name')->get();
+    }
+
+    #[\Livewire\Attributes\Computed]
+    public function copyFilterSalesmans()
+    {
+        if (!$this->copyDistributor) return collect([]);
+        return \Illuminate\Support\Facades\DB::table('salesmans')
+            ->select('salesman_code', 'salesman_name')
+            ->where('distributor_code', $this->copyDistributor)
+            ->orderBy('salesman_name')->get();
+    }
+
+    // Batching State
+    public $isCopying = false;
+    public $copyQueue = [];
+    public $copyTotal = 0;
+    public $copyProgress = 0;
+    public $currentCopySalesman = '';
+    public $currentCopyDistributor = '';
+
+    public function openCopyModal()
+    {
+        $this->copyRegion = $this->appliedRegion ?? '';
+        $this->copyArea = $this->appliedArea ?? '';
+        $this->copyDistributor = $this->appliedDistributor ?? '';
+        $this->copySalesmanCode = $this->headerSalesman ?? '';
+        
+        $this->copySourceMonth = $this->appliedBulan ?: date('Y-m');
+        $this->copyTargetMonth = date('Y-m', strtotime('+1 month', strtotime($this->copySourceMonth . '-01')));
+        $this->isCopying = false;
+        $this->copyProgress = 0;
+        $this->copyTotal = 0;
+        $this->showCopyModal = true;
+    }
+
+    public function closeCopyModal()
+    {
+        $this->showCopyModal = false;
+        $this->isCopying = false;
+    }
+
+    public function startCopyPeriod()
+    {
+        if (empty($this->copySourceMonth) || empty($this->copyTargetMonth)) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Periode Asal dan Periode Tujuan tidak boleh kosong.']);
+            return;
+        }
+
+        if ($this->copySourceMonth === $this->copyTargetMonth) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Periode Asal dan Periode Tujuan tidak boleh sama.']);
+            return;
+        }
+
+        // Cari semua salesman yang memiliki jadwal di Periode Asal (memenuhi filter)
+        $query = \Illuminate\Support\Facades\DB::table('jks_salesmans as js')
+            ->select('js.salesman_code', 'js.distributor_code')
+            ->where('js.bulan', 'like', $this->copySourceMonth . '%')
+            ->when($this->copySalesmanCode, fn($q) => $q->where('js.salesman_code', $this->copySalesmanCode))
+            ->when($this->copyDistributor, fn($q) => $q->where('js.distributor_code', $this->copyDistributor));
+
+        // Jika distributor tidak dipilih, filter berdasarkan region/area
+        if (empty($this->copyDistributor)) {
+            if ($this->copyArea) {
+                $distributors = \Illuminate\Support\Facades\DB::table('master_distributors')->where('area_code', $this->copyArea)->pluck('distributor_code');
+                $query->whereIn('js.distributor_code', $distributors);
+            } elseif ($this->copyRegion) {
+                $distributors = \Illuminate\Support\Facades\DB::table('master_distributors')->where('region_code', $this->copyRegion)->pluck('distributor_code');
+                $query->whereIn('js.distributor_code', $distributors);
+            }
+        }
+
+        $salesmen = $query->groupBy('js.salesman_code', 'js.distributor_code')->get();
+
+        if ($salesmen->isEmpty()) {
+            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Tidak ada jadwal yang ditemukan di Periode Asal untuk filter yang dipilih.']);
+            return;
+        }
+
+        $this->copyQueue = json_decode(json_encode($salesmen->toArray()), true);
+        $this->copyTotal = count($this->copyQueue);
+        $this->copyProgress = 0;
+        $this->isCopying = true;
+
+        $this->dispatch('start-copy-batch');
+    }
+
+    #[On('process-next-copy-batch')]
+    public function processNextCopyBatch()
+    {
+        if (empty($this->copyQueue)) {
+            $this->isCopying = false;
+            $this->dispatch('toast', ['type' => 'success', 'message' => 'Proses Salin Jadwal selesai!']);
+            $this->closeCopyModal();
+            $this->resetPage();
+            return;
+        }
+
+        // Pop 1 element
+        $current = array_shift($this->copyQueue);
+        $this->currentCopySalesman = $current['salesman_code'];
+        $this->currentCopyDistributor = $current['distributor_code'];
+
+        // Format bulan
+        $sourceMonthPrefix = $this->copySourceMonth;
+        $targetMonthFormatted = $this->copyTargetMonth . '-01'; // Target always uses -01 as standard date
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($current, $sourceMonthPrefix, $targetMonthFormatted) {
+            // 1. Delete target data for this salesman & distributor (Overwrite mode)
+            \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                ->where('salesman_code', $current['salesman_code'])
+                ->where('distributor_code', $current['distributor_code'])
+                ->where('bulan', 'like', $this->copyTargetMonth . '%')
+                ->delete();
+
+            // 2. Get source data
+            $sourceRows = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                ->where('salesman_code', $current['salesman_code'])
+                ->where('distributor_code', $current['distributor_code'])
+                ->where('bulan', 'like', $sourceMonthPrefix . '%')
+                ->get();
+
+            // 3. Insert target data
+            if ($sourceRows->isNotEmpty()) {
+                $inserts = [];
+                $username = auth()->user()->username ?? 'system';
+                
+                foreach ($sourceRows as $row) {
+                    $newRow = (array) $row;
+                    unset($newRow['id']);
+                    $newRow['bulan'] = $targetMonthFormatted;
+                    $newRow['created_at'] = now();
+                    $newRow['updated_at'] = now();
+                    $newRow['update_by'] = $username;
+                    $inserts[] = $newRow;
+                }
+
+                foreach (array_chunk($inserts, 500) as $chunk) {
+                    \Illuminate\Support\Facades\DB::table('jks_salesmans')->insert($chunk);
+                }
+            }
+        });
+
+        $this->copyProgress++;
+
+        // Trigger next batch
+        $this->dispatch('continue-copy-batch');
+    }
+
+
 
     protected function handleJksAction($actionType, $payload, $reason, callable $executeCallback, $successMessage)
     {

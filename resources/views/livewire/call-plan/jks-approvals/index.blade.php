@@ -88,17 +88,24 @@
             {{-- Search & Filters & Bulk Actions --}}
             <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 w-full sm:w-auto">
                 
-                {{-- Bulk Actions (Hanya muncul jika ada yang dipilih) --}}
+                {{-- Bulk Actions (Hanya muncul jika ada yang dipilih dan user memiliki role yang diizinkan) --}}
                 @if($filterStatus === 'PENDING' && count($selected) > 0)
-                    <div class="flex items-center gap-2 mr-2">
-                        <span class="badge badge-primary">{{ count($selected) }} terpilih</span>
-                        <button class="btn btn-sm btn-success text-white" wire:click="bulkApprove" wire:confirm="Setujui {{ count($selected) }} pengajuan?">
-                            <x-heroicon-s-check class="w-4 h-4" /> Setujui
-                        </button>
-                        <button class="btn btn-sm btn-error text-white" wire:click="confirmBulkReject">
-                            <x-heroicon-s-x-mark class="w-4 h-4" /> Tolak
-                        </button>
-                    </div>
+                    @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('user'))
+                        <div class="flex items-center gap-2 mr-2">
+                            <span class="badge badge-primary">{{ count($selected) }} terpilih</span>
+                            <button class="btn btn-sm btn-success text-white" wire:click="bulkApprove" wire:confirm="Setujui {{ count($selected) }} pengajuan?">
+                                <x-heroicon-s-check class="w-4 h-4" /> Setujui
+                            </button>
+                            <button class="btn btn-sm btn-error text-white" wire:click="confirmBulkReject">
+                                <x-heroicon-s-x-mark class="w-4 h-4" /> Tolak
+                            </button>
+                        </div>
+                    @else
+                        <div class="flex items-center gap-2 mr-2">
+                            <span class="badge badge-primary">{{ count($selected) }} terpilih</span>
+                            <span class="text-xs text-base-content/50 italic">Hanya Admin/User yang bisa proses</span>
+                        </div>
+                    @endif
                 @endif
 
                 {{-- Search --}}
@@ -154,9 +161,16 @@
                             <td>
                                 @php
                                     $actionType = str_replace('_', ' ', $approval->action_type);
-                                    $isDelete = str_contains($approval->action_type, 'DELETE');
+                                    $badgeClass = match($approval->action_type) {
+                                        'DELETE_MASSAL' => 'badge-error shadow-sm font-bold',
+                                        'DELETE_INDIVIDU' => 'badge-error badge-outline',
+                                        'TUKAR_JADWAL' => 'badge-secondary shadow-sm font-bold',
+                                        'TAMBAH_JADWAL' => 'badge-success text-white shadow-sm',
+                                        'EDIT_INDIVIDU' => 'badge-info badge-outline',
+                                        default => 'badge-ghost border-base-300'
+                                    };
                                 @endphp
-                                <span class="badge badge-sm font-medium {{ $isDelete ? 'badge-error badge-outline' : 'badge-primary badge-outline' }}">
+                                <span class="badge badge-sm font-medium {{ $badgeClass }} uppercase text-[10px] tracking-wider py-2">
                                     {{ $actionType }}
                                 </span>
                             </td>
@@ -190,19 +204,23 @@
                             
                             <td class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)] sticky right-0">
                                 @if($filterStatus === 'PENDING')
-                                    <div class="flex items-center justify-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                                        <button class="btn btn-sm btn-square btn-ghost text-success hover:bg-success/10" 
-                                                title="Setujui"
-                                                wire:click="approve({{ $approval->id }})" 
-                                                wire:confirm="Apakah Anda yakin ingin menyetujui pengajuan ini?">
-                                            <x-heroicon-s-check class="w-4 h-4" />
-                                        </button>
-                                        <button class="btn btn-sm btn-square btn-ghost text-error hover:bg-error/10" 
-                                                title="Tolak"
-                                                wire:click="confirmReject({{ $approval->id }})">
-                                            <x-heroicon-s-x-mark class="w-4 h-4" />
-                                        </button>
-                                    </div>
+                                    @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('user'))
+                                        <div class="flex items-center justify-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                                            <button class="btn btn-sm btn-square btn-ghost text-success hover:bg-success/10" 
+                                                    title="Setujui"
+                                                    wire:click="approve({{ $approval->id }})" 
+                                                    wire:confirm="Apakah Anda yakin ingin menyetujui pengajuan ini?">
+                                                <x-heroicon-s-check class="w-4 h-4" />
+                                            </button>
+                                            <button class="btn btn-sm btn-square btn-ghost text-error hover:bg-error/10" 
+                                                    title="Tolak"
+                                                    wire:click="confirmReject({{ $approval->id }})">
+                                                <x-heroicon-s-x-mark class="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    @else
+                                        <span class="badge badge-sm badge-warning">Menunggu</span>
+                                    @endif
                                 @else
                                     <span class="badge badge-sm {{ $filterStatus === 'APPROVED' ? 'badge-success' : 'badge-error' }}">
                                         {{ $filterStatus === 'APPROVED' ? 'Disetujui' : 'Ditolak' }}

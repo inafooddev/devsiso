@@ -22,6 +22,7 @@
             <div class="join shadow-sm border border-base-300">
                 <button type="button" class="btn btn-sm join-item {{ $selectedMinggu === 'ganjil' ? 'btn-active btn-secondary' : '' }}" wire:click="toggleMinggu('ganjil')">Ganjil</button>
                 <button type="button" class="btn btn-sm join-item {{ $selectedMinggu === 'genap' ? 'btn-active btn-secondary' : '' }}" wire:click="toggleMinggu('genap')">Genap</button>
+                <button type="button" class="btn btn-sm join-item {{ $selectedMinggu === 'non_rute' ? 'btn-active btn-secondary' : '' }}" wire:click="toggleMinggu('non_rute')">Non Rute</button>
             </div>
             {{-- Salesman Dropdown --}}
             <div class="w-full sm:w-56 z-30">
@@ -82,14 +83,36 @@
         @livewire('call-plan.jks-salesmans.import-modal')
 
         @if($appliedRegion || $appliedArea || $appliedSupervisor || $appliedDistributor)
-            <button type="button" wire:click="openSwapModal" class="btn btn-sm btn-primary btn-outline gap-1 shadow-sm">
-                <x-heroicon-s-arrows-right-left class="w-4 h-4" />
-                Tukar Jadwal
-            </button>
-            <button type="button" wire:click="openBulkDeleteModal" class="btn btn-sm btn-error btn-outline gap-1 shadow-sm">
-                <x-heroicon-s-trash class="w-4 h-4" />
-                Hapus Massal
-            </button>
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-sm btn-ghost border border-base-300 shadow-sm gap-1 font-semibold">
+                    <x-heroicon-s-cog-6-tooth class="w-4 h-4" />
+                    Aksi Lainnya
+                    <x-heroicon-s-chevron-down class="w-3 h-3 opacity-50" />
+                </div>
+                <ul tabindex="0" class="dropdown-content z-50 menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-200 mt-1">
+                    @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('user'))
+                        <li>
+                            <a wire:click="openCopyModal">
+                                <x-heroicon-s-document-duplicate class="w-4 h-4 text-info" />
+                                Salin Periode
+                            </a>
+                        </li>
+                    @endif
+                    <li>
+                        <a wire:click="openSwapModal">
+                            <x-heroicon-s-arrows-right-left class="w-4 h-4 text-primary" />
+                            Tukar Jadwal
+                        </a>
+                    </li>
+                    <div class="divider my-1"></div>
+                    <li>
+                        <a wire:click="openBulkDeleteModal" class="text-error hover:bg-error/10 hover:text-error">
+                            <x-heroicon-s-trash class="w-4 h-4" />
+                            Hapus Massal
+                        </a>
+                    </li>
+                </ul>
+            </div>
         @endif
     </div>
 </div>

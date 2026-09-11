@@ -602,6 +602,104 @@
         </x-ui.modal>
     @endif
 
+    {{-- Copy Period Modal --}}
+    @if($showCopyModal)
+        <x-ui.modal id="modal-copy-period" title="Salin Periode JKS" icon="document-duplicate" size="md" open="true" wire:close="closeCopyModal" position="top" class="!items-start" boxClass="!mt-8 border-t-4 border-info">
+            <div class="px-4 pb-4" 
+                 x-data
+                 x-on:start-copy-batch.window="$wire.processNextCopyBatch()"
+                 x-on:continue-copy-batch.window="setTimeout(() => { $wire.processNextCopyBatch() }, 100)">
+                
+                <div class="alert bg-info/10 text-info border-info/20 mb-6 rounded-lg text-sm">
+                    <x-heroicon-s-information-circle class="w-5 h-5 shrink-0" />
+                    <div>Jadwal dari <b>Periode Asal</b> akan disalin ke <b>Periode Tujuan</b>. Jika jadwal sudah ada di tujuan, jadwal tersebut akan tertimpa.</div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-bold text-xs uppercase text-base-content/70">Region</span></label>
+                            <select wire:model.live="copyRegion" class="select select-bordered select-sm w-full font-medium" {{ $isCopying ? 'disabled' : '' }}>
+                                <option value="">-- Semua Region --</option>
+                                @foreach($this->filterRegions as $region)
+                                    <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-bold text-xs uppercase text-base-content/70">Area</span></label>
+                            <select wire:model.live="copyArea" class="select select-bordered select-sm w-full font-medium" {{ !$copyRegion || $isCopying ? 'disabled' : '' }}>
+                                <option value="">-- Semua Area --</option>
+                                @foreach($this->copyFilterAreas as $area)
+                                    <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-bold text-xs uppercase text-base-content/70">Distributor</span></label>
+                        <select wire:model.live="copyDistributor" class="select select-bordered select-sm w-full font-medium" {{ (!$copyRegion && !$copyArea) || $isCopying ? 'disabled' : '' }}>
+                            <option value="">-- Semua Distributor --</option>
+                            @foreach($this->copyFilterDistributors as $distributor)
+                                <option value="{{ $distributor->distributor_code }}">{{ $distributor->distributor_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-bold text-xs uppercase text-base-content/70">Salesman</span></label>
+                        <select wire:model="copySalesmanCode" class="select select-bordered select-sm w-full font-medium" {{ !$copyDistributor || $isCopying ? 'disabled' : '' }}>
+                            <option value="">-- Semua Salesman --</option>
+                            @foreach($this->copyFilterSalesmans as $salesman)
+                                <option value="{{ $salesman->salesman_code }}">{{ $salesman->salesman_name }} ({{ $salesman->salesman_code }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-bold text-xs uppercase text-base-content/70">Periode Asal</span></label>
+                            <input type="month" wire:model="copySourceMonth" class="input input-bordered input-sm w-full font-medium" {{ $isCopying ? 'disabled' : '' }}>
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-bold text-xs uppercase text-base-content/70">Periode Tujuan</span></label>
+                            <input type="month" wire:model="copyTargetMonth" class="input input-bordered input-sm w-full font-medium" {{ $isCopying ? 'disabled' : '' }}>
+                        </div>
+                    </div>
+
+                    {{-- Progress Bar --}}
+                    @if($isCopying)
+                        <div class="mt-6 p-4 border rounded-xl border-info/30 bg-info/5">
+                            <div class="flex justify-between items-end mb-2">
+                                <span class="text-sm font-semibold text-info">Sedang menyalin data...</span>
+                                <span class="text-xs font-bold">{{ $copyProgress }} / {{ $copyTotal }}</span>
+                            </div>
+                            <progress class="progress progress-info w-full h-3" value="{{ $copyProgress }}" max="{{ $copyTotal ?: 1 }}"></progress>
+                            <div class="text-xs text-base-content/60 mt-2 truncate">
+                                Memproses Salesman: <b>{{ $currentCopySalesman }}</b> 
+                                (Distributor: {{ $currentCopyDistributor }})
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+            
+            <x-slot:footer>
+                <button class="btn btn-ghost btn-sm" wire:click="closeCopyModal" {{ $isCopying ? 'disabled' : '' }}>Batal</button>
+                <button class="btn btn-info btn-sm text-white" wire:click="startCopyPeriod" {{ $isCopying ? 'disabled' : '' }}>
+                    @if($isCopying)
+                        <span class="loading loading-spinner loading-xs"></span>
+                        Menyalin...
+                    @else
+                        <x-heroicon-s-document-duplicate class="w-4 h-4" />
+                        Salin Jadwal
+                    @endif
+                </button>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
+
     {{-- Collision Detection Modal --}}
     @if($showCollisionModal)
         <x-ui.modal id="collision_modal" title="Detail Bentrok Jadwal" width="max-w-3xl" icon="heroicon-s-exclamation-triangle" iconClass="text-error" onClose="closeCollisionModal" position="top">

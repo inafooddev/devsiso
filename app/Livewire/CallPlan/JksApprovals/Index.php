@@ -68,9 +68,10 @@ class Index extends Component
 
         if (!empty($this->search)) {
             $query->where(function($q) {
-                $q->where('ja.reason', 'like', '%' . $this->search . '%')
-                  ->orWhere('u.name', 'like', '%' . $this->search . '%')
-                  ->orWhere('ja.distributor_code', 'like', '%' . $this->search . '%');
+                $q->where('ja.reason', 'ilike', '%' . $this->search . '%')
+                  ->orWhere('u.name', 'ilike', '%' . $this->search . '%')
+                  ->orWhere('c.name', 'ilike', '%' . $this->search . '%')
+                  ->orWhere('ja.distributor_code', 'ilike', '%' . $this->search . '%');
             });
         }
 
@@ -256,6 +257,11 @@ class Index extends Component
 
     public function approve($id)
     {
+        if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('user')) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Anda tidak memiliki akses untuk menyetujui pengajuan.']);
+            return;
+        }
+
         $success = $this->executeApprovalLogic($id);
         
         if ($success) {
@@ -267,6 +273,11 @@ class Index extends Component
 
     public function bulkApprove()
     {
+        if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('user')) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Anda tidak memiliki akses untuk menyetujui pengajuan.']);
+            return;
+        }
+
         if (empty($this->selected)) return;
 
         $successCount = 0;
@@ -313,6 +324,11 @@ class Index extends Component
 
     public function executeReject()
     {
+        if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('user')) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Anda tidak memiliki akses untuk menolak pengajuan.']);
+            return;
+        }
+
         $this->validate([
             'rejectReason' => 'required|min:5'
         ], [
