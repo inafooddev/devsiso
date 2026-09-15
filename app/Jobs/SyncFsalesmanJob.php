@@ -94,6 +94,12 @@ class SyncFsalesmanJob implements ShouldQueue
             }
             
             $this->logMessage($batch, 'success', "Tahap 2 Selesai. Total baris masuk: $totalInserted");
+
+            // STEP 3: Update FLAG_OFFICE
+            $this->logMessage($batch, 'info', "Tahap 3: Memperbarui FLAG_OFFICE yang kosong menjadi 'N'...");
+            DB::statement("UPDATE fsalesman SET \"FLAG_OFFICE\" = 'N' WHERE \"FLAG_OFFICE\" IS NULL");
+            $this->logMessage($batch, 'success', "Tahap 3 Selesai. Data FLAG_OFFICE berhasil diperbarui.");
+
             $this->logMessage($batch, 'success', "Proses Selesai. Sync Fsalesman sukses dijalankan.");
             
             if ($batch) $batch->update(['status' => 'completed']);
