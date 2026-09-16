@@ -154,26 +154,100 @@
     @endif
 
     {{-- Delete Modal --}}
-    @if($showDeleteModal)
-        <x-ui.modal id="modal-delete" title="Konfirmasi Reset" icon="trash" size="sm" open="true" wire:close="closeDeleteModal" position="top">
-            <div class="px-2 pb-2">
-                <p class="text-sm text-base-content/80 mb-4">Apakah Anda yakin ingin mereset seluruh jadwal kunjungan untuk toko ini menjadi kosong (T)?</p>
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text font-bold text-error">Alasan Reset <span class="text-error">*</span></span>
-                    </label>
-                    <textarea wire:model.live="deleteReason" class="textarea textarea-bordered textarea-error w-full h-24" placeholder="Tuliskan alasan minimal 5 karakter..."></textarea>
+    @if($showDeleteMethodModal)
+        <x-ui.modal id="modal-delete-method" title="Hapus Jadwal" icon="trash" size="md" open="true" wire:close="closeDeleteModal" position="top">
+            <div class="px-4 pb-4">
+                @if($deletePreviewData)
+                    <div class="mb-4 bg-base-200/50 p-3 rounded-lg border border-base-300">
+                        <h4 class="text-xs font-bold text-base-content/50 uppercase mb-2">Data yang akan dihapus:</h4>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div class="col-span-2">
+                                <span class="text-base-content/60">Toko:</span> 
+                                <span class="font-semibold">{{ $deletePreviewData->customer_name ?? '-' }} ({{ $deletePreviewData->customer_code }})</span>
+                            </div>
+                            <div class="col-span-2">
+                                <span class="text-base-content/60">Salesman:</span>
+                                <span class="font-semibold">{{ $deletePreviewData->salesman_code }}</span>
+                            </div>
+                            <div>
+                                <span class="text-base-content/60">Hari:</span>
+                                <span class="font-semibold">
+                                    @php
+                                        $hari = [];
+                                        foreach(['h1'=>'Sen','h2'=>'Sel','h3'=>'Rab','h4'=>'Kam','h5'=>'Jum','h6'=>'Sab','h7'=>'Min'] as $k => $v) {
+                                            if (($deletePreviewData->$k ?? '') === 'Y') $hari[] = $v;
+                                        }
+                                        echo implode(', ', $hari);
+                                    @endphp
+                                </span>
+                            </div>
+                            <div>
+                                <span class="text-base-content/60">Minggu:</span>
+                                <span class="font-semibold">
+                                    @php
+                                        $minggu = [];
+                                        foreach(['w1'=>'M1','w2'=>'M2','w3'=>'M3','w4'=>'M4'] as $k => $v) {
+                                            if (($deletePreviewData->$k ?? '') === 'Y') $minggu[] = $v;
+                                        }
+                                        echo implode(', ', $minggu);
+                                    @endphp
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                <h4 class="text-sm font-bold text-base-content/80 mb-3">Pilih Metode:</h4>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <button wire:click="selectDeleteMethod('soft')" class="flex flex-col items-start p-4 rounded-xl border-2 transition-all {{ $deleteMethod === 'soft' ? 'border-warning bg-warning/10 ring-2 ring-warning/30' : 'border-base-300 hover:border-warning/50 hover:bg-warning/5' }}">
+                        <div class="flex items-center gap-2 mb-2">
+                            <x-heroicon-o-arrow-path class="w-5 h-5 text-warning" />
+                            <span class="font-bold text-warning">Soft Delete</span>
+                        </div>
+                        <p class="text-xs text-left text-base-content/70">Jadwal dikosongkan. Toko tetap muncul di filter Non Rute & bisa dipulihkan via edit.</p>
+                    </button>
+                    
+                    <button wire:click="selectDeleteMethod('hard')" class="flex flex-col items-start p-4 rounded-xl border-2 transition-all {{ $deleteMethod === 'hard' ? 'border-error bg-error/10 ring-2 ring-error/30' : 'border-base-300 hover:border-error/50 hover:bg-error/5' }}">
+                        <div class="flex items-center gap-2 mb-2">
+                            <x-heroicon-o-trash class="w-5 h-5 text-error" />
+                            <span class="font-bold text-error">Hard Delete</span>
+                        </div>
+                        <p class="text-xs text-left text-base-content/70">Data DIHAPUS PERMANEN dari database. Tidak bisa dikembalikan.</p>
+                    </button>
                 </div>
+
+                @if($deleteMethod)
+                    <div class="form-control animate-fade-in">
+                        <label class="label">
+                            <span class="label-text font-bold {{ $deleteMethod === 'hard' ? 'text-error' : 'text-warning' }}">
+                                Alasan {{ $deleteMethod === 'hard' ? 'Hapus Permanen' : 'Soft Delete' }} <span class="text-error">*</span>
+                            </span>
+                        </label>
+                        <textarea wire:model.live="deleteReason" class="textarea textarea-bordered w-full h-20 {{ $deleteMethod === 'hard' ? 'textarea-error' : 'textarea-warning' }}" placeholder="Tuliskan alasan minimal 5 karakter..."></textarea>
+                    </div>
+                @endif
             </div>
+            
             <x-slot:footer>
                 <button class="btn btn-ghost" wire:click="closeDeleteModal">Batal</button>
-                <button class="btn btn-error" wire:click="executeDelete" @if(strlen(trim($deleteReason)) < 5) disabled @endif>
-                    <span wire:loading wire:target="executeDelete" class="loading loading-spinner loading-xs mr-1"></span>
-                    Ya, Reset Jadwal
-                </button>
+                @if($deleteMethod === 'hard')
+                    <button class="btn btn-error text-white" wire:click="executeDelete" @if(strlen(trim($deleteReason)) < 5) disabled @endif>
+                        <span wire:loading wire:target="executeDelete" class="loading loading-spinner loading-xs mr-1"></span>
+                        Hapus Permanen
+                    </button>
+                @elseif($deleteMethod === 'soft')
+                    <button class="btn btn-warning text-warning-content" wire:click="executeDelete" @if(strlen(trim($deleteReason)) < 5) disabled @endif>
+                        <span wire:loading wire:target="executeDelete" class="loading loading-spinner loading-xs mr-1"></span>
+                        Konfirmasi Soft Delete
+                    </button>
+                @else
+                    <button class="btn btn-disabled opacity-50 text-base-content/50" disabled>Pilih Metode</button>
+                @endif
             </x-slot:footer>
         </x-ui.modal>
     @endif
+
+    @include('livewire.call-plan.jks-salesmans.partials._modal-cleansing')
 
     {{-- Bulk Swap Modal --}}
     @if($showSwapModal)
@@ -582,21 +656,52 @@
                         <p class="text-xs">Silakan pilih <strong>Salesman</strong> terlebih dahulu untuk memunculkan daftar toko.</p>
                     </div>
                 @endif
+                
+                @if(count($bdSelectedIds) > 0)
+                <div class="mt-6 border-t border-base-200 pt-4">
+                    <h4 class="text-sm font-bold text-base-content/80 mb-3">Pilih Metode:</h4>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <button wire:click="selectBdDeleteMethod('soft')" class="flex flex-col items-start p-4 rounded-xl border-2 transition-all {{ $bdDeleteMethod === 'soft' ? 'border-warning bg-warning/10 ring-2 ring-warning/30' : 'border-base-300 hover:border-warning/50 hover:bg-warning/5' }}">
+                            <div class="flex items-center gap-2 mb-2">
+                                <x-heroicon-o-arrow-path class="w-5 h-5 text-warning" />
+                                <span class="font-bold text-warning">Soft Delete</span>
+                            </div>
+                            <p class="text-xs text-left text-base-content/70">Jadwal dikosongkan. Toko tetap muncul di filter Non Rute & bisa dipulihkan via edit.</p>
+                        </button>
+                        
+                        <button wire:click="selectBdDeleteMethod('hard')" class="flex flex-col items-start p-4 rounded-xl border-2 transition-all {{ $bdDeleteMethod === 'hard' ? 'border-error bg-error/10 ring-2 ring-error/30' : 'border-base-300 hover:border-error/50 hover:bg-error/5' }}">
+                            <div class="flex items-center gap-2 mb-2">
+                                <x-heroicon-o-trash class="w-5 h-5 text-error" />
+                                <span class="font-bold text-error">Hard Delete</span>
+                            </div>
+                            <p class="text-xs text-left text-base-content/70">Data DIHAPUS PERMANEN dari database. Tidak bisa dikembalikan.</p>
+                        </button>
+                    </div>
+                </div>
+                @endif
             </div>
 
             <x-slot:footer>
                 <div class="flex-1 text-left mr-4">
-                    <input type="text" wire:model.live="bdReason" class="input input-bordered input-error input-sm w-full" placeholder="Alasan reset (wajib diisi)..." />
+                    @if($bdDeleteMethod)
+                        <input type="text" wire:model.live="bdReason" class="input input-bordered {{ $bdDeleteMethod === 'hard' ? 'input-error' : 'input-warning' }} input-sm w-full" placeholder="Alasan {{ $bdDeleteMethod === 'hard' ? 'hapus permanen' : 'soft delete' }} (wajib diisi)..." />
+                    @endif
                 </div>
                 <button class="btn btn-ghost" wire:click="closeBulkDeleteModal">Batal</button>
-                @if(count($bdSelectedIds) > 0)
-                    <button class="btn btn-error" wire:click="executeBulkDelete" @if(strlen(trim($bdReason)) < 5) disabled @endif>
+                @if(count($bdSelectedIds) > 0 && $bdDeleteMethod === 'hard')
+                    <button class="btn btn-error text-white" wire:click="executeBulkDelete" @if(strlen(trim($bdReason)) < 5) disabled @endif>
                         <x-heroicon-s-trash class="w-4 h-4 mr-1" wire:loading.remove wire:target="executeBulkDelete" />
                         <span wire:loading wire:target="executeBulkDelete" class="loading loading-spinner loading-xs mr-1"></span>
-                        Reset {{ count($bdSelectedIds) }} Jadwal
+                        Hapus Permanen {{ count($bdSelectedIds) }} Jadwal
+                    </button>
+                @elseif(count($bdSelectedIds) > 0 && $bdDeleteMethod === 'soft')
+                    <button class="btn btn-warning text-warning-content" wire:click="executeBulkDelete" @if(strlen(trim($bdReason)) < 5) disabled @endif>
+                        <x-heroicon-s-trash class="w-4 h-4 mr-1" wire:loading.remove wire:target="executeBulkDelete" />
+                        <span wire:loading wire:target="executeBulkDelete" class="loading loading-spinner loading-xs mr-1"></span>
+                        Soft Delete {{ count($bdSelectedIds) }} Jadwal
                     </button>
                 @else
-                    <button class="btn btn-error opacity-50" disabled>Reset Jadwal</button>
+                    <button class="btn btn-disabled opacity-50 text-base-content/50" disabled>Pilih Metode</button>
                 @endif
             </x-slot:footer>
         </x-ui.modal>

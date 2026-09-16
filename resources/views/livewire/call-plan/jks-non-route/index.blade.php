@@ -60,6 +60,16 @@
                         @endforeach
                     </select>
 
+                    {{-- Bulk Actions --}}
+                    @if(count($selected) > 0)
+                        <div class="flex items-center gap-2 border-l border-base-300 pl-2">
+                            <span class="badge badge-primary">{{ count($selected) }} terpilih</span>
+                            <button class="btn btn-sm btn-primary text-white" wire:click="openBulkAddJksModal">
+                                <x-heroicon-s-plus-circle class="w-4 h-4" /> Tambah Massal ke JKS
+                            </button>
+                        </div>
+                    @endif
+
                     {{-- Search Component --}}
                     <x-ui.search-input wire:model.live.debounce.300ms="search" placeholder="Cari outlet..." />
                 </div>
@@ -78,6 +88,9 @@
                 <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
                     <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
                         <tr>
+                            <th class="w-12 text-center">
+                                <input type="checkbox" class="checkbox checkbox-sm rounded" wire:model.live="selectAll" />
+                            </th>
                             <th class="w-16 text-center">No</th>
                             <th>Distributor Code</th>
                             <th>Distributor Name</th>
@@ -93,6 +106,9 @@
                     <tbody class="text-sm">
                         @forelse($outlets as $index => $row)
                             <tr class="hover:bg-base-200/50 transition-colors">
+                                <td class="text-center">
+                                    <input type="checkbox" class="checkbox checkbox-sm rounded" wire:model.live="selected" value="{{ $row->id }}" @if($row->pending_approval_id) disabled @endif />
+                                </td>
                                 <th class="text-center">{{ $outlets->firstItem() + $index }}</th>
                                 <td class="font-mono text-xs">{{ $row->distributor_code }}</td>
                                 <td>{{ $row->distributor_name }}</td>
@@ -136,7 +152,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="text-center py-12">
+                                <td colspan="11" class="text-center py-12">
                                     <div class="flex flex-col items-center justify-center text-base-content/40">
                                         <x-heroicon-o-document-magnifying-glass class="w-12 h-12 mb-3 opacity-20" />
                                         @if(empty($appliedRegion) && empty($appliedArea) && empty($appliedSupervisor) && empty($appliedDistributor) && empty($search))
@@ -154,7 +170,8 @@
             </div>
 
             {{-- Remark Modal --}}
-            <dialog class="modal modal-bottom sm:modal-middle" @if($remarkModalOpen) open @endif>
+            <template x-teleport="body">
+            <dialog class="modal items-start sm:pt-10 !z-[99999]" :class="$wire.remarkModalOpen ? 'modal-open' : ''">
                 <div class="modal-box">
                     <h3 class="font-bold text-lg mb-4">Catatan Outlet Non JKS</h3>
                     
@@ -176,49 +193,92 @@
                     </div>
 
                     <div class="modal-action">
-                        <button wire:click="$set('remarkModalOpen', false)" class="btn btn-ghost">Batal</button>
+                        <button @click="$wire.remarkModalOpen = false" type="button" class="btn btn-ghost">Batal</button>
                         <button wire:click="saveRemark" class="btn btn-primary" wire:loading.attr="disabled" wire:target="saveRemark">
                             <span wire:loading.remove wire:target="saveRemark">Simpan Remark</span>
                             <span wire:loading wire:target="saveRemark" class="loading loading-spinner loading-sm"></span>
                         </button>
                     </div>
                 </div>
-                <div class="modal-backdrop bg-neutral/40" wire:click="$set('remarkModalOpen', false)"></div>
+                <div class="modal-backdrop bg-neutral/40" @click="$wire.remarkModalOpen = false"></div>
             </dialog>
+            </template>
 
             {{-- Add JKS Modal --}}
-            <dialog class="modal modal-bottom sm:modal-middle" @if($addJksModalOpen) open @endif>
+            <template x-teleport="body">
+            <dialog class="modal items-start sm:pt-10 !z-[99999]" :class="$wire.addJksModalOpen ? 'modal-open' : ''">
                 <div class="modal-box max-w-2xl">
                     <h3 class="font-bold text-lg mb-4">Pengajuan Tambah ke JKS</h3>
                     
-                    @if(!empty($formOutlet))
-                    <div class="bg-base-200/50 p-3 rounded-lg mb-4 grid grid-cols-2 gap-4">
-                        <div>
-                            <div class="text-xs text-base-content/60">Toko:</div>
-                            <div class="font-bold text-sm">{{ $formOutlet['customer_name'] }}</div>
-                            <div class="font-mono text-xs text-primary mt-0.5">{{ $formOutlet['customer_code'] }}</div>
-                        </div>
-                        <div>
-                            <div class="text-xs text-base-content/60">Distributor:</div>
-                            <div class="font-bold text-sm">{{ $formOutlet['distributor_name'] }}</div>
-                            <div class="font-mono text-xs text-primary mt-0.5">{{ $formOutlet['distributor_code'] }}</div>
-                        </div>
-                        <div class="col-span-2 border-t border-base-300 pt-2 mt-1">
-                            <div class="text-xs text-base-content/60">Customer Kode PRC (eska):</div>
-                            <div class="font-mono text-sm {{ empty($formOutlet['customer_eska']) ? 'text-error italic' : 'text-success font-bold' }}">
-                                {{ $formOutlet['customer_eska'] ?: 'KOSONG - Harus diinput Admin saat Approval' }}
+                    @if(!empty($formOutlets))
+                        @if(count($formOutlets) === 1)
+                            {{-- Single View --}}
+                            @php $formOutlet = $formOutlets[0]; @endphp
+                            <div class="bg-base-200/50 p-3 rounded-lg mb-4 grid grid-cols-2 gap-4">
+                                <div>
+                                    <div class="text-xs text-base-content/60">Toko:</div>
+                                    <div class="font-bold text-sm">{{ $formOutlet['customer_name'] }}</div>
+                                    <div class="font-mono text-xs text-primary mt-0.5">{{ $formOutlet['customer_code'] }}</div>
+                                </div>
+                                <div>
+                                    <div class="text-xs text-base-content/60">Distributor:</div>
+                                    <div class="font-bold text-sm">{{ $formOutlet['distributor_name'] }}</div>
+                                    <div class="font-mono text-xs text-primary mt-0.5">{{ $formOutlet['distributor_code'] }}</div>
+                                </div>
+                                <div class="col-span-2 border-t border-base-300 pt-2 mt-1">
+                                    <div class="text-xs text-base-content/60">Customer Kode PRC (eska):</div>
+                                    <div class="font-mono text-sm {{ empty($formOutlet['customer_eska']) ? 'text-error italic' : 'text-success font-bold' }}">
+                                        {{ $formOutlet['customer_eska'] ?: 'KOSONG - Harus diinput Admin saat Approval' }}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                        @else
+                            {{-- Bulk View --}}
+                            @php
+                                $emptyPrcCount = count(array_filter($formOutlets, fn($o) => empty($o['customer_eska'])));
+                            @endphp
+                            <div class="bg-info/10 text-info p-3 rounded-lg text-sm font-medium flex gap-2 items-start mb-4">
+                                <x-heroicon-o-information-circle class="w-5 h-5 shrink-0 mt-0.5" />
+                                <div class="flex-1">
+                                    <div>Anda akan menambahkan <strong>{{ count($formOutlets) }} toko</strong> dari distributor <strong>{{ $bulkDistributorCode }}</strong> ke JKS sekaligus.</div>
+                                    @if($emptyPrcCount > 0)
+                                        <div class="text-error font-bold mt-1 text-xs">
+                                            (🚨 Terdapat {{ $emptyPrcCount }} toko tanpa kode PRC yang wajib dilengkapi oleh Admin nanti)
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                            
+                            <div class="max-h-[30vh] overflow-y-auto mb-4 border border-base-300 rounded-lg bg-base-200/30">
+                                <table class="table table-xs table-pin-rows">
+                                    <thead class="bg-base-200">
+                                        <tr>
+                                            <th>Kode</th>
+                                            <th>Nama Toko</th>
+                                            <th>PRC</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($formOutlets as $outlet)
+                                            <tr>
+                                                <td class="font-mono text-primary">{{ $outlet['customer_code'] }}</td>
+                                                <td>{{ $outlet['customer_name'] }}</td>
+                                                <td class="font-mono">
+                                                    @if(empty($outlet['customer_eska']))
+                                                        <span class="text-error italic" title="KOSONG - Harus diinput Admin saat Approval">Kosong</span>
+                                                    @else
+                                                        <span class="text-success">{{ $outlet['customer_eska'] }}</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
                     @endif
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div class="form-control">
-                            <label class="label"><span class="label-text font-medium">Bulan Target <span class="text-error">*</span></span></label>
-                            <input type="month" wire:model="formBulan" class="input input-bordered @error('formBulan') input-error @enderror" />
-                            @error('formBulan') <span class="text-error text-xs mt-1">{{ $message }}</span> @enderror
-                        </div>
-
                         <div class="form-control">
                             <label class="label"><span class="label-text font-medium">Salesman <span class="text-error">*</span></span></label>
                             <select wire:model="formSalesman" class="select select-bordered w-full @error('formSalesman') select-error @enderror">
@@ -229,23 +289,29 @@
                             </select>
                             @error('formSalesman') <span class="text-error text-xs mt-1">{{ $message }}</span> @enderror
                         </div>
+
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-medium">Bulan Target <span class="text-error">*</span></span></label>
+                            <input type="month" wire:model.live="formBulan" class="input input-bordered @error('formBulan') input-error @enderror" />
+                            @error('formBulan') <span class="text-error text-xs mt-1">{{ $message }}</span> @enderror
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                        <div class="form-control bg-base-100 border border-base-300 rounded-lg p-3">
+                        <div class="form-control bg-base-100 border @error('formH') border-error bg-error/5 @else border-base-300 @enderror rounded-lg p-3">
                             <label class="label pt-0 border-b border-base-200 mb-2"><span class="label-text font-bold">Hari Kunjungan <span class="text-error">*</span></span></label>
                             <div class="flex flex-wrap gap-2">
-                                @foreach([1=>'Sen', 2=>'Sel', 3=>'Rab', 4=>'Kam', 5=>'Jum', 6=>'Sab', 7=>'Min'] as $val => $label)
+                                @foreach([1=>'Senin (H1)', 2=>'Selasa (H2)', 3=>'Rabu (H3)', 4=>'Kamis (H4)', 5=>'Jumat (H5)', 6=>'Sabtu (H6)', 7=>'Minggu (H7)'] as $val => $label)
                                     <label class="cursor-pointer flex items-center gap-1.5 bg-base-200 px-2 py-1 rounded border border-base-300 hover:border-primary transition-colors">
                                         <input type="checkbox" wire:model="formH" value="{{ $val }}" class="checkbox checkbox-xs checkbox-primary" />
-                                        <span class="label-text text-xs font-medium">H{{ $val }} ({{ $label }})</span>
+                                        <span class="label-text text-xs font-medium">{{ $label }}</span>
                                     </label>
                                 @endforeach
                             </div>
                             @error('formH') <span class="text-error text-xs mt-2 block">{{ $message }}</span> @enderror
                         </div>
 
-                        <div class="form-control bg-base-100 border border-base-300 rounded-lg p-3">
+                        <div class="form-control bg-base-100 border @error('formW') border-error bg-error/5 @else border-base-300 @enderror rounded-lg p-3">
                             <label class="label pt-0 border-b border-base-200 mb-2"><span class="label-text font-bold">Minggu Kunjungan <span class="text-error">*</span></span></label>
                             <div class="flex flex-wrap gap-2">
                                 @foreach([1,2,3,4] as $val)
@@ -259,16 +325,75 @@
                         </div>
                     </div>
 
+                    {{-- Calendar Preview --}}
+                    <div class="mb-4 bg-base-100 border border-base-300 rounded-lg overflow-hidden">
+                        <div class="bg-base-200/50 p-2.5 border-b border-base-300 flex justify-between items-center">
+                            <h4 class="font-bold text-sm text-base-content/80 flex items-center gap-1.5">
+                                <x-heroicon-o-calendar class="w-4 h-4" /> Pratinjau Jadwal
+                            </h4>
+                        </div>
+                        
+                        <div class="p-3">
+                            @php 
+                                $calData = $this->calendarDays; 
+                                $days = $calData['days'] ?? collect();
+                                $offset = $calData['offset'] ?? 0;
+                            @endphp
+
+                            @if($days->isEmpty())
+                                <div class="text-center py-6 text-base-content/50 text-sm italic">
+                                    Pilih bulan terlebih dahulu atau kalender belum digenerate.
+                                </div>
+                            @else
+                                <!-- Month View -->
+                                <div>
+                                    <div class="grid grid-cols-7 gap-1 text-center mb-1.5 border-b border-base-200 pb-1">
+                                        <div class="text-[10px] font-bold text-error uppercase">Min</div>
+                                        <div class="text-[10px] font-bold uppercase">Sen</div>
+                                        <div class="text-[10px] font-bold uppercase">Sel</div>
+                                        <div class="text-[10px] font-bold uppercase">Rab</div>
+                                        <div class="text-[10px] font-bold uppercase">Kam</div>
+                                        <div class="text-[10px] font-bold uppercase">Jum</div>
+                                        <div class="text-[10px] font-bold uppercase">Sab</div>
+                                    </div>
+                                    <div class="grid grid-cols-7 gap-1">
+                                        @for($i=0; $i<$offset; $i++)
+                                            <div class="aspect-square rounded"></div>
+                                        @endfor
+                                        
+                                        @foreach($days as $day)
+                                            <div class="aspect-square rounded border flex flex-col items-center justify-center relative transition-colors duration-200"
+                                                 :class="{
+                                                     'bg-primary/20 border-primary shadow-inner': $wire.formH.includes('{{ $day->day_number }}') && $wire.formW.includes('{{ $day->week_month }}'),
+                                                     'border-base-200 bg-base-100/50': !($wire.formH.includes('{{ $day->day_number }}') && $wire.formW.includes('{{ $day->week_month }}'))
+                                                 }">
+                                                <span class="text-xs {{ ($day->libur_nasional || $day->day_number == 7) ? 'text-error font-semibold' : '' }}"
+                                                      :class="{ 'text-primary font-bold': $wire.formH.includes('{{ $day->day_number }}') && $wire.formW.includes('{{ $day->week_month }}') && !{{ $day->libur_nasional || $day->day_number == 7 ? 'true' : 'false' }} }">
+                                                    {{ (int)date('d', strtotime($day->date)) }}
+                                                </span>
+                                                <span class="text-[9px] absolute bottom-1 right-1 font-bold px-1 rounded-sm"
+                                                      :class="($wire.formH.includes('{{ $day->day_number }}') && $wire.formW.includes('{{ $day->week_month }}')) ? 'bg-primary text-primary-content' : 'bg-primary/10 text-primary'">
+                                                    W{{ $day->week_month }}
+                                                </span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
                     <div class="modal-action">
-                        <button wire:click="$set('addJksModalOpen', false)" class="btn btn-ghost">Batal</button>
+                        <button @click="$wire.addJksModalOpen = false" type="button" class="btn btn-ghost">Batal</button>
                         <button wire:click="submitAddJks" class="btn btn-primary" wire:loading.attr="disabled" wire:target="submitAddJks">
                             <span wire:loading.remove wire:target="submitAddJks">Ajukan Penambahan</span>
                             <span wire:loading wire:target="submitAddJks" class="loading loading-spinner loading-sm"></span>
                         </button>
                     </div>
                 </div>
-                <div class="modal-backdrop bg-neutral/40" wire:click="$set('addJksModalOpen', false)"></div>
+                <div class="modal-backdrop bg-neutral/40" @click="$wire.addJksModalOpen = false"></div>
             </dialog>
+            </template>
 
             {{-- Footer Card (Pagination) --}}
             <div class="p-3 md:p-4 lg:p-5 border-t border-base-300 shrink-0 bg-base-200">

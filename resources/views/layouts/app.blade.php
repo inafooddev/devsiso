@@ -77,5 +77,6 @@
     @livewireScripts
     @stack('scripts')
     <x-global-loading />
+    <div id="teleport-modals"></div>
 </body>
 </html>

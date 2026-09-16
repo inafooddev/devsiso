@@ -123,6 +123,10 @@ trait WithCallPlanFilters
         $this->selectedBulan = date('Y-m');
         $this->appliedBulan = date('Y-m');
         
+        if (session()->has('jks_salesmans_state')) {
+            session()->forget('jks_salesmans_state');
+        }
+        
         if (method_exists($this, 'resetPage')) {
             $this->resetPage();
         }

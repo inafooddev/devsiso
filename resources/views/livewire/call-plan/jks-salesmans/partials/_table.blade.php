@@ -7,6 +7,7 @@
                 <th rowspan="2">Cust Kode</th>
                 <th rowspan="2">Cust Name</th>
                 <th rowspan="2">Wilayah</th>
+                <th rowspan="2">Pilar</th>
                 <th class="text-center border-b border-primary !bg-primary text-primary-content" colspan="7">Hari</th>
                 <th class="text-center border-b border-neutral !bg-neutral text-neutral-content" colspan="4">Minggu</th>
                 <th class="text-center w-20" rowspan="2">Aksi</th>
@@ -48,7 +49,7 @@
         </thead>
         <tbody class="text-xs relative transition-opacity duration-300" wire:loading.class="opacity-30 pointer-events-none">
             @forelse ($jksData as $index => $row)
-                <tr class="hover:bg-primary/5 transition-colors group">
+                <tr class="hover:bg-primary/5 transition-colors group {{ empty($row->latitude) || empty($row->longitude) ? '!bg-error/20' : '' }}">
                     <th class="text-center">{{ $jksData->firstItem() + $index }}</th>
                     
                     <td>
@@ -75,6 +76,10 @@
                     <td>
                         <div class="font-semibold truncate max-w-[120px]" title="{{ $row->kecamatan ?? '-' }}">{{ $row->kecamatan ?? '-' }}</div>
                         <div class="text-[9px] text-base-content/50 truncate max-w-[120px]" title="{{ $row->desa ?? '-' }}">{{ $row->desa ?? '-' }}</div>
+                    </td>
+                    <td>
+                        <div class="font-semibold truncate max-w-[100px]" title="{{ $row->pilar ?? '-' }}">{{ $row->pilar ?? '-' }}</div>
+                        <div class="text-[9px] text-base-content/50 max-w-[100px] font-medium" title="{{ $row->target ?? '-' }}">{{ is_numeric($row->target) ? number_format($row->target, 0, ',', '.') : ($row->target ?? '-') }}</div>
                     </td>
                     {{-- Hari --}}
                     <td class="text-center px-1 border-l-2 border-base-300 bg-base-100/50">@if($row->h1 === 'Y') <x-heroicon-s-check-circle class="w-4 h-4 text-success mx-auto"/> @endif</td>

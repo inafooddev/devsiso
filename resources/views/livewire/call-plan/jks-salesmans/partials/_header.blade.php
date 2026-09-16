@@ -15,14 +15,13 @@
                 <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h4' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h4')">Kam</button>
                 <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h5' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h5')">Jum</button>
                 <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h6' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h6')">Sab</button>
-                <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h7' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h7')">Min</button>
+                <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'non_rute' ? 'btn-active btn-warning' : '' }}" wire:click="toggleHari('non_rute')">Non Rute</button>
             </div>
 
             {{-- Week Filter (Active Button) --}}
             <div class="join shadow-sm border border-base-300">
                 <button type="button" class="btn btn-sm join-item {{ $selectedMinggu === 'ganjil' ? 'btn-active btn-secondary' : '' }}" wire:click="toggleMinggu('ganjil')">Ganjil</button>
                 <button type="button" class="btn btn-sm join-item {{ $selectedMinggu === 'genap' ? 'btn-active btn-secondary' : '' }}" wire:click="toggleMinggu('genap')">Genap</button>
-                <button type="button" class="btn btn-sm join-item {{ $selectedMinggu === 'non_rute' ? 'btn-active btn-secondary' : '' }}" wire:click="toggleMinggu('non_rute')">Non Rute</button>
             </div>
             {{-- Salesman Dropdown --}}
             <div class="w-full sm:w-56 z-30">
@@ -95,6 +94,12 @@
                             <a wire:click="openCopyModal">
                                 <x-heroicon-s-document-duplicate class="w-4 h-4 text-info" />
                                 Salin Periode
+                            </a>
+                        </li>
+                        <li>
+                            <a wire:click="openCleansingModal" class="text-warning hover:bg-warning/10 hover:text-warning">
+                                <x-heroicon-s-sparkles class="w-4 h-4" />
+                                Cleansing Duplicate
                             </a>
                         </li>
                     @endif

@@ -25,6 +25,54 @@ class Index extends Component
     public $selectedHari = 'h1';
     public $selectedMinggu = 'ganjil';
 
+    public function mount()
+    {
+        if (session()->has('jks_salesmans_state')) {
+            $state = session()->get('jks_salesmans_state');
+            $this->appliedRegion = $state['appliedRegion'] ?? '';
+            $this->appliedArea = $state['appliedArea'] ?? '';
+            $this->appliedSupervisor = $state['appliedSupervisor'] ?? '';
+            $this->appliedDistributor = $state['appliedDistributor'] ?? '';
+            $this->appliedBulan = $state['appliedBulan'] ?? date('Y-m');
+            
+            $this->selectedRegion = $state['selectedRegion'] ?? '';
+            $this->selectedArea = $state['selectedArea'] ?? '';
+            $this->selectedSupervisor = $state['selectedSupervisor'] ?? '';
+            $this->selectedDistributor = $state['selectedDistributor'] ?? '';
+            $this->selectedBulan = $state['selectedBulan'] ?? date('Y-m');
+
+            $this->search = $state['search'] ?? '';
+            $this->headerSalesman = $state['headerSalesman'] ?? '';
+            $this->selectedHari = $state['selectedHari'] ?? 'h1';
+            $this->selectedMinggu = $state['selectedMinggu'] ?? 'ganjil';
+            
+            if (isset($state['page'])) {
+                $this->setPage($state['page']);
+            }
+        }
+    }
+
+    public function dehydrate()
+    {
+        session()->put('jks_salesmans_state', [
+            'appliedRegion' => $this->appliedRegion,
+            'appliedArea' => $this->appliedArea,
+            'appliedSupervisor' => $this->appliedSupervisor,
+            'appliedDistributor' => $this->appliedDistributor,
+            'appliedBulan' => $this->appliedBulan,
+            'selectedRegion' => $this->selectedRegion,
+            'selectedArea' => $this->selectedArea,
+            'selectedSupervisor' => $this->selectedSupervisor,
+            'selectedDistributor' => $this->selectedDistributor,
+            'selectedBulan' => $this->selectedBulan,
+            'search' => $this->search,
+            'headerSalesman' => $this->headerSalesman,
+            'selectedHari' => $this->selectedHari,
+            'selectedMinggu' => $this->selectedMinggu,
+            'page' => $this->getPage(),
+        ]);
+    }
+
     // Collision Detection
     public $collisionCustomerName = '';
     public $collisionDetails = [];
@@ -36,10 +84,15 @@ class Index extends Component
             $this->selectedHari = '';
         } else {
             $this->selectedHari = $hari;
-            
-            // Jika memilih hari spesifik saat berada di 'non_rute', otomatis ubah minggu menjadi 'ganjil'
-            if ($this->selectedMinggu === 'non_rute') {
-                $this->selectedMinggu = 'ganjil';
+
+            if ($hari === 'non_rute') {
+                // Non Rute: reset filter minggu karena tidak relevan
+                $this->selectedMinggu = '';
+            } else {
+                // Jika memilih hari spesifik dan minggu belum dipilih, default ke ganjil
+                if (empty($this->selectedMinggu)) {
+                    $this->selectedMinggu = 'ganjil';
+                }
             }
         }
         $this->resetPage();
@@ -51,15 +104,10 @@ class Index extends Component
             $this->selectedMinggu = '';
         } else {
             $this->selectedMinggu = $minggu;
-            
-            if ($minggu === 'non_rute') {
-                // Jika memilih 'non_rute', otomatis reset filter hari karena non_rute tidak punya jadwal hari
-                $this->selectedHari = '';
-            } else {
-                // Jika memilih 'ganjil' atau 'genap' dan hari kosong, otomatis pilih 'h1' (Senin)
-                if (empty($this->selectedHari)) {
-                    $this->selectedHari = 'h1';
-                }
+
+            // Jika minggu dipilih dan hari sedang di non_rute atau kosong, default ke Senin
+            if (empty($this->selectedHari) || $this->selectedHari === 'non_rute') {
+                $this->selectedHari = 'h1';
             }
         }
         $this->resetPage();
@@ -72,6 +120,31 @@ class Index extends Component
 
     public function updatingHeaderSalesman()
     {
+        $this->resetPage();
+    }
+
+    public function resetFilters()
+    {
+        // Panggil trait method untuk reset global filters
+        $this->reset([
+            'selectedRegion', 'selectedArea', 'selectedSupervisor', 'selectedDistributor',
+            'appliedRegion', 'appliedArea', 'appliedSupervisor', 'appliedDistributor'
+        ]);
+        
+        // Reset bulan ke default
+        $this->selectedBulan = date('Y-m');
+        $this->appliedBulan = date('Y-m');
+        
+        // Reset internal JksSalesmans state
+        $this->reset(['search', 'headerSalesman', 'selectedHari', 'selectedMinggu']);
+        
+        $this->selectedHari = 'h1';
+        $this->selectedMinggu = 'ganjil';
+
+        if (session()->has('jks_salesmans_state')) {
+            session()->forget('jks_salesmans_state');
+        }
+
         $this->resetPage();
     }
 
@@ -121,6 +194,9 @@ class Index extends Component
                 $query->where('js.' . $this->swapHariAsal, 'Y')
                       ->orWhere('js.' . $this->swapHariTujuan, 'Y');
             })
+            ->when($this->appliedBulan, function($query) {
+                $query->where('js.bulan', 'like', $this->appliedBulan . '%');
+            })
             ->orderByRaw("
                 CASE 
                     WHEN js.{$this->swapHariAsal} = 'Y' AND (js.{$this->swapHariTujuan} = 'T' OR js.{$this->swapHariTujuan} IS NULL) THEN 1
@@ -148,6 +224,9 @@ class Index extends Component
     public $showDeleteModal = false;
     public $deleteId = null;
     public $deleteReason = '';
+    public $deleteMethod = '';
+    public $deletePreviewData = null;
+    public $showDeleteMethodModal = false;
 
     // State Swap (Tukar Jadwal)
     public $showSwapModal = false;
@@ -171,7 +250,14 @@ class Index extends Component
     public $bdSelectedIds = [];
     public $bdSelectAll = false;
     public $bdReason = '';
+    public $bdDeleteMethod = '';
 
+    // State Cleansing Duplicate
+    public $showCleansingModal = false;
+    public $cleansingResults = [];
+    public $cleansingTotalGroups = 0;
+    public $cleansingTotalDuplicates = 0;
+    
     // Modals: Copy
     public $showCopyModal = false;
     public $copyRegion = '';
@@ -377,6 +463,7 @@ class Index extends Component
                 'checker_id' => auth()->id(),
                 'distributor_code' => $this->appliedDistributor,
                 'action_type' => $actionType,
+                'delete_type' => $payload['delete_type'] ?? null,
                 'payload' => json_encode($payload),
                 'reason' => $reason,
                 'status' => 'AUTO_APPROVED',
@@ -392,6 +479,7 @@ class Index extends Component
                 'checker_id' => null,
                 'distributor_code' => $this->appliedDistributor,
                 'action_type' => $actionType,
+                'delete_type' => $payload['delete_type'] ?? null,
                 'payload' => json_encode($payload),
                 'reason' => $reason,
                 'status' => 'PENDING',
@@ -465,12 +553,15 @@ class Index extends Component
                         ->where('distributor_code', $this->appliedDistributor)
                         ->where(function($query) use ($payload) {
                             foreach ($payload['minggu'] as $week) {
-                                $query->where($week, 'Y');
+                                $query->orWhere($week, 'Y');
                             }
                         })
                         ->where(function($query) use ($payload) {
                             $query->where($payload['hari_asal'], 'Y')
                                   ->orWhere($payload['hari_tujuan'], 'Y');
+                        })
+                        ->when($this->appliedBulan, function($query) {
+                            $query->where('bulan', 'like', $this->appliedBulan . '%');
                         })
                         ->get();
 
@@ -551,6 +642,9 @@ class Index extends Component
             $countAsal = \Illuminate\Support\Facades\DB::table('jks_salesmans')
                 ->where('salesman_code', $this->swapSalesmanCode)
                 ->where('distributor_code', $this->appliedDistributor)
+                ->when($this->appliedBulan, function($query) {
+                    $query->where('bulan', 'like', $this->appliedBulan . '%');
+                })
                 ->where($col, 'Y')
                 ->where($this->swapMingguAsal, 'Y')
                 ->count();
@@ -558,6 +652,9 @@ class Index extends Component
             $countTujuan = \Illuminate\Support\Facades\DB::table('jks_salesmans')
                 ->where('salesman_code', $this->swapSalesmanCode)
                 ->where('distributor_code', $this->appliedDistributor)
+                ->when($this->appliedBulan, function($query) {
+                    $query->where('bulan', 'like', $this->appliedBulan . '%');
+                })
                 ->where($col, 'Y')
                 ->where($this->swapMingguTujuan, 'Y')
                 ->count();
@@ -615,6 +712,9 @@ class Index extends Component
                             $query->where($payload['minggu_asal'], 'Y')
                                   ->orWhere($payload['minggu_tujuan'], 'Y');
                         })
+                        ->when($this->appliedBulan, function($query) {
+                            $query->where('bulan', 'like', $this->appliedBulan . '%');
+                        })
                         ->get();
 
                     foreach ($rows as $row) {
@@ -650,11 +750,17 @@ class Index extends Component
         $countAsal = \Illuminate\Support\Facades\DB::table('jks_salesmans')
             ->where('salesman_code', $this->swapSalesmanAsal)
             ->where('distributor_code', $this->appliedDistributor)
+            ->when($this->appliedBulan, function($query) {
+                $query->where('bulan', 'like', $this->appliedBulan . '%');
+            })
             ->count();
 
         $countTujuan = \Illuminate\Support\Facades\DB::table('jks_salesmans')
             ->where('salesman_code', $this->swapSalesmanTujuan)
             ->where('distributor_code', $this->appliedDistributor)
+            ->when($this->appliedBulan, function($query) {
+                $query->where('bulan', 'like', $this->appliedBulan . '%');
+            })
             ->count();
 
         $asalName = collect($this->headerSalesmans)->firstWhere('salesman_code', $this->swapSalesmanAsal)->salesman_name ?? $this->swapSalesmanAsal;
@@ -707,11 +813,17 @@ class Index extends Component
                     $asalIds = \Illuminate\Support\Facades\DB::table('jks_salesmans')
                         ->where('salesman_code', $payload['salesman_asal'])
                         ->where('distributor_code', $this->appliedDistributor)
+                        ->when($this->appliedBulan, function($query) {
+                            $query->where('bulan', 'like', $this->appliedBulan . '%');
+                        })
                         ->pluck('id');
 
                     $tujuanIds = \Illuminate\Support\Facades\DB::table('jks_salesmans')
                         ->where('salesman_code', $payload['salesman_tujuan'])
                         ->where('distributor_code', $this->appliedDistributor)
+                        ->when($this->appliedBulan, function($query) {
+                            $query->where('bulan', 'like', $this->appliedBulan . '%');
+                        })
                         ->pluck('id');
 
                     if ($asalIds->isNotEmpty()) {
@@ -749,6 +861,8 @@ class Index extends Component
         $this->bdMinggu = '';
         $this->bdSelectedIds = [];
         $this->bdSelectAll = false;
+        $this->bdReason = '';
+        $this->bdDeleteMethod = '';
         $this->showBulkDeleteModal = true;
     }
 
@@ -757,6 +871,13 @@ class Index extends Component
         $this->showBulkDeleteModal = false;
         $this->bdSelectedIds = [];
         $this->bdSelectAll = false;
+        $this->bdReason = '';
+        $this->bdDeleteMethod = '';
+    }
+
+    public function selectBdDeleteMethod($method)
+    {
+        $this->bdDeleteMethod = $method;
     }
 
     public function updatedBdSalesman() { $this->resetBdSelection(); }
@@ -823,12 +944,18 @@ class Index extends Component
             return;
         }
 
+        if (empty($this->bdDeleteMethod)) {
+            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Pilih metode hapus terlebih dahulu!']);
+            return;
+        }
+
         \Illuminate\Support\Facades\DB::beginTransaction();
         try {
             $count = count($this->bdSelectedIds);
             
             $payload = [
                 'ids' => $this->bdSelectedIds,
+                'delete_type' => strtoupper($this->bdDeleteMethod),
                 'update' => [
                     'h1' => 'T', 'h2' => 'T', 'h3' => 'T', 'h4' => 'T', 'h5' => 'T', 'h6' => 'T', 'h7' => 'T',
                     'w1' => 'T', 'w2' => 'T', 'w3' => 'T', 'w4' => 'T',
@@ -842,14 +969,22 @@ class Index extends Component
             $mingguFilter = $this->bdMinggu ? ($weekNames[$this->bdMinggu] ?? $this->bdMinggu) : 'Semua Minggu';
             $seFilter = collect($this->headerSalesmans)->firstWhere('salesman_code', $this->bdSalesman)->salesman_name ?? $this->bdSalesman ?: 'Semua Salesman';
 
-            $reasonFull = "Hapus Massal {$count} Jadwal Toko | Filter -> SE: {$seFilter}, Hari: {$hariFilter}, Minggu: {$mingguFilter} | Alasan: " . $this->bdReason;
+            $methodName = $this->bdDeleteMethod === 'hard' ? 'Hapus Permanen' : 'Soft Delete';
+            $reasonFull = "{$methodName} Massal {$count} Jadwal Toko | Filter -> SE: {$seFilter}, Hari: {$hariFilter}, Minggu: {$mingguFilter} | Alasan: " . $this->bdReason;
 
             $this->handleJksAction('DELETE_MASSAL', $payload, $reasonFull, function() use ($payload) {
-                \Illuminate\Support\Facades\DB::table('jks_salesmans')
-                    ->whereIn('id', $payload['ids'])
-                    ->where('distributor_code', $this->appliedDistributor)
-                    ->update(array_merge($payload['update'], ['updated_at' => now()]));
-            }, "Berhasil mereset {$count} jadwal toko menjadi kosong (T)!");
+                if (($payload['delete_type'] ?? 'SOFT') === 'HARD') {
+                    \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                        ->whereIn('id', $payload['ids'])
+                        ->where('distributor_code', $this->appliedDistributor)
+                        ->delete();
+                } else {
+                    \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                        ->whereIn('id', $payload['ids'])
+                        ->where('distributor_code', $this->appliedDistributor)
+                        ->update(array_merge($payload['update'], ['updated_at' => now()]));
+                }
+            }, "Berhasil memproses {$count} jadwal toko!");
 
             \Illuminate\Support\Facades\DB::commit();
             
@@ -860,6 +995,217 @@ class Index extends Component
         }
     }
 
+    public function openCleansingModal()
+    {
+        $this->showCleansingModal = true;
+        $this->cleansingResults = [];
+        $this->cleansingTotalGroups = 0;
+        $this->cleansingTotalDuplicates = 0;
+        
+        $this->scanningDuplicates();
+    }
+    
+    public function closeCleansingModal()
+    {
+        $this->showCleansingModal = false;
+        $this->cleansingResults = [];
+    }
+
+    public function scanningDuplicates()
+    {
+        if (empty($this->appliedDistributor)) {
+            return;
+        }
+
+        // 1. Get potential duplicates (customer + salesman + bulan having > 1 record)
+        $potentialDuplicates = \Illuminate\Support\Facades\DB::select("
+            SELECT customer_code, salesman_code, bulan
+            FROM jks_salesmans
+            WHERE distributor_code = ? AND bulan LIKE ?
+            GROUP BY customer_code, salesman_code, bulan
+            HAVING COUNT(*) > 1
+        ", [$this->appliedDistributor, $this->appliedBulan . '%']);
+
+        if (empty($potentialDuplicates)) {
+            $this->cleansingTotalGroups = 0;
+            $this->cleansingTotalDuplicates = 0;
+            $this->cleansingResults = [];
+            return;
+        }
+
+        $results = [];
+        $totalGroups = 0;
+        $totalDuplicates = 0;
+
+        foreach ($potentialDuplicates as $dup) {
+            $records = \Illuminate\Support\Facades\DB::table('jks_salesmans as js')
+                ->select('js.*', 'ltpte.customer_name')
+                ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
+                    $join->on('js.distributor_code', '=', 'ltpte.distributor_code')
+                         ->on('js.customer_code', '=', 'ltpte.uniq_kd');
+                })
+                ->where('js.distributor_code', $this->appliedDistributor)
+                ->where('js.bulan', $dup->bulan)
+                ->where('js.customer_code', $dup->customer_code)
+                ->where('js.salesman_code', $dup->salesman_code)
+                ->get();
+
+            // Sub-group by Identical Weeks
+            $weekGroups = [];
+            $dayGroups = [];
+            $processedIds = [];
+
+            foreach ($records as $r) {
+                $weekKey = ($r->w1==='Y'?'Y':'T') . ($r->w2==='Y'?'Y':'T') . ($r->w3==='Y'?'Y':'T') . ($r->w4==='Y'?'Y':'T');
+                $weekGroups[$weekKey][] = $r;
+            }
+
+            foreach ($weekGroups as $weekKey => $groupRecords) {
+                if (count($groupRecords) > 1) {
+                    $processedGroup = $this->processDuplicateGroup(collect($groupRecords), 'Identik Minggu', $dup->customer_code, $dup->salesman_code);
+                    $results[] = $processedGroup;
+                    $totalGroups++;
+                    $totalDuplicates += (count($groupRecords) - 1);
+                    foreach ($groupRecords as $r) {
+                        $processedIds[] = $r->id;
+                    }
+                }
+            }
+
+            // Now check remaining records for Identical Days
+            $remainingRecords = $records->filter(function($r) use ($processedIds) {
+                return !in_array($r->id, $processedIds);
+            });
+
+            foreach ($remainingRecords as $r) {
+                $dayKey = ($r->h1==='Y'?'Y':'T') . ($r->h2==='Y'?'Y':'T') . ($r->h3==='Y'?'Y':'T') . 
+                          ($r->h4==='Y'?'Y':'T') . ($r->h5==='Y'?'Y':'T') . ($r->h6==='Y'?'Y':'T') . ($r->h7==='Y'?'Y':'T');
+                $dayGroups[$dayKey][] = $r;
+            }
+
+            foreach ($dayGroups as $dayKey => $groupRecords) {
+                if (count($groupRecords) > 1) {
+                    $processedGroup = $this->processDuplicateGroup(collect($groupRecords), 'Identik Hari', $dup->customer_code, $dup->salesman_code);
+                    $results[] = $processedGroup;
+                    $totalGroups++;
+                    $totalDuplicates += (count($groupRecords) - 1);
+                    foreach ($groupRecords as $r) {
+                        $processedIds[] = $r->id;
+                    }
+                }
+            }
+        }
+
+        $this->cleansingTotalGroups = $totalGroups;
+        $this->cleansingTotalDuplicates = $totalDuplicates;
+        $this->cleansingResults = $results;
+    }
+
+    private function processDuplicateGroup($records, $dupType, $customerCode, $salesmanCode)
+    {
+        $processedRecords = [];
+        foreach ($records as $rec) {
+            $yCount = 0;
+            foreach (['h1','h2','h3','h4','h5','h6','h7','w1','w2','w3','w4'] as $col) {
+                if (isset($rec->$col) && $rec->$col === 'Y') $yCount++;
+            }
+            $processedRecords[] = [
+                'id' => $rec->id,
+                'customer_name' => $rec->customer_name ?? $customerCode,
+                'salesman_code' => $salesmanCode,
+                'yCount' => $yCount,
+                'updated_at' => $rec->updated_at,
+                'isPrimary' => false,
+                'raw' => (array) $rec
+            ];
+        }
+
+        // Sort by yCount desc, then updated_at desc
+        usort($processedRecords, function($a, $b) {
+            if ($a['yCount'] === $b['yCount']) {
+                return strtotime($b['updated_at'] ?? '0') - strtotime($a['updated_at'] ?? '0');
+            }
+            return $b['yCount'] - $a['yCount'];
+        });
+
+        // Mark first as primary
+        if (count($processedRecords) > 0) {
+            $processedRecords[0]['isPrimary'] = true;
+        }
+
+        return [
+            'customer_code' => $customerCode,
+            'salesman_code' => $salesmanCode,
+            'dup_type' => $dupType,
+            'records' => $processedRecords
+        ];
+    }
+
+    public function executeCleansing()
+    {
+        if ($this->cleansingTotalDuplicates === 0) {
+            return;
+        }
+
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            $deletedCount = 0;
+
+            foreach ($this->cleansingResults as $group) {
+                $primaryId = null;
+                $duplicateIds = [];
+                $mergedH = [];
+                $mergedW = [];
+
+                foreach ($group['records'] as $rec) {
+                    if ($rec['isPrimary']) {
+                        $primaryId = $rec['id'];
+                        // Initialize merge with primary values
+                        foreach (['h1','h2','h3','h4','h5','h6','h7'] as $col) $mergedH[$col] = $rec['raw'][$col] ?? 'T';
+                        foreach (['w1','w2','w3','w4'] as $col) $mergedW[$col] = $rec['raw'][$col] ?? 'T';
+                    } else {
+                        $duplicateIds[] = $rec['id'];
+                    }
+                }
+
+                // If no primary found or no duplicates, skip
+                if (!$primaryId || empty($duplicateIds)) continue;
+
+                // Merge Y values from duplicates
+                foreach ($group['records'] as $rec) {
+                    if (!$rec['isPrimary']) {
+                        foreach (['h1','h2','h3','h4','h5','h6','h7'] as $col) {
+                            if (($rec['raw'][$col] ?? 'T') === 'Y') $mergedH[$col] = 'Y';
+                        }
+                        foreach (['w1','w2','w3','w4'] as $col) {
+                            if (($rec['raw'][$col] ?? 'T') === 'Y') $mergedW[$col] = 'Y';
+                        }
+                    }
+                }
+
+                // Update primary record
+                \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                    ->where('id', $primaryId)
+                    ->update(array_merge($mergedH, $mergedW, ['updated_at' => now(), 'reason' => 'System Cleansing Merge']));
+
+                // Hard Delete duplicate records
+                \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                    ->whereIn('id', $duplicateIds)
+                    ->delete();
+                    
+                $deletedCount += count($duplicateIds);
+            }
+
+            \Illuminate\Support\Facades\DB::commit();
+            
+            $this->closeCleansingModal();
+            $this->dispatch('toast', ['type' => 'success', 'message' => "Berhasil membersihkan {$deletedCount} duplicate route!"]);
+            $this->dispatch('refreshTable');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal melakukan cleansing: ' . $e->getMessage()]);
+        }
+    }
     public function exportExcel()
     {
         $filters = $this->getAppliedFilters();
@@ -977,16 +1323,38 @@ class Index extends Component
 
     public function confirmDelete($id)
     {
-        $this->deleteId = $id;
-        $this->deleteReason = '';
-        $this->showDeleteModal = true;
+        $jks = \Illuminate\Support\Facades\DB::table('jks_salesmans as js')
+            ->select('js.*', 'ltpte.customer_name')
+            ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
+                $join->on('js.distributor_code', '=', 'ltpte.distributor_code')
+                     ->on('js.customer_code', '=', 'ltpte.uniq_kd');
+            })
+            ->where('js.id', $id)
+            ->first();
+
+        if ($jks) {
+            $this->deleteId = $id;
+            $this->deletePreviewData = $jks;
+            $this->deleteReason = '';
+            $this->deleteMethod = '';
+            $this->showDeleteMethodModal = true;
+            $this->showDeleteModal = false;
+        }
+    }
+
+    public function selectDeleteMethod($method)
+    {
+        $this->deleteMethod = $method;
     }
 
     public function closeDeleteModal()
     {
+        $this->showDeleteMethodModal = false;
         $this->showDeleteModal = false;
         $this->deleteId = null;
         $this->deleteReason = '';
+        $this->deleteMethod = '';
+        $this->deletePreviewData = null;
     }
 
     public function executeDelete()
@@ -998,9 +1366,15 @@ class Index extends Component
             return;
         }
 
+        if (empty($this->deleteMethod)) {
+            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Pilih metode hapus terlebih dahulu!']);
+            return;
+        }
+
         try {
             $payload = [
                 'id' => $this->deleteId,
+                'delete_type' => strtoupper($this->deleteMethod),
                 'update' => [
                     'h1' => 'T', 'h2' => 'T', 'h3' => 'T', 'h4' => 'T', 'h5' => 'T', 'h6' => 'T', 'h7' => 'T',
                     'w1' => 'T', 'w2' => 'T', 'w3' => 'T', 'w4' => 'T',
@@ -1029,13 +1403,20 @@ class Index extends Component
             $activeMinggu = [];
             foreach (['w1','w2','w3','w4'] as $w) { if (isset($jks->$w) && $jks->$w === 'Y') $activeMinggu[] = $weekNames[$w]; }
 
-            $reasonFull = "Hapus Jadwal Toko: {$customerName} | SE: {$seName} | Hari: [" . implode(', ', $activeHari) . "] | Minggu: [" . implode(', ', $activeMinggu) . "] | Alasan: " . $this->deleteReason;
+            $methodName = $this->deleteMethod === 'hard' ? 'Hard Delete' : 'Soft Delete';
+            $reasonFull = "{$methodName} Jadwal Toko: {$customerName} | SE: {$seName} | Hari: [" . implode(', ', $activeHari) . "] | Minggu: [" . implode(', ', $activeMinggu) . "] | Alasan: " . $this->deleteReason;
 
             $this->handleJksAction('DELETE_INDIVIDU', $payload, $reasonFull, function() use ($payload) {
-                \Illuminate\Support\Facades\DB::table('jks_salesmans')
-                    ->where('id', $payload['id'])
-                    ->update(array_merge($payload['update'], ['updated_at' => now()]));
-            }, 'Jadwal berhasil dihapus (reset ke T)!');
+                if (($payload['delete_type'] ?? 'SOFT') === 'HARD') {
+                    \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                        ->where('id', $payload['id'])
+                        ->delete();
+                } else {
+                    \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                        ->where('id', $payload['id'])
+                        ->update(array_merge($payload['update'], ['updated_at' => now()]));
+                }
+            }, 'Jadwal berhasil diproses!');
 
             $this->closeDeleteModal();
         } catch (\Exception $e) {

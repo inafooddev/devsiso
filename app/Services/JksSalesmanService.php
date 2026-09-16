@@ -45,6 +45,8 @@ class JksSalesmanService
                 'ltpte.desa',
                 'ltpte.latitude',
                 'ltpte.longitude',
+                'ltpte.pilar',
+                'ltpte.target',
                 'js.h1', 'js.h2', 'js.h3', 'js.h4', 'js.h5', 'js.h6', 'js.h7',
                 'js.w1', 'js.w2', 'js.w3', 'js.w4'
             ])
@@ -78,6 +80,27 @@ class JksSalesmanService
                 return $q->where('js.bulan', 'like', $bulan . '%');
             })
             ->when($filters['hari'] ?? null, function ($q, $hari) {
+                if ($hari === 'non_rute') {
+                    // Non Rute: h1-h6 semua bukan Y (termasuk yang hanya h7 atau kosong)
+                    // DAN tidak ada minggu yang terisi
+                    return $q->where(function ($queryBuilder) {
+                        $queryBuilder->where(function ($sub) {
+                            // Tidak ada hari Senin-Sabtu
+                            $sub->where(fn($q) => $q->whereNull('js.h1')->orWhere('js.h1', '!=', 'Y'))
+                                ->where(fn($q) => $q->whereNull('js.h2')->orWhere('js.h2', '!=', 'Y'))
+                                ->where(fn($q) => $q->whereNull('js.h3')->orWhere('js.h3', '!=', 'Y'))
+                                ->where(fn($q) => $q->whereNull('js.h4')->orWhere('js.h4', '!=', 'Y'))
+                                ->where(fn($q) => $q->whereNull('js.h5')->orWhere('js.h5', '!=', 'Y'))
+                                ->where(fn($q) => $q->whereNull('js.h6')->orWhere('js.h6', '!=', 'Y'));
+                        })->orWhere(function ($sub) {
+                            // Atau tidak ada minggu yang terisi (w1-w4 semua bukan Y)
+                            $sub->where(fn($q) => $q->whereNull('js.w1')->orWhere('js.w1', '!=', 'Y'))
+                                ->where(fn($q) => $q->whereNull('js.w2')->orWhere('js.w2', '!=', 'Y'))
+                                ->where(fn($q) => $q->whereNull('js.w3')->orWhere('js.w3', '!=', 'Y'))
+                                ->where(fn($q) => $q->whereNull('js.w4')->orWhere('js.w4', '!=', 'Y'));
+                        });
+                    });
+                }
                 return $q->where('js.' . $hari, 'Y');
             })
             ->when($filters['minggu'] ?? null, function ($q, $minggu) {
@@ -176,6 +199,10 @@ class JksSalesmanService
 
         return DB::table('jks_salesmans as js')
             ->leftJoin('master_distributors as md', 'js.distributor_code', '=', 'md.distributor_code')
+            ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
+                $join->on('js.distributor_code', '=', 'ltpte.distributor_code')
+                     ->on('js.customer_code', '=', 'ltpte.uniq_kd');
+            })
             ->when($filters['region'] ?? null, function ($q, $region) {
                 return $q->where('md.region_code', $region);
             })
@@ -195,11 +222,13 @@ class JksSalesmanService
                 return $q->where('js.bulan', 'like', $bulan . '%');
             })
             ->selectRaw("
-                SUM(CASE WHEN 
-                    (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y' OR js.h7 = 'Y') 
+                COUNT(DISTINCT CONCAT(js.bulan, js.distributor_code, js.salesman_code, js.customer_code)) as all_ro,
+                SUM(CASE WHEN ltpte.latitude IS NULL OR ltpte.longitude IS NULL THEN 1 ELSE 0 END) as non_gps,
+                COUNT(DISTINCT CASE WHEN 
+                    (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') 
                     AND 
                     (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y') 
-                THEN 1 ELSE 0 END) as total_toko,
+                THEN CONCAT(js.bulan, js.distributor_code, js.salesman_code, js.customer_code) ELSE NULL END) as total_toko,
                 SUM(CASE WHEN js.w1 = 'Y' OR js.w3 = 'Y' THEN 1 ELSE 0 END) as total_ganjil,
                 SUM(CASE WHEN js.w2 = 'Y' OR js.w4 = 'Y' THEN 1 ELSE 0 END) as total_genap,
                 SUM(CASE WHEN js.h1 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as h1_ganjil,
@@ -213,7 +242,13 @@ class JksSalesmanService
                 SUM(CASE WHEN js.h5 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as h5_ganjil,
                 SUM(CASE WHEN js.h5 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN 1 ELSE 0 END) as h5_genap,
                 SUM(CASE WHEN js.h6 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as h6_ganjil,
-                SUM(CASE WHEN js.h6 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN 1 ELSE 0 END) as h6_genap
+                SUM(CASE WHEN js.h6 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN 1 ELSE 0 END) as h6_genap,
+                SUM(CASE WHEN js.h1 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN 1 ELSE 0 END) as h1_non_gps,
+                SUM(CASE WHEN js.h2 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN 1 ELSE 0 END) as h2_non_gps,
+                SUM(CASE WHEN js.h3 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN 1 ELSE 0 END) as h3_non_gps,
+                SUM(CASE WHEN js.h4 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN 1 ELSE 0 END) as h4_non_gps,
+                SUM(CASE WHEN js.h5 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN 1 ELSE 0 END) as h5_non_gps,
+                SUM(CASE WHEN js.h6 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN 1 ELSE 0 END) as h6_non_gps
             ")
             ->first();
     }

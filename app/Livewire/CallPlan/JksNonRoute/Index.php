@@ -19,10 +19,15 @@ class Index extends Component
     #[Layout('layouts.app')]
 
     public $search = '';
+    
+    // Bulk action states
+    public $selected = [];
+    public $selectAll = false;
 
     public function updatingSearch()
     {
         $this->resetPage();
+        $this->resetSelection();
     }
 
     #[Computed]
@@ -90,6 +95,7 @@ class Index extends Component
         $this->appliedDistributor = '';
         $this->selectedDistributor = '';
         $this->resetPage();
+        $this->resetSelection();
     }
 
     public function updatedAppliedArea()
@@ -100,6 +106,7 @@ class Index extends Component
         $this->appliedDistributor = '';
         $this->selectedDistributor = '';
         $this->resetPage();
+        $this->resetSelection();
     }
 
     public function updatedAppliedSupervisor()
@@ -108,12 +115,40 @@ class Index extends Component
         $this->appliedDistributor = '';
         $this->selectedDistributor = '';
         $this->resetPage();
+        $this->resetSelection();
     }
 
     public function updatedAppliedDistributor()
     {
         $this->selectedDistributor = $this->appliedDistributor;
         $this->resetPage();
+        $this->resetSelection();
+    }
+
+    private function resetSelection()
+    {
+        $this->selected = [];
+        $this->selectAll = false;
+    }
+
+    public function updatedSelectAll($value)
+    {
+        if ($value) {
+            $service = app(JksNonRouteService::class);
+            $filters = $this->getAppliedFilters();
+            if (isset($filters['bulan'])) unset($filters['bulan']);
+            
+            $data = $service->getFilteredPaginatedList($this->search, $filters, 100);
+            
+            // Only select items that don't have pending approvals
+            $this->selected = collect($data->items())
+                ->whereNull('pending_approval_id')
+                ->pluck('id')
+                ->map(fn($id) => (string) $id)
+                ->toArray();
+        } else {
+            $this->selected = [];
+        }
     }
 
     public $remarkModalOpen = false;
@@ -151,7 +186,8 @@ class Index extends Component
 
     // --- TAMBAH KE JKS ---
     public $addJksModalOpen = false;
-    public $formOutlet = []; // holds the selected outlet data
+    public $formOutlets = []; // holds an array of selected outlet data
+    public $bulkDistributorCode = '';
     public $formSalesman = '';
     public $formBulan = '';
     public $formH = [];
@@ -162,7 +198,9 @@ class Index extends Component
         $outlet = \Illuminate\Support\Facades\DB::table('jks_se_master_toko_ool')->where('id', $outletId)->first();
         if (!$outlet) return;
 
-        $this->formOutlet = (array)$outlet;
+        $this->formOutlets = [(array)$outlet];
+        $this->bulkDistributorCode = $outlet->distributor_code;
+
         
         $this->formSalesman = '';
         $this->formBulan = date('Y-m'); // Default current month
@@ -172,16 +210,78 @@ class Index extends Component
         $this->addJksModalOpen = true;
     }
 
+    public function openBulkAddJksModal()
+    {
+        if (empty($this->selected)) {
+            $this->dispatch('show-toast', type: 'error', message: 'Pilih minimal satu outlet.');
+            return;
+        }
+
+        $outlets = \Illuminate\Support\Facades\DB::table('jks_se_master_toko_ool')
+            ->whereIn('id', $this->selected)
+            ->get();
+
+        if ($outlets->isEmpty()) return;
+
+        $distributorCodes = $outlets->pluck('distributor_code')->unique();
+
+        if ($distributorCodes->count() > 1) {
+            $this->dispatch('show-toast', type: 'error', message: 'Semua outlet yang dipilih harus dari distributor yang sama!');
+            return;
+        }
+
+        $this->formOutlets = $outlets->map(fn($o) => (array)$o)->toArray();
+        $this->bulkDistributorCode = $distributorCodes->first();
+        
+        $this->formSalesman = '';
+        $this->formBulan = date('Y-m');
+        $this->formH = [];
+        $this->formW = [];
+
+        $this->addJksModalOpen = true;
+    }
+
     #[Computed]
     public function getJksSalesmanOptionsProperty()
     {
-        if (empty($this->formOutlet['distributor_code'])) return [];
+        if (empty($this->bulkDistributorCode)) return [];
 
         return \Illuminate\Support\Facades\DB::table('salesmans')
             ->select('salesman_code', 'salesman_name')
-            ->where('distributor_code', $this->formOutlet['distributor_code'])
+            ->where('distributor_code', $this->bulkDistributorCode)
             ->orderBy('salesman_name')
             ->get();
+    }
+
+    #[Computed]
+    public function getCalendarDaysProperty()
+    {
+        if (empty($this->formBulan)) return [];
+        
+        $parts = explode('-', $this->formBulan);
+        if (count($parts) !== 2) return [];
+        
+        $year = (int)$parts[0];
+        $month = (int)$parts[1];
+        
+        $days = \Illuminate\Support\Facades\DB::table('master_calender')
+            ->where('year', $year)
+            ->where('month', $month)
+            ->orderBy('date', 'asc')
+            ->get();
+            
+        if ($days->isEmpty()) return ['days' => collect(), 'offset' => 0];
+
+        // day_number: 1=Senin, 2=Selasa, 3=Rabu, 4=Kamis, 5=Jumat, 6=Sabtu, 7=Minggu
+        // We want Sunday as first column, so Sunday=0 offset, Senin=1, etc.
+        $firstDayNumber = $days->first()->day_number;
+        $offsetMap = [7 => 0, 1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6];
+        $offset = $offsetMap[$firstDayNumber] ?? 0;
+        
+        return [
+            'days' => $days,
+            'offset' => $offset
+        ];
     }
 
     public function submitAddJks()
@@ -202,33 +302,38 @@ class Index extends Component
         $hariArray = array_map(function($h) { return 'h' . $h; }, $this->formH);
         $mingguArray = array_map(function($w) { return 'w' . $w; }, $this->formW);
 
+        // Construct tokos array
+        $tokos = [];
+        foreach ($this->formOutlets as $outlet) {
+            $tokos[] = [
+                'code' => $outlet['customer_code'],
+                'name' => $outlet['customer_name']
+            ];
+        }
+
         $payload = [
-            'distributor_code' => $this->formOutlet['distributor_code'],
-            'customer_code' => $this->formOutlet['customer_code'], // Retained for pending join in JksNonRouteService
+            'distributor_code' => $this->bulkDistributorCode,
+            'customer_code' => count($tokos) === 1 ? $tokos[0]['code'] : null, // Retained for backward compatibility
             'salesman_code' => $this->formSalesman,
-            'bulan' => $this->formBulan,
+            'bulan' => \Carbon\Carbon::parse($this->formBulan)->format('Y-m-01'),
             'hari' => $hariArray,
             'minggu' => $mingguArray,
-            'tokos' => [
-                [
-                    'code' => $this->formOutlet['customer_code'],
-                    'name' => $this->formOutlet['customer_name']
-                ]
-            ]
+            'tokos' => $tokos
         ];
 
         // Insert to jks_approvals
         \Illuminate\Support\Facades\DB::table('jks_approvals')->insert([
-            'distributor_code' => $this->formOutlet['distributor_code'],
+            'distributor_code' => $this->bulkDistributorCode,
             'action_type' => 'TAMBAH_JADWAL',
             'status' => 'PENDING',
             'payload' => json_encode($payload),
-            'reason' => 'Pengajuan penambahan outlet Non JKS',
+            'reason' => count($tokos) === 1 ? 'Pengajuan penambahan outlet Non JKS' : 'Pengajuan penambahan ' . count($tokos) . ' outlet Non JKS secara massal',
             'maker_id' => auth()->user()->id ?? null,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
+        $this->resetSelection();
         $this->addJksModalOpen = false;
         $this->dispatch('show-toast', type: 'success', message: 'Pengajuan Tambah ke JKS berhasil dikirim (Status: Menunggu).');
     }
