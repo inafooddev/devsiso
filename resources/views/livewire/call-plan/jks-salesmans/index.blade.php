@@ -18,7 +18,7 @@
             $pendingApprovalsCount = \Illuminate\Support\Facades\DB::table('jks_approvals')->where('status', 'PENDING')->count();
         @endphp
         <a href="#" class="tab">Dashboard</a>
-        <a href="#" class="tab">Summary</a>
+        <a href="{{ route('call-plan.jks-summary') }}" class="tab">Summary</a>
         <a href="{{ route('call-plan.jks-salesmans') }}" class="tab tab-active bg-primary text-primary-content">Detail</a>
         <a href="#" class="tab">Maps</a>
         <a href="{{ route('call-plan.jks-non-route') }}" class="tab">Outlet non JKS</a>
@@ -556,7 +556,7 @@
 
     {{-- Bulk Delete Modal --}}
     @if($showBulkDeleteModal)
-        <x-ui.modal id="modal-bulk-delete" title="Hapus Jadwal Massal" icon="trash" size="xl" open="true" wire:close="closeBulkDeleteModal" position="top" class="!items-start" boxClass="!mt-8 border-t-4 border-error">
+        <x-ui.modal id="modal-bulk-delete" title="Hapus Jadwal Massal" icon="trash" size="7xl" open="true" wire:close="closeBulkDeleteModal" position="top" class="!items-start" boxClass="!mt-8 border-t-4 border-error">
             <div class="px-2 pb-2">
                 {{-- Form Filters --}}
                 <div class="flex flex-wrap gap-4 bg-error/5 p-4 rounded-lg border border-error/20 mb-6">
@@ -586,10 +586,8 @@
                         <label class="text-xs text-base-content/70 font-bold block mb-1">Minggu (Opsional)</label>
                         <select wire:model.live="bdMinggu" class="select select-bordered select-sm w-full bg-base-100">
                             <option value="">-- Semua Minggu --</option>
-                            <option value="w1">Minggu 1</option>
-                            <option value="w2">Minggu 2</option>
-                            <option value="w3">Minggu 3</option>
-                            <option value="w4">Minggu 4</option>
+                            <option value="ganjil">Ganjil (W1 + W3)</option>
+                            <option value="genap">Genap (W2 + W4)</option>
                         </select>
                     </div>
                 </div>
@@ -605,40 +603,52 @@
                     
                     @if($this->bdPreviewStores->count() > 0)
                         <div class="overflow-x-auto max-h-[300px] border border-base-200 rounded-lg shadow-inner bg-base-100 relative">
-                            <table class="table table-xs table-pin-rows">
-                                <thead class="bg-base-200/80">
+                            <table class="table table-xs w-full whitespace-nowrap border-separate border-spacing-0">
+                                <thead class="bg-base-200/80 sticky top-0 z-40 border-b border-base-300 shadow-sm text-[10px] uppercase tracking-wider text-base-content/80">
                                     <tr>
-                                        <th class="w-10 text-center">
-                                            <input type="checkbox" wire:model.live="bdSelectAll" class="checkbox checkbox-error checkbox-sm" />
+                                        <th class="sticky left-0 z-50 bg-base-300 w-10 text-center border-b-2 border-r border-base-100">
+                                            <input type="checkbox" wire:model.live="bdSelectAll" class="checkbox checkbox-error checkbox-xs" />
                                         </th>
-                                        <th>Kode</th>
-                                        <th>Nama Toko</th>
-                                        <th>Hari</th>
-                                        <th>Minggu</th>
+                                        <th class="sticky left-[40px] z-50 bg-base-300 w-[100px] min-w-[100px] max-w-[100px] border-b-2 border-r border-base-100">Kode</th>
+                                        <th class="sticky left-[140px] z-50 bg-base-300 w-[200px] min-w-[200px] max-w-[200px] border-b-2 border-r-2 border-base-100 shadow-[5px_0_15px_rgba(0,0,0,0.1)]">Nama Toko</th>
+                                        
+                                        @foreach(['h1'=>'Sen','h2'=>'Sel','h3'=>'Rab','h4'=>'Kam','h5'=>'Jum','h6'=>'Sab'] as $col => $lbl)
+                                            <th class="text-center border-b-2 border-r border-base-100 bg-base-200 px-2">{{ $lbl }}</th>
+                                        @endforeach
+                                        
+                                        @foreach(['w1'=>'W1','w2'=>'W2','w3'=>'W3','w4'=>'W4'] as $col => $lbl)
+                                            <th class="text-center border-b-2 border-r border-base-100 bg-base-200 px-2 text-primary">{{ $lbl }}</th>
+                                        @endforeach
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($this->bdPreviewStores as $store)
-                                        <tr class="hover:bg-error/5 cursor-pointer transition-colors" wire:key="bd-store-{{ $store->id }}">
-                                            <td class="text-center">
-                                                <input type="checkbox" wire:model.live="bdSelectedIds" value="{{ $store->id }}" class="checkbox checkbox-error checkbox-sm" />
+                                        <tr class="hover:bg-error/5 cursor-pointer transition-colors odd:bg-base-100 even:bg-base-200/50" wire:key="bd-store-{{ $store->id }}">
+                                            <td class="sticky left-0 z-30 bg-inherit text-center border-r border-base-200">
+                                                <input type="checkbox" wire:model.live="bdSelectedIds" value="{{ $store->id }}" class="checkbox checkbox-error checkbox-xs" />
                                             </td>
-                                            <td class="font-medium text-xs">{{ $store->customer_code }}</td>
-                                            <td class="truncate max-w-[150px]">{{ $store->customer_name ?? '-' }}</td>
-                                            <td>
-                                                <div class="flex gap-0.5">
-                                                    @foreach(['h1'=>'Sen','h2'=>'Sel','h3'=>'Rab','h4'=>'Kam','h5'=>'Jum','h6'=>'Sab','h7'=>'Min'] as $col => $lbl)
-                                                        @if($store->$col === 'Y') <span class="badge badge-outline text-[9px]">{{ $lbl }}</span> @endif
-                                                    @endforeach
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="flex gap-0.5">
-                                                    @foreach(['w1'=>'M1','w2'=>'M2','w3'=>'M3','w4'=>'M4'] as $col => $lbl)
-                                                        @if($store->$col === 'Y') <span class="badge badge-outline text-[9px]">{{ $lbl }}</span> @endif
-                                                    @endforeach
-                                                </div>
-                                            </td>
+                                            <td class="sticky left-[40px] z-30 bg-inherit font-medium text-xs border-r border-base-200 w-[100px] min-w-[100px] max-w-[100px] truncate">{{ $store->customer_code }}</td>
+                                            <td class="sticky left-[140px] z-30 bg-inherit text-xs border-r-2 border-base-200 w-[200px] min-w-[200px] max-w-[200px] truncate shadow-[5px_0_15px_rgba(0,0,0,0.05)]" title="{{ $store->customer_name ?? '-' }}">{{ $store->customer_name ?? '-' }}</td>
+                                            
+                                            @foreach(['h1','h2','h3','h4','h5','h6'] as $col)
+                                                <td class="text-center border-r border-base-100 px-2">
+                                                    @if($store->$col === 'Y') 
+                                                        <x-heroicon-s-check class="w-4 h-4 text-success mx-auto" />
+                                                    @else
+                                                        <span class="text-base-content/20">-</span>
+                                                    @endif
+                                                </td>
+                                            @endforeach
+                                            
+                                            @foreach(['w1','w2','w3','w4'] as $col)
+                                                <td class="text-center border-r border-base-100 px-2 bg-primary/5">
+                                                    @if($store->$col === 'Y') 
+                                                        <x-heroicon-s-check class="w-4 h-4 text-primary mx-auto" />
+                                                    @else
+                                                        <span class="text-primary/20">-</span>
+                                                    @endif
+                                                </td>
+                                            @endforeach
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -882,6 +892,8 @@
             </x-slot:footer>
         </x-ui.modal>
     @endif
+
+    @include('livewire.call-plan.jks-salesmans.partials._modal-export-eskalink')
 
     {{-- Toasts Container --}}
     <div class="toast toast-top toast-right z-[9999]">

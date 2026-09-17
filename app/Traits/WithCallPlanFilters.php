@@ -23,8 +23,8 @@ trait WithCallPlanFilters
 
     public function mountWithCallPlanFilters()
     {
-        $this->selectedBulan = date('Y-m');
-        $this->appliedBulan = date('Y-m');
+        $this->selectedBulan = date('Y-m-01');
+        $this->appliedBulan = date('Y-m-01');
     }
 
     #[Computed]

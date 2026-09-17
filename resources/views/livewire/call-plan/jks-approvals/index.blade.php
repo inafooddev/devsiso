@@ -31,7 +31,7 @@
 
     <x-ui.tab-menu>
         <a href="#" class="tab">Dashboard</a>
-        <a href="#" class="tab">Summary</a>
+        <a href="{{ route('call-plan.jks-summary') }}" class="tab">Summary</a>
         <a href="{{ route('call-plan.jks-salesmans') }}" class="tab">Detail</a>
         <a href="#" class="tab">Maps</a>
         <a href="{{ route('call-plan.jks-non-route') }}" class="tab">Outlet non JKS</a>
@@ -459,10 +459,10 @@
                                     <template x-for="toko in drawerData.tokos">
                                         <li class="bg-base-100 p-3 rounded border border-base-300 flex flex-col gap-1">
                                             <div class="flex justify-between items-start">
-                                                <span class="font-bold text-sm" x-text="toko.name"></span>
+                                                <span class="font-bold text-sm" x-text="toko.name || toko.code || 'Nama Toko Tidak Diketahui'"></span>
                                                 <span class="font-mono text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded" x-text="toko.code"></span>
                                             </div>
-                                            <template x-if="toko.salesman_code">
+                                            <template x-if="toko.salesman_code && !(drawerData.action_type === 'DELETE_MASSAL' && drawerData.salesman_code)">
                                                 <div class="mt-1 text-xs text-base-content/70 flex flex-col gap-1 border-t border-base-200 pt-2 mt-2">
                                                     <div><span class="font-semibold text-base-content/80">Salesman:</span> <span class="font-mono" x-text="toko.salesman_code"></span></div>
                                                     <div class="flex flex-wrap gap-x-4 gap-y-1">
@@ -475,6 +475,37 @@
                                                             <span x-text="['w1','w2','w3','w4'].filter(w => toko[w] === 'Y').map(w => w.toUpperCase()).join(', ') || '-'"></span>
                                                         </div>
                                                     </div>
+                                                </div>
+                                            </template>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </template>
+
+                        {{-- Fallback UI for hard-deleted records where 'tokos' cannot be fetched from DB anymore, relying purely on the snapshot payload --}}
+                        <template x-if="(!drawerData.tokos || drawerData.tokos.length === 0) && drawerData.records && drawerData.records.length > 0">
+                            <div>
+                                <h4 class="font-semibold text-base-content/80 mb-2">Daftar Jadwal Terdampak (<span x-text="drawerData.records.length"></span>)</h4>
+                                <ul class="space-y-2">
+                                    <template x-for="record in drawerData.records">
+                                        <li class="bg-base-100 p-3 rounded border border-base-300 flex flex-col gap-1">
+                                            <div class="flex justify-between items-start">
+                                                <div class="flex flex-col">
+                                                    <span class="font-bold text-sm" x-text="record.customer_name || 'Nama Toko Tidak Diketahui'"></span>
+                                                    <span class="text-[10px] text-base-content/60">ID Record: <span class="font-mono text-primary" x-text="record.id"></span></span>
+                                                </div>
+                                                <div class="flex flex-col items-end gap-1">
+                                                    <template x-if="record.customer_code">
+                                                        <span class="font-mono text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded" x-text="record.customer_code"></span>
+                                                    </template>
+                                                    <span class="font-mono text-[10px] bg-base-200 px-1.5 py-0.5 rounded" x-text="record.bulan"></span>
+                                                </div>
+                                            </div>
+                                            <template x-if="!(drawerData.action_type === 'DELETE_MASSAL' && drawerData.salesman_code)">
+                                                <div class="mt-1 text-xs text-base-content/70 flex flex-col gap-1 border-t border-base-200 pt-2 mt-2">
+                                                    <div><span class="font-semibold text-base-content/80">Salesman:</span> <span class="font-mono" x-text="record.salesman_code"></span></div>
+                                                    <div><span class="font-semibold text-base-content/80">Distributor:</span> <span class="font-mono" x-text="record.distributor_code"></span></div>
                                                 </div>
                                             </template>
                                         </li>

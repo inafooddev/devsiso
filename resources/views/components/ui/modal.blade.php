@@ -37,8 +37,18 @@
         'sm'   => 'max-w-sm',
         'lg'   => 'max-w-2xl',
         'xl'   => 'max-w-4xl',
-        'full' => 'w-[95vw] max-w-[95vw]',
+        '7xl'  => 'w-11/12 max-w-7xl',
+        'full' => 'w-11/12 max-w-[95vw]',
         default => 'max-w-lg',
+    };
+
+    // Fallback inline style for full size to ensure it expands even if Tailwind JIT prunes the class
+    $boxStyle = match($size) {
+        'full' => 'width: 95vw; max-width: 95vw;',
+        '7xl'  => 'width: 65vw; max-width: 1280px;',
+        '6xl'  => 'width: 60vw; max-width: 1152px;',
+        '5xl'  => 'width: 90vw; max-width: 1024px;',
+        default => ''
     };
 
     $dialogPositionClass = 'sm:modal-middle';
@@ -55,7 +65,7 @@
         onclose="const btn = this.querySelector('[wire\\:click=\'{{ $attributes->get('wire:close') }}\']'); if(btn) btn.click();"
     @endif
     {{ $attributes->merge(['class' => 'modal modal-bottom z-[10000] ' . $dialogPositionClass . ' ' . ($open ? 'modal-open' : '')]) }}>
-    <div class="modal-box bg-base-100 border border-base-300 {{ $sizeClass }} p-0 {{ $boxPositionClass }} {{ $boxClass }}">
+    <div class="modal-box bg-base-100 border border-base-300 {{ $sizeClass }} p-0 {{ $boxPositionClass }} {{ $boxClass }}" style="{{ $boxStyle }}">
 
         {{-- Header --}}
         <div class="flex items-center justify-between px-6 py-4 border-b border-base-300">

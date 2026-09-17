@@ -840,8 +840,11 @@ class Index extends Component
                         $query->where("jks_salesmans.{$payload['hari_asal']}", 'Y')
                               ->orWhere("jks_salesmans.{$payload['hari_tujuan']}", 'Y');
                     })
-                    ->join('jks_se_master_toko_ool', 'jks_salesmans.customer_code', '=', 'jks_se_master_toko_ool.customer_code')
-                    ->select('jks_se_master_toko_ool.customer_code as code', 'jks_se_master_toko_ool.customer_name as name')
+                    ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
+                        $join->on('jks_salesmans.distributor_code', '=', 'ltpte.distributor_code')
+                             ->on('jks_salesmans.customer_code', '=', 'ltpte.uniq_kd');
+                    })
+                    ->select('jks_salesmans.customer_code as code', 'ltpte.customer_name as name')
                     ->distinct()
                     ->get();
             } elseif ($approval->action_type === 'TUKAR_MINGGU' && isset($payload['salesman_code']) && isset($payload['minggu_asal']) && isset($payload['minggu_tujuan'])) {
@@ -852,8 +855,11 @@ class Index extends Component
                         $query->where("jks_salesmans.{$payload['minggu_asal']}", 'Y')
                               ->orWhere("jks_salesmans.{$payload['minggu_tujuan']}", 'Y');
                     })
-                    ->join('jks_se_master_toko_ool', 'jks_salesmans.customer_code', '=', 'jks_se_master_toko_ool.customer_code')
-                    ->select('jks_se_master_toko_ool.customer_code as code', 'jks_se_master_toko_ool.customer_name as name')
+                    ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
+                        $join->on('jks_salesmans.distributor_code', '=', 'ltpte.distributor_code')
+                             ->on('jks_salesmans.customer_code', '=', 'ltpte.uniq_kd');
+                    })
+                    ->select('jks_salesmans.customer_code as code', 'ltpte.customer_name as name')
                     ->distinct()
                     ->get();
             } elseif ($approval->action_type === 'TUKAR_SALESMAN' && isset($payload['salesman_asal']) && isset($payload['salesman_tujuan'])) {
@@ -863,22 +869,31 @@ class Index extends Component
                         $query->where('jks_salesmans.salesman_code', $payload['salesman_asal'])
                               ->orWhere('jks_salesmans.salesman_code', $payload['salesman_tujuan']);
                     })
-                    ->join('jks_se_master_toko_ool', 'jks_salesmans.customer_code', '=', 'jks_se_master_toko_ool.customer_code')
-                    ->select('jks_se_master_toko_ool.customer_code as code', 'jks_se_master_toko_ool.customer_name as name')
+                    ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
+                        $join->on('jks_salesmans.distributor_code', '=', 'ltpte.distributor_code')
+                             ->on('jks_salesmans.customer_code', '=', 'ltpte.uniq_kd');
+                    })
+                    ->select('jks_salesmans.customer_code as code', 'ltpte.customer_name as name')
                     ->distinct()
                     ->get();
             } elseif ($approval->action_type === 'DELETE_MASSAL' && isset($payload['ids'])) {
                 $tokos = DB::table('jks_salesmans')
                     ->whereIn('jks_salesmans.id', $payload['ids'])
-                    ->join('jks_se_master_toko_ool', 'jks_salesmans.customer_code', '=', 'jks_se_master_toko_ool.customer_code')
-                    ->select('jks_salesmans.*', 'jks_se_master_toko_ool.customer_name as name', 'jks_se_master_toko_ool.customer_code as code')
+                    ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
+                        $join->on('jks_salesmans.distributor_code', '=', 'ltpte.distributor_code')
+                             ->on('jks_salesmans.customer_code', '=', 'ltpte.uniq_kd');
+                    })
+                    ->select('jks_salesmans.*', 'ltpte.customer_name as name', 'jks_salesmans.customer_code as code')
                     ->distinct()
                     ->get();
             } elseif ($approval->action_type === 'DELETE_INDIVIDU' && isset($payload['id'])) {
                 $tokos = DB::table('jks_salesmans')
                     ->where('jks_salesmans.id', $payload['id'])
-                    ->join('jks_se_master_toko_ool', 'jks_salesmans.customer_code', '=', 'jks_se_master_toko_ool.customer_code')
-                    ->select('jks_salesmans.*', 'jks_se_master_toko_ool.customer_name as name', 'jks_se_master_toko_ool.customer_code as code')
+                    ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
+                        $join->on('jks_salesmans.distributor_code', '=', 'ltpte.distributor_code')
+                             ->on('jks_salesmans.customer_code', '=', 'ltpte.uniq_kd');
+                    })
+                    ->select('jks_salesmans.*', 'ltpte.customer_name as name', 'jks_salesmans.customer_code as code')
                     ->distinct()
                     ->get();
             }

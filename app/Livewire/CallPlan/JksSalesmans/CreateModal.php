@@ -155,7 +155,7 @@ class CreateModal extends Component
 
         // Prepare Payload
         $payload = [
-            'bulan' => $this->appliedBulan . '-01', // Standardize to YYYY-MM-DD
+            'bulan' => \Carbon\Carbon::parse($this->appliedBulan)->format('Y-m-01'),
             'distributor_code' => $this->appliedDistributor,
             'salesman_code' => $this->salesmanCode,
             'tokos' => $this->selectedTokos,

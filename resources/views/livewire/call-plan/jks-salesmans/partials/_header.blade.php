@@ -89,6 +89,12 @@
                     <x-heroicon-s-chevron-down class="w-3 h-3 opacity-50" />
                 </div>
                 <ul tabindex="0" class="dropdown-content z-50 menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-200 mt-1">
+                    <li>
+                        <a wire:click="openSwapModal">
+                            <x-heroicon-s-arrows-right-left class="w-4 h-4 text-primary" />
+                            Tukar Jadwal
+                        </a>
+                    </li>
                     @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('user'))
                         <li>
                             <a wire:click="openCopyModal">
@@ -104,16 +110,16 @@
                         </li>
                     @endif
                     <li>
-                        <a wire:click="openSwapModal">
-                            <x-heroicon-s-arrows-right-left class="w-4 h-4 text-primary" />
-                            Tukar Jadwal
+                        <a wire:click="openBulkDeleteModal" class="text-error hover:bg-error/10 hover:text-error">
+                            <x-heroicon-s-trash class="w-4 h-4" />
+                            Hapus Massal
                         </a>
                     </li>
                     <div class="divider my-1"></div>
                     <li>
-                        <a wire:click="openBulkDeleteModal" class="text-error hover:bg-error/10 hover:text-error">
-                            <x-heroicon-s-trash class="w-4 h-4" />
-                            Hapus Massal
+                        <a wire:click="openExportEskalinkModal">
+                            <x-heroicon-s-document-arrow-down class="w-4 h-4 text-success" />
+                            Export Eskalink
                         </a>
                     </li>
                 </ul>

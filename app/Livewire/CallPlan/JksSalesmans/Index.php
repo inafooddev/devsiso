@@ -13,7 +13,9 @@ use App\Services\JksSalesmanService;
 class Index extends Component
 {
     use WithPagination;
-    use WithCallPlanFilters;
+    use WithCallPlanFilters {
+        applyFilters as traitApplyFilters;
+    }
 
     #[Title('JKS Salesman')]
     #[Layout('layouts.app')]
@@ -25,21 +27,52 @@ class Index extends Component
     public $selectedHari = 'h1';
     public $selectedMinggu = 'ganjil';
 
+    // RBAC
+    public $menuRoute = 'call-plan.jks-salesmans';
+    public $canAdd = false;
+    public $canEdit = false;
+    public $canDelete = false;
+    public $canImport = false;
+    public $canExport = false;
+
+    protected function checkPermission($action)
+    {
+        $user = auth()->user();
+        if ($user && $user->hasRole('admin')) {
+            return;
+        }
+        if (!$user || !$user->hasMenuAccess($this->menuRoute, $action)) {
+            abort(403, "Anda tidak memiliki akses untuk melakukan aksi ini ({$action}).");
+        }
+    }
+
     public function mount()
     {
+        $user = auth()->user();
+        if ($user) {
+            $isAdmin = $user->hasRole('admin');
+            $this->canAdd = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_add');
+            $this->canEdit = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_edit');
+            $this->canDelete = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_delete');
+            $this->canImport = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_import');
+            $this->canExport = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_export');
+        }
+
+        $this->checkPermission('can_view');
+
         if (session()->has('jks_salesmans_state')) {
             $state = session()->get('jks_salesmans_state');
             $this->appliedRegion = $state['appliedRegion'] ?? '';
             $this->appliedArea = $state['appliedArea'] ?? '';
             $this->appliedSupervisor = $state['appliedSupervisor'] ?? '';
             $this->appliedDistributor = $state['appliedDistributor'] ?? '';
-            $this->appliedBulan = $state['appliedBulan'] ?? date('Y-m');
+            $this->appliedBulan = $state['appliedBulan'] ?? date('Y-m-01');
             
             $this->selectedRegion = $state['selectedRegion'] ?? '';
             $this->selectedArea = $state['selectedArea'] ?? '';
             $this->selectedSupervisor = $state['selectedSupervisor'] ?? '';
             $this->selectedDistributor = $state['selectedDistributor'] ?? '';
-            $this->selectedBulan = $state['selectedBulan'] ?? date('Y-m');
+            $this->selectedBulan = $state['selectedBulan'] ?? date('Y-m-01');
 
             $this->search = $state['search'] ?? '';
             $this->headerSalesman = $state['headerSalesman'] ?? '';
@@ -69,7 +102,7 @@ class Index extends Component
             'headerSalesman' => $this->headerSalesman,
             'selectedHari' => $this->selectedHari,
             'selectedMinggu' => $this->selectedMinggu,
-            'page' => $this->getPage(),
+            'page' => $this->paginators['page'] ?? $this->getPage(),
         ]);
     }
 
@@ -132,8 +165,8 @@ class Index extends Component
         ]);
         
         // Reset bulan ke default
-        $this->selectedBulan = date('Y-m');
-        $this->appliedBulan = date('Y-m');
+        $this->selectedBulan = date('Y-m-01');
+        $this->appliedBulan = date('Y-m-01');
         
         // Reset internal JksSalesmans state
         $this->reset(['search', 'headerSalesman', 'selectedHari', 'selectedMinggu']);
@@ -141,11 +174,19 @@ class Index extends Component
         $this->selectedHari = 'h1';
         $this->selectedMinggu = 'ganjil';
 
+        $this->resetBdSelection();
+
         if (session()->has('jks_salesmans_state')) {
             session()->forget('jks_salesmans_state');
         }
 
         $this->resetPage();
+    }
+
+    public function applyFilters()
+    {
+        $this->traitApplyFilters();
+        $this->resetBdSelection();
     }
 
     #[\Livewire\Attributes\Computed]
@@ -267,6 +308,11 @@ class Index extends Component
     public $copySourceMonth = '';
     public $copyTargetMonth = '';
 
+    // Export Eskalink
+    public $showExportEskalinkModal = false;
+    public $eskalinkFlagDelete = 'N';
+    public $exportEskalinkSalesman = '';
+
     public function updatedCopyRegion()
     {
         $this->copyArea = '';
@@ -329,7 +375,7 @@ class Index extends Component
         $this->copyDistributor = $this->appliedDistributor ?? '';
         $this->copySalesmanCode = $this->headerSalesman ?? '';
         
-        $this->copySourceMonth = $this->appliedBulan ?: date('Y-m');
+        $this->copySourceMonth = $this->appliedBulan ?: date('Y-m-01');
         $this->copyTargetMonth = date('Y-m', strtotime('+1 month', strtotime($this->copySourceMonth . '-01')));
         $this->isCopying = false;
         $this->copyProgress = 0;
@@ -921,12 +967,26 @@ class Index extends Component
             ->where('js.distributor_code', $this->appliedDistributor)
             ->where('js.salesman_code', $this->bdSalesman);
 
+        if (!empty($this->appliedBulan)) {
+            $query->where('js.bulan', 'like', $this->appliedBulan . '%');
+        }
+
         if (!empty($this->bdHari)) {
             $query->where('js.' . $this->bdHari, 'Y');
         }
 
         if (!empty($this->bdMinggu)) {
-            $query->where('js.' . $this->bdMinggu, 'Y');
+            if ($this->bdMinggu === 'ganjil') {
+                $query->where(function($q) {
+                    $q->where('js.w1', 'Y')->orWhere('js.w3', 'Y');
+                });
+            } elseif ($this->bdMinggu === 'genap') {
+                $query->where(function($q) {
+                    $q->where('js.w2', 'Y')->orWhere('js.w4', 'Y');
+                });
+            } else {
+                $query->where('js.' . $this->bdMinggu, 'Y');
+            }
         }
 
         return $query->orderBy('js.customer_code', 'asc')->get();
@@ -934,6 +994,7 @@ class Index extends Component
 
     public function executeBulkDelete()
     {
+        $this->checkPermission('can_delete');
         if (empty($this->bdSelectedIds)) {
             $this->dispatch('toast', ['type' => 'warning', 'message' => 'Pilih minimal satu toko untuk dihapus!']);
             return;
@@ -953,21 +1014,46 @@ class Index extends Component
         try {
             $count = count($this->bdSelectedIds);
             
+            $records = \Illuminate\Support\Facades\DB::table('jks_salesmans as js')
+                ->whereIn('js.id', $this->bdSelectedIds)
+                ->where('js.distributor_code', $this->appliedDistributor)
+                ->where('js.bulan', 'like', $this->appliedBulan . '%')
+                ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
+                    $join->on('js.distributor_code', '=', 'ltpte.distributor_code')
+                         ->on('js.customer_code', '=', 'ltpte.uniq_kd');
+                })
+                ->get(['js.id', 'js.bulan', 'js.salesman_code', 'js.distributor_code', 'js.customer_code', 'ltpte.customer_name'])
+                ->map(function ($row) {
+                    return [
+                        'id' => $row->id,
+                        'bulan' => $row->bulan,
+                        'salesman_code' => $row->salesman_code,
+                        'distributor_code' => $row->distributor_code,
+                        'customer_code' => $row->customer_code,
+                        'customer_name' => $row->customer_name ?? $row->customer_code ?? '-',
+                    ];
+                })->toArray();
+            
+            $hariNames = ['h1'=>'Senin', 'h2'=>'Selasa', 'h3'=>'Rabu', 'h4'=>'Kamis', 'h5'=>'Jumat', 'h6'=>'Sabtu', 'h7'=>'Minggu'];
+            $weekNames = ['w1'=>'Minggu 1', 'w2'=>'Minggu 2', 'w3'=>'Minggu 3', 'w4'=>'Minggu 4'];
+            $hariFilter = $this->bdHari ? ($hariNames[$this->bdHari] ?? $this->bdHari) : 'Semua Hari';
+            $mingguFilter = $this->bdMinggu ? ($weekNames[$this->bdMinggu] ?? $this->bdMinggu) : 'Semua Minggu';
+            $seFilter = collect($this->headerSalesmans)->firstWhere('salesman_code', $this->bdSalesman)->salesman_name ?? $this->bdSalesman ?: 'Semua Salesman';
+
             $payload = [
                 'ids' => $this->bdSelectedIds,
                 'delete_type' => strtoupper($this->bdDeleteMethod),
+                'bulan' => $this->appliedBulan,
+                'records' => $records,
+                'salesman_code' => $seFilter,
+                'hari' => [$hariFilter],
+                'minggu' => [$mingguFilter],
                 'update' => [
                     'h1' => 'T', 'h2' => 'T', 'h3' => 'T', 'h4' => 'T', 'h5' => 'T', 'h6' => 'T', 'h7' => 'T',
                     'w1' => 'T', 'w2' => 'T', 'w3' => 'T', 'w4' => 'T',
                     'reason' => $this->bdReason,
                 ]
             ];
-
-            $hariNames = ['h1'=>'Senin', 'h2'=>'Selasa', 'h3'=>'Rabu', 'h4'=>'Kamis', 'h5'=>'Jumat', 'h6'=>'Sabtu', 'h7'=>'Minggu'];
-            $weekNames = ['w1'=>'Minggu 1', 'w2'=>'Minggu 2', 'w3'=>'Minggu 3', 'w4'=>'Minggu 4'];
-            $hariFilter = $this->bdHari ? ($hariNames[$this->bdHari] ?? $this->bdHari) : 'Semua Hari';
-            $mingguFilter = $this->bdMinggu ? ($weekNames[$this->bdMinggu] ?? $this->bdMinggu) : 'Semua Minggu';
-            $seFilter = collect($this->headerSalesmans)->firstWhere('salesman_code', $this->bdSalesman)->salesman_name ?? $this->bdSalesman ?: 'Semua Salesman';
 
             $methodName = $this->bdDeleteMethod === 'hard' ? 'Hapus Permanen' : 'Soft Delete';
             $reasonFull = "{$methodName} Massal {$count} Jadwal Toko | Filter -> SE: {$seFilter}, Hari: {$hariFilter}, Minggu: {$mingguFilter} | Alasan: " . $this->bdReason;
@@ -977,11 +1063,13 @@ class Index extends Component
                     \Illuminate\Support\Facades\DB::table('jks_salesmans')
                         ->whereIn('id', $payload['ids'])
                         ->where('distributor_code', $this->appliedDistributor)
+                        ->where('bulan', 'like', $this->appliedBulan . '%')
                         ->delete();
                 } else {
                     \Illuminate\Support\Facades\DB::table('jks_salesmans')
                         ->whereIn('id', $payload['ids'])
                         ->where('distributor_code', $this->appliedDistributor)
+                        ->where('bulan', 'like', $this->appliedBulan . '%')
                         ->update(array_merge($payload['update'], ['updated_at' => now()]));
                 }
             }, "Berhasil memproses {$count} jadwal toko!");
@@ -997,6 +1085,11 @@ class Index extends Component
 
     public function openCleansingModal()
     {
+        if (!auth()->user()->hasRole(['admin', 'user'])) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Anda tidak memiliki akses untuk fitur ini!']);
+            return;
+        }
+
         $this->showCleansingModal = true;
         $this->cleansingResults = [];
         $this->cleansingTotalGroups = 0;
@@ -1143,6 +1236,11 @@ class Index extends Component
 
     public function executeCleansing()
     {
+        if (!auth()->user()->hasRole(['admin', 'user'])) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Anda tidak memiliki akses untuk mengeksekusi fitur ini!']);
+            return;
+        }
+
         if ($this->cleansingTotalDuplicates === 0) {
             return;
         }
@@ -1372,16 +1470,6 @@ class Index extends Component
         }
 
         try {
-            $payload = [
-                'id' => $this->deleteId,
-                'delete_type' => strtoupper($this->deleteMethod),
-                'update' => [
-                    'h1' => 'T', 'h2' => 'T', 'h3' => 'T', 'h4' => 'T', 'h5' => 'T', 'h6' => 'T', 'h7' => 'T',
-                    'w1' => 'T', 'w2' => 'T', 'w3' => 'T', 'w4' => 'T',
-                    'reason' => $this->deleteReason,
-                ]
-            ];
-
             $jks = \Illuminate\Support\Facades\DB::table('jks_salesmans as js')
                 ->select('js.*', 'ltpte.customer_name')
                 ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
@@ -1390,6 +1478,27 @@ class Index extends Component
                 })
                 ->where('js.id', $this->deleteId)
                 ->first();
+
+            $payload = [
+                'id' => $this->deleteId,
+                'delete_type' => strtoupper($this->deleteMethod),
+                'bulan' => $this->appliedBulan,
+                'records' => $jks ? [
+                    [
+                        'id' => $jks->id,
+                        'bulan' => $jks->bulan,
+                        'salesman_code' => $jks->salesman_code,
+                        'distributor_code' => $jks->distributor_code,
+                        'customer_code' => $jks->customer_code,
+                        'customer_name' => $jks->customer_name ?? $jks->customer_code ?? '-',
+                    ]
+                ] : [],
+                'update' => [
+                    'h1' => 'T', 'h2' => 'T', 'h3' => 'T', 'h4' => 'T', 'h5' => 'T', 'h6' => 'T', 'h7' => 'T',
+                    'w1' => 'T', 'w2' => 'T', 'w3' => 'T', 'w4' => 'T',
+                    'reason' => $this->deleteReason,
+                ]
+            ];
 
             $customerName = $jks->customer_name ?? $jks->customer_code ?? '-';
             $salesmanCode = $jks->salesman_code ?? '-';
@@ -1443,7 +1552,7 @@ class Index extends Component
     {
         if (!$this->showCalendarModal) return collect([]);
         
-        $bulan = $this->appliedBulan ?: date('Y-m');
+        $bulan = $this->appliedBulan ?: date('Y-m-01');
         
         return \Illuminate\Support\Facades\DB::table('master_calender')
             ->where('date', 'like', $bulan . '%')
@@ -1519,4 +1628,41 @@ class Index extends Component
         $this->collisionDetails = [];
     }
 
+    // Export Eskalink Methods
+    public function openExportEskalinkModal()
+    {
+        if (empty($this->appliedBulan)) {
+            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Pilih bulan terlebih dahulu!']);
+            return;
+        }
+        $this->eskalinkFlagDelete = 'N';
+        $this->exportEskalinkSalesman = '';
+        $this->showExportEskalinkModal = true;
+    }
+
+    public function closeExportEskalinkModal()
+    {
+        $this->showExportEskalinkModal = false;
+    }
+
+    public function executeExportEskalink()
+    {
+        if (empty($this->appliedBulan)) return;
+
+        $fileName = 'JKS_Eskalink_' . $this->appliedBulan;
+        if ($this->appliedDistributor) {
+            $fileName .= '_' . $this->appliedDistributor;
+        }
+        if ($this->exportEskalinkSalesman) {
+            $fileName .= '_' . $this->exportEskalinkSalesman;
+        }
+        $fileName .= '.xlsx';
+
+        $this->closeExportEskalinkModal();
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\JksEskalinkExport($this->appliedBulan, $this->appliedDistributor, $this->eskalinkFlagDelete, $this->exportEskalinkSalesman), 
+            $fileName
+        );
+    }
 }

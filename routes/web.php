@@ -374,6 +374,7 @@ Route::middleware(['auth'])->group(function () {
     })->name('call-plan.jks-salesmans.export-template');
     Route::get('/call-plan/jks-approvals', \App\Livewire\CallPlan\JksApprovals\Index::class)->name('call-plan.jks-approvals');
     Route::get('/call-plan/jks-non-route', \App\Livewire\CallPlan\JksNonRoute\Index::class)->name('call-plan.jks-non-route');
+    Route::get('/call-plan/jks-summary', \App\Livewire\CallPlan\JksSummary\Index::class)->name('call-plan.jks-summary');
 
     // ==========================================
     // SELLING IN & OUT

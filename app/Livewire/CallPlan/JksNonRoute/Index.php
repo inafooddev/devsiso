@@ -24,6 +24,67 @@ class Index extends Component
     public $selected = [];
     public $selectAll = false;
 
+    public function mount()
+    {
+        if (session()->has('jks_non_route_state')) {
+            $state = session()->get('jks_non_route_state');
+            $this->appliedRegion = $state['appliedRegion'] ?? '';
+            $this->appliedArea = $state['appliedArea'] ?? '';
+            $this->appliedSupervisor = $state['appliedSupervisor'] ?? '';
+            $this->appliedDistributor = $state['appliedDistributor'] ?? '';
+            $this->appliedBulan = $state['appliedBulan'] ?? date('Y-m-01');
+            
+            $this->selectedRegion = $state['selectedRegion'] ?? '';
+            $this->selectedArea = $state['selectedArea'] ?? '';
+            $this->selectedSupervisor = $state['selectedSupervisor'] ?? '';
+            $this->selectedDistributor = $state['selectedDistributor'] ?? '';
+            $this->selectedBulan = $state['selectedBulan'] ?? date('Y-m-01');
+
+            $this->search = $state['search'] ?? '';
+            $this->selected = $state['selected'] ?? [];
+            $this->selectAll = $state['selectAll'] ?? false;
+            
+            if (isset($state['page'])) {
+                $this->setPage($state['page']);
+            }
+        }
+    }
+
+    public function dehydrate()
+    {
+        session()->put('jks_non_route_state', [
+            'appliedRegion' => $this->appliedRegion,
+            'appliedArea' => $this->appliedArea,
+            'appliedSupervisor' => $this->appliedSupervisor,
+            'appliedDistributor' => $this->appliedDistributor,
+            'appliedBulan' => $this->appliedBulan,
+            'selectedRegion' => $this->selectedRegion,
+            'selectedArea' => $this->selectedArea,
+            'selectedSupervisor' => $this->selectedSupervisor,
+            'selectedDistributor' => $this->selectedDistributor,
+            'selectedBulan' => $this->selectedBulan,
+            'search' => $this->search,
+            'selected' => $this->selected,
+            'selectAll' => $this->selectAll,
+            'page' => $this->paginators['page'] ?? $this->getPage(),
+        ]);
+    }
+
+    public function resetFilters()
+    {
+        $this->reset([
+            'selectedRegion', 'selectedArea', 'selectedSupervisor', 'selectedDistributor',
+            'appliedRegion', 'appliedArea', 'appliedSupervisor', 'appliedDistributor',
+            'search', 'selected', 'selectAll'
+        ]);
+
+        if (session()->has('jks_non_route_state')) {
+            session()->forget('jks_non_route_state');
+        }
+
+        $this->resetPage();
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -203,7 +264,7 @@ class Index extends Component
 
         
         $this->formSalesman = '';
-        $this->formBulan = date('Y-m'); // Default current month
+        $this->formBulan = date('Y-m-01'); // Default current month
         $this->formH = [];
         $this->formW = [];
 
@@ -234,7 +295,7 @@ class Index extends Component
         $this->bulkDistributorCode = $distributorCodes->first();
         
         $this->formSalesman = '';
-        $this->formBulan = date('Y-m');
+        $this->formBulan = date('Y-m-01');
         $this->formH = [];
         $this->formW = [];
 
@@ -336,6 +397,26 @@ class Index extends Component
         $this->resetSelection();
         $this->addJksModalOpen = false;
         $this->dispatch('show-toast', type: 'success', message: 'Pengajuan Tambah ke JKS berhasil dikirim (Status: Menunggu).');
+    }
+
+    public function exportExcel()
+    {
+        if (empty($this->appliedArea) && empty($this->appliedSupervisor) && empty($this->appliedDistributor)) {
+            $this->dispatch('show-toast', type: 'warning', message: 'Silakan pilih filter minimal setingkat Area untuk melakukan export.');
+            return;
+        }
+
+        $filters = $this->getAppliedFilters();
+        if (isset($filters['bulan'])) {
+            unset($filters['bulan']);
+        }
+
+        $fileName = 'Outlet_Non_JKS_' . date('Ymd_His') . '.xlsx';
+        
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\JksNonRouteExport($this->search, $filters), 
+            $fileName
+        );
     }
 
     public function render(JksNonRouteService $service)

@@ -6,7 +6,7 @@
             $pendingApprovalsCount = \Illuminate\Support\Facades\DB::table('jks_approvals')->where('status', 'PENDING')->count();
         @endphp
         <a href="#" class="tab">Dashboard</a>
-        <a href="#" class="tab">Summary</a>
+        <a href="{{ route('call-plan.jks-summary') }}" class="tab">Summary</a>
         <a href="{{ route('call-plan.jks-salesmans') }}" class="tab">Detail</a>
         <a href="#" class="tab">Maps</a>
         <a href="{{ route('call-plan.jks-non-route') }}" class="tab tab-active bg-primary text-primary-content">Outlet non JKS</a>
@@ -72,6 +72,21 @@
 
                     {{-- Search Component --}}
                     <x-ui.search-input wire:model.live.debounce.300ms="search" placeholder="Cari outlet..." />
+                    
+                    {{-- Actions (Export & Reset) --}}
+                    <div class="border-l border-base-300 pl-2 hidden sm:flex items-center gap-2">
+                        <button class="btn btn-sm btn-ghost text-base-content/70" wire:click="resetFilters" title="Reset Filters & Cache">
+                            <x-heroicon-o-arrow-path class="w-4 h-4" />
+                        </button>
+                        <button class="btn btn-sm btn-success text-white" wire:click="exportExcel">
+                            <span wire:loading.remove wire:target="exportExcel" class="flex items-center gap-1">
+                                <x-heroicon-s-arrow-down-tray class="w-4 h-4" /> Export Excel
+                            </span>
+                            <span wire:loading wire:target="exportExcel" class="flex items-center gap-1">
+                                <span class="loading loading-spinner loading-xs"></span> Loading...
+                            </span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
