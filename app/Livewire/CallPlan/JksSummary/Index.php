@@ -282,41 +282,46 @@ class Index extends Component
                 'md.distributor_code', 'md.distributor_name',
                 's.salesman_code', 's.salesman_name',
                 
-                // Total RO & Plan
+                // Total RO & JKS
                 DB::raw('COUNT(DISTINCT js.customer_code) as total_ro'),
-                DB::raw("SUM(CASE WHEN js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y' THEN 1 ELSE 0 END) as total_plan"),
-                DB::raw("SUM(CASE WHEN js.customer_code IS NOT NULL AND (js.h1 != 'Y' AND js.h2 != 'Y' AND js.h3 != 'Y' AND js.h4 != 'Y' AND js.h5 != 'Y' AND js.h6 != 'Y' AND js.h7 != 'Y') THEN 1 ELSE 0 END) as non_rute"),
-                DB::raw("SUM(CASE WHEN js.customer_code IS NOT NULL AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN 1 ELSE 0 END) as non_gps"),
+                DB::raw("COUNT(DISTINCT CASE WHEN (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y' OR js.h7 = 'Y') AND (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as total_jks"),
+                DB::raw("COUNT(DISTINCT CASE WHEN NOT ((js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y' OR js.h7 = 'Y') AND (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y')) THEN js.customer_code END) as non_rute"),
+                DB::raw("COUNT(DISTINCT CASE WHEN (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as non_gps"),
                 
                 // Senin
-                DB::raw("SUM(CASE WHEN js.h1 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as senin_gjl"),
-                DB::raw("SUM(CASE WHEN js.h1 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN 1 ELSE 0 END) as senin_gnp"),
-                DB::raw("SUM(CASE WHEN js.h1 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN 1 ELSE 0 END) as senin_non_gps"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h1 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as senin_gjl"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h1 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as senin_gnp"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h1 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as senin_non_gps"),
                 
                 // Selasa
-                DB::raw("SUM(CASE WHEN js.h2 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as selasa_gjl"),
-                DB::raw("SUM(CASE WHEN js.h2 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN 1 ELSE 0 END) as selasa_gnp"),
-                DB::raw("SUM(CASE WHEN js.h2 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN 1 ELSE 0 END) as selasa_non_gps"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h2 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as selasa_gjl"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h2 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as selasa_gnp"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h2 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as selasa_non_gps"),
 
                 // Rabu
-                DB::raw("SUM(CASE WHEN js.h3 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as rabu_gjl"),
-                DB::raw("SUM(CASE WHEN js.h3 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN 1 ELSE 0 END) as rabu_gnp"),
-                DB::raw("SUM(CASE WHEN js.h3 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN 1 ELSE 0 END) as rabu_non_gps"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h3 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as rabu_gjl"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h3 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as rabu_gnp"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h3 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as rabu_non_gps"),
 
                 // Kamis
-                DB::raw("SUM(CASE WHEN js.h4 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as kamis_gjl"),
-                DB::raw("SUM(CASE WHEN js.h4 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN 1 ELSE 0 END) as kamis_gnp"),
-                DB::raw("SUM(CASE WHEN js.h4 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN 1 ELSE 0 END) as kamis_non_gps"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h4 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as kamis_gjl"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h4 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as kamis_gnp"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h4 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as kamis_non_gps"),
 
                 // Jumat
-                DB::raw("SUM(CASE WHEN js.h5 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as jumat_gjl"),
-                DB::raw("SUM(CASE WHEN js.h5 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN 1 ELSE 0 END) as jumat_gnp"),
-                DB::raw("SUM(CASE WHEN js.h5 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN 1 ELSE 0 END) as jumat_non_gps"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h5 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as jumat_gjl"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h5 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as jumat_gnp"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h5 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as jumat_non_gps"),
 
                 // Sabtu
-                DB::raw("SUM(CASE WHEN js.h6 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as sabtu_gjl"),
-                DB::raw("SUM(CASE WHEN js.h6 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN 1 ELSE 0 END) as sabtu_gnp"),
-                DB::raw("SUM(CASE WHEN js.h6 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN 1 ELSE 0 END) as sabtu_non_gps")
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h6 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as sabtu_gjl"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h6 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as sabtu_gnp"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h6 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as sabtu_non_gps"),
+
+                // Minggu
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h7 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as minggu_gjl"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h7 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as minggu_gnp"),
+                DB::raw("COUNT(DISTINCT CASE WHEN js.h7 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as minggu_non_gps")
             )
             ->where('md.is_active', true)
             ->where('s.salesman_code', 'not ilike', '%OFI%')

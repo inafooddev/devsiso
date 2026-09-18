@@ -110,7 +110,7 @@
                             <th rowspan="2" class="bg-base-300 sticky left-[520px] z-50 border-b-2 border-r-2 border-base-100 shadow-[5px_0_15px_rgba(0,0,0,0.1)] w-[150px] min-w-[150px] max-w-[150px] font-bold text-primary tracking-wider">Salesman</th>
                             
                             <th rowspan="2" class="text-right pr-4 border-b-2 border-r border-base-100 bg-base-300 text-base-content/80 font-bold tracking-wider">Total RO</th>
-                            <th rowspan="2" class="text-right pr-4 border-b-2 border-r border-base-100 bg-base-300 text-base-content/80 font-bold tracking-wider">Plan</th>
+                            <th rowspan="2" class="text-right pr-4 border-b-2 border-r border-base-100 bg-base-300 text-base-content/80 font-bold tracking-wider">JKS</th>
                             <th rowspan="2" class="text-right pr-4 border-b-2 border-r border-base-100 bg-base-300 text-base-content/80 font-bold tracking-wider">Non Rute</th>
                             <th rowspan="2" class="text-right pr-4 border-b-2 border-r-2 border-base-100 bg-base-300 text-base-content/80 font-bold tracking-wider">Non GPS</th>
                             
@@ -144,7 +144,7 @@
                                 <td title="{{ $row->salesman_name ?: $row->salesman_code }}" class="bg-inherit sticky left-[520px] z-30 border-r-2 border-base-300 shadow-[5px_0_15px_rgba(0,0,0,0.1)] truncate w-[150px] min-w-[150px] max-w-[150px] font-semibold text-primary/90">{{ $row->salesman_name ?: $row->salesman_code }}</td>
                                 
                                 <td class="text-right pr-4 border-r border-base-200 {{ $row->total_ro < 300 ? 'bg-error/10 text-error font-bold' : 'bg-info/5 font-semibold' }}">{{ number_format($row->total_ro) }}</td>
-                                <td class="text-right pr-4 border-r border-base-200 bg-info/5 font-semibold">{{ number_format($row->total_plan) }}</td>
+                                <td class="text-right pr-4 border-r border-base-200 bg-info/5 font-semibold">{{ number_format($row->total_jks) }}</td>
                                 <td class="text-right pr-4 border-r border-base-200 bg-info/5 {{ $row->non_rute > 0 ? 'text-warning font-bold' : 'text-base-content/40' }}">{{ number_format($row->non_rute) }}</td>
                                 <td class="text-right pr-4 border-r border-base-200 bg-info/5 {{ $row->non_gps > 0 ? 'text-error font-bold' : 'text-base-content/40' }}">{{ number_format($row->non_gps) }}</td>
                                 
@@ -180,7 +180,7 @@
                         <tr>
                             <td colspan="5" class="bg-base-300 sticky left-0 z-50 border-t-2 border-r-2 border-base-100 text-right pr-4 tracking-wider">TOTAL PAGE</td>
                             <td class="text-right pr-4 border-t-2 border-r border-base-100">{{ number_format(collect($summaryData->items())->sum('total_ro')) }}</td>
-                            <td class="text-right pr-4 border-t-2 border-r border-base-100">{{ number_format(collect($summaryData->items())->sum('total_plan')) }}</td>
+                            <td class="text-right pr-4 border-t-2 border-r border-base-100">{{ number_format(collect($summaryData->items())->sum('total_jks')) }}</td>
                             <td class="text-right pr-4 border-t-2 border-r border-base-100 text-warning">{{ number_format(collect($summaryData->items())->sum('non_rute')) }}</td>
                             <td class="text-right pr-4 border-t-2 border-r-2 border-base-100 text-error">{{ number_format(collect($summaryData->items())->sum('non_gps')) }}</td>
                             
