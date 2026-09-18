@@ -4,41 +4,48 @@
         <h3 class="font-bold text-lg mb-4">Filter JKS Salesman</h3>
         
         <form wire:submit="applyFilters" x-on:submit="document.getElementById('filter_modal').close()">
+            @php $accessLevel = auth()->user() ? auth()->user()->getAccessLevel() : 'nasional'; @endphp
             <div class="space-y-4">
                 <div class="form-control">
                     <label class="label"><span class="label-text font-semibold">Bulan</span></label>
                     <input type="month" wire:model="selectedBulan" class="input input-bordered input-sm w-full">
                 </div>
 
+                @if(in_array($accessLevel, ['nasional', 'region']))
                 <div class="form-control">
                     <label class="label"><span class="label-text font-semibold">Region</span></label>
-                    <select wire:model.live="selectedRegion" class="select select-bordered select-sm w-full">
-                        <option value="">-- Pilih Region --</option>
+                    <select wire:model.live="selectedRegion" class="select select-bordered select-sm w-full" @if(count($this->filterRegions) <= 1 && $accessLevel != 'nasional') disabled @endif>
+                        @if(count($this->filterRegions) != 1) <option value="">-- Pilih Region --</option> @endif
                         @foreach($this->filterRegions as $region)
                             <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
                         @endforeach
                     </select>
                 </div>
+                @endif
 
+                @if(in_array($accessLevel, ['nasional', 'region', 'area']))
                 <div class="form-control">
                     <label class="label"><span class="label-text font-semibold">Area</span></label>
-                    <select wire:model.live="selectedArea" class="select select-bordered select-sm w-full">
-                        <option value="">-- Pilih Area --</option>
+                    <select wire:model.live="selectedArea" class="select select-bordered select-sm w-full" @if(count($this->filterAreas) <= 1 && $accessLevel != 'nasional') disabled @endif>
+                        @if(count($this->filterAreas) != 1) <option value="">-- Pilih Area --</option> @endif
                         @foreach($this->filterAreas as $area)
                             <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
                         @endforeach
                     </select>
                 </div>
+                @endif
 
+                @if(in_array($accessLevel, ['nasional', 'region', 'area', 'supervisor']))
                 <div class="form-control">
                     <label class="label"><span class="label-text font-semibold">Spv (Team Elite)</span></label>
-                    <select wire:model.live="selectedSupervisor" class="select select-bordered select-sm w-full">
-                        <option value="">-- Pilih Supervisor --</option>
+                    <select wire:model.live="selectedSupervisor" class="select select-bordered select-sm w-full" @if(count($this->filterSupervisors) <= 1 && $accessLevel != 'nasional') disabled @endif>
+                        @if(count($this->filterSupervisors) != 1) <option value="">-- Pilih Supervisor --</option> @endif
                         @foreach($this->filterSupervisors as $spv)
                             <option value="{{ $spv->supervisor_code }}">{{ $spv->description }}</option>
                         @endforeach
                     </select>
                 </div>
+                @endif
 
                 <div class="form-control">
                     <label class="label"><span class="label-text font-semibold">Distributor</span></label>

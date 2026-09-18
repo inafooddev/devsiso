@@ -1,70 +1,97 @@
-@if($kpiSummary)
-<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 shrink-0 mb-4">
-    {{-- Card 1: Total Toko --}}
-    <div class="bg-base-100 rounded-xl shadow-sm border border-primary p-3 flex flex-col justify-between relative overflow-hidden group">
-        <div class="text-[10px] text-primary font-bold uppercase tracking-wider mb-1 z-10 flex items-center justify-between">
-            <span>Total RO</span>
-            <span class="text-lg font-black leading-none" title="Total Seluruh RO">{{ number_format($kpiSummary->all_ro ?? $kpiSummary->total_toko, 0, ',', '.') }}</span>
-        </div>
+@if($kpiSummary && $kpiSummary->isNotEmpty())
+<div class="overflow-auto bg-base-100 w-full h-fit relative shadow-sm border border-base-300 rounded-xl mb-4 shrink-0 max-h-[40vh]">
+    <table class="table table-sm w-full whitespace-nowrap border-separate border-spacing-0">
+        @php
+            $days = [
+                'h1' => 'Senin', 
+                'h2' => 'Selasa', 
+                'h3' => 'Rabu', 
+                'h4' => 'Kamis', 
+                'h5' => 'Jumat', 
+                'h6' => 'Sabtu'
+            ];
+        @endphp
         
-        <div class="flex items-center gap-1 mt-1 z-10">
-            <div class="flex-1 bg-success/10 rounded py-1 flex flex-col items-center border border-success/20" title="RO yang sudah masuk Plan (Jadwal)">
-                <span class="text-[7px] font-bold text-success uppercase">Plan</span>
-                <span class="text-xs font-black text-success">{{ number_format($kpiSummary->total_toko, 0, ',', '.') }}</span>
-            </div>
+        {{-- Thead --}}
+        <thead class="text-[10px] uppercase bg-base-200 text-base-content shadow-sm sticky top-0 z-40 border-b-2 border-base-300">
+            {{-- Baris 1: Parent Headers --}}
+            <tr>
+                <th rowspan="2" class="bg-base-300 sticky left-0 z-50 border-b-2 border-r border-base-100 w-[80px] min-w-[80px] max-w-[80px] text-base-content font-bold tracking-wider">Kode SE</th>
+                <th rowspan="2" class="bg-base-300 sticky left-[80px] z-50 border-b-2 border-r-2 border-base-100 shadow-[5px_0_15px_rgba(0,0,0,0.1)] w-[180px] min-w-[180px] max-w-[180px] text-base-content font-bold tracking-wider">Salesman</th>
+                
+                <th rowspan="2" class="text-right pr-3 border-b-2 border-r border-base-100 bg-base-300 text-base-content/80 font-bold tracking-wider">Total RO</th>
+                <th rowspan="2" class="text-right pr-3 border-b-2 border-r border-base-100 bg-base-300 text-base-content/80 font-bold tracking-wider">Plan</th>
+                <th rowspan="2" class="text-right pr-3 border-b-2 border-r border-base-100 bg-base-300 text-base-content/80 font-bold tracking-wider">Non Rute</th>
+                <th rowspan="2" class="text-right pr-3 border-b-2 border-r-2 border-base-100 bg-base-300 text-base-content/80 font-bold tracking-wider">Non GPS</th>
+                
+                @foreach($days as $key => $label)
+                    <th colspan="3" class="text-center border-b-2 border-r-2 border-base-100 bg-base-300 text-base-content/90 font-bold tracking-wider">{{ $label }}</th>
+                @endforeach
+            </tr>
             
-            <div class="flex-1 bg-warning/10 rounded py-1 flex flex-col items-center border border-warning/20" title="RO yang belum masuk Plan">
-                <span class="text-[7px] font-bold text-warning-content uppercase tracking-tighter">Non Rute</span>
-                <span class="text-xs font-black text-warning-content">{{ number_format(($kpiSummary->all_ro ?? $kpiSummary->total_toko) - $kpiSummary->total_toko, 0, ',', '.') }}</span>
-            </div>
+            {{-- Baris 2: Child Headers --}}
+            <tr>
+                @foreach($days as $key => $label)
+                    <th class="text-right pr-2 bg-base-200 text-[9px] text-primary tracking-wide border-b-2 border-r border-base-300">Gjl</th>
+                    <th class="text-right pr-2 bg-base-200 text-[9px] text-secondary tracking-wide border-b-2 border-r border-base-300">Gnp</th>
+                    <th class="text-right pr-2 bg-base-200 text-[9px] text-error tracking-wide border-b-2 border-r-2 border-base-100">Non Gps</th>
+                @endforeach
+            </tr>
+        </thead>
 
-            <div class="flex-1 bg-error/10 rounded py-1 flex flex-col items-center border border-error/20" title="RO tanpa koordinat GPS">
-                <span class="text-[7px] font-bold text-error uppercase">No GPS</span>
-                <span class="text-xs font-black text-error">{{ number_format($kpiSummary->non_gps ?? 0, 0, ',', '.') }}</span>
-            </div>
-        </div>
-
-        <x-heroicon-o-building-storefront class="w-20 h-20 absolute -right-4 -bottom-4 text-primary/5 pointer-events-none transition-transform group-hover:scale-110" />
-    </div>
-
-    {{-- Cards 2-7: Senin to Sabtu --}}
-    @php
-        $days = [
-            ['name' => 'Senin', 'ganjil' => $kpiSummary->h1_ganjil, 'genap' => $kpiSummary->h1_genap, 'nongps' => $kpiSummary->h1_non_gps ?? 0],
-            ['name' => 'Selasa', 'ganjil' => $kpiSummary->h2_ganjil, 'genap' => $kpiSummary->h2_genap, 'nongps' => $kpiSummary->h2_non_gps ?? 0],
-            ['name' => 'Rabu', 'ganjil' => $kpiSummary->h3_ganjil, 'genap' => $kpiSummary->h3_genap, 'nongps' => $kpiSummary->h3_non_gps ?? 0],
-            ['name' => 'Kamis', 'ganjil' => $kpiSummary->h4_ganjil, 'genap' => $kpiSummary->h4_genap, 'nongps' => $kpiSummary->h4_non_gps ?? 0],
-            ['name' => 'Jumat', 'ganjil' => $kpiSummary->h5_ganjil, 'genap' => $kpiSummary->h5_genap, 'nongps' => $kpiSummary->h5_non_gps ?? 0],
-            ['name' => 'Sabtu', 'ganjil' => $kpiSummary->h6_ganjil, 'genap' => $kpiSummary->h6_genap, 'nongps' => $kpiSummary->h6_non_gps ?? 0],
-        ];
-    @endphp
-
-    @foreach($days as $day)
-    <div class="bg-base-100 rounded-xl shadow-sm border border-base-300 p-3 flex flex-col justify-between relative overflow-hidden group">
-        <div class="text-[10px] text-base-content/80 font-bold uppercase tracking-wider mb-1">{{ $day['name'] }}</div>
+        <tbody>
+            @foreach($kpiSummary as $row)
+                @php
+                    $plan = $row->total_toko ?? 0;
+                    $totalRo = $row->all_ro ?? $row->total_toko ?? 0;
+                    $nonRute = $totalRo - $plan;
+                @endphp
+                <tr class="hover:bg-base-300 transition-colors odd:bg-base-100 even:bg-base-200 group text-[11px]">
+                    <td title="{{ $row->salesman_code }}" class="bg-inherit sticky left-0 z-30 border-r border-base-300 truncate w-[80px] min-w-[80px] max-w-[80px] text-base-content/70">
+                        {{ $row->salesman_code }}
+                    </td>
+                    <td title="{{ $row->salesman_name ?: $row->salesman_code }}" class="bg-inherit sticky left-[80px] z-30 border-r-2 border-base-300 truncate w-[180px] min-w-[180px] max-w-[180px] text-base-content/90 font-medium">
+                        {{ $row->salesman_name ?: $row->salesman_code }}
+                    </td>
+                    
+                    <td class="text-right pr-3 border-r border-base-300 font-bold {{ $totalRo < 300 ? 'text-error' : '' }}">
+                        {{ number_format($totalRo, 0, ',', '.') }}
+                    </td>
+                    <td class="text-right pr-3 border-r border-base-300 text-success font-bold">{{ number_format($plan, 0, ',', '.') }}</td>
+                    <td class="text-right pr-3 border-r border-base-300 text-warning-content font-bold">{{ number_format($nonRute, 0, ',', '.') }}</td>
+                    <td class="text-right pr-3 border-r-2 border-base-300 text-error font-bold">{{ number_format($row->non_gps ?? 0, 0, ',', '.') }}</td>
+                    
+                    @foreach($days as $key => $label)
+                        <td class="text-right pr-2 border-r border-base-300 text-primary">{{ number_format($row->{$key.'_ganjil'} ?? 0, 0, ',', '.') }}</td>
+                        <td class="text-right pr-2 border-r border-base-300 text-secondary">{{ number_format($row->{$key.'_genap'} ?? 0, 0, ',', '.') }}</td>
+                        <td class="text-right pr-2 border-r-2 border-base-300 text-error">{{ number_format($row->{$key.'_non_gps'} ?? 0, 0, ',', '.') }}</td>
+                    @endforeach
+                </tr>
+            @endforeach
+        </tbody>
         
-        <div class="flex items-center gap-1 mt-1 z-10">
-            <div class="flex-1 bg-primary/10 rounded py-1 flex flex-col items-center border border-primary/20">
-                <span class="text-[7px] font-bold text-primary uppercase">Ganjil</span>
-                <span class="text-xs font-black text-primary">{{ number_format($day['ganjil'], 0, ',', '.') }}</span>
-            </div>
-            
-            <div class="flex-1 bg-neutral/10 rounded py-1 flex flex-col items-center border border-neutral/20">
-                <span class="text-[7px] font-bold text-neutral uppercase">Genap</span>
-                <span class="text-xs font-black text-neutral">{{ number_format($day['genap'], 0, ',', '.') }}</span>
-            </div>
-
-            <div class="flex-1 bg-error/10 rounded py-1 flex flex-col items-center border border-error/20" title="RO tanpa koordinat GPS">
-                <span class="text-[7px] font-bold text-error uppercase tracking-tighter">No GPS</span>
-                <span class="text-xs font-black text-error">{{ number_format($day['nongps'], 0, ',', '.') }}</span>
-            </div>
-        </div>
-
-        {{-- Background Total Number (Subtle) --}}
-        <div class="absolute -right-2 -top-2 text-4xl font-black opacity-5 pointer-events-none transition-transform group-hover:scale-110">
-            {{ $day['ganjil'] + $day['genap'] }}
-        </div>
-    </div>
-    @endforeach
+        <tfoot class="text-[11px] font-bold bg-base-300 text-base-content sticky bottom-0 z-40 border-t-2 border-base-300">
+            <tr>
+                <td colspan="2" class="bg-base-300 sticky left-0 z-50 border-t-2 border-r-2 border-base-100 shadow-[5px_0_15px_rgba(0,0,0,0.1)] text-right pr-3 uppercase">Grand Total</td>
+                
+                @php
+                    $sumPlan = $kpiSummary->sum('total_toko');
+                    $sumTotalRo = $kpiSummary->sum('all_ro') ?: $sumPlan;
+                    $sumNonRute = $sumTotalRo - $sumPlan;
+                @endphp
+                
+                <td class="text-right pr-3 border-t-2 border-r border-base-100">{{ number_format($sumTotalRo, 0, ',', '.') }}</td>
+                <td class="text-right pr-3 border-t-2 border-r border-base-100 text-success">{{ number_format($sumPlan, 0, ',', '.') }}</td>
+                <td class="text-right pr-3 border-t-2 border-r border-base-100 text-warning-content">{{ number_format($sumNonRute, 0, ',', '.') }}</td>
+                <td class="text-right pr-3 border-t-2 border-r-2 border-base-100 text-error">{{ number_format($kpiSummary->sum('non_gps'), 0, ',', '.') }}</td>
+                
+                @foreach($days as $key => $label)
+                    <td class="text-right pr-2 border-t-2 border-r border-base-100 text-primary">{{ number_format($kpiSummary->sum($key.'_ganjil'), 0, ',', '.') }}</td>
+                    <td class="text-right pr-2 border-t-2 border-r border-base-100 text-secondary">{{ number_format($kpiSummary->sum($key.'_genap'), 0, ',', '.') }}</td>
+                    <td class="text-right pr-2 border-t-2 border-r-2 border-base-100 text-error">{{ number_format($kpiSummary->sum($key.'_non_gps'), 0, ',', '.') }}</td>
+                @endforeach
+            </tr>
+        </tfoot>
+    </table>
 </div>
 @endif

@@ -23,7 +23,7 @@ class JksSalesmanService
      */
     protected function getBaseQuery($search = '', $filters = [])
     {
-        return DB::table('jks_salesmans as js')
+        $query = DB::table('jks_salesmans as js')
             ->select([
                 'js.id',
                 'js.bulan',
@@ -60,7 +60,23 @@ class JksSalesmanService
             ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
                 $join->on('js.distributor_code', '=', 'ltpte.distributor_code')
                      ->on('js.customer_code', '=', 'ltpte.uniq_kd');
-            })
+            });
+
+        $user = auth()->user();
+        if ($user && !$user->hasRole(['admin', 'spm'])) {
+            $accessLevel = $user->getAccessLevel();
+            if ($accessLevel === 'region' && !empty($user->region_code)) {
+                $query->whereIn('md.region_code', (array) $user->region_code);
+            } elseif ($accessLevel === 'area' && !empty($user->area_code)) {
+                $query->whereIn('md.area_code', (array) $user->area_code);
+            } elseif ($accessLevel === 'supervisor' && !empty($user->supervisor_code)) {
+                // supervisor_code di users mengarah ke team_elite_code
+                // tecm table maps supervisor_code (md) to team_elite_code
+                $query->where('tecm.team_elite_code', $user->supervisor_code);
+            }
+        }
+
+        return $query
             ->when($filters['region'] ?? null, function ($q, $region) {
                 return $q->where('md.region_code', $region);
             })
@@ -68,7 +84,7 @@ class JksSalesmanService
                 return $q->where('md.area_code', $area);
             })
             ->when($filters['supervisor'] ?? null, function ($q, $supervisor) {
-                return $q->where('md.supervisor_code', $supervisor);
+                return $q->where('tecm.team_elite_code', $supervisor);
             })
             ->when($filters['distributor'] ?? null, function ($q, $distributor) {
                 return $q->where('md.distributor_code', $distributor);
@@ -199,6 +215,8 @@ class JksSalesmanService
 
         return DB::table('jks_salesmans as js')
             ->leftJoin('master_distributors as md', 'js.distributor_code', '=', 'md.distributor_code')
+            ->leftJoin('salesmans as s', 'js.salesman_code', '=', 's.salesman_code')
+            ->leftJoin('team_elite_code_mappings as tecm', 'md.supervisor_code', '=', 'tecm.siso_code')
             ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
                 $join->on('js.distributor_code', '=', 'ltpte.distributor_code')
                      ->on('js.customer_code', '=', 'ltpte.uniq_kd');
@@ -210,18 +228,17 @@ class JksSalesmanService
                 return $q->where('md.area_code', $area);
             })
             ->when($filters['supervisor'] ?? null, function ($q, $supervisor) {
-                return $q->where('md.supervisor_code', $supervisor);
+                return $q->where('tecm.team_elite_code', $supervisor);
             })
             ->when($filters['distributor'] ?? null, function ($q, $distributor) {
                 return $q->where('md.distributor_code', $distributor);
-            })
-            ->when($filters['salesman'] ?? null, function ($q, $salesman) {
-                return $q->where('js.salesman_code', $salesman);
             })
             ->when($filters['bulan'] ?? null, function ($q, $bulan) {
                 return $q->where('js.bulan', 'like', $bulan . '%');
             })
             ->selectRaw("
+                js.salesman_code,
+                MAX(s.salesman_name) as salesman_name,
                 COUNT(DISTINCT CONCAT(js.bulan, js.distributor_code, js.salesman_code, js.customer_code)) as all_ro,
                 SUM(CASE WHEN ltpte.latitude IS NULL OR ltpte.longitude IS NULL THEN 1 ELSE 0 END) as non_gps,
                 COUNT(DISTINCT CASE WHEN 
@@ -250,7 +267,9 @@ class JksSalesmanService
                 SUM(CASE WHEN js.h5 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN 1 ELSE 0 END) as h5_non_gps,
                 SUM(CASE WHEN js.h6 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN 1 ELSE 0 END) as h6_non_gps
             ")
-            ->first();
+            ->groupBy('js.salesman_code', 's.salesman_name')
+            ->orderBy('salesman_name')
+            ->get();
     }
 
     /**

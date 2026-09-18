@@ -152,6 +152,8 @@ class Index extends Component
             ->leftJoin('users as c', 'ja.checker_id', '=', 'c.id')
             ->select('ja.*', 'u.name as maker_name', 'c.name as checker_name')
             ->where('ja.status', $this->filterStatus);
+            
+        $query = $this->applyHierarchyAccess($query, 'ja.');
 
         if (!empty($this->search)) {
             $query->where(function($q) {
@@ -915,6 +917,43 @@ class Index extends Component
         $this->dispatch('open-dynamic-drawer', $enrichedPayload);
     }
 
+    protected function applyHierarchyAccess($query, $prefix = '')
+    {
+        $user = auth()->user();
+        if (!$user || $user->hasRole(['admin', 'spm'])) return $query;
+        
+        $accessLevel = $user->getAccessLevel();
+        
+        if (in_array($accessLevel, ['region', 'area'])) {
+            $query->leftJoin('master_distributors as md', $prefix . 'distributor_code', '=', 'md.distributor_code');
+            
+            if ($accessLevel === 'region' && !empty($user->region_code)) {
+                return $query->whereIn('md.region_code', (array) $user->region_code);
+            }
+            if ($accessLevel === 'area' && !empty($user->area_code)) {
+                return $query->whereIn('md.area_code', (array) $user->area_code);
+            }
+        }
+        
+        if ($accessLevel === 'supervisor' && !empty($user->supervisor_code)) {
+            $allowedDistributors = DB::table('jks_se_master_toko_ool')
+                 ->whereIn('supervisor_code', (array)$user->supervisor_code)
+                 ->pluck('distributor_code')->toArray();
+                 
+            $query->where(function($q) use ($allowedDistributors, $user, $prefix) {
+                if (!empty($allowedDistributors)) {
+                    $q->whereIn($prefix . 'distributor_code', $allowedDistributors)
+                      ->orWhere($prefix . 'maker_id', $user->id);
+                } else {
+                    $q->where($prefix . 'maker_id', $user->id);
+                }
+            });
+            return $query;
+        }
+
+        return $query;
+    }
+
     public function render()
     {
         $approvals = $this->getApprovalsQuery()
@@ -922,14 +961,15 @@ class Index extends Component
             ->paginate(100);
 
         // KPI Counts
+        $baseKpiQuery = $this->applyHierarchyAccess(DB::table('jks_approvals as ja'), 'ja.');
         $kpi = [
-            'PENDING' => DB::table('jks_approvals')->where('status', 'PENDING')->count(),
-            'APPROVED' => DB::table('jks_approvals')->where('status', 'APPROVED')->count(),
-            'REJECTED' => DB::table('jks_approvals')->where('status', 'REJECTED')->count(),
+            'PENDING' => (clone $baseKpiQuery)->where('ja.status', 'PENDING')->count(),
+            'APPROVED' => (clone $baseKpiQuery)->where('ja.status', 'APPROVED')->count(),
+            'REJECTED' => (clone $baseKpiQuery)->where('ja.status', 'REJECTED')->count(),
         ];
 
-        $actionTypes = DB::table('jks_approvals')->select('action_type')->distinct()->pluck('action_type');
-        $distributorOptions = DB::table('jks_approvals')->select('distributor_code')->distinct()->pluck('distributor_code');
+        $actionTypes = $this->applyHierarchyAccess(DB::table('jks_approvals as ja'), 'ja.')->select('ja.action_type')->distinct()->pluck('action_type');
+        $distributorOptions = $this->applyHierarchyAccess(DB::table('jks_approvals as ja'), 'ja.')->select('ja.distributor_code')->distinct()->pluck('distributor_code');
 
         // Pre-calculate PRC issues for PENDING TAMBAH_JADWAL approvals to prevent N+1 queries
         $prcIssues = [];

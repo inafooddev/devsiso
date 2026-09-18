@@ -27,6 +27,12 @@ class Index extends Component
     public $selectedHari = 'h1';
     public $selectedMinggu = 'ganjil';
 
+    public $canAdd = false;
+    public $canEdit = false;
+    public $canDelete = false;
+    public $canExport = false;
+    public $canImport = false;
+
     public function mount()
     {
         if (session()->has('jks_salesmans_state')) {
@@ -50,6 +56,72 @@ class Index extends Component
             
             if (isset($state['page'])) {
                 $this->setPage($state['page']);
+            }
+        }
+        $this->applyDefaultFiltersForRestrictedUser();
+
+        $user = auth()->user();
+        if ($user) {
+            $routeName = 'call-plan.jks-salesmans';
+            $this->canAdd = $user->hasMenuAccess($routeName, 'can_add');
+            $this->canEdit = $user->hasMenuAccess($routeName, 'can_edit');
+            $this->canDelete = $user->hasMenuAccess($routeName, 'can_delete');
+            $this->canExport = $user->hasMenuAccess($routeName, 'can_export');
+            $this->canImport = $user->hasMenuAccess($routeName, 'can_import');
+        }
+    }
+
+    protected function applyDefaultFiltersForRestrictedUser()
+    {
+        $user = auth()->user();
+        if ($user && !$user->hasRole(['admin', 'spm'])) {
+            $accessLevel = $user->getAccessLevel();
+            
+            if (in_array($accessLevel, ['region', 'area', 'supervisor'])) {
+                if (!empty($user->region_code) && count((array)$user->region_code) == 1 && empty($this->selectedRegion)) {
+                    $this->selectedRegion = ((array)$user->region_code)[0];
+                    $this->appliedRegion = $this->selectedRegion;
+                }
+            }
+            if (in_array($accessLevel, ['area', 'supervisor'])) {
+                if (!empty($user->area_code) && count((array)$user->area_code) == 1 && empty($this->selectedArea)) {
+                    $this->selectedArea = ((array)$user->area_code)[0];
+                    $this->appliedArea = $this->selectedArea;
+                    
+                    if ($accessLevel === 'area' && empty($this->selectedRegion)) {
+                        $areaData = \Illuminate\Support\Facades\DB::table('master_distributors')
+                            ->where('area_code', $this->selectedArea)
+                            ->select('region_code')
+                            ->first();
+                        if ($areaData) {
+                            $this->selectedRegion = $areaData->region_code;
+                            $this->appliedRegion = $this->selectedRegion;
+                        }
+                    }
+                }
+            }
+            if ($accessLevel === 'supervisor') {
+                if (!empty($user->supervisor_code) && empty($this->selectedSupervisor)) {
+                    $this->selectedSupervisor = $user->supervisor_code;
+                    $this->appliedSupervisor = $this->selectedSupervisor;
+                    
+                    $spvData = \Illuminate\Support\Facades\DB::table('master_distributors as md')
+                        ->join('team_elite_code_mappings as te', 'md.supervisor_code', '=', 'te.siso_code')
+                        ->where('te.team_elite_code', $user->supervisor_code)
+                        ->select('md.region_code', 'md.area_code')
+                        ->first();
+                        
+                    if ($spvData) {
+                        if (empty($this->selectedRegion)) {
+                            $this->selectedRegion = $spvData->region_code;
+                            $this->appliedRegion = $this->selectedRegion;
+                        }
+                        if (empty($this->selectedArea)) {
+                            $this->selectedArea = $spvData->area_code;
+                            $this->appliedArea = $this->selectedArea;
+                        }
+                    }
+                }
             }
         }
     }
@@ -149,6 +221,8 @@ class Index extends Component
             session()->forget('jks_salesmans_state');
         }
 
+        $this->applyDefaultFiltersForRestrictedUser();
+
         $this->resetPage();
     }
 
@@ -156,6 +230,154 @@ class Index extends Component
     {
         $this->traitApplyFilters();
         $this->resetBdSelection();
+    }
+
+    protected function applyHierarchyAccess($query)
+    {
+        $user = auth()->user();
+        if (!$user) return $query;
+        
+        if ($user->hasRole(['admin', 'spm'])) {
+            return $query;
+        }
+        
+        $accessLevel = $user->getAccessLevel();
+        
+        if ($accessLevel === 'supervisor' && !empty($user->supervisor_code)) {
+            // Map the team_elite_code (from users table) to siso_code (used in master_distributors)
+            $sisoCodes = \Illuminate\Support\Facades\DB::table('team_elite_code_mappings')
+                           ->where('team_elite_code', $user->supervisor_code)
+                           ->pluck('siso_code');
+            return $query->whereIn('md.supervisor_code', $sisoCodes);
+        }
+        
+        if ($accessLevel === 'area' && !empty($user->area_code) && count((array) $user->area_code) > 0) {
+            return $query->whereIn('md.area_code', (array) $user->area_code);
+        }
+        
+        if ($accessLevel === 'region' && !empty($user->region_code) && count((array) $user->region_code) > 0) {
+            return $query->whereIn('md.region_code', (array) $user->region_code);
+        }
+
+        return $query;
+    }
+
+    protected function getAllowedDistributorCodes()
+    {
+        $user = auth()->user();
+        if (!$user || $user->hasRole(['admin', 'spm'])) {
+            return true;
+        }
+        
+        $query = \Illuminate\Support\Facades\DB::table('master_distributors as md')->select('md.distributor_code');
+        $query = $this->applyHierarchyAccess($query);
+        return $query->pluck('distributor_code')->toArray();
+    }
+
+    protected function abortIfUnauthorizedDistributor($distributorCode)
+    {
+        $allowed = $this->getAllowedDistributorCodes();
+        if ($allowed === true) return;
+        
+        if (!in_array($distributorCode, $allowed)) {
+            abort(403, 'Akses ditolak. Wilayah ini di luar kewenangan Anda.');
+        }
+    }
+
+    protected function abortIfUnauthorizedJksIds($ids)
+    {
+        $allowed = $this->getAllowedDistributorCodes();
+        if ($allowed === true) return;
+        
+        $unauthorized = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+            ->whereIn('id', (array) $ids)
+            ->whereNotIn('distributor_code', $allowed)
+            ->exists();
+            
+        if ($unauthorized) {
+            abort(403, 'Akses ditolak. Sebagian data berada di luar kewenangan Anda.');
+        }
+    }
+
+    #[\Livewire\Attributes\Computed]
+    public function filterRegions()
+    {
+        $query = \Illuminate\Support\Facades\DB::table('master_regions as mr')
+            ->select('mr.region_code', 'mr.region_name')
+            ->whereExists(function($q) {
+                $q->select(\Illuminate\Support\Facades\DB::raw(1))
+                  ->from('master_distributors as md')
+                  ->whereColumn('md.region_code', 'mr.region_code')
+                  ->where('md.is_active', true);
+                $this->applyHierarchyAccess($q);
+            });
+            
+        return $query->orderBy('mr.region_name')->get();
+    }
+
+    #[\Livewire\Attributes\Computed]
+    public function filterAreas()
+    {
+        $query = \Illuminate\Support\Facades\DB::table('master_areas as ma')
+            ->select('ma.area_code', 'ma.area_name');
+            
+        if ($this->selectedRegion) {
+            $query->where('ma.region_code', $this->selectedRegion);
+        }
+        
+        $query->whereExists(function($q) {
+            $q->select(\Illuminate\Support\Facades\DB::raw(1))
+                  ->from('master_distributors as md')
+                  ->whereColumn('md.area_code', 'ma.area_code')
+                  ->where('md.is_active', true);
+            $this->applyHierarchyAccess($q);
+        });
+            
+        return $query->orderBy('ma.area_name')->get();
+    }
+
+    #[\Livewire\Attributes\Computed]
+    public function filterSupervisors()
+    {
+        $query = \Illuminate\Support\Facades\DB::table('team_elite_code_mappings as te')
+            ->join('fsalesman as f', 'f.SLSNO', '=', 'te.team_elite_code')
+            ->select('te.team_elite_code as supervisor_code', 'f.SLSNAME as description')
+            ->whereExists(function($q) {
+                $q->select(\Illuminate\Support\Facades\DB::raw(1))
+                  ->from('master_distributors as md')
+                  ->whereColumn('md.supervisor_code', 'te.siso_code')
+                  ->where('md.is_active', true);
+                  
+                if ($this->selectedRegion) $q->where('md.region_code', $this->selectedRegion);
+                if ($this->selectedArea) $q->where('md.area_code', $this->selectedArea);
+                
+                $this->applyHierarchyAccess($q);
+            });
+
+        return $query->orderBy('f.SLSNAME')->get();
+    }
+
+    #[\Livewire\Attributes\Computed]
+    public function filterDistributors()
+    {
+        $query = \Illuminate\Support\Facades\DB::table('master_distributors as md')
+            ->select('md.distributor_code', 'md.distributor_name')
+            ->where('md.is_active', true);
+            
+        if ($this->selectedRegion) $query->where('md.region_code', $this->selectedRegion);
+        if ($this->selectedArea) $query->where('md.area_code', $this->selectedArea);
+        if ($this->selectedSupervisor) {
+            $query->whereExists(function($q) {
+                $q->select(\Illuminate\Support\Facades\DB::raw(1))
+                  ->from('team_elite_code_mappings as te')
+                  ->whereColumn('te.siso_code', 'md.supervisor_code')
+                  ->where('te.team_elite_code', $this->selectedSupervisor);
+            });
+        }
+        
+        $query = $this->applyHierarchyAccess($query);
+        
+        return $query->orderBy('md.distributor_name')->get();
     }
 
     #[\Livewire\Attributes\Computed]
@@ -360,7 +582,7 @@ class Index extends Component
 
     public function startCopyPeriod()
     {
-        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+        abort_if(!$this->canEdit || !auth()->user()->hasRole(['admin', 'user', 'spm']), 403, 'Akses ditolak.');
 
         if (empty($this->copySourceMonth) || empty($this->copyTargetMonth)) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Periode Asal dan Periode Tujuan tidak boleh kosong.']);
@@ -529,7 +751,9 @@ class Index extends Component
 
     public function executeSwapDay()
     {
-        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+        abort_if(!$this->canEdit, 403, 'Akses ditolak.');
+
+        $this->abortIfUnauthorizedDistributor($this->appliedDistributor);
 
         if (empty($this->swapSalesmanCode) || empty($this->swapHariAsal) || empty($this->swapHariTujuan) || $this->swapHariAsal === $this->swapHariTujuan) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Input tidak valid untuk pertukaran jadwal.']);
@@ -692,7 +916,9 @@ class Index extends Component
 
     public function executeSwapMinggu()
     {
-        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+        abort_if(!$this->canEdit, 403, 'Akses ditolak.');
+
+        $this->abortIfUnauthorizedDistributor($this->appliedDistributor);
 
         if (empty($this->swapSalesmanCode) || empty($this->swapMingguAsal) || empty($this->swapMingguTujuan)) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Lengkapi form sebelum mengeksekusi!']);
@@ -803,7 +1029,9 @@ class Index extends Component
 
     public function executeSwapSalesman()
     {
-        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+        abort_if(!$this->canEdit, 403, 'Akses ditolak.');
+
+        $this->abortIfUnauthorizedDistributor($this->appliedDistributor);
 
         if (empty($this->swapSalesmanAsal) || empty($this->swapSalesmanTujuan)) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Lengkapi form sebelum mengeksekusi!']);
@@ -971,7 +1199,9 @@ class Index extends Component
 
     public function executeBulkDelete()
     {
-        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+        abort_if(!$this->canDelete, 403, 'Akses ditolak.');
+
+        $this->abortIfUnauthorizedJksIds($this->bdSelectedIds);
 
         if (empty($this->bdSelectedIds)) {
             $this->dispatch('toast', ['type' => 'warning', 'message' => 'Pilih minimal satu toko untuk dihapus!']);
@@ -1214,6 +1444,7 @@ class Index extends Component
 
     public function executeCleansing()
     {
+        $this->abortIfUnauthorizedDistributor($this->appliedDistributor);
         if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
 
         if (!auth()->user()->hasRole(['admin', 'user'])) {
@@ -1286,7 +1517,7 @@ class Index extends Component
     }
     public function exportExcel()
     {
-        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+        abort_if(!$this->canExport, 403, 'Akses ditolak.');
 
         $filters = $this->getAppliedFilters();
         $filters['salesman'] = $this->headerSalesman;
@@ -1345,9 +1576,11 @@ class Index extends Component
 
     public function saveJadwal()
     {
-        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+        abort_if(!$this->canEdit, 403, 'Akses ditolak.');
 
         if (!$this->editId) return;
+
+        $this->abortIfUnauthorizedJksIds([$this->editId]);
 
         if (empty(trim($this->editSalesmanCode))) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Validasi Gagal: Pilihan Salesman tidak boleh kosong!']);
@@ -1441,9 +1674,11 @@ class Index extends Component
 
     public function executeDelete()
     {
-        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+        abort_if(!$this->canDelete, 403, 'Akses ditolak.');
 
         if (!$this->deleteId) return;
+
+        $this->abortIfUnauthorizedJksIds([$this->deleteId]);
 
         if (strlen(trim($this->deleteReason)) < 5) {
             $this->dispatch('toast', ['type' => 'warning', 'message' => 'Alasan reset harus diisi (minimal 5 karakter)!']);
@@ -1553,26 +1788,32 @@ class Index extends Component
         $filters['hari'] = $this->selectedHari;
         $filters['minggu'] = $this->selectedMinggu;
         
-        $data = $service->getFilteredPaginatedList($this->search, $filters, 100);
-        
-        $kpiSummary = $service->getKpiSummary($filters);
         $mingguDates = $service->getMingguDateRanges($filters['bulan'] ?? null);
-
-        // Find collisions for the current page
-        $collidingCustomerCodes = [];
-        if (!empty($filters['bulan']) && count($data->items()) > 0) {
-            $customerCodesOnPage = collect($data->items())->pluck('customer_code')->unique()->toArray();
+        if (empty($filters['distributor'])) {
+            $data = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 100, $this->getPage());
+            $kpiSummary = null;
+            $collidingCustomerCodes = [];
+        } else {
+            $data = $service->getFilteredPaginatedList($this->search, $filters, 100);
             
-            $collisions = \Illuminate\Support\Facades\DB::table('jks_salesmans')
-                ->select('customer_code')
-                ->where('bulan', 'like', $filters['bulan'] . '%')
-                ->whereIn('customer_code', $customerCodesOnPage)
-                ->groupBy('customer_code')
-                ->havingRaw('COUNT(DISTINCT salesman_code) > 1')
-                ->pluck('customer_code')
-                ->toArray();
+            $kpiSummary = $service->getKpiSummary($filters);
+            
+            // Find collisions for the current page
+            $collidingCustomerCodes = [];
+            if (!empty($filters['bulan']) && count($data->items()) > 0) {
+                $customerCodesOnPage = collect($data->items())->pluck('customer_code')->unique()->toArray();
                 
-            $collidingCustomerCodes = $collisions;
+                $collisions = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                    ->select('customer_code')
+                    ->where('bulan', 'like', $filters['bulan'] . '%')
+                    ->whereIn('customer_code', $customerCodesOnPage)
+                    ->groupBy('customer_code')
+                    ->havingRaw('COUNT(DISTINCT salesman_code) > 1')
+                    ->pluck('customer_code')
+                    ->toArray();
+                    
+                $collidingCustomerCodes = $collisions;
+            }
         }
 
         return view('livewire.call-plan.jks-salesmans.index', [
@@ -1633,7 +1874,13 @@ class Index extends Component
 
     public function executeExportEskalink()
     {
+        abort_if(!$this->canExport || !auth()->user()->hasRole(['admin', 'user', 'spm']), 403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.');
+
         if (empty($this->appliedBulan)) return;
+
+        if ($this->appliedDistributor) {
+            $this->abortIfUnauthorizedDistributor($this->appliedDistributor);
+        }
 
         $fileName = 'JKS_Eskalink_' . $this->appliedBulan;
         if ($this->appliedDistributor) {

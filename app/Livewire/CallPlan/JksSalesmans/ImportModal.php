@@ -38,6 +38,8 @@ class ImportModal extends Component
 
     public function startImport()
     {
+        abort_if(!auth()->user()->hasMenuAccess('call-plan.jks-salesmans', 'can_import') || !auth()->user()->hasRole(['admin', 'user', 'spm']), 403, 'Akses ditolak.');
+
         $this->validate([
             'importFile' => 'required|file|mimes:xlsx,xls,csv|max:10240', // max 10MB
             'importMode' => 'required|in:delsert,upsert'

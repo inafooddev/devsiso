@@ -40,7 +40,11 @@ class Index extends Component
             }
         }
 
-        // Auto-assign default selections if user has restricted access level
+        $this->applyDefaultFiltersForRestrictedUser();
+    }
+
+    protected function applyDefaultFiltersForRestrictedUser()
+    {
         $user = auth()->user();
         if ($user && !$user->hasRole(['admin', 'spm'])) {
             $accessLevel = $user->getAccessLevel();
@@ -114,10 +118,14 @@ class Index extends Component
             'selectedRegion', 'selectedArea', 'selectedSupervisor', 'selectedBulan',
             'appliedRegion', 'appliedArea', 'appliedSupervisor', 'appliedBulan'
         ]);
+        
+        $this->appliedBulan = date('Y-m-01');
 
         if (session()->has('jks_summary_state')) {
             session()->forget('jks_summary_state');
         }
+
+        $this->applyDefaultFiltersForRestrictedUser();
 
         $this->resetPage();
     }
@@ -136,6 +144,7 @@ class Index extends Component
     public function updatedAppliedBulan()
     {
         $this->reset(['appliedRegion', 'appliedArea', 'appliedSupervisor']);
+        $this->applyDefaultFiltersForRestrictedUser();
         $this->resetPage();
     }
 
@@ -187,82 +196,63 @@ class Index extends Component
     #[Computed]
     public function filterRegions()
     {
-        $bulan = $this->appliedBulan ?: date('Y-m-01');
-        
-        $query = DB::table('master_distributors as md')
-            ->select('md.region_code', 'md.region_name')
-            ->where('md.is_active', true)
-            ->whereNotNull('md.region_code')
-            ->whereExists(function($query) use ($bulan) {
-                $query->select(DB::raw(1))
-                      ->from('salesmans as s')
-                      ->join('jks_salesmans as js', 's.salesman_code', '=', 'js.salesman_code')
-                      ->whereColumn('s.distributor_code', 'md.distributor_code')
-                      ->where('s.salesman_code', 'not ilike', '%OFI%')
-                      ->where('js.bulan', 'like', $bulan . '%');
+        $query = DB::table('master_regions as mr')
+            ->select('mr.region_code', 'mr.region_name')
+            ->whereExists(function($q) {
+                $q->select(DB::raw(1))
+                  ->from('master_distributors as md')
+                  ->whereColumn('md.region_code', 'mr.region_code')
+                  ->where('md.is_active', true);
+                
+                $this->applyHierarchyAccess($q);
             });
             
-        $query = $this->applyHierarchyAccess($query);
-            
-        return $query->distinct()
-            ->orderBy('md.region_name')
-            ->get();
+        return $query->orderBy('mr.region_name')->get();
     }
 
     #[Computed]
     public function filterAreas()
     {
-        $bulan = $this->appliedBulan ?: date('Y-m-01');
-        
-        $query = DB::table('master_distributors as md')
-            ->select('md.area_code', 'md.area_name')
-            ->where('md.is_active', true)
-            ->whereNotNull('md.area_code')
-            ->whereExists(function($query) use ($bulan) {
-                $query->select(DB::raw(1))
-                      ->from('salesmans as s')
-                      ->join('jks_salesmans as js', 's.salesman_code', '=', 'js.salesman_code')
-                      ->whereColumn('s.distributor_code', 'md.distributor_code')
-                      ->where('s.salesman_code', 'not ilike', '%OFI%')
-                      ->where('js.bulan', 'like', $bulan . '%');
-            });
+        $query = DB::table('master_areas as ma')
+            ->select('ma.area_code', 'ma.area_name');
             
-        $query = $this->applyHierarchyAccess($query);
-            
-        if ($this->appliedRegion) $query->where('md.region_code', $this->appliedRegion);
+        if ($this->appliedRegion) {
+            $query->where('ma.region_code', $this->appliedRegion);
+        }
         
-        return $query->distinct()->orderBy('md.area_name')->get();
+        $query->whereExists(function($q) {
+            $q->select(DB::raw(1))
+                  ->from('master_distributors as md')
+                  ->whereColumn('md.area_code', 'ma.area_code')
+                  ->where('md.is_active', true);
+                  
+            $this->applyHierarchyAccess($q);
+        });
+            
+        return $query->orderBy('ma.area_name')->get();
     }
 
     #[Computed]
     public function filterSupervisors()
     {
-        $bulan = $this->appliedBulan ?: date('Y-m-01');
-        
-        $query = DB::table('master_distributors as md')
-            ->leftJoin('team_elite_code_mappings as te', 'md.supervisor_code', '=', 'te.siso_code')
-            ->leftJoin('fsalesman as f', 'f.SLSNO', '=', 'te.team_elite_code')
+        $query = DB::table('team_elite_code_mappings as te')
+            ->join('fsalesman as f', 'f.SLSNO', '=', 'te.team_elite_code')
             ->select('te.team_elite_code as supervisor_code', 'f.SLSNAME as description')
-            ->where('md.is_active', true)
-            ->whereNotNull('te.team_elite_code')
-            ->whereExists(function($query) use ($bulan) {
-                $query->select(DB::raw(1))
-                      ->from('salesmans as s')
-                      ->join('jks_salesmans as js', 's.salesman_code', '=', 'js.salesman_code')
-                      ->whereColumn('s.distributor_code', 'md.distributor_code')
-                      ->where('s.salesman_code', 'not ilike', '%OFI%')
-                      ->where('js.bulan', 'like', $bulan . '%');
+            ->whereExists(function($q) {
+                $q->select(DB::raw(1))
+                  ->from('master_distributors as md')
+                  ->whereColumn('md.supervisor_code', 'te.siso_code')
+                  ->where('md.is_active', true);
+                
+                // Dependency Filter
+                if ($this->appliedRegion) $q->where('md.region_code', $this->appliedRegion);
+                if ($this->appliedArea) $q->where('md.area_code', $this->appliedArea);
+                
+                // Hierarki/RBAC
+                $this->applyHierarchyAccess($q);
             });
-            
-        $query = $this->applyHierarchyAccess($query);
-            
-        if ($this->appliedArea) {
-            $query->where('md.area_code', $this->appliedArea);
-        } elseif ($this->appliedRegion) {
-            $query->where('md.region_code', $this->appliedRegion);
-        }
-        
-        return $query->distinct()->orderBy('description')->get();
+
+        return $query->orderBy('f.SLSNAME')->get();
     }
 
 

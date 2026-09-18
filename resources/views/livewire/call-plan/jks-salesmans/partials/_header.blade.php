@@ -64,7 +64,7 @@
 
         {{-- Actions Button --}}
         @if($appliedRegion || $appliedArea || $appliedSupervisor || $appliedDistributor)
-            @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
+            @canExport('call-plan.jks-salesmans')
                 <button type="button" wire:click="exportExcel" class="btn btn-sm btn-success text-white gap-1 shadow-sm" wire:loading.class="opacity-50 pointer-events-none" wire:target="exportExcel">
                     <span wire:loading.remove wire:target="exportExcel">
                         <x-heroicon-s-document-arrow-down class="w-4 h-4" />
@@ -72,16 +72,22 @@
                     <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
                     Export
                 </button>
-            @endif
+            @endcanExport
         @endif
         
-        @if($appliedDistributor)
-            @livewire('call-plan.jks-salesmans.create-modal', [
-                'appliedBulan' => $appliedBulan,
-                'appliedDistributor' => $appliedDistributor
-            ], key('create-modal-' . $appliedDistributor))
-        @endif
-        @livewire('call-plan.jks-salesmans.import-modal')
+        @canAdd('call-plan.jks-salesmans')
+            @if($appliedDistributor)
+                @livewire('call-plan.jks-salesmans.create-modal', [
+                    'appliedBulan' => $appliedBulan,
+                    'appliedDistributor' => $appliedDistributor
+                ], key('create-modal-' . $appliedDistributor))
+            @endif
+        @endcanAdd
+        @canImport('call-plan.jks-salesmans')
+            @if(auth()->user()->hasRole(['admin', 'user', 'spm']))
+                @livewire('call-plan.jks-salesmans.import-modal')
+            @endif
+        @endcanImport
 
         @if($appliedRegion || $appliedArea || $appliedSupervisor || $appliedDistributor)
             <div class="dropdown dropdown-end">
@@ -91,22 +97,21 @@
                     <x-heroicon-s-chevron-down class="w-3 h-3 opacity-50" />
                 </div>
                 <ul tabindex="0" class="dropdown-content z-50 menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-200 mt-1">
-                    @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
+                    @canEdit('call-plan.jks-salesmans')
                         <li>
                             <a wire:click="openSwapModal">
                                 <x-heroicon-s-arrows-right-left class="w-4 h-4 text-primary" />
                                 Tukar Jadwal
                             </a>
                         </li>
-                    @endif
-                    @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('user'))
-                        <li>
-                            <a wire:click="openCopyModal">
-                                <x-heroicon-s-document-duplicate class="w-4 h-4 text-info" />
-                                Salin Periode
-                            </a>
-                        </li>
-                        @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
+                        
+                        @if(auth()->user()->hasRole(['admin', 'user', 'spm']))
+                            <li>
+                                <a wire:click="openCopyModal">
+                                    <x-heroicon-s-document-duplicate class="w-4 h-4 text-info" />
+                                    Salin Periode
+                                </a>
+                            </li>
                             <li>
                                 <a wire:click="openCleansingModal" class="text-warning hover:bg-warning/10 hover:text-warning">
                                     <x-heroicon-s-sparkles class="w-4 h-4" />
@@ -114,22 +119,29 @@
                                 </a>
                             </li>
                         @endif
-                    @endif
-                    @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
+                    @endcanEdit
+                    
+                    @canDelete('call-plan.jks-salesmans')
                         <li>
                             <a wire:click="openBulkDeleteModal" class="text-error hover:bg-error/10 hover:text-error">
                                 <x-heroicon-s-trash class="w-4 h-4" />
                                 Hapus Massal
                             </a>
                         </li>
-                    @endif
+                    @endcanDelete
+
                     <div class="divider my-1"></div>
-                    <li>
-                        <a wire:click="openExportEskalinkModal">
-                            <x-heroicon-s-document-arrow-down class="w-4 h-4 text-success" />
-                            Export Eskalink
-                        </a>
-                    </li>
+                    
+                    @canExport('call-plan.jks-salesmans')
+                        @if(auth()->user()->hasRole(['admin', 'user', 'spm']))
+                            <li>
+                                <a wire:click="openExportEskalinkModal">
+                                    <x-heroicon-s-document-arrow-down class="w-4 h-4 text-success" />
+                                    Export Eskalink
+                                </a>
+                            </li>
+                        @endif
+                    @endcanExport
                 </ul>
             </div>
         @endif

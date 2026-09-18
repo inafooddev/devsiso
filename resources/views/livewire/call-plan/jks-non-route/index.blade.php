@@ -32,14 +32,14 @@
                 
                 {{-- Hierarchy Filters & Search --}}
                 <div class="flex flex-wrap items-center justify-start xl:justify-end gap-2 md:gap-3 w-full xl:w-auto">
-                    <select wire:model.live="appliedRegion" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0">
+                    <select wire:model.live="appliedRegion" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0 @if(!in_array($accessLevel, ['nasional', 'region'])) hidden @endif">
                         <option value="">Semua Region</option>
                         @foreach($regionOptions as $region)
                             <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
                         @endforeach
                     </select>
 
-                    <select wire:model.live="appliedArea" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0" @if(empty($appliedRegion)) disabled @endif>
+                    <select wire:model.live="appliedArea" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0 @if(in_array($accessLevel, ['supervisor', 'area'])) hidden @endif" @if(empty($appliedRegion)) disabled @endif>
                         <option value="">Semua Area</option>
                         @foreach($areaOptions as $area)
                             <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
@@ -54,7 +54,6 @@
                     </select>
 
                     <select wire:model.live="appliedDistributor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0" @if(empty($appliedSupervisor)) disabled @endif>
-                        <option value="">Semua Distributor</option>
                         @foreach($distributorOptions as $dist)
                             <option value="{{ $dist->distributor_code }}">{{ $dist->distributor_name }}</option>
                         @endforeach
@@ -64,10 +63,11 @@
                     @if(count($selected) > 0)
                         <div class="flex items-center gap-2 border-l border-base-300 pl-2">
                             <span class="badge badge-primary">{{ count($selected) }} terpilih</span>
-                            @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
-                        <button class="btn btn-sm btn-primary text-white" wire:click="openBulkAddJksModal">
-                                <x-heroicon-s-plus-circle class="w-4 h-4" /> Tambah Massal ke JKS
-                            </button>
+                            @canAdd('call-plan.jks-salesmans')
+                                <button class="btn btn-sm btn-primary text-white" wire:click="openBulkAddJksModal">
+                                    <x-heroicon-s-plus-circle class="w-4 h-4" /> Tambah Massal ke JKS
+                                </button>
+                            @endcanAdd
                         </div>
                     @endif
 
@@ -79,14 +79,16 @@
                         <button class="btn btn-sm btn-ghost text-base-content/70" wire:click="resetFilters" title="Reset Filters & Cache">
                             <x-heroicon-o-arrow-path class="w-4 h-4" />
                         </button>
-                        <button class="btn btn-sm btn-success text-white" wire:click="exportExcel">
-                            <span wire:loading.remove wire:target="exportExcel" class="flex items-center gap-1">
-                                <x-heroicon-s-arrow-down-tray class="w-4 h-4" /> Export Excel
-                            </span>
-                            <span wire:loading wire:target="exportExcel" class="flex items-center gap-1">
-                                <span class="loading loading-spinner loading-xs"></span> Loading...
-                            </span>
-                        </button>
+                        @canExport('call-plan.jks-salesmans')
+                            <button class="btn btn-sm btn-success text-white" wire:click="exportExcel">
+                                <span wire:loading.remove wire:target="exportExcel" class="flex items-center gap-1">
+                                    <x-heroicon-s-arrow-down-tray class="w-4 h-4" /> Export Excel
+                                </span>
+                                <span wire:loading wire:target="exportExcel" class="flex items-center gap-1">
+                                    <span class="loading loading-spinner loading-xs"></span> Loading...
+                                </span>
+                            </button>
+                        @endcanExport
                     </div>
                 </div>
             </div>
@@ -147,24 +149,26 @@
                                         @if($row->pending_approval_id)
                                             <span class="badge badge-warning badge-sm text-[10px]" title="Sedang Diajukan ke JKS">Pending</span>
                                         @else
-                                            @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
-                                                    <button 
-                                                wire:click="openAddJksModal('{{ $row->id }}')"
-                                                class="btn btn-xs btn-primary btn-square"
-                                                title="Tambah ke JKS"
-                                            >
-                                                <x-heroicon-o-calendar-days class="w-4 h-4" />
-                                            </button>
-                                                    @endif
+                                            @canAdd('call-plan.jks-salesmans')
+                                                <button 
+                                                    wire:click="openAddJksModal('{{ $row->id }}')"
+                                                    class="btn btn-xs btn-primary btn-square"
+                                                    title="Tambah ke JKS"
+                                                >
+                                                    <x-heroicon-o-calendar-days class="w-4 h-4" />
+                                                </button>
+                                            @endcanAdd
                                         @endif
                                         
-                                        <button 
-                                            wire:click="openRemarkModal('{{ $row->distributor_code }}', '{{ $row->customer_code }}', '{{ addslashes($row->customer_name) }}', '{{ addslashes($row->remark) }}')"
-                                            class="btn btn-xs btn-ghost btn-square text-base-content/50 hover:text-primary transition-colors"
-                                            title="{{ $row->remark ? 'Edit Remark' : 'Tambah Remark' }}"
-                                        >
-                                            <x-heroicon-o-chat-bubble-bottom-center-text class="w-4 h-4" />
-                                        </button>
+                                        @canEdit('call-plan.jks-salesmans')
+                                            <button 
+                                                wire:click="openRemarkModal('{{ $row->distributor_code }}', '{{ $row->customer_code }}', '{{ addslashes($row->customer_name) }}', '{{ addslashes($row->remark) }}')"
+                                                class="btn btn-xs btn-ghost btn-square text-base-content/50 hover:text-primary transition-colors"
+                                                title="{{ $row->remark ? 'Edit Remark' : 'Tambah Remark' }}"
+                                            >
+                                                <x-heroicon-o-chat-bubble-bottom-center-text class="w-4 h-4" />
+                                            </button>
+                                        @endcanEdit
                                     </div>
                                 </td>
                             </tr>

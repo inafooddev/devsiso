@@ -23,10 +23,27 @@ class Index extends Component
     // Bulk action states
     public $selected = [];
     public $selectAll = false;
+    
+    // Permissions
+    public $canExport = false;
+    public $canAdd = false;
+    public $canEdit = false;
+    
+    // Access Level for UI Logic
+    public $accessLevel = 'nasional';
 
     
     public function mount()
     {
+        $this->canExport = auth()->check() && auth()->user()->hasMenuAccess('call-plan.jks-salesmans', 'can_export');
+        $this->canAdd = auth()->check() && auth()->user()->hasMenuAccess('call-plan.jks-salesmans', 'can_add');
+        $this->canEdit = auth()->check() && auth()->user()->hasMenuAccess('call-plan.jks-salesmans', 'can_edit');
+        
+        $user = auth()->user();
+        if ($user) {
+            $this->accessLevel = $user->getAccessLevel();
+        }
+
         if (session()->has('jks_non_route_state')) {
             $state = session()->get('jks_non_route_state');
             $this->appliedRegion = $state['appliedRegion'] ?? '';
@@ -47,6 +64,62 @@ class Index extends Component
             
             if (isset($state['page'])) {
                 $this->setPage($state['page']);
+            }
+        }
+        
+        $this->applyDefaultFiltersForRestrictedUser();
+    }
+    
+    protected function applyDefaultFiltersForRestrictedUser()
+    {
+        $user = auth()->user();
+        if ($user && !$user->hasRole(['admin', 'spm'])) {
+            $accessLevel = $user->getAccessLevel();
+            
+            if (in_array($accessLevel, ['region', 'area', 'supervisor'])) {
+                if (!empty($user->region_code) && count((array)$user->region_code) == 1 && empty($this->selectedRegion)) {
+                    $this->selectedRegion = ((array)$user->region_code)[0];
+                    $this->appliedRegion = $this->selectedRegion;
+                }
+            }
+            if (in_array($accessLevel, ['area', 'supervisor'])) {
+                if (!empty($user->area_code) && count((array)$user->area_code) == 1 && empty($this->selectedArea)) {
+                    $this->selectedArea = ((array)$user->area_code)[0];
+                    $this->appliedArea = $this->selectedArea;
+                    
+                    if ($accessLevel === 'area' && empty($this->selectedRegion)) {
+                        $areaData = \Illuminate\Support\Facades\DB::table('master_distributors')
+                            ->where('area_code', $this->selectedArea)
+                            ->select('region_code')
+                            ->first();
+                        if ($areaData) {
+                            $this->selectedRegion = $areaData->region_code;
+                            $this->appliedRegion = $this->selectedRegion;
+                        }
+                    }
+                }
+            }
+            if ($accessLevel === 'supervisor') {
+                if (!empty($user->supervisor_code) && empty($this->selectedSupervisor)) {
+                    $this->selectedSupervisor = $user->supervisor_code;
+                    $this->appliedSupervisor = $this->selectedSupervisor;
+                    
+                    $spvData = \Illuminate\Support\Facades\DB::table('jks_se_master_toko_ool')
+                        ->where('supervisor_code', $user->supervisor_code)
+                        ->select('region_code', 'area_code')
+                        ->first();
+                        
+                    if ($spvData) {
+                        if (empty($this->selectedRegion)) {
+                            $this->selectedRegion = $spvData->region_code;
+                            $this->appliedRegion = $this->selectedRegion;
+                        }
+                        if (empty($this->selectedArea)) {
+                            $this->selectedArea = $spvData->area_code;
+                            $this->appliedArea = $this->selectedArea;
+                        }
+                    }
+                }
             }
         }
     }
@@ -84,6 +157,7 @@ class Index extends Component
         }
 
         $this->resetPage();
+        $this->applyDefaultFiltersForRestrictedUser();
     }
 
     public function updatingSearch()
@@ -95,12 +169,12 @@ class Index extends Component
     #[Computed]
     public function filterRegions()
     {
-        return \Illuminate\Support\Facades\DB::table('jks_se_master_toko_ool')
+        $query = \Illuminate\Support\Facades\DB::table('jks_se_master_toko_ool')
             ->select('region_code', 'region_name')
             ->whereNotNull('region_code')
-            ->distinct()
-            ->orderBy('region_name')
-            ->get();
+            ->distinct();
+
+        return $this->applyHierarchyAccess($query)->orderBy('region_name')->get();
     }
 
     #[Computed]
@@ -113,6 +187,8 @@ class Index extends Component
         if ($this->selectedRegion) {
             $query->where('region_code', $this->selectedRegion);
         }
+        
+        $query = $this->applyHierarchyAccess($query);
         
         return $query->distinct()->orderBy('area_name')->get();
     }
@@ -130,8 +206,11 @@ class Index extends Component
             $query->where('region_code', $this->selectedRegion);
         }
         
+        $query = $this->applyHierarchyAccess($query);
+        
         return $query->distinct()->orderBy('description')->get();
     }
+    
 
     #[Computed]
     public function filterDistributors()
@@ -144,7 +223,33 @@ class Index extends Component
         if ($this->selectedArea) $query->where('area_code', $this->selectedArea);
         if ($this->selectedSupervisor) $query->where('supervisor_code', $this->selectedSupervisor);
         
+        $query = $this->applyHierarchyAccess($query);
+        
         return $query->distinct()->orderBy('distributor_name')->get();
+    }
+
+    protected function applyHierarchyAccess($query, $prefix = '')
+    {
+        $user = auth()->user();
+        if (!$user || $user->hasRole(['admin', 'spm'])) return $query;
+        
+        $accessLevel = $user->getAccessLevel();
+        
+        if ($accessLevel === 'supervisor' && !empty($user->supervisor_code)) {
+            // jks_se_master_toko_ool stores team_elite_code in supervisor_code, 
+            // and $user->supervisor_code is also team_elite_code.
+            return $query->whereIn($prefix . 'supervisor_code', (array) $user->supervisor_code);
+        }
+        
+        if ($accessLevel === 'area' && !empty($user->area_code)) {
+            return $query->whereIn($prefix . 'area_code', (array) $user->area_code);
+        }
+        
+        if ($accessLevel === 'region' && !empty($user->region_code)) {
+            return $query->whereIn($prefix . 'region_code', (array) $user->region_code);
+        }
+        
+        return $query;
     }
 
     public function updatedAppliedRegion()
@@ -230,7 +335,7 @@ class Index extends Component
 
     public function saveRemark()
     {
-        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+        abort_if(!$this->canEdit, 403, 'Akses ditolak.');
 
         \Illuminate\Support\Facades\DB::table('jks_se_toko_ool_remarks')->updateOrInsert(
             [
@@ -259,6 +364,8 @@ class Index extends Component
 
     public function openAddJksModal($outletId)
     {
+        abort_if(!$this->canAdd, 403, 'Akses ditolak.');
+
         $outlet = \Illuminate\Support\Facades\DB::table('jks_se_master_toko_ool')->where('id', $outletId)->first();
         if (!$outlet) return;
 
@@ -276,6 +383,8 @@ class Index extends Component
 
     public function openBulkAddJksModal()
     {
+        abort_if(!$this->canAdd, 403, 'Akses ditolak.');
+
         if (empty($this->selected)) {
             $this->dispatch('show-toast', type: 'error', message: 'Pilih minimal satu outlet.');
             return;
@@ -350,7 +459,7 @@ class Index extends Component
 
     public function submitAddJks()
     {
-        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+        abort_if(!$this->canAdd, 403, 'Akses ditolak.');
 
         $this->validate([
             'formSalesman' => 'required',
@@ -406,7 +515,7 @@ class Index extends Component
 
     public function exportExcel()
     {
-        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+        abort_if(!$this->canExport, 403, 'Akses ditolak.');
 
         if (empty($this->appliedArea) && empty($this->appliedSupervisor) && empty($this->appliedDistributor)) {
             $this->dispatch('show-toast', type: 'warning', message: 'Silakan pilih filter minimal setingkat Area untuk melakukan export.');
@@ -428,6 +537,13 @@ class Index extends Component
 
     public function render(JksNonRouteService $service)
     {
+        $distributorOptions = $this->filterDistributors;
+        
+        if (empty($this->appliedDistributor) && $distributorOptions->count() > 0) {
+            $this->appliedDistributor = $distributorOptions->first()->distributor_code;
+            $this->selectedDistributor = $this->appliedDistributor;
+        }
+
         // Get applied filters from the trait
         $filters = $this->getAppliedFilters();
         
@@ -443,7 +559,7 @@ class Index extends Component
             'regionOptions' => $this->filterRegions,
             'areaOptions' => $this->filterAreas,
             'supervisorOptions' => $this->filterSupervisors,
-            'distributorOptions' => $this->filterDistributors,
+            'distributorOptions' => $distributorOptions,
         ]);
     }
 }

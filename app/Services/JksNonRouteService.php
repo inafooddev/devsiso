@@ -36,7 +36,7 @@ class JksNonRouteService
      */
     protected function getBaseQuery($search = '', $filters = [])
     {
-        return DB::table('jks_se_master_toko_ool as mto')
+        $query = DB::table('jks_se_master_toko_ool as mto')
             ->leftJoin('jks_salesmans as js', function($join) {
                 $join->on('mto.distributor_code', '=', 'js.distributor_code')
                      ->on('mto.customer_code', '=', 'js.customer_code');
@@ -89,5 +89,20 @@ class JksNonRouteService
                           ->orWhere('mto.alamat', 'ilike', '%' . $search . '%');
                 }
             });
+            
+        $user = auth()->user();
+        if ($user && !$user->hasRole(['admin', 'spm'])) {
+            $accessLevel = $user->getAccessLevel();
+            if ($accessLevel === 'supervisor' && !empty($user->supervisor_code)) {
+                // mto.supervisor_code is team_elite_code, and user->supervisor_code is team_elite_code
+                $query->whereIn('mto.supervisor_code', (array) $user->supervisor_code);
+            } elseif ($accessLevel === 'area' && !empty($user->area_code)) {
+                $query->whereIn('mto.area_code', (array) $user->area_code);
+            } elseif ($accessLevel === 'region' && !empty($user->region_code)) {
+                $query->whereIn('mto.region_code', (array) $user->region_code);
+            }
+        }
+        
+        return $query;
     }
 }

@@ -48,8 +48,20 @@
             </tr>
         </thead>
         <tbody class="text-xs relative transition-opacity duration-300" wire:loading.class="opacity-30 pointer-events-none">
-            @forelse ($jksData as $index => $row)
-                <tr class="hover:bg-primary/5 transition-colors group {{ empty($row->latitude) || empty($row->longitude) ? '!bg-error/20' : '' }}">
+            @if(empty($appliedDistributor))
+                <tr>
+                    <td colspan="19" class="text-center py-12">
+                        <div class="flex flex-col items-center justify-center text-base-content/50">
+                            <x-heroicon-o-funnel class="w-12 h-12 mb-3 opacity-30 text-primary" />
+                            <p class="text-base font-semibold">Silakan Pilih Distributor Terlebih Dahulu</p>
+                            <p class="text-xs mt-1">Sistem mewajibkan Anda untuk memfilter data berdasarkan 1 (satu) distributor spesifik sebelum jadwal ditampilkan.</p>
+                            <button type="button" class="btn btn-sm btn-primary mt-4" onclick="document.getElementById('filter_modal').showModal()">Buka Filter</button>
+                        </div>
+                    </td>
+                </tr>
+            @else
+                @forelse ($jksData as $index => $row)
+                    <tr class="hover:bg-primary/5 transition-colors group {{ empty($row->latitude) || empty($row->longitude) ? '!bg-error/20' : '' }}">
                     <th class="text-center">{{ $jksData->firstItem() + $index }}</th>
                     
                     <td>
@@ -96,30 +108,30 @@
                     <td class="text-center px-1 bg-base-200/50">@if($row->w4 === 'Y') <x-heroicon-s-check-circle class="w-4 h-4 text-primary mx-auto"/> @endif</td>
                     <td class="text-center">
                         <div class="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
+                            @canEdit('call-plan.jks-salesmans')
                             <button wire:click="editJadwal({{ $row->id }})" class="btn btn-xs btn-circle btn-ghost text-primary hover:bg-primary/10" title="Edit Jadwal">
                                 <x-heroicon-o-pencil-square class="w-4 h-4" />
                             </button>
-                            @endif
-                            @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
+                            @endcanEdit
+                            @canDelete('call-plan.jks-salesmans')
                             <button wire:click="confirmDelete({{ $row->id }})" class="btn btn-xs btn-circle btn-ghost text-error hover:bg-error/10" title="Hapus Jadwal">
                                 <x-heroicon-o-trash class="w-4 h-4" />
                             </button>
-                            @endif
+                            @endcanDelete
                         </div>
                     </td>
                 </tr>
-            @empty
-                <tr>
-                    <td colspan="17" class="text-center py-16">
-                        <div class="flex flex-col items-center justify-center text-base-content/40">
-                            <x-heroicon-o-document-magnifying-glass class="w-16 h-16 mb-3 opacity-50" />
-                            <h3 class="text-lg font-bold text-base-content/70">Tidak ada jadwal ditemukan</h3>
-                            <p class="text-sm mt-1">Coba sesuaikan filter pencarian, hari, atau minggu Anda.</p>
-                        </div>
-                    </td>
-                </tr>
-            @endforelse
+                @empty
+                    <tr>
+                        <td colspan="19" class="text-center py-8">
+                            <div class="text-base-content/50">
+                                <x-heroicon-o-inbox class="w-10 h-10 mx-auto mb-2 opacity-30"/>
+                                <p class="font-medium">Tidak ada data jadwal ditemukan pada distributor ini</p>
+                            </div>
+                        </td>
+                    </tr>
+                @endforelse
+            @endif
         </tbody>
     </table>
 </div>
