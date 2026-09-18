@@ -64,7 +64,8 @@
                     @if(count($selected) > 0)
                         <div class="flex items-center gap-2 border-l border-base-300 pl-2">
                             <span class="badge badge-primary">{{ count($selected) }} terpilih</span>
-                            <button class="btn btn-sm btn-primary text-white" wire:click="openBulkAddJksModal">
+                            @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
+                        <button class="btn btn-sm btn-primary text-white" wire:click="openBulkAddJksModal">
                                 <x-heroicon-s-plus-circle class="w-4 h-4" /> Tambah Massal ke JKS
                             </button>
                         </div>
@@ -146,13 +147,15 @@
                                         @if($row->pending_approval_id)
                                             <span class="badge badge-warning badge-sm text-[10px]" title="Sedang Diajukan ke JKS">Pending</span>
                                         @else
-                                            <button 
+                                            @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
+                                                    <button 
                                                 wire:click="openAddJksModal('{{ $row->id }}')"
                                                 class="btn btn-xs btn-primary btn-square"
                                                 title="Tambah ke JKS"
                                             >
                                                 <x-heroicon-o-calendar-days class="w-4 h-4" />
                                             </button>
+                                                    @endif
                                         @endif
                                         
                                         <button 

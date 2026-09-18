@@ -25,6 +25,7 @@ class Index extends Component
     public $prcApprovalId = null;
     public $missingPrcTokos = []; // Array of missing tokos
 
+    
     public function mount()
     {
         // if (!auth()->user()->hasRole('user')) {
@@ -443,6 +444,8 @@ class Index extends Component
 
     public function approve($id)
     {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('user')) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Anda tidak memiliki akses untuk menyetujui pengajuan.']);
             return;
@@ -527,6 +530,8 @@ class Index extends Component
 
     public function submitPrcAndApprove()
     {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('user')) return;
 
         $this->validate([
@@ -601,6 +606,8 @@ class Index extends Component
 
     public function bulkApprove()
     {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('user')) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Anda tidak memiliki akses untuk menyetujui pengajuan.']);
             return;
@@ -718,6 +725,8 @@ class Index extends Component
 
     public function executeReject()
     {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('user')) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Anda tidak memiliki akses untuk menolak pengajuan.']);
             return;

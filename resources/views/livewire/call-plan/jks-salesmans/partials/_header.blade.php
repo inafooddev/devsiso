@@ -64,13 +64,15 @@
 
         {{-- Actions Button --}}
         @if($appliedRegion || $appliedArea || $appliedSupervisor || $appliedDistributor)
-            <button type="button" wire:click="exportExcel" class="btn btn-sm btn-success text-white gap-1 shadow-sm" wire:loading.class="opacity-50 pointer-events-none" wire:target="exportExcel">
-                <span wire:loading.remove wire:target="exportExcel">
-                    <x-heroicon-s-document-arrow-down class="w-4 h-4" />
-                </span>
-                <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
-                Export
-            </button>
+            @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
+                <button type="button" wire:click="exportExcel" class="btn btn-sm btn-success text-white gap-1 shadow-sm" wire:loading.class="opacity-50 pointer-events-none" wire:target="exportExcel">
+                    <span wire:loading.remove wire:target="exportExcel">
+                        <x-heroicon-s-document-arrow-down class="w-4 h-4" />
+                    </span>
+                    <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
+                    Export
+                </button>
+            @endif
         @endif
         
         @if($appliedDistributor)
@@ -89,12 +91,14 @@
                     <x-heroicon-s-chevron-down class="w-3 h-3 opacity-50" />
                 </div>
                 <ul tabindex="0" class="dropdown-content z-50 menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-200 mt-1">
-                    <li>
-                        <a wire:click="openSwapModal">
-                            <x-heroicon-s-arrows-right-left class="w-4 h-4 text-primary" />
-                            Tukar Jadwal
-                        </a>
-                    </li>
+                    @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
+                        <li>
+                            <a wire:click="openSwapModal">
+                                <x-heroicon-s-arrows-right-left class="w-4 h-4 text-primary" />
+                                Tukar Jadwal
+                            </a>
+                        </li>
+                    @endif
                     @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('user'))
                         <li>
                             <a wire:click="openCopyModal">
@@ -102,19 +106,23 @@
                                 Salin Periode
                             </a>
                         </li>
+                        @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
+                            <li>
+                                <a wire:click="openCleansingModal" class="text-warning hover:bg-warning/10 hover:text-warning">
+                                    <x-heroicon-s-sparkles class="w-4 h-4" />
+                                    Cleansing Duplicate
+                                </a>
+                            </li>
+                        @endif
+                    @endif
+                    @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
                         <li>
-                            <a wire:click="openCleansingModal" class="text-warning hover:bg-warning/10 hover:text-warning">
-                                <x-heroicon-s-sparkles class="w-4 h-4" />
-                                Cleansing Duplicate
+                            <a wire:click="openBulkDeleteModal" class="text-error hover:bg-error/10 hover:text-error">
+                                <x-heroicon-s-trash class="w-4 h-4" />
+                                Hapus Massal
                             </a>
                         </li>
                     @endif
-                    <li>
-                        <a wire:click="openBulkDeleteModal" class="text-error hover:bg-error/10 hover:text-error">
-                            <x-heroicon-s-trash class="w-4 h-4" />
-                            Hapus Massal
-                        </a>
-                    </li>
                     <div class="divider my-1"></div>
                     <li>
                         <a wire:click="openExportEskalinkModal">

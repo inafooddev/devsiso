@@ -18,6 +18,7 @@ class Index extends Component
     #[Title('Summary JKS')]
     #[Layout('layouts.app')]
 
+    
     public function mount()
     {
         if (session()->has('jks_summary_state')) {
@@ -36,6 +37,56 @@ class Index extends Component
 
             if (isset($state['page'])) {
                 $this->setPage($state['page']);
+            }
+        }
+
+        // Auto-assign default selections if user has restricted access level
+        $user = auth()->user();
+        if ($user && !$user->hasRole(['admin', 'spm'])) {
+            $accessLevel = $user->getAccessLevel();
+            
+            if (in_array($accessLevel, ['region', 'area', 'supervisor'])) {
+                // Determine region from user profile
+                if (!empty($user->region_code) && count((array)$user->region_code) == 1 && empty($this->appliedRegion)) {
+                    $this->appliedRegion = ((array)$user->region_code)[0];
+                }
+            }
+            if (in_array($accessLevel, ['area', 'supervisor'])) {
+                // Determine area from user profile
+                if (!empty($user->area_code) && count((array)$user->area_code) == 1 && empty($this->appliedArea)) {
+                    $this->appliedArea = ((array)$user->area_code)[0];
+                    
+                    if ($accessLevel === 'area' && empty($this->appliedRegion)) {
+                        $areaData = \Illuminate\Support\Facades\DB::table('master_distributors')
+                            ->where('area_code', $this->appliedArea)
+                            ->select('region_code')
+                            ->first();
+                        if ($areaData) {
+                            $this->appliedRegion = $areaData->region_code;
+                        }
+                    }
+                }
+            }
+            if ($accessLevel === 'supervisor') {
+                if (!empty($user->supervisor_code) && empty($this->appliedSupervisor)) {
+                    $this->appliedSupervisor = $user->supervisor_code;
+                    
+                    // Fetch supervisor's area and region from master_distributors
+                    $spvData = \Illuminate\Support\Facades\DB::table('master_distributors as md')
+                        ->join('team_elite_code_mappings as te', 'md.supervisor_code', '=', 'te.siso_code')
+                        ->where('te.team_elite_code', $user->supervisor_code)
+                        ->select('md.region_code', 'md.area_code')
+                        ->first();
+                        
+                    if ($spvData) {
+                        if (empty($this->appliedRegion)) {
+                            $this->appliedRegion = $spvData->region_code;
+                        }
+                        if (empty($this->appliedArea)) {
+                            $this->appliedArea = $spvData->area_code;
+                        }
+                    }
+                }
             }
         }
     }
@@ -105,12 +156,40 @@ class Index extends Component
         $this->resetPage();
     }
 
+    protected function applyHierarchyAccess($query)
+    {
+        $user = auth()->user();
+        if (!$user) return $query;
+        
+        if ($user->hasRole(['admin', 'spm'])) {
+            return $query;
+        }
+
+        if (!empty($user->supervisor_code)) {
+            // Map the team_elite_code (from users table) to siso_code (used in master_distributors)
+            $sisoCodes = \Illuminate\Support\Facades\DB::table('team_elite_code_mappings')
+                           ->where('team_elite_code', $user->supervisor_code)
+                           ->pluck('siso_code');
+            return $query->whereIn('md.supervisor_code', $sisoCodes);
+        }
+
+        if (!empty($user->area_code) && count((array) $user->area_code) > 0) {
+            return $query->whereIn('md.area_code', (array) $user->area_code);
+        }
+
+        if (!empty($user->region_code) && count((array) $user->region_code) > 0) {
+            return $query->whereIn('md.region_code', (array) $user->region_code);
+        }
+
+        return $query;
+    }
+
     #[Computed]
     public function filterRegions()
     {
         $bulan = $this->appliedBulan ?: date('Y-m-01');
         
-        return DB::table('master_distributors as md')
+        $query = DB::table('master_distributors as md')
             ->select('md.region_code', 'md.region_name')
             ->where('md.is_active', true)
             ->whereNotNull('md.region_code')
@@ -121,8 +200,11 @@ class Index extends Component
                       ->whereColumn('s.distributor_code', 'md.distributor_code')
                       ->where('s.salesman_code', 'not ilike', '%OFI%')
                       ->where('js.bulan', 'like', $bulan . '%');
-            })
-            ->distinct()
+            });
+            
+        $query = $this->applyHierarchyAccess($query);
+            
+        return $query->distinct()
             ->orderBy('md.region_name')
             ->get();
     }
@@ -144,6 +226,8 @@ class Index extends Component
                       ->where('s.salesman_code', 'not ilike', '%OFI%')
                       ->where('js.bulan', 'like', $bulan . '%');
             });
+            
+        $query = $this->applyHierarchyAccess($query);
             
         if ($this->appliedRegion) $query->where('md.region_code', $this->appliedRegion);
         
@@ -169,6 +253,8 @@ class Index extends Component
                       ->where('s.salesman_code', 'not ilike', '%OFI%')
                       ->where('js.bulan', 'like', $bulan . '%');
             });
+            
+        $query = $this->applyHierarchyAccess($query);
             
         if ($this->appliedArea) {
             $query->where('md.area_code', $this->appliedArea);
@@ -256,6 +342,8 @@ class Index extends Component
             ->orderBy('f.SLSNAME')
             ->orderBy('md.distributor_name')
             ->orderBy('s.salesman_name');
+
+        $query = $this->applyHierarchyAccess($query);
 
         // Apply Filters
         if ($this->appliedRegion) $query->where('md.region_code', $this->appliedRegion);

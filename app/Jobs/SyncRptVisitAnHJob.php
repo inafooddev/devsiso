@@ -70,7 +70,7 @@ class SyncRptVisitAnHJob implements ShouldQueue
             
             $sampleDate = $dataset[0]['TANGGAL'] ?? now()->toDateString();
             $carbonDate = Carbon::parse($sampleDate);
-            $startOfMonth = $carbonDate->copy()->startOfMonth()->toDateString() . ' 00:00:00';
+            $startOfMonth = $carbonDate->copy()->startOfMonth()->toDateString();
             $endOfMonth = $carbonDate->copy()->endOfMonth()->toDateString() . ' 23:59:59';
             
             DB::table('rpt_visit_an_h')

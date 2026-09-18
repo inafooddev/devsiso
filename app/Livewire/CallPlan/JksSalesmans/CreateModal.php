@@ -82,6 +82,8 @@ class CreateModal extends Component
 
     public function submit()
     {
+        if (!auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         $this->errorMessage = '';
         $this->successMessage = '';
 

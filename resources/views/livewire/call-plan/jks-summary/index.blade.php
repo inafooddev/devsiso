@@ -32,6 +32,7 @@
                 
                 {{-- Hierarchy Filters --}}
                 <div class="flex flex-wrap items-center justify-start xl:justify-end gap-2 md:gap-3 w-full xl:w-auto">
+                    @php $accessLevel = auth()->user() ? auth()->user()->getAccessLevel() : 'nasional'; @endphp
                     
                     <select wire:model.live="appliedBulan" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0">
                         <option value="">Bulan Ini</option>
@@ -44,22 +45,22 @@
                         @endfor
                     </select>
 
-                    <select wire:model.live="appliedRegion" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0">
-                        <option value="">Semua Region</option>
+                    <select wire:model.live="appliedRegion" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0" @if($accessLevel != 'nasional') disabled @endif>
+                        @if(count($regionOptions) != 1) <option value="">Semua Region</option> @endif
                         @foreach($regionOptions as $region)
                             <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
                         @endforeach
                     </select>
 
-                    <select wire:model.live="appliedArea" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0" @if(empty($appliedRegion)) disabled @endif>
-                        <option value="">Semua Area</option>
+                    <select wire:model.live="appliedArea" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0" @if(empty($appliedRegion) || $accessLevel == 'supervisor') disabled @endif>
+                        @if(count($areaOptions) != 1) <option value="">Semua Area</option> @endif
                         @foreach($areaOptions as $area)
                             <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
                         @endforeach
                     </select>
 
-                    <select wire:model.live="appliedSupervisor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0" @if(empty($appliedArea)) disabled @endif>
-                        <option value="">Semua Supervisor</option>
+                    <select wire:model.live="appliedSupervisor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0" @if(empty($appliedArea) || $accessLevel == 'supervisor') disabled @endif>
+                        @if(count($supervisorOptions) != 1) <option value="">Semua Supervisor</option> @endif
                         @foreach($supervisorOptions as $spv)
                             <option value="{{ $spv->supervisor_code }}">{{ $spv->description ?? $spv->supervisor_code }}</option>
                         @endforeach

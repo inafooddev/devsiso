@@ -27,39 +27,8 @@ class Index extends Component
     public $selectedHari = 'h1';
     public $selectedMinggu = 'ganjil';
 
-    // RBAC
-    public $menuRoute = 'call-plan.jks-salesmans';
-    public $canAdd = false;
-    public $canEdit = false;
-    public $canDelete = false;
-    public $canImport = false;
-    public $canExport = false;
-
-    protected function checkPermission($action)
-    {
-        $user = auth()->user();
-        if ($user && $user->hasRole('admin')) {
-            return;
-        }
-        if (!$user || !$user->hasMenuAccess($this->menuRoute, $action)) {
-            abort(403, "Anda tidak memiliki akses untuk melakukan aksi ini ({$action}).");
-        }
-    }
-
     public function mount()
     {
-        $user = auth()->user();
-        if ($user) {
-            $isAdmin = $user->hasRole('admin');
-            $this->canAdd = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_add');
-            $this->canEdit = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_edit');
-            $this->canDelete = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_delete');
-            $this->canImport = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_import');
-            $this->canExport = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_export');
-        }
-
-        $this->checkPermission('can_view');
-
         if (session()->has('jks_salesmans_state')) {
             $state = session()->get('jks_salesmans_state');
             $this->appliedRegion = $state['appliedRegion'] ?? '';
@@ -391,6 +360,8 @@ class Index extends Component
 
     public function startCopyPeriod()
     {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         if (empty($this->copySourceMonth) || empty($this->copyTargetMonth)) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Periode Asal dan Periode Tujuan tidak boleh kosong.']);
             return;
@@ -558,6 +529,8 @@ class Index extends Component
 
     public function executeSwapDay()
     {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         if (empty($this->swapSalesmanCode) || empty($this->swapHariAsal) || empty($this->swapHariTujuan) || $this->swapHariAsal === $this->swapHariTujuan) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Input tidak valid untuk pertukaran jadwal.']);
             return;
@@ -719,6 +692,8 @@ class Index extends Component
 
     public function executeSwapMinggu()
     {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         if (empty($this->swapSalesmanCode) || empty($this->swapMingguAsal) || empty($this->swapMingguTujuan)) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Lengkapi form sebelum mengeksekusi!']);
             return;
@@ -828,6 +803,8 @@ class Index extends Component
 
     public function executeSwapSalesman()
     {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         if (empty($this->swapSalesmanAsal) || empty($this->swapSalesmanTujuan)) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Lengkapi form sebelum mengeksekusi!']);
             return;
@@ -994,7 +971,8 @@ class Index extends Component
 
     public function executeBulkDelete()
     {
-        $this->checkPermission('can_delete');
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         if (empty($this->bdSelectedIds)) {
             $this->dispatch('toast', ['type' => 'warning', 'message' => 'Pilih minimal satu toko untuk dihapus!']);
             return;
@@ -1236,6 +1214,8 @@ class Index extends Component
 
     public function executeCleansing()
     {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         if (!auth()->user()->hasRole(['admin', 'user'])) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Anda tidak memiliki akses untuk mengeksekusi fitur ini!']);
             return;
@@ -1306,6 +1286,8 @@ class Index extends Component
     }
     public function exportExcel()
     {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         $filters = $this->getAppliedFilters();
         $filters['salesman'] = $this->headerSalesman;
         
@@ -1363,6 +1345,8 @@ class Index extends Component
 
     public function saveJadwal()
     {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         if (!$this->editId) return;
 
         if (empty(trim($this->editSalesmanCode))) {
@@ -1457,6 +1441,8 @@ class Index extends Component
 
     public function executeDelete()
     {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         if (!$this->deleteId) return;
 
         if (strlen(trim($this->deleteReason)) < 5) {

@@ -97,7 +97,7 @@
                 
                 {{-- Bulk Actions (Hanya muncul jika ada yang dipilih dan user memiliki role yang diizinkan) --}}
                 @if($filterStatus === 'PENDING' && count($selected) > 0)
-                    @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('user'))
+                    @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
                         <div class="flex items-center gap-2 mr-2">
                             <span class="badge badge-primary">{{ count($selected) }} terpilih</span>
                             <button class="btn btn-sm btn-success text-white" wire:click="bulkApprove" wire:confirm="Setujui {{ count($selected) }} pengajuan?">
@@ -110,7 +110,7 @@
                     @else
                         <div class="flex items-center gap-2 mr-2">
                             <span class="badge badge-primary">{{ count($selected) }} terpilih</span>
-                            <span class="text-xs text-base-content/50 italic">Hanya Admin/User yang bisa proses</span>
+                            <span class="text-xs text-base-content/50 italic">Tidak ada akses persetujuan</span>
                         </div>
                     @endif
                 @endif
@@ -251,17 +251,21 @@
                                 @if($filterStatus === 'PENDING')
                                     @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('user'))
                                         <div class="flex items-center justify-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                                            @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
                                             <button class="btn btn-sm btn-square btn-ghost text-success hover:bg-success/20" 
                                                     title="Setujui"
                                                     wire:click="approve({{ $approval->id }})" 
                                                     wire:confirm="Apakah Anda yakin ingin menyetujui pengajuan ini?">
                                                 <x-heroicon-s-check class="w-5 h-5" />
                                             </button>
+                                            @endif
+                                            @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
                                             <button class="btn btn-sm btn-square btn-ghost text-error hover:bg-error/20" 
                                                     title="Tolak"
                                                     wire:click="confirmReject({{ $approval->id }})">
                                                 <x-heroicon-s-x-mark class="w-5 h-5" />
                                             </button>
+                                            @endif
                                         </div>
                                     @else
                                         <span class="badge badge-sm badge-warning">Menunggu</span>
@@ -350,7 +354,9 @@
             </div>
 
             <div class="modal-action flex justify-between items-center">
-                <button wire:click="confirmReject('{{ $prcApprovalId }}')" class="btn btn-error btn-sm btn-outline">Tolak Pengajuan</button>
+                @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm']))
+                                            <button wire:click="confirmReject('{{ $prcApprovalId }}')" class="btn btn-error btn-sm btn-outline">Tolak Pengajuan</button>
+                                            @endif
                 <div class="flex gap-2">
                     <button wire:click="closePrcModal" class="btn btn-ghost btn-sm">Batal</button>
                     <button wire:click="submitPrcAndApprove" class="btn btn-primary btn-sm" wire:loading.attr="disabled" wire:target="submitPrcAndApprove">

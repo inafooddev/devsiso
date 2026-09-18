@@ -24,6 +24,7 @@ class Index extends Component
     public $selected = [];
     public $selectAll = false;
 
+    
     public function mount()
     {
         if (session()->has('jks_non_route_state')) {
@@ -229,6 +230,8 @@ class Index extends Component
 
     public function saveRemark()
     {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         \Illuminate\Support\Facades\DB::table('jks_se_toko_ool_remarks')->updateOrInsert(
             [
                 'distributor_code' => $this->editingDistributorCode,
@@ -347,6 +350,8 @@ class Index extends Component
 
     public function submitAddJks()
     {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         $this->validate([
             'formSalesman' => 'required',
             'formBulan' => 'required',
@@ -401,6 +406,8 @@ class Index extends Component
 
     public function exportExcel()
     {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+
         if (empty($this->appliedArea) && empty($this->appliedSupervisor) && empty($this->appliedDistributor)) {
             $this->dispatch('show-toast', type: 'warning', message: 'Silakan pilih filter minimal setingkat Area untuk melakukan export.');
             return;
