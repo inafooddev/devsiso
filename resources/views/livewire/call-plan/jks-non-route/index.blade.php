@@ -116,7 +116,12 @@
                             <th>Customer Kode PRC</th>
                             <th>Nama Cust</th>
                             <th>Alamat</th>
-                            <th class="text-right">Avg</th>
+                            <th class="text-right">Avg 2026</th>
+                            @if(isset($historyLabels))
+                                @foreach($historyLabels as $label)
+                                    <th class="text-right bg-primary/5 text-primary whitespace-nowrap">{{ $label }}</th>
+                                @endforeach
+                            @endif
                             <th>Remark</th>
                             <th class="w-20 text-center">Aksi</th>
                         </tr>
@@ -137,6 +142,17 @@
                                 <td class="text-right font-mono font-bold text-success">
                                     Rp {{ number_format($row->avg_value_net, 0, ',', '.') }}
                                 </td>
+                                @if(isset($historyLabels))
+                                    @for($i = 1; $i <= 6; $i++)
+                                        @php
+                                            $histField = 'history_'.$i;
+                                            $histVal = $row->$histField ?? 0;
+                                        @endphp
+                                        <td class="text-right font-mono text-xs {{ $histVal > 0 ? 'font-semibold text-base-content' : 'text-base-content/30' }}">
+                                            {{ $histVal > 0 ? number_format($histVal, 0, ',', '.') : '-' }}
+                                        </td>
+                                    @endfor
+                                @endif
                                 <td class="whitespace-normal min-w-[150px] max-w-[250px]">
                                     @if($row->remark)
                                         <div class="text-xs italic text-error font-medium line-clamp-2" title="{{ $row->remark }}">{{ $row->remark }}</div>

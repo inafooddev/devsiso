@@ -303,7 +303,7 @@ class Index extends Component
         if ($value) {
             $service = app(JksNonRouteService::class);
             $filters = $this->getAppliedFilters();
-            if (isset($filters['bulan'])) unset($filters['bulan']);
+            $filters['bulan'] = $this->appliedBulan; // ensure we pass bulan for 6 month history
             
             $data = $service->getFilteredPaginatedList($this->search, $filters, 100);
             
@@ -546,13 +546,15 @@ class Index extends Component
 
         // Get applied filters from the trait
         $filters = $this->getAppliedFilters();
-        
-        // Remove 'bulan' filter since user requested it shouldn't exist
-        if (isset($filters['bulan'])) {
-            unset($filters['bulan']);
-        }
+        $filters['bulan'] = $this->appliedBulan; // ensure we pass bulan for 6 month history
         
         $data = $service->getFilteredPaginatedList($this->search, $filters, 100);
+        
+        $historyLabels = [];
+        $baseBulan = $this->appliedBulan ?: date('Y-m-01');
+        for ($i = 1; $i <= 6; $i++) {
+            $historyLabels[] = \Carbon\Carbon::parse($baseBulan)->subMonths($i)->translatedFormat('M y');
+        }
 
         return view('livewire.call-plan.jks-non-route.index', [
             'outlets' => $data,
@@ -560,6 +562,7 @@ class Index extends Component
             'areaOptions' => $this->filterAreas,
             'supervisorOptions' => $this->filterSupervisors,
             'distributorOptions' => $distributorOptions,
+            'historyLabels' => $historyLabels,
         ]);
     }
 }

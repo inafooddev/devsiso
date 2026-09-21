@@ -22,6 +22,7 @@ class JksNonRouteService
         }
 
         return $this->getBaseQuery($search, $filters)
+            ->orderByDesc('mto.avg_value_net')
             ->orderBy('mto.distributor_name')
             ->orderBy('mto.customer_name')
             ->paginate($perPage);
@@ -36,6 +37,9 @@ class JksNonRouteService
      */
     protected function getBaseQuery($search = '', $filters = [])
     {
+        $bulan = $filters['bulan'] ?? date('Y-m-01');
+        $baseBulan = \Carbon\Carbon::parse($bulan);
+        
         $query = DB::table('jks_se_master_toko_ool as mto')
             ->leftJoin('jks_salesmans as js', function($join) {
                 $join->on('mto.distributor_code', '=', 'js.distributor_code')
@@ -50,25 +54,40 @@ class JksNonRouteService
                      ->where('ja.status', '=', 'PENDING')
                      ->where('ja.action_type', '=', 'TAMBAH_JADWAL')
                      ->whereRaw("ja.payload->>'customer_code' = mto.customer_code");
-            })
-            ->select([
-                'mto.id',
-                'mto.region_code',
-                'mto.region_name',
-                'mto.area_code',
-                'mto.area_name',
-                'mto.supervisor_code',
-                'mto.supervisor_name',
-                'mto.distributor_code',
-                'mto.distributor_name',
-                'mto.customer_code',
-                'mto.customer_eska',
-                'mto.customer_name',
-                'mto.alamat',
-                'mto.avg_value_net',
-                'mtor.remark',
-                'ja.id as pending_approval_id'
-            ])
+            });
+
+        // Dynamic 6 months history joins
+        $selectCols = [
+            'mto.id',
+            'mto.region_code',
+            'mto.region_name',
+            'mto.area_code',
+            'mto.area_name',
+            'mto.supervisor_code',
+            'mto.supervisor_name',
+            'mto.distributor_code',
+            'mto.distributor_name',
+            'mto.customer_code',
+            'mto.customer_eska',
+            'mto.customer_name',
+            'mto.alamat',
+            'mto.avg_value_net',
+            'mtor.remark',
+            'ja.id as pending_approval_id'
+        ];
+
+        for ($i = 1; $i <= 6; $i++) {
+            $m = $baseBulan->copy()->subMonths($i)->format('Y-m-01');
+            $alias = "hist{$i}";
+            $query->leftJoin("zv_so_per_toko_2026 as {$alias}", function($join) use ($alias, $m) {
+                $join->on('mto.customer_code', '=', "{$alias}.uniq_kd")
+                     ->on('mto.distributor_code', '=', "{$alias}.kd_dist")
+                     ->where("{$alias}.bulan", '=', $m);
+            });
+            $selectCols[] = "{$alias}.neto as history_{$i}";
+        }
+
+        $query->select($selectCols)
             ->whereNull('js.id')
             ->when($filters['region'] ?? null, function ($q, $region) {
                 return $q->where('mto.region_code', $region);
