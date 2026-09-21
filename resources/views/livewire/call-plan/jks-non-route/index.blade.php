@@ -215,14 +215,14 @@
                     </div>
 
                     <div class="modal-action">
-                        <button @click="$wire.remarkModalOpen = false" type="button" class="btn btn-ghost">Batal</button>
+                        <button wire:click="$set('remarkModalOpen', false)" type="button" class="btn btn-ghost">Batal</button>
                         <button wire:click="saveRemark" class="btn btn-primary" wire:loading.attr="disabled" wire:target="saveRemark">
                             <span wire:loading.remove wire:target="saveRemark">Simpan Remark</span>
                             <span wire:loading wire:target="saveRemark" class="loading loading-spinner loading-sm"></span>
                         </button>
                     </div>
                 </div>
-                <div class="modal-backdrop bg-neutral/40" @click="$wire.remarkModalOpen = false"></div>
+                <div class="modal-backdrop bg-neutral/40" wire:click="$set('remarkModalOpen', false)"></div>
             </dialog>
             </template>
 
@@ -406,14 +406,14 @@
                     </div>
 
                     <div class="modal-action">
-                        <button @click="$wire.addJksModalOpen = false" type="button" class="btn btn-ghost">Batal</button>
+                        <button wire:click="$set('addJksModalOpen', false)" type="button" class="btn btn-ghost">Batal</button>
                         <button wire:click="submitAddJks" class="btn btn-primary" wire:loading.attr="disabled" wire:target="submitAddJks">
                             <span wire:loading.remove wire:target="submitAddJks">Ajukan Penambahan</span>
                             <span wire:loading wire:target="submitAddJks" class="loading loading-spinner loading-sm"></span>
                         </button>
                     </div>
                 </div>
-                <div class="modal-backdrop bg-neutral/40" @click="$wire.addJksModalOpen = false"></div>
+                <div class="modal-backdrop bg-neutral/40" wire:click="$set('addJksModalOpen', false)"></div>
             </dialog>
             </template>
 
