@@ -446,9 +446,7 @@ class Index extends Component
 
     public function approve($id)
     {
-        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
-
-        if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('user')) {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'user', 'spm'])) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Anda tidak memiliki akses untuk menyetujui pengajuan.']);
             return;
         }
@@ -532,9 +530,10 @@ class Index extends Component
 
     public function submitPrcAndApprove()
     {
-        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
-
-        if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('user')) return;
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'user', 'spm'])) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Anda tidak memiliki akses untuk menyetujui pengajuan.']);
+            return;
+        }
 
         $this->validate([
             'missingPrcTokos.*.eska' => 'required|min:3'
@@ -608,9 +607,9 @@ class Index extends Component
 
     public function bulkApprove()
     {
-        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
+        if (empty($this->selected)) return;
 
-        if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('user')) {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'user', 'spm'])) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Anda tidak memiliki akses untuk menyetujui pengajuan.']);
             return;
         }
@@ -727,9 +726,7 @@ class Index extends Component
 
     public function executeReject()
     {
-        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
-
-        if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('user')) {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'user', 'spm'])) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Anda tidak memiliki akses untuk menolak pengajuan.']);
             return;
         }
