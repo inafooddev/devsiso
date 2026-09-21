@@ -268,6 +268,7 @@ class Index extends Component
             ->join('salesmans as s', 'md.distributor_code', '=', 's.distributor_code')
             ->leftJoin('jks_salesmans as js', function($join) use ($bulan) {
                 $join->on('s.salesman_code', '=', 'js.salesman_code')
+                     ->on('s.distributor_code', '=', 'js.distributor_code')
                      ->where('js.bulan', 'like', $bulan . '%');
             })
             ->leftJoin('list_toko_pareto_team_elite as lt', function($join) {
@@ -347,7 +348,7 @@ class Index extends Component
         if ($this->appliedSupervisor) $query->where('te.team_elite_code', $this->appliedSupervisor);
 
 
-        $jksData = $query->paginate(50);
+        $jksData = $query->paginate(100);
         
         // --- Approvals ---
         // Get salesman codes in current page to fetch their approvals
