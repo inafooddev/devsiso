@@ -324,6 +324,7 @@ class Index extends Component
                 DB::raw("COUNT(DISTINCT CASE WHEN js.h7 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as minggu_non_gps")
             )
             ->where('md.is_active', true)
+            ->where('s.is_active', true)
             ->where('s.salesman_code', 'not ilike', '%OFI%')
             ->groupBy(
                 'md.region_code', 'md.region_name',

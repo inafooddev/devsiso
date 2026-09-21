@@ -817,7 +817,7 @@
 
     {{-- Collision Detection Modal --}}
     @if($showCollisionModal)
-        <x-ui.modal id="collision_modal" title="Detail Bentrok Jadwal" width="max-w-3xl" icon="heroicon-s-exclamation-triangle" iconClass="text-error" onClose="closeCollisionModal" position="top">
+        <x-ui.modal id="collision_modal" title="Detail Bentrok Jadwal" size="xl" open="true" wire:close="closeCollisionModal" icon="exclamation-triangle" iconClass="text-error" position="top">
             <div class="p-6">
                 <div class="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-error/10 border border-error/20 rounded-lg shadow-sm gap-4">
                     <div>

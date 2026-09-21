@@ -89,13 +89,15 @@ class JksSalesmanService
             ->when($filters['distributor'] ?? null, function ($q, $distributor) {
                 return $q->where('md.distributor_code', $distributor);
             })
-            ->when($filters['salesman'] ?? null, function ($q, $salesman) {
-                return $q->where('js.salesman_code', $salesman);
+            ->when(empty($search) && !empty($filters['salesman']), function ($q) use ($filters) {
+                return $q->where('js.salesman_code', $filters['salesman']);
             })
-            ->when($filters['bulan'] ?? null, function ($q, $bulan) {
-                return $q->where('js.bulan', 'like', $bulan . '%');
+            ->when(!empty($filters['bulan']), function ($q) use ($filters) {
+                return $q->where('js.bulan', 'like', $filters['bulan'] . '%');
             })
-            ->when($filters['hari'] ?? null, function ($q, $hari) {
+            ->where('s.is_active', true)
+            ->when(empty($search) && !empty($filters['hari']), function ($q) use ($filters) {
+                $hari = $filters['hari'];
                 if ($hari === 'non_rute') {
                     // Non Rute: h1-h6 semua bukan Y (termasuk yang hanya h7 atau kosong)
                     // DAN tidak ada minggu yang terisi
@@ -119,7 +121,8 @@ class JksSalesmanService
                 }
                 return $q->where('js.' . $hari, 'Y');
             })
-            ->when($filters['minggu'] ?? null, function ($q, $minggu) {
+            ->when(empty($search) && !empty($filters['minggu']), function ($q) use ($filters) {
+                $minggu = $filters['minggu'];
                 return $q->where(function ($sub) use ($minggu) {
                     if ($minggu === 'ganjil') {
                         $sub->where('js.w1', 'Y')->orWhere('js.w3', 'Y');
@@ -148,6 +151,7 @@ class JksSalesmanService
                 if ($search) {
                     $query->where('js.customer_code', 'ilike', '%' . $search . '%')
                           ->orWhere('ltpte.customer_code_prc', 'ilike', '%' . $search . '%')
+                          ->orWhere('ltpte.customer_name', 'ilike', '%' . $search . '%')
                           ->orWhere('s.salesman_name', 'ilike', '%' . $search . '%')
                           ->orWhere('ltpte.customer_address', 'ilike', '%' . $search . '%');
                 }
@@ -233,39 +237,53 @@ class JksSalesmanService
             ->when($filters['distributor'] ?? null, function ($q, $distributor) {
                 return $q->where('md.distributor_code', $distributor);
             })
+            ->when($filters['salesman'] ?? null, function ($q, $salesman) {
+                return $q->where('js.salesman_code', $salesman);
+            })
             ->when($filters['bulan'] ?? null, function ($q, $bulan) {
                 return $q->where('js.bulan', 'like', $bulan . '%');
             })
+            ->where('s.is_active', true)
             ->selectRaw("
                 js.salesman_code,
                 MAX(s.salesman_name) as salesman_name,
-                COUNT(DISTINCT CONCAT(js.bulan, js.distributor_code, js.salesman_code, js.customer_code)) as all_ro,
-                SUM(CASE WHEN ltpte.latitude IS NULL OR ltpte.longitude IS NULL THEN 1 ELSE 0 END) as non_gps,
+                COUNT(DISTINCT js.customer_code) as all_ro,
+                COUNT(DISTINCT CASE WHEN ltpte.latitude IS NULL OR ltpte.longitude IS NULL THEN js.customer_code END) as non_gps,
                 COUNT(DISTINCT CASE WHEN 
-                    (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') 
+                    (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y' OR js.h7 = 'Y') 
                     AND 
                     (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y') 
-                THEN CONCAT(js.bulan, js.distributor_code, js.salesman_code, js.customer_code) ELSE NULL END) as total_toko,
-                SUM(CASE WHEN js.w1 = 'Y' OR js.w3 = 'Y' THEN 1 ELSE 0 END) as total_ganjil,
-                SUM(CASE WHEN js.w2 = 'Y' OR js.w4 = 'Y' THEN 1 ELSE 0 END) as total_genap,
-                SUM(CASE WHEN js.h1 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as h1_ganjil,
-                SUM(CASE WHEN js.h1 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN 1 ELSE 0 END) as h1_genap,
-                SUM(CASE WHEN js.h2 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as h2_ganjil,
-                SUM(CASE WHEN js.h2 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN 1 ELSE 0 END) as h2_genap,
-                SUM(CASE WHEN js.h3 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as h3_ganjil,
-                SUM(CASE WHEN js.h3 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN 1 ELSE 0 END) as h3_genap,
-                SUM(CASE WHEN js.h4 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as h4_ganjil,
-                SUM(CASE WHEN js.h4 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN 1 ELSE 0 END) as h4_genap,
-                SUM(CASE WHEN js.h5 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as h5_ganjil,
-                SUM(CASE WHEN js.h5 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN 1 ELSE 0 END) as h5_genap,
-                SUM(CASE WHEN js.h6 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN 1 ELSE 0 END) as h6_ganjil,
-                SUM(CASE WHEN js.h6 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN 1 ELSE 0 END) as h6_genap,
-                SUM(CASE WHEN js.h1 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN 1 ELSE 0 END) as h1_non_gps,
-                SUM(CASE WHEN js.h2 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN 1 ELSE 0 END) as h2_non_gps,
-                SUM(CASE WHEN js.h3 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN 1 ELSE 0 END) as h3_non_gps,
-                SUM(CASE WHEN js.h4 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN 1 ELSE 0 END) as h4_non_gps,
-                SUM(CASE WHEN js.h5 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN 1 ELSE 0 END) as h5_non_gps,
-                SUM(CASE WHEN js.h6 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN 1 ELSE 0 END) as h6_non_gps
+                THEN js.customer_code END) as total_toko,
+                COUNT(DISTINCT CASE WHEN NOT (
+                    (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y' OR js.h7 = 'Y') 
+                    AND 
+                    (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y')
+                ) THEN js.customer_code END) as non_rute,
+                COUNT(DISTINCT CASE WHEN js.w1 = 'Y' OR js.w3 = 'Y' THEN js.customer_code END) as total_ganjil,
+                COUNT(DISTINCT CASE WHEN js.w2 = 'Y' OR js.w4 = 'Y' THEN js.customer_code END) as total_genap,
+                
+                COUNT(DISTINCT CASE WHEN js.h1 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as h1_ganjil,
+                COUNT(DISTINCT CASE WHEN js.h1 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as h1_genap,
+                COUNT(DISTINCT CASE WHEN js.h2 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as h2_ganjil,
+                COUNT(DISTINCT CASE WHEN js.h2 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as h2_genap,
+                COUNT(DISTINCT CASE WHEN js.h3 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as h3_ganjil,
+                COUNT(DISTINCT CASE WHEN js.h3 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as h3_genap,
+                COUNT(DISTINCT CASE WHEN js.h4 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as h4_ganjil,
+                COUNT(DISTINCT CASE WHEN js.h4 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as h4_genap,
+                COUNT(DISTINCT CASE WHEN js.h5 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as h5_ganjil,
+                COUNT(DISTINCT CASE WHEN js.h5 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as h5_genap,
+                COUNT(DISTINCT CASE WHEN js.h6 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as h6_ganjil,
+                COUNT(DISTINCT CASE WHEN js.h6 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as h6_genap,
+                COUNT(DISTINCT CASE WHEN js.h7 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as h7_ganjil,
+                COUNT(DISTINCT CASE WHEN js.h7 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as h7_genap,
+                
+                COUNT(DISTINCT CASE WHEN js.h1 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN js.customer_code END) as h1_non_gps,
+                COUNT(DISTINCT CASE WHEN js.h2 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN js.customer_code END) as h2_non_gps,
+                COUNT(DISTINCT CASE WHEN js.h3 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN js.customer_code END) as h3_non_gps,
+                COUNT(DISTINCT CASE WHEN js.h4 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN js.customer_code END) as h4_non_gps,
+                COUNT(DISTINCT CASE WHEN js.h5 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN js.customer_code END) as h5_non_gps,
+                COUNT(DISTINCT CASE WHEN js.h6 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN js.customer_code END) as h6_non_gps,
+                COUNT(DISTINCT CASE WHEN js.h7 = 'Y' AND (ltpte.latitude IS NULL OR ltpte.longitude IS NULL) THEN js.customer_code END) as h7_non_gps
             ")
             ->groupBy('js.salesman_code', 's.salesman_name')
             ->orderBy('salesman_name')

@@ -1774,11 +1774,133 @@ class Index extends Component
         if (!$this->showCalendarModal) return collect([]);
         
         $bulan = $this->appliedBulan ?: date('Y-m-01');
+        $yearMonth = substr($bulan, 0, 7); // Gets "YYYY-MM"
         
         return \Illuminate\Support\Facades\DB::table('master_calender')
-            ->where('date', 'like', $bulan . '%')
+            ->where('date', 'like', $yearMonth . '%')
             ->orderBy('date')
             ->get();
+    }
+
+    protected function calculateApprovalsSummary($kpiSummary, $bulan)
+    {
+        if (!$kpiSummary || $kpiSummary->isEmpty()) return;
+
+        $salesmanCodes = $kpiSummary->pluck('salesman_code')->filter()->unique()->toArray();
+        if (empty($salesmanCodes)) return;
+
+        $rawApprovals = \Illuminate\Support\Facades\DB::table('jks_approvals')
+            ->where('status', 'APPROVED')
+            ->where('payload->bulan', $bulan)
+            ->orderBy('created_at', 'asc')
+            ->get();
+            
+        $storeStates = [];
+        $rawCounts = [];
+        
+        foreach ($salesmanCodes as $sCode) {
+            $storeStates[$sCode] = [];
+            $rawCounts[$sCode] = ['penambahan' => 0, 'perubahan' => 0, 'deleted' => 0];
+        }
+
+        foreach ($rawApprovals as $app) {
+            $payload = json_decode($app->payload, true);
+            if (!$payload) continue;
+            
+            $action = $app->action_type;
+            $tokoCount = isset($payload['tokos']) && is_array($payload['tokos']) ? count($payload['tokos']) : 1;
+
+            if ($action === 'TAMBAH_JADWAL') {
+                $sCode = $payload['salesman_code'] ?? null;
+                if ($sCode && in_array($sCode, $salesmanCodes)) {
+                    if (isset($payload['tokos']) && is_array($payload['tokos'])) {
+                        foreach ($payload['tokos'] as $toko) {
+                            $cCode = $toko['code'] ?? $toko['customer_code'] ?? null;
+                            if ($cCode) {
+                                $currentState = $storeStates[$sCode][$cCode] ?? null;
+                                if ($currentState === 'DELETED') {
+                                    $storeStates[$sCode][$cCode] = 'PERUBAHAN'; // Input kembali
+                                } else {
+                                    $storeStates[$sCode][$cCode] = 'PENAMBAHAN';
+                                }
+                            } else {
+                                $rawCounts[$sCode]['penambahan'] += 1;
+                            }
+                        }
+                    } else {
+                        $rawCounts[$sCode]['penambahan'] += $tokoCount;
+                    }
+                }
+            } elseif (in_array($action, ['HAPUS_JADWAL', 'DELETE_MASSAL', 'DELETE_INDIVIDU'])) {
+                if (isset($payload['records']) && is_array($payload['records'])) {
+                    foreach ($payload['records'] as $record) {
+                        $sCode = $record['salesman_code'] ?? null;
+                        if ($sCode && in_array($sCode, $salesmanCodes)) {
+                            $cCode = $record['customer_code'] ?? null;
+                            if ($cCode) {
+                                $currentState = $storeStates[$sCode][$cCode] ?? null;
+                                if ($currentState === 'PENAMBAHAN') {
+                                    unset($storeStates[$sCode][$cCode]); // Cancel out
+                                } else {
+                                    $storeStates[$sCode][$cCode] = 'DELETED';
+                                }
+                            } else {
+                                $rawCounts[$sCode]['deleted'] += 1;
+                            }
+                        }
+                    }
+                } else {
+                    $sCodes = [];
+                    if (isset($payload['salesman_code'])) $sCodes[] = $payload['salesman_code'];
+                    foreach ($sCodes as $sCode) {
+                        if (in_array($sCode, $salesmanCodes)) {
+                            $rawCounts[$sCode]['deleted'] += $tokoCount;
+                        }
+                    }
+                }
+            } elseif (in_array($action, ['UBAH_JADWAL', 'TUKAR_JADWAL', 'TUKAR_HARI', 'TUKAR_MINGGU', 'TUKAR_SALESMAN'])) {
+                $sCodes = [];
+                if (isset($payload['salesman_code'])) $sCodes[] = $payload['salesman_code'];
+                if (isset($payload['salesman_asal'])) $sCodes[] = $payload['salesman_asal'];
+                if (isset($payload['salesman_tujuan'])) $sCodes[] = $payload['salesman_tujuan'];
+                if (isset($payload['records']) && is_array($payload['records'])) {
+                    foreach ($payload['records'] as $record) {
+                        if (isset($record['salesman_code'])) $sCodes[] = $record['salesman_code'];
+                    }
+                }
+                foreach (array_unique($sCodes) as $sCode) {
+                    if (in_array($sCode, $salesmanCodes)) {
+                        $rawCounts[$sCode]['perubahan'] += $tokoCount;
+                    }
+                }
+            }
+        }
+
+        $appCounts = collect();
+        foreach ($salesmanCodes as $sCode) {
+            $penambahan = $rawCounts[$sCode]['penambahan'];
+            $perubahan = $rawCounts[$sCode]['perubahan'];
+            $deleted = $rawCounts[$sCode]['deleted'];
+
+            foreach ($storeStates[$sCode] as $cCode => $state) {
+                if ($state === 'PENAMBAHAN') $penambahan++;
+                elseif ($state === 'PERUBAHAN') $perubahan++;
+                elseif ($state === 'DELETED') $deleted++;
+            }
+
+            $appCounts->put($sCode, [
+                'penambahan' => $penambahan,
+                'perubahan' => $perubahan,
+                'deleted' => $deleted,
+            ]);
+        }
+
+        foreach ($kpiSummary as $item) {
+            $app = $appCounts->get($item->salesman_code);
+            $item->penambahan = $app['penambahan'] ?? 0;
+            $item->perubahan = $app['perubahan'] ?? 0;
+            $item->deleted = $app['deleted'] ?? 0;
+        }
     }
 
     public function render(JksSalesmanService $service)
@@ -1797,6 +1919,9 @@ class Index extends Component
             $data = $service->getFilteredPaginatedList($this->search, $filters, 100);
             
             $kpiSummary = $service->getKpiSummary($filters);
+            
+            // Populate penambahan, perubahan, deleted
+            $this->calculateApprovalsSummary($kpiSummary, $filters['bulan'] ?? null);
             
             // Find collisions for the current page
             $collidingCustomerCodes = [];
@@ -1841,11 +1966,11 @@ class Index extends Component
         $schedules = \Illuminate\Support\Facades\DB::table('jks_salesmans')
             ->where('bulan', 'like', $filters['bulan'] . '%')
             ->where('customer_code', $customerCode)
-            ->join('salesmans', 'jks_salesmans.salesman_code', '=', 'salesmans.salesman_code')
+            ->leftJoin('salesmans', 'jks_salesmans.salesman_code', '=', 'salesmans.salesman_code')
             ->select('jks_salesmans.*', 'salesmans.salesman_name')
             ->get();
 
-        $this->collisionDetails = $schedules->toArray();
+        $this->collisionDetails = $schedules->map(function($item) { return (array) $item; })->toArray();
         $this->showCollisionModal = true;
     }
 
