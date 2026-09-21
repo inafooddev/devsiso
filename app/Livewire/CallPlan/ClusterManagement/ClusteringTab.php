@@ -146,6 +146,10 @@ class ClusteringTab extends Component
             ORDER BY t.id
         ";
         
+        // Mematikan fitur JIT (Just-In-Time) pada koneksi ini sementara 
+        // untuk mencegah postgres backend crash saat menjalankan spatial query (ST_Contains).
+        DB::statement('SET jit = off');
+        
         $allStores = collect(DB::select($sql, ['distributor' => $this->selectedDistributorCode]))
             ->map(fn($item) => (array) $item)
             ->toArray();
