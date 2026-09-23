@@ -411,7 +411,7 @@ class InsentifSpv extends Component
                 // IPT Calculation
                 $totalSku = $groupedBySpv[$spvCode]['total_ipt_sku'];
                 $totalEc = $groupedBySpv[$spvCode]['total_ipt_ec'];
-                $ipt = $totalEc > 0 ? floor($totalSku / $totalEc) : 0;
+                $ipt = $totalEc > 0 ? ($totalSku / $totalEc) : 0;
                 $groupedBySpv[$spvCode]['ipt'] = $ipt;
 
                 $iptInsentif = 0;
@@ -524,7 +524,7 @@ class InsentifSpv extends Component
         }
 
         if ($grandTotal['ipt_ec'] > 0) {
-            $grandTotal['ipt'] = floor($grandTotal['ipt_sku'] / $grandTotal['ipt_ec']);
+            $grandTotal['ipt'] = $grandTotal['ipt_ec'] > 0 ? ($grandTotal['ipt_sku'] / $grandTotal['ipt_ec']) : 0;
         }
 
         foreach ($headers as $h) {

@@ -103,15 +103,15 @@ class InsentifSeSheet implements FromArray, WithHeadings, WithStyles, WithEvents
             // Value
             $row[] = $s['value_target'] ?? 0;
             $row[] = $s['value_real'] ?? 0;
-            $row[] = ($s['value_ach'] ?? 0) / 100;   // numeric for % format
+            $row[] = floor($s['value_ach'] ?? 0) / 100;   // numeric for % format
             $row[] = $s['value_insentif'] ?? 0;
             
             // VTKP
             foreach ($this->headers as $h) {
                 $ach = $s['achievements'][$h->nama_header] ?? ['target'=>0, 'real'=>0, 'growth'=>0, 'insentif'=>0];
-                $row[] = $ach['target'];
-                $row[] = $ach['real'];
-                $row[] = ($ach['growth'] ?? 0) / 100;  // numeric for % format
+                $row[] = floor($ach['target']);
+                $row[] = floor($ach['real']);
+                $row[] = floor($ach['growth'] ?? 0) / 100;  // numeric for % format
                 $row[] = $ach['insentif'];
             }
             $row[] = $s['total_insentif_vtkp'] ?? 0;
@@ -120,20 +120,20 @@ class InsentifSeSheet implements FromArray, WithHeadings, WithStyles, WithEvents
             $row[] = $s['ro'] ?? 0;
             $row[] = $s['ac'] ?? 0;
             $row[] = $s['ec'] ?? 0;
-            $row[] = ($s['persen_ec'] ?? 0) / 100;    // numeric for % format
+            $row[] = floor($s['persen_ec'] ?? 0) / 100;    // numeric for % format
             $row[] = $s['ec_harian'] ?? 0;
             $row[] = $s['insentif_ec'] ?? 0;
             
             // IPT
             $row[] = $s['ipt_sku'] ?? 0;
             $row[] = $s['ipt_ec'] ?? 0;
-            $row[] = $s['ipt'] ?? 0;                  // numeric for #,##0.0 format
+            $row[] = floor($s['ipt'] ?? 0);                  // numeric for #,##0.0 format
             $row[] = $s['insentif_ipt'] ?? 0;
             
             // SFA
             $row[] = $s['sfa_pc'] ?? 0;
             $row[] = $s['sfa_ac'] ?? 0;
-            $row[] = ($s['sfa_persen'] ?? 0) / 100;  // numeric for % format
+            $row[] = floor($s['sfa_persen'] ?? 0) / 100;  // numeric for % format
             
             // Grand Total
             $row[] = $s['total_insentif'] ?? 0;
@@ -155,15 +155,15 @@ class InsentifSeSheet implements FromArray, WithHeadings, WithStyles, WithEvents
             // Value group starts at index 6 (col G)
             $gtRow[6] = $this->grandTotalValue['target'] ?? 0;
             $gtRow[7] = $this->grandTotalValue['real'] ?? 0;
-            $gtRow[8] = ($this->grandTotalValue['ach'] ?? 0) / 100;
+            $gtRow[8] = floor($this->grandTotalValue['ach'] ?? 0) / 100;
             $gtRow[9] = $this->grandTotalValue['insentif'] ?? 0;
 
             $colIdx = 10; // VTKP starts at index 10 (col K)
             foreach ($this->headers as $h) {
                 $ach = $this->grandTotals[$h->nama_header] ?? ['target'=>0, 'real'=>0, 'growth'=>0, 'insentif'=>0];
-                $gtRow[$colIdx++] = $ach['target'];
-                $gtRow[$colIdx++] = $ach['real'];
-                $gtRow[$colIdx++] = ($ach['growth'] ?? 0) / 100;
+                $gtRow[$colIdx++] = floor($ach['target']);
+                $gtRow[$colIdx++] = floor($ach['real']);
+                $gtRow[$colIdx++] = floor($ach['growth'] ?? 0) / 100;
                 $gtRow[$colIdx++] = $ach['insentif'];
             }
             
@@ -172,18 +172,18 @@ class InsentifSeSheet implements FromArray, WithHeadings, WithStyles, WithEvents
             $gtRow[$colIdx++] = $this->grandTotalEc['ro'] ?? 0;
             $gtRow[$colIdx++] = $this->grandTotalEc['ac'] ?? 0;
             $gtRow[$colIdx++] = $this->grandTotalEc['ec'] ?? 0;
-            $gtRow[$colIdx++] = ($this->grandTotalEc['persen_ec'] ?? 0) / 100;
+            $gtRow[$colIdx++] = floor($this->grandTotalEc['persen_ec'] ?? 0) / 100;
             $gtRow[$colIdx++] = $this->grandTotalEc['ec_harian'] ?? 0;
             $gtRow[$colIdx++] = $this->grandTotalEc['insentif'] ?? 0;
             
             $gtRow[$colIdx++] = $this->grandTotalIpt['sku'] ?? 0;
             $gtRow[$colIdx++] = $this->grandTotalIpt['ec'] ?? 0;
-            $gtRow[$colIdx++] = $this->grandTotalIpt['ipt'] ?? 0;
+            $gtRow[$colIdx++] = floor($this->grandTotalIpt['ipt'] ?? 0);
             $gtRow[$colIdx++] = $this->grandTotalIpt['insentif'] ?? 0;
             
             $gtRow[$colIdx++] = $this->grandTotalSfa['pc'] ?? 0;
             $gtRow[$colIdx++] = $this->grandTotalSfa['ac'] ?? 0;
-            $gtRow[$colIdx++] = ($this->grandTotalSfa['persen'] ?? 0) / 100;
+            $gtRow[$colIdx++] = floor($this->grandTotalSfa['persen'] ?? 0) / 100;
             
             $gtRow[$colIdx++] = $this->grandTotalKeseluruhan;
             $gtRow[$colIdx++] = $this->grandTotalPph;

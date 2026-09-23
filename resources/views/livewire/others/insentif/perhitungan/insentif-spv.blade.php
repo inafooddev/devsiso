@@ -220,7 +220,7 @@
                                         </td>
                                         
                                         <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-center font-bold {{ $spv['pencapaian_persen'] >= 100 ? 'text-success' : 'text-error' }} bg-base-100/50">
-                                            {{ number_format($spv['pencapaian_persen'], 0) }}%
+                                            {{ number_format(floor($spv['pencapaian_persen']), 0) }}%
                                         </td>
                                         
                                         <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold text-indigo-600 bg-base-100/50">
@@ -236,7 +236,7 @@
                                                 $achText = '0%';
                                                 $achColor = 'text-base-content/40';
                                             } else {
-                                                $achText = round($ach['growth']) . '%';
+                                                $achText = floor($ach['growth']) . '%';
                                                 if ($ach['growth'] >= 30) $achColor = 'text-success font-bold';
                                                 elseif ($ach['growth'] >= 10) $achColor = 'text-warning font-bold';
                                                 else $achColor = 'text-error';
@@ -244,10 +244,10 @@
                                         @endphp
                                         @if($idx === 0)
                                             <td rowspan="{{ $cabData['rowspan'] }}" class="border border-base-300 text-right {{ $ach['target'] == 0 ? 'bg-red-50 text-red-400' : 'bg-base-100/50' }}">
-                                                {{ $ach['target'] > 0 ? number_format($ach['target'], 0, ',', '.') : '-' }}
+                                                {{ $ach['target'] > 0 ? number_format(floor($ach['target']), 0, ',', '.') : '-' }}
                                             </td>
                                             <td rowspan="{{ $cabData['rowspan'] }}" class="border border-base-300 text-right font-semibold bg-base-100/50">
-                                                {{ $ach['real'] > 0 ? number_format($ach['real'], 0, ',', '.') : '-' }}
+                                                {{ $ach['real'] > 0 ? number_format(floor($ach['real']), 0, ',', '.') : '-' }}
                                             </td>
                                             <td rowspan="{{ $cabData['rowspan'] }}" class="border border-base-300 text-right {{ $achColor }} bg-base-100/50">
                                                 {{ $achText }}
@@ -308,7 +308,7 @@
                                         </td>
                                         
                                         <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-center font-bold {{ $spv['ipt'] >= 5 ? 'text-success' : 'text-error' }} bg-base-100/50">
-                                            {{ number_format($spv['ipt'], 1) }}
+                                            {{ number_format(floor($spv['ipt']), 1) }}
                                         </td>
                                         
                                         <td rowspan="{{ $spv['rowspan'] }}" class="border border-base-300 text-right font-bold {{ $spv['insentif_ipt'] > 0 ? 'text-cyan-600 bg-cyan-50' : 'text-base-content/40 bg-base-100/50' }}">
@@ -358,7 +358,7 @@
                             {{ number_format($grandTotal['aktual_so'], 0, ',', '.') }}
                         </td>
                         <td class="border border-base-300 bg-base-300 text-center font-bold {{ $grandTotal['pencapaian_persen'] >= 100 ? 'text-success' : 'text-error' }} py-2">
-                            {{ number_format($grandTotal['pencapaian_persen'], 0) }}%
+                            {{ number_format(floor($grandTotal['pencapaian_persen']), 0) }}%
                         </td>
                         <td class="border border-base-300 bg-base-300 text-right font-bold text-success py-2">
                             {{ number_format($grandTotal['ins_so'], 0, ',', '.') }}
@@ -369,13 +369,13 @@
                                 $gtAch = $grandTotal['vtkp'][$h->nama_header] ?? ['target' => 0, 'real' => 0, 'growth' => 0, 'insentif' => 0];
                             @endphp
                             <td class="border border-base-300 bg-base-300 text-right font-bold text-base-content py-2">
-                                {{ $gtAch['target'] > 0 ? number_format($gtAch['target'], 0, ',', '.') : '-' }}
+                                {{ $gtAch['target'] > 0 ? number_format(floor($gtAch['target']), 0, ',', '.') : '-' }}
                             </td>
                             <td class="border border-base-300 bg-base-300 text-right font-bold text-base-content py-2">
-                                {{ $gtAch['real'] > 0 ? number_format($gtAch['real'], 0, ',', '.') : '-' }}
+                                {{ $gtAch['real'] > 0 ? number_format(floor($gtAch['real']), 0, ',', '.') : '-' }}
                             </td>
                             <td class="border border-base-300 bg-base-300 text-center font-bold {{ $gtAch['growth'] >= 0 ? 'text-success' : 'text-error' }} py-2">
-                                {{ round($gtAch['growth']) }}%
+                                {{ floor($gtAch['growth']) }}%
                             </td>
                             <td class="border border-base-300 bg-base-300 text-right font-bold text-indigo-600 py-2">
                                 {{ $gtAch['insentif'] > 0 ? number_format($gtAch['insentif'], 0, ',', '.') : '-' }}
@@ -417,7 +417,7 @@
                             {{ $grandTotal['ipt_ec'] > 0 ? number_format($grandTotal['ipt_ec'], 0, ',', '.') : '-' }}
                         </td>
                         <td class="border border-base-300 bg-base-300 text-center font-bold {{ $grandTotal['ipt'] >= 5 ? 'text-success' : 'text-error' }} py-2">
-                            {{ number_format($grandTotal['ipt'], 1) }}
+                            {{ number_format(floor($grandTotal['ipt']), 1) }}
                         </td>
                         <td class="border border-base-300 bg-base-300 text-right font-bold text-cyan-600 py-2">
                             {{ $grandTotal['insentif_ipt'] > 0 ? number_format($grandTotal['insentif_ipt'], 0, ',', '.') : '-' }}

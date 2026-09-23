@@ -251,7 +251,7 @@ class InsentifSe extends Component
 
                 $row['value_target'] = $valTarget;
                 $row['value_real'] = $valReal;
-                $row['value_ach'] = round($valAch);
+                $row['value_ach'] = $valAch;
                 $row['value_insentif'] = $valInsentif;
 
                 $total_insentif_vtkp = 0;
@@ -281,14 +281,14 @@ class InsentifSe extends Component
                     // Hitung VTKP Insentif (Syarat: Value Ach >= 60%)
                     $insentif = 0;
                     if ($targetVal > 0 && $valAch >= 60) {
-                        $insentif = $this->hitungInsentifVtkp(floor($growth), floor($realVal));
+                        $insentif = $this->hitungInsentifVtkp($growth, $realVal);
                     }
                     $total_insentif_vtkp += $insentif;
 
                     $row['achievements'][$h->nama_header] = [
-                        'target' => round($targetVal),
-                        'real' => floor($realVal),
-                        'growth' => floor($growth),
+                        'target' => $targetVal,
+                        'real' => $realVal,
+                        'growth' => $growth,
                         'insentif' => $insentif,
                     ];
                 }
@@ -306,12 +306,12 @@ class InsentifSe extends Component
                 
                 $persen_ec = 0;
                 if ($row['ac'] > 0) {
-                    $persen_ec = floor(($row['ec'] / $row['ac']) * 100);
+                    $persen_ec = ($row['ec'] / $row['ac']) * 100;
                 }
                 
                 $ec_harian = 0;
                 if ($row['ec'] > 0) {
-                    $ec_harian = floor($row['ec'] / 25);
+                    $ec_harian = $row['ec'] / 25;
                 }
                 
                 $row['persen_ec'] = $persen_ec;
@@ -348,7 +348,7 @@ class InsentifSe extends Component
                 $row['ipt']     = 0;
                 
                 if ($row['ipt_ec'] > 0) {
-                    $row['ipt'] = floor($row['ipt_sku'] / $row['ipt_ec']);
+                    $row['ipt'] = $row['ipt_sku'] / $row['ipt_ec'];
                 }
 
                 $insentif_ipt = 0;
@@ -375,7 +375,7 @@ class InsentifSe extends Component
                     // Pengecualian: Jika PC dan AC keduanya 0, anggap 100% (device error, dsb)
                     $sfa_persen = 100;
                 } elseif ($sfa_pc > 0) {
-                    $sfa_persen = floor(($sfa_ac / $sfa_pc) * 100);
+                    $sfa_persen = ($sfa_ac / $sfa_pc) * 100;
                 }
 
                 $row['sfa_pc'] = $sfa_pc;
@@ -385,16 +385,14 @@ class InsentifSe extends Component
                 // --- 6. TOTAL INSENTIF ---
                 $sum_insentif = $valInsentif + $row['total_insentif_vtkp'] + $insentif_ec + $insentif_ipt;
                 
-                if ($sfa_persen < 95) {
-                    // Penalty: Jika SFA di bawah 95%, hanya dapat 25% dari total insentif
-                    $row['total_insentif'] = 0.25 * $sum_insentif;
-                } else {
-                    $row['total_insentif'] = $sum_insentif;
-                }
+                $row['total_insentif'] = $sum_insentif;
 
                 // --- 7. PPH 5% & THP ---
-                $row['pph_5'] = $row['total_insentif'] * 0.05;
-                $row['thp'] = $row['total_insentif'] - $row['pph_5'];
+                // Penalty SFA: Jika SFA di bawah 95%, dipotong 75% (hanya 25% dari total insentif kotor)
+                $net_insentif = ($sfa_persen < 95) ? (0.25 * $sum_insentif) : $sum_insentif;
+                
+                $row['pph_5'] = $net_insentif * 0.05;
+                $row['thp'] = $net_insentif - $row['pph_5'];
 
                 $salesmenData[] = $row;
             }
@@ -412,7 +410,7 @@ class InsentifSe extends Component
             
             $gtValueAch = 0;
             if ($gtValueTarget > 0) {
-                $gtValueAch = floor(($gtValueReal / $gtValueTarget) * 100);
+                $gtValueAch = ($gtValueReal / $gtValueTarget) * 100;
             } elseif ($gtValueReal > 0) {
                 $gtValueAch = 100;
             }
@@ -438,7 +436,7 @@ class InsentifSe extends Component
                 }
                 $totalGrowth = 0;
                 if ($totalTarget > 0) {
-                    $totalGrowth = floor((($totalReal - $totalTarget) / $totalTarget) * 100);
+                    $totalGrowth = (($totalReal - $totalTarget) / $totalTarget) * 100;
                 } elseif ($totalReal > 0) {
                     $totalGrowth = 100;
                 }
@@ -467,10 +465,10 @@ class InsentifSe extends Component
                 $gtEc['insentif'] += $row['insentif_ec'] ?? 0;
             }
             if ($gtEc['ac'] > 0) {
-                $gtEc['persen_ec'] = floor(($gtEc['ec'] / $gtEc['ac']) * 100);
+                $gtEc['persen_ec'] = ($gtEc['ec'] / $gtEc['ac']) * 100;
             }
             if ($gtEc['ec'] > 0) {
-                $gtEc['ec_harian'] = floor($gtEc['ec'] / 25);
+                $gtEc['ec_harian'] = $gtEc['ec'] / 25;
             }
             
             // IPT Grand Totals
@@ -486,7 +484,7 @@ class InsentifSe extends Component
                 $gtIpt['insentif'] += $row['insentif_ipt'] ?? 0;
             }
             if ($gtIpt['ec'] > 0) {
-                $gtIpt['ipt'] = floor($gtIpt['sku'] / $gtIpt['ec']);
+                $gtIpt['ipt'] = $gtIpt['sku'] / $gtIpt['ec'];
             }
 
             // SFA Grand Totals
@@ -509,7 +507,7 @@ class InsentifSe extends Component
             if ($gtSfa['pc'] == 0 && $gtSfa['ac'] == 0) {
                 $gtSfa['persen'] = 100;
             } elseif ($gtSfa['pc'] > 0) {
-                $gtSfa['persen'] = round(($gtSfa['ac'] / $gtSfa['pc']) * 100);
+                $gtSfa['persen'] = ($gtSfa['ac'] / $gtSfa['pc']) * 100;
             }
         }
 

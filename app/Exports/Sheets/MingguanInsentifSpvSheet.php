@@ -91,7 +91,7 @@ class MingguanInsentifSpvSheet implements FromArray, WithHeadings, WithStyles, W
                     $row[] = $dist['aktual_so'];
                     
                     if ($idx === 0) {
-                        $row[] = $spv['pencapaian_persen'] / 100;
+                        $row[] = floor($spv['pencapaian_persen']) / 100;
                         $row[] = $spv['ins_so'];
                     } else {
                         $row[] = '';
@@ -101,9 +101,9 @@ class MingguanInsentifSpvSheet implements FromArray, WithHeadings, WithStyles, W
                     if ($cIdx === 0) {
                         foreach ($this->headers as $h) {
                             $ach = $cabData['vtkp_achievements'][$h->nama_header] ?? ['target' => 0, 'real' => 0, 'growth' => 0, 'insentif' => 0];
-                            $row[] = $ach['target'];
-                            $row[] = $ach['real'];
-                            $row[] = ($ach['growth'] ?? 0) / 100;
+                            $row[] = floor($ach['target']);
+                            $row[] = floor($ach['real']);
+                            $row[] = floor($ach['growth'] ?? 0) / 100;
                             $row[] = $ach['insentif'];
                         }
                         
@@ -122,7 +122,7 @@ class MingguanInsentifSpvSheet implements FromArray, WithHeadings, WithStyles, W
                     if ($idx === 0) {
                         $row[] = $spv['total_rwo_peserta'];
                         $row[] = $spv['total_rwo_achieve'];
-                        $row[] = $spv['rwo_achieve_pct'] / 100;
+                        $row[] = floor($spv['rwo_achieve_pct']) / 100;
                         $row[] = $spv['insentif_rwo'];
                     } else {
                         $row[] = ''; $row[] = ''; $row[] = ''; $row[] = '';
@@ -134,7 +134,7 @@ class MingguanInsentifSpvSheet implements FromArray, WithHeadings, WithStyles, W
                     if ($idx === 0) {
                         $row[] = $spv['total_ipt_sku'];
                         $row[] = $spv['total_ipt_ec'];
-                        $row[] = $spv['ipt'];
+                        $row[] = floor($spv['ipt']);
                         $row[] = $spv['insentif_ipt'];
                         
                         $row[] = $spv['total_all_insentif'];
@@ -160,7 +160,7 @@ class MingguanInsentifSpvSheet implements FromArray, WithHeadings, WithStyles, W
             $gtRow[0] = ''; $gtRow[1] = ''; $gtRow[2] = ''; $gtRow[3] = 'GRAND TOTAL';
             $gtRow[4] = $this->grandTotal['target_so'];
             $gtRow[5] = $this->grandTotal['aktual_so'];
-            $gtRow[6] = ($this->grandTotal['pencapaian_persen'] ?? 0) / 100;
+            $gtRow[6] = floor($this->grandTotal['pencapaian_persen'] ?? 0) / 100;
             $gtRow[7] = $this->grandTotal['ins_so'];
             
             $colIdx = 8;
@@ -170,9 +170,9 @@ class MingguanInsentifSpvSheet implements FromArray, WithHeadings, WithStyles, W
                 $growth = $this->grandTotal['vtkp'][$h->nama_header]['growth']   ?? 0;
                 $ins    = $this->grandTotal['vtkp'][$h->nama_header]['insentif'] ?? 0;
                 
-                $gtRow[$colIdx++] = $tgt;
-                $gtRow[$colIdx++] = $real;
-                $gtRow[$colIdx++] = $growth / 100;
+                $gtRow[$colIdx++] = floor($tgt);
+                $gtRow[$colIdx++] = floor($real);
+                $gtRow[$colIdx++] = floor($growth) / 100;
                 $gtRow[$colIdx++] = $ins;
             }
             
@@ -182,14 +182,14 @@ class MingguanInsentifSpvSheet implements FromArray, WithHeadings, WithStyles, W
             $gtRow[$colIdx++] = $this->grandTotal['rwo_achieve'];
             $gtRow[$colIdx++] = $this->grandTotal['rwo_peserta'];
             $gtRow[$colIdx++] = $this->grandTotal['rwo_achieve'];
-            $gtRow[$colIdx++] = ($this->grandTotal['rwo_achieve_pct'] ?? 0) / 100;
+            $gtRow[$colIdx++] = floor($this->grandTotal['rwo_achieve_pct'] ?? 0) / 100;
             $gtRow[$colIdx++] = $this->grandTotal['insentif_rwo'];
 
             $gtRow[$colIdx++] = $this->grandTotal['ipt_sku'];
             $gtRow[$colIdx++] = $this->grandTotal['ipt_ec'];
             $gtRow[$colIdx++] = $this->grandTotal['ipt_sku'];
             $gtRow[$colIdx++] = $this->grandTotal['ipt_ec'];
-            $gtRow[$colIdx++] = $this->grandTotal['ipt'] ?? 0;
+            $gtRow[$colIdx++] = floor($this->grandTotal['ipt'] ?? 0);
             $gtRow[$colIdx++] = $this->grandTotal['insentif_ipt'];
 
             $gtRow[$colIdx++] = $this->grandTotal['total_all_insentif'];

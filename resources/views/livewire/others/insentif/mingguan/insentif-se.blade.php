@@ -230,7 +230,7 @@
                                     $valAchText = '0%';
                                     $valAchColor = 'text-base-content/40';
                                 } else {
-                                    $valAchText = $row['value_ach'] . '%';
+                                    $valAchText = floor($row['value_ach']) . '%';
                                     if ($row['value_ach'] >= 100) $valAchColor = 'text-success font-bold';
                                     elseif ($row['value_ach'] >= 60) $valAchColor = 'text-warning font-bold';
                                     else $valAchColor = 'text-error';
@@ -255,13 +255,13 @@
                                         $growthText = '-100%';
                                         $growthColor = 'text-base-content/40';
                                     } else {
-                                        $growthText = $ach['growth'] . '%';
+                                        $growthText = floor($ach['growth']) . '%';
                                         if ($ach['growth'] > 0) $growthColor = 'text-success font-bold';
                                         elseif ($ach['growth'] < 0) $growthColor = 'text-error';
                                     }
                                 @endphp
-                                <td class="border border-base-300 text-right {{ $ach['target'] == 0 ? 'bg-red-50 text-red-400' : '' }}">{{ $ach['target'] ?: '-' }}</td>
-                                <td class="border border-base-300 text-right font-semibold">{{ $ach['real'] ?: '-' }}</td>
+                                <td class="border border-base-300 text-right {{ $ach['target'] == 0 ? 'bg-red-50 text-red-400' : '' }}">{{ $ach['target'] > 0 ? number_format(floor($ach['target']), 0, ',', '.') : '-' }}</td>
+                                <td class="border border-base-300 text-right font-semibold">{{ $ach['real'] > 0 ? number_format(floor($ach['real']), 0, ',', '.') : '-' }}</td>
                                 <td class="border border-base-300 text-right {{ $growthColor }}">
                                     {{ $growthText }}
                                 </td>
@@ -280,7 +280,7 @@
                             <td class="border border-base-300 text-right {{ $row['ro'] < 250 ? 'bg-red-100 text-error font-bold' : 'bg-yellow-50 font-semibold' }}">{{ number_format($row['ro'], 0, ',', '.') }}</td>
                             <td class="border border-base-300 text-right">{{ number_format($row['ac'], 0, ',', '.') }}</td>
                             <td class="border border-base-300 text-right">{{ number_format($row['ec'], 0, ',', '.') }}</td>
-                            <td class="border border-base-300 text-right {{ $row['persen_ec'] < 50 ? 'bg-red-100 text-error font-bold' : 'bg-yellow-50 font-semibold' }}">{{ $row['persen_ec'] }}%</td>
+                            <td class="border border-base-300 text-right {{ $row['persen_ec'] < 50 ? 'bg-red-100 text-error font-bold' : 'bg-yellow-50 font-semibold' }}">{{ floor($row['persen_ec']) }}%</td>
                             <td class="border border-base-300 text-right {{ $row['ec_harian'] < 10 ? 'bg-red-100 text-error font-bold' : 'bg-yellow-50 font-semibold' }}">{{ number_format($row['ec_harian'], 0, ',', '.') }}</td>
                             <td class="border border-base-300 text-right font-bold {{ $row['insentif_ec'] > 0 ? 'text-yellow-600' : 'text-base-content/40' }}">
                                 {{ $row['insentif_ec'] > 0 ? number_format($row['insentif_ec'], 0, ',', '.') : '-' }}
@@ -289,7 +289,7 @@
                             <!-- Data INSENTIF IPT -->
                             <td class="border border-base-300 text-right">{{ number_format($row['ipt_sku'], 0, ',', '.') }}</td>
                             <td class="border border-base-300 text-right">{{ number_format($row['ipt_ec'], 0, ',', '.') }}</td>
-                            <td class="border border-base-300 text-right font-semibold">{{ number_format($row['ipt'], 0, ',', '.') }}</td>
+                            <td class="border border-base-300 text-right font-semibold">{{ number_format(floor($row['ipt']), 0, ',', '.') }}</td>
                             <td class="border border-base-300 text-right font-bold {{ $row['insentif_ipt'] > 0 ? 'text-sky-600' : 'text-base-content/40' }}">
                                 {{ $row['insentif_ipt'] > 0 ? number_format($row['insentif_ipt'], 0, ',', '.') : '-' }}
                             </td>
@@ -297,7 +297,7 @@
                             <!-- Data PENGGUNAAN SFA -->
                             <td class="border border-base-300 text-right">{{ number_format($row['sfa_pc'], 0, ',', '.') }}</td>
                             <td class="border border-base-300 text-right">{{ number_format($row['sfa_ac'], 0, ',', '.') }}</td>
-                            <td class="border border-base-300 text-right font-bold {{ $row['sfa_persen'] < 95 ? 'text-error' : 'text-success' }}">{{ $row['sfa_persen'] }}%</td>
+                            <td class="border border-base-300 text-right font-bold {{ $row['sfa_persen'] < 95 ? 'text-error' : 'text-success' }}">{{ floor($row['sfa_persen']) }}%</td>
 
                             <!-- Data TOTAL INSENTIF -->
                             <td class="border border-base-300 text-right font-bold {{ $row['total_insentif'] > 0 ? 'text-base-content' : 'text-base-content/40' }}">
@@ -341,7 +341,7 @@
                         @endphp
                         <td class="border border-base-300 text-right bg-indigo-100 sticky bottom-0" style="background-color: #e0e7ff;">{{ number_format($grandTotalValue['target'], 0, ',', '.') }}</td>
                         <td class="border border-base-300 text-right bg-indigo-100 sticky bottom-0" style="background-color: #e0e7ff;">{{ number_format($grandTotalValue['real'], 0, ',', '.') }}</td>
-                        <td class="border border-base-300 text-right bg-indigo-100 sticky bottom-0 {{ $gtValAchColor }}" style="background-color: #e0e7ff;">{{ $grandTotalValue['ach'] }}%</td>
+                        <td class="border border-base-300 text-right bg-indigo-100 sticky bottom-0 {{ $gtValAchColor }}" style="background-color: #e0e7ff;">{{ floor($grandTotalValue['ach']) }}%</td>
                         <td class="border border-base-300 text-right bg-indigo-100 sticky bottom-0 font-bold text-indigo-600" style="background-color: #e0e7ff;">{{ number_format($grandTotalValue['insentif'], 0, ',', '.') }}</td>
 
                         @foreach($headers as $index => $h)
@@ -354,9 +354,9 @@
                                 $bgColors = ['#fed7aa', '#bfdbfe', '#bbf7d0', '#e9d5ff', '#fbcfe8', '#ccfbf1'];
                                 $bgColor = $bgColors[$index % 6];
                             @endphp
-                            <td class="border border-base-300 text-right sticky bottom-0" style="background-color: {{ $bgColor }};">{{ number_format($gt['target'], 0, ',', '.') }}</td>
-                            <td class="border border-base-300 text-right sticky bottom-0" style="background-color: {{ $bgColor }};">{{ number_format($gt['real'], 0, ',', '.') }}</td>
-                            <td class="border border-base-300 text-right sticky bottom-0 {{ $gtGrowthColor }}" style="background-color: {{ $bgColor }};">{{ $gt['growth'] }}%</td>
+                            <td class="border border-base-300 text-right sticky bottom-0" style="background-color: {{ $bgColor }};">{{ number_format(floor($gt['target']), 0, ',', '.') }}</td>
+                            <td class="border border-base-300 text-right sticky bottom-0" style="background-color: {{ $bgColor }};">{{ number_format(floor($gt['real']), 0, ',', '.') }}</td>
+                            <td class="border border-base-300 text-right sticky bottom-0 {{ $gtGrowthColor }}" style="background-color: {{ $bgColor }};">{{ floor($gt['growth']) }}%</td>
                             <td class="border border-base-300 text-right sticky bottom-0 font-bold text-info" style="background-color: {{ $bgColor }};">{{ number_format($gt['insentif'], 0, ',', '.') }}</td>
                         @endforeach
                         <!-- Grand Total: Total Insentif VTKP -->
@@ -369,20 +369,20 @@
                         <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #fef08a;">{{ number_format($grandTotalEc['ro'], 0, ',', '.') }}</td>
                         <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #fef08a;">{{ number_format($grandTotalEc['ac'], 0, ',', '.') }}</td>
                         <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #fef08a;">{{ number_format($grandTotalEc['ec'], 0, ',', '.') }}</td>
-                        <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #fef08a;">{{ $grandTotalEc['persen_ec'] }}%</td>
+                        <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #fef08a;">{{ floor($grandTotalEc['persen_ec']) }}%</td>
                         <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #fef08a;">{{ number_format($grandTotalEc['ec_harian'], 0, ',', '.') }}</td>
                         <td class="border border-base-300 text-right sticky bottom-0 font-bold text-yellow-700" style="background-color: #fef08a;">{{ number_format($grandTotalEc['insentif'], 0, ',', '.') }}</td>
 
                         <!-- Grand Total: INSENTIF IPT -->
                         <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #bae6fd;">{{ number_format($grandTotalIpt['sku'], 0, ',', '.') }}</td>
                         <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #bae6fd;">{{ number_format($grandTotalIpt['ec'], 0, ',', '.') }}</td>
-                        <td class="border border-base-300 text-right sticky bottom-0 font-bold" style="background-color: #bae6fd;">{{ number_format($grandTotalIpt['ipt'], 0, ',', '.') }}</td>
+                        <td class="border border-base-300 text-right sticky bottom-0 font-bold" style="background-color: #bae6fd;">{{ number_format(floor($grandTotalIpt['ipt']), 0, ',', '.') }}</td>
                         <td class="border border-base-300 text-right sticky bottom-0 font-bold text-sky-700" style="background-color: #bae6fd;">{{ number_format($grandTotalIpt['insentif'], 0, ',', '.') }}</td>
 
                         <!-- Grand Total: PENGGUNAAN SFA -->
                         <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #cffafe;">{{ number_format($grandTotalSfa['pc'], 0, ',', '.') }}</td>
                         <td class="border border-base-300 text-right sticky bottom-0" style="background-color: #cffafe;">{{ number_format($grandTotalSfa['ac'], 0, ',', '.') }}</td>
-                        <td class="border border-base-300 text-right sticky bottom-0 font-bold {{ $grandTotalSfa['persen'] < 95 ? 'text-error' : 'text-success' }}" style="background-color: #cffafe;">{{ $grandTotalSfa['persen'] }}%</td>
+                        <td class="border border-base-300 text-right sticky bottom-0 font-bold {{ $grandTotalSfa['persen'] < 95 ? 'text-error' : 'text-success' }}" style="background-color: #cffafe;">{{ floor($grandTotalSfa['persen']) }}%</td>
 
                         <!-- Grand Total: TOTAL INSENTIF -->
                         <td class="border border-base-300 text-right sticky bottom-0 font-bold text-base-content" style="background-color: #e5e7eb;">
