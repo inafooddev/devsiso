@@ -192,7 +192,7 @@ class MonitoringRewardDistributor extends Component
 
             $startP1 = "{$year}-01-01";
             $endP1 = "{$year}-06-30";
-            $startP2 = "{$year}-07-01";
+            $startP2 = "{$year}-01-01";
             $endP2 = "{$year}-12-31";
 
             // --- BULK QUERIES P1 ---
@@ -205,7 +205,7 @@ class MonitoringRewardDistributor extends Component
             // --- BULK QUERIES P2 ---
             $targetP2Map = DB::table('target_per_depo')->selectRaw('cabang, sum(target) as total')->whereIn('cabang', $cabangs)->where('reg_fest', 'REG')->whereBetween('bulan', [$startP2, $endP2])->groupBy('cabang')->pluck('total', 'cabang');
             $sellInP2Map = DB::table('selling_in')->selectRaw('kd_distributor, sum(value_net) as total')->whereIn('kd_distributor', $distributorCodes)->where('reg_fes', 'REG')->whereBetween('bulan', [$startP2, $endP2])->groupBy('kd_distributor')->pluck('total', 'kd_distributor');
-            $sellOutP2Map = DB::table('t_sellingout')->selectRaw('"KDDIST", sum("NETT") as total')->whereIn('KDDIST', $distributorCodes)->where('REG_FEST', 'REG')->whereRaw('CAST("THN" AS INTEGER) = ?', [$year])->whereRaw('CAST("BLN" AS INTEGER) BETWEEN 7 AND 12')->groupBy('KDDIST')->pluck('total', 'KDDIST');
+            $sellOutP2Map = DB::table('t_sellingout')->selectRaw('"KDDIST", sum("NETT") as total')->whereIn('KDDIST', $distributorCodes)->where('REG_FEST', 'REG')->whereRaw('CAST("THN" AS INTEGER) = ?', [$year])->whereRaw('CAST("BLN" AS INTEGER) BETWEEN 1 AND 12')->groupBy('KDDIST')->pluck('total', 'KDDIST');
             $stockP2Map = DB::table('reward_dist_ar_stock')->selectRaw('distributor_code, avg(stock) as average')->whereIn('distributor_code', $distributorCodes)->whereBetween('bulan', [$startP2, $endP2])->groupBy('distributor_code')->pluck('average', 'distributor_code');
             $arCountP2Map = DB::table('reward_dist_ar_stock')->selectRaw('distributor_code, count(*) as total')->whereIn('distributor_code', $distributorCodes)->whereBetween('bulan', [$startP2, $endP2])->where('ar', '>', 7)->groupBy('distributor_code')->pluck('total', 'distributor_code');
 
@@ -290,11 +290,8 @@ class MonitoringRewardDistributor extends Component
                 'is_target_achieved' => $isTargetAchievedP2,
                 'is_stock_achieved' => $isStockAchievedP2,
                 'is_ar_achieved' => $isArAchievedP2,
-                'base_reward' => $baseRewardP2,
-                'final_reward' => $finalRewardP2,
+                // Reward properties omitted since they are not displayed
             ];
-
-            $row['total_reward'] = $finalRewardP1 + $finalRewardP2;
 
             $data[] = $row;
         }

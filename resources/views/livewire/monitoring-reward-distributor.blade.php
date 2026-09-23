@@ -159,17 +159,15 @@
                             </td>
                             
                             {{-- Reward P1 --}}
-                            <td class="text-right border-r-2 border-base-300 align-middle py-2 px-3">
+                            <td class="text-center border-r-2 border-base-300 align-middle py-2 px-3">
                                 @if($row['p1']['is_target_achieved'])
                                     @if(!$row['p1']['is_ar_achieved'] || !$row['p1']['is_stock_achieved'])
-                                        <div class="text-warning text-[10px] line-through opacity-70">{{ number_format($row['p1']['base_reward']) }}</div>
-                                        <div class="text-error font-bold font-mono text-sm" title="Terkena Penalty 25% karena gagal AR/Stock!">{{ number_format($row['p1']['final_reward']) }}</div>
-                                        <div class="text-[9px] text-error mt-0.5 uppercase">-75% Penalti</div>
+                                        <div class="badge badge-sm badge-warning font-bold border-0">Capai (Penalti AR/Stok)</div>
                                     @else
-                                        <div class="text-success font-bold font-mono text-sm">{{ number_format($row['p1']['final_reward']) }}</div>
+                                        <div class="badge badge-sm badge-success font-bold text-white border-0">Capai Penuh</div>
                                     @endif
                                 @else
-                                    <div class="text-base-content/30 font-mono text-sm">0</div>
+                                    <div class="text-base-content/30 italic text-sm">Tidak Capai</div>
                                 @endif
                             </td>
 
@@ -229,26 +227,28 @@
                             </td>
                             
                             {{-- Reward P2 --}}
-                            <td class="text-right border-r border-base-200/50 align-middle py-2 px-3">
+                            <td class="text-center border-r border-base-200/50 align-middle py-2 px-3">
                                 @if($row['p2']['is_target_achieved'])
                                     @if(!$row['p2']['is_ar_achieved'] || !$row['p2']['is_stock_achieved'])
-                                        <div class="text-warning text-[10px] line-through opacity-70">{{ number_format($row['p2']['base_reward']) }}</div>
-                                        <div class="text-error font-bold font-mono text-sm" title="Terkena Penalty 25% karena gagal AR/Stock!">{{ number_format($row['p2']['final_reward']) }}</div>
-                                        <div class="text-[9px] text-error mt-0.5 uppercase">-75% Penalti</div>
+                                        <div class="badge badge-sm badge-warning font-bold border-0">Capai (Penalti AR/Stok)</div>
                                     @else
-                                        <div class="text-success font-bold font-mono text-sm">{{ number_format($row['p2']['final_reward']) }}</div>
+                                        <div class="badge badge-sm badge-success font-bold text-white border-0">Capai Penuh</div>
                                     @endif
                                 @else
-                                    <div class="text-base-content/30 font-mono text-sm">0</div>
+                                    <div class="text-base-content/30 italic text-sm">Tidak Capai</div>
                                 @endif
                             </td>
 
                             {{-- ================= TOTAL ================= --}}
-                            <td class="text-right font-bold font-mono sticky right-0 {{ $loop->even ? 'bg-base-200' : 'bg-base-100' }} group-hover:bg-base-200/50 transition-colors shadow-[inset_1px_0_0_rgba(0,0,0,0.02)] border-l border-base-300 z-10 align-middle px-4">
-                                @if($row['total_reward'] > 0)
-                                    <span class="text-primary text-base">Rp {{ number_format($row['total_reward']) }}</span>
+                            <td class="text-center font-bold sticky right-0 {{ $loop->even ? 'bg-base-200' : 'bg-base-100' }} group-hover:bg-base-200/50 transition-colors shadow-[inset_1px_0_0_rgba(0,0,0,0.02)] border-l border-base-300 z-10 align-middle px-4">
+                                @if($row['p1']['is_target_achieved'] && $row['p2']['is_target_achieved'])
+                                    <span class="text-success text-sm">Capai P1 & P2</span>
+                                @elseif($row['p1']['is_target_achieved'])
+                                    <span class="text-primary text-sm">Capai P1 Saja</span>
+                                @elseif($row['p2']['is_target_achieved'])
+                                    <span class="text-primary text-sm">Capai P2 Saja</span>
                                 @else
-                                    <span class="text-base-content/30">Rp 0</span>
+                                    <span class="text-base-content/30 italic text-sm">-</span>
                                 @endif
                             </td>
                         </tr>
