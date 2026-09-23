@@ -32,10 +32,14 @@
                     @endforeach
                 </select>
                 <x-ui.search-input wire:model.live.debounce.300ms="search" />
+                @canImport('monitoring-reward-distributor')
                 <button wire:click="openImportModal" class="btn btn-sm btn-outline btn-primary">
                     <x-heroicon-s-arrow-up-tray class="w-4 h-4" /> Import AR & Stok
                 </button>
+                @endcanImport
+                @canExport('monitoring-reward-distributor')
                 <x-ui.action-button type="export" wire:click="export" />
+                @endcanExport
             </div>
         </div>
 
@@ -434,4 +438,15 @@
             </div>
         </div>
     @endif
+
+    {{-- Script untuk Auto Reload Halaman --}}
+    @script
+    <script>
+        Livewire.on('page-reload', () => {
+            setTimeout(() => {
+                window.location.reload();
+            }, 500); // Jeda setengah detik agar notifikasi sukses terbaca
+        });
+    </script>
+    @endscript
 </div>

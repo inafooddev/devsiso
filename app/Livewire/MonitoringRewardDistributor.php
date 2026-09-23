@@ -146,11 +146,33 @@ class MonitoringRewardDistributor extends Component
     {
         $year = 2026; // Hardcode or get from request
 
-        $sortedData = Cache::remember("monitoring_reward_main_{$year}", 300, function () use ($year) {
-            // Get all active distributors
-            $activeDistributors = DB::table('master_distributors')
-                ->where('is_active', true)
-                ->get();
+        $user = auth()->user();
+        $userId = $user ? $user->id : 'guest';
+        
+        $sortedData = Cache::remember("monitoring_reward_main_{$year}_uid_{$userId}", 300, function () use ($year, $user) {
+            // Get all active distributors with Role Based Access Control
+            $masterQuery = DB::table('master_distributors')
+                ->where('is_active', true);
+
+            if ($user && method_exists($user, 'hasRole') && !$user->hasRole('admin')) {
+                if (!empty($user->supervisor_code)) {
+                    // Supervisor: Join dengan team_elite_code_mappings berdasarkan siso_code
+                    $masterQuery->join('team_elite_code_mappings as tecm', 'tecm.siso_code', '=', 'master_distributors.supervisor_code')
+                                ->whereRaw("TRIM(tecm.team_elite_code) = TRIM(?)", [$user->supervisor_code])
+                                ->select('master_distributors.*'); // Hindari ambiguous columns
+                } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+                    // Area Manager
+                    $masterQuery->whereIn('master_distributors.area_code', $user->area_code);
+                } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+                    // Region Manager
+                    $masterQuery->whereIn('master_distributors.region_code', $user->region_code);
+                } else {
+                    // No access
+                    $masterQuery->whereRaw('1 = 0');
+                }
+            }
+            
+            $activeDistributors = $masterQuery->get();
                 
             // Get cabangs that have targets
             $cabangsWithTargets = DB::table('target_per_depo')
@@ -376,6 +398,9 @@ class MonitoringRewardDistributor extends Component
             
             $this->closeImportModal();
             session()->flash('success', 'Data AR dan Stock berhasil diimport!');
+            
+            // Perintahkan browser untuk mereload halaman penuh
+            $this->dispatch('page-reload');
         } catch (\Exception $e) {
             session()->flash('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
