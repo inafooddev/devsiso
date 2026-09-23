@@ -70,6 +70,10 @@
 
                     {{-- Actions (Export & Reset) --}}
                     <div class="border-l border-base-300 pl-2 hidden sm:flex items-center gap-2">
+                        <button class="btn btn-sm btn-success text-white" wire:click="exportExcel" wire:loading.class="opacity-50 pointer-events-none" wire:target="exportExcel" title="Export to Excel">
+                            <x-heroicon-o-arrow-down-tray class="w-4 h-4" wire:loading.remove wire:target="exportExcel" />
+                            <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
+                        </button>
                         <button class="btn btn-sm btn-ghost text-base-content/70" wire:click="resetFilters" title="Reset Filters & Cache">
                             <x-heroicon-o-arrow-path class="w-4 h-4" />
                         </button>

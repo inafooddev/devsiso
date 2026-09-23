@@ -399,6 +399,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/report/reaktivasi-toko/summary', \App\Livewire\Report\ReaktivasiToko\Summary::class)->name('report.reaktivasi-toko.summary');
     Route::get('/report/reaktivasi-toko/dashboard', \App\Livewire\Report\ReaktivasiToko\Dashboard::class)->name('report.reaktivasi-toko.dashboard');
     Route::get('/import-sales-invoices', SalesInvoiceImport::class)->name('sales-invoices.import');
+    Route::get('/monitoring-reward-distributor', \App\Livewire\MonitoringRewardDistributor::class)->name('monitoring-reward-distributor');
     
     Route::prefix('sales-configs')->name('sales-configs.')->group(function () {
         Route::get('/', SalesConfigIndex::class)->name('index');

@@ -258,7 +258,7 @@ class Index extends Component
 
     
     #[Computed]
-    public function summaryData()
+    public function getBaseQuery()
     {
         $bulan = $this->appliedBulan ?: date('Y-m-01');
 
@@ -346,6 +346,15 @@ class Index extends Component
         if ($this->appliedRegion) $query->where('md.region_code', $this->appliedRegion);
         if ($this->appliedArea) $query->where('md.area_code', $this->appliedArea);
         if ($this->appliedSupervisor) $query->where('te.team_elite_code', $this->appliedSupervisor);
+
+        return $query;
+    }
+
+    #[Computed]
+    public function summaryData()
+    {
+        $bulan = $this->appliedBulan ?: date('Y-m-01');
+        $query = $this->getBaseQuery();
 
 
         $jksData = $query->paginate(100);
@@ -474,5 +483,12 @@ class Index extends Component
         }
 
         return $jksData;
+    }
+
+    public function exportExcel()
+    {
+        $bulan = $this->appliedBulan ?: date('Y-m-01');
+        $fileName = 'JKS_Summary_' . \Carbon\Carbon::parse($bulan)->format('Y_m') . '.xlsx';
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\JksSummaryExport($this->getBaseQuery()), $fileName);
     }
 }
