@@ -15,14 +15,14 @@
         <div>
             <label class="block text-xs font-semibold text-base-content/70 mb-1">
                 Region
-                @if(in_array($accessLevel, ['region','area']))
+                @if(in_array($accessLevel, ['region','area','supervisor']))
                     <span class="badge badge-warning badge-xs ml-1">Terbatas</span>
                 @endif
             </label>
             <select wire:model.live="filterRegion"
-                class="select select-bordered select-sm rounded-lg min-w-[160px] {{ in_array($accessLevel, ['region','area']) && count($listRegion) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
-                @if(in_array($accessLevel, ['region','area']) && count($listRegion) === 1) disabled @endif>
-                @if(!in_array($accessLevel, ['region','area']))
+                class="select select-bordered select-sm rounded-lg min-w-[160px] {{ in_array($accessLevel, ['region','area','supervisor']) && count($listRegion) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
+                @if(in_array($accessLevel, ['region','area','supervisor']) && count($listRegion) === 1) disabled @endif>
+                @if(!in_array($accessLevel, ['region','area','supervisor']))
                     <option value="">Semua Region</option>
                 @endif
                 @foreach($listRegion as $r)
@@ -34,14 +34,14 @@
         <div>
             <label class="block text-xs font-semibold text-base-content/70 mb-1">
                 Area
-                @if($accessLevel === 'area')
+                @if(in_array($accessLevel, ['area','supervisor']))
                     <span class="badge badge-warning badge-xs ml-1">Terbatas</span>
                 @endif
             </label>
             <select wire:model.live="filterArea"
-                class="select select-bordered select-sm rounded-lg min-w-[160px] {{ $accessLevel === 'area' && count($listArea) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
-                @if($listArea->isEmpty() || ($accessLevel === 'area' && count($listArea) === 1)) disabled @endif>
-                @if($accessLevel !== 'area')
+                class="select select-bordered select-sm rounded-lg min-w-[160px] {{ in_array($accessLevel, ['area','supervisor']) && count($listArea) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
+                @if($listArea->isEmpty() || (in_array($accessLevel, ['area','supervisor']) && count($listArea) === 1)) disabled @endif>
+                @if(!in_array($accessLevel, ['area','supervisor']))
                     <option value="">Semua Area</option>
                 @endif
                 @foreach($listArea as $a)
@@ -51,18 +51,17 @@
         </div>
         
         <div>
-            <label class="block text-xs font-semibold text-base-content/70 mb-1">Jabatan</label>
-            <select wire:model.live="filterLevel" class="select select-bordered select-sm rounded-lg min-w-[150px]">
-                <option value="">Semua Jabatan</option>
-                <option value="KACAB">Kepala Cabang</option>
-                <option value="SPV">Supervisor (SPV)</option>
-                <option value="SE">Sales Executive (SE)</option>
-            </select>
+            <label class="block text-xs font-semibold text-base-content/70 mb-1">Pencarian</label>
+            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari nama, cabang..." class="input input-bordered input-sm rounded-lg min-w-[180px]">
         </div>
 
         <div>
-            <label class="block text-xs font-semibold text-base-content/70 mb-1">Pencarian</label>
-            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari nama, cabang..." class="input input-bordered input-sm rounded-lg min-w-[180px]">
+            <label class="block text-xs font-semibold text-base-content/70 mb-1">Jabatan</label>
+            <div class="join bg-base-100 shadow-sm border border-base-200 rounded-lg">
+                <input class="join-item btn btn-sm min-w-[50px] {{ $filterLevel === 'SE' ? 'bg-primary text-primary-content hover:bg-primary' : 'hover:bg-base-200 border-transparent bg-transparent' }}" type="radio" name="jabatan" value="SE" wire:model.live="filterLevel" aria-label="SE" />
+                <input class="join-item btn btn-sm min-w-[50px] {{ $filterLevel === 'SPV' ? 'bg-primary text-primary-content hover:bg-primary' : 'hover:bg-base-200 border-transparent bg-transparent' }}" type="radio" name="jabatan" value="SPV" wire:model.live="filterLevel" aria-label="SPV" />
+                <input class="join-item btn btn-sm min-w-[50px] {{ $filterLevel === 'KACAB' ? 'bg-primary text-primary-content hover:bg-primary' : 'hover:bg-base-200 border-transparent bg-transparent' }}" type="radio" name="jabatan" value="KACAB" wire:model.live="filterLevel" aria-label="KACAB" />
+            </div>
         </div>
 
         <div class="ml-auto flex items-center gap-4">
@@ -135,6 +134,218 @@
 
         <div class="overflow-y-auto custom-scrollbar flex-1 relative">
             <table class="table table-sm table-pin-rows w-full">
+                @if($filterLevel === 'SE')
+                <!-- TAMPILAN SE -->
+                <thead>
+                    <tr class="bg-base-200/80 shadow-sm border-b border-base-300 text-xs font-bold">
+                        <th class="bg-base-200/80 w-10 text-center">No</th>
+                        <th class="bg-base-200/80">Area / Cabang</th>
+                        <th class="bg-base-200/80">Distributor</th>
+                        <th class="bg-base-200/80">Kode & Nama SE</th>
+                        <th class="bg-base-200/80 text-right">Insentif Value (SO)</th>
+                        <th class="bg-base-200/80 text-right">Insentif VTKP</th>
+                        <th class="bg-base-200/80 text-right">Insentif EC</th>
+                        <th class="bg-base-200/80 text-right">Insentif IPT</th>
+                        <th class="bg-base-200/80 text-center">Penggunaan SFA</th>
+                        <th class="bg-base-200/80 text-right">Total Insentif</th>
+                        <th class="bg-base-200/80 text-right pr-6">Estimasi Insentif (Kotor)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($summaryData as $index => $row)
+                        <tr class="hover:bg-base-200/30 transition-colors border-b border-base-200/50">
+                            <td class="text-center text-xs text-base-content/50">{{ $index + 1 }}</td>
+                            <td class="text-xs font-semibold text-base-content/80">
+                                {{ $row['area_name'] ?? '-' }} <br/>
+                                <span class="font-normal opacity-70">{{ $row['cabang'] ?? '-' }}</span>
+                            </td>
+                            <td class="text-xs font-medium text-base-content/70">{{ $row['distributor'] ?? '-' }}</td>
+                            <td>
+                                <div class="font-mono text-xs text-base-content/50">{{ $row['kode'] }}</div>
+                                <div class="font-semibold text-sm">{{ $row['nama'] }}</div>
+                            </td>
+                            @php
+                                $soPct = round($row['ach_so'] ?? 0, 1);
+                                if ($soPct >= 100) {
+                                    $soBg = 'bg-success text-success-content';
+                                } elseif ($soPct >= 60) {
+                                    $soBg = 'bg-warning text-warning-content';
+                                } else {
+                                    $soBg = 'bg-error text-white';
+                                }
+
+                                $sfaPct = round($row['ach_sfa'] ?? 0, 1);
+                                if ($sfaPct >= 95) {
+                                    $sfaBg = 'bg-success text-success-content';
+                                } else {
+                                    $sfaBg = 'bg-error text-white';
+                                }
+                            @endphp
+                            <td class="text-right text-xs">
+                                <span class="badge {{ $soBg }} badge-sm font-bold border-0 mb-1">
+                                    {{ number_format($soPct, 1, ',', '.') }}%
+                                </span>
+                                <br/>
+                                <span class="opacity-80">Target: Rp {{ number_format($row['target'] ?? 0, 0, ',', '.') }}</span><br/>
+                                <span class="opacity-80">Actual: Rp {{ number_format($row['actual'] ?? 0, 0, ',', '.') }}</span><br/>
+                                <span class="font-semibold text-primary mt-1 block">Insentif: Rp {{ number_format($row['insentif_value'] ?? 0, 0, ',', '.') }}</span>
+                            </td>
+                            <td class="text-right text-xs align-middle">Rp {{ number_format($row['insentif_vtkp'] ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-right text-xs align-middle">Rp {{ number_format($row['insentif_ec'] ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-right text-xs align-middle">Rp {{ number_format($row['insentif_ipt'] ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-center text-xs align-middle">
+                                <span class="badge {{ $sfaBg }} badge-sm font-bold border-0">
+                                    {{ number_format($sfaPct, 1, ',', '.') }}%
+                                </span>
+                            </td>
+                            <td class="text-right text-sm font-semibold text-base-content/60 align-middle">Rp {{ number_format($row['total_kotor'] ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-right text-sm font-bold text-base-content/80 align-middle pr-6">Rp {{ number_format($row['estimasi_insentif'] ?? 0, 0, ',', '.') }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="11" class="text-center py-12 text-base-content/50">
+                                <x-heroicon-o-document-magnifying-glass class="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                <p>Tidak ada data penerima insentif SE yang ditemukan</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+
+                @elseif($filterLevel === 'SPV')
+                <!-- TAMPILAN SPV -->
+                <thead>
+                    <tr class="bg-base-200/80 shadow-sm border-b border-base-300 text-xs font-bold">
+                        <th class="bg-base-200/80 w-10 text-center">No</th>
+                        <th class="bg-base-200/80">Area / Cabang</th>
+                        <th class="bg-base-200/80">Kode & Nama SPV</th>
+                        <th class="bg-base-200/80 text-right">Insentif Value (SO)</th>
+                        <th class="bg-base-200/80 text-right">Insentif VTKP</th>
+                        <th class="bg-base-200/80 text-center">Insentif RWO</th>
+                        <th class="bg-base-200/80 text-center">Insentif IPT</th>
+                        <th class="bg-base-200/80 text-right">Tabungan (30%)</th>
+                        <th class="bg-base-200/80 text-right pr-6">Transfer (70%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($summaryData as $index => $row)
+                        <tr class="hover:bg-base-200/30 transition-colors border-b border-base-200/50">
+                            <td class="text-center text-xs text-base-content/50">{{ $index + 1 }}</td>
+                            <td class="text-xs font-semibold text-base-content/80 align-middle">
+                                {{ $row['area_name'] ?? '-' }} <br/>
+                                <span class="font-normal opacity-70">{{ $row['cabang'] ?? '-' }}</span>
+                            </td>
+                            <td class="align-middle">
+                                <div class="font-mono text-xs text-base-content/50">{{ $row['kode'] }}</div>
+                                <div class="font-semibold text-sm">{{ $row['nama'] }}</div>
+                            </td>
+                            @php
+                                $spvSoPct = round($row['pencapaian_persen'] ?? 0, 1);
+                                if ($spvSoPct >= 100) $spvSoBg = 'bg-success text-success-content';
+                                elseif ($spvSoPct >= 90) $spvSoBg = 'bg-warning text-warning-content';
+                                else $spvSoBg = 'bg-error text-white';
+
+                                $rwoPct = round($row['rwo_achieve_pct'] ?? 0, 1);
+                                if ($rwoPct >= 90) $rwoBg = 'bg-success text-success-content';
+                                elseif ($rwoPct >= 70) $rwoBg = 'bg-warning text-warning-content';
+                                else $rwoBg = 'bg-error text-white';
+
+                                $iptVal = $row['ipt'] ?? 0;
+                                if ($iptVal >= 12) $iptBg = 'bg-success text-success-content';
+                                elseif ($iptVal >= 5) $iptBg = 'bg-warning text-warning-content';
+                                else $iptBg = 'bg-error text-white';
+                            @endphp
+                            <td class="text-right text-xs">
+                                <span class="badge {{ $spvSoBg }} badge-sm font-bold border-0 mb-1">
+                                    {{ number_format($spvSoPct, 1, ',', '.') }}%
+                                </span>
+                                <br/>
+                                <span class="opacity-80">Target: Rp {{ number_format($row['target'] ?? 0, 0, ',', '.') }}</span><br/>
+                                <span class="opacity-80">Actual: Rp {{ number_format($row['actual'] ?? 0, 0, ',', '.') }}</span><br/>
+                                <span class="font-semibold text-primary mt-1 block">Insentif: Rp {{ number_format($row['ins_so'] ?? 0, 0, ',', '.') }}</span>
+                            </td>
+                            <td class="text-right text-xs align-middle">Rp {{ number_format($row['insentif_vtkp'] ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-center text-xs align-middle">
+                                <span class="badge {{ $rwoBg }} badge-sm font-bold border-0 mb-1">
+                                    {{ number_format($rwoPct, 1, ',', '.') }}%
+                                </span>
+                                <br/>
+                                <span class="opacity-80">Rp {{ number_format($row['insentif_rwo'] ?? 0, 0, ',', '.') }}</span>
+                            </td>
+                            <td class="text-center text-xs align-middle">
+                                <span class="badge {{ $iptBg }} badge-sm font-bold border-0 mb-1">
+                                    {{ $iptVal }} SKU
+                                </span>
+                                <br/>
+                                <span class="opacity-80">Rp {{ number_format($row['insentif_ipt'] ?? 0, 0, ',', '.') }}</span>
+                            </td>
+                            <td class="text-right text-xs align-middle">Rp {{ number_format($row['tabungan_30'] ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-right text-xs align-middle pr-6">Rp {{ number_format($row['transfer_70'] ?? 0, 0, ',', '.') }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="9" class="text-center py-12 text-base-content/50">
+                                <x-heroicon-o-document-magnifying-glass class="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                <p>Tidak ada data penerima insentif SPV yang ditemukan</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+
+                @elseif($filterLevel === 'KACAB')
+                <!-- TAMPILAN KACAB -->
+                <thead>
+                    <tr class="bg-base-200/80 shadow-sm border-b border-base-300 text-xs font-bold">
+                        <th class="bg-base-200/80 w-10 text-center">No</th>
+                        <th class="bg-base-200/80">Area / Cabang</th>
+                        <th class="bg-base-200/80">Kode & Nama KACAB</th>
+                        <th class="bg-base-200/80 text-right">Pencapaian SO</th>
+                        <th class="bg-base-200/80 text-right pr-6">Total Insentif (Kotor)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($summaryData as $index => $row)
+                        <tr class="hover:bg-base-200/30 transition-colors border-b border-base-200/50">
+                            <td class="text-center text-xs text-base-content/50">{{ $index + 1 }}</td>
+                            <td class="text-xs font-semibold text-base-content/80 align-middle">
+                                {{ $row['area_name'] ?? '-' }} <br/>
+                                <span class="font-normal opacity-70">{{ $row['cabang'] ?? '-' }}</span>
+                            </td>
+                            <td class="align-middle">
+                                <div class="font-mono text-xs text-base-content/50">{{ $row['kode'] }}</div>
+                                <div class="font-semibold text-sm">{{ $row['nama'] }}</div>
+                            </td>
+                            @php
+                                $kacabPct = round($row['percentage'] ?? 0, 1);
+                                if ($kacabPct >= 100) {
+                                    $kacabBg = 'bg-success text-success-content';
+                                } elseif ($kacabPct >= 60) {
+                                    $kacabBg = 'bg-warning text-warning-content';
+                                } else {
+                                    $kacabBg = 'bg-error text-white';
+                                }
+                            @endphp
+                            <td class="text-right text-xs align-middle">
+                                <span class="badge {{ $kacabBg }} badge-sm font-bold border-0 mb-1">
+                                    {{ number_format($kacabPct, 1, ',', '.') }}%
+                                </span>
+                                <br/>
+                                <span class="opacity-80">Target: Rp {{ number_format($row['target'] ?? 0, 0, ',', '.') }}</span><br/>
+                                <span class="opacity-80">Actual: Rp {{ number_format($row['sell_out'] ?? 0, 0, ',', '.') }}</span>
+                            </td>
+                            <td class="text-right text-sm font-bold text-base-content/80 align-middle pr-6">Rp {{ number_format($row['nilai_insentif'] ?? 0, 0, ',', '.') }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="text-center py-12 text-base-content/50">
+                                <x-heroicon-o-document-magnifying-glass class="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                <p>Tidak ada data penerima insentif KACAB yang ditemukan</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+
+                @else
+                <!-- TAMPILAN SEMUA JABATAN (MIXED) -->
                 <thead>
                     <tr class="bg-base-200/80 shadow-sm border-b border-base-300 text-xs font-bold">
                         <th class="bg-base-200/80 w-10 text-center">No</th>
@@ -143,7 +354,7 @@
                         <th class="bg-base-200/80">Cabang</th>
                         <th class="bg-base-200/80">Kode</th>
                         <th class="bg-base-200/80">Nama</th>
-                        <th class="bg-base-200/80 text-right pr-6">THP</th>
+                        <th class="bg-base-200/80 text-right pr-6">Estimasi Insentif (Kotor)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -178,18 +389,19 @@
                             <td class="text-xs text-base-content/50 font-mono">{{ $row['kode'] }}</td>
                             <td class="font-semibold text-sm">{{ $row['nama'] }}</td>
                             <td class="text-right pr-6">
-                                <span class="font-bold text-success text-sm">Rp {{ number_format($row['thp'], 0, ',', '.') }}</span>
+                                <span class="font-bold text-base-content/80 text-sm">Rp {{ number_format($row['total_kotor'] ?? 0, 0, ',', '.') }}</span>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-12 text-base-content/50">
+                            <td colspan="6" class="text-center py-12 text-base-content/50">
                                 <x-heroicon-o-document-magnifying-glass class="w-12 h-12 mx-auto mb-3 opacity-20" />
                                 <p>Tidak ada data penerima insentif yang ditemukan</p>
                             </td>
                         </tr>
                     @endforelse
                 </tbody>
+                @endif
             </table>
         </div>
     </div>

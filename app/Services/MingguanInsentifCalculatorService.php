@@ -43,14 +43,18 @@ class MingguanInsentifCalculatorService
      * Get Kacab Insentif Data
      * Returns array of Kacab calculations
      */
-    public function calculateKacab($bulan, $region = null, $area = null, $search = null)
+    public function calculateKacab($bulan, $region = null, $area = null, $search = null, $spvCodes = null)
     {
         $yearFilter = Carbon::parse($bulan . '-01')->format('Y');
 
         $query = InsentifMingguanMasterDistributor::where('bulan', $bulan);
 
-        if ($region) {
-            $query->where('region_name', $region);
+        if (!empty($region)) {
+            if (is_array($region)) {
+                $query->whereIn('region_name', $region);
+            } else {
+                $query->where('region_name', $region);
+            }
         }
 
         if (!empty($area)) {
@@ -58,6 +62,14 @@ class MingguanInsentifCalculatorService
                 $query->whereIn('area_name', $area);
             } else {
                 $query->where('area_name', $area);
+            }
+        }
+        
+        if ($spvCodes !== null) {
+            if (empty($spvCodes)) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->whereIn('supervisor_code', $spvCodes);
             }
         }
 
@@ -164,15 +176,19 @@ class MingguanInsentifCalculatorService
     /**
      * Get SPV Insentif Data
      */
-    public function calculateSpv($bulan, $region = null, $area = null, $search = null)
+    public function calculateSpv($bulan, $region = null, $area = null, $search = null, $spvCodes = null)
     {
         $headers = [];
         $spvData = [];
         
         $spvQuery = InsentifMingguanMasterSpv::where('bulan', $bulan);
         
-        if ($region) {
-            $spvQuery->where('region_name', $region);
+        if (!empty($region)) {
+            if (is_array($region)) {
+                $spvQuery->whereIn('region_name', $region);
+            } else {
+                $spvQuery->where('region_name', $region);
+            }
         }
 
         if (!empty($area)) {
@@ -180,6 +196,14 @@ class MingguanInsentifCalculatorService
                 $spvQuery->whereIn('area_name', $area);
             } else {
                 $spvQuery->where('area_name', $area);
+            }
+        }
+        
+        if ($spvCodes !== null) {
+            if (empty($spvCodes)) {
+                $spvQuery->whereRaw('1 = 0');
+            } else {
+                $spvQuery->whereIn('supervisor_code_hak_akses_login', $spvCodes);
             }
         }
 
@@ -206,8 +230,12 @@ class MingguanInsentifCalculatorService
         }
 
         $headers = InsentifHeaderGrup::whereHas('regions', function($q) use ($region) {
-            if ($region) {
-                $q->where('region_name', $region);
+            if (!empty($region)) {
+                if (is_array($region)) {
+                    $q->whereIn('region_name', $region);
+                } else {
+                    $q->where('region_name', $region);
+                }
             }
         })->with('details')->orderBy('nama_header')->get();
 
@@ -532,7 +560,7 @@ class MingguanInsentifCalculatorService
     /**
      * Get SE Insentif Data
      */
-    public function calculateSe($bulan, $region = null, $area = null, $search = null)
+    public function calculateSe($bulan, $region = null, $area = null, $search = null, $spvCodes = null)
     {
         $headers = [];
         $salesmenData = [];
@@ -574,8 +602,12 @@ class MingguanInsentifCalculatorService
             ->where('ims.bulan', $bulan)
             ->where('ims.jenis_se', 'se');
 
-        if ($region) {
-            $salesmenQuery->where('imd.region_name', $region);
+        if (!empty($region)) {
+            if (is_array($region)) {
+                $salesmenQuery->whereIn('imd.region_name', $region);
+            } else {
+                $salesmenQuery->where('imd.region_name', $region);
+            }
         }
 
         if (!empty($area)) {
@@ -583,6 +615,14 @@ class MingguanInsentifCalculatorService
                 $salesmenQuery->whereIn('imd.area_name', $area);
             } else {
                 $salesmenQuery->where('imd.area_name', $area);
+            }
+        }
+        
+        if ($spvCodes !== null) {
+            if (empty($spvCodes)) {
+                $salesmenQuery->whereRaw('1 = 0');
+            } else {
+                $salesmenQuery->whereIn('imd.supervisor_code', $spvCodes);
             }
         }
 
@@ -800,7 +840,7 @@ class MingguanInsentifCalculatorService
             if ($sfa_pc == 0 && $sfa_ac == 0) {
                 $sfa_persen = 100; // device error → dianggap 100%
             } elseif ($sfa_pc > 0) {
-                $sfa_persen = round(($sfa_ac / $sfa_pc) * 100);
+                $sfa_persen = round(($sfa_ac / $sfa_pc) * 100, 1);
             } else {
                 $sfa_persen = 0;
             }
@@ -817,8 +857,19 @@ class MingguanInsentifCalculatorService
             $salesmenData[] = [
                 'area_name'     => $sm->area_name,
                 'cabang'        => $sm->cabang,
+                'distributor'   => $sm->distributor,
                 'salesman_code' => $sm->kode_se,
                 'salesman_name' => $sm->nama_se,
+                'insentif_value'=> $valInsentif,
+                'target'        => $valTarget,
+                'actual'        => $valReal,
+                'ach_so'        => $valAch,
+                'insentif_vtkp' => $totalInsentifVtkp,
+                'insentif_ec'   => $insentif_ec,
+                'insentif_ipt'  => $insentif_ipt,
+                'ach_sfa'       => $sfa_persen,
+                'total_kotor'   => $sum_insentif,
+                'estimasi_insentif' => $total_insentif,
                 'thp'           => $thp
             ];
         }

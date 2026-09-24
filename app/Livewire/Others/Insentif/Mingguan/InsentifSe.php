@@ -16,9 +16,41 @@ class InsentifSe extends Component
     public $filterRegion;
     public $filterArea;
     public $search = '';
+    // Hak akses dihitung secara dinamis di getAccessRestrictions() untuk mencegah state lost
+    private function getAccessRestrictions($user, $level)
+    {
+        $lockedRegions = null;
+        $lockedAreas = null;
 
-    protected $lockedRegions = null;
-    protected $lockedAreas = null;
+        if ($level === 'region') {
+            $regionCodes = (array) $user->region_code;
+            $lockedRegions = InsentifMasterDistributor::whereIn('region_code', $regionCodes)
+                ->whereNotNull('region_name')
+                ->distinct()
+                ->pluck('region_name')
+                ->toArray();
+        } elseif ($level === 'area') {
+            $areaCodes = (array) $user->area_code;
+            $rows = InsentifMasterDistributor::whereIn('area_code', $areaCodes)
+                ->whereNotNull('area_name')
+                ->distinct()
+                ->get(['region_name', 'area_name']);
+
+            $lockedAreas = $rows->pluck('area_name')->unique()->values()->toArray();
+            $lockedRegions = $rows->pluck('region_name')->unique()->values()->toArray();
+        } elseif ($level === 'supervisor') {
+            $sisoCodes = [$user->supervisor_code];
+            $rows = InsentifMasterDistributor::whereIn('supervisor_code', $sisoCodes)
+                ->whereNotNull('region_name')
+                ->distinct()
+                ->get(['region_name', 'area_name']);
+
+            $lockedAreas = $rows->pluck('area_name')->unique()->values()->toArray();
+            $lockedRegions = $rows->pluck('region_name')->unique()->values()->toArray();
+        }
+
+        return [$lockedRegions, $lockedAreas];
+    }
 
     public function mount()
     {
@@ -28,44 +60,23 @@ class InsentifSe extends Component
         $user = Auth::user();
         $level = $user->getAccessLevel();
 
-        if ($level === 'region') {
-            $regionCodes = (array) $user->region_code;
-            $this->lockedRegions = InsentifMasterDistributor::whereIn('region_code', $regionCodes)
-                ->whereNotNull('region_name')
-                ->distinct()
-                ->pluck('region_name')
-                ->toArray();
+        [$lockedRegions, $lockedAreas] = $this->getAccessRestrictions($user, $level);
 
-            if (count($this->lockedRegions) === 1) {
-                $this->filterRegion = $this->lockedRegions[0];
-            } elseif (count($this->lockedRegions) > 0) {
-                $this->filterRegion = $this->lockedRegions[0]; // Set default
-            }
-
-        } elseif ($level === 'area') {
-            $areaCodes = (array) $user->area_code;
-            $rows = InsentifMasterDistributor::whereIn('area_code', $areaCodes)
-                ->whereNotNull('area_name')
-                ->distinct()
-                ->get(['region_name', 'area_name']);
-
-            $this->lockedAreas   = $rows->pluck('area_name')->unique()->values()->toArray();
-            $this->lockedRegions = $rows->pluck('region_name')->unique()->values()->toArray();
-
-            if (count($this->lockedRegions) === 1) {
-                $this->filterRegion = $this->lockedRegions[0];
-            }
-            if (count($this->lockedAreas) === 1) {
-                $this->filterArea = $this->lockedAreas[0];
-            }
-        } else {
-            // Coba ambil default region dari db jika ada
+        if ($lockedRegions !== null && count($lockedRegions) === 1) {
+            $this->filterRegion = $lockedRegions[0];
+        } elseif ($lockedRegions !== null && count($lockedRegions) > 0 && empty($this->filterRegion)) {
+            $this->filterRegion = $lockedRegions[0]; // Set default
+        } elseif ($lockedRegions === null && empty($this->filterRegion)) {
             $firstRegion = DB::table('insentif_mingguan_master_distributors')
                 ->whereNotNull('region_name')
                 ->orderBy('region_name')
                 ->value('region_name');
                 
             $this->filterRegion = $firstRegion ?? '';
+        }
+
+        if ($lockedAreas !== null && count($lockedAreas) === 1) {
+            $this->filterArea = $lockedAreas[0];
         }
     }
 
@@ -79,11 +90,18 @@ class InsentifSe extends Component
         $user = Auth::user();
         $accessLevel = $user->getAccessLevel();
 
+        $sisoCodes = null;
+        if ($accessLevel === 'supervisor') {
+            $sisoCodes = [$user->supervisor_code];
+        }
+
+        [$lockedRegions, $lockedAreas] = $this->getAccessRestrictions($user, $accessLevel);
+
         $listBulan = InsentifMasterSalesman::select('bulan')->distinct()->orderBy('bulan', 'desc')->pluck('bulan');
         
         $regionQuery = InsentifMasterDistributor::select('region_name')->whereNotNull('region_name')->distinct()->orderBy('region_name');
-        if ($this->lockedRegions !== null) {
-            $regionQuery->whereIn('region_name', $this->lockedRegions);
+        if ($lockedRegions !== null) {
+            $regionQuery->whereIn('region_name', $lockedRegions);
         }
         $listRegions = $regionQuery->pluck('region_name');
         
@@ -95,8 +113,15 @@ class InsentifSe extends Component
                 ->distinct()
                 ->orderBy('area_name');
 
-            if ($this->lockedAreas !== null) {
-                $areaQuery->whereIn('area_name', $this->lockedAreas);
+            if ($lockedAreas !== null) {
+                $areaQuery->whereIn('area_name', $lockedAreas);
+            }
+            if ($sisoCodes !== null) {
+                if (empty($sisoCodes)) {
+                    $areaQuery->whereRaw('1 = 0');
+                } else {
+                    $areaQuery->whereIn('supervisor_code', $sisoCodes);
+                }
             }
             $listAreas = $areaQuery->pluck('area_name');
         }
@@ -124,6 +149,14 @@ class InsentifSe extends Component
                     $salesmenQuery->whereIn('imd.area_name', $this->filterArea);
                 } else {
                     $salesmenQuery->where('imd.area_name', $this->filterArea);
+                }
+            }
+
+            if ($sisoCodes !== null) {
+                if (empty($sisoCodes)) {
+                    $salesmenQuery->whereRaw('1 = 0');
+                } else {
+                    $salesmenQuery->whereIn('imd.supervisor_code', $sisoCodes);
                 }
             }
 

@@ -43,6 +43,15 @@ class ExportModal extends Component
 
             $this->lockedAreas   = $rows->pluck('area_name')->unique()->values()->toArray();
             $this->lockedRegions = $rows->pluck('region_name')->unique()->values()->toArray();
+        } elseif ($level === 'supervisor') {
+            $sisoCodes = [$user->supervisor_code];
+            $rows = InsentifMasterDistributor::whereIn('supervisor_code', $sisoCodes)
+                ->whereNotNull('region_name')
+                ->distinct()
+                ->get(['region_name', 'area_name']);
+
+            $this->lockedAreas   = $rows->pluck('area_name')->unique()->values()->toArray();
+            $this->lockedRegions = $rows->pluck('region_name')->unique()->values()->toArray();
         }
     }
 
@@ -124,6 +133,10 @@ class ExportModal extends Component
             
             if ($this->lockedAreas !== null) {
                 $areaQuery->whereIn('area_name', $this->lockedAreas);
+            }
+            if ($accessLevel === 'supervisor') {
+                $sisoCodes = [$user->supervisor_code];
+                $areaQuery->whereIn('supervisor_code', $sisoCodes);
             }
             $listAreas = $areaQuery->pluck('area_name');
         }

@@ -15,14 +15,14 @@
         <div>
             <label class="block text-xs font-semibold text-base-content/70 mb-1">
                 Pilih Region
-                @if(in_array($accessLevel ?? '', ['region','area']))
+                @if(in_array($accessLevel ?? '', ['region','area','supervisor']))
                     <span class="badge badge-warning badge-xs ml-1">Terbatas</span>
                 @endif
             </label>
             <select wire:model.live="filterRegion"
-                class="select select-bordered select-sm rounded-lg min-w-[200px] {{ in_array($accessLevel ?? '', ['region','area']) && count($listRegions) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
-                @if(in_array($accessLevel ?? '', ['region','area']) && count($listRegions) === 1) disabled @endif>
-                @if(!in_array($accessLevel ?? '', ['region','area']))
+                class="select select-bordered select-sm rounded-lg min-w-[200px] {{ in_array($accessLevel ?? '', ['region','area','supervisor']) && count($listRegions) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
+                @if(in_array($accessLevel ?? '', ['region','area','supervisor']) && count($listRegions) === 1) disabled @endif>
+                @if(!in_array($accessLevel ?? '', ['region','area','supervisor']))
                     <option value="">-- Pilih Region --</option>
                 @endif
                 @foreach($listRegions as $r)
@@ -34,14 +34,14 @@
         <div>
             <label class="block text-xs font-semibold text-base-content/70 mb-1">
                 Filter Area (Opsional)
-                @if(($accessLevel ?? '') === 'area')
+                @if(in_array($accessLevel ?? '', ['area','supervisor']))
                     <span class="badge badge-warning badge-xs ml-1">Terbatas</span>
                 @endif
             </label>
             <select wire:model.live="filterArea"
-                class="select select-bordered select-sm rounded-lg min-w-[200px] {{ ($accessLevel ?? '') === 'area' && count($listAreas) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
-                @if(empty($filterRegion) || (($accessLevel ?? '') === 'area' && count($listAreas) === 1)) disabled @endif>
-                @if(($accessLevel ?? '') !== 'area')
+                class="select select-bordered select-sm rounded-lg min-w-[200px] {{ in_array($accessLevel ?? '', ['area','supervisor']) && count($listAreas) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
+                @if(empty($filterRegion) || (in_array($accessLevel ?? '', ['area','supervisor']) && count($listAreas) === 1)) disabled @endif>
+                @if(!in_array($accessLevel ?? '', ['area','supervisor']))
                     <option value="">-- Semua Area --</option>
                 @endif
                 @if(isset($listAreas))

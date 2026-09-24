@@ -16,16 +16,16 @@
             {{-- Region Filter --}}
             <div class="relative group grow sm:grow-0">
                 <select wire:model.live="filterRegion"
-                    class="select select-sm select-bordered w-full sm:w-48 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 font-semibold transition-all duration-300 text-sm {{ in_array($accessLevel ?? '', ['region','area']) && count($listRegions) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
-                    @if(in_array($accessLevel ?? '', ['region','area']) && count($listRegions) === 1) disabled @endif>
-                    @if(!in_array($accessLevel ?? '', ['region','area']))
+                    class="select select-sm select-bordered w-full sm:w-48 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 font-semibold transition-all duration-300 text-sm {{ in_array($accessLevel ?? '', ['region','area','supervisor']) && count($listRegions) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
+                    @if(in_array($accessLevel ?? '', ['region','area','supervisor']) && count($listRegions) === 1) disabled @endif>
+                    @if(!in_array($accessLevel ?? '', ['region','area','supervisor']))
                         <option value="">Semua Region</option>
                     @endif
                     @foreach($listRegions as $region)
                         <option value="{{ $region }}">{{ $region }}</option>
                     @endforeach
                 </select>
-                @if(in_array($accessLevel ?? '', ['region','area']))
+                @if(in_array($accessLevel ?? '', ['region','area','supervisor']))
                     <div class="absolute -top-2 -right-2"><span class="badge badge-warning badge-xs">Terbatas</span></div>
                 @endif
             </div>
@@ -33,16 +33,16 @@
             {{-- Area Filter --}}
             <div class="relative group grow sm:grow-0">
                 <select wire:model.live="filterArea"
-                    class="select select-sm select-bordered w-full sm:w-48 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 font-semibold transition-all duration-300 text-sm {{ ($accessLevel ?? '') === 'area' && count($listAreas) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
-                    @if(empty($filterRegion) || (($accessLevel ?? '') === 'area' && count($listAreas) === 1)) disabled @endif>
-                    @if(($accessLevel ?? '') !== 'area')
+                    class="select select-sm select-bordered w-full sm:w-48 rounded-xl bg-base-100 border-base-300 focus:ring-2 focus:ring-primary/50 font-semibold transition-all duration-300 text-sm {{ in_array($accessLevel ?? '', ['area','supervisor']) && count($listAreas) === 1 ? 'opacity-70 cursor-not-allowed' : '' }}"
+                    @if(empty($filterRegion) || (in_array($accessLevel ?? '', ['area','supervisor']) && count($listAreas) === 1)) disabled @endif>
+                    @if(!in_array($accessLevel ?? '', ['area','supervisor']))
                         <option value="">Semua Area</option>
                     @endif
                     @foreach($listAreas as $area)
                         <option value="{{ $area }}">{{ $area }}</option>
                     @endforeach
                 </select>
-                @if(($accessLevel ?? '') === 'area')
+                @if(in_array($accessLevel ?? '', ['area','supervisor']))
                     <div class="absolute -top-2 -right-2"><span class="badge badge-warning badge-xs">Terbatas</span></div>
                 @endif
             </div>
