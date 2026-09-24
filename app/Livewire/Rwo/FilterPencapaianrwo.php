@@ -27,6 +27,38 @@ class FilterPencapaianrwo extends Component
     public $supervisors = [];
     public $distributors = [];
 
+    protected function getBaseQuery()
+    {
+        $query = DB::table('master_distributors');
+        $user = auth()->user();
+        
+        if (!$user) {
+            $query->whereRaw('1 = 0');
+            return $query;
+        }
+        
+        if ($user->hasRole('admin')) {
+            return $query;
+        }
+
+        if (!empty($user->supervisor_code)) {
+            $query->leftJoin('team_elite_code_mappings as te', 'te.siso_code', '=', 'master_distributors.supervisor_code')
+                  ->where(function($q) use ($user) {
+                      $q->where('te.team_elite_code', $user->supervisor_code)
+                        ->orWhere('master_distributors.supervisor_code', $user->supervisor_code);
+                  });
+        } elseif (!empty($user->area_code)) {
+            $query->where('master_distributors.area_code', $user->area_code);
+        } elseif (!empty($user->region_code)) {
+            $regions = (array) $user->region_code;
+            if (!in_array('HOINA', $regions)) {
+                $query->whereIn('master_distributors.region_code', $regions);
+            }
+        }
+        
+        return $query;
+    }
+
     public function mount($appliedKuartal, $appliedRegion, $appliedArea, $appliedSupervisor, $appliedDistributor, $appliedStatusProgress, $appliedStatusSkb, $appliedStatusData, $appliedStatusReward)
     {
         // Load initial states from parent component
@@ -41,36 +73,42 @@ class FilterPencapaianrwo extends Component
         $this->statusData = $appliedStatusData;
         $this->statusReward = $appliedStatusReward;
 
-        $user = auth()->user();
-        
         $this->kuartals = DB::table('master_calender')->select('quarter')->whereNotNull('quarter')->distinct()->orderBy('quarter')->get();
         
-        $regionQuery = DB::table('master_regions')->orderBy('region_name');
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $regionQuery->whereIn('region_code', (array) $user->region_code);
-        }
-        $this->regions = $regionQuery->get();
+        $this->regions = $this->getBaseQuery()
+            ->select('master_distributors.region_code as region_code', 'master_distributors.region_name as region_name')
+            ->whereNotNull('master_distributors.region_code')
+            ->distinct()
+            ->orderBy('master_distributors.region_name')
+            ->get();
 
         // Restore cascading dependent options if there are pre-selected values
         if ($this->region) {
-            $this->areas = DB::table('master_areas')->where('region_code', $this->region)->orderBy('area_name')->get();
+            $this->areas = $this->getBaseQuery()
+                ->where('master_distributors.region_code', $this->region)
+                ->select('master_distributors.area_code as area_code', 'master_distributors.area_name as area_name')
+                ->whereNotNull('master_distributors.area_code')
+                ->distinct()
+                ->orderBy('master_distributors.area_name')
+                ->get();
         }
         if ($this->area) {
-            $this->supervisors = DB::table('master_distributors')
-                ->where('area_code', $this->area)
-                ->select('supervisor_code', 'supervisor_name')
-                ->whereNotNull('supervisor_code')
-                ->where('supervisor_code', '!=', '')
+            $this->supervisors = $this->getBaseQuery()
+                ->where('master_distributors.area_code', $this->area)
+                ->select('master_distributors.supervisor_code as supervisor_code', 'master_distributors.supervisor_name as supervisor_name')
+                ->whereNotNull('master_distributors.supervisor_code')
+                ->where('master_distributors.supervisor_code', '!=', '')
                 ->distinct()
-                ->orderBy('supervisor_name')
+                ->orderBy('master_distributors.supervisor_name')
                 ->get();
         }
         if ($this->supervisor) {
-            $this->distributors = DB::table('master_distributors')
-                ->where('supervisor_code', $this->supervisor)
-                ->when($this->area, fn($q) => $q->where('area_code', $this->area))
-                ->select('distributor_code', 'distributor_name')
-                ->orderBy('distributor_name')
+            $this->distributors = $this->getBaseQuery()
+                ->where('master_distributors.supervisor_code', $this->supervisor)
+                ->when($this->area, fn($q) => $q->where('master_distributors.area_code', $this->area))
+                ->select('master_distributors.distributor_code as distributor_code', 'master_distributors.distributor_name as distributor_name')
+                ->distinct()
+                ->orderBy('master_distributors.distributor_name')
                 ->get();
         }
     }
@@ -81,9 +119,12 @@ class FilterPencapaianrwo extends Component
         $this->supervisor = '';
         $this->distributor = '';
         
-        $this->areas = empty($value) ? [] : DB::table('master_areas')
-            ->where('region_code', $value)
-            ->orderBy('area_name')
+        $this->areas = empty($value) ? [] : $this->getBaseQuery()
+            ->where('master_distributors.region_code', $value)
+            ->select('master_distributors.area_code as area_code', 'master_distributors.area_name as area_name')
+            ->whereNotNull('master_distributors.area_code')
+            ->distinct()
+            ->orderBy('master_distributors.area_name')
             ->get();
             
         $this->supervisors = [];
@@ -95,13 +136,13 @@ class FilterPencapaianrwo extends Component
         $this->supervisor = '';
         $this->distributor = '';
         
-        $this->supervisors = empty($value) ? [] : DB::table('master_distributors')
-            ->where('area_code', $value)
-            ->select('supervisor_code', 'supervisor_name')
-            ->whereNotNull('supervisor_code')
-            ->where('supervisor_code', '!=', '')
+        $this->supervisors = empty($value) ? [] : $this->getBaseQuery()
+            ->where('master_distributors.area_code', $value)
+            ->select('master_distributors.supervisor_code as supervisor_code', 'master_distributors.supervisor_name as supervisor_name')
+            ->whereNotNull('master_distributors.supervisor_code')
+            ->where('master_distributors.supervisor_code', '!=', '')
             ->distinct()
-            ->orderBy('supervisor_name')
+            ->orderBy('master_distributors.supervisor_name')
             ->get();
             
         $this->distributors = [];
@@ -111,13 +152,14 @@ class FilterPencapaianrwo extends Component
     {
         $this->distributor = '';
         
-        $this->distributors = empty($value) ? [] : DB::table('master_distributors')
-            ->where('supervisor_code', $value)
+        $this->distributors = empty($value) ? [] : $this->getBaseQuery()
+            ->where('master_distributors.supervisor_code', $value)
             ->when($this->area, function ($q) {
-                return $q->where('area_code', $this->area);
+                return $q->where('master_distributors.area_code', $this->area);
             })
-            ->select('distributor_code', 'distributor_name')
-            ->orderBy('distributor_name')
+            ->select('master_distributors.distributor_code as distributor_code', 'master_distributors.distributor_name as distributor_name')
+            ->distinct()
+            ->orderBy('master_distributors.distributor_name')
             ->get();
     }
 

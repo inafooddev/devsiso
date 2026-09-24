@@ -96,16 +96,18 @@
     </style>
 @endpush
 
-@push('scripts')
+@assets
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
-    <script>
-        document.addEventListener('livewire:initialized', () => {
-            let map = null;
-            let hiddenColors = new Set();
-            let activePopup = null;
-            let currentFilters = {};
+@endassets
 
-            // Set up interactive legend click handlers
+@script
+    <script>
+        let map = null;
+        let hiddenColors = new Set();
+        let activePopup = null;
+        let currentFilters = {};
+
+        // Set up interactive legend click handlers
             document.querySelectorAll('.legend-item').forEach(item => {
                 item.addEventListener('click', (e) => {
                     const color = item.getAttribute('data-color');
@@ -240,7 +242,7 @@
                             .addTo(map);
 
                         try {
-                            const data = await @this.getStoreDetails(code);
+                            const data = await $wire.getStoreDetails(code);
                             
                             if (data) {
                                 const gapColor = data.is_gap_negative ? 'text-error' : 'text-success';
@@ -332,7 +334,7 @@
                 }
             }
 
-            Livewire.on('open-map-modal', (data) => {
+            $wire.on('open-map-modal', (data) => {
                 currentFilters = data.filters || (data[0] ? data[0].filters : {});
 
                 const mapModal = document.getElementById('map_modal');
@@ -367,6 +369,5 @@
                     }, 150);
                 }
             });
-        });
     </script>
-@endpush
+@endscript

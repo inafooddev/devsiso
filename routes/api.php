@@ -7,7 +7,8 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::get('/rwo/map-geojson', [\App\Http\Controllers\Api\RwoMapController::class, 'geojson']);
+Route::get('/rwo/map-geojson', [\App\Http\Controllers\Api\RwoMapController::class, 'geojson'])
+    ->middleware(['web', 'auth']);
 
 
 

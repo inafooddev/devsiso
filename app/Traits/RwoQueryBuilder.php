@@ -12,7 +12,13 @@ trait RwoQueryBuilder
     protected function applyAccessScope($query)
     {
         $user = auth()->user();
-        if (!$user || $user->hasRole('admin')) {
+        
+        if (!$user) {
+            $query->whereRaw('1 = 0');
+            return $query;
+        }
+
+        if ($user->hasRole('admin')) {
             return $query;
         }
 
