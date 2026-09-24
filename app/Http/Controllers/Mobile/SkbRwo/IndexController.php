@@ -68,21 +68,7 @@ class IndexController extends Controller
 
 
 
-        // Subquery agregasi tunggal untuk zv_so_per_toko_2026 (menggabungkan achievement, statistik transaksi, dan bulanan)
-        $zvCombined = DB::table('zv_so_per_toko_2026')
-            ->select(
-                'kd_dist', 
-                'uniq_kd', 
-                DB::raw('CAST(EXTRACT(QUARTER FROM bulan) AS INTEGER) as kuartal'),
-                DB::raw('SUM(neto) as total_achievement'),
-                DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 1 THEN neto ELSE 0 END) as month_1_value'),
-                DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 2 THEN neto ELSE 0 END) as month_2_value'),
-                DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 0 THEN neto ELSE 0 END) as month_3_value'),
-                DB::raw('MAX(neto) as max_transaction'),
-                DB::raw('AVG(neto) as avg_transaction'),
-                DB::raw('SUM(neto) as total_transaction')
-            )
-            ->groupBy('kd_dist', 'uniq_kd', DB::raw('CAST(EXTRACT(QUARTER FROM bulan) AS INTEGER)'));
+
 
         // 3. Data Plan Kunjungan (jks_team_elite)
         $queryPlan = DB::table('jks_team_elite as j')
@@ -103,15 +89,6 @@ class IndexController extends Controller
                      ->on('lp.distributor_code', '=', 'j.distributor_code')
                      ->on('lp.kuartal', '=', DB::raw($currentQuarter));
             })
-            ->leftJoinSub(
-                $zvCombined,
-                'zv',
-                function($join) use ($currentQuarter) {
-                    $join->on('zv.kd_dist', '=', 'j.distributor_code')
-                         ->on('zv.uniq_kd', '=', 'l.uniq_kd')
-                         ->on(DB::raw('zv.kuartal::text'), '=', DB::raw("'$currentQuarter'"));
-                }
-            )
             ->where('l.pilar', '1. RWO')
             ->select(
                 'j.tanggal',
@@ -141,13 +118,6 @@ class IndexController extends Controller
                     NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND
                     NULLIF(TRIM(r.foto_toko3), '') IS NOT NULL
                     THEN 'Lengkap' ELSE 'Belum' END AS status_data_lengkap"),
-                'zv.total_achievement',
-                'zv.month_1_value',
-                'zv.month_2_value',
-                'zv.month_3_value',
-                'zv.max_transaction',
-                'zv.avg_transaction',
-                'zv.total_transaction',
                 DB::raw("$currentQuarter as kuartal")
             );
 
@@ -162,15 +132,7 @@ class IndexController extends Controller
                      ->on('skb.kuartal', '=', 'l.kuartal');
             })
             ->leftJoin('list_toko_pareto_team_elite as lt', 'lt.uniq_kd', '=', 'l.customer_code')
-            ->leftJoinSub(
-                $zvCombined,
-                'zv',
-                function($join) {
-                    $join->on('zv.kd_dist', '=', 'l.distributor_code')
-                         ->on('zv.uniq_kd', '=', 'l.customer_code')
-                         ->on(DB::raw('zv.kuartal::text'), '=', DB::raw('l.kuartal::text'));
-                }
-            )
+            ->where('l.kuartal', $currentQuarter)
             ->select(
                 'l.*', 
                 'lt.customer_code_prc as customer_prc',
@@ -194,14 +156,7 @@ class IndexController extends Controller
                     NULLIF(TRIM(r.longitude), '') IS NOT NULL AND
                     NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND
                     NULLIF(TRIM(r.foto_toko3), '') IS NOT NULL
-                    THEN 'Lengkap' ELSE 'Belum' END AS status_data_lengkap"),
-                'zv.total_achievement',
-                'zv.month_1_value',
-                'zv.month_2_value',
-                'zv.month_3_value',
-                'zv.max_transaction',
-                'zv.avg_transaction',
-                'zv.total_transaction'
+                    THEN 'Lengkap' ELSE 'Belum' END AS status_data_lengkap")
             )
             ->distinct();
 
@@ -259,8 +214,67 @@ class IndexController extends Controller
         try {
             $listPlan = $queryPlan->get();
         } catch (\Exception $e) {
-            $listPlan = [];
+            $listPlan = collect([]);
         }
+
+        // --- OPTIMIZATION: Fetch Aggregated Transaction Data (ZV) Separately ---
+        $customerCodes = collect($listMonitoring)->pluck('customer_code')
+            ->merge(collect($listPlan)->pluck('customer_code'))
+            ->unique()->filter()->values()->toArray();
+
+        $distributorCodes = collect($listMonitoring)->pluck('distributor_code')
+            ->merge(collect($listPlan)->pluck('distributor_code'))
+            ->unique()->filter()->values()->toArray();
+
+        $zvData = [];
+        if (!empty($customerCodes) && !empty($distributorCodes)) {
+            $zvQuery = DB::table('zv_so_per_toko_2026')
+                ->whereRaw("CAST(EXTRACT(QUARTER FROM bulan) AS INTEGER) = ?", [$currentQuarter])
+                ->whereIn('kd_dist', $distributorCodes)
+                ->whereIn('uniq_kd', $customerCodes)
+                ->select(
+                    'kd_dist', 
+                    'uniq_kd', 
+                    DB::raw('SUM(neto) as total_achievement'),
+                    DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 1 THEN neto ELSE 0 END) as month_1_value'),
+                    DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 2 THEN neto ELSE 0 END) as month_2_value'),
+                    DB::raw('SUM(CASE WHEN EXTRACT(MONTH FROM bulan) % 3 = 0 THEN neto ELSE 0 END) as month_3_value'),
+                    DB::raw('MAX(neto) as max_transaction'),
+                    DB::raw('AVG(neto) as avg_transaction'),
+                    DB::raw('SUM(neto) as total_transaction')
+                )
+                ->groupBy('kd_dist', 'uniq_kd')
+                ->get();
+
+            foreach ($zvQuery as $zv) {
+                $zvData[$zv->kd_dist . '_' . $zv->uniq_kd] = $zv;
+            }
+        }
+
+        $mapZvData = function ($item) use ($zvData) {
+            $key = $item->distributor_code . '_' . $item->customer_code;
+            if (isset($zvData[$key])) {
+                $item->total_achievement = $zvData[$key]->total_achievement;
+                $item->month_1_value = $zvData[$key]->month_1_value;
+                $item->month_2_value = $zvData[$key]->month_2_value;
+                $item->month_3_value = $zvData[$key]->month_3_value;
+                $item->max_transaction = $zvData[$key]->max_transaction;
+                $item->avg_transaction = $zvData[$key]->avg_transaction;
+                $item->total_transaction = $zvData[$key]->total_transaction;
+            } else {
+                $item->total_achievement = 0;
+                $item->month_1_value = 0;
+                $item->month_2_value = 0;
+                $item->month_3_value = 0;
+                $item->max_transaction = 0;
+                $item->avg_transaction = 0;
+                $item->total_transaction = 0;
+            }
+            return $item;
+        };
+
+        $listMonitoring = collect($listMonitoring)->map($mapZvData)->values()->all();
+        $listPlan = collect($listPlan)->map($mapZvData)->values()->all();
 
         return Inertia::render('mobile/Pages/SkbRwo/Index', [
             'listPotensi' => $listPotensi,
