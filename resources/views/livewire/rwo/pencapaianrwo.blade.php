@@ -606,39 +606,83 @@
                     <div x-show="tab === 'so'" class="flex flex-col gap-4">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="card bg-success/10 border border-success/20 p-4 rounded-xl">
-                                <span class="text-xs font-bold uppercase tracking-wider text-success">Transaksi Maksimal</span>
+                                <span class="text-xs font-bold uppercase tracking-wider text-success">Omset Bulanan Tertinggi</span>
                                 <span class="text-xl font-bold font-mono mt-1">Rp {{ number_format($selectedStore->max_transaction ?? 0, 0, ',', '.') }}</span>
                             </div>
                             <div class="card bg-info/10 border border-info/20 p-4 rounded-xl">
-                                <span class="text-xs font-bold uppercase tracking-wider text-info">Rata-rata Transaksi</span>
+                                <span class="text-xs font-bold uppercase tracking-wider text-info">Rata-rata per Bulan</span>
                                 <span class="text-xl font-bold font-mono mt-1">Rp {{ number_format($selectedStore->avg_transaction ?? 0, 0, ',', '.') }}</span>
                             </div>
                             <div class="card bg-warning/10 border border-warning/20 p-4 rounded-xl">
-                                <span class="text-xs font-bold uppercase tracking-wider text-warning">Transaksi Terakhir</span>
+                                <span class="text-xs font-bold uppercase tracking-wider text-warning">Bulan Aktif Terakhir</span>
                                 <div class="flex flex-col mt-1">
                                     <span class="text-sm font-bold font-mono">Rp {{ number_format($selectedStore->last_transaction_value ?? 0, 0, ',', '.') }}</span>
-                                    <span class="text-[10px] opacity-70">{{ $selectedStore->last_transaction_date ? date('d-m-Y', strtotime($selectedStore->last_transaction_date)) : '-' }}</span>
+                                    <span class="text-xs opacity-80 mt-0.5">{{ $selectedStore->last_transaction_date ? \Carbon\Carbon::parse($selectedStore->last_transaction_date)->translatedFormat('F Y') : '-' }}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="card bg-base-200/50 p-4 rounded-xl border border-base-300">
-                            <h4 class="font-bold text-sm text-primary mb-3 uppercase tracking-wide">Grafik / Detail Target Bulanan</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div class="p-3 border rounded-lg bg-base-100 flex flex-col">
-                                    <span class="text-[10px] uppercase font-bold text-base-content/60">{{ $monthLabels[0] ?? 'Bulan 1' }}</span>
-                                    <span class="text-lg font-bold font-mono mt-1 text-base-content/90">Rp {{ number_format($selectedStore->month_1_value ?? 0, 0, ',', '.') }}</span>
-                                </div>
-                                <div class="p-3 border rounded-lg bg-base-100 flex flex-col">
-                                    <span class="text-[10px] uppercase font-bold text-base-content/60">{{ $monthLabels[1] ?? 'Bulan 2' }}</span>
-                                    <span class="text-lg font-bold font-mono mt-1 text-base-content/90">Rp {{ number_format($selectedStore->month_2_value ?? 0, 0, ',', '.') }}</span>
-                                </div>
-                                <div class="p-3 border rounded-lg bg-base-100 flex flex-col">
-                                    <span class="text-[10px] uppercase font-bold text-base-content/60">{{ $monthLabels[2] ?? 'Bulan 3' }}</span>
-                                    <span class="text-lg font-bold font-mono mt-1 text-base-content/90">Rp {{ number_format($selectedStore->month_3_value ?? 0, 0, ',', '.') }}</span>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <!-- CHART -->
+                            <div class="card bg-base-200/50 p-4 rounded-xl border border-base-300">
+                                <h4 class="font-bold text-sm text-primary mb-3 uppercase tracking-wide">Tren Tahun Berjalan</h4>
+                                <div class="flex items-end justify-between h-40 gap-1 mt-4">
+                                    @foreach($yearlyHistory as $data)
+                                        <div class="flex flex-col items-center justify-end w-full group relative h-full">
+                                            @if($data['value'] > 0)
+                                                @php $heightPercent = ($data['value'] / ($maxYearlyValue ?: 1)) * 100; @endphp
+                                                <div class="w-full bg-primary/70 hover:bg-primary transition-all duration-300 rounded-t-md" style="height: {{ $heightPercent }}%;"></div>
+                                                
+                                                <!-- Tooltip -->
+                                                <div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-neutral text-neutral-content text-xs px-2 py-1 rounded whitespace-nowrap z-10 transition-opacity pointer-events-none">
+                                                    Rp {{ number_format($data['value'], 0, ',', '.') }}
+                                                </div>
+                                            @else
+                                                <div class="w-full border-b-2 border-dashed border-base-content/30 mb-1" style="height: 0%;"></div>
+                                                <!-- Tooltip -->
+                                                <div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-neutral text-neutral-content text-xs px-2 py-1 rounded whitespace-nowrap z-10 transition-opacity pointer-events-none">
+                                                    Rp 0
+                                                </div>
+                                            @endif
+                                            <span class="text-[9px] mt-2 font-bold uppercase text-base-content/70 tracking-tighter">{{ $data['label'] }}</span>
+                                        </div>
+                                    @endforeach
                                 </div>
                             </div>
-                    </div>
+                            
+                            <!-- LEDGER -->
+                            <div class="card bg-base-200/50 p-4 rounded-xl border border-base-300 flex flex-col max-h-72">
+                                <h4 class="font-bold text-sm text-primary mb-3 uppercase tracking-wide shrink-0">Rincian Bulanan</h4>
+                                <div class="overflow-y-auto flex-1 pr-2">
+                                    <table class="table table-xs table-pin-rows table-zebra w-full">
+                                        <thead>
+                                            <tr>
+                                                <th>Periode</th>
+                                                <th class="text-right">Total Omset</th>
+                                                <th class="text-center">Tren</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach(array_reverse($yearlyHistory) as $data)
+                                            <tr>
+                                                <td class="font-medium whitespace-nowrap">{{ $data['full_label'] }}</td>
+                                                <td class="text-right font-mono text-[11px] whitespace-nowrap">Rp {{ number_format($data['value'], 0, ',', '.') }}</td>
+                                                <td class="text-center">
+                                                    @if($data['trend'] === 'up')
+                                                        <span class="text-success text-xs" title="Naik dari bulan sebelumnya">▲</span>
+                                                    @elseif($data['trend'] === 'down')
+                                                        <span class="text-error text-xs" title="Turun dari bulan sebelumnya">▼</span>
+                                                    @else
+                                                        <span class="text-base-content/50 text-xs" title="Stabil">-</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                 </div>
             </div> <!-- Close x-data container -->
 

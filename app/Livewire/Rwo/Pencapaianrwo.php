@@ -52,6 +52,10 @@ class Pencapaianrwo extends Component
     // Bubble chat properties
     public $newChatMessage = '';
     public $chatHistories = [];
+    
+    // Yearly history properties
+    public $yearlyHistory = [];
+    public $maxYearlyValue = 0;
 
     public function getSelectedStoreProperty()
     {
@@ -181,6 +185,7 @@ class Pencapaianrwo extends Component
             $this->remarkKhusus = $remarkData ? $remarkData->remark : '';
             
             $this->loadChats();
+            $this->loadYearlyHistory($customerCode, $distributorCode);
         }
     }
 
@@ -192,6 +197,8 @@ class Pencapaianrwo extends Component
         $this->remarkKhusus = '';
         $this->newChatMessage = '';
         $this->chatHistories = [];
+        $this->yearlyHistory = [];
+        $this->maxYearlyValue = 0;
     }
 
     public function saveRemarkKhusus()
@@ -242,6 +249,72 @@ class Pencapaianrwo extends Component
             $this->newChatMessage = '';
             $this->loadChats();
         }
+    }
+
+    public function loadYearlyHistory($customerCode, $distributorCode)
+    {
+        $this->yearlyHistory = [];
+        $this->maxYearlyValue = 0;
+
+        $months = [];
+        $currentYear = \Carbon\Carbon::now()->year;
+        $currentMonth = \Carbon\Carbon::now()->month;
+        
+        for ($i = 1; $i <= $currentMonth; $i++) {
+            $date = \Carbon\Carbon::create($currentYear, $i, 1);
+            $months[$date->format('Y-m-d')] = [
+                'label' => $date->translatedFormat('M'), 
+                'full_label' => $date->translatedFormat('F Y'),
+                'value' => 0,
+                'status' => 'Dormant',
+                'trend' => 'down' 
+            ];
+        }
+
+        $startDate = \Carbon\Carbon::create($currentYear, 1, 1)->format('Y-m-d');
+        $endDate = \Carbon\Carbon::now()->endOfMonth()->format('Y-m-d');
+
+        $transactions = DB::table('zv_so_per_toko_2026')
+            ->select('bulan', DB::raw('SUM(neto) as total_omset'))
+            ->where('kd_dist', $distributorCode)
+            ->where('uniq_kd', $customerCode)
+            ->whereBetween('bulan', [$startDate, $endDate])
+            ->groupBy('bulan')
+            ->orderBy('bulan', 'asc')
+            ->get();
+
+        foreach ($transactions as $txn) {
+            $monthKey = \Carbon\Carbon::parse($txn->bulan)->startOfMonth()->format('Y-m-d');
+            if (isset($months[$monthKey])) {
+                $months[$monthKey]['value'] = (float) $txn->total_omset;
+                $months[$monthKey]['status'] = 'Aktif';
+            }
+        }
+
+        $prevValue = null;
+        $maxVal = 0;
+        foreach ($months as $key => &$data) {
+            if ($data['value'] > $maxVal) {
+                $maxVal = $data['value'];
+            }
+
+            if ($prevValue !== null) {
+                if ($data['value'] > $prevValue) {
+                    $data['trend'] = 'up';
+                } elseif ($data['value'] < $prevValue) {
+                    $data['trend'] = 'down';
+                } else {
+                    $data['trend'] = 'flat';
+                }
+            } else {
+                $data['trend'] = 'flat';
+            }
+            $prevValue = $data['value'];
+        }
+
+        $this->maxYearlyValue = $maxVal;
+        // Keep it chronological.
+        $this->yearlyHistory = array_values($months); 
     }
 
     public function getProratedData($target, $row, $kuartalStr)
