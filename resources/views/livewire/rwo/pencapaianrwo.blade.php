@@ -350,7 +350,7 @@
     @if($isDetailModalOpen && $this->selectedStore)
         @php $selectedStore = $this->selectedStore; @endphp
         <div class="modal modal-open" wire:key="detail-modal-{{ $selectedStore->customer_code ?? '1' }}">
-            <div class="modal-box w-11/12 max-w-4xl bg-base-100 rounded-2xl relative p-6 flex flex-col max-h-[90vh]">
+            <div class="modal-box w-11/12 max-w-7xl bg-base-100 rounded-2xl relative p-6 flex flex-col max-h-[90vh]">
                 <button type="button" wire:click="closeDetailModal" class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4">✕</button>
                 
                 @php
@@ -408,7 +408,7 @@
                     </div>
 
                     {{-- TAB 1: Informasi --}}
-                    <div x-show="tab === 'info'" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div x-show="tab === 'info'" class="grid grid-cols-1 lg:grid-cols-3 md:grid-cols-2 gap-6">
                         <div class="flex flex-col gap-4">
                             <div class="card bg-base-200/50 p-4 rounded-xl border border-base-300">
                                 <h4 class="font-bold text-sm text-primary mb-3 uppercase tracking-wide">Profil Toko</h4>
@@ -555,6 +555,46 @@
                                         <button type="button" wire:click="saveRemarkKhusus" class="btn btn-primary btn-sm">
                                             <span wire:loading wire:target="saveRemarkKhusus" class="loading loading-spinner loading-xs"></span>
                                             Simpan Remark
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Chat Column (3rd Column) --}}
+                        <div class="flex flex-col gap-4">
+                            <div class="card bg-base-200/50 p-0 rounded-xl border border-base-300 flex flex-col h-full max-h-[600px] overflow-hidden">
+                                <div class="bg-base-300/50 p-3 border-b border-base-300 flex items-center justify-between shrink-0">
+                                    <h4 class="font-bold text-sm text-primary uppercase tracking-wide">Diskusi Tim</h4>
+                                </div>
+                                
+                                <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2" id="chat-container">
+                                    @forelse($chatHistories as $chat)
+                                        @php
+                                            $isMe = $chat->user_id === auth()->id();
+                                        @endphp
+                                        <div class="chat {{ $isMe ? 'chat-end' : 'chat-start' }}">
+                                            <div class="chat-header text-xs opacity-70 mb-1">
+                                                {{ $isMe ? 'Anda' : ($chat->user->name ?? 'User') }}
+                                            </div>
+                                            <div class="chat-bubble {{ $isMe ? 'chat-bubble-primary' : '' }} text-sm shadow-sm whitespace-pre-wrap">{{ $chat->message }}</div>
+                                            <div class="chat-footer opacity-50 text-[10px] mt-1">
+                                                {{ $chat->created_at->format('H:i, d M') }}
+                                            </div>
+                                        </div>
+                                    @empty
+                                        <div class="flex flex-col items-center justify-center h-full opacity-50">
+                                            <x-heroicon-o-chat-bubble-left-right class="w-8 h-8 mb-2" />
+                                            <span class="text-xs">Belum ada diskusi</span>
+                                        </div>
+                                    @endforelse
+                                </div>
+
+                                <div class="p-3 bg-base-200 border-t border-base-300 shrink-0">
+                                    <div class="flex gap-2">
+                                        <textarea wire:model="newChatMessage" wire:keydown.enter="sendChat" class="textarea textarea-bordered textarea-sm w-full h-10 min-h-10 resize-none" placeholder="Ketik pesan (Enter untuk kirim)..."></textarea>
+                                        <button type="button" wire:click="sendChat" class="btn btn-primary btn-sm h-10" title="Kirim">
+                                            <x-heroicon-s-paper-airplane class="w-4 h-4" />
                                         </button>
                                     </div>
                                 </div>

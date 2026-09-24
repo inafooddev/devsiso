@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use App\Traits\EnforcesMenuPermissions;
 use App\Traits\RwoQueryBuilder;
 use App\Models\RemarkListPotensiRwo;
+use App\Models\StoreRemarkChat;
 
 class Pencapaianrwo extends Component
 {
@@ -47,6 +48,10 @@ class Pencapaianrwo extends Component
     public $selectedDistributorCode = null;
     public $isDetailModalOpen = false;
     public $remarkKhusus = '';
+    
+    // Bubble chat properties
+    public $newChatMessage = '';
+    public $chatHistories = [];
 
     public function getSelectedStoreProperty()
     {
@@ -174,6 +179,8 @@ class Pencapaianrwo extends Component
                 ->first();
             
             $this->remarkKhusus = $remarkData ? $remarkData->remark : '';
+            
+            $this->loadChats();
         }
     }
 
@@ -183,6 +190,8 @@ class Pencapaianrwo extends Component
         $this->selectedCustomerCode = null;
         $this->selectedDistributorCode = null;
         $this->remarkKhusus = '';
+        $this->newChatMessage = '';
+        $this->chatHistories = [];
     }
 
     public function saveRemarkKhusus()
@@ -200,6 +209,38 @@ class Pencapaianrwo extends Component
             );
             
             session()->flash('success', 'Remark khusus berhasil disimpan!');
+        }
+    }
+
+    public function loadChats()
+    {
+        if ($this->selectedCustomerCode && $this->selectedDistributorCode) {
+            $this->chatHistories = StoreRemarkChat::with('user')
+                ->where('kuartal', (string)$this->appliedKuartal)
+                ->where('distributor_code', $this->selectedDistributorCode)
+                ->where('customer_code', $this->selectedCustomerCode)
+                ->orderBy('created_at', 'asc')
+                ->get();
+        }
+    }
+
+    public function sendChat()
+    {
+        if (trim($this->newChatMessage) === '') {
+            return;
+        }
+
+        if ($this->selectedCustomerCode && $this->selectedDistributorCode) {
+            StoreRemarkChat::create([
+                'kuartal' => (string)$this->appliedKuartal,
+                'distributor_code' => $this->selectedDistributorCode,
+                'customer_code' => $this->selectedCustomerCode,
+                'user_id' => auth()->id(),
+                'message' => trim($this->newChatMessage),
+            ]);
+
+            $this->newChatMessage = '';
+            $this->loadChats();
         }
     }
 
