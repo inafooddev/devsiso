@@ -140,16 +140,21 @@ class Index extends Component
             });
         }
 
-        // Apply access level restrictions if region/area is not selected
+        // Apply access level restrictions — ALWAYS enforced regardless of filter selection
+        // This prevents bypass via URL/state manipulation
         $user = auth()->user();
         $accessLevel = $user->getAccessLevel();
-        if ($accessLevel === 'region' && empty($this->appliedRegion)) {
+        if ($accessLevel === 'region') {
+            // Region user can only see their own region(s), filter overrides are ignored
             $query->whereIn('mr.region_code', (array) $user->region_code);
-        } elseif ($accessLevel === 'area' && empty($this->appliedArea)) {
+        } elseif ($accessLevel === 'area') {
+            // Area user can only see their own area(s)
             $query->whereIn('ma.area_code', (array) $user->area_code);
         } elseif ($accessLevel === 'supervisor') {
+            // Supervisor user can only see their own data
             $query->where('te.team_elite_code', $user->supervisor_code);
         }
+        // 'nasional' level has no restriction
 
         $rawData = $query->select(
             'mr.region_name',

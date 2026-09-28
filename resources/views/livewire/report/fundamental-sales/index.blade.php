@@ -107,7 +107,9 @@
                 <div class="flex items-center gap-2">
                     <input type="text" wire:model="search" wire:keydown.enter="applyFilter" placeholder="Cari Supervisor..." class="input input-sm input-bordered rounded-xl bg-base-100 w-[160px] xl:w-[200px]" />
                     <x-ui.button class="rounded-xl" variant="primary" icon="magnifying-glass" size="sm" wire:click="applyFilter" spinner="applyFilter">Terapkan</x-ui.button>
+                    @canImport('report.fundamental-sales.index')
                     <x-ui.button class="rounded-xl" variant="outline" icon="arrows-up-down" size="sm" onclick="document.getElementById('export_import_modal').showModal()">Export/Import Data</x-ui.button>
+                    @endcanImport
                 </div>
             </div>
         </div>
@@ -177,9 +179,11 @@
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-3">
+                                    @canExport('report.fundamental-sales.index')
                                     <a href="{{ route('report.fundamental-sales.export', ['supervisorCode' => $spvCode, 'year' => $appliedYear]) }}" target="_blank" class="btn btn-sm btn-ghost btn-circle hover:bg-success/20 text-base-content/70 hover:text-success transition-colors" title="Export Excel" @click.stop>
                                         <x-heroicon-o-document-arrow-down class="w-5 h-5" />
                                     </a>
+                                    @endcanExport
                                     <x-heroicon-o-chevron-down class="w-5 h-5 transition-transform duration-300 text-base-content/50" x-bind:class="expanded ? 'rotate-180' : ''" />
                                 </div>
                             </div>
@@ -213,13 +217,15 @@
         </div>
     </div>
 
-    {{-- Export / Import Modal --}}
+    {{-- Export / Import Modal — hanya tampil jika user punya akses can_import --}}
+    @canImport('report.fundamental-sales.index')
     <dialog id="export_import_modal" class="modal modal-bottom sm:modal-middle" wire:ignore.self>
         <div class="modal-box bg-base-100">
             <h3 class="font-bold text-lg mb-4 text-base-content"><i class="fa-solid fa-arrows-up-down mr-2"></i> Export / Import Data Mentah</h3>
             
             <div class="space-y-6">
                 <!-- Export Section -->
+                @canExport('report.fundamental-sales.index')
                 <div class="p-4 border border-base-300 rounded-xl bg-base-200/50">
                     <h4 class="font-semibold text-sm mb-3">1. Export Data (Download)</h4>
                     <p class="text-xs text-base-content/70 mb-3">Pilih bulan data yang ingin di-download untuk diisi/diubah secara manual di Excel.</p>
@@ -233,12 +239,12 @@
                         </x-ui.button>
                     </div>
                 </div>
-
                 <div class="divider text-xs text-base-content/50">KEMUDIAN</div>
+                @endcanExport
 
                 <!-- Import Section -->
                 <div class="p-4 border border-base-300 rounded-xl bg-base-200/50">
-                    <h4 class="font-semibold text-sm mb-3">2. Import Data (Upload)</h4>
+                    <h4 class="font-semibold text-sm mb-3">Import Data (Upload)</h4>
                     <p class="text-xs text-base-content/70 mb-3">Unggah kembali file Excel yang telah diisi. Data yang sudah ada di bulan & cabang tersebut akan tertimpa otomatis.</p>
                     
                     <div class="flex items-start gap-2">
@@ -263,4 +269,5 @@
             <button>close</button>
         </form>
     </dialog>
+    @endcanImport
 </div>

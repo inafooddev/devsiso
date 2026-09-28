@@ -107,7 +107,9 @@
                 <div class="flex items-center gap-2">
                     <input type="text" wire:model="search" wire:keydown.enter="applyFilter" placeholder="Cari Supervisor..." class="input input-sm input-bordered rounded-xl bg-base-100 w-[160px] xl:w-[200px]" />
                     <x-ui.button class="rounded-xl" variant="primary" icon="magnifying-glass" size="sm" wire:click="applyFilter" spinner="applyFilter">Terapkan</x-ui.button>
+                    @canImport('report.fundamental-sales-hierarchy.index')
                     <x-ui.button class="rounded-xl" variant="outline" icon="arrows-up-down" size="sm" onclick="document.getElementById('export_import_modal').showModal()">Export/Import Data</x-ui.button>
+                    @endcanImport
                 </div>
             </div>
         </div>
@@ -141,8 +143,14 @@
                     <p class="text-sm font-medium">Belum ada data. Silakan atur filter dan klik Terapkan.</p>
                 </div>
             @else
+                @php
+                    $accessLevel = auth()->user()->getAccessLevel();
+                    $showRegion = in_array($accessLevel, ['nasional', 'region']);
+                    $showArea = in_array($accessLevel, ['nasional', 'region', 'area']);
+                @endphp
                 <div class="space-y-4">
                     @foreach($data as $regionName => $regionData)
+                        @if($showRegion)
                         <div x-data="{ openRegion: false }" class="bg-base-100 border border-base-300 rounded-xl shadow-sm overflow-hidden mb-4">
                             <div @click="openRegion = !openRegion" class="px-4 py-3 bg-neutral text-neutral-content cursor-pointer flex justify-between items-center hover:bg-neutral/80 transition-colors">
                                 <div class="flex items-center gap-3">
@@ -167,8 +175,11 @@
                                 @include('livewire.report.fundamental-sales-hierarchy.matrix-table', ['nodeData' => $regionData])
                                 
                                 <div class="mt-4 space-y-4 pl-4 border-l-2 border-base-300">
+                        @endif
+
                                     @foreach($regionData['children'] as $areaName => $areaData)
-                                        <div x-data="{ openArea: false }" class="bg-base-100 border border-base-300 rounded-lg overflow-hidden">
+                                        @if($showArea)
+                                        <div x-data="{ openArea: false }" class="bg-base-100 border border-base-300 rounded-lg overflow-hidden {{ !$showRegion ? 'mb-4 shadow-sm' : '' }}">
                                             <div @click="openArea = !openArea" class="px-4 py-2 bg-base-200 cursor-pointer flex justify-between items-center hover:bg-base-300 transition-colors">
                                                 <div class="flex items-center gap-2">
                                                     <div class="badge badge-secondary badge-sm font-bold">A</div>
@@ -186,8 +197,10 @@
                                                 @include('livewire.report.fundamental-sales-hierarchy.matrix-table', ['nodeData' => $areaData])
                                                 
                                                 <div class="mt-4 space-y-3 pl-4 border-l-2 border-base-200">
+                                        @endif
+
                                                     @foreach($areaData['children'] as $spvCode => $spvData)
-                                                        <div x-data="{ openSpv: false }" class="bg-base-100 border border-base-200 rounded-lg overflow-hidden">
+                                                        <div x-data="{ openSpv: false }" class="bg-base-100 border border-base-200 rounded-lg overflow-hidden {{ !$showArea ? 'mb-4 shadow-sm' : '' }}">
                                                             <div @click="openSpv = !openSpv" class="px-3 py-2 bg-base-100 cursor-pointer flex justify-between items-center hover:bg-base-200 transition-colors">
                                                                 <div class="flex items-center gap-2">
                                                                     <div class="badge badge-accent badge-sm font-bold">S</div>
@@ -224,26 +237,34 @@
                                                             </div>
                                                         </div>
                                                     @endforeach
+
+                                        @if($showArea)
                                                 </div>
                                             </div>
                                         </div>
+                                        @endif
                                     @endforeach
+
+                        @if($showRegion)
                                 </div>
                             </div>
                         </div>
+                        @endif
                     @endforeach
                 </div>
             @endif
         </div>
     </div>
 
-    {{-- Export / Import Modal --}}
+    {{-- Export / Import Modal — hanya tampil jika user punya akses can_import --}}
+    @canImport('report.fundamental-sales-hierarchy.index')
     <dialog id="export_import_modal" class="modal modal-bottom sm:modal-middle" wire:ignore.self>
         <div class="modal-box bg-base-100">
             <h3 class="font-bold text-lg mb-4 text-base-content"><i class="fa-solid fa-arrows-up-down mr-2"></i> Export / Import Data Mentah</h3>
             
             <div class="space-y-6">
                 <!-- Export Section -->
+                @canExport('report.fundamental-sales-hierarchy.index')
                 <div class="p-4 border border-base-300 rounded-xl bg-base-200/50">
                     <h4 class="font-semibold text-sm mb-3">1. Export Data (Download)</h4>
                     <p class="text-xs text-base-content/70 mb-3">Pilih bulan data yang ingin di-download untuk diisi/diubah secara manual di Excel.</p>
@@ -257,12 +278,12 @@
                         </x-ui.button>
                     </div>
                 </div>
-
                 <div class="divider text-xs text-base-content/50">KEMUDIAN</div>
+                @endcanExport
 
                 <!-- Import Section -->
                 <div class="p-4 border border-base-300 rounded-xl bg-base-200/50">
-                    <h4 class="font-semibold text-sm mb-3">2. Import Data (Upload)</h4>
+                    <h4 class="font-semibold text-sm mb-3">Import Data (Upload)</h4>
                     <p class="text-xs text-base-content/70 mb-3">Unggah kembali file Excel yang telah diisi. Data yang sudah ada di bulan & cabang tersebut akan tertimpa otomatis.</p>
                     
                     <div class="flex items-start gap-2">
@@ -287,4 +308,5 @@
             <button>close</button>
         </form>
     </dialog>
+    @endcanImport
 </div>

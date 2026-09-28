@@ -74,6 +74,9 @@ class SyncFundamentalSalesMasterJob implements ShouldQueue
 
             // STEP 12
             SyncFundamentalSalesStep12Job::dispatchSync($this->batchId, $this->bulan);
+
+            // STEP 13
+            SyncFundamentalSalesStep13Job::dispatchSync($this->batchId, $this->bulan);
             
             $this->logMessage($batch, 'success', "🎉 Seluruh proses Fundamental Sales selesai dengan sukses.");
             if ($batch) $batch->update(['status' => 'completed']);
