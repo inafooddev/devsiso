@@ -52,13 +52,11 @@
                         <th rowspan="2" class="sticky top-0 left-0 z-30 bg-base-300 h-10 border-r border-base-200 min-w-[250px] align-middle border-b border-base-300">Info Distributor</th>
                         
                         {{-- HEADER P1 TOP --}}
-                        <th colspan="5" class="sticky top-0 z-20 bg-base-300 h-10 text-center border-r border-base-200 align-middle">Periode 1 (Jan-Jun)</th>
+                        <th colspan="5" class="sticky top-0 z-20 bg-base-300 h-10 text-center border-r border-base-200 align-middle">Periode 1</th>
                         
                         {{-- HEADER P2 TOP --}}
-                        <th colspan="5" class="sticky top-0 z-20 bg-base-300 h-10 text-center border-r border-base-200 align-middle">Periode 2 (Jul-Des)</th>
+                        <th colspan="5" class="sticky top-0 z-20 bg-base-300 h-10 text-center border-r border-base-200 align-middle">Periode 2</th>
                         
-                        {{-- CORNER TOP-RIGHT (Rowspan 2) --}}
-                        <th rowspan="2" class="sticky top-0 right-0 z-30 bg-base-300 h-10 text-right shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] align-middle border-b border-base-300">Total Reward</th>
                     </tr>
                     <tr>
                         {{-- ROW 2 P1 --}}
@@ -90,7 +88,14 @@
                                     </button>
                                     <div class="flex-1">
                                         @if($row['distributor'] !== '-')
-                                            <div class="font-bold text-primary">{{ $row['distributor'] }}</div>
+                                            <div class="flex items-center gap-2">
+                                                <div class="font-bold text-primary">{{ $row['distributor'] }}</div>
+                                                @canEdit('monitoring-reward-distributor')
+                                                <button wire:click="openSettingsModal('{{ $row['distributor_code'] }}', '{{ addslashes($row['distributor']) }}')" class="btn btn-xs btn-ghost btn-circle text-base-content/50 hover:text-primary" title="Pengaturan Bulan P1 & P2">
+                                                    <x-heroicon-s-cog-8-tooth class="w-4 h-4" />
+                                                </button>
+                                                @endcanEdit
+                                            </div>
                                             <div class="text-[10px] text-base-content/60 font-semibold mt-0.5">
                                                 {{ $row['region'] }} &bull; {{ $row['area'] }}<br>
                                                 <span class="text-base-content/80">{{ $row['cabang'] }}</span>
@@ -236,19 +241,6 @@
                                     @endif
                                 @else
                                     <div class="text-base-content/30 italic text-sm">Tidak Capai</div>
-                                @endif
-                            </td>
-
-                            {{-- ================= TOTAL ================= --}}
-                            <td class="text-center font-bold sticky right-0 {{ $loop->even ? 'bg-base-200' : 'bg-base-100' }} group-hover:bg-base-200/50 transition-colors shadow-[inset_1px_0_0_rgba(0,0,0,0.02)] border-l border-base-300 z-10 align-middle px-4">
-                                @if($row['p1']['is_target_achieved'] && $row['p2']['is_target_achieved'])
-                                    <span class="text-success text-sm">Capai P1 & P2</span>
-                                @elseif($row['p1']['is_target_achieved'])
-                                    <span class="text-primary text-sm">Capai P1 Saja</span>
-                                @elseif($row['p2']['is_target_achieved'])
-                                    <span class="text-primary text-sm">Capai P2 Saja</span>
-                                @else
-                                    <span class="text-base-content/30 italic text-sm">-</span>
                                 @endif
                             </td>
                         </tr>
@@ -438,6 +430,69 @@
             </div>
         </div>
     @endif
+
+    {{-- Settings Modal --}}
+    @if($isSettingsModalOpen)
+    <div class="fixed inset-0 z-[100] flex items-center justify-center">
+        <div class="fixed inset-0 bg-base-100/50 backdrop-blur-sm" wire:click="closeSettingsModal"></div>
+        <div class="bg-base-100 rounded-xl shadow-2xl border border-base-300 w-full max-w-2xl z-10 overflow-hidden flex flex-col mx-4">
+            <div class="p-4 border-b border-base-200 bg-base-200/50 flex justify-between items-center shrink-0">
+                <h3 class="font-bold text-lg">Pengaturan Bulan Evaluasi: <span class="text-primary">{{ $settingDistributorName }}</span></h3>
+                <button wire:click="closeSettingsModal" class="btn btn-sm btn-ghost btn-circle"><x-heroicon-s-x-mark class="w-5 h-5"/></button>
+            </div>
+            
+            <div class="p-4 sm:p-6 overflow-y-auto max-h-[60vh] space-y-6">
+                <div class="alert alert-info shadow-sm text-sm p-3">
+                    <x-heroicon-s-information-circle class="w-5 h-5"/>
+                    <span>Centang bulan yang ingin dihitung ke dalam masing-masing periode. Jika tidak ada yang dicentang, data tidak akan terhitung.</span>
+                </div>
+                
+                @php
+                    $months = [
+                        1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'Mei', 6 => 'Jun',
+                        7 => 'Jul', 8 => 'Ags', 9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des'
+                    ];
+                @endphp
+
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="font-bold mb-2">Periode 1</h4>
+                        <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                            @foreach($months as $num => $name)
+                            <label class="flex items-center gap-2 cursor-pointer bg-base-200/50 p-2 rounded-lg hover:bg-base-200 transition-colors">
+                                <input type="checkbox" wire:model="selectedMonthsP1" value="{{ $num }}" class="checkbox checkbox-sm checkbox-primary" />
+                                <span class="text-sm font-semibold">{{ $name }}</span>
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+                    
+                    <div class="divider my-1"></div>
+
+                    <div>
+                        <h4 class="font-bold mb-2">Periode 2</h4>
+                        <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                            @foreach($months as $num => $name)
+                            <label class="flex items-center gap-2 cursor-pointer bg-base-200/50 p-2 rounded-lg hover:bg-base-200 transition-colors">
+                                <input type="checkbox" wire:model="selectedMonthsP2" value="{{ $num }}" class="checkbox checkbox-sm checkbox-primary" />
+                                <span class="text-sm font-semibold">{{ $name }}</span>
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-base-200 bg-base-200/50 flex justify-end gap-3 shrink-0">
+                <button wire:click="closeSettingsModal" class="btn btn-outline">Batal</button>
+                <button wire:click="saveSettings" class="btn btn-primary" wire:loading.class="loading">
+                    <x-heroicon-s-check class="w-4 h-4 hidden sm:block" /> Simpan
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
 
     {{-- Script untuk Auto Reload Halaman --}}
     @script

@@ -23,6 +23,18 @@ class MonitoringRewardDistributor extends Component
     public $importMonth;
     public $importFile;
 
+    // Settings Modal State
+    public $settingDistributorCode = null;
+    public $settingDistributorName = null;
+    public $isSettingsModalOpen = false;
+    public $selectedMonthsP1 = [];
+    public $selectedMonthsP2 = [];
+
+    public function mount()
+    {
+        // No global settings loaded on mount
+    }
+
     public function toggleExpand($distributorCode)
     {
         if ($this->expandedDistributor === $distributorCode) {
@@ -142,12 +154,51 @@ class MonitoringRewardDistributor extends Component
         });
     }
 
+    public function saveSettings()
+    {
+        if (!auth()->user()->hasMenuAccess(request()->route()->getName(), 'can_edit')) {
+            abort(403);
+        }
+
+        \App\Models\RewardDistributorSetting::updateOrCreate(
+            ['distributor_code' => $this->settingDistributorCode],
+            [
+                'p1_months' => array_map('intval', $this->selectedMonthsP1),
+                'p2_months' => array_map('intval', $this->selectedMonthsP2)
+            ]
+        );
+
+        \Illuminate\Support\Facades\Artisan::call('cache:clear');
+        $this->isSettingsModalOpen = false;
+        
+        $this->dispatch('page-reload');
+    }
+
+    public function openSettingsModal($distributorCode, $distributorName)
+    {
+        $this->settingDistributorCode = $distributorCode;
+        $this->settingDistributorName = $distributorName;
+        
+        $setting = \App\Models\RewardDistributorSetting::where('distributor_code', $distributorCode)->first();
+        $this->selectedMonthsP1 = $setting && $setting->p1_months ? $setting->p1_months : [1,2,3,4,5,6];
+        $this->selectedMonthsP2 = $setting && $setting->p2_months ? $setting->p2_months : [1,2,3,4,5,6,7,8,9,10,11,12];
+        
+        $this->isSettingsModalOpen = true;
+    }
+
+    public function closeSettingsModal()
+    {
+        $this->isSettingsModalOpen = false;
+    }
+
     public function render()
     {
         $year = 2026; // Hardcode or get from request
 
         $user = auth()->user();
         $userId = $user ? $user->id : 'guest';
+        
+        // Settings are now per-distributor, so we don't pass global settings to the cache closure
         
         $sortedData = Cache::remember("monitoring_reward_main_{$year}_uid_{$userId}", 300, function () use ($year, $user) {
             // Get all active distributors with Role Based Access Control
@@ -190,24 +241,30 @@ class MonitoringRewardDistributor extends Component
             $cabangs = $validDistributors->pluck('branch_name')->unique()->toArray();
             $distributorCodes = $validDistributors->pluck('distributor_code')->unique()->toArray();
 
-            $startP1 = "{$year}-01-01";
-            $endP1 = "{$year}-06-30";
-            $startP2 = "{$year}-01-01";
-            $endP2 = "{$year}-12-31";
+            // Load all settings
+            $distSettingsMap = \App\Models\RewardDistributorSetting::whereIn('distributor_code', $distributorCodes)->get()->keyBy('distributor_code');
 
-            // --- BULK QUERIES P1 ---
-            $targetP1Map = DB::table('target_per_depo')->selectRaw('cabang, sum(target) as total')->whereIn('cabang', $cabangs)->where('reg_fest', 'REG')->whereBetween('bulan', [$startP1, $endP1])->groupBy('cabang')->pluck('total', 'cabang');
-            $sellInP1Map = DB::table('selling_in')->selectRaw('kd_distributor, sum(value_net) as total')->whereIn('kd_distributor', $distributorCodes)->where('reg_fes', 'REG')->whereBetween('bulan', [$startP1, $endP1])->groupBy('kd_distributor')->pluck('total', 'kd_distributor');
-            $sellOutP1Map = DB::table('t_sellingout')->selectRaw('"KDDIST", sum("NETT") as total')->whereIn('KDDIST', $distributorCodes)->where('REG_FEST', 'REG')->whereRaw('CAST("THN" AS INTEGER) = ?', [$year])->whereRaw('CAST("BLN" AS INTEGER) BETWEEN 1 AND 6')->groupBy('KDDIST')->pluck('total', 'KDDIST');
-            $stockP1Map = DB::table('reward_dist_ar_stock')->selectRaw('distributor_code, avg(stock) as average')->whereIn('distributor_code', $distributorCodes)->whereBetween('bulan', [$startP1, $endP1])->groupBy('distributor_code')->pluck('average', 'distributor_code');
-            $arCountP1Map = DB::table('reward_dist_ar_stock')->selectRaw('distributor_code, count(*) as total')->whereIn('distributor_code', $distributorCodes)->whereBetween('bulan', [$startP1, $endP1])->where('ar', '>', 7)->groupBy('distributor_code')->pluck('total', 'distributor_code');
+            // --- BULK QUERIES 12 MONTHS ---
+            // Target
+            $targetRaw = DB::table('target_per_depo')->selectRaw('cabang, EXTRACT(MONTH FROM bulan) as m, sum(target) as total')->whereIn('cabang', $cabangs)->where('reg_fest', 'REG')->whereYear('bulan', $year)->groupBy('cabang', DB::raw('EXTRACT(MONTH FROM bulan)'))->get();
+            $mTarget = []; foreach ($targetRaw as $r) { $mTarget[$r->cabang][$r->m] = $r->total; }
+            
+            // Sell In
+            $sellInRaw = DB::table('selling_in')->selectRaw('kd_distributor, EXTRACT(MONTH FROM bulan) as m, sum(value_net) as total')->whereIn('kd_distributor', $distributorCodes)->where('reg_fes', 'REG')->whereYear('bulan', $year)->groupBy('kd_distributor', DB::raw('EXTRACT(MONTH FROM bulan)'))->get();
+            $mSellIn = []; foreach ($sellInRaw as $r) { $mSellIn[$r->kd_distributor][$r->m] = $r->total; }
 
-            // --- BULK QUERIES P2 ---
-            $targetP2Map = DB::table('target_per_depo')->selectRaw('cabang, sum(target) as total')->whereIn('cabang', $cabangs)->where('reg_fest', 'REG')->whereBetween('bulan', [$startP2, $endP2])->groupBy('cabang')->pluck('total', 'cabang');
-            $sellInP2Map = DB::table('selling_in')->selectRaw('kd_distributor, sum(value_net) as total')->whereIn('kd_distributor', $distributorCodes)->where('reg_fes', 'REG')->whereBetween('bulan', [$startP2, $endP2])->groupBy('kd_distributor')->pluck('total', 'kd_distributor');
-            $sellOutP2Map = DB::table('t_sellingout')->selectRaw('"KDDIST", sum("NETT") as total')->whereIn('KDDIST', $distributorCodes)->where('REG_FEST', 'REG')->whereRaw('CAST("THN" AS INTEGER) = ?', [$year])->whereRaw('CAST("BLN" AS INTEGER) BETWEEN 1 AND 12')->groupBy('KDDIST')->pluck('total', 'KDDIST');
-            $stockP2Map = DB::table('reward_dist_ar_stock')->selectRaw('distributor_code, avg(stock) as average')->whereIn('distributor_code', $distributorCodes)->whereBetween('bulan', [$startP2, $endP2])->groupBy('distributor_code')->pluck('average', 'distributor_code');
-            $arCountP2Map = DB::table('reward_dist_ar_stock')->selectRaw('distributor_code, count(*) as total')->whereIn('distributor_code', $distributorCodes)->whereBetween('bulan', [$startP2, $endP2])->where('ar', '>', 7)->groupBy('distributor_code')->pluck('total', 'distributor_code');
+            // Sell Out
+            $sellOutRaw = DB::table('t_sellingout')->selectRaw('"KDDIST", CAST("BLN" AS INTEGER) as m, sum("NETT") as total')->whereIn('KDDIST', $distributorCodes)->where('REG_FEST', 'REG')->whereRaw('CAST("THN" AS INTEGER) = ?', [$year])->groupBy('KDDIST', DB::raw('CAST("BLN" AS INTEGER)'))->get();
+            $mSellOut = []; foreach ($sellOutRaw as $r) { $mSellOut[$r->KDDIST][$r->m] = $r->total; }
+
+            // Stock & AR
+            $arStockRaw = DB::table('reward_dist_ar_stock')->selectRaw('distributor_code, EXTRACT(MONTH FROM bulan) as m, stock, ar')->whereIn('distributor_code', $distributorCodes)->whereYear('bulan', $year)->get();
+            $mStock = []; $mArCount = [];
+            foreach ($arStockRaw as $r) {
+                $mStock[$r->distributor_code][$r->m][] = $r->stock;
+                if (!isset($mArCount[$r->distributor_code][$r->m])) $mArCount[$r->distributor_code][$r->m] = 0;
+                if ($r->ar > 7) $mArCount[$r->distributor_code][$r->m]++;
+            }
 
             $data = [];
 
@@ -223,12 +280,42 @@ class MonitoringRewardDistributor extends Component
                     'area' => $master->area_name ?? '-'
                 ];
 
-            // --- PERIODE 1 (Jan - Jun) ---
-            $targetP1 = $targetP1Map[$cabang] ?? 0;
-            $sellInP1 = $sellInP1Map[$distCode] ?? 0;
-            $sellOutP1 = $sellOutP1Map[$distCode] ?? 0;
-            $stockP1 = $stockP1Map[$distCode] ?? 0;
-            $arCountP1 = $arCountP1Map[$distCode] ?? 0;
+            // Get specific months for this distributor
+            $distSettings = $distSettingsMap->get($distCode);
+            $p1Months = $distSettings && $distSettings->p1_months ? $distSettings->p1_months : [1,2,3,4,5,6];
+            $p2Months = $distSettings && $distSettings->p2_months ? $distSettings->p2_months : [1,2,3,4,5,6,7,8,9,10,11,12];
+
+            // Aggregation helper
+            $aggregate = function($months, $type) use ($cabang, $distCode, $mTarget, $mSellIn, $mSellOut, $mStock, $mArCount) {
+                $target = 0; $sellIn = 0; $sellOut = 0; $stockSum = 0; $stockCount = 0; $arCount = 0;
+                foreach ($months as $m) {
+                    $target += $mTarget[$cabang][$m] ?? 0;
+                    $sellIn += $mSellIn[$distCode][$m] ?? 0;
+                    $sellOut += $mSellOut[$distCode][$m] ?? 0;
+                    if (isset($mStock[$distCode][$m])) {
+                        foreach ($mStock[$distCode][$m] as $stock) {
+                            $stockSum += $stock;
+                            $stockCount++;
+                        }
+                    }
+                    $arCount += $mArCount[$distCode][$m] ?? 0;
+                }
+                return [
+                    'target' => $target,
+                    'sell_in' => $sellIn,
+                    'sell_out' => $sellOut,
+                    'stock' => $stockCount > 0 ? $stockSum / $stockCount : 0,
+                    'ar_count' => $arCount
+                ];
+            };
+
+            // --- PERIODE 1 ---
+            $p1Agg = $aggregate($p1Months, 'p1');
+            $targetP1 = $p1Agg['target'];
+            $sellInP1 = $p1Agg['sell_in'];
+            $sellOutP1 = $p1Agg['sell_out'];
+            $stockP1 = $p1Agg['stock'];
+            $arCountP1 = $p1Agg['ar_count'];
 
             // Validations P1
             // Menghindari target 0 (prevent division by zero / logic issue)
@@ -259,12 +346,13 @@ class MonitoringRewardDistributor extends Component
                 'final_reward' => $finalRewardP1,
             ];
 
-            // --- PERIODE 2 (Jul - Dec) ---
-            $targetP2 = $targetP2Map[$cabang] ?? 0;
-            $sellInP2 = $sellInP2Map[$distCode] ?? 0;
-            $sellOutP2 = $sellOutP2Map[$distCode] ?? 0;
-            $stockP2 = $stockP2Map[$distCode] ?? 0;
-            $arCountP2 = $arCountP2Map[$distCode] ?? 0;
+            // --- PERIODE 2 ---
+            $p2Agg = $aggregate($p2Months, 'p2');
+            $targetP2 = $p2Agg['target'];
+            $sellInP2 = $p2Agg['sell_in'];
+            $sellOutP2 = $p2Agg['sell_out'];
+            $stockP2 = $p2Agg['stock'];
+            $arCountP2 = $p2Agg['ar_count'];
 
             // Validations P2
             $isTargetAchievedP2 = $targetP2 > 0 && ($sellInP2 >= $targetP2) && ($sellOutP2 >= $targetP2);
