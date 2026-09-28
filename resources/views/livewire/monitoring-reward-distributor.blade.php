@@ -31,6 +31,11 @@
                         <option value="{{ $a }}">{{ $a }}</option>
                     @endforeach
                 </select>
+                <select wire:model.live="filterStatus" class="select select-sm select-bordered w-full sm:w-auto max-w-[150px] bg-base-100 text-xs">
+                    <option value="ikut">Ikut Program</option>
+                    <option value="semua">Semua (Termasuk Tidak Ikut)</option>
+                    <option value="tidak_ikut">Tidak Ikut Program</option>
+                </select>
                 <x-ui.search-input wire:model.live.debounce.300ms="search" />
                 @canImport('monitoring-reward-distributor')
                 <button wire:click="openImportModal" class="btn btn-sm btn-outline btn-primary">
@@ -445,6 +450,13 @@
                 <div class="alert alert-info shadow-sm text-sm p-3">
                     <x-heroicon-s-information-circle class="w-5 h-5"/>
                     <span>Centang bulan yang ingin dihitung ke dalam masing-masing periode. Jika tidak ada yang dicentang, data tidak akan terhitung.</span>
+                </div>
+                
+                <div class="form-control bg-base-200/50 p-3 rounded-lg border border-base-200">
+                    <label class="label cursor-pointer justify-start gap-3">
+                        <input type="checkbox" wire:model="isParticipating" class="toggle toggle-primary" />
+                        <span class="label-text font-bold">Distributor ini mengikuti program Reward</span>
+                    </label>
                 </div>
                 
                 @php

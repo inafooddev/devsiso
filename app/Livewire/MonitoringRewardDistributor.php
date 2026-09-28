@@ -23,10 +23,14 @@ class MonitoringRewardDistributor extends Component
     public $importMonth;
     public $importFile;
 
+    // Filter Status Program
+    public $filterStatus = 'ikut';
+
     // Settings Modal State
     public $settingDistributorCode = null;
     public $settingDistributorName = null;
     public $isSettingsModalOpen = false;
+    public $isParticipating = true;
     public $selectedMonthsP1 = [];
     public $selectedMonthsP2 = [];
 
@@ -163,6 +167,7 @@ class MonitoringRewardDistributor extends Component
         \App\Models\RewardDistributorSetting::updateOrCreate(
             ['distributor_code' => $this->settingDistributorCode],
             [
+                'is_participating' => $this->isParticipating,
                 'p1_months' => array_map('intval', $this->selectedMonthsP1),
                 'p2_months' => array_map('intval', $this->selectedMonthsP2)
             ]
@@ -180,6 +185,7 @@ class MonitoringRewardDistributor extends Component
         $this->settingDistributorName = $distributorName;
         
         $setting = \App\Models\RewardDistributorSetting::where('distributor_code', $distributorCode)->first();
+        $this->isParticipating = $setting ? (bool)$setting->is_participating : true;
         $this->selectedMonthsP1 = $setting && $setting->p1_months ? $setting->p1_months : [1,2,3,4,5,6];
         $this->selectedMonthsP2 = $setting && $setting->p2_months ? $setting->p2_months : [1,2,3,4,5,6,7,8,9,10,11,12];
         
@@ -244,6 +250,20 @@ class MonitoringRewardDistributor extends Component
             // Load all settings
             $distSettingsMap = \App\Models\RewardDistributorSetting::whereIn('distributor_code', $distributorCodes)->get()->keyBy('distributor_code');
 
+            // Apply filter Status Program
+            $finalDistributors = collect($validDistributors)->filter(function($dist) use ($distSettingsMap) {
+                $setting = $distSettingsMap->get($dist->distributor_code);
+                $isParticipating = $setting ? (bool)$setting->is_participating : true;
+                
+                if ($this->filterStatus === 'ikut') return $isParticipating;
+                if ($this->filterStatus === 'tidak_ikut') return !$isParticipating;
+                return true; // semua
+            });
+
+            // Update array after filter
+            $cabangs = $finalDistributors->pluck('branch_name')->unique()->toArray();
+            $distributorCodes = $finalDistributors->pluck('distributor_code')->unique()->toArray();
+
             // --- BULK QUERIES 12 MONTHS ---
             // Target
             $targetRaw = DB::table('target_per_depo')->selectRaw('cabang, EXTRACT(MONTH FROM bulan) as m, sum(target) as total')->whereIn('cabang', $cabangs)->where('reg_fest', 'REG')->whereYear('bulan', $year)->groupBy('cabang', DB::raw('EXTRACT(MONTH FROM bulan)'))->get();
@@ -268,7 +288,7 @@ class MonitoringRewardDistributor extends Component
 
             $data = [];
 
-            foreach ($validDistributors as $master) {
+            foreach ($finalDistributors as $master) {
                 $cabang = $master->branch_name;
                 $distCode = $master->distributor_code;
                 
