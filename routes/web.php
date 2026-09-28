@@ -79,6 +79,7 @@ use App\Livewire\SalesInvoiceImport;
 use App\Livewire\SalesInvoiceReport\Index as SalesInvoiceReportIndex;
 use App\Livewire\Report\AnalisaKunjungan\Index as AnalisaKunjunganIndex;
 use App\Livewire\Report\MonitoringTopItem\Index as MonitoringTopItemIndex;
+use App\Livewire\Report\FundamentalSales\Index as FundamentalSalesIndex;
 use App\Livewire\MasterData\Salesmans\Index as SalesmanIndex;
 use App\Livewire\SellOut\Export\Index as SellOutExportIndex;
 use App\Livewire\SellOut\Process\Index as SellOutProcessIndex;
@@ -120,6 +121,7 @@ use App\Livewire\Jobs\SyncFrute;
 use App\Livewire\Jobs\SyncFsalesman;
 use App\Livewire\Jobs\SyncJksSeMasterTokoOol;
 use App\Livewire\Jobs\UpdateIsDiscountEskalink;
+use App\Livewire\Jobs\SyncFundamentalSales;
 use App\Livewire\Jobs\SelloutPerCabangSqlServer;
 use App\Livewire\Jobs\UpdateSalesmans;
 use App\Livewire\Jobs\UpdateAoPercabang;
@@ -394,6 +396,10 @@ Route::middleware(['auth'])->group(function () {
     // ==========================================
     Route::get('/report/analisa-kunjungan', AnalisaKunjunganIndex::class)->name('report.analisa-kunjungan.index');
     Route::get('/report/monitoring-top-item', MonitoringTopItemIndex::class)->name('report.monitoring-top-item.index');
+    Route::get('/report/fundamental-sales', FundamentalSalesIndex::class)->name('report.fundamental-sales.index');
+    Route::get('/report/fundamental-sales-hierarchy', \App\Livewire\Report\FundamentalSalesHierarchy\Index::class)->name('report.fundamental-sales-hierarchy.index');
+    Route::get('/report/fundamental-sales/export/{supervisorCode}', [\App\Http\Controllers\Report\FundamentalSalesExportController::class, 'export'])->name('report.fundamental-sales.export');
+    Route::get('/report/fundamental-sales-hierarchy/export/{type}', [\App\Http\Controllers\Report\FundamentalSalesHierarchyExportController::class, 'export'])->name('report.fundamental-sales-hierarchy.export');
     Route::get('/sales-invoice-report', SalesInvoiceReportIndex::class)->name('sales-invoice-report.index');
     Route::get('/report/reaktivasi-toko', ReportReaktivasiTokoIndex::class)->name('report.reaktivasi-toko.index');
     Route::get('/report/reaktivasi-toko/summary', \App\Livewire\Report\ReaktivasiToko\Summary::class)->name('report.reaktivasi-toko.summary');
@@ -459,6 +465,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/jobs/sync-fsalesman', SyncFsalesman::class)->name('jobs.sync-fsalesman');
     Route::get('/jobs/sync-jks-se-master-toko-ool', SyncJksSeMasterTokoOol::class)->name('jobs.sync-jks-se-master-toko-ool');
     Route::get('/jobs/update-is-discount-eskalink', UpdateIsDiscountEskalink::class)->name('jobs.update-is-discount-eskalink');
+    Route::get('/jobs/sync-fundamental-sales', SyncFundamentalSales::class)->name('jobs.sync-fundamental-sales');
     Route::get('/jobs/sellout-per-cabang-sqlserver', SelloutPerCabangSqlServer::class)->name('jobs.sellout-per-cabang-sqlserver');
     Route::get('/jobs/update-salesmans', UpdateSalesmans::class)->name('jobs.update-salesmans');
     Route::get('/jobs/update-ao-percabang', UpdateAoPercabang::class)->name('jobs.update-ao-percabang');
