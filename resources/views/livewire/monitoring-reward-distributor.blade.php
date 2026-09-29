@@ -49,349 +49,222 @@
         </div>
 
         {{-- Body Card --}}
-        <div class="flex-1 overflow-auto bg-base-100 w-full relative">
-            <table class="table table-sm table-zebra w-full whitespace-nowrap">
-                <thead class="text-xs uppercase tracking-wider text-base-content/80 shadow-sm">
-                    <tr>
-                        {{-- CORNER TOP-LEFT (Rowspan 2) --}}
-                        <th rowspan="2" class="sticky top-0 left-0 z-30 bg-base-300 h-10 border-r border-base-200 min-w-[250px] align-middle border-b border-base-300">Info Distributor</th>
+        <div class="flex-1 overflow-auto bg-base-200/50 w-full relative">
+            <div class="p-4 md:p-6 flex flex-col gap-4 md:gap-6 w-full">
+                @php
+                    $borderColors = ['border-b-primary', 'border-b-secondary', 'border-b-accent', 'border-b-info', 'border-b-success', 'border-b-warning', 'border-b-error'];
+                @endphp
+                @forelse($data as $row)
+                    @php
+                        $colorClass = $borderColors[$loop->index % count($borderColors)];
+                    @endphp
+                    <div class="bg-base-100 rounded-xl border border-base-200 border-b-4 {{ $colorClass }} shadow hover:shadow-md hover:bg-base-200/30 transition-all flex flex-col xl:flex-row overflow-hidden relative group">
                         
-                        {{-- HEADER P1 TOP --}}
-                        <th colspan="5" class="sticky top-0 z-20 bg-base-300 h-10 text-center border-r border-base-200 align-middle">Periode 1</th>
-                        
-                        {{-- HEADER P2 TOP --}}
-                        <th colspan="5" class="sticky top-0 z-20 bg-base-300 h-10 text-center border-r border-base-200 align-middle">Periode 2</th>
-                        
-                    </tr>
-                    <tr>
-                        {{-- ROW 2 P1 --}}
-                        <th class="sticky top-10 z-20 bg-base-300 h-10 text-right align-middle border-b border-base-300">Target</th>
-                        <th class="sticky top-10 z-20 bg-base-300 h-10 text-right align-middle border-b border-base-300">Sell In</th>
-                        <th class="sticky top-10 z-20 bg-base-300 h-10 text-right align-middle border-b border-base-300">Sell Out</th>
-                        <th class="sticky top-10 z-20 bg-base-300 h-10 text-center align-middle border-b border-base-300">Syarat (AR&STK)</th>
-                        <th class="sticky top-10 z-20 bg-base-300 h-10 text-right border-r border-base-200 align-middle border-b border-base-300">Reward P1</th>
+                        {{-- Distributor Info --}}
+                        <div class="p-4 xl:w-72 xl:shrink-0 flex flex-col justify-center border-b xl:border-b-0 xl:border-r border-base-200/50 relative bg-base-200/20">
+                            <div class="absolute top-2 right-2 dropdown dropdown-end">
+                                <button tabindex="0" class="btn btn-xs btn-ghost btn-circle">
+                                    <x-heroicon-s-ellipsis-vertical class="w-4 h-4" />
+                                </button>
+                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-48 border border-base-200">
+                                    <li>
+                                        <button wire:click="openDetailModal('{{ $row['distributor_code'] }}', '{{ addslashes($row['distributor']) }}')">
+                                            <x-heroicon-s-chart-bar class="w-4 h-4" /> Detail Bulanan
+                                        </button>
+                                    </li>
+                                    @canEdit('monitoring-reward-distributor')
+                                    <li>
+                                        <button wire:click="openSettingsModal('{{ $row['distributor_code'] }}', '{{ addslashes($row['distributor']) }}')">
+                                            <x-heroicon-s-cog-8-tooth class="w-4 h-4" /> Pengaturan
+                                        </button>
+                                    </li>
+                                    @endcanEdit
+                                </ul>
+                            </div>
 
-                        {{-- ROW 2 P2 --}}
-                        <th class="sticky top-10 z-20 bg-base-300 h-10 text-right align-middle border-b border-base-300">Target</th>
-                        <th class="sticky top-10 z-20 bg-base-300 h-10 text-right align-middle border-b border-base-300">Sell In</th>
-                        <th class="sticky top-10 z-20 bg-base-300 h-10 text-right align-middle border-b border-base-300">Sell Out</th>
-                        <th class="sticky top-10 z-20 bg-base-300 h-10 text-center align-middle border-b border-base-300">Syarat (AR&STK)</th>
-                        <th class="sticky top-10 z-20 bg-base-300 h-10 text-right border-r border-base-200 align-middle border-b border-base-300">Reward P2</th>
-                    </tr>
-                </thead>
-                <tbody class="text-sm">
-                    @forelse($data as $row)
-                        <tr class="hover:bg-base-200/50 transition-colors group">
-                            <td class="sticky left-0 {{ $loop->even ? 'bg-base-200' : 'bg-base-100' }} group-hover:bg-base-200/50 transition-colors border-r border-base-200/50 z-10 whitespace-normal min-w-[250px] align-middle py-2 px-3 shadow-[1px_0_0_rgba(0,0,0,0.05)]">
-                                <div class="flex items-start gap-1.5">
-                                    <button wire:click="toggleExpand('{{ $row['distributor_code'] }}')" class="btn btn-xs btn-ghost btn-circle text-base-content/50 hover:text-primary mt-0.5">
-                                        @if($expandedDistributor === $row['distributor_code'])
-                                            <x-heroicon-s-chevron-up class="w-4 h-4" />
-                                        @else
-                                            <x-heroicon-s-chevron-down class="w-4 h-4" />
-                                        @endif
-                                    </button>
-                                    <div class="flex-1">
-                                        @if($row['distributor'] !== '-')
-                                            <div class="flex items-center gap-2">
-                                                <div class="font-bold text-primary">{{ $row['distributor'] }}</div>
-                                                @canEdit('monitoring-reward-distributor')
-                                                <button wire:click="openSettingsModal('{{ $row['distributor_code'] }}', '{{ addslashes($row['distributor']) }}')" class="btn btn-xs btn-ghost btn-circle text-base-content/50 hover:text-primary" title="Pengaturan Bulan P1 & P2">
-                                                    <x-heroicon-s-cog-8-tooth class="w-4 h-4" />
-                                                </button>
-                                                @endcanEdit
-                                            </div>
-                                            <div class="text-[10px] text-base-content/60 font-semibold mt-0.5">
-                                                {{ $row['region'] }} &bull; {{ $row['area'] }}<br>
-                                                <span class="text-base-content/80">{{ $row['cabang'] }}</span>
-                                            </div>
-                                        @else
-                                            <div class="font-bold text-primary">{{ $row['cabang'] }}</div>
-                                            <div class="text-[10px] text-base-content/40 italic mt-0.5">Master data belum dilink</div>
-                                        @endif
+                            <div class="pr-6">
+                                @if($row['distributor'] !== '-')
+                                    <h3 class="font-bold text-base-content leading-tight mb-1">{{ $row['distributor'] }}</h3>
+                                    <div class="flex flex-wrap gap-1 mt-1">
+                                        <span class="badge badge-sm badge-ghost text-[9px]">{{ $row['region'] }}</span>
+                                        <span class="badge badge-sm badge-ghost text-[9px]">{{ $row['area'] }}</span>
+                                    </div>
+                                    <div class="text-[10px] text-base-content/50 mt-1.5">{{ $row['cabang'] }} &bull; {{ $row['distributor_code'] }}</div>
+                                @else
+                                    <h3 class="font-bold text-base-content leading-tight mb-1">{{ $row['cabang'] }}</h3>
+                                    <div class="text-[10px] text-error/80 italic mt-1">Master data belum dilink</div>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Periode 1 --}}
+                        @php
+                            $p1PctIn = $row['p1']['target'] > 0 ? ($row['p1']['sell_in'] / $row['p1']['target']) * 100 : 0;
+                            $p1PctOut = $row['p1']['target'] > 0 ? ($row['p1']['sell_out'] / $row['p1']['target']) * 100 : 0;
+                        @endphp
+                        <div class="p-3 md:p-4 flex-1 min-w-[200px] border-b xl:border-b-0 xl:border-r border-base-200/50 flex flex-col justify-center">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="text-[11px] font-bold text-base-content/80 flex items-center gap-1.5">
+                                    <div class="w-1.5 h-3 bg-primary rounded-full"></div>
+                                    PERIODE 1
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <div class="badge {{ $row['p1']['is_ar_achieved'] ? 'badge-success' : 'badge-error' }} badge-sm text-[9px] font-bold text-white border-0 h-4 px-1" title="AR Late > 7d: {{ $row['p1']['ar_late_count'] }}x">AR</div>
+                                    <div class="badge {{ $row['p1']['is_stock_achieved'] ? 'badge-success' : 'badge-error' }} badge-sm text-[9px] font-bold text-white border-0 h-4 px-1" title="Avg Stock: {{ number_format($row['p1']['stock_avg'], 1) }}%">STK</div>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-5">
+                                <div>
+                                    <div class="flex justify-between text-[10px] mb-0.5">
+                                        <span class="text-base-content/70">Sell In vs Target</span>
+                                        <span class="font-bold {{ $p1PctIn >= 100 ? 'text-success' : ($p1PctIn >= 80 ? 'text-warning' : 'text-error') }}">{{ number_format($p1PctIn, 1) }}%</span>
+                                    </div>
+                                    <progress class="progress w-full h-2 {{ $p1PctIn >= 100 ? 'progress-success' : ($p1PctIn >= 80 ? 'progress-warning' : 'progress-error') }} bg-base-200" value="{{ min(100, $p1PctIn) }}" max="100"></progress>
+                                    <div class="flex justify-center gap-6 mt-1.5 text-center">
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] text-base-content/50 uppercase tracking-wider">Target</span>
+                                            <span class="font-mono text-[10px]">{{ number_format($row['p1']['target']) }}</span>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] text-base-content/50 uppercase tracking-wider">Actual</span>
+                                            <span class="font-mono text-[10px] font-bold text-base-content/80">{{ number_format($row['p1']['sell_in']) }}</span>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] text-base-content/50 uppercase tracking-wider">Gap</span>
+                                            <span class="font-mono text-[10px] {{ $row['p1']['sell_in'] >= $row['p1']['target'] ? 'text-success' : 'text-error font-bold' }}">{{ number_format($row['p1']['sell_in'] - $row['p1']['target']) }}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </td>
-                            
-                            {{-- ================= PERIODE 1 ================= --}}
-                            @php
-                                $p1PctIn = $row['p1']['target'] > 0 ? ($row['p1']['sell_in'] / $row['p1']['target']) * 100 : 0;
-                                $p1PctOut = $row['p1']['target'] > 0 ? ($row['p1']['sell_out'] / $row['p1']['target']) * 100 : 0;
-                                $p1GapIn = max(0, $row['p1']['target'] - $row['p1']['sell_in']);
-                                $p1GapOut = max(0, $row['p1']['target'] - $row['p1']['sell_out']);
-                            @endphp
-                            
-                            {{-- Target --}}
-                            <td class="text-right font-mono font-medium text-base-content/80 align-middle py-2 px-3">{{ number_format($row['p1']['target']) }}</td>
-                            
-                            {{-- Sell In & Gap --}}
-                            @php $colorP1In = $p1PctIn >= 100 ? 'text-success' : ($p1PctIn >= 80 ? 'text-warning' : 'text-error'); @endphp
-                            <td class="text-right align-middle py-2 px-3 min-w-[120px]">
-                                <div class="font-mono font-bold text-base-content/90">{{ number_format($row['p1']['sell_in']) }}</div>
-                                @if($row['p1']['target'] > 0)
-                                    <div class="flex justify-end items-center gap-1.5 mt-0.5">
-                                        <span class="text-[10px] font-bold {{ $colorP1In }}">{{ number_format($p1PctIn, 1) }}%</span>
+                                
+                                <div>
+                                    <div class="flex justify-between text-[10px] mb-0.5">
+                                        <span class="text-base-content/70">Sell Out vs Target</span>
+                                        <span class="font-bold {{ $p1PctOut >= 100 ? 'text-success' : ($p1PctOut >= 80 ? 'text-warning' : 'text-error') }}">{{ number_format($p1PctOut, 1) }}%</span>
                                     </div>
-                                    @if($p1GapIn > 0)
-                                        <div class="text-[10px] text-error font-semibold leading-tight mt-0.5">
-                                            -{{ number_format($p1GapIn) }}
+                                    <progress class="progress w-full h-2 {{ $p1PctOut >= 100 ? 'progress-success' : ($p1PctOut >= 80 ? 'progress-warning' : 'progress-error') }} bg-base-200" value="{{ min(100, $p1PctOut) }}" max="100"></progress>
+                                    <div class="flex justify-center gap-6 mt-1.5 text-center">
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] text-base-content/50 uppercase tracking-wider">Target</span>
+                                            <span class="font-mono text-[10px]">{{ number_format($row['p1']['target']) }}</span>
                                         </div>
-                                    @endif
-                                @endif
-                            </td>
-                            
-                            {{-- Sell Out & Gap --}}
-                            @php $colorP1Out = $p1PctOut >= 100 ? 'text-success' : ($p1PctOut >= 80 ? 'text-warning' : 'text-error'); @endphp
-                            <td class="text-right align-middle py-2 px-3 min-w-[120px]">
-                                <div class="font-mono font-bold text-base-content/90">{{ number_format($row['p1']['sell_out']) }}</div>
-                                @if($row['p1']['target'] > 0)
-                                    <div class="flex justify-end items-center gap-1.5 mt-0.5">
-                                        <span class="text-[10px] font-bold {{ $colorP1Out }}">{{ number_format($p1PctOut, 1) }}%</span>
-                                    </div>
-                                    @if($p1GapOut > 0)
-                                        <div class="text-[10px] text-error font-semibold leading-tight mt-0.5">
-                                            -{{ number_format($p1GapOut) }}
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] text-base-content/50 uppercase tracking-wider">Actual</span>
+                                            <span class="font-mono text-[10px] font-bold text-base-content/80">{{ number_format($row['p1']['sell_out']) }}</span>
                                         </div>
-                                    @endif
-                                @endif
-                            </td>
-                            
-                            {{-- AR & Stock (Blockers) --}}
-                            <td class="text-center align-middle py-2 px-2">
-                                <div class="flex flex-col items-center gap-1">
-                                    <div class="badge badge-xs border-0 font-semibold {{ $row['p1']['is_ar_achieved'] ? 'bg-success/10 text-success' : 'bg-error/10 text-error' }}" title="AR Late > 7d: {{ $row['p1']['ar_late_count'] }}x">
-                                        AR: {{ $row['p1']['ar_late_count'] }}
-                                    </div>
-                                    <div class="badge badge-xs border-0 font-semibold {{ $row['p1']['is_stock_achieved'] ? 'bg-success/10 text-success' : 'bg-error/10 text-error' }}" title="Avg Stock: {{ number_format($row['p1']['stock_avg'], 1) }}%">
-                                        STK: {{ number_format($row['p1']['stock_avg'], 1) }}%
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] text-base-content/50 uppercase tracking-wider">Gap</span>
+                                            <span class="font-mono text-[10px] {{ $row['p1']['sell_out'] >= $row['p1']['target'] ? 'text-success' : 'text-error font-bold' }}">{{ number_format($row['p1']['sell_out'] - $row['p1']['target']) }}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </td>
-                            
-                            {{-- Reward P1 --}}
-                            <td class="text-center border-r-2 border-base-300 align-middle py-2 px-3">
+                            </div>
+                        </div>
+
+                        {{-- Reward P1 --}}
+                        <div class="p-3 xl:w-28 xl:shrink-0 flex flex-col items-center justify-center border-b xl:border-b-0 xl:border-r-2 border-base-300 text-center {{ $row['p1']['is_target_achieved'] ? ($row['p1']['is_ar_achieved'] && $row['p1']['is_stock_achieved'] ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning-content') : 'bg-error/20 text-error font-bold' }}">
+                            <div class="text-[9px] uppercase tracking-wider font-semibold opacity-70 mb-1">Status P1</div>
+                            <div class="text-[11px] font-bold leading-tight">
                                 @if($row['p1']['is_target_achieved'])
                                     @if(!$row['p1']['is_ar_achieved'] || !$row['p1']['is_stock_achieved'])
-                                        <div class="badge badge-sm badge-warning font-bold border-0">Capai (Penalti AR/Stok)</div>
+                                        Capai<br>(Penalti)
                                     @else
-                                        <div class="badge badge-sm badge-success font-bold text-white border-0">Capai Penuh</div>
+                                        Capai Penuh
                                     @endif
                                 @else
-                                    <div class="text-base-content/30 italic text-sm">Tidak Capai</div>
+                                    Tidak<br>Capai
                                 @endif
-                            </td>
+                            </div>
+                        </div>
 
-                            {{-- ================= PERIODE 2 ================= --}}
-                            @php
-                                $p2PctIn = $row['p2']['target'] > 0 ? ($row['p2']['sell_in'] / $row['p2']['target']) * 100 : 0;
-                                $p2PctOut = $row['p2']['target'] > 0 ? ($row['p2']['sell_out'] / $row['p2']['target']) * 100 : 0;
-                                $p2GapIn = max(0, $row['p2']['target'] - $row['p2']['sell_in']);
-                                $p2GapOut = max(0, $row['p2']['target'] - $row['p2']['sell_out']);
-                            @endphp
+                        {{-- Periode 2 --}}
+                        @php
+                            $p2PctIn = $row['p2']['target'] > 0 ? ($row['p2']['sell_in'] / $row['p2']['target']) * 100 : 0;
+                            $p2PctOut = $row['p2']['target'] > 0 ? ($row['p2']['sell_out'] / $row['p2']['target']) * 100 : 0;
+                        @endphp
+                        <div class="p-3 md:p-4 flex-1 min-w-[200px] border-b xl:border-b-0 xl:border-r border-base-200/50 flex flex-col justify-center">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="text-[11px] font-bold text-base-content/80 flex items-center gap-1.5">
+                                    <div class="w-1.5 h-3 bg-secondary rounded-full"></div>
+                                    PERIODE 2
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <div class="badge {{ $row['p2']['is_ar_achieved'] ? 'badge-success' : 'badge-error' }} badge-sm text-[9px] font-bold text-white border-0 h-4 px-1" title="AR Late > 7d: {{ $row['p2']['ar_late_count'] }}x">AR</div>
+                                    <div class="badge {{ $row['p2']['is_stock_achieved'] ? 'badge-success' : 'badge-error' }} badge-sm text-[9px] font-bold text-white border-0 h-4 px-1" title="Avg Stock: {{ number_format($row['p2']['stock_avg'], 1) }}%">STK</div>
+                                </div>
+                            </div>
                             
-                            {{-- Target --}}
-                            <td class="text-right font-mono font-medium text-base-content/80 align-middle py-2 px-3">{{ number_format($row['p2']['target']) }}</td>
-                            
-                            {{-- Sell In & Gap --}}
-                            @php $colorP2In = $p2PctIn >= 100 ? 'text-success' : ($p2PctIn >= 80 ? 'text-warning' : 'text-error'); @endphp
-                            <td class="text-right align-middle py-2 px-3 min-w-[120px]">
-                                <div class="font-mono font-bold text-base-content/90">{{ number_format($row['p2']['sell_in']) }}</div>
-                                @if($row['p2']['target'] > 0)
-                                    <div class="flex justify-end items-center gap-1.5 mt-0.5">
-                                        <span class="text-[10px] font-bold {{ $colorP2In }}">{{ number_format($p2PctIn, 1) }}%</span>
+                            <div class="space-y-5">
+                                <div>
+                                    <div class="flex justify-between text-[10px] mb-0.5">
+                                        <span class="text-base-content/70">Sell In vs Target</span>
+                                        <span class="font-bold {{ $p2PctIn >= 100 ? 'text-success' : ($p2PctIn >= 80 ? 'text-warning' : 'text-error') }}">{{ number_format($p2PctIn, 1) }}%</span>
                                     </div>
-                                    @if($p2GapIn > 0)
-                                        <div class="text-[10px] text-error font-semibold leading-tight mt-0.5">
-                                            -{{ number_format($p2GapIn) }}
+                                    <progress class="progress w-full h-2 {{ $p2PctIn >= 100 ? 'progress-success' : ($p2PctIn >= 80 ? 'progress-warning' : 'progress-error') }} bg-base-200" value="{{ min(100, $p2PctIn) }}" max="100"></progress>
+                                    <div class="flex justify-center gap-6 mt-1.5 text-center">
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] text-base-content/50 uppercase tracking-wider">Target</span>
+                                            <span class="font-mono text-[10px]">{{ number_format($row['p2']['target']) }}</span>
                                         </div>
-                                    @endif
-                                @endif
-                            </td>
-                            
-                            {{-- Sell Out & Gap --}}
-                            @php $colorP2Out = $p2PctOut >= 100 ? 'text-success' : ($p2PctOut >= 80 ? 'text-warning' : 'text-error'); @endphp
-                            <td class="text-right align-middle py-2 px-3 min-w-[120px]">
-                                <div class="font-mono font-bold text-base-content/90">{{ number_format($row['p2']['sell_out']) }}</div>
-                                @if($row['p2']['target'] > 0)
-                                    <div class="flex justify-end items-center gap-1.5 mt-0.5">
-                                        <span class="text-[10px] font-bold {{ $colorP2Out }}">{{ number_format($p2PctOut, 1) }}%</span>
-                                    </div>
-                                    @if($p2GapOut > 0)
-                                        <div class="text-[10px] text-error font-semibold leading-tight mt-0.5">
-                                            -{{ number_format($p2GapOut) }}
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] text-base-content/50 uppercase tracking-wider">Actual</span>
+                                            <span class="font-mono text-[10px] font-bold text-base-content/80">{{ number_format($row['p2']['sell_in']) }}</span>
                                         </div>
-                                    @endif
-                                @endif
-                            </td>
-                            
-                            {{-- AR & Stock (Blockers) --}}
-                            <td class="text-center align-middle py-2 px-2">
-                                <div class="flex flex-col items-center gap-1">
-                                    <div class="badge badge-xs border-0 font-semibold {{ $row['p2']['is_ar_achieved'] ? 'bg-success/10 text-success' : 'bg-error/10 text-error' }}" title="AR Late > 7d: {{ $row['p2']['ar_late_count'] }}x">
-                                        AR: {{ $row['p2']['ar_late_count'] }}
-                                    </div>
-                                    <div class="badge badge-xs border-0 font-semibold {{ $row['p2']['is_stock_achieved'] ? 'bg-success/10 text-success' : 'bg-error/10 text-error' }}" title="Avg Stock: {{ number_format($row['p2']['stock_avg'], 1) }}%">
-                                        STK: {{ number_format($row['p2']['stock_avg'], 1) }}%
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] text-base-content/50 uppercase tracking-wider">Gap</span>
+                                            <span class="font-mono text-[10px] {{ $row['p2']['sell_in'] >= $row['p2']['target'] ? 'text-success' : 'text-error font-bold' }}">{{ number_format($row['p2']['sell_in'] - $row['p2']['target']) }}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </td>
-                            
-                            {{-- Reward P2 --}}
-                            <td class="text-center border-r border-base-200/50 align-middle py-2 px-3">
+                                
+                                <div>
+                                    <div class="flex justify-between text-[10px] mb-0.5">
+                                        <span class="text-base-content/70">Sell Out vs Target</span>
+                                        <span class="font-bold {{ $p2PctOut >= 100 ? 'text-success' : ($p2PctOut >= 80 ? 'text-warning' : 'text-error') }}">{{ number_format($p2PctOut, 1) }}%</span>
+                                    </div>
+                                    <progress class="progress w-full h-2 {{ $p2PctOut >= 100 ? 'progress-success' : ($p2PctOut >= 80 ? 'progress-warning' : 'progress-error') }} bg-base-200" value="{{ min(100, $p2PctOut) }}" max="100"></progress>
+                                    <div class="flex justify-center gap-6 mt-1.5 text-center">
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] text-base-content/50 uppercase tracking-wider">Target</span>
+                                            <span class="font-mono text-[10px]">{{ number_format($row['p2']['target']) }}</span>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] text-base-content/50 uppercase tracking-wider">Actual</span>
+                                            <span class="font-mono text-[10px] font-bold text-base-content/80">{{ number_format($row['p2']['sell_out']) }}</span>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[8px] text-base-content/50 uppercase tracking-wider">Gap</span>
+                                            <span class="font-mono text-[10px] {{ $row['p2']['sell_out'] >= $row['p2']['target'] ? 'text-success' : 'text-error font-bold' }}">{{ number_format($row['p2']['sell_out'] - $row['p2']['target']) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Reward P2 --}}
+                        <div class="p-3 xl:w-28 xl:shrink-0 flex flex-col items-center justify-center text-center {{ $row['p2']['is_target_achieved'] ? ($row['p2']['is_ar_achieved'] && $row['p2']['is_stock_achieved'] ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning-content') : 'bg-error/20 text-error font-bold' }}">
+                            <div class="text-[9px] uppercase tracking-wider font-semibold opacity-70 mb-1">Status P2</div>
+                            <div class="text-[11px] font-bold leading-tight">
                                 @if($row['p2']['is_target_achieved'])
                                     @if(!$row['p2']['is_ar_achieved'] || !$row['p2']['is_stock_achieved'])
-                                        <div class="badge badge-sm badge-warning font-bold border-0">Capai (Penalti AR/Stok)</div>
+                                        Capai<br>(Penalti)
                                     @else
-                                        <div class="badge badge-sm badge-success font-bold text-white border-0">Capai Penuh</div>
+                                        Capai Penuh
                                     @endif
                                 @else
-                                    <div class="text-base-content/30 italic text-sm">Tidak Capai</div>
+                                    Tidak<br>Capai
                                 @endif
-                            </td>
-                        </tr>
-
-                        {{-- EXPANDED MONTHLY SUB-ROWS --}}
-                        @if($expandedDistributor === $row['distributor_code'])
-                            @foreach($monthlyDetails as $index => $mRow)
-                                @php
-                                    // Gunakan warna biru super muda agar kontras dengan abu-abu (strip & header)
-                                    $subBg = 'bg-blue-50';
-                                @endphp
-                                <tr class="{{ $subBg }} hover:bg-blue-100 transition-colors">
-                                    {{-- Left Sticky Column: Month Names --}}
-                                    <td class="sticky left-0 {{ $subBg }} border-r border-base-300 z-10 align-middle py-1.5 px-3 pl-6 shadow-[1px_0_0_rgba(0,0,0,0.05)] border-l-[3px] border-l-primary">
-                                        <div class="text-[11px] font-bold text-base-content/70 flex items-center gap-2">
-                                            <div class="w-4 border-b-2 border-l-2 border-base-content/20 h-4 -mt-2 rounded-bl-md"></div>
-                                            {{ $mRow['p1_month'] }} &amp; {{ $mRow['p2_month'] }}
-                                        </div>
-                                    </td>
-
-                                    {{-- PERIODE 1 --}}
-                                    @php
-                                        $p1PctIn = $mRow['p1']['target'] > 0 ? ($mRow['p1']['sell_in'] / $mRow['p1']['target']) * 100 : 0;
-                                        $p1PctOut = $mRow['p1']['target'] > 0 ? ($mRow['p1']['sell_out'] / $mRow['p1']['target']) * 100 : 0;
-                                        $p1GapIn = max(0, $mRow['p1']['target'] - $mRow['p1']['sell_in']);
-                                        $p1GapOut = max(0, $mRow['p1']['target'] - $mRow['p1']['sell_out']);
-                                        
-                                        $colorP1InSub = $p1PctIn >= 100 ? 'text-success' : ($p1PctIn >= 80 ? 'text-warning' : 'text-error');
-                                    @endphp
-                                    <td class="text-right font-mono font-medium text-base-content/70 align-middle py-1.5 px-3">{{ number_format($mRow['p1']['target']) }}</td>
-                                    
-                                    {{-- Sell In P1 --}}
-                                    <td class="text-right align-middle py-1.5 px-3">
-                                        <div class="font-mono font-bold text-base-content/90">{{ number_format($mRow['p1']['sell_in']) }}</div>
-                                        @if($mRow['p1']['target'] > 0)
-                                            <div class="flex justify-end items-center gap-1 mt-0.5">
-                                                <span class="text-[9px] font-bold {{ $colorP1InSub }}">{{ number_format($p1PctIn, 1) }}%</span>
-                                            </div>
-                                            @if($p1GapIn > 0)
-                                                <div class="text-[9px] text-error font-semibold leading-tight mt-0.5">-{{ number_format($p1GapIn) }}</div>
-                                            @endif
-                                        @endif
-                                    </td>
-
-                                    {{-- Sell Out P1 --}}
-                                    @php $colorP1OutSub = $p1PctOut >= 100 ? 'text-success' : ($p1PctOut >= 80 ? 'text-warning' : 'text-error'); @endphp
-                                    <td class="text-right align-middle py-1.5 px-3">
-                                        <div class="font-mono font-bold text-base-content/90">{{ number_format($mRow['p1']['sell_out']) }}</div>
-                                        @if($mRow['p1']['target'] > 0)
-                                            <div class="flex justify-end items-center gap-1 mt-0.5">
-                                                <span class="text-[9px] font-bold {{ $colorP1OutSub }}">{{ number_format($p1PctOut, 1) }}%</span>
-                                            </div>
-                                            @if($p1GapOut > 0)
-                                                <div class="text-[9px] text-error font-semibold leading-tight mt-0.5">-{{ number_format($p1GapOut) }}</div>
-                                            @endif
-                                        @endif
-                                    </td>
-
-                                    {{-- AR/STK P1 --}}
-                                    <td class="text-center align-middle py-1.5 px-2">
-                                        <div class="flex flex-col items-center gap-0.5">
-                                            <div class="text-[9px] font-semibold {{ $mRow['p1']['ar_value'] <= 7 ? 'text-success' : 'text-warning' }}">
-                                                AR: {{ number_format($mRow['p1']['ar_value']) }} Hari
-                                            </div>
-                                            <div class="text-[9px] font-semibold {{ $mRow['p1']['is_stock_achieved'] ? 'text-success' : 'text-error' }}">
-                                                STK: {{ number_format($mRow['p1']['stock_avg'], 1) }}%
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-right border-r-2 border-base-300 align-middle py-1.5 px-3">
-                                        <div class="text-[10px] text-base-content/30 italic">-</div>
-                                    </td>
-
-                                    {{-- PERIODE 2 --}}
-                                    @php
-                                        $p2PctIn = $mRow['p2']['target'] > 0 ? ($mRow['p2']['sell_in'] / $mRow['p2']['target']) * 100 : 0;
-                                        $p2PctOut = $mRow['p2']['target'] > 0 ? ($mRow['p2']['sell_out'] / $mRow['p2']['target']) * 100 : 0;
-                                        $p2GapIn = max(0, $mRow['p2']['target'] - $mRow['p2']['sell_in']);
-                                        $p2GapOut = max(0, $mRow['p2']['target'] - $mRow['p2']['sell_out']);
-                                        
-                                        $colorP2InSub = $p2PctIn >= 100 ? 'text-success' : ($p2PctIn >= 80 ? 'text-warning' : 'text-error');
-                                    @endphp
-                                    <td class="text-right font-mono font-medium text-base-content/70 align-middle py-1.5 px-3">{{ number_format($mRow['p2']['target']) }}</td>
-                                    
-                                    {{-- Sell In P2 --}}
-                                    <td class="text-right align-middle py-1.5 px-3">
-                                        <div class="font-mono font-bold text-base-content/90">{{ number_format($mRow['p2']['sell_in']) }}</div>
-                                        @if($mRow['p2']['target'] > 0)
-                                            <div class="flex justify-end items-center gap-1 mt-0.5">
-                                                <span class="text-[9px] font-bold {{ $colorP2InSub }}">{{ number_format($p2PctIn, 1) }}%</span>
-                                            </div>
-                                            @if($p2GapIn > 0)
-                                                <div class="text-[9px] text-error font-semibold leading-tight mt-0.5">-{{ number_format($p2GapIn) }}</div>
-                                            @endif
-                                        @endif
-                                    </td>
-
-                                    {{-- Sell Out P2 --}}
-                                    @php $colorP2OutSub = $p2PctOut >= 100 ? 'text-success' : ($p2PctOut >= 80 ? 'text-warning' : 'text-error'); @endphp
-                                    <td class="text-right align-middle py-1.5 px-3">
-                                        <div class="font-mono font-bold text-base-content/90">{{ number_format($mRow['p2']['sell_out']) }}</div>
-                                        @if($mRow['p2']['target'] > 0)
-                                            <div class="flex justify-end items-center gap-1 mt-0.5">
-                                                <span class="text-[9px] font-bold {{ $colorP2OutSub }}">{{ number_format($p2PctOut, 1) }}%</span>
-                                            </div>
-                                            @if($p2GapOut > 0)
-                                                <div class="text-[9px] text-error font-semibold leading-tight mt-0.5">-{{ number_format($p2GapOut) }}</div>
-                                            @endif
-                                        @endif
-                                    </td>
-
-                                    {{-- AR/STK P2 --}}
-                                    <td class="text-center align-middle py-1.5 px-2">
-                                        <div class="flex flex-col items-center gap-0.5">
-                                            <div class="text-[9px] font-semibold {{ $mRow['p2']['ar_value'] <= 7 ? 'text-success' : 'text-warning' }}">
-                                                AR: {{ number_format($mRow['p2']['ar_value']) }} Hari
-                                            </div>
-                                            <div class="text-[9px] font-semibold {{ $mRow['p2']['is_stock_achieved'] ? 'text-success' : 'text-error' }}">
-                                                STK: {{ number_format($mRow['p2']['stock_avg'], 1) }}%
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-right border-r border-base-200/50 align-middle py-1.5 px-3">
-                                        <div class="text-[10px] text-base-content/30 italic">-</div>
-                                    </td>
-
-                                    {{-- Right Sticky Column: Total --}}
-                                    <td class="sticky right-0 {{ $subBg }} border-l border-base-300 z-10 align-middle px-4 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
-                                        {{-- Empty since reward is not monthly --}}
-                                    </td>
-                                </tr>
-                            @endforeach
-                        @endif
-
-                    @empty
-                        <tr>
-                            <td colspan="12" class="text-center p-8 text-base-content/50">
-                                <div class="flex flex-col items-center gap-2">
-                                    <x-heroicon-o-inbox class="w-12 h-12 text-base-300" />
-                                    <p>Belum ada data target untuk reguler di tahun {{ $year }}.</p>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="col-span-full flex flex-col items-center justify-center p-12 text-base-content/50 border-2 border-dashed border-base-300 rounded-xl min-h-[300px]">
+                        <x-heroicon-o-inbox class="w-16 h-16 mb-4 text-base-300" />
+                        <h3 class="text-lg font-bold">Belum Ada Data</h3>
+                        <p class="text-sm mt-1">Tidak ada distributor yang sesuai dengan filter atau target belum diunggah.</p>
+                    </div>
+                @endforelse
+            </div>
         </div>
         
     </div>
@@ -506,6 +379,80 @@
     @endif
 
 
+    {{-- Detail Modal --}}
+    @if($isDetailModalOpen)
+    <div class="fixed inset-0 z-[100] flex items-center justify-center">
+        <div class="fixed inset-0 bg-base-100/50 backdrop-blur-sm" wire:click="closeDetailModal"></div>
+        <div class="bg-base-100 rounded-xl shadow-2xl border border-base-300 w-full max-w-4xl z-10 overflow-hidden flex flex-col mx-4 h-[85vh]">
+            <div class="p-4 md:p-6 border-b border-base-200 bg-base-200/50 flex justify-between items-center shrink-0">
+                <div>
+                    <h3 class="font-bold text-lg md:text-xl">Detail Pencapaian Bulanan</h3>
+                    <p class="text-xs text-base-content/60 mt-1">Distributor: <span class="font-bold text-primary">{{ $detailDistributorName }}</span></p>
+                </div>
+                <button wire:click="closeDetailModal" class="btn btn-sm btn-ghost btn-circle"><x-heroicon-s-x-mark class="w-5 h-5"/></button>
+            </div>
+            
+            <div class="flex-1 overflow-auto bg-base-100 relative p-4">
+                <table class="table table-sm w-full whitespace-nowrap">
+                    <thead class="text-xs uppercase tracking-wider text-base-content/80 shadow-sm sticky top-0 bg-base-200 z-20">
+                        <tr>
+                            <th class="py-3 px-4 rounded-tl-lg">Bulan</th>
+                            <th class="py-3 px-4 text-right">Target</th>
+                            <th class="py-3 px-4 text-right">Sell In</th>
+                            <th class="py-3 px-4 text-right">Sell Out</th>
+                            <th class="py-3 px-4 text-center rounded-tr-lg">AR & STK</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm">
+                        @forelse($monthlyDetails as $mRow)
+                            @php
+                                $pctIn = $mRow['target'] > 0 ? ($mRow['sell_in'] / $mRow['target']) * 100 : 0;
+                                $pctOut = $mRow['target'] > 0 ? ($mRow['sell_out'] / $mRow['target']) * 100 : 0;
+                            @endphp
+                            <tr class="hover:bg-base-200/50 transition-colors border-b border-base-200">
+                                <td class="py-3 px-4 font-bold">{{ $mRow['month_name'] }}</td>
+                                
+                                <td class="py-3 px-4 text-right font-mono text-base-content/70">{{ number_format($mRow['target']) }}</td>
+                                
+                                <td class="py-3 px-4 text-right">
+                                    <div class="font-mono font-bold">{{ number_format($mRow['sell_in']) }}</div>
+                                    @if($mRow['target'] > 0)
+                                        <div class="text-[10px] font-bold {{ $pctIn >= 100 ? 'text-success' : ($pctIn >= 80 ? 'text-warning' : 'text-error') }} mt-0.5">{{ number_format($pctIn, 1) }}%</div>
+                                    @endif
+                                </td>
+                                
+                                <td class="py-3 px-4 text-right">
+                                    <div class="font-mono font-bold">{{ number_format($mRow['sell_out']) }}</div>
+                                    @if($mRow['target'] > 0)
+                                        <div class="text-[10px] font-bold {{ $pctOut >= 100 ? 'text-success' : ($pctOut >= 80 ? 'text-warning' : 'text-error') }} mt-0.5">{{ number_format($pctOut, 1) }}%</div>
+                                    @endif
+                                </td>
+                                
+                                <td class="py-3 px-4 text-center">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <div class="badge badge-sm border-0 font-semibold {{ $mRow['ar_value'] <= 7 ? 'bg-success/10 text-success' : 'bg-error/10 text-error' }}">
+                                            AR: {{ $mRow['ar_value'] }}
+                                        </div>
+                                        <div class="badge badge-sm border-0 font-semibold {{ $mRow['is_stock_achieved'] ? 'bg-success/10 text-success' : 'bg-error/10 text-error' }}">
+                                            STK: {{ number_format($mRow['stock_avg'], 1) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="text-center py-8 text-base-content/50">Belum ada data bulanan.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-4 border-t border-base-200 bg-base-200/50 flex justify-end shrink-0">
+                <button wire:click="closeDetailModal" class="btn btn-outline">Tutup</button>
+            </div>
+        </div>
+    </div>
+    @endif
     {{-- Script untuk Auto Reload Halaman --}}
     @script
     <script>

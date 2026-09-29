@@ -12,7 +12,9 @@ use Livewire\Attributes\Layout;
 class MonitoringRewardDistributor extends Component
 {
     use WithFileUploads;
-    public $expandedDistributor = null;
+    public $detailDistributorCode = null;
+    public $detailDistributorName = null;
+    public $isDetailModalOpen = false;
     public $monthlyDetails = [];
     public $search = '';
     public $filterRegion = '';
@@ -39,18 +41,22 @@ class MonitoringRewardDistributor extends Component
         // No global settings loaded on mount
     }
 
-    public function toggleExpand($distributorCode)
+    public function openDetailModal($distributorCode, $distributorName)
     {
-        if ($this->expandedDistributor === $distributorCode) {
-            $this->expandedDistributor = null;
-            $this->monthlyDetails = [];
-            return;
-        }
-
-        $this->expandedDistributor = $distributorCode;
+        $this->detailDistributorCode = $distributorCode;
+        $this->detailDistributorName = $distributorName;
         $year = 2026; // Match render() year
 
         $this->monthlyDetails = $this->fetchMonthlyData($distributorCode, $year);
+        $this->isDetailModalOpen = true;
+    }
+
+    public function closeDetailModal()
+    {
+        $this->isDetailModalOpen = false;
+        $this->monthlyDetails = [];
+        $this->detailDistributorCode = null;
+        $this->detailDistributorName = null;
     }
 
     private function fetchMonthlyData($distributorCode, $year)
@@ -77,7 +83,7 @@ class MonitoringRewardDistributor extends Component
             $sellIns = DB::table('selling_in')
                 ->where('kd_distributor', $distributorCode)
                 ->where('reg_fes', 'REG')
-                ->where('tahun', $year)
+                ->whereYear('bulan', $year)
                 ->get(['bulan', 'value_net']);
             foreach ($sellIns as $t) {
                 $m = (int) date('n', strtotime($t->bulan));
@@ -111,7 +117,7 @@ class MonitoringRewardDistributor extends Component
             $m = (int) date('n', strtotime($t->bulan));
             $stockMap[$m] = ($stockMap[$m] ?? 0) + $t->stock;
             $stockCount[$m] = ($stockCount[$m] ?? 0) + 1;
-            $arValueMap[$m] = $t->ar;
+            $arValueMap[$m] = max($arValueMap[$m] ?? 0, $t->ar);
             if ($t->ar > 7) {
                 $arLateMap[$m] = ($arLateMap[$m] ?? 0) + 1;
             }
@@ -125,36 +131,21 @@ class MonitoringRewardDistributor extends Component
             7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
         ];
 
-        for ($i = 1; $i <= 6; $i++) {
-            $m1 = $i;
-            $m2 = $i + 6;
-            
+        for ($i = 1; $i <= 12; $i++) {
             $details[] = [
-                'p1_month' => $monthNames[$m1],
-                'p2_month' => $monthNames[$m2],
-                'p1' => [
-                    'target' => $targetMap[$m1] ?? 0,
-                    'sell_in' => $sellInMap[$m1] ?? 0,
-                    'sell_out' => $sellOutMap[$m1] ?? 0,
-                    'stock_avg' => $stockMap[$m1] ?? 0,
-                    'ar_value' => $arValueMap[$m1] ?? 0,
-                    'ar_late_count' => $arLateMap[$m1] ?? 0,
-                    'is_stock_achieved' => ($stockMap[$m1] ?? 0) >= 80,
-                    'is_ar_achieved' => ($arLateMap[$m1] ?? 0) <= 2,
-                ],
-                'p2' => [
-                    'target' => $targetMap[$m2] ?? 0,
-                    'sell_in' => $sellInMap[$m2] ?? 0,
-                    'sell_out' => $sellOutMap[$m2] ?? 0,
-                    'stock_avg' => $stockMap[$m2] ?? 0,
-                    'ar_value' => $arValueMap[$m2] ?? 0,
-                    'ar_late_count' => $arLateMap[$m2] ?? 0,
-                    'is_stock_achieved' => ($stockMap[$m2] ?? 0) >= 80,
-                    'is_ar_achieved' => ($arLateMap[$m2] ?? 0) <= 2,
-                ],
+                'month_name' => $monthNames[$i],
+                'month_num' => $i,
+                'target' => $targetMap[$i] ?? 0,
+                'sell_in' => $sellInMap[$i] ?? 0,
+                'sell_out' => $sellOutMap[$i] ?? 0,
+                'stock_avg' => $stockMap[$i] ?? 0,
+                'ar_value' => $arValueMap[$i] ?? 0,
+                'ar_late_count' => $arLateMap[$i] ?? 0,
+                'is_stock_achieved' => ($stockMap[$i] ?? 0) >= 80,
+                'is_ar_achieved' => ($arLateMap[$i] ?? 0) <= 2,
             ];
-            }
-            return $details;
+        }
+        return $details;
         });
     }
 
@@ -250,15 +241,9 @@ class MonitoringRewardDistributor extends Component
             // Load all settings
             $distSettingsMap = \App\Models\RewardDistributorSetting::whereIn('distributor_code', $distributorCodes)->get()->keyBy('distributor_code');
 
-            // Apply filter Status Program
-            $finalDistributors = collect($validDistributors)->filter(function($dist) use ($distSettingsMap) {
-                $setting = $distSettingsMap->get($dist->distributor_code);
-                $isParticipating = $setting ? (bool)$setting->is_participating : true;
-                
-                if ($this->filterStatus === 'ikut') return $isParticipating;
-                if ($this->filterStatus === 'tidak_ikut') return !$isParticipating;
-                return true; // semua
-            });
+            // We DO NOT filter by Status Program inside the cache closure anymore
+            // so that the cached array has all distributors regardless of their participation status.
+            $finalDistributors = collect($validDistributors);
 
             // Update array after filter
             $cabangs = $finalDistributors->pluck('branch_name')->unique()->toArray();
@@ -292,18 +277,20 @@ class MonitoringRewardDistributor extends Component
                 $cabang = $master->branch_name;
                 $distCode = $master->distributor_code;
                 
-                $row = [
-                    'distributor_code' => $distCode,
-                    'cabang' => $cabang,
-                    'distributor' => $master->distributor_name ?? '-',
-                    'region' => $master->region_name ?? '-',
-                    'area' => $master->area_name ?? '-'
-                ];
-
             // Get specific months for this distributor
             $distSettings = $distSettingsMap->get($distCode);
             $p1Months = $distSettings && $distSettings->p1_months ? $distSettings->p1_months : [1,2,3,4,5,6];
             $p2Months = $distSettings && $distSettings->p2_months ? $distSettings->p2_months : [1,2,3,4,5,6,7,8,9,10,11,12];
+            $isParticipating = $distSettings ? (bool)$distSettings->is_participating : true;
+            
+            $row = [
+                'distributor_code' => $distCode,
+                'cabang' => $cabang,
+                'distributor' => $master->distributor_name ?? '-',
+                'region' => $master->region_name ?? '-',
+                'area' => $master->area_name ?? '-',
+                'is_participating' => $isParticipating
+            ];
 
             // Aggregation helper
             $aggregate = function($months, $type) use ($cabang, $distCode, $mTarget, $mSellIn, $mSellOut, $mStock, $mArCount) {
@@ -398,8 +385,10 @@ class MonitoringRewardDistributor extends Component
                 'is_target_achieved' => $isTargetAchievedP2,
                 'is_stock_achieved' => $isStockAchievedP2,
                 'is_ar_achieved' => $isArAchievedP2,
-                // Reward properties omitted since they are not displayed
+                'base_reward' => $baseRewardP2,
+                'final_reward' => $finalRewardP2,
             ];
+            $row['total_reward'] = $finalRewardP1 + $finalRewardP2;
 
             $data[] = $row;
         }
@@ -433,12 +422,19 @@ class MonitoringRewardDistributor extends Component
             $sortedData = collect($sortedData)->where('region', $this->filterRegion)->values()->all();
         }
 
-        // Extract areas dependent on the selected Region (Chained)
+        // Extract areas dependent on the selected Region (Chained) - SEBELUM Filter Status
         $areas = collect($sortedData)->pluck('area')->unique()->filter(fn($val) => $val !== '-')->sort()->values()->all();
         
         // Auto-reset Area jika Area yang sedang dipilih tidak ada di dalam list Area Region yang baru
         if (!empty($this->filterArea) && !in_array($this->filterArea, $areas)) {
             $this->filterArea = '';
+        }
+
+        // Terapkan Filter Status Program
+        if ($this->filterStatus === 'ikut') {
+            $sortedData = collect($sortedData)->where('is_participating', true)->values()->all();
+        } elseif ($this->filterStatus === 'tidak_ikut') {
+            $sortedData = collect($sortedData)->where('is_participating', false)->values()->all();
         }
 
         // Terapkan Filter Area (Second)
@@ -514,11 +510,13 @@ class MonitoringRewardDistributor extends Component
     public function export()
     {
         $year = 2026;
-        $sortedData = Cache::get("monitoring_reward_main_{$year}");
+        $user = auth()->user();
+        $userId = $user ? $user->id : 'guest';
+        $sortedData = Cache::get("monitoring_reward_main_{$year}_uid_{$userId}");
         if (empty($sortedData)) {
             // Rebuild if cache expired right before click
             $this->render(); // this populates cache
-            $sortedData = Cache::get("monitoring_reward_main_{$year}", []);
+            $sortedData = Cache::get("monitoring_reward_main_{$year}_uid_{$userId}", []);
         }
 
         $result = $this->getFilteredData($sortedData);
