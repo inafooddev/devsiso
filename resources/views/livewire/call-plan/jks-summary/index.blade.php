@@ -148,7 +148,7 @@
                                 <td title="{{ $row->salesman_name ?: $row->salesman_code }}" class="bg-inherit sticky left-[520px] z-30 border-r-2 border-base-300 shadow-[5px_0_15px_rgba(0,0,0,0.1)] truncate w-[150px] min-w-[150px] max-w-[150px] font-semibold text-primary/90">{{ $row->salesman_name ?: $row->salesman_code }}</td>
                                 
                                 <td class="text-right pr-4 border-r border-base-200 {{ $row->total_ro < 300 ? 'bg-error/10 text-error font-bold' : 'bg-info/5 font-semibold' }}">{{ number_format($row->total_ro) }}</td>
-                                <td class="text-right pr-4 border-r border-base-200 bg-info/5 font-semibold">{{ number_format($row->total_jks) }}</td>
+                                <td class="text-right pr-4 border-r border-base-200 {{ $row->total_jks < 300 ? 'bg-error/10 text-error font-bold' : 'bg-info/5 font-semibold' }}">{{ number_format($row->total_jks) }}</td>
                                 <td class="text-right pr-4 border-r border-base-200 bg-info/5 {{ $row->non_rute > 0 ? 'text-warning font-bold' : 'text-base-content/40' }}">{{ number_format($row->non_rute) }}</td>
                                 <td class="text-right pr-4 border-r border-base-200 bg-info/5 {{ $row->non_gps > 0 ? 'text-error font-bold' : 'text-base-content/40' }}">{{ number_format($row->non_gps) }}</td>
                                 
@@ -161,9 +161,16 @@
                                         $gnpField = $key . '_gnp';
                                         $gpsField = $key . '_non_gps';
                                         $bgClass = $loop->even ? 'bg-base-200/30' : '';
+                                        
+                                        $getColor = function($val) {
+                                            if ($val == 0) return 'text-base-content/30';
+                                            if ($val < 20) return 'bg-error/10 text-error font-bold';
+                                            if ($val > 35) return 'bg-warning/20 text-warning-content font-bold';
+                                            return 'text-base-content font-medium';
+                                        };
                                     @endphp
-                                    <td class="text-right pr-3 {{ $bgClass }} {{ $row->$gjlField > 0 ? 'text-base-content font-medium' : 'text-base-content/30' }}">{{ number_format($row->$gjlField) }}</td>
-                                    <td class="text-right pr-3 {{ $bgClass }} {{ $row->$gnpField > 0 ? 'text-base-content font-medium' : 'text-base-content/30' }}">{{ number_format($row->$gnpField) }}</td>
+                                    <td class="text-right pr-3 {{ $bgClass }} {{ $getColor($row->$gjlField) }}">{{ number_format($row->$gjlField) }}</td>
+                                    <td class="text-right pr-3 {{ $bgClass }} {{ $getColor($row->$gnpField) }}">{{ number_format($row->$gnpField) }}</td>
                                     <td class="text-right pr-3 border-r-2 border-base-300 {{ $bgClass }} {{ $row->$gpsField > 0 ? 'text-error font-bold' : 'text-base-content/30' }}">{{ number_format($row->$gpsField) }}</td>
                                 @endforeach
                             </tr>
