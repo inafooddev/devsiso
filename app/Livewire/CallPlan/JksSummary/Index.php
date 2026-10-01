@@ -356,8 +356,8 @@ class Index extends Component
         $bulan = $this->appliedBulan ?: date('Y-m-01');
         $query = $this->getBaseQuery();
 
-
-        $jksData = $query->paginate(100);
+        $accessLevel = auth()->user() ? auth()->user()->getAccessLevel() : 'nasional';
+        $jksData = $accessLevel === 'nasional' ? $query->paginate(9999) : $query->paginate(100);
         
         // --- Approvals ---
         // Get salesman codes in current page to fetch their approvals

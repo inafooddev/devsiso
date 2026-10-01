@@ -104,74 +104,80 @@
                     @endphp
                     
                     {{-- Thead --}}
-                    <thead class="text-xs uppercase bg-base-200 text-base-content shadow-sm sticky top-0 z-40 border-b-2 border-base-300">
+                    <thead class="text-xs uppercase bg-base-200 text-base-content shadow-sm sticky top-0 z-40 border-b border-base-300">
                         {{-- Baris 1: Parent Headers --}}
                         <tr>
-                            <th rowspan="2" class="bg-base-300 sticky left-0 z-50 border-b-2 border-r border-base-100 w-[100px] min-w-[100px] max-w-[100px] text-base-content/80 font-bold tracking-wider">Region</th>
-                            <th rowspan="2" class="bg-base-300 sticky left-[100px] z-50 border-b-2 border-r border-base-100 w-[120px] min-w-[120px] max-w-[120px] text-base-content/80 font-bold tracking-wider">Area</th>
-                            <th rowspan="2" class="bg-base-300 sticky left-[220px] z-50 border-b-2 border-r border-base-100 w-[150px] min-w-[150px] max-w-[150px] text-base-content/80 font-bold tracking-wider">Supervisor</th>
-                            <th rowspan="2" class="bg-base-300 sticky left-[370px] z-50 border-b-2 border-r border-base-100 w-[150px] min-w-[150px] max-w-[150px] text-base-content/80 font-bold tracking-wider">Distributor</th>
-                            <th rowspan="2" class="bg-base-300 sticky left-[520px] z-50 border-b-2 border-r-2 border-base-100 shadow-[5px_0_15px_rgba(0,0,0,0.1)] w-[150px] min-w-[150px] max-w-[150px] font-bold text-primary tracking-wider">Salesman</th>
+                            <th rowspan="2" class="bg-base-200 sticky left-0 z-50 border-b border-r border-base-300 w-[100px] min-w-[100px] max-w-[100px] text-base-content/60 font-semibold tracking-wider">Region</th>
+                            <th rowspan="2" class="bg-base-200 sticky left-[100px] z-50 border-b border-r border-base-300 w-[120px] min-w-[120px] max-w-[120px] text-base-content/60 font-semibold tracking-wider">Area</th>
+                            <th rowspan="2" class="bg-base-200 sticky left-[220px] z-50 border-b border-r border-base-300 w-[150px] min-w-[150px] max-w-[150px] text-base-content/60 font-semibold tracking-wider">Supervisor</th>
+                            <th rowspan="2" class="bg-base-200 sticky left-[370px] z-50 border-b border-r border-base-300 w-[150px] min-w-[150px] max-w-[150px] text-base-content/60 font-semibold tracking-wider">Distributor</th>
+                            <th rowspan="2" class="bg-base-200 sticky left-[520px] z-50 border-b border-r border-base-300 shadow-[4px_0_12px_-2px_rgba(0,0,0,0.1)] w-[150px] min-w-[150px] max-w-[150px] font-semibold text-base-content/60 tracking-wider">Salesman</th>
                             
-                            <th rowspan="2" class="text-right pr-4 border-b-2 border-r border-base-100 bg-base-300 text-base-content/80 font-bold tracking-wider">Total RO</th>
-                            <th rowspan="2" class="text-right pr-4 border-b-2 border-r border-base-100 bg-base-300 text-base-content/80 font-bold tracking-wider">JKS</th>
-                            <th rowspan="2" class="text-right pr-4 border-b-2 border-r border-base-100 bg-base-300 text-base-content/80 font-bold tracking-wider">Non Rute</th>
-                            <th rowspan="2" class="text-right pr-4 border-b-2 border-r-2 border-base-100 bg-base-300 text-base-content/80 font-bold tracking-wider">Non GPS</th>
+                            <th rowspan="2" class="text-right pr-4 border-b border-r border-base-300 bg-base-200 text-base-content/60 font-semibold tracking-wider">Total RO</th>
+                            <th rowspan="2" class="text-right pr-4 border-b border-r border-base-300 bg-base-200 text-base-content/60 font-semibold tracking-wider">JKS</th>
+                            <th rowspan="2" class="text-right pr-4 border-b border-r border-base-300 bg-base-200 text-base-content/60 font-semibold tracking-wider">Non Rute</th>
+                            <th rowspan="2" class="text-right pr-4 border-b border-r border-base-300 bg-base-200 text-base-content/60 font-semibold tracking-wider">Non GPS</th>
                             
-                            <th colspan="2" class="text-center border-b-2 border-r-2 border-base-100 bg-base-300 text-base-content/90 font-bold tracking-wider">Perubahan JKS</th>
+                            <th colspan="2" class="text-center border-b border-r border-base-300 bg-base-200 text-base-content/60 font-semibold tracking-wider">Perubahan JKS</th>
                             
                             @foreach($days as $key => $label)
-                                <th colspan="3" class="text-center border-b-2 border-r-2 border-base-100 bg-base-300 text-base-content/90 font-bold tracking-wider">{{ $label }}</th>
+                                @php
+                                    $colGroupBg = in_array($key, ['selasa', 'kamis', 'sabtu']) ? 'bg-base-200/50' : 'bg-base-200';
+                                @endphp
+                                <th colspan="3" class="text-center border-b border-r border-base-300 {{ $colGroupBg }} text-base-content/60 font-semibold tracking-wider">{{ $label }}</th>
                             @endforeach
                         </tr>
                         
                         {{-- Baris 2: Child Headers --}}
                         <tr>
-                            <th class="text-right pr-3 bg-base-200 text-[10px] tracking-wide text-base-content/80 border-b-2 border-r border-base-300">Penambahan</th>
-                            <th class="text-right pr-3 bg-base-200 text-[10px] border-b-2 border-r-2 border-base-100 tracking-wide text-base-content/80">Delete</th>
+                            <th class="text-right pr-3 bg-base-200 text-[10px] tracking-widest text-base-content/50 border-b border-r border-base-300">Penambahan</th>
+                            <th class="text-right pr-3 bg-base-200 text-[10px] tracking-widest text-base-content/50 border-b border-r border-base-300">Delete</th>
                             
                             @foreach($days as $key => $label)
-                                <th class="text-right pr-3 bg-base-200 text-[10px] text-primary tracking-wide border-b-2 border-r border-base-300">Gjl</th>
-                                <th class="text-right pr-3 bg-base-200 text-[10px] text-secondary tracking-wide border-b-2 border-r border-base-300">Gnp</th>
-                                <th class="text-right pr-3 bg-base-200 text-[10px] text-error tracking-wide border-b-2 border-r-2 border-base-100">Non Gps</th>
+                                @php
+                                    $colGroupBg = in_array($key, ['selasa', 'kamis', 'sabtu']) ? 'bg-base-200/50' : 'bg-base-200';
+                                @endphp
+                                <th class="text-right pr-3 {{ $colGroupBg }} text-[10px] text-base-content/50 tracking-widest border-b border-r border-base-300">Gjl</th>
+                                <th class="text-right pr-3 {{ $colGroupBg }} text-[10px] text-base-content/50 tracking-widest border-b border-r border-base-300">Gnp</th>
+                                <th class="text-right pr-3 {{ $colGroupBg }} text-[10px] text-base-content/50 tracking-widest border-b border-r border-base-300">Non Gps</th>
                             @endforeach
                         </tr>
                     </thead>
 
                     <tbody>
                         @forelse($summaryData as $row)
-                            <tr class="hover:bg-base-300 transition-colors odd:bg-base-100 even:bg-base-200 group text-xs">
-                                <td title="{{ $row->region_name ?: $row->region_code }}" class="bg-inherit sticky left-0 z-30 border-r border-base-300 truncate w-[100px] min-w-[100px] max-w-[100px] text-base-content/70">{{ $row->region_name ?: $row->region_code }}</td>
-                                <td title="{{ $row->area_name ?: $row->area_code }}" class="bg-inherit sticky left-[100px] z-30 border-r border-base-300 truncate w-[120px] min-w-[120px] max-w-[120px] text-base-content/70">{{ $row->area_name ?: $row->area_code }}</td>
-                                <td title="{{ $row->supervisor_name ?: $row->supervisor_code }}" class="bg-inherit sticky left-[220px] z-30 border-r border-base-300 truncate w-[150px] min-w-[150px] max-w-[150px] font-medium">{{ $row->supervisor_name ?: $row->supervisor_code }}</td>
-                                <td title="{{ $row->distributor_name ?: $row->distributor_code }}" class="bg-inherit sticky left-[370px] z-30 border-r border-base-300 truncate w-[150px] min-w-[150px] max-w-[150px] font-medium">{{ $row->distributor_name ?: $row->distributor_code }}</td>
-                                <td title="{{ $row->salesman_name ?: $row->salesman_code }}" class="bg-inherit sticky left-[520px] z-30 border-r-2 border-base-300 shadow-[5px_0_15px_rgba(0,0,0,0.1)] truncate w-[150px] min-w-[150px] max-w-[150px] font-semibold text-primary/90">{{ $row->salesman_name ?: $row->salesman_code }}</td>
+                            <tr class="hover:bg-base-200/50 transition-colors group text-xs">
+                                <td title="{{ $row->region_name ?: $row->region_code }}" class="bg-base-100 group-hover:bg-base-200/50 sticky left-0 z-30 border-b border-r border-base-200 truncate w-[100px] min-w-[100px] max-w-[100px] text-base-content/70">{{ $row->region_name ?: $row->region_code }}</td>
+                                <td title="{{ $row->area_name ?: $row->area_code }}" class="bg-base-100 group-hover:bg-base-200/50 sticky left-[100px] z-30 border-b border-r border-base-200 truncate w-[120px] min-w-[120px] max-w-[120px] text-base-content/70">{{ $row->area_name ?: $row->area_code }}</td>
+                                <td title="{{ $row->supervisor_name ?: $row->supervisor_code }}" class="bg-base-100 group-hover:bg-base-200/50 sticky left-[220px] z-30 border-b border-r border-base-200 truncate w-[150px] min-w-[150px] max-w-[150px] text-base-content/90">{{ $row->supervisor_name ?: $row->supervisor_code }}</td>
+                                <td title="{{ $row->distributor_name ?: $row->distributor_code }}" class="bg-base-100 group-hover:bg-base-200/50 sticky left-[370px] z-30 border-b border-r border-base-200 truncate w-[150px] min-w-[150px] max-w-[150px] text-base-content/90">{{ $row->distributor_name ?: $row->distributor_code }}</td>
+                                <td title="{{ $row->salesman_name ?: $row->salesman_code }}" class="bg-base-100 group-hover:bg-base-200/50 sticky left-[520px] z-30 border-b border-r border-base-200 shadow-[4px_0_12px_-2px_rgba(0,0,0,0.1)] truncate w-[150px] min-w-[150px] max-w-[150px] font-medium text-base-content/90">{{ $row->salesman_name ?: $row->salesman_code }}</td>
                                 
-                                <td class="text-right pr-4 border-r border-base-200 {{ $row->total_ro < 300 ? 'bg-error/10 text-error font-bold' : 'bg-info/5 font-semibold' }}">{{ number_format($row->total_ro) }}</td>
-                                <td class="text-right pr-4 border-r border-base-200 {{ $row->total_jks < 300 ? 'bg-error/10 text-error font-bold' : 'bg-info/5 font-semibold' }}">{{ number_format($row->total_jks) }}</td>
-                                <td class="text-right pr-4 border-r border-base-200 bg-info/5 {{ $row->non_rute > 0 ? 'text-warning font-bold' : 'text-base-content/40' }}">{{ number_format($row->non_rute) }}</td>
-                                <td class="text-right pr-4 border-r border-base-200 bg-info/5 {{ $row->non_gps > 0 ? 'text-error font-bold' : 'text-base-content/40' }}">{{ number_format($row->non_gps) }}</td>
+                                <td class="text-right pr-4 border-b border-r border-base-200 {{ $row->total_ro < 300 ? 'bg-error/5 text-error font-medium' : 'text-base-content/80' }}">{{ number_format($row->total_ro) }}</td>
+                                <td class="text-right pr-4 border-b border-r border-base-200 {{ $row->total_jks < 300 ? 'bg-error/5 text-error font-medium' : 'text-base-content/80' }}">{{ number_format($row->total_jks) }}</td>
+                                <td class="text-right pr-4 border-b border-r border-base-200 {{ $row->non_rute > 0 ? 'text-warning font-medium' : 'text-base-content/40' }}">{{ number_format($row->non_rute) }}</td>
+                                <td class="text-right pr-4 border-b border-r border-base-200 {{ $row->non_gps > 0 ? 'text-error font-medium' : 'text-base-content/40' }}">{{ number_format($row->non_gps) }}</td>
                                 
-                                <td class="text-right pr-3 {{ $row->penambahan > 0 ? 'text-info font-medium' : 'text-base-content/30' }}">{{ number_format($row->penambahan) }}</td>
-                                <td class="text-right pr-3 border-r-2 border-base-300 {{ $row->deleted > 0 ? 'text-error font-medium' : 'text-base-content/30' }}">{{ number_format($row->deleted) }}</td>
+                                <td class="text-right pr-3 border-b border-r border-base-200 {{ $row->penambahan > 0 ? 'text-info font-medium' : 'text-base-content/30' }}">{{ number_format($row->penambahan) }}</td>
+                                <td class="text-right pr-3 border-b border-r border-base-200 {{ $row->deleted > 0 ? 'text-error font-medium' : 'text-base-content/30' }}">{{ number_format($row->deleted) }}</td>
                                 
                                 @foreach($days as $key => $label)
                                     @php
                                         $gjlField = $key . '_gjl';
                                         $gnpField = $key . '_gnp';
                                         $gpsField = $key . '_non_gps';
-                                        $bgClass = $loop->even ? 'bg-base-200/30' : '';
+                                        $bgClass = in_array($key, ['selasa', 'kamis', 'sabtu']) ? 'bg-base-200/30' : '';
                                         
                                         $getColor = function($val) {
                                             if ($val == 0) return 'text-base-content/30';
-                                            if ($val < 20) return 'bg-error/10 text-error font-bold';
-                                            if ($val > 35) return 'bg-warning/20 text-warning-content font-bold';
-                                            return 'text-base-content font-medium';
+                                            if ($val < 20) return 'bg-error/10 text-error font-medium';
+                                            if ($val > 35) return 'bg-warning/10 text-warning font-medium';
+                                            return 'text-base-content/80';
                                         };
                                     @endphp
-                                    <td class="text-right pr-3 {{ $bgClass }} {{ $getColor($row->$gjlField) }}">{{ number_format($row->$gjlField) }}</td>
-                                    <td class="text-right pr-3 {{ $bgClass }} {{ $getColor($row->$gnpField) }}">{{ number_format($row->$gnpField) }}</td>
-                                    <td class="text-right pr-3 border-r-2 border-base-300 {{ $bgClass }} {{ $row->$gpsField > 0 ? 'text-error font-bold' : 'text-base-content/30' }}">{{ number_format($row->$gpsField) }}</td>
+                                    <td class="text-right pr-3 border-b border-r border-base-200 {{ $bgClass }} {{ $getColor($row->$gjlField) }}">{{ number_format($row->$gjlField) }}</td>
+                                    <td class="text-right pr-3 border-b border-r border-base-200 {{ $bgClass }} {{ $getColor($row->$gnpField) }}">{{ number_format($row->$gnpField) }}</td>
+                                    <td class="text-right pr-3 border-b border-r border-base-200 {{ $bgClass }} {{ $row->$gpsField > 0 ? 'text-error font-medium' : 'text-base-content/30' }}">{{ number_format($row->$gpsField) }}</td>
                                 @endforeach
                             </tr>
                         @empty
@@ -187,26 +193,27 @@
                     </tbody>
                     
                     @if(count($summaryData) > 0)
-                    <tfoot class="sticky bottom-0 z-40 bg-base-300 text-base-content font-bold shadow-[0_-5px_15px_rgba(0,0,0,0.1)] text-xs uppercase">
+                    <tfoot class="sticky bottom-0 z-40 bg-base-200 text-base-content/70 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] text-xs uppercase">
                         <tr>
-                            <td colspan="5" class="bg-base-300 sticky left-0 z-50 border-t-2 border-r-2 border-base-100 text-right pr-4 tracking-wider">TOTAL PAGE</td>
-                            <td class="text-right pr-4 border-t-2 border-r border-base-100">{{ number_format(collect($summaryData->items())->sum('total_ro')) }}</td>
-                            <td class="text-right pr-4 border-t-2 border-r border-base-100">{{ number_format(collect($summaryData->items())->sum('total_jks')) }}</td>
-                            <td class="text-right pr-4 border-t-2 border-r border-base-100 text-warning">{{ number_format(collect($summaryData->items())->sum('non_rute')) }}</td>
-                            <td class="text-right pr-4 border-t-2 border-r-2 border-base-100 text-error">{{ number_format(collect($summaryData->items())->sum('non_gps')) }}</td>
+                            <td colspan="5" class="bg-base-200 sticky left-0 z-50 border-t border-r border-base-300 text-right pr-4 tracking-widest font-semibold">TOTAL PAGE</td>
+                            <td class="text-right pr-4 border-t border-r border-base-300">{{ number_format(collect($summaryData->items())->sum('total_ro')) }}</td>
+                            <td class="text-right pr-4 border-t border-r border-base-300">{{ number_format(collect($summaryData->items())->sum('total_jks')) }}</td>
+                            <td class="text-right pr-4 border-t border-r border-base-300 text-warning-content">{{ number_format(collect($summaryData->items())->sum('non_rute')) }}</td>
+                            <td class="text-right pr-4 border-t border-r border-base-300 text-error">{{ number_format(collect($summaryData->items())->sum('non_gps')) }}</td>
                             
-                            <td class="text-right pr-3 border-t-2 border-base-100 text-info">{{ number_format(collect($summaryData->items())->sum('penambahan')) }}</td>
-                            <td class="text-right pr-3 border-t-2 border-r-2 border-base-100 text-error">{{ number_format(collect($summaryData->items())->sum('deleted')) }}</td>
+                            <td class="text-right pr-3 border-t border-r border-base-300 text-info">{{ number_format(collect($summaryData->items())->sum('penambahan')) }}</td>
+                            <td class="text-right pr-3 border-t border-r border-base-300 text-error">{{ number_format(collect($summaryData->items())->sum('deleted')) }}</td>
                             
                             @foreach($days as $key => $label)
                                 @php
                                     $gjlField = $key . '_gjl';
                                     $gnpField = $key . '_gnp';
                                     $gpsField = $key . '_non_gps';
+                                    $colGroupBg = in_array($key, ['selasa', 'kamis', 'sabtu']) ? 'bg-base-200/50' : '';
                                 @endphp
-                                <td class="text-right pr-3 border-t-2 border-base-100 text-primary">{{ number_format(collect($summaryData->items())->sum($gjlField)) }}</td>
-                                <td class="text-right pr-3 border-t-2 border-base-100 text-secondary">{{ number_format(collect($summaryData->items())->sum($gnpField)) }}</td>
-                                <td class="text-right pr-3 border-t-2 border-r-2 border-base-100 text-error">{{ number_format(collect($summaryData->items())->sum($gpsField)) }}</td>
+                                <td class="text-right pr-3 border-t border-r border-base-300 {{ $colGroupBg }}">{{ number_format(collect($summaryData->items())->sum($gjlField)) }}</td>
+                                <td class="text-right pr-3 border-t border-r border-base-300 {{ $colGroupBg }}">{{ number_format(collect($summaryData->items())->sum($gnpField)) }}</td>
+                                <td class="text-right pr-3 border-t border-r border-base-300 {{ $colGroupBg }} text-error">{{ number_format(collect($summaryData->items())->sum($gpsField)) }}</td>
                             @endforeach
                         </tr>
                     </tfoot>
