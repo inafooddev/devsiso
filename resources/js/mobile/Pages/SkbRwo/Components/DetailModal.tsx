@@ -167,6 +167,7 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
 
     const isEditingRef = useRef(isEditing);
     const previewImageRef = useRef(previewImage);
+    const latestLocationRef = useRef<{lat: string, lng: string} | null>(null);
     
     useEffect(() => { isEditingRef.current = isEditing; }, [isEditing]);
     useEffect(() => { previewImageRef.current = previewImage; }, [previewImage]);
@@ -219,14 +220,141 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleFileChange = (field: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleCameraClick = (field: string, ref: React.RefObject<HTMLInputElement>, acceptGallery: boolean) => {
+        if (!acceptGallery) {
+            // Anti-PC check
+            const isDesktop = !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+            if (isDesktop) {
+                return showToast('Upload diblokir. Foto toko wajib menggunakan kamera Handphone dari lapangan.', 'error');
+            }
+
+            // GPS pre-check
+            if (!navigator.geolocation) {
+                return showToast('Geolocation tidak didukung oleh browser anda.', 'error');
+            }
+
+            showToast('Mengunci lokasi GPS...', 'success');
+            setIsLocating(true);
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setIsLocating(false);
+                    const lat = position.coords.latitude.toString();
+                    const lng = position.coords.longitude.toString();
+                    latestLocationRef.current = { lat, lng };
+                    setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
+                    ref.current?.click();
+                },
+                (error) => {
+                    setIsLocating(false);
+                    showToast('Gagal memproses. Wajib menyalakan GPS dan memberikan Izin Lokasi untuk memfoto toko.', 'error');
+                },
+                { timeout: 10000, enableHighAccuracy: true }
+            );
+        } else {
+            ref.current?.click();
+        }
+    };
+
+    const handleFileChange = async (field: string, e: React.ChangeEvent<HTMLInputElement>, acceptGallery: boolean) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            if (previews[field] && previews[field]?.startsWith('blob:')) {
-                URL.revokeObjectURL(previews[field]!);
+            
+            if (acceptGallery) {
+                if (previews[field] && previews[field]?.startsWith('blob:')) {
+                    URL.revokeObjectURL(previews[field]!);
+                }
+                setFormData(prev => ({ ...prev, [field]: file }));
+                setPreviews(prev => ({ ...prev, [field]: URL.createObjectURL(file) }));
+            } else {
+                showToast('Memproses foto & geotagging...', 'success');
+                
+                let addressText = data.address || '-';
+                const currentLat = latestLocationRef.current?.lat || formData.latitude || '';
+                const currentLng = latestLocationRef.current?.lng || formData.longitude || '';
+
+                if (currentLat && currentLng) {
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 4000);
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentLat}&lon=${currentLng}&zoom=18&addressdetails=1`, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        const geoData = await res.json();
+                        if (geoData && geoData.display_name) {
+                            addressText = geoData.display_name;
+                        }
+                    } catch (err) {
+                        console.log('Reverse geocoding timeout/failed, fallback to db address');
+                    }
+                }
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 1280;
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > MAX_WIDTH) {
+                            height = Math.round((height * MAX_WIDTH) / width);
+                            width = MAX_WIDTH;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        if (!ctx) return;
+                        
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        const padding = 15;
+                        const textLines = [
+                            `TOKO: ${data.customer_name || '-'}`,
+                            `ALAMAT: ${addressText}`,
+                            `GPS: ${currentLat}, ${currentLng}`,
+                            `WAKTU: ${new Date().toLocaleString('id-ID')}`
+                        ];
+                        
+                        const baseFontSize = Math.max(14, Math.round(width * 0.025));
+                        ctx.font = `${baseFontSize}px Arial`;
+                        ctx.textBaseline = 'top';
+                        const lineHeight = Math.round(baseFontSize * 1.5);
+                        const bgHeight = (textLines.length * lineHeight) + (padding * 2);
+                        
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                        ctx.fillRect(0, height - bgHeight, width, bgHeight);
+                        
+                        ctx.fillStyle = '#ffffff';
+                        textLines.forEach((line, index) => {
+                            let displayLine = line;
+                            const maxTextWidth = width - (padding * 2);
+                            if (ctx.measureText(displayLine).width > maxTextWidth) {
+                                while (displayLine.length > 0 && ctx.measureText(displayLine + '...').width > maxTextWidth) {
+                                    displayLine = displayLine.slice(0, -1);
+                                }
+                                displayLine += '...';
+                            }
+                            ctx.fillText(displayLine, padding, height - bgHeight + padding + (index * lineHeight));
+                        });
+                        
+                        canvas.toBlob((blob) => {
+                            if (!blob) return;
+                            const watermarkedFile = new File([blob], file.name, { type: 'image/jpeg' });
+                            
+                            if (previews[field] && previews[field]?.startsWith('blob:')) {
+                                URL.revokeObjectURL(previews[field]!);
+                            }
+                            setFormData(prev => ({ ...prev, [field]: watermarkedFile }));
+                            setPreviews(prev => ({ ...prev, [field]: URL.createObjectURL(blob) }));
+                            showToast('Foto sukses distempel.', 'success');
+                            
+                        }, 'image/jpeg', 0.7);
+                    };
+                    img.src = event.target?.result as string;
+                };
+                reader.readAsDataURL(file);
             }
-            setFormData(prev => ({ ...prev, [field]: file }));
-            setPreviews(prev => ({ ...prev, [field]: URL.createObjectURL(file) }));
         }
     };
 
@@ -325,7 +453,7 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                     setFormData(prev => ({...prev, [field]: null})); 
                                     if(ref.current) ref.current.value = ''; 
                                 }} className="flex-1 py-1.5 text-[10px] font-bold uppercase bg-rose-100 text-rose-600 rounded-lg">Hapus</button>
-                                <button type="button" onClick={() => ref.current?.click()} className="flex-1 py-1.5 text-[10px] font-bold uppercase bg-indigo-100 text-indigo-600 rounded-lg">Ganti</button>
+                                <button type="button" onClick={() => handleCameraClick(field, ref, acceptGallery)} className="flex-1 py-1.5 text-[10px] font-bold uppercase bg-indigo-100 text-indigo-600 rounded-lg">Ganti</button>
                             </div>
                         )}
                         {isLocked && (
@@ -340,14 +468,14 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                     <>
                         <PhotoIcon className="w-8 h-8 text-slate-400" />
                         <p className="text-[10px] text-slate-500 font-medium text-center">Ketuk untuk mengambil foto</p>
-                        <button type="button" onClick={() => ref.current?.click()} className="mt-1 px-4 py-2 bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider rounded-lg">Pilih Foto</button>
+                        <button type="button" onClick={() => handleCameraClick(field, ref, acceptGallery)} className="mt-1 px-4 py-2 bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider rounded-lg">Pilih Foto</button>
                     </>
                 )}
                 {!isLocked && (
                     acceptGallery ? (
-                        <input type="file" accept="image/*" className="hidden" ref={ref} onChange={(e) => handleFileChange(field, e)} />
+                        <input type="file" accept="image/*" className="hidden" ref={ref} onChange={(e) => handleFileChange(field, e, acceptGallery)} />
                     ) : (
-                        <input type="file" accept="image/*" capture="environment" className="hidden" ref={ref} onChange={(e) => handleFileChange(field, e)} />
+                        <input type="file" accept="image/*" capture="environment" className="hidden" ref={ref} onChange={(e) => handleFileChange(field, e, acceptGallery)} />
                     )
                 )}
             </div>
@@ -687,9 +815,6 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                                 <div className="pt-4 border-t border-slate-100">
                                     <div className="flex items-center justify-between mb-4">
                                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Status Kelengkapan Data Toko</p>
-                                        <button onClick={() => setIsEditing(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors shadow-sm">
-                                            <PencilSquareIcon className="w-3.5 h-3.5" /> Edit Data
-                                        </button>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
                                         {[
@@ -873,21 +998,33 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                         )}
                     </div>
                     
-                    {isEditing && (
-                        <div className="p-4 border-t border-slate-100 shrink-0 bg-white rounded-b-3xl">
-                            <button
-                                type="submit"
-                                form="dataForm"
-                                disabled={isSubmitting}
-                                className={`w-full py-3 rounded-xl text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 ${isSubmitting ? 'bg-slate-300 shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}
+                    <div className="p-4 border-t border-slate-100 shrink-0 bg-white rounded-b-3xl">
+                        {isEditing ? (
+                            <>
+                                <button
+                                    key="submit-btn"
+                                    type="submit"
+                                    form="dataForm"
+                                    disabled={isSubmitting}
+                                    className={`w-full py-3 rounded-xl text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 ${isSubmitting ? 'bg-slate-300 shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}
+                                >
+                                    {isSubmitting ? <><ArrowPathIcon className="w-4 h-4 animate-spin" /> Menyimpan...</> : 'Simpan Data'}
+                                </button>
+                                <p className="text-[9px] text-center text-slate-400 font-medium mt-2 leading-tight">
+                                    Formulir dapat disimpan secara parsial (dicicil). <br />Data akan divalidasi setelah semua field terisi lengkap.
+                                </p>
+                            </>
+                        ) : (
+                            <button 
+                                key="edit-btn"
+                                type="button"
+                                onClick={() => setIsEditing(true)} 
+                                className="w-full py-3 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-bold text-xs uppercase tracking-wider transition-all shadow-md shadow-indigo-500/30 flex items-center justify-center gap-2"
                             >
-                                {isSubmitting ? <><ArrowPathIcon className="w-4 h-4 animate-spin" /> Menyimpan...</> : 'Simpan Data'}
+                                <PencilSquareIcon className="w-4 h-4" /> Lengkapi / Edit Data Toko
                             </button>
-                            <p className="text-[9px] text-center text-slate-400 font-medium mt-2 leading-tight">
-                                Formulir dapat disimpan secara parsial (dicicil). <br />Data akan divalidasi setelah semua field terisi lengkap.
-                            </p>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
 
