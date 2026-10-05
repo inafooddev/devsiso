@@ -11,9 +11,10 @@ interface DetailModalProps {
     isMonitoring?: boolean;
     onClose: () => void;
     showToast: (message: string, type: 'success' | 'error') => void;
+    forceEditMode?: boolean;
 }
 
-export default function DetailModal({ data, isMonitoring, onClose, showToast }: DetailModalProps) {
+export default function DetailModal({ data, isMonitoring, onClose, showToast, forceEditMode }: DetailModalProps) {
     const [activeTab, setActiveTab] = useState<'pencapaian' | 'history'>('pencapaian');
     const [isEditing, setIsEditing] = useState(false);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -78,10 +79,10 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                 foto_toko2: data.foto_toko2 ? `/storage/${data.foto_toko2}` : null,
                 foto_toko3: data.foto_toko3 ? `/storage/${data.foto_toko3}` : null,
             });
-            setIsEditing(false);
+            setIsEditing(forceEditMode || false);
             setShowCloseConfirm(false);
         }
-    }, [data]);
+    }, [data, forceEditMode]);
 
     useEffect(() => {
         return () => {

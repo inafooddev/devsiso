@@ -89,11 +89,13 @@ export default function Index({
     // States for Modals
     const [detailModalData, setDetailModalData] = useState<SkbRwoItem | null>(null);
     const [isDetailModalActual, setIsDetailModalActual] = useState(false);
+    const [isDetailForceEdit, setIsDetailForceEdit] = useState(false);
     const [skbModalData, setSkbModalData] = useState<SkbRwoItem | null>(null);
 
-    const openDetailModal = (item: SkbRwoItem) => {
+    const openDetailModal = (item: SkbRwoItem, forceEdit: boolean = false) => {
         setDetailModalData(item);
         setIsDetailModalActual(activeTab === 'monitoring');
+        setIsDetailForceEdit(forceEdit);
     };
     const openActualModal = (item: SkbRwoItem) => {
         setDetailModalData(item);
@@ -299,7 +301,7 @@ export default function Index({
             </main>
 
             {/* Detail Modal */}
-            <DetailModal data={detailModalData} isMonitoring={isDetailModalActual} onClose={closeDetailModal} showToast={showToast} />
+            <DetailModal data={detailModalData} isMonitoring={isDetailModalActual} onClose={closeDetailModal} showToast={showToast} forceEditMode={isDetailForceEdit} />
 
             {/* Aksi SKB Modal */}
             <SkbModal data={skbModalData} onClose={closeSkbModal} showToast={showToast} onOpenDetail={openDetailModal} />

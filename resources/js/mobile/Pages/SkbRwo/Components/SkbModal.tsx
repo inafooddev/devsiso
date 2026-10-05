@@ -9,7 +9,7 @@ interface SkbModalProps {
     data: SkbRwoItem | null;
     onClose: () => void;
     showToast: (message: string, type: 'success' | 'error') => void;
-    onOpenDetail?: (item: SkbRwoItem) => void;
+    onOpenDetail?: (item: SkbRwoItem, forceEdit?: boolean) => void;
 }
 
 export default function SkbModal({ data, onClose, showToast, onOpenDetail }: SkbModalProps) {
@@ -347,7 +347,7 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
                                 className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold text-xs uppercase rounded-xl hover:bg-slate-200 transition-colors"
                             >Nanti Saja</button>
                             <button 
-                                onClick={() => { setShowMissingPrompt(false); onClose(); if (onOpenDetail) onOpenDetail(data); }} 
+                                onClick={() => { setShowMissingPrompt(false); onClose(); if (onOpenDetail) onOpenDetail(data, true); }} 
                                 className="flex-1 py-3 bg-indigo-600 text-white font-bold text-xs uppercase rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all"
                             >Isi Sekarang</button>
                         </div>
@@ -376,7 +376,7 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
                                 className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold text-xs uppercase rounded-xl hover:bg-slate-200 transition-colors"
                             >Nanti Saja</button>
                             <button 
-                                onClick={() => { setShowMissingPrompt(false); onClose(); if (onOpenDetail) onOpenDetail(data); }} 
+                                onClick={() => { setShowMissingPrompt(false); onClose(); if (onOpenDetail) onOpenDetail(data, true); }} 
                                 className="flex-1 py-3 bg-indigo-600 text-white font-bold text-xs uppercase rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all"
                             >Isi Sekarang</button>
                         </div>
@@ -426,7 +426,7 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
                                 className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold text-xs uppercase rounded-xl hover:bg-slate-200 transition-colors"
                             >Nanti Saja</button>
                             <button 
-                                onClick={() => { setShowMissingPrompt(false); onClose(); if (onOpenDetail) onOpenDetail(data); }} 
+                                onClick={() => { setShowMissingPrompt(false); onClose(); if (onOpenDetail) onOpenDetail(data, true); }} 
                                 className="flex-1 py-3 bg-indigo-600 text-white font-bold text-xs uppercase rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all"
                             >Isi Sekarang</button>
                         </div>
