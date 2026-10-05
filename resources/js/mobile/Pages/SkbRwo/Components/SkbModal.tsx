@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import {
-    XMarkIcon, CheckBadgeIcon, PhotoIcon, ArrowPathIcon
+    XMarkIcon, CheckBadgeIcon, PhotoIcon, ArrowPathIcon, ShieldExclamationIcon
 } from '@heroicons/react/24/outline';
 import { SkbRwoItem } from './StoreCard';
 
@@ -9,9 +9,10 @@ interface SkbModalProps {
     data: SkbRwoItem | null;
     onClose: () => void;
     showToast: (message: string, type: 'success' | 'error') => void;
+    onOpenDetail?: (item: SkbRwoItem) => void;
 }
 
-export default function SkbModal({ data, onClose, showToast }: SkbModalProps) {
+export default function SkbModal({ data, onClose, showToast, onOpenDetail }: SkbModalProps) {
     const [skbForm, setSkbForm] = useState<{
         approval_status: string;
         reject_reason: string;
@@ -19,9 +20,11 @@ export default function SkbModal({ data, onClose, showToast }: SkbModalProps) {
     }>({ approval_status: '', reject_reason: '', foto_skb: null });
     
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [zoomImage, setZoomImage] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
     const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+    const [showMissingPrompt, setShowMissingPrompt] = useState(false);
     const fotoSkbRef = useRef<HTMLInputElement>(null);
     const latestLocationRef = useRef<{lat: string, lng: string} | null>(null);
 
@@ -243,8 +246,14 @@ export default function SkbModal({ data, onClose, showToast }: SkbModalProps) {
             preserveState: true,
             onSuccess: () => {
                 setIsSubmitting(false);
-                onClose();
                 showToast('Aksi SKB berhasil diproses.', 'success');
+                
+                const isMissing = !data.nama_pemilik_toko || !data.no_hp || !data.foto_toko2 || !data.foto_toko3;
+                if (isMissing) {
+                    setShowMissingPrompt(true);
+                } else {
+                    onClose();
+                }
             },
             onError: (errors) => {
                 setIsSubmitting(false);
@@ -317,18 +326,64 @@ export default function SkbModal({ data, onClose, showToast }: SkbModalProps) {
                             <div className="border border-dashed border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-slate-50 relative overflow-hidden">
                                 {previewUrl ? (
                                     <>
-                                        <img src={previewUrl} alt="SKB Preview" className="max-h-32 rounded-lg object-contain" />
+                                        <img src={previewUrl} alt="SKB Preview" onClick={() => setZoomImage(previewUrl)} className="max-h-32 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity" />
                                         <div className="flex gap-2 mt-2 w-full">
                                             <button type="button" onClick={() => { setPreviewUrl(null); setSkbForm({...skbForm, foto_skb: null}); if(fotoSkbRef.current) fotoSkbRef.current.value = ''; }} className="flex-1 py-1.5 text-[10px] font-bold uppercase bg-rose-100 text-rose-600 rounded-lg">Hapus</button>
                                             <button type="button" onClick={handleUploadClick} className="flex-1 py-1.5 text-[10px] font-bold uppercase bg-indigo-100 text-indigo-600 rounded-lg">Ganti</button>
                                         </div>
-                                    </>
+                            
+            {/* Missing Data Prompt */}
+            {showMissingPrompt && (
+                <div className="fixed inset-0 z-[120] bg-slate-900/80 backdrop-blur-sm flex justify-center items-center p-4 animate-fade-in">
+                    <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-zoom-in text-center">
+                        <ShieldExclamationIcon className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+                        <h3 className="text-lg font-black text-slate-800 mb-2">Data Toko Belum Lengkap</h3>
+                        <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+                            SKB berhasil disimpan. Namun data toko (Nama Pemilik, No HP, atau Foto Depan/Dalam) masih kosong. Ingin melengkapinya sekarang?
+                        </p>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => { setShowMissingPrompt(false); onClose(); }} 
+                                className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold text-xs uppercase rounded-xl hover:bg-slate-200 transition-colors"
+                            >Nanti Saja</button>
+                            <button 
+                                onClick={() => { setShowMissingPrompt(false); onClose(); if (onOpenDetail) onOpenDetail(data); }} 
+                                className="flex-1 py-3 bg-indigo-600 text-white font-bold text-xs uppercase rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all"
+                            >Isi Sekarang</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
                                 ) : (
                                     <>
                                         <PhotoIcon className="w-8 h-8 text-slate-400" />
                                         <p className="text-[10px] text-slate-500 font-medium text-center">Ketuk untuk mengambil/mengunggah foto SKB</p>
                                         <button type="button" onClick={handleUploadClick} className="mt-1 px-4 py-2 bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider rounded-lg">Pilih Foto</button>
-                                    </>
+                            
+            {/* Missing Data Prompt */}
+            {showMissingPrompt && (
+                <div className="fixed inset-0 z-[120] bg-slate-900/80 backdrop-blur-sm flex justify-center items-center p-4 animate-fade-in">
+                    <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-zoom-in text-center">
+                        <ShieldExclamationIcon className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+                        <h3 className="text-lg font-black text-slate-800 mb-2">Data Toko Belum Lengkap</h3>
+                        <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+                            SKB berhasil disimpan. Namun data toko (Nama Pemilik, No HP, atau Foto Depan/Dalam) masih kosong. Ingin melengkapinya sekarang?
+                        </p>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => { setShowMissingPrompt(false); onClose(); }} 
+                                className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold text-xs uppercase rounded-xl hover:bg-slate-200 transition-colors"
+                            >Nanti Saja</button>
+                            <button 
+                                onClick={() => { setShowMissingPrompt(false); onClose(); if (onOpenDetail) onOpenDetail(data); }} 
+                                className="flex-1 py-3 bg-indigo-600 text-white font-bold text-xs uppercase rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all"
+                            >Isi Sekarang</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
                                 )}
                                 <input type="file" accept="image/*" className="hidden" ref={fotoSkbRef} onChange={handlePhotoChange} />
                             </div>
@@ -345,6 +400,39 @@ export default function SkbModal({ data, onClose, showToast }: SkbModalProps) {
                 </div>
             </div>
         </div>
+
+            {/* Image Preview Modal */}
+            {zoomImage && (
+                <div className="fixed inset-0 z-[110] bg-black/90 backdrop-blur-sm flex justify-center items-center p-4 animate-fade-in" onClick={() => setZoomImage(null)}>
+                    <button onClick={() => setZoomImage(null)} className="absolute top-4 right-4 p-2 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors z-50 backdrop-blur-md">
+                        <XMarkIcon className="w-6 h-6" />
+                    </button>
+                    <img src={zoomImage} alt="Zoomed Preview" className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl animate-zoom-in" onClick={(e) => e.stopPropagation()} />
+                </div>
+            )}
+
+            {/* Missing Data Prompt */}
+            {showMissingPrompt && (
+                <div className="fixed inset-0 z-[120] bg-slate-900/80 backdrop-blur-sm flex justify-center items-center p-4 animate-fade-in">
+                    <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-zoom-in text-center">
+                        <ShieldExclamationIcon className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+                        <h3 className="text-lg font-black text-slate-800 mb-2">Data Toko Belum Lengkap</h3>
+                        <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+                            SKB berhasil disimpan. Namun data toko (Nama Pemilik, No HP, atau Foto Depan/Dalam) masih kosong. Ingin melengkapinya sekarang?
+                        </p>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => { setShowMissingPrompt(false); onClose(); }} 
+                                className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold text-xs uppercase rounded-xl hover:bg-slate-200 transition-colors"
+                            >Nanti Saja</button>
+                            <button 
+                                onClick={() => { setShowMissingPrompt(false); onClose(); if (onOpenDetail) onOpenDetail(data); }} 
+                                className="flex-1 py-3 bg-indigo-600 text-white font-bold text-xs uppercase rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all"
+                            >Isi Sekarang</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

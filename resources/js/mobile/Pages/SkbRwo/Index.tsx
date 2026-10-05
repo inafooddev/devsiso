@@ -302,7 +302,7 @@ export default function Index({
             <DetailModal data={detailModalData} isMonitoring={isDetailModalActual} onClose={closeDetailModal} showToast={showToast} />
 
             {/* Aksi SKB Modal */}
-            <SkbModal data={skbModalData} onClose={closeSkbModal} showToast={showToast} />
+            <SkbModal data={skbModalData} onClose={closeSkbModal} showToast={showToast} onOpenDetail={openDetailModal} />
 
             <KuartalFilterSheet
                 isOpen={isKuartalSheetOpen}
