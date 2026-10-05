@@ -41,6 +41,7 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
+    const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
     const [historyOrder, setHistoryOrder] = useState<any[]>([]);
@@ -267,6 +268,7 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                 setPreviews(prev => ({ ...prev, [field]: URL.createObjectURL(file) }));
             } else {
                 showToast('Memproses foto & geotagging...', 'success');
+                setIsProcessingPhoto(true);
                 
                 let addressText = data.address || '-';
                 const currentLat = latestLocationRef.current?.lat || formData.latitude || '';
@@ -339,7 +341,10 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                         });
                         
                         canvas.toBlob((blob) => {
-                            if (!blob) return;
+                            if (!blob) {
+                                setIsProcessingPhoto(false);
+                                return showToast('Gagal memproses gambar.', 'error');
+                            }
                             const watermarkedFile = new File([blob], file.name, { type: 'image/jpeg' });
                             
                             if (previews[field] && previews[field]?.startsWith('blob:')) {
@@ -348,11 +353,14 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                             setFormData(prev => ({ ...prev, [field]: watermarkedFile }));
                             setPreviews(prev => ({ ...prev, [field]: URL.createObjectURL(blob) }));
                             showToast('Foto sukses distempel.', 'success');
+                            setIsProcessingPhoto(false);
                             
                         }, 'image/jpeg', 0.7);
                     };
+                    img.onerror = () => { setIsProcessingPhoto(false); showToast('Gagal memproses gambar.', 'error'); };
                     img.src = event.target?.result as string;
                 };
+                reader.onerror = () => { setIsProcessingPhoto(false); showToast('Gagal membaca file foto.', 'error'); };
                 reader.readAsDataURL(file);
             }
         }
@@ -1035,6 +1043,15 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
                         <XMarkIcon className="w-6 h-6" />
                     </button>
                     <img src={previewImage} alt="Preview" className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl animate-zoom-in" onClick={(e) => e.stopPropagation()} />
+                </div>
+            )}
+
+            {/* Processing Overlay */}
+            {isProcessingPhoto && (
+                <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-fade-in">
+                    <ArrowPathIcon className="w-12 h-12 text-white animate-spin mb-4" />
+                    <h3 className="text-white font-black tracking-wider text-sm uppercase">Memproses Foto...</h3>
+                    <p className="text-white/80 text-[11px] mt-2 text-center max-w-[250px] leading-relaxed font-medium">Sedang menyematkan titik GPS dan stempel waktu ke dalam foto.</p>
                 </div>
             )}
 
