@@ -20,7 +20,10 @@ export default function SkbModal({ data, onClose, showToast }: SkbModalProps) {
     
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLocating, setIsLocating] = useState(false);
+    const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
     const fotoSkbRef = useRef<HTMLInputElement>(null);
+    const latestLocationRef = useRef<{lat: string, lng: string} | null>(null);
 
     useEffect(() => {
         if (data) {
@@ -93,11 +96,130 @@ export default function SkbModal({ data, onClose, showToast }: SkbModalProps) {
         }
     };
 
-    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleUploadClick = () => {
+        const isDesktop = /Windows|Macintosh|Linux/i.test(navigator.userAgent) && !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isDesktop) {
+            return showToast('Maaf, unggah foto hanya bisa dilakukan melalui perangkat Mobile (HP/Tablet).', 'error');
+        }
+
+        if (!navigator.geolocation) {
+            return showToast('Perangkat tidak mendukung GPS', 'error');
+        }
+
+        setIsLocating(true);
+        showToast('Mengunci lokasi GPS...', 'success');
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude.toString();
+                const lng = position.coords.longitude.toString();
+                latestLocationRef.current = { lat, lng };
+                setIsLocating(false);
+                fotoSkbRef.current?.click();
+            },
+            (error) => {
+                setIsLocating(false);
+                showToast('Akses GPS ditolak / Gagal mendapatkan lokasi. Harap nyalakan GPS Anda.', 'error');
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    };
+
+    const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            setSkbForm({ ...skbForm, foto_skb: file });
-            setPreviewUrl(URL.createObjectURL(file));
+            
+            showToast('Memproses foto & geotagging...', 'success');
+            setIsProcessingPhoto(true);
+            
+            let addressText = data.address || '-';
+            const currentLat = latestLocationRef.current?.lat || '';
+            const currentLng = latestLocationRef.current?.lng || '';
+
+            if (currentLat && currentLng) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 4000);
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentLat}&lon=${currentLng}&zoom=18&addressdetails=1`, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    const geoData = await res.json();
+                    if (geoData && geoData.display_name) {
+                        addressText = geoData.display_name;
+                    }
+                } catch (err) {
+                    console.log('Reverse geocoding timeout/failed, fallback to db address');
+                }
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 1280;
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > MAX_WIDTH) {
+                        height = Math.round((height * MAX_WIDTH) / width);
+                        width = MAX_WIDTH;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        setIsProcessingPhoto(false);
+                        return;
+                    }
+                    
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    const padding = 15;
+                    const textLines = [
+                        `TOKO: ${data.customer_name || '-'}`,
+                        `ALAMAT: ${addressText}`,
+                        `GPS: ${currentLat}, ${currentLng}`,
+                        `WAKTU: ${new Date().toLocaleString('id-ID')}`
+                    ];
+                    
+                    ctx.font = 'bold 16px monospace';
+                    let maxTextWidth = 0;
+                    textLines.forEach(line => {
+                        const m = ctx.measureText(line);
+                        if(m.width > maxTextWidth) maxTextWidth = m.width;
+                    });
+                    
+                    const boxWidth = maxTextWidth + (padding * 2);
+                    const boxHeight = (textLines.length * 24) + (padding * 2);
+                    
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                    ctx.fillRect(10, height - boxHeight - 10, boxWidth, boxHeight);
+                    
+                    ctx.fillStyle = '#ffffff';
+                    textLines.forEach((line, i) => {
+                        ctx.fillText(line, 10 + padding, height - boxHeight - 10 + padding + (i * 24) + 16);
+                    });
+                    
+                    canvas.toBlob((blob) => {
+                        if (!blob) {
+                            setIsProcessingPhoto(false);
+                            return showToast('Gagal memproses gambar.', 'error');
+                        }
+                        const watermarkedFile = new File([blob], file.name, { type: 'image/jpeg' });
+                        
+                        setSkbForm(prev => ({ ...prev, foto_skb: watermarkedFile }));
+                        setPreviewUrl(URL.createObjectURL(blob));
+                        showToast('Foto sukses distempel.', 'success');
+                        setIsProcessingPhoto(false);
+                        
+                    }, 'image/jpeg', 0.7);
+                };
+                img.onerror = () => { setIsProcessingPhoto(false); showToast('Gagal memproses gambar.', 'error'); };
+                img.src = event.target?.result as string;
+            };
+            reader.onerror = () => { setIsProcessingPhoto(false); showToast('Gagal membaca file foto.', 'error'); };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -133,6 +255,19 @@ export default function SkbModal({ data, onClose, showToast }: SkbModalProps) {
     };
 
     return (
+        <>
+            {/* Processing Overlay */}
+            {(isLocating || isProcessingPhoto) && (
+                <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-fade-in">
+                    <ArrowPathIcon className="w-12 h-12 text-white animate-spin mb-4" />
+                    <h3 className="text-white font-black tracking-wider text-sm uppercase">
+                        {isLocating ? 'Melacak Lokasi...' : 'Memproses Foto...'}
+                    </h3>
+                    <p className="text-white/80 text-[11px] mt-2 text-center max-w-[250px] leading-relaxed font-medium">
+                        {isLocating ? 'Sedang mengunci titik GPS Anda saat ini.' : 'Sedang menyematkan titik GPS dan stempel waktu ke dalam foto.'}
+                    </p>
+                </div>
+            )}
         <div className="fixed inset-0 z-[70] bg-slate-900/60 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-4 animate-fade-in">
             <div className="bg-white w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl max-h-[95vh] flex flex-col shadow-2xl animate-slide-up">
                 <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur z-10 rounded-t-3xl">
@@ -185,17 +320,17 @@ export default function SkbModal({ data, onClose, showToast }: SkbModalProps) {
                                         <img src={previewUrl} alt="SKB Preview" className="max-h-32 rounded-lg object-contain" />
                                         <div className="flex gap-2 mt-2 w-full">
                                             <button type="button" onClick={() => { setPreviewUrl(null); setSkbForm({...skbForm, foto_skb: null}); if(fotoSkbRef.current) fotoSkbRef.current.value = ''; }} className="flex-1 py-1.5 text-[10px] font-bold uppercase bg-rose-100 text-rose-600 rounded-lg">Hapus</button>
-                                            <button type="button" onClick={() => fotoSkbRef.current?.click()} className="flex-1 py-1.5 text-[10px] font-bold uppercase bg-indigo-100 text-indigo-600 rounded-lg">Ganti</button>
+                                            <button type="button" onClick={handleUploadClick} className="flex-1 py-1.5 text-[10px] font-bold uppercase bg-indigo-100 text-indigo-600 rounded-lg">Ganti</button>
                                         </div>
                                     </>
                                 ) : (
                                     <>
                                         <PhotoIcon className="w-8 h-8 text-slate-400" />
                                         <p className="text-[10px] text-slate-500 font-medium text-center">Ketuk untuk mengambil/mengunggah foto SKB</p>
-                                        <button type="button" onClick={() => fotoSkbRef.current?.click()} className="mt-1 px-4 py-2 bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider rounded-lg">Pilih Foto</button>
+                                        <button type="button" onClick={handleUploadClick} className="mt-1 px-4 py-2 bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider rounded-lg">Pilih Foto</button>
                                     </>
                                 )}
-                                <input type="file" accept="image/*" capture="environment" className="hidden" ref={fotoSkbRef} onChange={handlePhotoChange} />
+                                <input type="file" accept="image/*" className="hidden" ref={fotoSkbRef} onChange={handlePhotoChange} />
                             </div>
                         </div>
 
@@ -210,5 +345,6 @@ export default function SkbModal({ data, onClose, showToast }: SkbModalProps) {
                 </div>
             </div>
         </div>
+        </>
     );
 }
