@@ -334,6 +334,42 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
                             </div>
                         )}
 
+
+                        {/* Extra Required Inputs if missing */}
+                        {(!data?.nama_pemilik_toko || !data?.no_hp) && (
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-4">
+                                <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-2">Lengkapi Data Toko (Wajib)</p>
+                                
+                                {!data?.nama_pemilik_toko && (
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nama Pemilik Toko</label>
+                                        <input 
+                                            type="text" 
+                                            disabled={isHoValid}
+                                            className="w-full text-xs text-slate-700 bg-white border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all disabled:opacity-50"
+                                            placeholder="Masukkan nama pemilik..."
+                                            value={skbForm.nama_pemilik_toko}
+                                            onChange={(e) => setSkbForm({...skbForm, nama_pemilik_toko: e.target.value})}
+                                        />
+                                    </div>
+                                )}
+                                
+                                {!data?.no_hp && (
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">No Handphone</label>
+                                        <input 
+                                            type="tel" 
+                                            disabled={isHoValid}
+                                            className="w-full text-xs text-slate-700 bg-white border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all disabled:opacity-50"
+                                            placeholder="Contoh: 08123456789"
+                                            value={skbForm.no_hp}
+                                            onChange={(e) => setSkbForm({...skbForm, no_hp: e.target.value})}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        
                         <div>
                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Foto SKB</label>
                             <div className="border border-dashed border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-slate-50 relative overflow-hidden">
