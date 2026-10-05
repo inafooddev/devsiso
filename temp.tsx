@@ -79,210 +79,12 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
         };
 
         window.addEventListener('popstate', handlePopState);
-        return () => {
-            window.removeEventListener('popstate', handlePopState);
-            if (window.location.hash === '#skb') {
-                window.history.replaceState(null, '', window.location.pathname + window.location.search);
-            }
-        };
-    }, [data]);
-
-    if (!data) return null;
-
-    const handleClose = () => {
-        const currentForm = skbForm;
-        const isApp = data.is_approved === true || data.is_approved === 1;
-        const isRej = data.is_approved === false || data.is_approved === 0;
-        const originalApproval = isApp ? 'approve' : (isRej ? 'reject' : '');
-        
-        const isChanged = currentForm.approval_status !== originalApproval || currentForm.foto_skb || (currentForm.reject_reason !== (data.skb_reason || data.reason || ''));
-        
-        if (isChanged) {
-            if (!window.confirm('Aksi SKB belum disimpan. Yakin ingin keluar?')) return;
-        }
-        if (window.location.hash === '#skb') {
-            window.history.back();
-        } else {
-            onClose();
-        }
-    };
-
-    const handleUploadClick = () => {
-        const isDesktop = /Windows|Macintosh|Linux/i.test(navigator.userAgent) && !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (isDesktop) {
-            return showToast('Maaf, unggah foto hanya bisa dilakukan melalui perangkat Mobile (HP/Tablet).', 'error');
-        }
-
-        if (!navigator.geolocation) {
-            return showToast('Perangkat tidak mendukung GPS', 'error');
-        }
-
-        setIsLocating(true);
-        showToast('Mengunci lokasi GPS...', 'success');
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude.toString();
-                const lng = position.coords.longitude.toString();
-                latestLocationRef.current = { lat, lng };
-                setIsLocating(false);
-                fotoSkbRef.current?.click();
-            },
-            (error) => {
-                setIsLocating(false);
-                showToast('Akses GPS ditolak / Gagal mendapatkan lokasi. Harap nyalakan GPS Anda.', 'error');
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-    };
-
-    const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            
-            showToast('Memproses foto & geotagging...', 'success');
-            setIsProcessingPhoto(true);
-            
-            let addressText = data.address || '-';
-            const currentLat = latestLocationRef.current?.lat || '';
-            const currentLng = latestLocationRef.current?.lng || '';
-
-            if (currentLat && currentLng) {
-                try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 4000);
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentLat}&lon=${currentLng}&zoom=18&addressdetails=1`, { signal: controller.signal });
-                    clearTimeout(timeoutId);
-                    const geoData = await res.json();
-                    if (geoData && geoData.display_name) {
-                        addressText = geoData.display_name;
-                    }
-                } catch (err) {
-                    console.log('Reverse geocoding timeout/failed, fallback to db address');
-                }
-            }
-
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 1280;
-                    let width = img.width;
-                    let height = img.height;
-                    
-                    if (width > MAX_WIDTH) {
-                        height = Math.round((height * MAX_WIDTH) / width);
-                        width = MAX_WIDTH;
-                    }
-                    
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    if (!ctx) {
-                        setIsProcessingPhoto(false);
-                        return;
-                    }
-                    
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    const padding = 15;
-                    const textLines = [
-                        `TOKO: ${data.customer_name || '-'}`,
-                        `ALAMAT: ${addressText}`,
-                        `GPS: ${currentLat}, ${currentLng}`,
-                        `WAKTU: ${new Date().toLocaleString('id-ID')}`
-                    ];
-                    
-                    ctx.font = 'bold 16px monospace';
-                    let maxTextWidth = 0;
-                    textLines.forEach(line => {
-                        const m = ctx.measureText(line);
-                        if(m.width > maxTextWidth) maxTextWidth = m.width;
-                    });
-                    
-                    const boxWidth = maxTextWidth + (padding * 2);
-                    const boxHeight = (textLines.length * 24) + (padding * 2);
-                    
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-                    ctx.fillRect(10, height - boxHeight - 10, boxWidth, boxHeight);
-                    
-                    ctx.fillStyle = '#ffffff';
-                    textLines.forEach((line, i) => {
-                        ctx.fillText(line, 10 + padding, height - boxHeight - 10 + padding + (i * 24) + 16);
-                    });
-                    
-                    canvas.toBlob((blob) => {
-                        if (!blob) {
-                            setIsProcessingPhoto(false);
-                            return showToast('Gagal memproses gambar.', 'error');
-                        }
-                        const watermarkedFile = new File([blob], file.name, { type: 'image/jpeg' });
-                        
-                        setSkbForm(prev => ({ ...prev, foto_skb: watermarkedFile }));
-                        setPreviewUrl(URL.createObjectURL(blob));
-                        showToast('Foto sukses distempel.', 'success');
-                        setIsProcessingPhoto(false);
-                        
-                    }, 'image/jpeg', 0.7);
-                };
-                img.onerror = () => { setIsProcessingPhoto(false); showToast('Gagal memproses gambar.', 'error'); };
-                img.src = event.target?.result as string;
-            };
-            reader.onerror = () => { setIsProcessingPhoto(false); showToast('Gagal membaca file foto.', 'error'); };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const handleSkbSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!skbForm.approval_status) return showToast('Pilih status approval terlebih dahulu.', 'error');
-        if (skbForm.approval_status === 'reject' && !skbForm.reject_reason) return showToast('Alasan reject wajib diisi.', 'error');
-        if (!data?.nama_pemilik_toko && !skbForm.nama_pemilik_toko) return showToast('Nama pemilik toko wajib diisi.', 'error');
-        if (!data?.no_hp && !skbForm.no_hp) return showToast('No HP wajib diisi.', 'error');
-
-        const formData = new FormData();
-        formData.append('customer_code', data.customer_code);
-        if (data.distributor_code) formData.append('distributor_code', data.distributor_code);
-        if (data.kuartal) formData.append('kuartal', data.kuartal);
-        if (data.tahun) formData.append('tahun', data.tahun);
-        formData.append('approval_status', skbForm.approval_status);
-        if (skbForm.approval_status === 'reject') formData.append('reject_reason', skbForm.reject_reason);
-        if (skbForm.foto_skb) formData.append('foto_skb', skbForm.foto_skb);
-        if (!data?.nama_pemilik_toko && skbForm.nama_pemilik_toko) formData.append('nama_pemilik_toko', skbForm.nama_pemilik_toko);
-        if (!data?.no_hp && skbForm.no_hp) formData.append('no_hp', skbForm.no_hp);
-
-        setIsSubmitting(true);
-        router.post('/mobile/skb-rwo/submit-skb', formData, {
-            forceFormData: true,
-            preserveScroll: true,
-            preserveState: true,
-            onSuccess: () => {
-                setIsSubmitting(false);
-                showToast('Aksi SKB berhasil diproses.', 'success');
-                
-                const isMissing = !data.foto_toko2 || !data.foto_toko3;
-                if (isMissing) {
-                    setShowMissingPrompt(true);
-                } else {
-                    onClose();
-                }
-            },
-            onError: (errors) => {
-                setIsSubmitting(false);
-                const msg = errors.foto_skb || errors.error || errors.reject_reason || 'Gagal memproses SKB.';
-                showToast(msg, 'error');
-            }
-        });
-    };
-
-
+    
+    const isHoValid = data.ho_is_valid == 1 || data.ho_is_valid === true;
+    const isHoRejected = data.ho_is_valid === 0 || data.ho_is_valid === false;
     const hasSkbData = data.status_skb === 'Sudah';
     
-    let skbState = 'draft';
-    if (data.ho_is_valid == 1 || data.ho_is_valid === true) skbState = 'valid';
-    else if ((data.ho_is_valid === 0 || data.ho_is_valid === false) && data.ho_notes) skbState = 'revision';
-    else if (hasSkbData) skbState = 'pending';
+    const skbState = isHoValid ? 'valid' : (isHoRejected && data.ho_notes ? 'revision' : (hasSkbData ? 'pending' : 'draft'));
 
     return (
         <>
@@ -315,19 +117,19 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
                                 <p className="text-xs font-bold text-indigo-600 mt-0.5">{data.customer_code}</p>
                             </div>
                             {skbState === 'pending' && (
-                                <div className="px-2 py-1 bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-1.5 h-6">
+                                <div className="px-2 py-1 bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-1.5">
                                     <ClockIcon className="w-3.5 h-3.5 text-slate-500" />
                                     <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider">Menunggu HO</span>
                                 </div>
                             )}
                             {skbState === 'revision' && (
-                                <div className="px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-1.5 h-6">
+                                <div className="px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-1.5">
                                     <ShieldExclamationIcon className="w-3.5 h-3.5 text-amber-500" />
                                     <span className="text-[9px] font-bold text-amber-700 uppercase tracking-wider">Revisi HO</span>
                                 </div>
                             )}
                             {skbState === 'valid' && (
-                                <div className="px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-1.5 h-6">
+                                <div className="px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-1.5">
                                     <ShieldCheckIcon className="w-3.5 h-3.5 text-emerald-500" />
                                     <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-wider">Valid HO</span>
                                 </div>
@@ -366,39 +168,7 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
                             </div>
                         </div>
 
-                        {skbState === 'valid' ? (
-                            /* ---------------------------------------------------- */
-                            /* MODE D: RINGKASAN READ-ONLY                          */
-                            /* ---------------------------------------------------- */
-                            <div className="flex flex-col gap-5 animate-fade-in">
-                                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-3">
-                                    <ShieldCheckIcon className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
-                                    <div>
-                                        <p className="text-xs font-bold text-emerald-800 mb-0.5">Data Telah Divalidasi HO</p>
-                                        <p className="text-[10px] text-emerald-600 leading-relaxed">SKB ini sudah final dan dikunci. Hubungi HO bila ada koreksi.</p>
-                                        {data.ho_notes && (
-                                            <div className="mt-2 pt-2 border-t border-emerald-200/50">
-                                                <p className="text-[9px] font-bold text-emerald-700 uppercase tracking-wider mb-0.5">Catatan HO:</p>
-                                                <p className="text-[10px] text-emerald-800 italic">"{data.ho_notes}"</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Status Approval</label>
-                                    <div className="flex items-center gap-2">
-                                        {data.is_approved === 1 || data.is_approved === true ? (
-                                            <div className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg flex items-center gap-1.5">
-                                                <CheckBadgeIcon className="w-4 h-4" />
-                                                <span className="text-[10px] font-bold uppercase tracking-wider">Approve</span>
-                                            </div>
-                                        ) : (
-                                            <div className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg flex items-center gap-1.5">
-                                                <XMarkIcon className="w-4 h-4" />
-                                                <span className="text-[10px] font-bold uppercase tracking-wider">Reject</span>
-                                            </div>
-                                        )}
+                        {null}
                                     </div>
                                 </div>
                                 
