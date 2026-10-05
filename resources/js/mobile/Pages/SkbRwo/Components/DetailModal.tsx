@@ -453,7 +453,12 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast }: 
             <div className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 relative overflow-hidden transition-colors ${isLocked ? 'border-slate-200 bg-slate-50' : (isEmpty ? 'border-rose-400 bg-rose-50/50' : 'border-indigo-300 bg-indigo-50/30')}`}>
                 {previews[field] ? (
                     <>
-                        <img src={previews[field]!} alt={label} className="max-h-32 rounded-lg object-contain" />
+                        <img 
+                            src={previews[field]!} 
+                            alt={label} 
+                            onClick={() => setPreviewImage(previews[field]!)}
+                            className="max-h-32 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity" 
+                        />
                         {!isLocked && (
                             <div className="flex gap-2 mt-2 w-full">
                                 <button type="button" onClick={() => { 
