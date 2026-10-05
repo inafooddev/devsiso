@@ -16,6 +16,8 @@ export interface SkbRwoItem {
     status_skb: 'Sudah' | 'Belum';
     status_data_lengkap: 'Lengkap' | 'Belum';
     is_approved: boolean | number | null;
+    ho_is_valid?: boolean | number | null;
+    ho_notes?: string | null;
     skb_reason?: string | null;
     reason?: string | null;
     skb_foto?: string | null;

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import {
-    XMarkIcon, CheckBadgeIcon, PhotoIcon, ArrowPathIcon, ShieldExclamationIcon
+    XMarkIcon, CheckBadgeIcon, PhotoIcon, ArrowPathIcon, ShieldExclamationIcon, ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 import { SkbRwoItem } from './StoreCard';
 
@@ -360,7 +360,7 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
                                     <>
                                         <PhotoIcon className="w-8 h-8 text-slate-400" />
                                         <p className="text-[10px] text-slate-500 font-medium text-center">Ketuk untuk mengambil/mengunggah foto SKB</p>
-                                        <button type="button" onClick={handleUploadClick} className="mt-1 px-4 py-2 bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider rounded-lg">Pilih Foto</button>
+                                        {!isHoValid && <button type="button" onClick={handleUploadClick} className="mt-1 px-4 py-2 bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider rounded-lg">Pilih Foto</button>}
                             
             {/* Missing Data Prompt */}
             {showMissingPrompt && (
@@ -392,7 +392,7 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
 
                         <button
                             type="submit"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || isHoValid}
                             className={`mt-4 w-full py-3 rounded-xl text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 ${isSubmitting ? 'bg-slate-300 shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}
                         >
                             {isSubmitting ? <><ArrowPathIcon className="w-4 h-4 animate-spin" /> Menyimpan...</> : 'Simpan SKB'}

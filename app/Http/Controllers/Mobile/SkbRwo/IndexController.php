@@ -49,7 +49,7 @@ class IndexController extends Controller
                 'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
                 'r.nama_bank', 'r.no_rekening', 'r.nama_pemilik_norek', 'r.latitude', 'r.longitude',
                 'r.foto_toko2', 'r.foto_toko3',
-                'skb.is_approved', 'skb.foto_skb as skb_foto', 'skb.reason as skb_reason',
+                'skb.is_approved', 'skb.foto_skb as skb_foto', 'skb.reason as skb_reason', 'skb.ho_is_valid', 'skb.ho_notes',
                 DB::raw("CASE WHEN skb.customer_code IS NOT NULL THEN 'Sudah' ELSE 'Belum' END AS status_skb"),
                 DB::raw("CASE WHEN 
                     NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
@@ -105,7 +105,7 @@ class IndexController extends Controller
                 'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
                 'r.nama_bank', 'r.no_rekening', 'r.nama_pemilik_norek', 'r.latitude', 'r.longitude',
                 'r.foto_toko2', 'r.foto_toko3',
-                'skb.is_approved', 'skb.foto_skb as skb_foto', 'skb.reason as skb_reason',
+                'skb.is_approved', 'skb.foto_skb as skb_foto', 'skb.reason as skb_reason', 'skb.ho_is_valid', 'skb.ho_notes',
                 DB::raw("CASE WHEN skb.customer_code IS NOT NULL THEN 'Sudah' ELSE 'Belum' END AS status_skb"),
                 DB::raw("CASE WHEN 
                     NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
@@ -145,7 +145,7 @@ class IndexController extends Controller
                 'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
                 'r.nama_bank', 'r.no_rekening', 'r.nama_pemilik_norek', 'r.latitude', 'r.longitude',
                 'r.foto_toko2', 'r.foto_toko3',
-                'skb.is_approved', 'skb.foto_skb as skb_foto', 'skb.reason as skb_reason',
+                'skb.is_approved', 'skb.foto_skb as skb_foto', 'skb.reason as skb_reason', 'skb.ho_is_valid', 'skb.ho_notes',
                 DB::raw("CASE WHEN skb.customer_code IS NOT NULL THEN 'Sudah' ELSE 'Belum' END AS status_skb"),
                 DB::raw("CASE WHEN 
                     NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
