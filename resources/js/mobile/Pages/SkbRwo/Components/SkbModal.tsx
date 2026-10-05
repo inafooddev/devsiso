@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import {
-    XMarkIcon, CheckBadgeIcon, PhotoIcon, ArrowPathIcon, ShieldExclamationIcon, ShieldCheckIcon
+    XMarkIcon, CheckBadgeIcon, PhotoIcon, ArrowPathIcon, ShieldExclamationIcon, ShieldCheckIcon, DocumentCheckIcon
 } from '@heroicons/react/24/outline';
 import { SkbRwoItem } from './StoreCard';
 
@@ -17,7 +17,9 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
         approval_status: string;
         reject_reason: string;
         foto_skb: File | null;
-    }>({ approval_status: '', reject_reason: '', foto_skb: null });
+        nama_pemilik_toko: string;
+        no_hp: string;
+    }>({ approval_status: '', reject_reason: '', foto_skb: null, nama_pemilik_toko: '', no_hp: '' });
     
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [zoomImage, setZoomImage] = useState<string | null>(null);
@@ -25,15 +27,21 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
     const [isLocating, setIsLocating] = useState(false);
     const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
     const [showMissingPrompt, setShowMissingPrompt] = useState(false);
+
     const fotoSkbRef = useRef<HTMLInputElement>(null);
     const latestLocationRef = useRef<{lat: string, lng: string} | null>(null);
+    
+    const isHoValid = data?.ho_is_valid == 1 || data?.ho_is_valid === true;
+
 
     useEffect(() => {
         if (data) {
             setSkbForm({ 
                 approval_status: data.is_approved === true || data.is_approved === 1 ? 'approve' : (data.is_approved === false || data.is_approved === 0 ? 'reject' : ''), 
                 reject_reason: data.skb_reason || data.reason || '', 
-                foto_skb: null 
+                foto_skb: null,
+                nama_pemilik_toko: data.nama_pemilik_toko || '',
+                no_hp: data.no_hp || ''
             });
             setPreviewUrl(data.skb_foto ? `/storage/${data.skb_foto}` : null);
         }
@@ -230,6 +238,8 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
         e.preventDefault();
         if (!skbForm.approval_status) return showToast('Pilih status approval terlebih dahulu.', 'error');
         if (skbForm.approval_status === 'reject' && !skbForm.reject_reason) return showToast('Alasan reject wajib diisi.', 'error');
+        if (!data?.nama_pemilik_toko && !skbForm.nama_pemilik_toko) return showToast('Nama pemilik toko wajib diisi.', 'error');
+        if (!data?.no_hp && !skbForm.no_hp) return showToast('No HP wajib diisi.', 'error');
 
         const formData = new FormData();
         formData.append('customer_code', data.customer_code);
@@ -239,6 +249,8 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
         formData.append('approval_status', skbForm.approval_status);
         if (skbForm.approval_status === 'reject') formData.append('reject_reason', skbForm.reject_reason);
         if (skbForm.foto_skb) formData.append('foto_skb', skbForm.foto_skb);
+        if (!data?.nama_pemilik_toko && skbForm.nama_pemilik_toko) formData.append('nama_pemilik_toko', skbForm.nama_pemilik_toko);
+        if (!data?.no_hp && skbForm.no_hp) formData.append('no_hp', skbForm.no_hp);
 
         setIsSubmitting(true);
         router.post('/mobile/skb-rwo/submit-skb', formData, {
@@ -249,7 +261,7 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
                 setIsSubmitting(false);
                 showToast('Aksi SKB berhasil diproses.', 'success');
                 
-                const isMissing = !data.nama_pemilik_toko || !data.no_hp || !data.foto_toko2 || !data.foto_toko3;
+                const isMissing = !data.foto_toko2 || !data.foto_toko3;
                 if (isMissing) {
                     setShowMissingPrompt(true);
                 } else {
@@ -340,7 +352,7 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
                         <ShieldExclamationIcon className="w-16 h-16 text-amber-500 mx-auto mb-4" />
                         <h3 className="text-lg font-black text-slate-800 mb-2">Data Toko Belum Lengkap</h3>
                         <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-                            SKB berhasil disimpan. Namun data toko (Nama Pemilik, No HP, atau Foto Depan/Dalam) masih kosong. Ingin melengkapinya sekarang?
+                            SKB berhasil disimpan. Namun Foto Depan atau Dalam toko masih kosong. Ingin memfotonya sekarang?
                         </p>
                         <div className="flex gap-3">
                             <button 
@@ -369,7 +381,7 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
                         <ShieldExclamationIcon className="w-16 h-16 text-amber-500 mx-auto mb-4" />
                         <h3 className="text-lg font-black text-slate-800 mb-2">Data Toko Belum Lengkap</h3>
                         <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-                            SKB berhasil disimpan. Namun data toko (Nama Pemilik, No HP, atau Foto Depan/Dalam) masih kosong. Ingin melengkapinya sekarang?
+                            SKB berhasil disimpan. Namun Foto Depan atau Dalam toko masih kosong. Ingin memfotonya sekarang?
                         </p>
                         <div className="flex gap-3">
                             <button 
@@ -419,7 +431,7 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
                         <ShieldExclamationIcon className="w-16 h-16 text-amber-500 mx-auto mb-4" />
                         <h3 className="text-lg font-black text-slate-800 mb-2">Data Toko Belum Lengkap</h3>
                         <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-                            SKB berhasil disimpan. Namun data toko (Nama Pemilik, No HP, atau Foto Depan/Dalam) masih kosong. Ingin melengkapinya sekarang?
+                            SKB berhasil disimpan. Namun Foto Depan atau Dalam toko masih kosong. Ingin memfotonya sekarang?
                         </p>
                         <div className="flex gap-3">
                             <button 

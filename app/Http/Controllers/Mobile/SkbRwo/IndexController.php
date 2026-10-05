@@ -313,6 +313,8 @@ class IndexController extends Controller
             'distributor_code' => 'required|string',
             'kuartal' => 'nullable|string',
             'tahun' => 'nullable|string',
+            'nama_pemilik_toko' => 'nullable|string|max:255',
+            'no_hp' => 'nullable|string|max:50',
             'approval_status' => 'required|in:approve,reject',
             'foto_skb' => 'nullable|image',
             'reject_reason' => 'required_if:approval_status,reject|max:500'
@@ -327,6 +329,13 @@ class IndexController extends Controller
 
         $skb->is_approved = ($request->approval_status === 'approve');
         $skb->reason = ($request->approval_status === 'reject') ? $request->reject_reason : null;
+
+        if ($request->filled('nama_pemilik_toko') || $request->filled('no_hp')) {
+            $outlet = \App\Models\RewardOutlet::firstOrNew(['customer_code' => $request->customer_code]);
+            if ($request->filled('nama_pemilik_toko')) $outlet->nama_pemilik_toko = $request->nama_pemilik_toko;
+            if ($request->filled('no_hp')) $outlet->no_hp = $request->no_hp;
+            $outlet->save();
+        }
 
         if ($request->hasFile('foto_skb')) {
             $manager = new ImageManager(new Driver());
