@@ -235,6 +235,7 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
         formData.append('customer_code', data.customer_code);
         if (data.distributor_code) formData.append('distributor_code', data.distributor_code);
         if (data.kuartal) formData.append('kuartal', data.kuartal);
+        if (data.tahun) formData.append('tahun', data.tahun);
         formData.append('approval_status', skbForm.approval_status);
         if (skbForm.approval_status === 'reject') formData.append('reject_reason', skbForm.reject_reason);
         if (skbForm.foto_skb) formData.append('foto_skb', skbForm.foto_skb);

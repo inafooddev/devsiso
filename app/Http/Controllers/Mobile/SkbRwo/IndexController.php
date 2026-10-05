@@ -36,7 +36,8 @@ class IndexController extends Controller
             ->leftJoin('surat_kesepakatan_bersama_rwo as skb', function($join) {
                 $join->on('skb.customer_code', '=', 'l.customer_code')
                      ->on('skb.distributor_code', '=', 'l.distributor_code')
-                     ->on('skb.kuartal', '=', 'l.kuartal');
+                     ->on('skb.kuartal', '=', 'l.kuartal')
+                     ->on('skb.tahun', '=', 'l.tahun');
             })
             ->leftJoin('list_toko_pareto_team_elite as lt', 'lt.uniq_kd', '=', 'l.customer_code')
             ->where('l.kuartal', $currentQuarter)
@@ -80,15 +81,16 @@ class IndexController extends Controller
             ->leftJoin('master_distributors as md', 'md.distributor_code', '=', 'j.distributor_code')
             ->leftJoin('team_elite_code_mappings as te', 'te.siso_code', '=', 'md.supervisor_code')
             ->leftJoin('reward_outlet as r', 'r.customer_code', '=', 'l.uniq_kd')
-            ->leftJoin('surat_kesepakatan_bersama_rwo as skb', function($join) use ($currentQuarter) {
-                $join->on('skb.customer_code', '=', 'l.uniq_kd')
-                     ->on('skb.distributor_code', '=', 'j.distributor_code')
-                     ->on('skb.kuartal', '=', DB::raw($currentQuarter));
-            })
             ->leftJoin('list_potensi_rwo as lp', function($join) use ($currentQuarter) {
                 $join->on('lp.customer_code', '=', 'l.uniq_kd')
                      ->on('lp.distributor_code', '=', 'j.distributor_code')
                      ->on('lp.kuartal', '=', DB::raw($currentQuarter));
+            })
+            ->leftJoin('surat_kesepakatan_bersama_rwo as skb', function($join) use ($currentQuarter) {
+                $join->on('skb.customer_code', '=', 'l.uniq_kd')
+                     ->on('skb.distributor_code', '=', 'j.distributor_code')
+                     ->on('skb.kuartal', '=', DB::raw($currentQuarter))
+                     ->on('skb.tahun', '=', 'lp.tahun');
             })
             ->where('l.pilar', '1. RWO')
             ->select(
@@ -130,7 +132,8 @@ class IndexController extends Controller
             ->leftJoin('surat_kesepakatan_bersama_rwo as skb', function($join) {
                 $join->on('skb.customer_code', '=', 'l.customer_code')
                      ->on('skb.distributor_code', '=', 'l.distributor_code')
-                     ->on('skb.kuartal', '=', 'l.kuartal');
+                     ->on('skb.kuartal', '=', 'l.kuartal')
+                     ->on('skb.tahun', '=', 'l.tahun');
             })
             ->leftJoin('list_toko_pareto_team_elite as lt', 'lt.uniq_kd', '=', 'l.customer_code')
             ->where('l.kuartal', $currentQuarter)
@@ -309,6 +312,7 @@ class IndexController extends Controller
             'customer_code' => 'required|string',
             'distributor_code' => 'required|string',
             'kuartal' => 'nullable|string',
+            'tahun' => 'nullable|string',
             'approval_status' => 'required|in:approve,reject',
             'foto_skb' => 'nullable|image',
             'reject_reason' => 'required_if:approval_status,reject|max:500'
@@ -318,6 +322,7 @@ class IndexController extends Controller
             'customer_code' => $request->customer_code,
             'distributor_code' => $request->distributor_code,
             'kuartal' => $request->kuartal,
+            'tahun' => $request->tahun,
         ]);
 
         $skb->is_approved = ($request->approval_status === 'approve');
