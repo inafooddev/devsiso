@@ -104,7 +104,7 @@
                                     <td class="text-center">
                                         <div class="flex justify-center">
                                             @canEdit('mapping.unmapped-products')
-                                            <button wire:click="openMapModal('{{ $product->distributor_code }}', '{{ $product->product_code }}', '{{ addslashes($product->product_name) }}')"
+                                            <button wire:click="openMapModal('{{ addslashes($product->distributor_code) }}', '{{ addslashes($product->product_code) }}', '{{ addslashes($product->product_name) }}')"
                                                     class="btn btn-primary btn-xs rounded-lg normal-case gap-1 shadow-sm shadow-primary/20 transition-all duration-200">
                                                 <x-heroicon-s-link class="w-3.5 h-3.5" />
                                                 Petakan
@@ -319,7 +319,7 @@
                             <div x-show="searchOpen && $wire.productSearch.length >= 2 && !$wire.selectedPrincipalProduct" x-transition 
                                  class="absolute z-[70] w-full mt-2 bg-base-100 border border-base-300 shadow-2xl rounded-2xl max-h-60 overflow-y-auto ring-1 ring-base-content/5 py-1">
                                 @forelse($principalProducts as $product)
-                                    <div wire:click="selectProduct('{{ $product->product_id }}', '{{ addslashes($product->product_name) }}')" 
+                                    <div wire:click="selectProduct('{{ addslashes($product->product_id) }}', '{{ addslashes($product->product_name) }}')" 
                                          @click="searchOpen = false"
                                          class="cursor-pointer px-4 py-2.5 hover:bg-base-200 transition-colors flex items-center justify-between border-b border-base-300/50 last:border-none">
                                         <div class="flex flex-col">

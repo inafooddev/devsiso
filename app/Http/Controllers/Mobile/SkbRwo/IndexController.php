@@ -41,6 +41,7 @@ class IndexController extends Controller
             })
             ->leftJoin('list_toko_pareto_team_elite as lt', 'lt.uniq_kd', '=', 'l.customer_code')
             ->where('l.kuartal', $currentQuarter)
+            ->where('l.jenis_reward', 'ILIKE', '%CB%')
             ->select(
                 'l.*', 
                 'lt.customer_code_prc as customer_prc',
@@ -93,6 +94,7 @@ class IndexController extends Controller
                      ->on('skb.tahun', '=', 'lp.tahun');
             })
             ->where('l.pilar', '1. RWO')
+            ->where('lp.jenis_reward', 'ILIKE', '%CB%')
             ->select(
                 'j.tanggal',
                 'j.distributor_code',
@@ -137,6 +139,7 @@ class IndexController extends Controller
             })
             ->leftJoin('list_toko_pareto_team_elite as lt', 'lt.uniq_kd', '=', 'l.customer_code')
             ->where('l.kuartal', $currentQuarter)
+            ->where('l.jenis_reward', 'ILIKE', '%CB%')
             ->select(
                 'l.*', 
                 'lt.customer_code_prc as customer_prc',
