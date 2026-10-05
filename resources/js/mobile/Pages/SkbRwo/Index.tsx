@@ -29,6 +29,7 @@ interface SkbRwoIndexProps {
     listPotensi?: SkbRwoItem[];
     listMonitoring?: SkbRwoItem[];
     listPlan?: SkbRwoItem[];
+    activeKuartal?: number | string;
     sessionSupervisorCode?: string;
     sessionSupervisorName?: string;
 }
@@ -37,6 +38,7 @@ export default function Index({
     listPotensi = [],
     listMonitoring = [],
     listPlan = [],
+    activeKuartal,
     sessionSupervisorCode = 'USER',
     sessionSupervisorName = 'User SSO'
 }: SkbRwoIndexProps) {
@@ -69,7 +71,18 @@ export default function Index({
         displayLimit, setDisplayLimit, handleLoadMore,
         selectedDate, setSelectedDate,
         displayedData, filteredSummaryData
-    } = useSkbRwoFilter({ listPotensi, listMonitoring, listPlan, nearbyActive: isNearbyActive, userLocation });
+    } = useSkbRwoFilter({ listPotensi, listMonitoring, listPlan, activeKuartal, nearbyActive: isNearbyActive, userLocation });
+
+    const handleKuartalChange = (newKuartal: string) => {
+        setFilterKuartal(newKuartal);
+        router.get('/mobile/skb-rwo', { kuartal: newKuartal }, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['listPotensi', 'listMonitoring', 'listPlan', 'activeKuartal'],
+            onStart: () => showToast('Memuat data kuartal...', 'success'),
+            onFinish: () => showToast('Data berhasil diperbarui', 'success')
+        });
+    };
 
     const [isKuartalSheetOpen, setIsKuartalSheetOpen] = useState(false);
 
@@ -295,7 +308,7 @@ export default function Index({
                 isOpen={isKuartalSheetOpen}
                 onClose={() => setIsKuartalSheetOpen(false)}
                 filterKuartal={filterKuartal}
-                setFilterKuartal={setFilterKuartal}
+                setFilterKuartal={handleKuartalChange}
                 filterDistributor={filterDistributor}
                 setFilterDistributor={setFilterDistributor}
                 filterReward={filterReward}

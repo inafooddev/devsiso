@@ -25,7 +25,8 @@ class IndexController extends Controller
         $listPotensi = [];
         $listPlan = [];
 
-        $currentQuarter = ceil(date('n') / 3);
+        $requestedQuarter = $request->input('kuartal');
+        $currentQuarter = in_array($requestedQuarter, [1, 2, 3, 4, '1', '2', '3', '4']) ? (int) $requestedQuarter : ceil(date('n') / 3);
 
         // 1. Data List Potensi RWO
         $queryPotensi = DB::table('list_potensi_rwo as l')
@@ -280,6 +281,7 @@ class IndexController extends Controller
             'listPotensi' => $listPotensi,
             'listMonitoring' => $listMonitoring,
             'listPlan' => $listPlan,
+            'activeKuartal' => $currentQuarter,
             'sessionSupervisorCode' => $sessionSupervisorCode,
             'sessionSupervisorName' => $sessionSupervisorName,
         ]);

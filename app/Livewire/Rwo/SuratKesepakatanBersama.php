@@ -27,6 +27,7 @@ class SuratKesepakatanBersama extends Component
     public $distributor = '';
 
     public $appliedKuartal = '';
+    public $appliedTahun = '';
     public $appliedRegion = '';
     public $appliedArea = '';
     public $appliedSupervisor = '';
@@ -35,6 +36,7 @@ class SuratKesepakatanBersama extends Component
     public $statusApproval = ''; // '', 'approve', 'reject', 'pending'
 
     public $kuartals = [];
+    public $tahuns = [];
     public $regions = [];
     public $areas = [];
     public $supervisors = [];
@@ -116,6 +118,17 @@ class SuratKesepakatanBersama extends Component
 
         $this->kuartals = DB::table('master_calender')->select('quarter')->whereNotNull('quarter')->distinct()->orderBy('quarter')->get();
         
+        $currentQuarter = DB::table('master_calender')->where('date', date('Y-m-d'))->value('quarter');
+        if ($currentQuarter) {
+            $this->appliedKuartal = $currentQuarter;
+        }
+
+        $this->tahuns = DB::table('master_calender')->select('year')->whereNotNull('year')->distinct()->orderBy('year', 'desc')->get();
+        $currentYear = DB::table('master_calender')->where('date', date('Y-m-d'))->value('year');
+        if ($currentYear) {
+            $this->appliedTahun = $currentYear;
+        }
+        
         $regionQuery = DB::table('master_regions')->orderBy('region_name');
         if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
             $regionQuery->whereIn('region_code', (array) $user->region_code);
@@ -180,7 +193,6 @@ class SuratKesepakatanBersama extends Component
 
     public function applyFilter()
     {
-        $this->appliedKuartal = $this->kuartal;
         $this->appliedRegion = $this->region;
         $this->appliedArea = $this->area;
         $this->appliedSupervisor = $this->supervisor;
@@ -200,7 +212,10 @@ class SuratKesepakatanBersama extends Component
         $this->supervisors = [];
         $this->distributors = [];
 
-        $this->appliedKuartal = '';
+        $currentQuarter = DB::table('master_calender')->where('date', date('Y-m-d'))->value('quarter');
+        $this->appliedKuartal = $currentQuarter ?: '';
+        $currentYear = DB::table('master_calender')->where('date', date('Y-m-d'))->value('year');
+        $this->appliedTahun = $currentYear ?: date('Y');
         $this->appliedRegion = '';
         $this->appliedArea = '';
         $this->appliedSupervisor = '';
@@ -218,6 +233,16 @@ class SuratKesepakatanBersama extends Component
     }
     
     public function updatedStatusApproval()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedAppliedKuartal()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedAppliedTahun()
     {
         $this->resetPage();
     }
@@ -250,7 +275,8 @@ class SuratKesepakatanBersama extends Component
             ->leftJoin('list_potensi_rwo as l', function($join) {
                 $join->on('l.customer_code', '=', 'skb.customer_code')
                      ->on('l.distributor_code', '=', 'skb.distributor_code')
-                     ->on('l.kuartal', '=', 'skb.kuartal');
+                     ->on('l.kuartal', '=', 'skb.kuartal')
+                     ->on('l.tahun', '=', 'skb.tahun');
             })
             ->leftJoin('master_distributors as md', 'md.distributor_code', '=', 'skb.distributor_code')
             ->leftJoin('team_elite_code_mappings as te', 'te.siso_code', '=', 'md.supervisor_code');
@@ -275,6 +301,9 @@ class SuratKesepakatanBersama extends Component
 
         if (!empty($this->appliedKuartal)) {
             $baseQuery->where('skb.kuartal', $this->appliedKuartal);
+        }
+        if (!empty($this->appliedTahun)) {
+            $baseQuery->where('skb.tahun', $this->appliedTahun);
         }
         if (!empty($this->appliedRegion)) {
             $baseQuery->where('md.region_code', $this->appliedRegion);
@@ -312,7 +341,8 @@ class SuratKesepakatanBersama extends Component
         if ($skb) {
             $l = DB::table('list_potensi_rwo')->where('customer_code', $skb->customer_code)
                     ->where('distributor_code', $skb->distributor_code)
-                    ->where('kuartal', $skb->kuartal)->first();
+                    ->where('kuartal', $skb->kuartal)
+                    ->where('tahun', $skb->tahun)->first();
                     
             $this->editId = $skb->id;
             $this->approvalCustomerCode = $skb->customer_code;
@@ -445,6 +475,7 @@ class SuratKesepakatanBersama extends Component
             ->leftJoin('reward_outlet as ro', 'ro.customer_code', '=', 'skb.customer_code')
             ->select([
                 'skb.kuartal',
+                'skb.tahun',
                 'md.region_code',
                 'md.region_name',
                 'md.area_code',
@@ -558,6 +589,7 @@ class SuratKesepakatanBersama extends Component
         $query = $baseQuery->select([
             'skb.id',
             'skb.kuartal',
+            'skb.tahun',
             'skb.customer_code',
             'skb.distributor_code',
             'skb.is_approved',

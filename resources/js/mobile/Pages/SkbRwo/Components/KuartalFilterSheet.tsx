@@ -75,7 +75,6 @@ export default function KuartalFilterSheet({
                                 onChange={(e) => setLocalKuartal(e.target.value)}
                                 className="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl p-3 pr-10 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                             >
-                                <option value="Semua">Semua Kuartal</option>
                                 <option value="1">Kuartal 1 (Q1)</option>
                                 <option value="2">Kuartal 2 (Q2)</option>
                                 <option value="3">Kuartal 3 (Q3)</option>

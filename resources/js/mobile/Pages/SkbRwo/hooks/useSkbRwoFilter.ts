@@ -8,11 +8,12 @@ interface UseSkbRwoFilterProps {
     listPotensi: SkbRwoItem[];
     listMonitoring: SkbRwoItem[];
     listPlan: SkbRwoItem[];
+    activeKuartal?: number | string;
     nearbyActive?: boolean;
     userLocation?: UserLocation | null;
 }
 
-export function useSkbRwoFilter({ listPotensi, listMonitoring, listPlan, nearbyActive = false, userLocation = null }: UseSkbRwoFilterProps) {
+export function useSkbRwoFilter({ listPotensi, listMonitoring, listPlan, activeKuartal, nearbyActive = false, userLocation = null }: UseSkbRwoFilterProps) {
     const [activeTab, setActiveTab] = useState<TabType>(() => {
         return (sessionStorage.getItem('skbRwoActiveTab') as TabType) || 'summary';
     });
@@ -23,7 +24,14 @@ export function useSkbRwoFilter({ listPotensi, listMonitoring, listPlan, nearbyA
 
     const [search, setSearch] = useState('');
     const [filterSkbStatus, setFilterSkbStatus] = useState<SkbStatusType>('Semua');
-    const [filterKuartal, setFilterKuartal] = useState<string>(Math.ceil((new Date().getMonth() + 1) / 3).toString());
+    const [filterKuartal, setFilterKuartal] = useState<string>(
+        activeKuartal ? String(activeKuartal) : Math.ceil((new Date().getMonth() + 1) / 3).toString()
+    );
+    
+    // Sync state if activeKuartal changes from backend
+    useEffect(() => {
+        if (activeKuartal) setFilterKuartal(String(activeKuartal));
+    }, [activeKuartal]);
     const [filterStatus, setFilterStatus] = useState<ProgressStatusType>('Semua');
     const [filterDistributor, setFilterDistributor] = useState<string>('Semua');
     const [filterReward, setFilterReward] = useState<string>('Semua');
@@ -67,9 +75,6 @@ export function useSkbRwoFilter({ listPotensi, listMonitoring, listPlan, nearbyA
         }
         else if (activeTab === 'monitoring') {
             result = listMonitoring;
-            if (filterKuartal !== 'Semua') {
-                result = result.filter(item => String(item.kuartal) === filterKuartal);
-            }
             if (filterStatus !== 'Semua') {
                 result = result.filter(item => {
                     const target = item.total_target || 0;
@@ -132,12 +137,8 @@ export function useSkbRwoFilter({ listPotensi, listMonitoring, listPlan, nearbyA
     }, [listPotensi, listMonitoring, listPlan, activeTab, search, selectedDate, filterSkbStatus, filterKuartal, filterStatus, filterDistributor, filterReward, nearbyActive, userLocation]);
 
     const filteredSummaryData = useMemo(() => {
-        let result = listMonitoring;
-        if (filterKuartal !== 'Semua') {
-            result = result.filter(item => String(item.kuartal) === filterKuartal);
-        }
-        return result;
-    }, [listMonitoring, filterKuartal]);
+        return listMonitoring;
+    }, [listMonitoring]);
 
     const handleLoadMore = () => {
         setDisplayLimit(prev => prev + PAGINATION_LIMIT);

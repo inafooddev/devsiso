@@ -10,6 +10,7 @@ class SuratKesepakatanBersamaRwo extends Model
 
     protected $fillable = [
         'kuartal',
+        'tahun',
         'distributor_code',
         'customer_code',
         'foto_skb',

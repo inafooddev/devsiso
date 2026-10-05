@@ -68,6 +68,18 @@
                     <input wire:model.live.debounce.500ms="search" type="text" placeholder="Cari kode/nama..." class="input input-sm input-bordered w-full pl-9 focus:input-primary" />
                 </div>
                 <div class="join bg-base-100 rounded-xl">
+                    <select wire:model.live="appliedKuartal" class="select select-sm select-bordered join-item font-semibold focus:outline-none w-auto max-w-[130px] lg:max-w-none text-xs lg:text-sm">
+                        <option value="">Semua Kuartal</option>
+                        @foreach($kuartals as $q)
+                            <option value="{{ $q->quarter }}">Q{{ $q->quarter }}</option>
+                        @endforeach
+                    </select>
+                    <select wire:model.live="appliedTahun" class="select select-sm select-bordered join-item font-semibold focus:outline-none w-auto max-w-[100px] lg:max-w-none text-xs lg:text-sm">
+                        <option value="">Semua Tahun</option>
+                        @foreach($tahuns as $t)
+                            <option value="{{ $t->year }}">{{ $t->year }}</option>
+                        @endforeach
+                    </select>
                     <select wire:model.live="statusApproval" class="select select-sm select-bordered join-item font-semibold focus:outline-none w-auto max-w-[130px] lg:max-w-none text-xs lg:text-sm">
                         <option value="">Semua Status</option>
                         <option value="approve">Approved</option>
@@ -77,7 +89,7 @@
                 
                 <div class="flex flex-wrap items-center gap-1 md:gap-2">
                     <x-ui.action-button type="filter" wire:click="$dispatch('open-modal', 'filter_modal')" onclick="filter_modal.showModal()" class="relative shrink-0">
-                        @if($appliedKuartal || $appliedRegion || $appliedArea || $appliedSupervisor || $appliedDistributor)
+                        @if($appliedRegion || $appliedArea || $appliedSupervisor || $appliedDistributor)
                             <div class="badge badge-primary badge-xs absolute -top-1 -right-1"></div>
                         @endif
                     </x-ui.action-button>
@@ -117,7 +129,7 @@
                     @forelse($data as $key => $item)
                     <tr class="hover:bg-base-200/50 transition-colors">
                         <th>{{ $data->firstItem() + $key }}</th>
-                        <td class="font-medium">{{ $item->kuartal }}</td>
+                        <td class="font-medium">Q{{ $item->kuartal }} {{ $item->tahun }}</td>
                         <td>{{ $item->region_name }}</td>
                         <td>{{ $item->area_name }}</td>
                         <td class="font-mono">{{ $item->distributor_code }}</td>
@@ -206,15 +218,6 @@
         <div class="modal-box">
             <h3 class="font-bold text-lg mb-4">Filter Pencarian</h3>
             <div class="grid grid-cols-1 gap-4">
-                <div class="form-control w-full">
-                    <label class="label"><span class="label-text">Kuartal</span></label>
-                    <select wire:model.live="kuartal" class="select select-bordered w-full">
-                        <option value="">-- Semua Kuartal --</option>
-                        @foreach($kuartals as $q)
-                            <option value="{{ $q->quarter }}">{{ current(explode('_', $q->quarter)) }}</option>
-                        @endforeach
-                    </select>
-                </div>
                 <div class="form-control w-full">
                     <label class="label"><span class="label-text">Region</span></label>
                     <select wire:model.live="region" class="select select-bordered w-full">
