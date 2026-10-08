@@ -48,6 +48,10 @@ class UpdateLongLatMasterCustomerJob implements ShouldQueue
                       AND cpe.la IS NOT NULL
                       AND cpe.la <> '0'
                       AND cpe.lg <> '0'
+                      AND cpe.la ~ '^-?[0-9]+(\.[0-9]+)?$'
+                      AND cpe.lg ~ '^-?[0-9]+(\.[0-9]+)?$'
+                      AND cpe.la::numeric BETWEEN -90 AND 90
+                      AND cpe.lg::numeric BETWEEN -180 AND 180
                 ) AS src
                 WHERE target.distributor_code = src.distributor_code
                   AND target.customer_code_prc = src.custno
