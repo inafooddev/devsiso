@@ -2,6 +2,27 @@
      x-data="{ showHeader: true }" 
      @scroll.window="showHeader = window.scrollY < 50">
 
+    {{-- KPI Cards Summary per Region (Diletakkan di LUAR tabel utama) --}}
+    @if($isReady && count($summaryData) > 0)
+    <div class="flex flex-nowrap overflow-x-auto gap-3 md:gap-4 shrink-0 pb-1 w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        @foreach($summaryData as $row)
+        <div class="flex-1 min-w-[150px] md:min-w-[180px] bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group shrink-0">
+            {{-- Dekorasi KPI --}}
+            <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 transition-transform group-hover:scale-150"></div>
+            
+            <div class="flex items-start justify-between relative z-10">
+                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate pr-2 mt-1">{{ $row->region_code ?? 'NO REGION' }}</h3>
+                <div class="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <x-heroicon-s-map-pin class="w-4 h-4" />
+                </div>
+            </div>
+            
+            <div class="text-lg md:text-xl font-bold leading-none mt-1 md:mt-2 truncate relative z-10 text-primary">{{ number_format($row->total, 0, ',', '.') }}</div>
+        </div>
+        @endforeach
+    </div>
+    @endif
+
     {{-- Main Card (Tabel) yang mengambil sisa ruang flex --}}
     <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
         

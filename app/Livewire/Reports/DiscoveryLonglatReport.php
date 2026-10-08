@@ -15,7 +15,7 @@ class DiscoveryLonglatReport extends Component
 
     public $startDate;
     public $endDate;
-    public $isReady = false;
+    public $isReady = true;
     
     public $selectedRegion = '';
     public $selectedArea = '';
@@ -27,7 +27,6 @@ class DiscoveryLonglatReport extends Component
 
     public function mount()
     {
-        // Default: 1 month back
         $this->startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->endDate = Carbon::now()->endOfMonth()->format('Y-m-d');
         
@@ -69,12 +68,13 @@ class DiscoveryLonglatReport extends Component
     public function render()
     {
         $data = collect();
+        $summaryData = collect();
 
         if ($this->isReady) {
             $safeStart = Carbon::parse($this->startDate)->format('Y-m-d');
             $safeEnd = Carbon::parse($this->endDate)->format('Y-m-d');
 
-            $query = DB::table('customer_prc_eska as cpe')
+            $baseQuery = DB::table('customer_prc_eska as cpe')
                 ->join(DB::raw("(
                     SELECT 
                         \"BID\",
@@ -103,7 +103,31 @@ class DiscoveryLonglatReport extends Component
                       ->orWhereNull('cpe.lg')
                       ->orWhere('cpe.lg', '');
                 })
-                ->where('lv.rn', 1)
+                ->where('lv.rn', 1);
+
+            $summaryQuery = (clone $baseQuery)
+                ->select('cpe.region_code', DB::raw('COUNT(*) as total'))
+                ->groupBy('cpe.region_code')
+                ->get()
+                ->keyBy('region_code');
+
+            $summaryData = collect($this->regions)->map(function($region) use ($summaryQuery) {
+                return (object) [
+                    'region_code' => $region->region_code,
+                    'region_name' => $region->region_name,
+                    'total' => isset($summaryQuery[$region->region_code]) ? $summaryQuery[$region->region_code]->total : 0
+                ];
+            });
+
+            $query = clone $baseQuery;
+            if ($this->selectedRegion) {
+                $query->where('cpe.region_code', $this->selectedRegion);
+            }
+            if ($this->selectedArea) {
+                $query->where('cpe.area_code', $this->selectedArea);
+            }
+
+            $data = $query
                 ->select(
                     'cpe.kodecabang',
                     'cpe.custno',
@@ -113,20 +137,12 @@ class DiscoveryLonglatReport extends Component
                     'lv.TANGGAL',
                     'cpe.region_code',
                     'cpe.area_code'
-                );
-            
-            if ($this->selectedRegion) {
-                $query->where('cpe.region_code', $this->selectedRegion);
-            }
-            if ($this->selectedArea) {
-                $query->where('cpe.area_code', $this->selectedArea);
-            }
-
-            $data = $query->paginate(100);
+                )->paginate(100);
         }
 
         return view('livewire.reports.discovery-longlat-report', [
-            'data' => $data
+            'data' => $data,
+            'summaryData' => $summaryData
         ])->layout('layouts.app');
     }
 }
