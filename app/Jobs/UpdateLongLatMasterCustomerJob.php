@@ -29,8 +29,8 @@ class UpdateLongLatMasterCustomerJob implements ShouldQueue
 
             $updatedCount = DB::update("
                 UPDATE list_toko_pareto_team_elite AS target
-                SET latitude = src.la,
-                    longitude = src.lg,
+                SET latitude = src.la::numeric,
+                    longitude = src.lg::numeric,
                     updated_at = NOW()
                 FROM (
                     SELECT 
