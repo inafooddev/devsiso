@@ -243,10 +243,10 @@ export default function Index({
                     <RadarMap data={listMonitoring} showToast={showToast} />
                 ) : (
                 <>
-                <div className="grid grid-cols-1 gap-2.5 px-4">
-                    {displayedData.length > 0 ? displayedData.slice(0, displayLimit).map((item) => (
+                <div key={activeTab} className="grid grid-cols-1 gap-2.5 px-4">
+                    {displayedData.length > 0 ? displayedData.slice(0, displayLimit).map((item, index) => (
                         <StoreCard
-                            key={`${activeTab}-${item.customer_code}`}
+                            key={`${activeTab}-${item.customer_code}-${index}`}
                             item={item}
                             showProgress={activeTab === 'monitoring' || activeTab === 'plan'}
                             showSkbAction={activeTab !== 'monitoring'}
