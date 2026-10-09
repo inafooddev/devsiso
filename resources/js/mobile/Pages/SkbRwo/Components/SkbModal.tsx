@@ -10,9 +10,10 @@ interface SkbModalProps {
     onClose: () => void;
     showToast: (message: string, type: 'success' | 'error') => void;
     onOpenDetail?: (item: SkbRwoItem, forceEdit?: boolean) => void;
+    userName?: string;
 }
 
-export default function SkbModal({ data, onClose, showToast, onOpenDetail }: SkbModalProps) {
+export default function SkbModal({ data, onClose, showToast, onOpenDetail, userName }: SkbModalProps) {
     const [skbForm, setSkbForm] = useState<{
         approval_status: string;
         reject_reason: string;
@@ -191,7 +192,7 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
                         `TOKO: ${data.customer_name || '-'}`,
                         `ALAMAT: ${addressText}`,
                         `GPS: ${currentLat}, ${currentLng}`,
-                        `PENGINPUT: ${data.supervisor_name || 'User'}`,
+                        `PENGINPUT: ${userName || data.supervisor_name || 'User'}`,
                         `WAKTU: ${new Date().toLocaleString('id-ID')}`
                     ];
                     

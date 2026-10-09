@@ -9,9 +9,10 @@ interface QuickDataModalProps {
     data: SkbRwoItem | null;
     onClose: () => void;
     showToast: (message: string, type: 'success' | 'error') => void;
+    userName?: string;
 }
 
-export default function QuickDataModal({ data, onClose, showToast }: QuickDataModalProps) {
+export default function QuickDataModal({ data, onClose, showToast, userName }: QuickDataModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
@@ -155,7 +156,7 @@ export default function QuickDataModal({ data, onClose, showToast }: QuickDataMo
                         `TOKO: ${data.customer_name || '-'}`,
                         `ALAMAT: ${addressText}`,
                         `GPS: ${currentLat}, ${currentLng}`,
-                        `PENGINPUT: ${data.supervisor_name || 'User'}`,
+                        `PENGINPUT: ${userName || data.supervisor_name || 'User'}`,
                         `WAKTU: ${new Date().toLocaleString('id-ID')}`
                     ];
                     

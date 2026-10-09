@@ -306,11 +306,11 @@ export default function Index({
             </main>
 
             {/* Detail Modal */}
-            <QuickDataModal data={quickDataModalData} onClose={closeQuickDataModal} showToast={showToast} />
-            <DetailModal data={detailModalData} isMonitoring={isDetailModalActual} onClose={closeDetailModal} showToast={showToast} forceEditMode={isDetailForceEdit} />
+            <QuickDataModal data={quickDataModalData} onClose={closeQuickDataModal} showToast={showToast} userName={sessionSupervisorName} />
+            <DetailModal data={detailModalData} isMonitoring={isDetailModalActual} onClose={closeDetailModal} showToast={showToast} forceEditMode={isDetailForceEdit} userName={sessionSupervisorName} />
 
             {/* Aksi SKB Modal */}
-            <SkbModal data={skbModalData} onClose={closeSkbModal} showToast={showToast} onOpenDetail={openDetailModal} />
+            <SkbModal data={skbModalData} onClose={closeSkbModal} showToast={showToast} onOpenDetail={openDetailModal} userName={sessionSupervisorName} />
 
             <KuartalFilterSheet
                 isOpen={isKuartalSheetOpen}

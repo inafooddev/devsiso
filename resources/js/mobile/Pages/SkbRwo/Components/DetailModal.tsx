@@ -12,6 +12,7 @@ interface DetailModalProps {
     onClose: () => void;
     showToast: (message: string, type: 'success' | 'error') => void;
     forceEditMode?: boolean;
+    userName?: string;
 }
 
 export default function DetailModal({ data, isMonitoring, onClose, showToast, forceEditMode }: DetailModalProps) {
