@@ -693,41 +693,20 @@ class Index extends Component
 
     protected function handleJksAction($actionType, $payload, $reason, callable $executeCallback, $successMessage)
     {
-        if (auth()->user()->hasRole('user')) {
-            // Bagian Data (Auto-Approve)
-            $executeCallback();
-            
-            \Illuminate\Support\Facades\DB::table('jks_approvals')->insert([
-                'maker_id' => auth()->id(),
-                'checker_id' => auth()->id(),
-                'distributor_code' => $this->appliedDistributor,
-                'action_type' => $actionType,
-                'delete_type' => $payload['delete_type'] ?? null,
-                'payload' => json_encode($payload),
-                'reason' => $reason,
-                'status' => 'AUTO_APPROVED',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-            
-            $this->dispatch('toast', ['type' => 'success', 'message' => $successMessage]);
-        } else {
-            // SPV atau Role Lain (Pending Approval)
-            \Illuminate\Support\Facades\DB::table('jks_approvals')->insert([
-                'maker_id' => auth()->id(),
-                'checker_id' => null,
-                'distributor_code' => $this->appliedDistributor,
-                'action_type' => $actionType,
-                'delete_type' => $payload['delete_type'] ?? null,
-                'payload' => json_encode($payload),
-                'reason' => $reason,
-                'status' => 'PENDING',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-            
-            $this->dispatch('toast', ['type' => 'success', 'message' => 'Pengajuan berhasil dikirim dan menunggu persetujuan Bagian Data.']);
-        }
+        \Illuminate\Support\Facades\DB::table('jks_approvals')->insert([
+            'maker_id' => auth()->id(),
+            'checker_id' => null,
+            'distributor_code' => $this->appliedDistributor,
+            'action_type' => $actionType,
+            'delete_type' => $payload['delete_type'] ?? null,
+            'payload' => json_encode($payload),
+            'reason' => $reason,
+            'status' => 'PENDING',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Pengajuan berhasil dikirim dan menunggu persetujuan.']);
     }
 
     public function openSwapModal()

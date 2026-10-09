@@ -188,29 +188,53 @@ class Index extends Component
                 
                 switch ($approval->action_type) {
                     case 'EDIT_INDIVIDU':
-                        DB::table('jks_salesmans')
-                            ->where('id', $payload['id'])
-                            ->update(array_merge($payload['update'], ['updated_at' => now()]));
-                        break;
                     case 'DELETE_INDIVIDU':
-                        if (($approval->delete_type ?? 'SOFT') === 'HARD') {
-                            DB::table('jks_salesmans')->where('id', $payload['id'])->delete();
-                        } else {
+                        $exists = DB::table('jks_salesmans')->where('id', $payload['id'])->exists();
+                        if (!$exists) {
+                            DB::table('jks_approvals')->where('id', $id)->update([
+                                'status' => 'REJECTED',
+                                'reject_reason' => 'Pengajuan otomatis dibatalkan: Data jadwal fisik sudah tidak ditemukan di sistem.',
+                                'checker_id' => auth()->id(),
+                                'updated_at' => now()
+                            ]);
+                            return 'data_not_found';
+                        }
+                        
+                        if ($approval->action_type === 'EDIT_INDIVIDU') {
                             DB::table('jks_salesmans')
                                 ->where('id', $payload['id'])
                                 ->update(array_merge($payload['update'], ['updated_at' => now()]));
+                        } else {
+                            if (($approval->delete_type ?? 'SOFT') === 'HARD') {
+                                DB::table('jks_salesmans')->where('id', $payload['id'])->delete();
+                            } else {
+                                DB::table('jks_salesmans')
+                                    ->where('id', $payload['id'])
+                                    ->update(array_merge($payload['update'], ['updated_at' => now()]));
+                            }
                         }
                         break;
 
                     case 'DELETE_MASSAL':
+                        $existingIds = DB::table('jks_salesmans')->whereIn('id', $payload['ids'])->pluck('id');
+                        if ($existingIds->isEmpty()) {
+                            DB::table('jks_approvals')->where('id', $id)->update([
+                                'status' => 'REJECTED',
+                                'reject_reason' => 'Pengajuan otomatis dibatalkan: Seluruh data jadwal sudah tidak ditemukan di sistem.',
+                                'checker_id' => auth()->id(),
+                                'updated_at' => now()
+                            ]);
+                            return 'data_not_found';
+                        }
+                        
                         if (($approval->delete_type ?? 'SOFT') === 'HARD') {
                             DB::table('jks_salesmans')
-                                ->whereIn('id', $payload['ids'])
+                                ->whereIn('id', $existingIds)
                                 ->where('distributor_code', $approval->distributor_code)
                                 ->delete();
                         } else {
                             DB::table('jks_salesmans')
-                                ->whereIn('id', $payload['ids'])
+                                ->whereIn('id', $existingIds)
                                 ->where('distributor_code', $approval->distributor_code)
                                 ->update(array_merge($payload['update'], ['updated_at' => now()]));
                         }
@@ -523,6 +547,7 @@ class Index extends Component
             'partial_success' => $this->dispatch('toast', ['type' => 'warning', 'message' => 'Disetujui, namun salah satu salesman tidak memiliki jadwal aktif di bulan ini.']),
             'already_processed' => $this->dispatch('toast', ['type' => 'warning', 'message' => 'Pengajuan sudah diproses pihak lain.']),
             'not_found' => $this->dispatch('toast', ['type' => 'warning', 'message' => 'Pengajuan tidak ditemukan.']),
+            'data_not_found' => $this->dispatch('toast', ['type' => 'warning', 'message' => 'Pengajuan dibatalkan otomatis: Data jadwal fisik sudah tidak ditemukan di sistem.']),
             'duplicate_prc' => $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal: Kode PRC sudah terpakai oleh toko lain di distributor ini.']),
             'error' => $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal mengeksekusi pengajuan! Pastikan data masih valid.']),
         };
@@ -592,6 +617,7 @@ class Index extends Component
             'success' => $this->dispatch('toast', ['type' => 'success', 'message' => 'Kode PRC disimpan & Pengajuan disetujui!']),
             'already_processed' => $this->dispatch('toast', ['type' => 'warning', 'message' => 'Pengajuan sudah diproses pihak lain.']),
             'not_found' => $this->dispatch('toast', ['type' => 'warning', 'message' => 'Pengajuan tidak ditemukan.']),
+            'data_not_found' => $this->dispatch('toast', ['type' => 'warning', 'message' => 'Pengajuan dibatalkan otomatis: Data jadwal fisik sudah tidak ditemukan di sistem.']),
             'duplicate_prc' => $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal: Kode PRC sudah terpakai oleh toko lain di distributor ini.']),
             'error' => $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal mengeksekusi pengajuan!']),
             default => $this->dispatch('toast', ['type' => 'success', 'message' => 'Kode PRC disimpan & Pengajuan disetujui!'])
