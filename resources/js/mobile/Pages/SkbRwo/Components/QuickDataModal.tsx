@@ -151,7 +151,6 @@ export default function QuickDataModal({ data, onClose, showToast, userName }: Q
                     
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    const padding = 15;
                     const textLines = [
                         `TOKO: ${data.customer_name || '-'}`,
                         `ALAMAT: ${addressText}`,
@@ -160,31 +159,52 @@ export default function QuickDataModal({ data, onClose, showToast, userName }: Q
                         `WAKTU: ${new Date().toLocaleString('id-ID')}`
                     ];
                     
-                    ctx.font = 'bold 16px Arial';
+                    const fontSize = Math.max(20, Math.round(width * 0.025));
+                    ctx.font = `bold ${fontSize}px sans-serif`;
+                    ctx.textBaseline = 'top';
+                    const lineHeight = Math.round(fontSize * 1.45);
+                    const padding = Math.max(16, Math.round(width * 0.02));
+                    const maxAllowedTextWidth = width - (padding * 2) - 20;
+
+                    const preparedLines = textLines.map(line => {
+                        let displayLine = line;
+                        if (ctx.measureText(displayLine).width > maxAllowedTextWidth) {
+                            while (displayLine.length > 0 && ctx.measureText(displayLine + '...').width > maxAllowedTextWidth) {
+                                displayLine = displayLine.slice(0, -1);
+                            }
+                            displayLine += '...';
+                        }
+                        return displayLine;
+                    });
+
                     let maxTextWidth = 0;
-                    textLines.forEach(text => {
+                    preparedLines.forEach(text => {
                         const metrics = ctx.measureText(text);
                         if (metrics.width > maxTextWidth) maxTextWidth = metrics.width;
                     });
-                    
-                    const boxWidth = maxTextWidth + (padding * 2);
-                    const boxHeight = (textLines.length * 22) + (padding * 2);
+
+                    const boxWidth = Math.min(width - 20, maxTextWidth + (padding * 2));
+                    const boxHeight = (preparedLines.length * lineHeight) + (padding * 2);
                     const boxX = canvas.width - boxWidth - 10;
                     const boxY = canvas.height - boxHeight - 10;
-                    
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
                     ctx.beginPath();
-                    ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 8);
+                    if (ctx.roundRect) {
+                        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 8);
+                    } else {
+                        ctx.rect(boxX, boxY, boxWidth, boxHeight);
+                    }
                     ctx.fill();
-                    
+
                     ctx.fillStyle = '#ffffff';
                     ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
                     ctx.shadowBlur = 4;
                     ctx.shadowOffsetX = 1;
                     ctx.shadowOffsetY = 1;
-                    
-                    textLines.forEach((text, index) => {
-                        ctx.fillText(text, boxX + padding, boxY + padding + 14 + (index * 22));
+
+                    preparedLines.forEach((text, index) => {
+                        ctx.fillText(text, boxX + padding, boxY + padding + (index * lineHeight));
                     });
                     
                     canvas.toBlob((blob) => {

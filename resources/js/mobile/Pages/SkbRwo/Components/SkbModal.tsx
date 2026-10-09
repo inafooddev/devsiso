@@ -187,7 +187,6 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail, userN
                     
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    const padding = 15;
                     const textLines = [
                         `TOKO: ${data.customer_name || '-'}`,
                         `ALAMAT: ${addressText}`,
@@ -196,22 +195,41 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail, userN
                         `WAKTU: ${new Date().toLocaleString('id-ID')}`
                     ];
                     
-                    ctx.font = 'bold 16px monospace';
-                    let maxTextWidth = 0;
-                    textLines.forEach(line => {
-                        const m = ctx.measureText(line);
-                        if(m.width > maxTextWidth) maxTextWidth = m.width;
+                    const fontSize = Math.max(20, Math.round(width * 0.025));
+                    ctx.font = `bold ${fontSize}px sans-serif`;
+                    ctx.textBaseline = 'top';
+                    const lineHeight = Math.round(fontSize * 1.45);
+                    const padding = Math.max(16, Math.round(width * 0.02));
+                    const maxAllowedTextWidth = width - (padding * 2) - 20;
+
+                    const preparedLines = textLines.map(line => {
+                        let displayLine = line;
+                        if (ctx.measureText(displayLine).width > maxAllowedTextWidth) {
+                            while (displayLine.length > 0 && ctx.measureText(displayLine + '...').width > maxAllowedTextWidth) {
+                                displayLine = displayLine.slice(0, -1);
+                            }
+                            displayLine += '...';
+                        }
+                        return displayLine;
                     });
-                    
-                    const boxWidth = maxTextWidth + (padding * 2);
-                    const boxHeight = (textLines.length * 24) + (padding * 2);
-                    
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-                    ctx.fillRect(10, height - boxHeight - 10, boxWidth, boxHeight);
-                    
+
+                    let maxTextWidth = 0;
+                    preparedLines.forEach(line => {
+                        const m = ctx.measureText(line);
+                        if (m.width > maxTextWidth) maxTextWidth = m.width;
+                    });
+
+                    const boxWidth = Math.min(width - 20, maxTextWidth + (padding * 2));
+                    const boxHeight = (preparedLines.length * lineHeight) + (padding * 2);
+                    const boxX = 10;
+                    const boxY = height - boxHeight - 10;
+
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+                    ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+
                     ctx.fillStyle = '#ffffff';
-                    textLines.forEach((line, i) => {
-                        ctx.fillText(line, 10 + padding, height - boxHeight - 10 + padding + (i * 24) + 16);
+                    preparedLines.forEach((line, i) => {
+                        ctx.fillText(line, boxX + padding, boxY + padding + (i * lineHeight));
                     });
                     
                     canvas.toBlob((blob) => {

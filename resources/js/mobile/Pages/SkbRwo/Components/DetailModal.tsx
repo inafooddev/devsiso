@@ -320,8 +320,8 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast, fo
                             `WAKTU: ${new Date().toLocaleString('id-ID')}`
                         ];
                         
-                        const baseFontSize = Math.max(14, Math.round(width * 0.025));
-                        ctx.font = `${baseFontSize}px Arial`;
+                        const baseFontSize = Math.max(20, Math.round(width * 0.025));
+                        ctx.font = `bold ${baseFontSize}px sans-serif`;
                         ctx.textBaseline = 'top';
                         const lineHeight = Math.round(baseFontSize * 1.5);
                         const bgHeight = (textLines.length * lineHeight) + (padding * 2);
