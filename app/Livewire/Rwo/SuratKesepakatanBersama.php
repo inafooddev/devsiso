@@ -33,7 +33,9 @@ class SuratKesepakatanBersama extends Component
     public $appliedSupervisor = '';
     public $appliedDistributor = '';
 
-    public $statusApproval = ''; // '', 'approve', 'reject', 'pending'
+    public $statusLapangan = '';
+    public $statusManager = '';
+    public $statusHo = '';
 
     public $kuartals = [];
     public $tahuns = [];
@@ -239,7 +241,9 @@ class SuratKesepakatanBersama extends Component
         $this->appliedSupervisor = '';
         $this->appliedDistributor = '';
         
-        $this->statusApproval = '';
+        $this->statusLapangan = '';
+        $this->statusManager = '';
+        $this->statusHo = '';
         $this->search = '';
 
         $this->resetPage();
@@ -250,7 +254,17 @@ class SuratKesepakatanBersama extends Component
         $this->resetPage();
     }
     
-    public function updatedStatusApproval()
+    public function updatedStatusLapangan()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStatusManager()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStatusHo()
     {
         $this->resetPage();
     }
@@ -309,12 +323,28 @@ class SuratKesepakatanBersama extends Component
             });
         }
 
-        if ($this->statusApproval === 'approve') {
+        if ($this->statusLapangan === 'approve') {
             $baseQuery->where('skb.is_approved', true);
-        } elseif ($this->statusApproval === 'reject') {
+        } elseif ($this->statusLapangan === 'reject') {
             $baseQuery->where('skb.is_approved', false);
-        } elseif ($this->statusApproval === 'pending') {
+        } elseif ($this->statusLapangan === 'pending') {
             $baseQuery->whereNull('skb.is_approved');
+        }
+
+        if ($this->statusManager === 'approve') {
+            $baseQuery->where('skb.manager_is_approved', true);
+        } elseif ($this->statusManager === 'reject') {
+            $baseQuery->where('skb.manager_is_approved', false);
+        } elseif ($this->statusManager === 'pending') {
+            $baseQuery->whereNull('skb.manager_is_approved');
+        }
+
+        if ($this->statusHo === 'valid') {
+            $baseQuery->where('skb.ho_is_valid', true);
+        } elseif ($this->statusHo === 'invalid') {
+            $baseQuery->where('skb.ho_is_valid', false);
+        } elseif ($this->statusHo === 'pending') {
+            $baseQuery->whereNull('skb.ho_is_valid');
         }
 
         if (!empty($this->appliedKuartal)) {

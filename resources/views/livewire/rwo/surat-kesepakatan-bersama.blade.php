@@ -104,10 +104,23 @@
                             <option value="{{ $t->year }}">{{ $t->year }}</option>
                         @endforeach
                     </select>
-                    <select wire:model.live="statusApproval" class="select select-sm select-bordered join-item font-semibold focus:outline-none w-auto max-w-[130px] lg:max-w-none text-xs lg:text-sm">
-                        <option value="">Semua Status</option>
+                    <select wire:model.live="statusLapangan" class="select select-sm select-bordered join-item font-semibold focus:outline-none w-auto max-w-[140px] lg:max-w-none text-xs lg:text-sm" title="Status Lapangan">
+                        <option value="">Semua Lapangan</option>
                         <option value="approve">Approved</option>
                         <option value="reject">Rejected</option>
+                        <option value="pending">Pending</option>
+                    </select>
+                    <select wire:model.live="statusManager" class="select select-sm select-bordered join-item font-semibold focus:outline-none w-auto max-w-[140px] lg:max-w-none text-xs lg:text-sm" title="Status Manager">
+                        <option value="">Semua Manager</option>
+                        <option value="approve">Approved</option>
+                        <option value="reject">Rejected</option>
+                        <option value="pending">Blm Cek</option>
+                    </select>
+                    <select wire:model.live="statusHo" class="select select-sm select-bordered join-item font-semibold focus:outline-none w-auto max-w-[140px] lg:max-w-none text-xs lg:text-sm" title="Status HO">
+                        <option value="">Semua HO</option>
+                        <option value="valid">Valid</option>
+                        <option value="invalid">Invalid</option>
+                        <option value="pending">Blm Cek</option>
                     </select>
                 </div>
                 
