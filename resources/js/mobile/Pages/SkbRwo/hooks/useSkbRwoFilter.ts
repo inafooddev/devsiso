@@ -61,6 +61,7 @@ export function useSkbRwoFilter({ listPotensi, listMonitoring, listPlan, activeK
 
     const handleTabSwitch = (tab: TabType) => {
         setActiveTab(tab);
+        setSearch('');
         setDisplayLimit(PAGINATION_LIMIT);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };

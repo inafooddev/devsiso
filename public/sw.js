@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rwo-offline-cache-v2';
+const CACHE_NAME = 'rwo-offline-cache-v3';
 const PRECACHE_ASSETS = [
     '/mobile/rwo',
     'https://cdn.jsdelivr.net/npm/daisyui@4.12.24/dist/full.min.css',
@@ -34,6 +34,11 @@ self.addEventListener('fetch', (event) => {
     }
 
     const url = new URL(event.request.url);
+
+    // Bypass Vite Dev Server and hot module replacement
+    if (url.port === '5173' || url.pathname.includes('/@vite/') || url.pathname.includes('/@fs/')) {
+        return;
+    }
 
     // Network-First strategy for the HTML page `/mobile/rwo`
     if (url.pathname === '/mobile/rwo' || url.pathname === '/mobile/rwo/') {

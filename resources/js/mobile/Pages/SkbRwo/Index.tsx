@@ -246,7 +246,7 @@ export default function Index({
                 <div className="grid grid-cols-1 gap-2.5 px-4">
                     {displayedData.length > 0 ? displayedData.slice(0, displayLimit).map((item) => (
                         <StoreCard
-                            key={item.customer_code}
+                            key={`${activeTab}-${item.customer_code}`}
                             item={item}
                             showProgress={activeTab === 'monitoring' || activeTab === 'plan'}
                             showSkbAction={activeTab !== 'monitoring'}
