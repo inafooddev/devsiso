@@ -58,6 +58,17 @@ class SuratKesepakatanBersama extends Component
     public $hoIsValid = ''; // 'valid', 'invalid', ''
     public $hoNotes = '';
 
+    // Manager Validation fields
+    public $canApproveManager = false;
+    public $managerIsApproved = ''; // 'approve', 'reject', ''
+    public $managerNotes = '';
+
+    // UI Role Visibility
+    public $isRoleAdmin = false;
+    public $isRoleHo = false;
+    public $isRoleManager = false;
+    public $isRoleField = false;
+
     // Master data reference & edit properties
     public $masterData = null;
     public $masterId = null;
@@ -93,8 +104,8 @@ class SuratKesepakatanBersama extends Component
             return;
         }
         
-        // Khusus INATM otomatis bisa Edit dan Export
-        if ($user && $user->hasRole('inatm') && in_array($action, ['can_edit', 'can_export'])) {
+        // Khusus INATM dan Manager otomatis bisa Edit dan Export
+        if ($user && ($user->hasRole('inatm') || $user->hasRole(['rsm', 'asm', 'spm'])) && in_array($action, ['can_edit', 'can_export'])) {
             return;
         }
         
@@ -110,10 +121,17 @@ class SuratKesepakatanBersama extends Component
         if ($user) {
             $isAdmin = $user->hasRole('admin');
             $isInatm = $user->hasRole('inatm');
-            $this->canEdit = $isAdmin || $isInatm || $user->hasMenuAccess($this->menuRoute, 'can_edit');
+            $isManager = $user->hasRole(['rsm', 'asm', 'spm']);
+            $this->canEdit = $isAdmin || $isInatm || $isManager || $user->hasMenuAccess($this->menuRoute, 'can_edit');
             $this->canDelete = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_delete');
             $this->canImport = $isAdmin || $user->hasMenuAccess($this->menuRoute, 'can_import');
-            $this->canExport = $isAdmin || $isInatm || $user->hasMenuAccess($this->menuRoute, 'can_export');
+            $this->canExport = $isAdmin || $isInatm || $isManager || $user->hasMenuAccess($this->menuRoute, 'can_export');
+            $this->canApproveManager = $user->hasRole(['admin', 'rsm', 'asm', 'spm']);
+            
+            $this->isRoleAdmin = $isAdmin;
+            $this->isRoleHo = $isInatm;
+            $this->isRoleManager = $isManager;
+            $this->isRoleField = (!$isAdmin && !$isInatm && !$isManager);
         }
 
         $this->kuartals = DB::table('master_calender')->select('quarter')->whereNotNull('quarter')->distinct()->orderBy('quarter')->get();
@@ -356,6 +374,9 @@ class SuratKesepakatanBersama extends Component
             
             $this->hoIsValid = $skb->ho_is_valid === true ? 'valid' : ($skb->ho_is_valid === false ? 'invalid' : '');
             $this->hoNotes = $skb->ho_notes;
+
+            $this->managerIsApproved = $skb->manager_is_approved === true ? 'approve' : ($skb->manager_is_approved === false ? 'reject' : '');
+            $this->managerNotes = $skb->manager_notes;
             
             // Fetch master data reference
             $rewardOutlet = \App\Models\RewardOutlet::where('customer_code', $skb->customer_code)->first();
@@ -393,7 +414,9 @@ class SuratKesepakatanBersama extends Component
             'masterFotoKtp' => 'nullable|image|max:2048',
             'rejectReason' => 'required_if:approvalStatus,reject|max:500',
             'hoIsValid' => 'nullable|in:valid,invalid',
-            'hoNotes' => 'nullable|string|max:1000'
+            'hoNotes' => 'nullable|string|max:1000',
+            'managerIsApproved' => 'nullable|in:approve,reject',
+            'managerNotes' => 'nullable|string|max:1000'
         ], [
             'approvalStatus.required' => 'Pilih status approval (Approve/Reject).',
             'rejectReason.required_if' => 'Alasan wajib diisi jika status Reject.',
@@ -422,6 +445,23 @@ class SuratKesepakatanBersama extends Component
                 $skb->ho_is_valid = null;
             }
             $skb->ho_notes = $this->hoNotes;
+
+            if ($this->canApproveManager) {
+                if ($this->managerIsApproved === 'approve') {
+                    $skb->manager_is_approved = true;
+                    $skb->manager_approved_by = auth()->user() ? auth()->user()->username : 'System';
+                    $skb->manager_approved_at = now();
+                } elseif ($this->managerIsApproved === 'reject') {
+                    $skb->manager_is_approved = false;
+                    $skb->manager_approved_by = auth()->user() ? auth()->user()->username : 'System';
+                    $skb->manager_approved_at = now();
+                } else {
+                    $skb->manager_is_approved = null;
+                    $skb->manager_approved_by = null;
+                    $skb->manager_approved_at = null;
+                }
+                $skb->manager_notes = $this->managerNotes;
+            }
 
             if ($this->fotoSkb) {
                 $path = $this->fotoSkb->store('skb_photos', 'public');
@@ -487,6 +527,10 @@ class SuratKesepakatanBersama extends Component
                 'l.customer_name',
                 'skb.is_approved',
                 'skb.reason',
+                'skb.manager_is_approved',
+                'skb.manager_notes',
+                'skb.manager_approved_by',
+                'skb.manager_approved_at',
                 'skb.ho_is_valid',
                 'skb.ho_notes',
                 'ro.nama_pemilik_toko',
@@ -577,13 +621,33 @@ class SuratKesepakatanBersama extends Component
         $kpiQuery = clone $baseQuery;
         
         $totalToko = $kpiQuery->count();
-        $totalApprove = (clone $baseQuery)->where('skb.is_approved', true)->count();
-        $totalReject = (clone $baseQuery)->where('skb.is_approved', false)->count();
+        
+        // Lapangan KPIs
+        $lapanganApprove = (clone $baseQuery)->where('skb.is_approved', true)->count();
+        $lapanganReject = (clone $baseQuery)->where('skb.is_approved', false)->count();
+        $lapanganPending = $totalToko - $lapanganApprove - $lapanganReject;
+
+        // Manager KPIs
+        $managerApprove = (clone $baseQuery)->where('skb.manager_is_approved', true)->count();
+        $managerReject = (clone $baseQuery)->where('skb.manager_is_approved', false)->count();
+        $managerPending = $totalToko - $managerApprove - $managerReject;
+
+        // HO KPIs
+        $hoValid = (clone $baseQuery)->where('skb.ho_is_valid', true)->count();
+        $hoInvalid = (clone $baseQuery)->where('skb.ho_is_valid', false)->count();
+        $hoPending = $totalToko - $hoValid - $hoInvalid;
 
         $kpiData = [
             'total_toko' => $totalToko,
-            'total_approve' => $totalApprove,
-            'total_reject' => $totalReject,
+            'lapangan_approve' => $lapanganApprove,
+            'lapangan_reject' => $lapanganReject,
+            'lapangan_pending' => $lapanganPending,
+            'manager_approve' => $managerApprove,
+            'manager_reject' => $managerReject,
+            'manager_pending' => $managerPending,
+            'ho_valid' => $hoValid,
+            'ho_invalid' => $hoInvalid,
+            'ho_pending' => $hoPending,
         ];
 
         $query = $baseQuery->select([
@@ -594,6 +658,8 @@ class SuratKesepakatanBersama extends Component
             'skb.distributor_code',
             'skb.is_approved',
             'skb.reason',
+            'skb.manager_is_approved',
+            'skb.manager_notes',
             'skb.ho_is_valid',
             'skb.ho_notes',
             'skb.foto_skb',

@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     MapPinIcon, ShieldCheckIcon, IdentificationIcon,
-    InformationCircleIcon, ClipboardDocumentCheckIcon, ChartPieIcon,
+    InformationCircleIcon, UserCircleIcon, ClipboardDocumentCheckIcon, ChartPieIcon,
     ArrowTopRightOnSquareIcon
 } from '@heroicons/react/24/outline';
 import { ShieldExclamationIcon } from '@heroicons/react/24/solid';
@@ -39,6 +39,7 @@ export interface StoreCardProps {
     showDirection?: boolean;
     distance?: number | null;
     onOpenDetail?: (item: SkbRwoItem) => void;
+    onOpenFoto?: (item: SkbRwoItem) => void;
     onOpenActual?: (item: SkbRwoItem) => void;
     onOpenSkb?: (item: SkbRwoItem) => void;
 }
@@ -66,7 +67,7 @@ export const getProratedTarget = (totalTarget: number, kuartalStr?: string | nul
     return (totalTarget / 3) * multiplier;
 };
 
-export default function StoreCard({ item, showProgress, showSkbAction = true, showActualAction = false, showDirection = false, distance = null, onOpenDetail, onOpenActual, onOpenSkb }: StoreCardProps) {
+export default function StoreCard({ item, showProgress, showSkbAction = true, showActualAction = false, showDirection = false, distance = null, onOpenDetail, onOpenActual, onOpenSkb, onOpenFoto }: StoreCardProps) {
     const isApproved = item.is_approved === 1 || item.is_approved === true;
     const isRejected = item.is_approved === 0 || item.is_approved === false;
     
@@ -192,6 +193,14 @@ export default function StoreCard({ item, showProgress, showSkbAction = true, sh
                 <button onClick={() => onOpenDetail(item)} className="flex-1 py-2 px-1 flex items-center justify-center gap-1.5 rounded-lg text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-bold text-[10px] sm:text-[11px] uppercase tracking-wider transition-colors border border-indigo-100 whitespace-nowrap min-w-[80px]">
                     <InformationCircleIcon className="w-3.5 h-3.5" /> Detail
                 </button>
+                {onOpenFoto && (() => {
+                    const isDataIncomplete = !item.nama_pemilik_toko || !item.no_hp || !item.foto_toko2 || !item.foto_toko3;
+                    return (
+                        <button onClick={() => onOpenFoto(item)} className={`flex-1 py-2 px-1 flex items-center justify-center gap-1.5 rounded-lg font-bold text-[10px] sm:text-[11px] uppercase tracking-wider transition-colors border whitespace-nowrap min-w-[90px] ${isDataIncomplete ? 'text-rose-600 bg-rose-50 hover:bg-rose-100 border-rose-300' : 'text-slate-500 bg-slate-50 hover:bg-slate-100 border-slate-200 opacity-80'}`}>
+                            <UserCircleIcon className="w-3.5 h-3.5" /> Data Toko
+                        </button>
+                    );
+                })()}
                 {showActualAction && onOpenActual && (
                     <button onClick={() => onOpenActual(item)} className="flex-1 py-2 px-1 flex items-center justify-center gap-1.5 rounded-lg text-emerald-600 bg-emerald-50 hover:bg-emerald-100 font-bold text-[10px] sm:text-[11px] uppercase tracking-wider transition-colors border border-emerald-100 whitespace-nowrap min-w-[80px]">
                         <ChartPieIcon className="w-3.5 h-3.5" /> Actual

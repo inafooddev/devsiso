@@ -15,41 +15,65 @@
     </div>
 
     {{-- KPI Cards Section --}}
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 lg:gap-6 shrink-0">
-        {{-- Total Toko --}}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 shrink-0">
+        {{-- Total SKB --}}
         <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
             <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 transition-transform group-hover:scale-150"></div>
             <div class="flex items-start justify-between relative z-10">
-                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate pr-2 mt-1">Total Toko SKB</h3>
-                <div class="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                    <x-heroicon-s-users class="w-4 h-4" />
+                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider pr-2">Total SKB</h3>
+                <div class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <x-heroicon-s-document-text class="w-4 h-4" />
                 </div>
             </div>
-            <div class="text-lg md:text-xl font-bold leading-none mt-1 md:mt-2 truncate relative z-10 text-primary">{{ number_format($kpi['total_toko'], 0, ',', '.') }}</div>
+            <div class="text-xl md:text-2xl font-bold leading-none mt-2 relative z-10 text-primary">{{ number_format($kpi['total_toko'] ?? 0, 0, ',', '.') }}</div>
         </div>
 
-        {{-- Total Approve --}}
+        {{-- Lapangan --}}
         <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
             <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-success/10 transition-transform group-hover:scale-150"></div>
             <div class="flex items-start justify-between relative z-10">
-                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate pr-2 mt-1">Total Approve</h3>
-                <div class="w-8 h-8 rounded-xl bg-success/10 flex items-center justify-center text-success shrink-0">
+                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider pr-2">Approve Lapangan</h3>
+                <div class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-success/10 flex items-center justify-center text-success shrink-0">
                     <x-heroicon-s-check-circle class="w-4 h-4" />
                 </div>
             </div>
-            <div class="text-lg md:text-xl font-bold leading-none mt-1 md:mt-2 truncate relative z-10 text-success">{{ number_format($kpi['total_approve'], 0, ',', '.') }}</div>
+            <div class="text-xl md:text-2xl font-bold leading-none mt-2 relative z-10 text-success">{{ number_format($kpi['lapangan_approve'] ?? 0, 0, ',', '.') }}</div>
+            <div class="mt-2 pt-2 border-t border-base-200 flex justify-between text-[10px] md:text-xs font-medium relative z-10">
+                <span class="text-error">Reject: {{ number_format($kpi['lapangan_reject'] ?? 0, 0, ',', '.') }}</span>
+                <span class="text-warning">Pending: {{ number_format($kpi['lapangan_pending'] ?? 0, 0, ',', '.') }}</span>
+            </div>
         </div>
 
-        {{-- Total Reject --}}
+        {{-- Manager --}}
         <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
-            <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-error/10 transition-transform group-hover:scale-150"></div>
+            <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-success/10 transition-transform group-hover:scale-150"></div>
             <div class="flex items-start justify-between relative z-10">
-                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider truncate pr-2 mt-1">Total Reject</h3>
-                <div class="w-8 h-8 rounded-xl bg-error/10 flex items-center justify-center text-error shrink-0">
-                    <x-heroicon-s-x-circle class="w-4 h-4" />
+                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider pr-2">Approve Manager</h3>
+                <div class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-success/10 flex items-center justify-center text-success shrink-0">
+                    <x-heroicon-s-check-circle class="w-4 h-4" />
                 </div>
             </div>
-            <div class="text-lg md:text-xl font-bold leading-none mt-1 md:mt-2 truncate relative z-10 text-error">{{ number_format($kpi['total_reject'], 0, ',', '.') }}</div>
+            <div class="text-xl md:text-2xl font-bold leading-none mt-2 relative z-10 text-success">{{ number_format($kpi['manager_approve'] ?? 0, 0, ',', '.') }}</div>
+            <div class="mt-2 pt-2 border-t border-base-200 flex justify-between text-[10px] md:text-xs font-medium relative z-10">
+                <span class="text-error">Reject: {{ number_format($kpi['manager_reject'] ?? 0, 0, ',', '.') }}</span>
+                <span class="text-warning">Blm Cek: {{ number_format($kpi['manager_pending'] ?? 0, 0, ',', '.') }}</span>
+            </div>
+        </div>
+
+        {{-- HO --}}
+        <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-success/10 transition-transform group-hover:scale-150"></div>
+            <div class="flex items-start justify-between relative z-10">
+                <h3 class="text-[10px] md:text-xs font-bold text-base-content/50 uppercase tracking-wider pr-2">Validasi HO</h3>
+                <div class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-success/10 flex items-center justify-center text-success shrink-0">
+                    <x-heroicon-s-check-circle class="w-4 h-4" />
+                </div>
+            </div>
+            <div class="text-xl md:text-2xl font-bold leading-none mt-2 relative z-10 text-success">{{ number_format($kpi['ho_valid'] ?? 0, 0, ',', '.') }}</div>
+            <div class="mt-2 pt-2 border-t border-base-200 flex justify-between text-[10px] md:text-xs font-medium relative z-10">
+                <span class="text-error">Reject: {{ number_format($kpi['ho_invalid'] ?? 0, 0, ',', '.') }}</span>
+                <span class="text-warning">Blm Cek: {{ number_format($kpi['ho_pending'] ?? 0, 0, ',', '.') }}</span>
+            </div>
         </div>
     </div>
 
@@ -120,6 +144,8 @@
                         <th class="text-center">Foto SKB</th>
                         <th class="text-center">Status Lapangan</th>
                         <th>Alasan Penolakan</th>
+                        <th class="text-center">Status Manager</th>
+                        <th>Catatan Manager</th>
                         <th class="text-center">Status HO</th>
                         <th>Catatan HO</th>
                         <th class="text-center bg-base-200 shadow-[inset_1px_0_0_rgba(0,0,0,0.1)]">Aksi</th>
@@ -156,6 +182,16 @@
                             @endif
                         </td>
                         <td class="max-w-[150px] truncate text-xs text-error" title="{{ $item->reason }}">{{ $item->reason ?? '-' }}</td>
+                        <td class="text-center">
+                            @if($item->manager_is_approved === true)
+                                <span class="badge badge-sm badge-outline badge-success">Approved</span>
+                            @elseif($item->manager_is_approved === false)
+                                <span class="badge badge-sm badge-outline badge-error">Rejected</span>
+                            @else
+                                <span class="badge badge-sm badge-outline badge-warning">Pending</span>
+                            @endif
+                        </td>
+                        <td class="max-w-[150px] truncate text-xs" title="{{ $item->manager_notes }}">{{ $item->manager_notes ?? '-' }}</td>
                         <td class="text-center">
                             @if($item->ho_is_valid === true)
                                 <span class="badge badge-sm badge-outline badge-success">Diterima</span>
@@ -214,7 +250,7 @@
     </div>
 
     {{-- Filter Modal --}}
-    <dialog id="filter_modal" class="modal" wire:ignore.self>
+    <dialog id="filter_modal" class="modal z-[9999]" wire:ignore.self>
         <div class="modal-box">
             <h3 class="font-bold text-lg mb-4">Filter Pencarian</h3>
             <div class="grid grid-cols-1 gap-4">
@@ -268,7 +304,7 @@
     </dialog>
 
     {{-- Delete Modal --}}
-    <dialog id="delete_modal" class="modal {{ $isDeleteModalOpen ? 'modal-open' : '' }}">
+    <dialog id="delete_modal" class="modal z-[9999] {{ $isDeleteModalOpen ? 'modal-open' : '' }}">
         <div class="modal-box">
             <h3 class="font-bold text-lg text-error mb-4">Konfirmasi Hapus</h3>
             <p>Apakah Anda yakin ingin menghapus Surat Kesepakatan Bersama untuk toko <strong>{{ $deleteCustomerName }}</strong> ({{ $deleteCustomerCode }})?</p>
@@ -285,7 +321,7 @@
     </dialog>
 
     {{-- Edit / Approval Modal --}}
-    <dialog id="edit_modal" class="modal {{ $isEditModalOpen ? 'modal-open' : '' }}">
+    <dialog id="edit_modal" class="modal z-[9999] {{ $isEditModalOpen ? 'modal-open' : '' }}">
         <div class="modal-box w-11/12 max-w-6xl p-0 overflow-hidden flex flex-col h-[90vh]">
             {{-- Header Modal --}}
             <div class="p-4 border-b border-base-200 flex justify-between items-center bg-base-100 shrink-0">
@@ -316,56 +352,129 @@
             </div>
 
             <div class="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
-                {{-- Kiri: Image Viewer --}}
-                <div class="w-full md:w-1/2 lg:w-7/12 bg-base-200 border-r border-base-300 relative flex flex-col"
-                     x-data="{ scale: 1, rotation: 0, isDragging: false, startX: 0, startY: 0, x: 0, y: 0 }">
+                {{-- Kiri: Image Viewer (Stacked) --}}
+                <div class="w-full md:w-1/2 lg:w-7/12 bg-base-200 border-r border-base-300 overflow-y-auto p-4 flex flex-col gap-6">
                     
-                    {{-- Toolbar Image --}}
-                    <div class="absolute top-2 left-2 right-2 z-10 flex justify-between items-center gap-2 bg-base-100/90 backdrop-blur rounded-lg shadow-sm p-1">
-                        <div class="flex items-center">
-                            <button type="button" class="btn btn-sm btn-ghost btn-square" @click="scale = Math.max(0.2, scale - 0.2)" title="Zoom Out">
-                                <x-heroicon-s-minus class="w-4 h-4" />
-                            </button>
-                            <span class="text-xs font-mono w-12 text-center" x-text="Math.round(scale * 100) + '%'"></span>
-                            <button type="button" class="btn btn-sm btn-ghost btn-square" @click="scale = Math.min(5, scale + 0.2)" title="Zoom In">
-                                <x-heroicon-s-plus class="w-4 h-4" />
-                            </button>
+                    {{-- Dokumen SKB --}}
+                    <div class="bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden flex flex-col"
+                         x-data="{ scale: 1, rotation: 0, isDragging: false, startX: 0, startY: 0, x: 0, y: 0 }">
+                        <div class="bg-base-200/60 p-2.5 border-b border-base-200 text-sm font-bold flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <x-heroicon-s-document-text class="w-4 h-4 text-primary" /> Dokumen SKB
+                            </div>
+                            @if($existingFotoSkb || $fotoSkb)
+                            <div class="flex items-center gap-1">
+                                <button type="button" class="btn btn-xs btn-ghost btn-square" @click="scale = Math.max(0.2, scale - 0.2)" title="Zoom Out"><x-heroicon-s-minus class="w-3 h-3" /></button>
+                                <span class="text-[10px] font-mono w-8 text-center" x-text="Math.round(scale * 100) + '%'"></span>
+                                <button type="button" class="btn btn-xs btn-ghost btn-square" @click="scale = Math.min(5, scale + 0.2)" title="Zoom In"><x-heroicon-s-plus class="w-3 h-3" /></button>
+                                <div class="w-px h-3 bg-base-300 mx-1"></div>
+                                <button type="button" class="btn btn-xs btn-ghost btn-square" @click="rotation -= 90" title="Putar Kiri"><x-heroicon-s-arrow-uturn-left class="w-3 h-3" /></button>
+                                <button type="button" class="btn btn-xs btn-ghost btn-square" @click="rotation += 90" title="Putar Kanan"><x-heroicon-s-arrow-uturn-right class="w-3 h-3" /></button>
+                                <button type="button" class="btn btn-xs btn-ghost text-error ml-1" @click="scale = 1; rotation = 0; x = 0; y = 0" title="Reset">Reset</button>
+                            </div>
+                            @endif
                         </div>
-                        <div class="flex items-center gap-1">
-                            <button type="button" class="btn btn-sm btn-ghost btn-square" @click="rotation -= 90" title="Putar Kiri">
-                                <x-heroicon-s-arrow-uturn-left class="w-4 h-4" />
-                            </button>
-                            <button type="button" class="btn btn-sm btn-ghost btn-square" @click="rotation += 90" title="Putar Kanan">
-                                <x-heroicon-s-arrow-uturn-right class="w-4 h-4" />
-                            </button>
-                            <div class="w-px h-4 bg-base-300 mx-1"></div>
-                            <button type="button" class="btn btn-sm btn-ghost btn-square text-error" @click="scale = 1; rotation = 0; x = 0; y = 0" title="Reset">
-                                <x-heroicon-s-arrow-path class="w-4 h-4" />
-                            </button>
+                        <div class="p-3 flex justify-center items-center bg-base-200/30 overflow-hidden relative" style="height: 450px;"
+                             @mousedown="isDragging = true; startX = $event.clientX - x; startY = $event.clientY - y"
+                             @mousemove="if(isDragging) { x = $event.clientX - startX; y = $event.clientY - startY }"
+                             @mouseup="isDragging = false"
+                             @mouseleave="isDragging = false"
+                             @wheel.prevent="scale = Math.min(Math.max(0.2, scale + $event.deltaY * -0.002), 5)">
+                            @if($existingFotoSkb || $fotoSkb)
+                                <img src="{{ $fotoSkb ? $fotoSkb->temporaryUrl() : Storage::url($existingFotoSkb) }}" 
+                                     class="max-w-full max-h-full object-contain rounded select-none cursor-move transition-transform duration-75" 
+                                     draggable="false"
+                                     :style="`transform: translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg);`"
+                                     alt="Foto SKB" />
+                            @else
+                                <div class="py-12 text-center text-base-content/40 flex flex-col items-center justify-center w-full h-full">
+                                    <x-heroicon-o-document class="w-12 h-12 mb-2 opacity-50" />
+                                    <p class="text-sm">Foto SKB belum diunggah</p>
+                                </div>
+                            @endif
                         </div>
                     </div>
 
-                    {{-- Image Area --}}
-                    <div class="flex-1 overflow-hidden flex items-center justify-center cursor-move"
-                         @mousedown="isDragging = true; startX = $event.clientX - x; startY = $event.clientY - y"
-                         @mousemove="if(isDragging) { x = $event.clientX - startX; y = $event.clientY - startY }"
-                         @mouseup="isDragging = false"
-                         @mouseleave="isDragging = false"
-                         @wheel.prevent="scale = Math.min(Math.max(0.2, scale + $event.deltaY * -0.002), 5)">
-                        
-                        @if($existingFotoSkb || $fotoSkb)
-                            <img src="{{ $fotoSkb ? $fotoSkb->temporaryUrl() : Storage::url($existingFotoSkb) }}" 
-                                 class="max-w-full max-h-full object-contain transition-transform duration-75 select-none"
-                                 :style="`transform: translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg);`"
-                                 draggable="false"
-                                 alt="Foto SKB" />
-                        @else
-                            <div class="text-center text-base-content/40 flex flex-col items-center">
-                                <x-heroicon-o-photo class="w-16 h-16 mb-2 opacity-50" />
-                                <p>Foto SKB belum diunggah</p>
+                    {{-- Foto Depan Toko --}}
+                    <div class="bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden flex flex-col"
+                         x-data="{ scale: 1, rotation: 0, isDragging: false, startX: 0, startY: 0, x: 0, y: 0 }">
+                        <div class="bg-base-200/60 p-2.5 border-b border-base-200 text-sm font-bold flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <x-heroicon-s-building-storefront class="w-4 h-4 text-info" /> Foto Tampak Depan
                             </div>
-                        @endif
+                            @if(!empty($masterData['foto_toko2']))
+                            <div class="flex items-center gap-1">
+                                <button type="button" class="btn btn-xs btn-ghost btn-square" @click="scale = Math.max(0.2, scale - 0.2)" title="Zoom Out"><x-heroicon-s-minus class="w-3 h-3" /></button>
+                                <span class="text-[10px] font-mono w-8 text-center" x-text="Math.round(scale * 100) + '%'"></span>
+                                <button type="button" class="btn btn-xs btn-ghost btn-square" @click="scale = Math.min(5, scale + 0.2)" title="Zoom In"><x-heroicon-s-plus class="w-3 h-3" /></button>
+                                <div class="w-px h-3 bg-base-300 mx-1"></div>
+                                <button type="button" class="btn btn-xs btn-ghost btn-square" @click="rotation -= 90" title="Putar Kiri"><x-heroicon-s-arrow-uturn-left class="w-3 h-3" /></button>
+                                <button type="button" class="btn btn-xs btn-ghost btn-square" @click="rotation += 90" title="Putar Kanan"><x-heroicon-s-arrow-uturn-right class="w-3 h-3" /></button>
+                                <button type="button" class="btn btn-xs btn-ghost text-error ml-1" @click="scale = 1; rotation = 0; x = 0; y = 0" title="Reset">Reset</button>
+                            </div>
+                            @endif
+                        </div>
+                        <div class="p-3 flex justify-center items-center bg-base-200/30 overflow-hidden relative" style="height: 450px;"
+                             @mousedown="isDragging = true; startX = $event.clientX - x; startY = $event.clientY - y"
+                             @mousemove="if(isDragging) { x = $event.clientX - startX; y = $event.clientY - startY }"
+                             @mouseup="isDragging = false"
+                             @mouseleave="isDragging = false"
+                             @wheel.prevent="scale = Math.min(Math.max(0.2, scale + $event.deltaY * -0.002), 5)">
+                            @if(!empty($masterData['foto_toko2']))
+                                <img src="{{ Storage::url($masterData['foto_toko2']) }}" 
+                                     class="max-w-full max-h-full object-contain rounded select-none cursor-move transition-transform duration-75" 
+                                     draggable="false"
+                                     :style="`transform: translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg);`"
+                                     alt="Foto Depan" />
+                            @else
+                                <div class="py-12 text-center text-base-content/40 flex flex-col items-center justify-center w-full h-full">
+                                    <x-heroicon-o-building-storefront class="w-12 h-12 mb-2 opacity-50" />
+                                    <p class="text-sm">Belum Ada Foto Depan</p>
+                                </div>
+                            @endif
+                        </div>
                     </div>
+
+                    {{-- Foto Dalam Toko --}}
+                    <div class="bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden flex flex-col"
+                         x-data="{ scale: 1, rotation: 0, isDragging: false, startX: 0, startY: 0, x: 0, y: 0 }">
+                        <div class="bg-base-200/60 p-2.5 border-b border-base-200 text-sm font-bold flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <x-heroicon-s-home class="w-4 h-4 text-secondary" /> Foto Tampak Dalam
+                            </div>
+                            @if(!empty($masterData['foto_toko3']))
+                            <div class="flex items-center gap-1">
+                                <button type="button" class="btn btn-xs btn-ghost btn-square" @click="scale = Math.max(0.2, scale - 0.2)" title="Zoom Out"><x-heroicon-s-minus class="w-3 h-3" /></button>
+                                <span class="text-[10px] font-mono w-8 text-center" x-text="Math.round(scale * 100) + '%'"></span>
+                                <button type="button" class="btn btn-xs btn-ghost btn-square" @click="scale = Math.min(5, scale + 0.2)" title="Zoom In"><x-heroicon-s-plus class="w-3 h-3" /></button>
+                                <div class="w-px h-3 bg-base-300 mx-1"></div>
+                                <button type="button" class="btn btn-xs btn-ghost btn-square" @click="rotation -= 90" title="Putar Kiri"><x-heroicon-s-arrow-uturn-left class="w-3 h-3" /></button>
+                                <button type="button" class="btn btn-xs btn-ghost btn-square" @click="rotation += 90" title="Putar Kanan"><x-heroicon-s-arrow-uturn-right class="w-3 h-3" /></button>
+                                <button type="button" class="btn btn-xs btn-ghost text-error ml-1" @click="scale = 1; rotation = 0; x = 0; y = 0" title="Reset">Reset</button>
+                            </div>
+                            @endif
+                        </div>
+                        <div class="p-3 flex justify-center items-center bg-base-200/30 overflow-hidden relative" style="height: 450px;"
+                             @mousedown="isDragging = true; startX = $event.clientX - x; startY = $event.clientY - y"
+                             @mousemove="if(isDragging) { x = $event.clientX - startX; y = $event.clientY - startY }"
+                             @mouseup="isDragging = false"
+                             @mouseleave="isDragging = false"
+                             @wheel.prevent="scale = Math.min(Math.max(0.2, scale + $event.deltaY * -0.002), 5)">
+                            @if(!empty($masterData['foto_toko3']))
+                                <img src="{{ Storage::url($masterData['foto_toko3']) }}" 
+                                     class="max-w-full max-h-full object-contain rounded select-none cursor-move transition-transform duration-75" 
+                                     draggable="false"
+                                     :style="`transform: translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg);`"
+                                     alt="Foto Dalam" />
+                            @else
+                                <div class="py-12 text-center text-base-content/40 flex flex-col items-center justify-center w-full h-full">
+                                    <x-heroicon-o-home class="w-12 h-12 mb-2 opacity-50" />
+                                    <p class="text-sm">Belum Ada Foto Dalam</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
                 </div>
 
                 {{-- Kanan: Form --}}
@@ -552,6 +661,114 @@
                                 @endif
                             </div>
 
+                            <div class="divider text-xs text-base-content/40 my-0">Data dari Lapangan</div>
+
+                            {{-- Section: Data Lapangan (Locked by default) --}}
+                            <div class="relative rounded-xl border transition-all duration-300" x-data="{ unlockShopApproval: false }" :class="unlockShopApproval ? 'border-base-300 p-4 bg-base-100' : 'border-dashed border-base-300 p-4 bg-base-200/50 opacity-80 grayscale-[20%]'">
+                                
+                                {{-- Lock Overlay / Toggle --}}
+                                <div class="absolute -top-3.5 right-4 z-10">
+                                    <label class="swap swap-rotate btn btn-xs btn-outline bg-base-100 shadow-sm transition-colors duration-300" :class="unlockShopApproval ? 'btn-error' : 'btn-ghost'">
+                                        <input type="checkbox" x-model="unlockShopApproval" />
+                                        <div class="swap-on flex items-center gap-1"><x-heroicon-s-lock-open class="w-3 h-3" /> Kunci</div>
+                                        <div class="swap-off flex items-center gap-1"><x-heroicon-s-lock-closed class="w-3 h-3" /> Edit Lapangan</div>
+                                    </label>
+                                </div>
+
+                                <fieldset :disabled="!unlockShopApproval">
+                                    <div class="form-control w-full mb-3">
+                                        <label class="label"><span class="label-text font-semibold">Status Persetujuan Toko</span></label>
+                                        <div class="flex gap-4 items-center">
+                                            <label class="cursor-pointer label justify-start gap-2">
+                                                <input type="radio" wire:model.live="approvalStatus" value="approve" class="radio radio-sm radio-success" />
+                                                <span class="label-text">Approve</span>
+                                            </label>
+                                            <label class="cursor-pointer label justify-start gap-2">
+                                                <input type="radio" wire:model.live="approvalStatus" value="reject" class="radio radio-sm radio-error" />
+                                                <span class="label-text">Reject</span>
+                                            </label>
+                                        </div>
+                                        @error('approvalStatus') <span class="text-error text-sm mt-1">{{ $message }}</span> @enderror
+                                    </div>
+                                    
+                                    @if($approvalStatus === 'reject')
+                                    <div class="form-control w-full mb-3">
+                                        <label class="label"><span class="label-text">Alasan Penolakan Toko</span></label>
+                                        <textarea class="textarea textarea-bordered textarea-sm w-full h-16" wire:model="rejectReason" placeholder="Alasan ditolak..."></textarea>
+                                        @error('rejectReason') <span class="text-error text-sm mt-1">{{ $message }}</span> @enderror
+                                    </div>
+                                    @endif
+
+                                    <div class="form-control w-full">
+                                        <label class="label"><span class="label-text">Ganti Foto SKB</span></label>
+                                        <input type="file" class="file-input file-input-bordered file-input-sm w-full" wire:model="fotoSkb" accept="image/*" />
+                                        @error('fotoSkb') <span class="text-error text-sm mt-1">{{ $message }}</span> @enderror
+                                        <div wire:loading wire:target="fotoSkb" class="text-sm text-info mt-1">Mengunggah foto...</div>
+                                    </div>
+                                </fieldset>
+                            </div>
+
+                            @if($isRoleAdmin || $isRoleManager)
+                            <div class="divider text-xs text-base-content/30 my-0"></div>
+
+                            {{-- Section: Validasi Manager (RSM/ASM/SPM) --}}
+                            <div class="bg-secondary/5 border border-secondary/20 rounded-xl p-4">
+                                <h4 class="font-bold text-secondary flex items-center gap-2 mb-4 border-b border-secondary/10 pb-2">
+                                    <x-heroicon-s-user-group class="w-5 h-5" />
+                                    Validasi Manager (RSM/ASM/SPM)
+                                </h4>
+
+                                <div class="form-control w-full mb-4">
+                                    <label class="label pt-0"><span class="label-text font-semibold">Status Validasi</span></label>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        {{-- Approve --}}
+                                        <label class="relative cursor-pointer transition-all duration-200" 
+                                               :class="$wire.managerIsApproved === 'approve' ? 'scale-[1.02]' : 'hover:scale-[1.01] opacity-70 hover:opacity-100'"
+                                               x-data>
+                                            <input type="radio" wire:model.live="managerIsApproved" value="approve" class="peer sr-only" />
+                                            <div class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 transition-all duration-200"
+                                                 :class="$wire.managerIsApproved === 'approve' ? 'bg-success/10 border-success text-success shadow-sm shadow-success/20' : 'bg-base-100 border-base-200 text-base-content/70'">
+                                                <x-heroicon-s-check-circle class="w-5 h-5 shrink-0 transition-transform duration-200" x-bind:class="$wire.managerIsApproved === 'approve' ? 'scale-110' : ''" />
+                                                <span class="text-sm font-bold">Disetujui</span>
+                                            </div>
+                                        </label>
+
+                                        {{-- Reject --}}
+                                        <label class="relative cursor-pointer transition-all duration-200" 
+                                               :class="$wire.managerIsApproved === 'reject' ? 'scale-[1.02]' : 'hover:scale-[1.01] opacity-70 hover:opacity-100'"
+                                               x-data>
+                                            <input type="radio" wire:model.live="managerIsApproved" value="reject" class="peer sr-only" />
+                                            <div class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 transition-all duration-200"
+                                                 :class="$wire.managerIsApproved === 'reject' ? 'bg-error/10 border-error text-error shadow-sm shadow-error/20' : 'bg-base-100 border-base-200 text-base-content/70'">
+                                                <x-heroicon-s-x-circle class="w-5 h-5 shrink-0 transition-transform duration-200" x-bind:class="$wire.managerIsApproved === 'reject' ? 'scale-110' : ''" />
+                                                <span class="text-sm font-bold">Ditolak</span>
+                                            </div>
+                                        </label>
+
+                                        {{-- Pending / Belum Dicek --}}
+                                        <label class="relative cursor-pointer transition-all duration-200" 
+                                               :class="$wire.managerIsApproved === '' ? 'scale-[1.02]' : 'hover:scale-[1.01] opacity-70 hover:opacity-100'"
+                                               x-data>
+                                            <input type="radio" wire:model.live="managerIsApproved" value="" class="peer sr-only" />
+                                            <div class="flex items-center gap-2 px-3 py-3 rounded-xl border-2 transition-all duration-200"
+                                                 :class="$wire.managerIsApproved === '' ? 'bg-warning/10 border-warning text-warning-content shadow-sm shadow-warning/20' : 'bg-base-100 border-base-200 text-base-content/70'">
+                                                <x-heroicon-s-clock class="w-5 h-5 shrink-0 transition-transform duration-200" x-bind:class="$wire.managerIsApproved === '' ? 'scale-110' : ''" />
+                                                <span class="text-sm font-bold">Belum Dicek</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    @error('managerIsApproved') <span class="text-error text-sm mt-1">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-semibold">Catatan Manager</span></label>
+                                    <textarea class="textarea textarea-bordered w-full h-20 focus:textarea-secondary" wire:model="managerNotes" placeholder="Tuliskan alasan atau catatan manajerial..."></textarea>
+                                    @error('managerNotes') <span class="text-error text-sm mt-1">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                            @endif
+
+                            @if($isRoleAdmin || $isRoleHo)
                             <div class="divider text-xs text-base-content/30 my-0"></div>
 
                             {{-- Section: Validasi HO (Primary) --}}
@@ -609,53 +826,7 @@
                                     @error('hoNotes') <span class="text-error text-sm mt-1">{{ $message }}</span> @enderror
                                 </div>
                             </div>
-
-                            <div class="divider text-xs text-base-content/40">Data dari Lapangan</div>
-
-                            {{-- Section: Data Lapangan (Locked by default) --}}
-                            <div class="relative rounded-xl border transition-all duration-300" :class="unlockShopApproval ? 'border-base-300 p-4 bg-base-100' : 'border-dashed border-base-300 p-4 bg-base-200/50 opacity-80 grayscale-[20%]'">
-                                
-                                {{-- Lock Overlay / Toggle --}}
-                                <div class="absolute -top-3.5 right-4 z-10">
-                                    <label class="swap swap-rotate btn btn-xs btn-outline bg-base-100 shadow-sm transition-colors duration-300" :class="unlockShopApproval ? 'btn-error' : 'btn-ghost'">
-                                        <input type="checkbox" x-model="unlockShopApproval" />
-                                        <div class="swap-on flex items-center gap-1"><x-heroicon-s-lock-open class="w-3 h-3" /> Kunci</div>
-                                        <div class="swap-off flex items-center gap-1"><x-heroicon-s-lock-closed class="w-3 h-3" /> Edit Lapangan</div>
-                                    </label>
-                                </div>
-
-                                <fieldset :disabled="!unlockShopApproval">
-                                    <div class="form-control w-full mb-3">
-                                        <label class="label"><span class="label-text font-semibold">Status Persetujuan Toko</span></label>
-                                        <div class="flex gap-4 items-center">
-                                            <label class="cursor-pointer label justify-start gap-2">
-                                                <input type="radio" wire:model.live="approvalStatus" value="approve" class="radio radio-sm radio-success" />
-                                                <span class="label-text">Approve</span>
-                                            </label>
-                                            <label class="cursor-pointer label justify-start gap-2">
-                                                <input type="radio" wire:model.live="approvalStatus" value="reject" class="radio radio-sm radio-error" />
-                                                <span class="label-text">Reject</span>
-                                            </label>
-                                        </div>
-                                        @error('approvalStatus') <span class="text-error text-sm mt-1">{{ $message }}</span> @enderror
-                                    </div>
-                                    
-                                    @if($approvalStatus === 'reject')
-                                    <div class="form-control w-full mb-3">
-                                        <label class="label"><span class="label-text">Alasan Penolakan Toko</span></label>
-                                        <textarea class="textarea textarea-bordered textarea-sm w-full h-16" wire:model="rejectReason" placeholder="Alasan ditolak..."></textarea>
-                                        @error('rejectReason') <span class="text-error text-sm mt-1">{{ $message }}</span> @enderror
-                                    </div>
-                                    @endif
-
-                                    <div class="form-control w-full">
-                                        <label class="label"><span class="label-text">Ganti Foto SKB</span></label>
-                                        <input type="file" class="file-input file-input-bordered file-input-sm w-full" wire:model="fotoSkb" accept="image/*" />
-                                        @error('fotoSkb') <span class="text-error text-sm mt-1">{{ $message }}</span> @enderror
-                                        <div wire:loading wire:target="fotoSkb" class="text-sm text-info mt-1">Mengunggah foto...</div>
-                                    </div>
-                                </fieldset>
-                            </div>
+                            @endif
 
                         </div>
                         
@@ -674,7 +845,7 @@
     </dialog>
 
     {{-- Preview Photo Modal --}}
-    <dialog id="preview_modal" class="modal {{ $isPreviewModalOpen ? 'modal-open' : '' }}">
+    <dialog id="preview_modal" class="modal z-[99999] {{ $isPreviewModalOpen ? 'modal-open' : '' }}">
         <div class="modal-box max-w-4xl p-0 overflow-hidden bg-base-100 rounded-xl relative" 
              x-data="{ scale: 1, isDragging: false, startX: 0, startY: 0, x: 0, y: 0 }">
             <div class="p-3 border-b border-base-200 flex justify-between items-center bg-base-100/90 backdrop-blur sticky top-0 z-50">
@@ -724,7 +895,7 @@
     </dialog>
 
     {{-- Import Modal --}}
-    <dialog id="import_modal" class="modal {{ $isImportModalOpen ? 'modal-open' : '' }}" wire:ignore.self>
+    <dialog id="import_modal" class="modal z-[9999] {{ $isImportModalOpen ? 'modal-open' : '' }}" wire:ignore.self>
         <div class="modal-box max-w-2xl">
             <h3 class="font-bold text-lg mb-4">Import Data SKB</h3>
             

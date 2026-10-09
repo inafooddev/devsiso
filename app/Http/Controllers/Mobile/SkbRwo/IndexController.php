@@ -389,21 +389,21 @@ class IndexController extends Controller
 
         $manager = new ImageManager(new Driver());
 
-        if (empty($outlet->foto_ktp) && $request->hasFile('foto_ktp')) {
+        if ($request->hasFile('foto_ktp')) {
             $image = $manager->read($request->file('foto_ktp')->getRealPath());
             $image->scaleDown(width: 1024);
             $path = 'outlet_photos/' . uniqid() . '.jpg';
             Storage::disk('public')->put($path, (string) $image->toJpeg(75));
             $outlet->foto_ktp = $path;
         }
-        if (empty($outlet->foto_toko2) && $request->hasFile('foto_toko2')) {
+        if ($request->hasFile('foto_toko2')) {
             $image = $manager->read($request->file('foto_toko2')->getRealPath());
             $image->scaleDown(width: 1024);
             $path = 'outlet_photos/' . uniqid() . '.jpg';
             Storage::disk('public')->put($path, (string) $image->toJpeg(75));
             $outlet->foto_toko2 = $path;
         }
-        if (empty($outlet->foto_toko3) && $request->hasFile('foto_toko3')) {
+        if ($request->hasFile('foto_toko3')) {
             $image = $manager->read($request->file('foto_toko3')->getRealPath());
             $image->scaleDown(width: 1024);
             $path = 'outlet_photos/' . uniqid() . '.jpg';

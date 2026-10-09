@@ -18,6 +18,7 @@ import StoreCard, { SkbRwoItem, getProratedTarget } from './Components/StoreCard
 import SkbModal from './Components/SkbModal';
 import SummaryDashboard from './Components/SummaryDashboard';
 import DetailModal from './Components/DetailModal';
+import QuickDataModal from './Components/QuickDataModal';
 import KuartalFilterSheet from './Components/KuartalFilterSheet';
 import SkbBottomNav from './Components/SkbBottomNav';
 import RadarMap from './Components/RadarMap';
@@ -91,6 +92,7 @@ export default function Index({
     const [isDetailModalActual, setIsDetailModalActual] = useState(false);
     const [isDetailForceEdit, setIsDetailForceEdit] = useState(false);
     const [skbModalData, setSkbModalData] = useState<SkbRwoItem | null>(null);
+    const [quickDataModalData, setQuickDataModalData] = useState<SkbRwoItem | null>(null);
 
     const openDetailModal = (item: SkbRwoItem, forceEdit: boolean = false) => {
         setDetailModalData(item);
@@ -105,6 +107,8 @@ export default function Index({
 
     const openSkbModal = (item: SkbRwoItem) => setSkbModalData(item);
     const closeSkbModal = () => setSkbModalData(null);
+    const openQuickDataModal = (item: SkbRwoItem) => setQuickDataModalData(item);
+    const closeQuickDataModal = () => setQuickDataModalData(null);
 
     // Summary calculations
     const totalToko = listPotensi.length;
@@ -251,6 +255,7 @@ export default function Index({
                             onOpenDetail={openDetailModal}
                             onOpenActual={openActualModal}
                             onOpenSkb={openSkbModal}
+                            onOpenFoto={openQuickDataModal}
                             distance={getDistance(item)}
                         />
                     )) : (
@@ -301,6 +306,7 @@ export default function Index({
             </main>
 
             {/* Detail Modal */}
+            <QuickDataModal data={quickDataModalData} onClose={closeQuickDataModal} showToast={showToast} />
             <DetailModal data={detailModalData} isMonitoring={isDetailModalActual} onClose={closeDetailModal} showToast={showToast} forceEditMode={isDetailForceEdit} />
 
             {/* Aksi SKB Modal */}

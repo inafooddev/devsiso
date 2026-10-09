@@ -191,6 +191,7 @@ export default function SkbModal({ data, onClose, showToast, onOpenDetail }: Skb
                         `TOKO: ${data.customer_name || '-'}`,
                         `ALAMAT: ${addressText}`,
                         `GPS: ${currentLat}, ${currentLng}`,
+                        `PENGINPUT: ${data.supervisor_name || 'User'}`,
                         `WAKTU: ${new Date().toLocaleString('id-ID')}`
                     ];
                     
