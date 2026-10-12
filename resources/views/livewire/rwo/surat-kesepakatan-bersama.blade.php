@@ -555,6 +555,8 @@
                                             </div>
                                         </div>
 
+                                        {{-- 
+                                        DATA SENSITIF (KTP & REKENING) DINONAKTIFKAN SEMENTARA
                                         <!-- Identitas (KTP) -->
                                         <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 p-3 rounded-lg border shadow-sm transition-all" :class="editMaster ? 'border-primary/30 bg-primary/5' : 'bg-base-100/50 border-base-200/60'">
                                             <div>
@@ -590,7 +592,7 @@
                                                 <div x-show="!editMaster" x-transition.opacity.duration.300ms class="font-medium text-base-content">
                                                     @if($existingMasterFotoKtp)
                                                         <div class="cursor-pointer border border-base-300 rounded-lg p-1 inline-block hover:border-primary hover:shadow-md transition-all mt-1" @click="if(typeof $dispatch !== 'undefined') $dispatch('open-preview', '{{ Storage::url($existingMasterFotoKtp) }}')">
-                                                            <img src="{{ Storage::url($existingMasterFotoKtp) }}" class="h-16 w-24 object-cover rounded" alt="Foto KTP" />
+                                                             <img src="{{ Storage::url($existingMasterFotoKtp) }}" class="h-16 w-24 object-cover rounded" alt="Foto KTP" />
                                                         </div>
                                                     @else
                                                         <span class="text-base-content/30 italic font-normal">Belum ada foto</span>
@@ -660,6 +662,7 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        --}}
                                         
                                         <div class="md:col-span-2 mt-0 text-right" x-show="editMaster" x-cloak x-transition.opacity.duration.300ms>
                                             <span class="text-[10px] text-primary italic font-medium flex items-center justify-end gap-1"><x-heroicon-m-check-circle class="w-3 h-3"/> Perubahan akan disimpan saat menekan "Simpan Validasi"</span>

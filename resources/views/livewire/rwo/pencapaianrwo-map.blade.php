@@ -50,6 +50,13 @@
                             </span>
                             <span class="text-xs font-semibold text-base-content/80 group-hover:text-base-content transition-colors">Reward 1.5%</span>
                         </div>
+                        <div class="w-px h-4 bg-base-300"></div>
+                        <div class="flex items-center gap-2 group cursor-pointer transition-all duration-200 legend-item" data-color="#10b981">
+                            <span class="relative flex h-3.5 w-3.5">
+                                <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-[#10b981] border-2 border-white shadow-sm"></span>
+                            </span>
+                            <span class="text-xs font-semibold text-base-content/80 group-hover:text-base-content transition-colors">Reward 1KTN</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -125,7 +132,7 @@
             function updateLegendFilter() {
                 if (!map || !map.getLayer('stores-layer')) return;
                 
-                const allColors = ['#eab308', '#3b82f6', '#64748b'];
+                const allColors = ['#eab308', '#3b82f6', '#64748b', '#10b981'];
                 const activeColors = allColors.filter(c => !hiddenColors.has(c));
                 
                 if (activeColors.length === 0) {
@@ -155,6 +162,7 @@
                 if (currentFilters.appliedStatusData) urlParams.set('statusData', currentFilters.appliedStatusData);
                 if (currentFilters.appliedStatusReward) urlParams.set('statusReward', currentFilters.appliedStatusReward);
                 if (currentFilters.appliedStatusProgress) urlParams.set('statusProgress', currentFilters.appliedStatusProgress);
+                if (currentFilters.appliedStatusTransaksi) urlParams.set('statusTransaksi', currentFilters.appliedStatusTransaksi);
 
                 const sourceUrl = '/api/rwo/map-geojson?' + urlParams.toString();
                 
@@ -246,6 +254,7 @@
                             
                             if (data) {
                                 const gapColor = data.is_gap_negative ? 'text-error' : 'text-success';
+                                const skbBadgeHtml = data.status_skb ? `<span class="badge ${data.badge_class} badge-sm font-semibold border-0 shadow-sm text-[10px]">${data.status_skb}</span>` : '';
                                 
                                 const html = `
                                     <div class="w-72 bg-base-100 flex flex-col">
@@ -253,7 +262,7 @@
                                             <h4 class="font-bold text-base leading-tight">${data.name}</h4>
                                             <div class="flex items-center gap-2 mt-1.5">
                                                 <span class="text-xs opacity-90 font-mono">${code}</span>
-                                                <span class="badge ${data.badge_class} badge-sm font-semibold border-0 shadow-sm text-[10px]">${data.status_skb}</span>
+                                                ${skbBadgeHtml}
                                             </div>
                                         </div>
                                         <div class="p-4 flex flex-col gap-3">

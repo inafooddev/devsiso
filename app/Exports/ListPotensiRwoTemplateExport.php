@@ -16,6 +16,7 @@ class ListPotensiRwoTemplateExport implements WithHeadings, ShouldAutoSize
             'customer_name',
             'alamat',
             'total_target',
+            'jenis_reward',
         ];
     }
 }

@@ -14,125 +14,23 @@ class RwoMapController extends Controller
     public function geojson(Request $request)
     {
         $appliedKuartal = $request->input('kuartal', '');
-        $appliedRegion = $request->input('region', '');
-        $appliedArea = $request->input('area', '');
-        $appliedSupervisor = $request->input('supervisor', '');
-        $appliedDistributor = $request->input('distributor', '');
-        $search = $request->input('search', '');
-        
-        $appliedStatusSkb = $request->input('statusSkb', 'Semua');
-        $appliedStatusData = $request->input('statusData', 'Semua');
-        $appliedStatusReward = $request->input('statusReward', 'Semua');
-        $appliedStatusProgress = $request->input('statusProgress', 'Semua');
+        $filters = [
+            'kuartal' => $appliedKuartal,
+            'region' => $request->input('region', ''),
+            'area' => $request->input('area', ''),
+            'supervisor' => $request->input('supervisor', ''),
+            'distributor' => $request->input('distributor', ''),
+            'search' => $request->input('search', ''),
+            'statusSkb' => $request->input('statusSkb', 'Semua'),
+            'statusData' => $request->input('statusData', 'Semua'),
+            'statusReward' => $request->input('statusReward', 'Semua'),
+            'statusProgress' => $request->input('statusProgress', 'Semua'),
+            'statusTransaksi' => $request->input('statusTransaksi', 'Semua'),
+        ];
 
-        $query = $this->getStoreQuery();
+        $query = $this->getStoreQuery((string)$appliedKuartal, false);
         $this->applyAccessScope($query);
-
-        if ($appliedKuartal) {
-            $query->where('l.kuartal', $appliedKuartal);
-        }
-        if ($appliedRegion) {
-            $query->where('md.region_code', $appliedRegion);
-        }
-        if ($appliedArea) {
-            $query->where('md.area_code', $appliedArea);
-        }
-        if ($appliedSupervisor) {
-            $query->where('md.supervisor_code', $appliedSupervisor);
-        }
-        if ($appliedDistributor) {
-            $query->where('l.distributor_code', $appliedDistributor);
-        }
-
-        if ($search) {
-            $q = '%' . strtolower($search) . '%';
-            $query->where(function($sub) use ($q) {
-                $sub->whereRaw('LOWER(l.customer_name) LIKE ?', [$q])
-                    ->orWhereRaw('LOWER(l.customer_code) LIKE ?', [$q]);
-            });
-        }
-
-        if ($appliedStatusSkb !== 'Semua') {
-            if ($appliedStatusSkb === 'Sudah') {
-                $query->whereNotNull('skb.customer_code');
-            } elseif ($appliedStatusSkb === 'Belum') {
-                $query->whereNull('skb.customer_code');
-            } elseif ($appliedStatusSkb === 'Approve') {
-                $query->whereNotNull('skb.customer_code')->where('skb.is_approved', true);
-            } elseif ($appliedStatusSkb === 'Reject') {
-                $query->whereNotNull('skb.customer_code')->where(function($q) {
-                    $q->where('skb.is_approved', false)->orWhereNull('skb.is_approved');
-                });
-            }
-        }
-
-        if ($appliedStatusData !== 'Semua') {
-            $fieldsCheck = [
-                'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
-                'r.nama_bank', 'r.no_rekening', 'r.nama_pemilik_norek', 'r.latitude', 'r.longitude',
-                'r.foto_toko2', 'r.foto_toko3'
-            ];
-            if ($appliedStatusData === 'Lengkap') {
-                foreach ($fieldsCheck as $f) {
-                    $query->whereNotNull($f)->where(DB::raw("TRIM($f)"), '!=', '');
-                }
-            } else {
-                $query->where(function($sub) use ($fieldsCheck) {
-                    foreach ($fieldsCheck as $f) {
-                        $sub->orWhereNull($f)->orWhere(DB::raw("TRIM($f)"), '=', '');
-                    }
-                });
-            }
-        }
-
-        if ($appliedStatusReward !== 'Semua') {
-            if ($appliedStatusReward === '2.5%') {
-                $query->where('l.total_target', '>=', 90000000);
-            } elseif ($appliedStatusReward === '2%') {
-                $query->where('l.total_target', '>=', 30000000)->where('l.total_target', '<', 90000000);
-            } elseif ($appliedStatusReward === '1.5%') {
-                $query->where(function($q) {
-                    $q->whereNull('l.total_target')->orWhere('l.total_target', '<', 30000000);
-                });
-            }
-        }
-
-        $currentMonth = (int)date('n');
-        $currentQuarter = (int)ceil($currentMonth / 3);
-        $kuartal = (int)($appliedKuartal ?: $currentQuarter);
-        
-        $multiplier = 3;
-        if ($kuartal === $currentQuarter) {
-            $firstMonthOfQ = ($kuartal - 1) * 3 + 1;
-            $multiplier = $currentMonth - $firstMonthOfQ + 1;
-            if ($multiplier < 1) $multiplier = 1;
-            if ($multiplier > 3) $multiplier = 3;
-        } elseif ($kuartal > $currentQuarter) {
-            $multiplier = 1;
-        } else {
-            $multiplier = 3;
-        }
-
-        if ($multiplier === 1) {
-            $achievementSql = "COALESCE(zv.month_1_value, 0)";
-        } elseif ($multiplier === 2) {
-            $achievementSql = "(COALESCE(zv.month_1_value, 0) + COALESCE(zv.month_2_value, 0))";
-        } else {
-            $achievementSql = "COALESCE(zv.total_achievement, 0)";
-        }
-        
-        $proratedTargetSql = "((l.total_target / 3.0) * $multiplier)";
-        $progressExpr = "($achievementSql / NULLIF($proratedTargetSql, 0)) * 100";
-
-        if ($appliedStatusProgress !== 'Semua') {
-            if ($appliedStatusProgress === '1. HIJAU') {
-                $query->whereRaw("COALESCE($progressExpr, 0) >= 100");
-            } elseif ($appliedStatusProgress === '2. KUNING') {
-                $query->whereRaw("COALESCE($progressExpr, 0) >= 80 AND COALESCE($progressExpr, 0) < 100");
-            } elseif ($appliedStatusProgress === '3. MERAH') {
-                $query->whereRaw("COALESCE($progressExpr, 0) < 80");
-            }
-        }
+        $this->applyRwoFilters($query, $filters);
 
         // Add filter to only get valid coordinates
         $query->whereNotNull('r.latitude')
@@ -145,7 +43,8 @@ class RwoMapController extends Controller
             'l.customer_code',
             'r.latitude',
             'r.longitude',
-            'l.total_target'
+            'l.total_target',
+            'l.jenis_reward'
         ]);
 
         $stores = $query->get();
@@ -161,9 +60,12 @@ class RwoMapController extends Controller
             }
             
             $target = $row->total_target ?? 0;
+            $jenisReward = $row->jenis_reward ?? '';
             
             $color = '#64748b'; // default slate (for 1.5% or null)
-            if ($target >= 90000000) {
+            if ($jenisReward === 'BB') {
+                $color = '#10b981'; // emerald green for 1KTN
+            } elseif ($target >= 90000000) {
                 $color = '#eab308'; // yellow / gold
             } elseif ($target >= 30000000) {
                 $color = '#3b82f6'; // blue

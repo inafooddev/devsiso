@@ -38,9 +38,11 @@ class ListPotensiRwoExport implements FromCollection, WithHeadings, WithMapping,
             'Customer Name',
             'Alamat',
             'Total Target',
-            'Reward Percent',
+            'Jenis Reward',
+            'Reward',
             'PIC',
             'Status SKB',
+            'Status Data',
         ];
     }
 
@@ -61,9 +63,11 @@ class ListPotensiRwoExport implements FromCollection, WithHeadings, WithMapping,
             $row->customer_name,
             $row->alamat,
             $row->total_target,
-            ($row->reward_percent * 100) . '%',
+            ($row->jenis_reward ?? '') === 'BB' ? 'Bonus Barang (BB)' : (($row->jenis_reward ?? '') === 'CB' ? 'CashBack (CB)' : ($row->jenis_reward ?? '-')),
+            ($row->jenis_reward ?? '') === 'BB' ? '1 KTN' : (($row->jenis_reward ?? '') === 'CB' ? (($row->reward_percent * 100) . '%') : '-'),
             $row->pic,
             $row->status_skb,
+            $row->status_data_lengkap ?? '',
         ];
     }
 }

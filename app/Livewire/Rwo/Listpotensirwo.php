@@ -31,14 +31,18 @@ class Listpotensirwo extends Component
     public $area = '';
     public $supervisor = '';
     public $distributor = '';
+    public $pic = '';
 
     public $appliedKuartal = '';
     public $appliedRegion = '';
     public $appliedArea = '';
     public $appliedSupervisor = '';
     public $appliedDistributor = '';
+    public $appliedPic = '';
 
     public $statusSkb = '';
+    public $jenisReward = '';
+    public $statusData = '';
 
     public $kuartals = [];
     public $regions = [];
@@ -60,6 +64,7 @@ class Listpotensirwo extends Component
     public $editCustomerName = '';
     public $editAlamat = '';
     public $editTotalTarget = 0;
+    public $editJenisReward = 'CB';
     public $editDistributorName = '';
 
     public $isApprovalModalOpen = false;
@@ -175,6 +180,7 @@ class Listpotensirwo extends Component
         $this->appliedArea = $this->area;
         $this->appliedSupervisor = $this->supervisor;
         $this->appliedDistributor = $this->distributor;
+        $this->appliedPic = $this->pic;
         $this->resetPage();
     }
 
@@ -185,6 +191,7 @@ class Listpotensirwo extends Component
         $this->area = '';
         $this->supervisor = '';
         $this->distributor = '';
+        $this->pic = '';
         
         $this->areas = [];
         $this->supervisors = [];
@@ -195,7 +202,28 @@ class Listpotensirwo extends Component
         $this->appliedArea = '';
         $this->appliedSupervisor = '';
         $this->appliedDistributor = '';
+        $this->appliedPic = '';
         
+        $this->resetPage();
+    }
+
+    public function filterByCard($type)
+    {
+        if ($type === 'all') {
+            $this->statusSkb = '';
+            $this->jenisReward = '';
+            $this->statusData = '';
+        } elseif ($type === 'sudah_skb') {
+            $this->statusSkb = ($this->statusSkb === 'Sudah') ? '' : 'Sudah';
+        } elseif ($type === 'belum_skb') {
+            if ($this->statusSkb === 'Belum' && $this->jenisReward === 'CB') {
+                $this->statusSkb = '';
+                $this->jenisReward = '';
+            } else {
+                $this->statusSkb = 'Belum';
+                $this->jenisReward = 'CB';
+            }
+        }
         $this->resetPage();
     }
 
@@ -205,6 +233,16 @@ class Listpotensirwo extends Component
     }
 
     public function updatedStatusSkb()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedJenisReward()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStatusData()
     {
         $this->resetPage();
     }
@@ -298,7 +336,49 @@ class Listpotensirwo extends Component
         if ($this->statusSkb === 'Sudah') {
             $baseQuery->whereNotNull('skb.customer_code');
         } elseif ($this->statusSkb === 'Belum') {
-            $baseQuery->whereNull('skb.customer_code');
+            $baseQuery->whereNull('skb.customer_code')->where('l.jenis_reward', 'CB');
+        }
+
+        if (!empty($this->jenisReward)) {
+            $baseQuery->where('l.jenis_reward', $this->jenisReward);
+        }
+
+        if ($this->statusData === 'Lengkap') {
+            $baseQuery->where('l.jenis_reward', 'CB')
+                ->whereRaw("
+                    NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.nama_pemilik_toko), '') IS NOT NULL AND
+                    /*
+                    NULLIF(TRIM(r.nik_ktp), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.nama_ktp), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.foto_ktp), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.nama_bank), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.no_rekening), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.nama_pemilik_norek), '') IS NOT NULL AND
+                    */
+                    NULLIF(TRIM(r.latitude), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.longitude), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.foto_toko3), '') IS NOT NULL
+                ");
+        } elseif ($this->statusData === 'Belum') {
+            $baseQuery->where('l.jenis_reward', 'CB')
+                ->whereRaw("NOT (
+                    NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.nama_pemilik_toko), '') IS NOT NULL AND
+                    /*
+                    NULLIF(TRIM(r.nik_ktp), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.nama_ktp), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.foto_ktp), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.nama_bank), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.no_rekening), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.nama_pemilik_norek), '') IS NOT NULL AND
+                    */
+                    NULLIF(TRIM(r.latitude), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.longitude), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND
+                    NULLIF(TRIM(r.foto_toko3), '') IS NOT NULL
+                )");
         }
 
         if (!empty($this->appliedKuartal)) {
@@ -316,6 +396,15 @@ class Listpotensirwo extends Component
         }
         if (!empty($this->appliedDistributor)) {
             $baseQuery->where('md.distributor_code', $this->appliedDistributor);
+        }
+        if (!empty($this->appliedPic)) {
+            if ($this->appliedPic === 'RSM') {
+                $baseQuery->where('l.total_target', '>=', 90000000);
+            } elseif ($this->appliedPic === 'ASM') {
+                $baseQuery->where('l.total_target', '>=', 30000000)->where('l.total_target', '<', 90000000);
+            } elseif ($this->appliedPic === 'SPV') {
+                $baseQuery->where('l.total_target', '<', 30000000);
+            }
         }
 
         return $baseQuery;
@@ -364,10 +453,12 @@ class Listpotensirwo extends Component
             'l.customer_name',
             'l.alamat',
             'l.total_target',
+            'l.jenis_reward',
             DB::raw("CASE
-                WHEN l.total_target >= 90000000 THEN 0.025
-                WHEN l.total_target >= 30000000 THEN 0.020
-                ELSE 0.015
+                WHEN l.jenis_reward = 'CB' AND l.total_target >= 90000000 THEN 0.025
+                WHEN l.jenis_reward = 'CB' AND l.total_target >= 30000000 THEN 0.020
+                WHEN l.jenis_reward = 'CB' THEN 0.015
+                ELSE 0
             END AS reward_percent"),
             DB::raw("CASE
                 WHEN l.total_target >= 90000000 THEN 'RSM'
@@ -375,10 +466,28 @@ class Listpotensirwo extends Component
                 ELSE 'SPV'
             END AS pic"),
             DB::raw("CASE
+                WHEN l.jenis_reward = 'BB' THEN ''
                 WHEN skb.customer_code IS NOT NULL THEN 'Sudah'
                 ELSE 'Belum'
             END AS status_skb"),
-            'skb.is_approved'
+            'skb.is_approved',
+            DB::raw("CASE WHEN l.jenis_reward = 'BB' THEN ''
+                WHEN 
+                NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_pemilik_toko), '') IS NOT NULL AND
+                /*
+                NULLIF(TRIM(r.nik_ktp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_ktp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.foto_ktp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_bank), '') IS NOT NULL AND
+                NULLIF(TRIM(r.no_rekening), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_pemilik_norek), '') IS NOT NULL AND
+                */
+                NULLIF(TRIM(r.latitude), '') IS NOT NULL AND
+                NULLIF(TRIM(r.longitude), '') IS NOT NULL AND
+                NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND
+                NULLIF(TRIM(r.foto_toko3), '') IS NOT NULL
+                THEN 'Lengkap' ELSE 'Belum' END AS status_data_lengkap")
         ])
         ->orderBy('md.region_name', 'asc')
         ->orderBy('md.area_name', 'asc')
@@ -407,11 +516,19 @@ class Listpotensirwo extends Component
                 'md.distributor_name', 'md.region_name', 'md.area_name',
                 'f.SLSNAME as supervisor_name',
                 'r.eskalink_code as customer_prc',
-                'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
-                'r.nama_bank', 'r.no_rekening', 'r.nama_pemilik_norek', 'r.latitude', 'r.longitude',
+                'r.no_hp', 'r.nama_pemilik_toko',
+                // 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
+                // 'r.nama_bank', 'r.no_rekening', 'r.nama_pemilik_norek',
+                'r.latitude', 'r.longitude',
                 'r.foto_toko2', 'r.foto_toko3',
-                DB::raw("CASE WHEN skb.customer_code IS NOT NULL THEN 'Sudah' ELSE 'Belum' END AS status_skb"),
+                DB::raw("CASE
+                    WHEN l.total_target >= 90000000 THEN 'RSM'
+                    WHEN l.total_target >= 30000000 THEN 'ASM'
+                    ELSE 'SPV'
+                END AS pic"),
+                DB::raw("CASE WHEN l.jenis_reward = 'BB' THEN '' WHEN skb.customer_code IS NOT NULL THEN 'Sudah' ELSE 'Belum' END AS status_skb"),
                 'skb.is_approved',
+                'skb.reason as skb_reason',
                 'skb.foto_skb'
             )
             ->first();
@@ -454,6 +571,7 @@ class Listpotensirwo extends Component
             $this->editCustomerName = $item->customer_name;
             $this->editAlamat = $item->alamat;
             $this->editTotalTarget = $item->total_target;
+            $this->editJenisReward = $item->jenis_reward ?: 'CB';
             $this->editDistributorName = $item->distributor_name;
             
             $this->isEditModalOpen = true;
@@ -468,6 +586,7 @@ class Listpotensirwo extends Component
             'editCustomerName' => 'required|string|max:255',
             'editAlamat' => 'nullable|string',
             'editTotalTarget' => 'required|numeric|min:0',
+            'editJenisReward' => 'required|in:CB,BB',
         ]);
 
         DB::table('list_potensi_rwo')
@@ -477,6 +596,7 @@ class Listpotensirwo extends Component
                 'customer_name' => $this->editCustomerName,
                 'alamat' => $this->editAlamat,
                 'total_target' => $this->editTotalTarget,
+                'jenis_reward' => $this->editJenisReward,
                 'updated_at' => now(),
             ]);
 
@@ -612,14 +732,15 @@ class Listpotensirwo extends Component
         $kpi = $kpiQuery->select(
             DB::raw('COUNT(*) as total_toko'),
             DB::raw('SUM(l.total_target) as total_target'),
-            DB::raw('COUNT(skb.customer_code) as sudah_skb')
+            DB::raw('COUNT(skb.customer_code) as sudah_skb'),
+            DB::raw("COUNT(CASE WHEN skb.customer_code IS NULL AND l.jenis_reward = 'CB' THEN 1 END) as belum_skb")
         )->first();
 
         $kpiData = [
             'total_toko' => $kpi->total_toko ?? 0,
             'total_target' => $kpi->total_target ?? 0,
             'sudah_skb' => $kpi->sudah_skb ?? 0,
-            'belum_skb' => ($kpi->total_toko ?? 0) - ($kpi->sudah_skb ?? 0),
+            'belum_skb' => $kpi->belum_skb ?? 0,
         ];
 
         $query = $baseQuery->select([
@@ -637,10 +758,12 @@ class Listpotensirwo extends Component
             'l.customer_name',
             'l.alamat',
             'l.total_target',
+            'l.jenis_reward',
             DB::raw("CASE
-                WHEN l.total_target >= 90000000 THEN 0.025
-                WHEN l.total_target >= 30000000 THEN 0.020
-                ELSE 0.015
+                WHEN l.jenis_reward = 'CB' AND l.total_target >= 90000000 THEN 0.025
+                WHEN l.jenis_reward = 'CB' AND l.total_target >= 30000000 THEN 0.020
+                WHEN l.jenis_reward = 'CB' THEN 0.015
+                ELSE 0
             END AS reward_percent"),
             DB::raw("CASE
                 WHEN l.total_target >= 90000000 THEN 'RSM'
@@ -648,31 +771,35 @@ class Listpotensirwo extends Component
                 ELSE 'SPV'
             END AS pic"),
             DB::raw("CASE
+                WHEN l.jenis_reward = 'BB' THEN ''
                 WHEN skb.customer_code IS NOT NULL THEN 'Sudah'
                 ELSE 'Belum'
             END AS status_skb"),
             'skb.is_approved',
             'r.no_hp',
             'r.nama_pemilik_toko',
-            'r.nik_ktp',
-            'r.nama_ktp',
-            'r.foto_ktp',
-            'r.nama_bank',
-            'r.no_rekening',
-            'r.nama_pemilik_norek',
+            // 'r.nik_ktp',
+            // 'r.nama_ktp',
+            // 'r.foto_ktp',
+            // 'r.nama_bank',
+            // 'r.no_rekening',
+            // 'r.nama_pemilik_norek',
             'r.latitude',
             'r.longitude',
             'r.foto_toko2',
             'r.foto_toko3',
-            DB::raw("CASE WHEN 
+            DB::raw("CASE WHEN l.jenis_reward = 'BB' THEN ''
+                WHEN 
                 NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
                 NULLIF(TRIM(r.nama_pemilik_toko), '') IS NOT NULL AND
+                /*
                 NULLIF(TRIM(r.nik_ktp), '') IS NOT NULL AND
                 NULLIF(TRIM(r.nama_ktp), '') IS NOT NULL AND
                 NULLIF(TRIM(r.foto_ktp), '') IS NOT NULL AND
                 NULLIF(TRIM(r.nama_bank), '') IS NOT NULL AND
                 NULLIF(TRIM(r.no_rekening), '') IS NOT NULL AND
                 NULLIF(TRIM(r.nama_pemilik_norek), '') IS NOT NULL AND
+                */
                 NULLIF(TRIM(r.latitude), '') IS NOT NULL AND
                 NULLIF(TRIM(r.longitude), '') IS NOT NULL AND
                 NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND

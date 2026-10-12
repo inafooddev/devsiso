@@ -26,7 +26,7 @@ class ListPotensiRwoImport implements ToCollection, WithHeadingRow
 
         foreach ($rows as $row) {
             // Mapping from Excel Header. Expected headers:
-            // kuartal, distributor_code, customer_code, customer_name, alamat, total_target
+            // kuartal, distributor_code, customer_code, customer_name, alamat, total_target, jenis_reward
             
             $kuartal = $row['kuartal'] ?? null;
             $distributorCode = $row['distributor_code'] ?? null;
@@ -34,12 +34,19 @@ class ListPotensiRwoImport implements ToCollection, WithHeadingRow
             $customerName = $row['customer_name'] ?? null;
             $alamat = $row['alamat'] ?? null;
             $totalTarget = $row['total_target'] ?? 0;
+            $jenisReward = isset($row['jenis_reward']) && trim((string) $row['jenis_reward']) !== ''
+                ? strtoupper(trim((string) $row['jenis_reward']))
+                : 'CB';
 
             if (!$kuartal || !$customerCode || !$distributorCode) {
                 continue; // Skip invalid rows
             }
 
             $rowErrors = [];
+
+            if (!in_array($jenisReward, ['CB', 'BB'], true)) {
+                $rowErrors[] = "jenis_reward [{$jenisReward}] tidak valid (gunakan CB atau BB)";
+            }
 
             // Validasi: Cek apakah distributor_code ada di master_distributors
             if (!isset($validDistributorsDict[$distributorCode])) {
@@ -71,6 +78,7 @@ class ListPotensiRwoImport implements ToCollection, WithHeadingRow
                         'customer_name' => $customerName,
                         'alamat' => $alamat,
                         'total_target' => $totalTarget,
+                        'jenis_reward' => $jenisReward,
                         'updated_at' => now(),
                     ]);
                 
@@ -84,6 +92,7 @@ class ListPotensiRwoImport implements ToCollection, WithHeadingRow
                     'customer_name' => $customerName,
                     'alamat' => $alamat,
                     'total_target' => $totalTarget,
+                    'jenis_reward' => $jenisReward,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

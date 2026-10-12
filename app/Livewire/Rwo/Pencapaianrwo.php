@@ -48,6 +48,7 @@ class Pencapaianrwo extends Component
     public $selectedDistributorCode = null;
     public $isDetailModalOpen = false;
     public $remarkKhusus = '';
+    protected $cachedSelectedStore = null;
     
     // Bubble chat properties
     public $newChatMessage = '';
@@ -63,11 +64,20 @@ class Pencapaianrwo extends Component
             return null;
         }
 
-        return $this->getStoreQuery()
-            ->where('l.customer_code', $this->selectedCustomerCode)
-            ->where('l.distributor_code', $this->selectedDistributorCode)
-            ->where('l.kuartal', $this->appliedKuartal)
-            ->first();
+        if ($this->cachedSelectedStore === null) {
+            $this->cachedSelectedStore = $this->getStoreQuery(
+                (string)$this->appliedKuartal,
+                true,
+                $this->selectedCustomerCode,
+                $this->selectedDistributorCode
+            )
+                ->where('l.customer_code', $this->selectedCustomerCode)
+                ->where('l.distributor_code', $this->selectedDistributorCode)
+                ->where('l.kuartal', $this->appliedKuartal)
+                ->first();
+        }
+
+        return $this->cachedSelectedStore;
     }
 
     public function mount()
@@ -129,6 +139,50 @@ class Pencapaianrwo extends Component
         $this->resetPage();
     }
 
+    public function filterByKpiCard($type)
+    {
+        if ($type === 'transaksi') {
+            $nextVal = $this->appliedStatusTransaksi === 'Sudah' ? 'Semua' : 'Sudah';
+            $this->statusTransaksi = $nextVal;
+            $this->appliedStatusTransaksi = $nextVal;
+        } elseif ($type === 'hijau') {
+            $nextVal = $this->appliedStatusProgress === '1. HIJAU' ? 'Semua' : '1. HIJAU';
+            $this->statusProgress = $nextVal;
+            $this->appliedStatusProgress = $nextVal;
+        } elseif ($type === 'kuning') {
+            $nextVal = $this->appliedStatusProgress === '2. KUNING' ? 'Semua' : '2. KUNING';
+            $this->statusProgress = $nextVal;
+            $this->appliedStatusProgress = $nextVal;
+        } elseif ($type === 'merah') {
+            $nextVal = $this->appliedStatusProgress === '3. MERAH' ? 'Semua' : '3. MERAH';
+            $this->statusProgress = $nextVal;
+            $this->appliedStatusProgress = $nextVal;
+        }
+
+        $this->resetPage();
+    }
+
+    public function clearWilayahFilter($level)
+    {
+        if ($level === 'region') {
+            $this->appliedRegion = '';
+            $this->appliedArea = '';
+            $this->appliedSupervisor = '';
+            $this->appliedDistributor = '';
+        } elseif ($level === 'area') {
+            $this->appliedArea = '';
+            $this->appliedSupervisor = '';
+            $this->appliedDistributor = '';
+        } elseif ($level === 'supervisor') {
+            $this->appliedSupervisor = '';
+            $this->appliedDistributor = '';
+        } elseif ($level === 'distributor') {
+            $this->appliedDistributor = '';
+        }
+
+        $this->resetPage();
+    }
+
     public function resetFilter()
     {
         $this->search = '';
@@ -173,16 +227,12 @@ class Pencapaianrwo extends Component
     {
         $this->selectedCustomerCode = $customerCode;
         $this->selectedDistributorCode = $distributorCode;
+        $this->cachedSelectedStore = null;
 
-        if ($this->selectedStore) {
+        $store = $this->selectedStore;
+        if ($store) {
             $this->isDetailModalOpen = true;
-
-            $remarkData = RemarkListPotensiRwo::where('kuartal', (string)$this->appliedKuartal)
-                ->where('distributor_code', $distributorCode)
-                ->where('customer_code', $customerCode)
-                ->first();
-            
-            $this->remarkKhusus = $remarkData ? $remarkData->remark : '';
+            $this->remarkKhusus = $store->remark_khusus ?? '';
             
             $this->loadChats();
             $this->loadYearlyHistory($customerCode, $distributorCode);
@@ -194,6 +244,7 @@ class Pencapaianrwo extends Component
         $this->isDetailModalOpen = false;
         $this->selectedCustomerCode = null;
         $this->selectedDistributorCode = null;
+        $this->cachedSelectedStore = null;
         $this->remarkKhusus = '';
         $this->newChatMessage = '';
         $this->chatHistories = [];
@@ -214,6 +265,7 @@ class Pencapaianrwo extends Component
                     'remark' => $this->remarkKhusus
                 ]
             );
+            $this->cachedSelectedStore = null;
             
             session()->flash('success', 'Remark khusus berhasil disimpan!');
         }
@@ -370,126 +422,36 @@ class Pencapaianrwo extends Component
         ];
     }
 
+    protected function getCurrentFiltersArray(): array
+    {
+        return [
+            'kuartal' => $this->appliedKuartal,
+            'region' => $this->appliedRegion,
+            'area' => $this->appliedArea,
+            'supervisor' => $this->appliedSupervisor,
+            'distributor' => $this->appliedDistributor,
+            'search' => $this->search,
+            'statusSkb' => $this->appliedStatusSkb,
+            'statusData' => $this->appliedStatusData,
+            'statusReward' => $this->appliedStatusReward,
+            'statusProgress' => $this->appliedStatusProgress,
+            'statusTransaksi' => $this->appliedStatusTransaksi,
+        ];
+    }
+
     public function render()
     {
-        $query = $this->getStoreQuery();
+        $query = $this->getStoreQuery((string)$this->appliedKuartal, false);
         $this->applyAccessScope($query);
 
-        // Apply dynamic filters
-        if ($this->appliedKuartal) {
-            $query->where('l.kuartal', $this->appliedKuartal);
-        }
-        if ($this->appliedRegion) {
-            $query->where('md.region_code', $this->appliedRegion);
-        }
-        if ($this->appliedArea) {
-            $query->where('md.area_code', $this->appliedArea);
-        }
-        if ($this->appliedSupervisor) {
-            $query->where('md.supervisor_code', $this->appliedSupervisor);
-        }
-        if ($this->appliedDistributor) {
-            $query->where('l.distributor_code', $this->appliedDistributor);
-        }
-
-        if ($this->search) {
-            $q = '%' . strtolower($this->search) . '%';
-            $query->where(function($sub) use ($q) {
-                $sub->whereRaw('LOWER(l.customer_name) LIKE ?', [$q])
-                    ->orWhereRaw('LOWER(l.customer_code) LIKE ?', [$q]);
-            });
-        }
-
-        if ($this->appliedStatusSkb !== 'Semua') {
-            if ($this->appliedStatusSkb === 'Sudah') {
-                $query->whereNotNull('skb.customer_code');
-            } elseif ($this->appliedStatusSkb === 'Belum') {
-                $query->whereNull('skb.customer_code');
-            } elseif ($this->appliedStatusSkb === 'Approve') {
-                $query->whereNotNull('skb.customer_code')->where('skb.is_approved', true);
-            } elseif ($this->appliedStatusSkb === 'Reject') {
-                $query->whereNotNull('skb.customer_code')->where(function($q) {
-                    $q->where('skb.is_approved', false)->orWhereNull('skb.is_approved');
-                });
-            }
-        }
-
-        if ($this->appliedStatusData !== 'Semua') {
-            $fieldsCheck = [
-                'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
-                'r.nama_bank', 'r.no_rekening', 'r.nama_pemilik_norek', 'r.latitude', 'r.longitude',
-                'r.foto_toko2', 'r.foto_toko3'
-            ];
-            if ($this->appliedStatusData === 'Lengkap') {
-                foreach ($fieldsCheck as $f) {
-                    $query->whereNotNull($f)->where(DB::raw("TRIM($f)"), '!=', '');
-                }
-            } else {
-                $query->where(function($sub) use ($fieldsCheck) {
-                    foreach ($fieldsCheck as $f) {
-                        $sub->orWhereNull($f)->orWhere(DB::raw("TRIM($f)"), '=', '');
-                    }
-                });
-            }
-        }
-
-        if ($this->appliedStatusReward !== 'Semua') {
-            if ($this->appliedStatusReward === '2.5%') {
-                $query->where('l.total_target', '>=', 90000000);
-            } elseif ($this->appliedStatusReward === '2%') {
-                $query->where('l.total_target', '>=', 30000000)->where('l.total_target', '<', 90000000);
-            } elseif ($this->appliedStatusReward === '1.5%') {
-                $query->where(function($q) {
-                    $q->whereNull('l.total_target')->orWhere('l.total_target', '<', 30000000);
-                });
-            }
-        }
-
-        // Prorated parameters
-        $currentMonth = (int)date('n');
-        $currentQuarter = (int)ceil($currentMonth / 3);
-        $kuartal = (int)$this->appliedKuartal;
-        
-        $multiplier = 3;
-        if ($kuartal === $currentQuarter) {
-            $firstMonthOfQ = ($kuartal - 1) * 3 + 1;
-            $multiplier = $currentMonth - $firstMonthOfQ + 1;
-            if ($multiplier < 1) $multiplier = 1;
-            if ($multiplier > 3) $multiplier = 3;
-        } elseif ($kuartal > $currentQuarter) {
-            $multiplier = 1;
-        } else {
-            $multiplier = 3;
-        }
-
-        if ($multiplier === 1) {
-            $achievementSql = "COALESCE(zv.month_1_value, 0)";
-        } elseif ($multiplier === 2) {
-            $achievementSql = "(COALESCE(zv.month_1_value, 0) + COALESCE(zv.month_2_value, 0))";
-        } else {
-            $achievementSql = "COALESCE(zv.total_achievement, 0)";
-        }
-        
-        $proratedTargetSql = "((l.total_target / 3.0) * $multiplier)";
-        $progressExpr = "($achievementSql / NULLIF($proratedTargetSql, 0)) * 100";
-
-        if ($this->appliedStatusProgress !== 'Semua') {
-            if ($this->appliedStatusProgress === '1. HIJAU') {
-                $query->whereRaw("COALESCE($progressExpr, 0) >= 100");
-            } elseif ($this->appliedStatusProgress === '2. KUNING') {
-                $query->whereRaw("COALESCE($progressExpr, 0) >= 80 AND COALESCE($progressExpr, 0) < 100");
-            } elseif ($this->appliedStatusProgress === '3. MERAH') {
-                $query->whereRaw("COALESCE($progressExpr, 0) < 80");
-            }
-        }
-
-        if ($this->appliedStatusTransaksi !== 'Semua') {
-            if ($this->appliedStatusTransaksi === 'Sudah') {
-                $query->whereRaw("COALESCE($achievementSql, 0) > 0");
-            } elseif ($this->appliedStatusTransaksi === 'Belum') {
-                $query->whereRaw("COALESCE($achievementSql, 0) <= 0");
-            }
-        }
+        $proratedExpr = $this->applyRwoFilters($query, $this->getCurrentFiltersArray());
+        $kuartal = $proratedExpr['kuartal'];
+        $currentQuarter = $proratedExpr['currentQuarter'];
+        $multiplier = $proratedExpr['multiplier'];
+        $achievementSql = $proratedExpr['achievementSql'];
+        $kpiAchievementSql = $proratedExpr['kpiAchievementSql'];
+        $proratedTargetSql = $proratedExpr['proratedTargetSql'];
+        $progressExpr = $proratedExpr['progressExpr'];
 
         // KPI Card Stats (CLONE BEFORE PAGINATE!)
         $kpiQuery = clone $query;
@@ -499,6 +461,14 @@ class Pencapaianrwo extends Component
         if ($this->sortField === 'gap') {
             $gapSql = "($proratedTargetSql - COALESCE($achievementSql, 0))";
             $query->orderByRaw("$gapSql {$this->sortDirection}");
+        } elseif ($this->sortField === 'total_target') {
+            $query->orderByRaw("COALESCE(l.total_target, 0) {$this->sortDirection}");
+        } elseif ($this->sortField === 'prorated_target') {
+            $query->orderByRaw("COALESCE($proratedTargetSql, 0) {$this->sortDirection}");
+        } elseif ($this->sortField === 'actual') {
+            $query->orderByRaw("COALESCE($achievementSql, 0) {$this->sortDirection}");
+        } elseif ($this->sortField === 'percent') {
+            $query->orderByRaw("COALESCE($progressExpr, 0) {$this->sortDirection}");
         } elseif ($this->sortField === 'wilayah') {
             $query->orderBy('md.region_name', 'asc')
                   ->orderBy('md.area_name', 'asc')
@@ -511,14 +481,6 @@ class Pencapaianrwo extends Component
         }
 
         $records = $query->paginate(100);
-        
-        if ($multiplier === 1) {
-            $kpiAchievementSql = "SUM(COALESCE(zv.month_1_value, 0))";
-        } elseif ($multiplier === 2) {
-            $kpiAchievementSql = "SUM(COALESCE(zv.month_1_value, 0) + COALESCE(zv.month_2_value, 0))";
-        } else {
-            $kpiAchievementSql = "SUM(COALESCE(zv.total_achievement, 0))";
-        }
 
         $kpiQuery->select(
             DB::raw('COUNT(DISTINCT l.customer_code) as total_toko'),
@@ -563,122 +525,9 @@ class Pencapaianrwo extends Component
 
     public function export()
     {
-        $query = $this->getStoreQuery();
+        $query = $this->getStoreQuery((string)$this->appliedKuartal, false);
         $this->applyAccessScope($query);
-
-        if ($this->appliedKuartal) {
-            $query->where('l.kuartal', $this->appliedKuartal);
-        }
-        if ($this->appliedRegion) {
-            $query->where('md.region_code', $this->appliedRegion);
-        }
-        if ($this->appliedArea) {
-            $query->where('md.area_code', $this->appliedArea);
-        }
-        if ($this->appliedSupervisor) {
-            $query->where('md.supervisor_code', $this->appliedSupervisor);
-        }
-        if ($this->appliedDistributor) {
-            $query->where('l.distributor_code', $this->appliedDistributor);
-        }
-
-        if ($this->search) {
-            $q = '%' . strtolower($this->search) . '%';
-            $query->where(function($sub) use ($q) {
-                $sub->whereRaw('LOWER(l.customer_name) LIKE ?', [$q])
-                    ->orWhereRaw('LOWER(l.customer_code) LIKE ?', [$q]);
-            });
-        }
-
-        if ($this->appliedStatusSkb !== 'Semua') {
-            if ($this->appliedStatusSkb === 'Sudah') {
-                $query->whereNotNull('skb.customer_code');
-            } elseif ($this->appliedStatusSkb === 'Belum') {
-                $query->whereNull('skb.customer_code');
-            } elseif ($this->appliedStatusSkb === 'Approve') {
-                $query->whereNotNull('skb.customer_code')->where('skb.is_approved', true);
-            } elseif ($this->appliedStatusSkb === 'Reject') {
-                $query->whereNotNull('skb.customer_code')->where(function($q) {
-                    $q->where('skb.is_approved', false)->orWhereNull('skb.is_approved');
-                });
-            }
-        }
-
-        if ($this->appliedStatusData !== 'Semua') {
-            $fieldsCheck = [
-                'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
-                'r.nama_bank', 'r.no_rekening', 'r.nama_pemilik_norek', 'r.latitude', 'r.longitude',
-                'r.foto_toko2', 'r.foto_toko3'
-            ];
-            if ($this->appliedStatusData === 'Lengkap') {
-                foreach ($fieldsCheck as $f) {
-                    $query->whereNotNull($f)->where(DB::raw("TRIM($f)"), '!=', '');
-                }
-            } else {
-                $query->where(function($sub) use ($fieldsCheck) {
-                    foreach ($fieldsCheck as $f) {
-                        $sub->orWhereNull($f)->orWhere(DB::raw("TRIM($f)"), '=', '');
-                    }
-                });
-            }
-        }
-
-        if ($this->appliedStatusReward !== 'Semua') {
-            if ($this->appliedStatusReward === '2.5%') {
-                $query->where('l.total_target', '>=', 90000000);
-            } elseif ($this->appliedStatusReward === '2%') {
-                $query->where('l.total_target', '>=', 30000000)->where('l.total_target', '<', 90000000);
-            } elseif ($this->appliedStatusReward === '1.5%') {
-                $query->where(function($q) {
-                    $q->whereNull('l.total_target')->orWhere('l.total_target', '<', 30000000);
-                });
-            }
-        }
-
-        $currentMonth = (int)date('n');
-        $currentQuarter = (int)ceil($currentMonth / 3);
-        $kuartal = (int)$this->appliedKuartal;
-        
-        $multiplier = 3;
-        if ($kuartal === $currentQuarter) {
-            $firstMonthOfQ = ($kuartal - 1) * 3 + 1;
-            $multiplier = $currentMonth - $firstMonthOfQ + 1;
-            if ($multiplier < 1) $multiplier = 1;
-            if ($multiplier > 3) $multiplier = 3;
-        } elseif ($kuartal > $currentQuarter) {
-            $multiplier = 1;
-        } else {
-            $multiplier = 3;
-        }
-
-        if ($multiplier === 1) {
-            $achievementSql = "COALESCE(zv.month_1_value, 0)";
-        } elseif ($multiplier === 2) {
-            $achievementSql = "(COALESCE(zv.month_1_value, 0) + COALESCE(zv.month_2_value, 0))";
-        } else {
-            $achievementSql = "COALESCE(zv.total_achievement, 0)";
-        }
-        
-        $proratedTargetSql = "((l.total_target / 3.0) * $multiplier)";
-        $progressExpr = "($achievementSql / NULLIF($proratedTargetSql, 0)) * 100";
-
-        if ($this->appliedStatusProgress !== 'Semua') {
-            if ($this->appliedStatusProgress === '1. HIJAU') {
-                $query->whereRaw("COALESCE($progressExpr, 0) >= 100");
-            } elseif ($this->appliedStatusProgress === '2. KUNING') {
-                $query->whereRaw("COALESCE($progressExpr, 0) >= 80 AND COALESCE($progressExpr, 0) < 100");
-            } elseif ($this->appliedStatusProgress === '3. MERAH') {
-                $query->whereRaw("COALESCE($progressExpr, 0) < 80");
-            }
-        }
-
-        if ($this->appliedStatusTransaksi !== 'Semua') {
-            if ($this->appliedStatusTransaksi === 'Sudah') {
-                $query->whereRaw("COALESCE($achievementSql, 0) > 0");
-            } elseif ($this->appliedStatusTransaksi === 'Belum') {
-                $query->whereRaw("COALESCE($achievementSql, 0) <= 0");
-            }
-        }
+        $this->applyRwoFilters($query, $this->getCurrentFiltersArray());
 
         $query->orderBy('md.region_name', 'asc')
               ->orderBy('md.area_name', 'asc')

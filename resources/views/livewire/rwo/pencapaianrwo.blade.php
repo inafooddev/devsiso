@@ -42,7 +42,7 @@
     
     <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 shrink-0">
         {{-- Card 1: Toko & Transaksi --}}
-        <div class="stats shadow bg-base-100 border border-base-300">
+        <div wire:click="filterByKpiCard('transaksi')" title="Klik untuk filter toko yang sudah transaksi" class="stats shadow bg-base-100 border cursor-pointer transition-all hover:shadow-md {{ $appliedStatusTransaksi === 'Sudah' ? 'border-primary ring-2 ring-primary/30' : 'border-base-300' }}">
             <div class="stat">
                 <div class="stat-title text-xs font-bold uppercase tracking-wider text-base-content/60">Total Transaksi / Toko</div>
                 <div class="stat-value text-2xl text-primary">{{ number_format($tokoTransaksi, 0, ',', '.') }}</div>
@@ -72,7 +72,7 @@
         </div>
 
         {{-- Card 3: Kolom Hijau --}}
-        <div class="stats shadow bg-base-100 border border-base-300">
+        <div wire:click="filterByKpiCard('hijau')" title="Klik untuk filter Kolom Hijau" class="stats shadow bg-base-100 border cursor-pointer transition-all hover:shadow-md {{ $appliedStatusProgress === '1. HIJAU' ? 'border-success ring-2 ring-success/30' : 'border-base-300' }}">
             <div class="stat">
                 <div class="stat-title text-xs font-bold uppercase tracking-wider text-base-content/60">Kolom Hijau (>= 100%)</div>
                 <div class="stat-value text-2xl text-success">{{ number_format($tokoHijau, 0, ',', '.') }} <span class="text-xs font-bold opacity-75">Toko</span></div>
@@ -86,7 +86,7 @@
         </div>
 
         {{-- Card 4: Kolom Kuning --}}
-        <div class="stats shadow bg-base-100 border border-base-300">
+        <div wire:click="filterByKpiCard('kuning')" title="Klik untuk filter Kolom Kuning" class="stats shadow bg-base-100 border cursor-pointer transition-all hover:shadow-md {{ $appliedStatusProgress === '2. KUNING' ? 'border-warning ring-2 ring-warning/30' : 'border-base-300' }}">
             <div class="stat">
                 <div class="stat-title text-xs font-bold uppercase tracking-wider text-base-content/60">Kolom Kuning (80-99%)</div>
                 <div class="stat-value text-2xl text-warning">{{ number_format($tokoKuning, 0, ',', '.') }} <span class="text-xs font-bold opacity-75">Toko</span></div>
@@ -100,7 +100,7 @@
         </div>
 
         {{-- Card 5: Kolom Merah --}}
-        <div class="stats shadow bg-base-100 border border-base-300">
+        <div wire:click="filterByKpiCard('merah')" title="Klik untuk filter Kolom Merah" class="stats shadow bg-base-100 border cursor-pointer transition-all hover:shadow-md {{ $appliedStatusProgress === '3. MERAH' ? 'border-error ring-2 ring-error/30' : 'border-base-300' }}">
             <div class="stat">
                 <div class="stat-title text-xs font-bold uppercase tracking-wider text-base-content/60">Kolom Merah (< 80%)</div>
                 <div class="stat-value text-2xl text-error">{{ number_format($tokoMerah, 0, ',', '.') }} <span class="text-xs font-bold opacity-75">Toko</span></div>
@@ -164,12 +164,13 @@
                 </div>
 
                 <div class="form-control min-w-[110px]">
-                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Reward %</span></label>
+                    <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Reward</span></label>
                     <select wire:model.live="statusReward" class="select select-sm select-bordered">
                         <option value="Semua">Semua</option>
                         <option value="2.5%">2,5%</option>
                         <option value="2%">2%</option>
                         <option value="1.5%">1,5%</option>
+                        <option value="1KTN">1KTN</option>
                     </select>
                 </div>
 
@@ -214,6 +215,37 @@
             </div>
         </div>
 
+        {{-- Active Wilayah Filter Badges --}}
+        @if($appliedRegion || $appliedArea || $appliedSupervisor || $appliedDistributor)
+            <div class="px-4 py-2 bg-base-200/50 border-b border-base-300 flex flex-wrap items-center gap-2 text-xs shrink-0">
+                <span class="font-semibold text-base-content/70">Filter Wilayah Aktif:</span>
+                @if($appliedRegion)
+                    <span class="badge badge-primary badge-outline gap-1 font-medium">
+                        Region: {{ $appliedRegion }}
+                        <button type="button" wire:click="clearWilayahFilter('region')" class="hover:text-error font-bold ml-1" title="Hapus filter Region">✕</button>
+                    </span>
+                @endif
+                @if($appliedArea)
+                    <span class="badge badge-primary badge-outline gap-1 font-medium">
+                        Area: {{ $appliedArea }}
+                        <button type="button" wire:click="clearWilayahFilter('area')" class="hover:text-error font-bold ml-1" title="Hapus filter Area">✕</button>
+                    </span>
+                @endif
+                @if($appliedSupervisor)
+                    <span class="badge badge-primary badge-outline gap-1 font-medium">
+                        SPV: {{ $appliedSupervisor }}
+                        <button type="button" wire:click="clearWilayahFilter('supervisor')" class="hover:text-error font-bold ml-1" title="Hapus filter Supervisor">✕</button>
+                    </span>
+                @endif
+                @if($appliedDistributor)
+                    <span class="badge badge-primary badge-outline gap-1 font-medium">
+                        Distributor: {{ $appliedDistributor }}
+                        <button type="button" wire:click="clearWilayahFilter('distributor')" class="hover:text-error font-bold ml-1" title="Hapus filter Distributor">✕</button>
+                    </span>
+                @endif
+            </div>
+        @endif
+
         {{-- Table --}}
         <div class="flex-1 overflow-auto bg-base-100 relative">
             <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
@@ -225,11 +257,39 @@
                         <th>Nama Toko</th>
                         <th class="text-center">Status SKB</th>
                         <th class="text-center">Status Data</th>
-                        <th class="text-center">Reward %</th>
-                        <th class="text-right">Target Total</th>
-                        <th class="text-right text-primary">Target Prorata</th>
-                        <th class="text-right">Actual Total</th>
-                        <th class="text-center">%</th>
+                        <th class="text-center">Reward</th>
+                        <th class="text-right cursor-pointer hover:bg-base-200" wire:click="sortBy('total_target')">
+                            Target Total
+                            @if($sortField === 'total_target')
+                                <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3 inline-block ml-1" />
+                            @else
+                                <x-heroicon-s-chevron-up-down class="w-3 h-3 inline-block ml-1 opacity-30" />
+                            @endif
+                        </th>
+                        <th class="text-right text-primary cursor-pointer hover:bg-base-200" wire:click="sortBy('prorated_target')">
+                            Target Prorata
+                            @if($sortField === 'prorated_target')
+                                <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3 inline-block ml-1" />
+                            @else
+                                <x-heroicon-s-chevron-up-down class="w-3 h-3 inline-block ml-1 opacity-30" />
+                            @endif
+                        </th>
+                        <th class="text-right cursor-pointer hover:bg-base-200" wire:click="sortBy('actual')">
+                            Actual Total
+                            @if($sortField === 'actual')
+                                <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3 inline-block ml-1" />
+                            @else
+                                <x-heroicon-s-chevron-up-down class="w-3 h-3 inline-block ml-1 opacity-30" />
+                            @endif
+                        </th>
+                        <th class="text-center cursor-pointer hover:bg-base-200" wire:click="sortBy('percent')">
+                            %
+                            @if($sortField === 'percent')
+                                <x-heroicon-s-chevron-{{ $sortDirection === 'asc' ? 'up' : 'down' }} class="w-3 h-3 inline-block ml-1" />
+                            @else
+                                <x-heroicon-s-chevron-up-down class="w-3 h-3 inline-block ml-1 opacity-30" />
+                            @endif
+                        </th>
                         <th class="text-right cursor-pointer hover:bg-base-200" wire:click="sortBy('gap')">
                             Gap 
                             @if($sortField === 'gap')
@@ -248,12 +308,19 @@
                     @forelse($records as $row)
                         @php
                             $target = $row->total_target ?? 0;
+                            $jenisReward = $row->jenis_reward ?? '';
                             
-                            $rewardPercent = '1,5%';
-                            if ($target >= 90000000) {
-                                $rewardPercent = '2,5%';
-                            } elseif ($target >= 30000000) {
-                                $rewardPercent = '2%';
+                            if ($jenisReward === 'BB') {
+                                $rewardPercent = '1KTN';
+                            } elseif ($jenisReward === 'CB') {
+                                $rewardPercent = '1,5%';
+                                if ($target >= 90000000) {
+                                    $rewardPercent = '2,5%';
+                                } elseif ($target >= 30000000) {
+                                    $rewardPercent = '2%';
+                                }
+                            } else {
+                                $rewardPercent = '-';
                             }
 
                             $proratedData = $this->getProratedData($target, $row, $this->appliedKuartal);
@@ -283,23 +350,27 @@
                             <td class="font-mono text-xs opacity-75 max-w-[120px] truncate" title="{{ $row->customer_prc }}">{{ $row->customer_prc ?? '-' }}</td>
                             <td class="font-semibold text-base-content/95 {{ $bgClass }}">{{ $row->customer_name }}</td>
                             <td class="text-center">
-                                @if($row->status_skb === 'Sudah')
-                                    @if($row->is_approved === 1 || $row->is_approved === true)
-                                        <span class="badge badge-success text-[10px] font-bold text-white py-2">Approved</span>
-                                    @elseif($row->is_approved === 0 || $row->is_approved === false)
-                                        <span class="badge badge-error text-[10px] font-bold text-white py-2">Rejected</span>
+                                @if(($row->jenis_reward ?? '') === 'CB')
+                                    @if($row->status_skb === 'Sudah')
+                                        @if($row->is_approved === 1 || $row->is_approved === true)
+                                            <span class="badge badge-success text-[10px] font-bold text-white py-2">Approved</span>
+                                        @elseif($row->is_approved === 0 || $row->is_approved === false)
+                                            <span class="badge badge-error text-[10px] font-bold text-white py-2">Rejected</span>
+                                        @else
+                                            <span class="badge badge-info text-[10px] font-bold text-white py-2">Submitted</span>
+                                        @endif
                                     @else
-                                        <span class="badge badge-info text-[10px] font-bold text-white py-2">Submitted</span>
+                                        <span class="badge badge-ghost text-[10px] font-bold py-2 opacity-60">Belum</span>
                                     @endif
-                                @else
-                                    <span class="badge badge-ghost text-[10px] font-bold py-2 opacity-60">Belum</span>
                                 @endif
                             </td>
                             <td class="text-center">
-                                @if($row->status_data_lengkap === 'Lengkap')
-                                    <span class="badge badge-success text-[10px] font-bold text-white py-2">Lengkap</span>
-                                @else
-                                    <span class="badge badge-warning text-[10px] font-bold text-white py-2">Belum</span>
+                                @if(($row->jenis_reward ?? '') !== 'BB')
+                                    @if($row->status_data_lengkap === 'Lengkap')
+                                        <span class="badge badge-success text-[10px] font-bold text-white py-2">Lengkap</span>
+                                    @else
+                                        <span class="badge badge-warning text-[10px] font-bold text-white py-2">Belum</span>
+                                    @endif
                                 @endif
                             </td>
                             <td class="text-center font-bold text-info">{{ $rewardPercent }}</td>
@@ -326,7 +397,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="14" class="text-center py-8">
+                            <td colspan="16" class="text-center py-8">
                                 <div class="flex flex-col items-center gap-2 opacity-60">
                                     <x-heroicon-o-building-storefront class="w-12 h-12" />
                                     <span class="font-semibold text-sm">Tidak ada data pencapaian RWO</span>
@@ -355,12 +426,19 @@
                 
                 @php
                     $modalTarget = $selectedStore->total_target ?? 0;
+                    $modalJenisReward = $selectedStore->jenis_reward ?? '';
                     $modalProratedData = $this->getProratedData($modalTarget, $selectedStore, $this->appliedKuartal);
-                    $modalRewardPercent = '1,5%';
-                    if ($modalTarget >= 90000000) {
-                        $modalRewardPercent = '2,5%';
-                    } elseif ($modalTarget >= 30000000) {
-                        $modalRewardPercent = '2%';
+                    if ($modalJenisReward === 'BB') {
+                        $modalRewardPercent = '1KTN';
+                    } elseif ($modalJenisReward === 'CB') {
+                        $modalRewardPercent = '1,5%';
+                        if ($modalTarget >= 90000000) {
+                            $modalRewardPercent = '2,5%';
+                        } elseif ($modalTarget >= 30000000) {
+                            $modalRewardPercent = '2%';
+                        }
+                    } else {
+                        $modalRewardPercent = '-';
                     }
                 @endphp
                 <div class="border-b pb-3 mb-4">
@@ -368,22 +446,26 @@
                         Detail Toko: <span class="text-primary">{{ $selectedStore->customer_name }}</span>
                     </h3>
                     <div class="flex flex-wrap gap-2 mt-2">
-                        @if($selectedStore->status_skb === 'Sudah')
-                            @if($selectedStore->is_approved === 1 || $selectedStore->is_approved === true)
-                                <span class="badge badge-success badge-sm font-bold text-white shadow-sm">SKB: Approved</span>
-                            @elseif($selectedStore->is_approved === 0 || $selectedStore->is_approved === false)
-                                <span class="badge badge-error badge-sm font-bold text-white shadow-sm">SKB: Rejected</span>
+                        @if($modalJenisReward === 'CB')
+                            @if($selectedStore->status_skb === 'Sudah')
+                                @if($selectedStore->is_approved === 1 || $selectedStore->is_approved === true)
+                                    <span class="badge badge-success badge-sm font-bold text-white shadow-sm">SKB: Approved</span>
+                                @elseif($selectedStore->is_approved === 0 || $selectedStore->is_approved === false)
+                                    <span class="badge badge-error badge-sm font-bold text-white shadow-sm">SKB: Rejected</span>
+                                @else
+                                    <span class="badge badge-info badge-sm font-bold text-white shadow-sm">SKB: Submitted</span>
+                                @endif
                             @else
-                                <span class="badge badge-info badge-sm font-bold text-white shadow-sm">SKB: Submitted</span>
+                                <span class="badge badge-ghost badge-sm font-bold shadow-sm">SKB: Belum</span>
                             @endif
-                        @else
-                            <span class="badge badge-ghost badge-sm font-bold shadow-sm">SKB: Belum</span>
                         @endif
 
-                        @if($selectedStore->status_data_lengkap === 'Lengkap')
-                            <span class="badge badge-success badge-sm font-bold text-white shadow-sm">Data: Lengkap</span>
-                        @else
-                            <span class="badge badge-warning badge-sm font-bold text-white shadow-sm">Data: Belum</span>
+                        @if($modalJenisReward !== 'BB')
+                            @if($selectedStore->status_data_lengkap === 'Lengkap')
+                                <span class="badge badge-success badge-sm font-bold text-white shadow-sm">Data: Lengkap</span>
+                            @else
+                                <span class="badge badge-warning badge-sm font-bold text-white shadow-sm">Data: Belum</span>
+                            @endif
                         @endif
 
                         <span class="badge badge-primary badge-sm font-bold text-white shadow-sm">Reward: {{ $modalRewardPercent }}</span>
@@ -425,14 +507,17 @@
                                     <div class="font-semibold text-base-content/60">Pemilik Toko:</div>
                                     <div class="col-span-2">{{ $selectedStore->nama_pemilik_toko ?? '-' }}</div>
 
+                                    {{--
                                     <div class="font-semibold text-base-content/60">NIK KTP:</div>
                                     <div class="col-span-2 font-mono">{{ $selectedStore->nik_ktp ?? '-' }}</div>
 
                                     <div class="font-semibold text-base-content/60">Nama KTP:</div>
                                     <div class="col-span-2">{{ $selectedStore->nama_ktp ?? '-' }}</div>
+                                    --}}
                                 </div>
                             </div>
 
+                            {{--
                             <div class="card bg-base-200/50 p-4 rounded-xl border border-base-300">
                                 <h4 class="font-bold text-sm text-primary mb-3 uppercase tracking-wide">Rekening Bank</h4>
                                 <div class="grid grid-cols-3 gap-y-2 text-xs">
@@ -446,6 +531,7 @@
                                     <div class="col-span-2">{{ $selectedStore->nama_pemilik_norek ?? '-' }}</div>
                                 </div>
                             </div>
+                            --}}
                             <div class="card bg-base-200/50 p-4 rounded-xl border border-base-300">
                                 <h4 class="font-bold text-sm text-primary mb-3 uppercase tracking-wide">Pencapaian Toko</h4>
                                 <div class="grid grid-cols-2 gap-y-3 text-xs">
@@ -492,6 +578,7 @@
                                     <div class="font-semibold text-base-content/60">Longitude:</div>
                                     <div class="col-span-2 font-mono">{{ $selectedStore->longitude ?? '-' }}</div>
 
+                                    {{--
                                     <div class="font-semibold text-base-content/60">Foto KTP:</div>
                                     <div class="col-span-2">
                                         @if($selectedStore->foto_ktp)
@@ -500,6 +587,7 @@
                                             <span class="text-rose-500 font-bold">Belum Diunggah</span>
                                         @endif
                                     </div>
+                                    --}}
 
                                     <div class="font-semibold text-base-content/60">Foto Toko 2:</div>
                                     <div class="col-span-2">
@@ -683,19 +771,20 @@
                                 </div>
                             </div>
                         </div>
-                </div>
-            </div> <!-- Close x-data container -->
+                    </div>
+                </div> <!-- Close x-data container -->
 
-            <div class="modal-action border-t pt-3">
-                <button type="button" wire:click="closeDetailModal" class="btn btn-neutral btn-sm">Tutup</button>
+                <div class="modal-action border-t pt-3">
+                    <button type="button" wire:click="closeDetailModal" class="btn btn-neutral btn-sm">Tutup</button>
+                </div>
             </div>
         </div>
-    </div>
     @endif
 
     {{-- Modal Filter Wilayah --}}
     <dialog id="filter_modal" class="modal" wire:ignore.self>
         <livewire:rwo.filter-pencapaianrwo 
+            :key="'filter-wilayah-' . $appliedKuartal . '-' . $appliedRegion . '-' . $appliedArea . '-' . $appliedSupervisor . '-' . $appliedDistributor"
             :appliedKuartal="$appliedKuartal" 
             :appliedRegion="$appliedRegion" 
             :appliedArea="$appliedArea" 

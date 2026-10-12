@@ -74,6 +74,7 @@ class PencapaianrwoMap extends Component
             ->select([
                 'l.customer_name',
                 'l.total_target',
+                'l.jenis_reward',
                 'zv.month_1_value',
                 'zv.month_2_value',
                 'zv.month_3_value',
@@ -99,19 +100,23 @@ class PencapaianrwoMap extends Component
         $proratedTarget = ($target / 3) * $multiplier;
         $gap = $actual - $proratedTarget;
 
-        $statusSkb = 'Belum';
-        $badgeClass = 'badge-ghost';
-        if ($store->has_skb) {
-            $statusSkb = 'Sudah - ';
-            if ($store->is_approved === 1 || $store->is_approved === true) {
-                $statusSkb .= 'Approved';
-                $badgeClass = 'badge-success text-white';
-            } elseif ($store->is_approved === 0 || $store->is_approved === false) {
-                $statusSkb .= 'Rejected';
-                $badgeClass = 'badge-error text-white';
-            } else {
-                $statusSkb .= 'Submitted';
-                $badgeClass = 'badge-info text-white';
+        $statusSkb = '';
+        $badgeClass = '';
+        if (($store->jenis_reward ?? '') === 'CB') {
+            $statusSkb = 'Belum';
+            $badgeClass = 'badge-ghost';
+            if ($store->has_skb) {
+                $statusSkb = 'Sudah - ';
+                if ($store->is_approved === 1 || $store->is_approved === true) {
+                    $statusSkb .= 'Approved';
+                    $badgeClass = 'badge-success text-white';
+                } elseif ($store->is_approved === 0 || $store->is_approved === false) {
+                    $statusSkb .= 'Rejected';
+                    $badgeClass = 'badge-error text-white';
+                } else {
+                    $statusSkb .= 'Submitted';
+                    $badgeClass = 'badge-info text-white';
+                }
             }
         }
 

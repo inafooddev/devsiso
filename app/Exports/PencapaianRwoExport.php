@@ -41,7 +41,7 @@ class PencapaianRwoExport implements FromCollection, WithHeadings, WithMapping, 
             'Customer Name',
             'Status SKB',
             'Status Data',
-            'Reward %',
+            'Reward',
             'Target Total',
             'Target Prorata',
             'Actual Total',
@@ -92,12 +92,19 @@ class PencapaianRwoExport implements FromCollection, WithHeadings, WithMapping, 
     public function map($row): array
     {
         $target = $row->total_target ?? 0;
-                            
-        $rewardPercent = '1,5%';
-        if ($target >= 90000000) {
-            $rewardPercent = '2,5%';
-        } elseif ($target >= 30000000) {
-            $rewardPercent = '2%';
+        $jenisReward = $row->jenis_reward ?? '';
+
+        if ($jenisReward === 'BB') {
+            $rewardPercent = '1KTN';
+        } elseif ($jenisReward === 'CB') {
+            $rewardPercent = '1,5%';
+            if ($target >= 90000000) {
+                $rewardPercent = '2,5%';
+            } elseif ($target >= 30000000) {
+                $rewardPercent = '2%';
+            }
+        } else {
+            $rewardPercent = '-';
         }
 
         $proratedData = $this->getProratedData($target, $row, $this->kuartal);
@@ -107,23 +114,24 @@ class PencapaianRwoExport implements FromCollection, WithHeadings, WithMapping, 
         $colorLabel = $proratedData['color_label'];
         $gap = $proratedTarget - $activeAchievement;
 
-        $statusSkb = 'Belum';
-        if ($row->status_skb === 'Sudah') {
-            if ($row->is_approved === 1 || $row->is_approved === true) {
-                $statusSkb = 'Approved';
-            } elseif ($row->is_approved === 0 || $row->is_approved === false) {
-                $statusSkb = 'Rejected';
-            } else {
-                $statusSkb = 'Submitted';
+        $statusSkb = '';
+        if ($jenisReward === 'CB') {
+            $statusSkb = 'Belum';
+            if ($row->status_skb === 'Sudah') {
+                if ($row->is_approved === 1 || $row->is_approved === true) {
+                    $statusSkb = 'Approved';
+                } elseif ($row->is_approved === 0 || $row->is_approved === false) {
+                    $statusSkb = 'Rejected';
+                } else {
+                    $statusSkb = 'Submitted';
+                }
             }
         }
 
-        $statusData = $row->status_data_lengkap === 'Lengkap' ? 'Lengkap' : 'Belum';
-
-        $remarkData = RemarkListPotensiRwo::where('kuartal', $this->kuartal)
-                ->where('distributor_code', $row->distributor_code)
-                ->where('customer_code', $row->customer_code)
-                ->first();
+        $statusData = '';
+        if ($jenisReward !== 'BB') {
+            $statusData = $row->status_data_lengkap === 'Lengkap' ? 'Lengkap' : 'Belum';
+        }
 
         return [
             $row->region_name ?? '-',
@@ -146,7 +154,7 @@ class PencapaianRwoExport implements FromCollection, WithHeadings, WithMapping, 
             $row->month_3_value ?? 0,
             $colorLabel,
             $row->skb_reason,
-            $remarkData ? $remarkData->remark : '',
+            $row->remark_khusus ?? '',
         ];
     }
 
