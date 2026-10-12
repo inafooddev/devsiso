@@ -15,26 +15,26 @@
     </div>
 
     {{-- Main Card --}}
-    <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+    <div x-data="{ allExpanded: false }" class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
         
         {{-- Toolbar / Filters --}}
         <div class="p-4 border-b border-base-300 shrink-0 bg-base-200/30 flex flex-wrap items-end gap-3">
-            <div class="form-control">
-                <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Tgl Mulai JKS</span></label>
-                <input type="date" wire:model.live="jksDateStart" class="input input-sm input-bordered" />
-            </div>
-            
-            <div class="form-control">
-                <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Tgl Akhir JKS</span></label>
-                <input type="date" wire:model.live="jksDateEnd" class="input input-sm input-bordered" />
-            </div>
-
-            <div class="form-control min-w-[120px]">
+            <div class="form-control min-w-[130px]">
                 <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Kuartal</span></label>
                 <select wire:model.live="kuartal" class="select select-sm select-bordered">
                     <option value="">Semua Kuartal</option>
                     @foreach($kuartals as $q)
-                        <option value="{{ $q->quarter }}">{{ $q->quarter }}</option>
+                        <option value="{{ $q->quarter }}">Kuartal {{ $q->quarter }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="form-control min-w-[150px]">
+                <label class="label pt-0 pb-1"><span class="label-text text-xs font-semibold">Bulan (Prorata)</span></label>
+                <select wire:model.live="bulan" class="select select-sm select-bordered" {{ empty($bulans) ? 'disabled' : '' }}>
+                    <option value="">Semua Bulan</option>
+                    @foreach($bulans as $b)
+                        <option value="{{ $b['value'] }}">{{ $b['label'] }}</option>
                     @endforeach
                 </select>
             </div>
@@ -58,25 +58,54 @@
                     @endforeach
                 </select>
             </div>
+
+            {{-- Info Periode Prorata Aktif --}}
+            @if(!empty($periodInfo))
+                <div class="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-xs mb-0.5">
+                    <span class="font-bold text-primary">{{ $periodInfo['prorataBadge'] }}</span>
+                    <span class="text-base-content/40">•</span>
+                    <span class="text-base-content/70 font-medium">Kumulatif: {{ $periodInfo['periodLabel'] }}</span>
+                </div>
+            @endif
             
-            <div class="ml-auto flex items-center gap-4">
-                <div wire:loading>
-                    <span class="loading loading-spinner loading-sm text-primary"></span>
-                </div>
-                <div class="mt-6">
-                    <button wire:click="exportExcel" class="btn btn-sm btn-success font-bold text-white shadow-sm" wire:loading.attr="disabled">
-                        <x-heroicon-o-document-arrow-down class="w-4 h-4 mr-1" />
-                        <span wire:loading.remove wire:target="exportExcel">Export Excel</span>
-                        <span wire:loading wire:target="exportExcel">Exporting...</span>
-                    </button>
-                </div>
+            <div class="ml-auto flex flex-wrap items-center gap-2">
+                <button type="button"
+                    @click="allExpanded = !allExpanded; $dispatch('toggle-all-spv', allExpanded)"
+                    class="btn btn-sm btn-ghost border border-base-300 text-xs font-semibold"
+                    title="Buka/Tutup semua rincian cabang distributor">
+                    <x-heroicon-o-arrows-pointing-out class="w-4 h-4 mr-1" x-show="!allExpanded" />
+                    <x-heroicon-o-arrows-pointing-in class="w-4 h-4 mr-1" x-show="allExpanded" x-cloak />
+                    <span x-text="allExpanded ? 'Collapse All' : 'Expand All'">Expand All</span>
+                </button>
+
+                <button type="button"
+                    wire:click="resetFilters"
+                    class="btn btn-sm btn-ghost border border-base-300 text-xs font-semibold"
+                    title="Reset filter ke bulan & kuartal berjalan">
+                    Reset
+                </button>
+
+                <button wire:click="exportExcel" class="btn btn-sm btn-success font-bold text-white shadow-sm" wire:loading.attr="disabled">
+                    <x-heroicon-o-document-arrow-down class="w-4 h-4 mr-1" />
+                    <span wire:loading.remove wire:target="exportExcel">Export Excel</span>
+                    <span wire:loading wire:target="exportExcel">Exporting...</span>
+                </button>
             </div>
         </div>
 
         {{-- Table --}}
         <div class="flex-1 overflow-auto bg-base-100 relative">
-            <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
-                <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 shadow-sm">
+            {{-- Smooth Loading Overlay --}}
+            <div wire:loading.flex wire:target="kuartal, bulan, region, area, resetFilters"
+                 class="absolute inset-0 bg-base-100/60 backdrop-blur-[1px] z-30 items-center justify-center">
+                <div class="bg-base-100 px-4 py-2.5 rounded-xl shadow-lg border border-base-300 flex items-center gap-3">
+                    <span class="loading loading-spinner loading-sm text-primary"></span>
+                    <span class="text-xs font-semibold text-base-content/80">Memperbarui data summary...</span>
+                </div>
+            </div>
+
+            <table class="table table-sm table-zebra w-full whitespace-nowrap">
+                <thead class="sticky top-0 z-20 text-xs uppercase tracking-wider bg-base-300 text-base-content/80 shadow-sm">
                     <tr>
                         <th>Region</th>
                         <th>Area</th>
@@ -103,7 +132,14 @@
                     @foreach($region['areas'] as $areaIndex => $area)
                         @php $isFirstAreaRow = true; @endphp
                         @foreach($area['supervisors'] as $supervisorIndex => $supervisor)
-                            <tbody wire:key="spv-{{ $regionIndex }}-{{ $areaIndex }}-{{ $supervisorIndex }}" x-data="{ expanded: false }" class="text-sm border-b border-base-200">
+                            @php
+                                $spvPct = $supervisor['target_prorata'] > 0 ? ($supervisor['total_achievement'] / $supervisor['target_prorata']) * 100 : 0;
+                                $spvPctClass = $spvPct >= 100 ? 'text-success' : ($spvPct >= 80 ? 'text-warning' : 'text-error');
+                            @endphp
+                            <tbody wire:key="spv-{{ $regionIndex }}-{{ $areaIndex }}-{{ $supervisorIndex }}"
+                                   x-data="{ expanded: false }"
+                                   @toggle-all-spv.window="expanded = $event.detail"
+                                   class="text-sm border-b border-base-200">
                                 <tr class="hover:bg-base-200 transition-colors cursor-pointer group" @click="expanded = !expanded" :class="expanded ? 'bg-base-200/40' : ''">
                                     <td>
                                         <div class="flex items-center gap-2">
@@ -124,7 +160,12 @@
                                             <span class="text-base-content/30 italic hidden md:inline">{{ $area['name'] }}</span>
                                         @endif
                                     </td>
-                                    <td class="font-bold text-base-content/80">{{ $supervisor['name'] }}</td>
+                                    <td>
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-bold text-base-content/80">{{ $supervisor['name'] }}</span>
+                                            <span class="badge badge-ghost badge-xs text-[10px] font-normal opacity-75">{{ count($supervisor['cabang']) }} Cabang</span>
+                                        </div>
+                                    </td>
                                     <td class="text-right font-bold">{{ number_format($supervisor['total_toko'], 0, ',', '.') }}</td>
                                     <td class="text-right font-bold text-info">{{ number_format($supervisor['total_jks'], 0, ',', '.') }}</td>
                                     <td class="text-right font-bold">{{ number_format($supervisor['sudah_skb'], 0, ',', '.') }}</td>
@@ -135,7 +176,7 @@
                                     <td class="text-right font-mono text-[11px]">{{ number_format($supervisor['total_target'], 0, ',', '.') }}</td>
                                     <td class="text-right font-mono text-[11px] text-base-content/60">{{ number_format($supervisor['target_prorata'], 0, ',', '.') }}</td>
                                     <td class="text-right font-mono font-bold text-[11px] text-success">{{ number_format($supervisor['total_achievement'], 0, ',', '.') }}</td>
-                                    <td class="text-right font-bold text-[11px]">{{ $supervisor['target_prorata'] > 0 ? number_format(($supervisor['total_achievement'] / $supervisor['target_prorata']) * 100, 1, ',', '.') : 0 }}%</td>
+                                    <td class="text-right font-bold text-[11px] {{ $spvPctClass }}">{{ number_format($spvPct, 1, ',', '.') }}%</td>
                                     <td class="text-right font-bold">{{ number_format($supervisor['toko_transaksi'], 0, ',', '.') }}</td>
                                     <td class="text-right font-bold text-success">{{ number_format($supervisor['toko_hijau'], 0, ',', '.') }}</td>
                                     <td class="text-right font-bold text-warning">{{ number_format($supervisor['toko_kuning'], 0, ',', '.') }}</td>
@@ -143,6 +184,10 @@
                                 </tr>
                                 
                                 @foreach($supervisor['cabang'] as $cabangIndex => $cabang)
+                                    @php
+                                        $cabPct = $cabang['target_prorata'] > 0 ? ($cabang['total_achievement'] / $cabang['target_prorata']) * 100 : 0;
+                                        $cabPctClass = $cabPct >= 100 ? 'text-success' : ($cabPct >= 80 ? 'text-warning' : 'text-error');
+                                    @endphp
                                     <tr wire:key="cabang-{{ $regionIndex }}-{{ $areaIndex }}-{{ $supervisorIndex }}-{{ $cabangIndex }}" x-show="expanded" x-transition.opacity x-cloak class="bg-base-200/50 text-[12px] hover:bg-base-200/80 transition-colors">
                                         <td colspan="3" class="pl-12 py-2 border-l-4 border-l-primary border-y-none border-r-none">
                                             <div class="font-bold text-primary whitespace-normal" title="{{ $cabang['distributor_name'] }}">{{ $cabang['distributor_name'] }}</div>
@@ -157,7 +202,7 @@
                                         <td class="text-right font-mono text-[10px] opacity-80 border-none py-2">{{ number_format($cabang['total_target'], 0, ',', '.') }}</td>
                                         <td class="text-right font-mono text-[10px] opacity-60 border-none py-2">{{ number_format($cabang['target_prorata'], 0, ',', '.') }}</td>
                                         <td class="text-right font-mono font-bold text-[10px] text-success opacity-80 border-none py-2">{{ number_format($cabang['total_achievement'], 0, ',', '.') }}</td>
-                                        <td class="text-right font-bold text-[10px] opacity-80 border-none py-2">{{ $cabang['target_prorata'] > 0 ? number_format(($cabang['total_achievement'] / $cabang['target_prorata']) * 100, 1, ',', '.') : 0 }}%</td>
+                                        <td class="text-right font-bold text-[10px] opacity-90 border-none py-2 {{ $cabPctClass }}">{{ number_format($cabPct, 1, ',', '.') }}%</td>
                                         <td class="text-right font-semibold opacity-80 border-none py-2">{{ number_format($cabang['toko_transaksi'], 0, ',', '.') }}</td>
                                         <td class="text-right font-semibold text-success opacity-80 border-none py-2">{{ number_format($cabang['toko_hijau'], 0, ',', '.') }}</td>
                                         <td class="text-right font-semibold text-warning opacity-80 border-none py-2">{{ number_format($cabang['toko_kuning'], 0, ',', '.') }}</td>
@@ -172,6 +217,9 @@
                         @endforeach
 
                         {{-- Area Subtotal --}}
+                        @php
+                            $areaPct = $area['target_prorata'] > 0 ? ($area['total_achievement'] / $area['target_prorata']) * 100 : 0;
+                        @endphp
                         <tbody wire:key="sub-area-{{ $regionIndex }}-{{ $areaIndex }}" class="text-sm">
                             <tr class="bg-info/10 text-info font-bold border-b-2 border-info/20">
                                 <td colspan="3" class="text-right uppercase py-2">Subtotal Area {{ $area['name'] }}</td>
@@ -185,7 +233,7 @@
                                 <td class="text-right font-mono text-[11px]">{{ number_format($area['total_target'], 0, ',', '.') }}</td>
                                 <td class="text-right font-mono text-[11px] opacity-80">{{ number_format($area['target_prorata'], 0, ',', '.') }}</td>
                                 <td class="text-right font-mono text-[11px] text-success">{{ number_format($area['total_achievement'], 0, ',', '.') }}</td>
-                                <td class="text-right font-bold text-[11px]">{{ $area['target_prorata'] > 0 ? number_format(($area['total_achievement'] / $area['target_prorata']) * 100, 1, ',', '.') : 0 }}%</td>
+                                <td class="text-right font-bold text-[11px]">{{ number_format($areaPct, 1, ',', '.') }}%</td>
                                 <td class="text-right">{{ number_format($area['toko_transaksi'], 0, ',', '.') }}</td>
                                 <td class="text-right text-success">{{ number_format($area['toko_hijau'], 0, ',', '.') }}</td>
                                 <td class="text-right text-warning">{{ number_format($area['toko_kuning'], 0, ',', '.') }}</td>
@@ -195,6 +243,9 @@
                     @endforeach
 
                     {{-- Region Subtotal --}}
+                    @php
+                        $regPct = $region['target_prorata'] > 0 ? ($region['total_achievement'] / $region['target_prorata']) * 100 : 0;
+                    @endphp
                     <tbody wire:key="sub-region-{{ $regionIndex }}" class="text-sm">
                         <tr class="bg-primary/10 text-primary font-bold border-b-[3px] border-primary/30">
                             <td colspan="3" class="text-right uppercase py-3">Subtotal Region {{ $region['name'] }}</td>
@@ -208,7 +259,7 @@
                             <td class="text-right font-mono text-[11px]">{{ number_format($region['total_target'], 0, ',', '.') }}</td>
                             <td class="text-right font-mono text-[11px] opacity-80">{{ number_format($region['target_prorata'], 0, ',', '.') }}</td>
                             <td class="text-right font-mono text-[11px] text-success">{{ number_format($region['total_achievement'], 0, ',', '.') }}</td>
-                            <td class="text-right font-bold text-[11px]">{{ $region['target_prorata'] > 0 ? number_format(($region['total_achievement'] / $region['target_prorata']) * 100, 1, ',', '.') : 0 }}%</td>
+                            <td class="text-right font-bold text-[11px]">{{ number_format($regPct, 1, ',', '.') }}%</td>
                             <td class="text-right">{{ number_format($region['toko_transaksi'], 0, ',', '.') }}</td>
                             <td class="text-right text-success">{{ number_format($region['toko_hijau'], 0, ',', '.') }}</td>
                             <td class="text-right text-warning">{{ number_format($region['toko_kuning'], 0, ',', '.') }}</td>
@@ -219,7 +270,7 @@
                 @empty
                     <tbody class="text-sm">
                         <tr>
-                            <td colspan="16" class="text-center py-8 text-base-content/50">
+                            <td colspan="18" class="text-center py-8 text-base-content/50">
                                 <x-heroicon-o-inbox class="w-12 h-12 mx-auto mb-3 opacity-30" />
                                 <p>Tidak ada data summary ditemukan dengan filter tersebut.</p>
                             </td>
@@ -229,8 +280,11 @@
                 @if(count($records) > 0)
                 @php
                     $recordsColl = collect($records);
+                    $grandTargetProrata = $recordsColl->sum('target_prorata');
+                    $grandAchievement = $recordsColl->sum('total_achievement');
+                    $grandPct = $grandTargetProrata > 0 ? ($grandAchievement / $grandTargetProrata) * 100 : 0;
                 @endphp
-                <tfoot class="bg-base-200/80 sticky bottom-0 z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] border-t border-base-300">
+                <tfoot class="bg-base-200/95 sticky bottom-0 z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] border-t border-base-300">
                     <tr class="font-bold text-[13px] text-base-content/90">
                         <td colspan="3" class="text-right uppercase py-4">Grand Total Nasional</td>
                         <td class="text-right">{{ number_format($recordsColl->sum('total_toko'), 0, ',', '.') }}</td>
@@ -241,9 +295,9 @@
                         <td class="text-right text-success">{{ number_format($recordsColl->sum('data_lengkap'), 0, ',', '.') }}</td>
                         <td class="text-right text-error">{{ number_format($recordsColl->sum('data_belum'), 0, ',', '.') }}</td>
                         <td class="text-right font-mono text-[11px]">{{ number_format($recordsColl->sum('total_target'), 0, ',', '.') }}</td>
-                        <td class="text-right font-mono text-[11px] opacity-80">{{ number_format($recordsColl->sum('target_prorata'), 0, ',', '.') }}</td>
-                        <td class="text-right font-mono text-[11px] text-success">{{ number_format($recordsColl->sum('total_achievement'), 0, ',', '.') }}</td>
-                        <td class="text-right font-bold text-[11px]">{{ $recordsColl->sum('target_prorata') > 0 ? number_format(($recordsColl->sum('total_achievement') / $recordsColl->sum('target_prorata')) * 100, 1, ',', '.') : 0 }}%</td>
+                        <td class="text-right font-mono text-[11px] opacity-80">{{ number_format($grandTargetProrata, 0, ',', '.') }}</td>
+                        <td class="text-right font-mono text-[11px] text-success">{{ number_format($grandAchievement, 0, ',', '.') }}</td>
+                        <td class="text-right font-bold text-[11px]">{{ number_format($grandPct, 1, ',', '.') }}%</td>
                         <td class="text-right">{{ number_format($recordsColl->sum('toko_transaksi'), 0, ',', '.') }}</td>
                         <td class="text-right text-success">{{ number_format($recordsColl->sum('toko_hijau'), 0, ',', '.') }}</td>
                         <td class="text-right text-warning">{{ number_format($recordsColl->sum('toko_kuning'), 0, ',', '.') }}</td>

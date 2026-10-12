@@ -2,7 +2,7 @@
 
 namespace App\Exports;
 
-use Illuminate\Support\Facades\DB;
+use App\Livewire\Rwo\PlanKunjungan;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -11,7 +11,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class PlanKunjunganExport implements FromCollection, WithHeadings, WithMapping, WithStyles
 {
-    protected $filters;
+    protected array $filters;
 
     public function __construct(array $filters)
     {
@@ -20,31 +20,8 @@ class PlanKunjunganExport implements FromCollection, WithHeadings, WithMapping, 
 
     public function collection()
     {
-        $query = DB::table('jks_team_elite as j')
-            ->leftJoin('list_toko_pareto_team_elite as l', function($join) {
-                $join->on('l.distributor_code', '=', 'j.distributor_code')
-                     ->on('l.customer_code_prc', '=', 'j.custno');
-            })
-            ->leftJoin('reward_outlet as r', 'r.eskalink_code', '=', 'j.custno')
-            ->where('l.pilar', '1. RWO');
-
-        if (!empty($this->filters['dateStart']) && !empty($this->filters['dateEnd'])) {
-            $query->whereBetween('j.tanggal', [$this->filters['dateStart'], $this->filters['dateEnd']]);
-        } elseif (!empty($this->filters['dateStart'])) {
-            $query->where('j.tanggal', '>=', $this->filters['dateStart']);
-        } elseif (!empty($this->filters['dateEnd'])) {
-            $query->where('j.tanggal', '<=', $this->filters['dateEnd']);
-        }
-
-        if (!empty($this->filters['selectedRegions'])) {
-            $query->whereIn('j.nama_region', $this->filters['selectedRegions']);
-        }
-        if (!empty($this->filters['selectedAreas'])) {
-            $query->whereIn('j.nama_area', $this->filters['selectedAreas']);
-        }
-        if (!empty($this->filters['selectedTeams'])) {
-            $query->whereIn('j.nama_team', $this->filters['selectedTeams']);
-        }
+        $query = PlanKunjungan::buildBaseQueryFromFilters($this->filters);
+        PlanKunjungan::applyQuickFilters($query, $this->filters);
 
         $query->select(
             'j.tanggal',
@@ -57,22 +34,25 @@ class PlanKunjunganExport implements FromCollection, WithHeadings, WithMapping, 
             'j.distributor_code',
             'j.distributor_name',
             'j.custno',
+            'l.uniq_kd',
             'j.custname',
             'j.addres',
+            'p.jenis_reward',
+            'skb.customer_code as skb_customer_code',
+            'skb.is_approved as skb_is_approved',
+            'skb.reason as skb_reason',
             'r.no_hp',
             'r.nama_pemilik_toko',
-            'r.nik_ktp',
-            'r.nama_ktp',
-            'r.foto_ktp',
-            'r.no_rekening',
-            'r.nama_pemilik_norek',
             'r.latitude',
             'r.longitude',
             'r.foto_toko2 as tampak_depan',
             'r.foto_toko3 as tampak_dalam'
         );
-        
-        $query->orderBy('j.tanggal', 'desc');
+
+        $query->orderBy('j.tanggal', 'desc')
+              ->orderBy('j.nama_region', 'asc')
+              ->orderBy('j.nama_area', 'asc')
+              ->orderBy('j.nama_team', 'asc');
 
         return $query->get();
     }
@@ -83,66 +63,85 @@ class PlanKunjunganExport implements FromCollection, WithHeadings, WithMapping, 
             'Tanggal',
             'Region',
             'Area',
+            'Distributor',
             'Nama Team',
-            'Cust No',
+            'Cust No (JKS)',
+            'Uniq KD',
             'Cust Name',
             'Alamat',
-            'Status Lengkap',
+            'Status SKB',
+            'Ket. Reject SKB',
+            'Status Data',
             'No HP',
             'Pemilik Toko',
-            'NIK KTP',
-            'Nama KTP',
-            'Foto KTP',
-            'No Rekening',
-            'Pemilik Rekening',
-            'Latitude',
-            'Longitude',
+            'Maps (Lat, Lon)',
             'Tampak Depan',
-            'Tampak Dalam'
+            'Tampak Dalam',
         ];
     }
 
     public function map($row): array
     {
-        $isLengkap = !empty($row->no_hp) && 
-                     !empty($row->nama_pemilik_toko) && 
-                     !empty($row->nik_ktp) && 
-                     !empty($row->nama_ktp) && 
-                     !empty($row->foto_ktp) && 
-                     !empty($row->no_rekening) && 
-                     !empty($row->nama_pemilik_norek) && 
-                     !empty($row->latitude) && 
-                     !empty($row->longitude) && 
-                     !empty($row->tampak_depan) && 
-                     !empty($row->tampak_dalam);
+        $noHp = trim((string) ($row->no_hp ?? ''));
+        $pemilik = trim((string) ($row->nama_pemilik_toko ?? ''));
+        $lat = trim((string) ($row->latitude ?? ''));
+        $lng = trim((string) ($row->longitude ?? ''));
+        $hasNoHp = $noHp !== '';
+        $hasPemilik = $pemilik !== '';
+        $hasMaps = $lat !== '' && $lng !== '';
+        $hasDepan = trim((string) ($row->tampak_depan ?? '')) !== '';
+        $hasDalam = trim((string) ($row->tampak_dalam ?? '')) !== '';
+
+        $filledCount = ($hasNoHp ? 1 : 0)
+                     + ($hasPemilik ? 1 : 0)
+                     + ($hasMaps ? 1 : 0)
+                     + ($hasDepan ? 1 : 0)
+                     + ($hasDalam ? 1 : 0);
+        $isLengkap = ($filledCount === 5);
+
+        $skbReason = '-';
+        if (($row->jenis_reward ?? 'CB') === 'BB') {
+            $statusSkb = 'Non-SKB (BB)';
+        } elseif (!empty($row->skb_customer_code)) {
+            if ($row->skb_is_approved === true) {
+                $statusSkb = 'Approved';
+            } elseif ($row->skb_is_approved === false) {
+                $statusSkb = 'Rejected';
+                $skbReason = trim((string) ($row->skb_reason ?? '')) ?: '-';
+            } else {
+                $statusSkb = 'Pending';
+            }
+        } else {
+            $statusSkb = 'Belum SKB';
+        }
 
         return [
             $row->tanggal ? \Carbon\Carbon::parse($row->tanggal)->format('d-m-Y') : '-',
-            $row->kode_region . ' - ' . $row->nama_region,
-            $row->kode_area . ' - ' . $row->nama_area,
+            trim(($row->kode_region ? $row->kode_region . ' - ' : '') . ($row->nama_region ?? '')),
+            trim(($row->kode_area ? $row->kode_area . ' - ' : '') . ($row->nama_area ?? '')),
+            trim(($row->distributor_code ? $row->distributor_code . ' - ' : '') . ($row->distributor_name ?? '')),
             $row->nama_team,
             $row->custno,
+            $row->uniq_kd ?: '-',
             $row->custname,
             $row->addres ?: '-',
-            $isLengkap ? 'Lengkap' : 'Belum',
-            !empty($row->no_hp) ? 'Sudah' : 'Belum',
-            !empty($row->nama_pemilik_toko) ? 'Sudah' : 'Belum',
-            !empty($row->nik_ktp) ? 'Sudah' : 'Belum',
-            !empty($row->nama_ktp) ? 'Sudah' : 'Belum',
-            !empty($row->foto_ktp) ? 'Sudah' : 'Belum',
-            !empty($row->no_rekening) ? 'Sudah' : 'Belum',
-            !empty($row->nama_pemilik_norek) ? 'Sudah' : 'Belum',
-            !empty($row->latitude) ? 'Sudah' : 'Belum',
-            !empty($row->longitude) ? 'Sudah' : 'Belum',
-            !empty($row->tampak_depan) ? 'Sudah' : 'Belum',
-            !empty($row->tampak_dalam) ? 'Sudah' : 'Belum'
+            $statusSkb,
+            $skbReason,
+            $isLengkap ? 'Lengkap (5/5)' : "Belum ({$filledCount}/5)",
+            $hasNoHp ? $noHp : 'Belum',
+            $hasPemilik ? $pemilik : 'Belum',
+            $hasMaps ? "{$lat}, {$lng}" : 'Belum',
+            $hasDepan ? 'Sudah' : 'Belum',
+            $hasDalam ? 'Sudah' : 'Belum',
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
         return [
-            1    => ['font' => ['bold' => true]],
+            1 => ['font' => ['bold' => true]],
         ];
     }
 }
+
+

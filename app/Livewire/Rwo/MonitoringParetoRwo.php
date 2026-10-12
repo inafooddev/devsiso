@@ -5,6 +5,7 @@ namespace App\Livewire\Rwo;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Title;
 use App\Exports\MonitoringOutletParetoExport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -22,8 +23,9 @@ class MonitoringParetoRwo extends Component
     public $filterArea = '';
     public $filterSupervisor = '';
     public $filterStatusVisit = '';
-    public $filterRewardPercent = '';
-    public $activeTab = 'detail'; // Hardcoded to detail view
+    public $filterJenisReward = ''; // '', 'CB', 'BB'
+    public $filterRewardPercent = ''; // '', '0.025', '0.020', '0.015', 'BB'
+    public $activeTab = 'detail';
     public $isFilterModalOpen = false;
 
     protected $queryString = [
@@ -34,96 +36,171 @@ class MonitoringParetoRwo extends Component
         'filterArea' => ['except' => ''],
         'filterSupervisor' => ['except' => ''],
         'filterStatusVisit' => ['except' => ''],
+        'filterJenisReward' => ['except' => ''],
         'filterRewardPercent' => ['except' => ''],
     ];
 
     public function mount()
     {
-        // Default date range to active month
         $this->startDate = date('Y-m-01');
         $this->endDate = date('Y-m-t');
+        $this->applyDefaultUserHierarchy();
+    }
 
+    private function getUserScopeCacheKey(): string
+    {
         $user = auth()->user();
-        if ($user && !$user->hasRole('admin')) {
-            // Auto-set Region
-            $regionQuery = DB::table('master_distributors')->select('region_code')->whereNotNull('region_code')->distinct();
-            if (!empty($user->supervisor_code)) {
-                $sisoCodes = DB::table('team_elite_code_mappings')
-                    ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$user->supervisor_code])
-                    ->pluck('siso_code')
-                    ->toArray();
-                if (!empty($sisoCodes)) {
-                    $regionQuery->whereIn('supervisor_code', $sisoCodes);
-                } else {
-                    $regionQuery->whereRaw('1 = 0');
-                }
-            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
-                $regionQuery->whereIn('area_code', $user->area_code);
-            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
-                $regionQuery->whereIn('region_code', $user->region_code);
+        if (!$user || $user->hasRole('admin')) {
+            return 'admin';
+        }
+        return 'u_' . $user->id;
+    }
+
+    private function getSupervisorSisoCodes(?string $teamEliteCode): array
+    {
+        if (empty($teamEliteCode)) {
+            return [];
+        }
+
+        $cacheKey = 'rwo_spv_siso_' . md5(trim($teamEliteCode));
+
+        return Cache::remember($cacheKey, 600, function () use ($teamEliteCode) {
+            return DB::table('team_elite_code_mappings')
+                ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$teamEliteCode])
+                ->pluck('siso_code')
+                ->map(fn($c) => trim((string) $c))
+                ->filter()
+                ->values()
+                ->toArray();
+        });
+    }
+
+    private function applyUserScopeToDistributorQuery($query, string $alias = '')
+    {
+        $user = auth()->user();
+        if (!$user || $user->hasRole('admin')) {
+            return $query;
+        }
+
+        $prefix = $alias ? $alias . '.' : '';
+
+        if (!empty($user->supervisor_code)) {
+            $sisoCodes = $this->getSupervisorSisoCodes($user->supervisor_code);
+            if (!empty($sisoCodes)) {
+                $query->whereIn($prefix . 'supervisor_code', $sisoCodes);
             } else {
-                $regionQuery->whereRaw('1 = 0');
+                $query->whereRaw('1 = 0');
             }
-            
-            $regions = $regionQuery->get();
-            if ($regions->count() === 1) {
-                $this->filterRegion = $regions->first()->region_code;
-                
-                // Auto-set Area
-                $areaQuery = DB::table('master_distributors')->select('area_code')->whereNotNull('area_code')->where('region_code', $this->filterRegion)->distinct();
-                if (!empty($user->supervisor_code)) {
-                    if (!empty($sisoCodes)) {
-                        $areaQuery->whereIn('supervisor_code', $sisoCodes);
-                    } else {
-                        $areaQuery->whereRaw('1 = 0');
-                    }
-                } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
-                    $areaQuery->whereIn('area_code', $user->area_code);
-                } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
-                    $areaQuery->whereIn('region_code', $user->region_code);
-                } else {
-                    $areaQuery->whereRaw('1 = 0');
-                }
+        } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
+            $query->whereIn($prefix . 'area_code', $user->area_code);
+        } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
+            $query->whereIn($prefix . 'region_code', $user->region_code);
+        } else {
+            $query->whereRaw('1 = 0');
+        }
 
-                $areas = $areaQuery->get();
-                if ($areas->count() === 1) {
-                    $this->filterArea = $areas->first()->area_code;
-                    
-                    // Auto-set Supervisor
-                    $spvQuery = DB::table('master_distributors as md')
-                        ->join('team_elite_code_mappings as t', 't.siso_code', '=', 'md.supervisor_code')
-                        ->select('t.team_elite_code as supervisor_code')
-                        ->where('md.area_code', $this->filterArea)
-                        ->distinct();
-                    
-                    if (!empty($user->supervisor_code)) {
-                        if (!empty($sisoCodes)) {
-                            $spvQuery->whereIn('md.supervisor_code', $sisoCodes);
-                        } else {
-                            $spvQuery->whereRaw('1 = 0');
-                        }
-                    } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
-                        $spvQuery->whereIn('md.area_code', $user->area_code);
-                    } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
-                        $spvQuery->whereIn('md.region_code', $user->region_code);
-                    } else {
-                        $spvQuery->whereRaw('1 = 0');
-                    }
+        return $query;
+    }
 
-                    $spvs = $spvQuery->get();
-                    if ($spvs->count() === 1) {
-                        $this->filterSupervisor = $spvs->first()->supervisor_code;
-                    }
+    private function applyDefaultUserHierarchy(): void
+    {
+        $user = auth()->user();
+        if (!$user || $user->hasRole('admin')) {
+            return;
+        }
+
+        $regionQuery = DB::table('master_distributors')->select('region_code')->whereNotNull('region_code')->distinct();
+        $this->applyUserScopeToDistributorQuery($regionQuery);
+        $regions = $regionQuery->get();
+
+        if ($regions->count() === 1) {
+            $this->filterRegion = $regions->first()->region_code;
+
+            $areaQuery = DB::table('master_distributors')
+                ->select('area_code')
+                ->whereNotNull('area_code')
+                ->where('region_code', $this->filterRegion)
+                ->distinct();
+            $this->applyUserScopeToDistributorQuery($areaQuery);
+            $areas = $areaQuery->get();
+
+            if ($areas->count() === 1) {
+                $this->filterArea = $areas->first()->area_code;
+
+                $spvQuery = DB::table('master_distributors as md')
+                    ->join('team_elite_code_mappings as t', 't.siso_code', '=', 'md.supervisor_code')
+                    ->select('t.team_elite_code as supervisor_code')
+                    ->where('md.area_code', $this->filterArea)
+                    ->distinct();
+                $this->applyUserScopeToDistributorQuery($spvQuery, 'md');
+                $spvs = $spvQuery->get();
+
+                if ($spvs->count() === 1) {
+                    $this->filterSupervisor = $spvs->first()->supervisor_code;
                 }
             }
         }
     }
 
     public function updatingSearch() { $this->resetPage(); }
-    public function updatingStartDate() { $this->resetPage(); }
-    public function updatingEndDate() { $this->resetPage(); }
     public function updatingFilterStatusVisit() { $this->resetPage(); }
-    public function updatingFilterRewardPercent() { $this->resetPage(); }
+
+    public function updatedStartDate()
+    {
+        if (!empty($this->startDate) && !empty($this->endDate) && $this->startDate > $this->endDate) {
+            $this->endDate = $this->startDate;
+        }
+        $this->resetPage();
+    }
+
+    public function updatedEndDate()
+    {
+        if (!empty($this->startDate) && !empty($this->endDate) && $this->endDate < $this->startDate) {
+            $this->startDate = $this->endDate;
+        }
+        $this->resetPage();
+    }
+
+    public function toggleJenisReward(string $value): void
+    {
+        $newVal = ($this->filterJenisReward === $value) ? '' : $value;
+        $this->filterJenisReward = $newVal;
+        $this->updatedFilterJenisReward($newVal);
+    }
+
+    public function toggleStatusVisit(string $value): void
+    {
+        $this->filterStatusVisit = ($this->filterStatusVisit === $value) ? '' : $value;
+        $this->resetPage();
+    }
+
+    public function clearQuickFilters(): void
+    {
+        $this->filterJenisReward = '';
+        $this->filterRewardPercent = '';
+        $this->filterStatusVisit = '';
+        $this->resetPage();
+    }
+
+    public function updatedFilterJenisReward($value)
+    {
+        if ($value === 'BB' && in_array($this->filterRewardPercent, ['0.025', '0.020', '0.015'])) {
+            $this->filterRewardPercent = '';
+        } elseif ($value === 'CB' && $this->filterRewardPercent === 'BB') {
+            $this->filterRewardPercent = '';
+        }
+        $this->resetPage();
+    }
+
+    public function updatedFilterRewardPercent($value)
+    {
+        if ($value === 'BB') {
+            $this->filterJenisReward = 'BB';
+        } elseif (in_array($value, ['0.025', '0.020', '0.015']) && $this->filterJenisReward === 'BB') {
+            $this->filterJenisReward = 'CB';
+        }
+        $this->resetPage();
+    }
 
     public function updatingFilterRegion()
     {
@@ -160,36 +237,17 @@ class MonitoringParetoRwo extends Component
 
     public function resetFilter()
     {
-        $this->reset(['filterRegion', 'filterArea', 'filterSupervisor', 'filterStatusVisit', 'filterRewardPercent']);
+        $this->reset([
+            'search',
+            'filterRegion',
+            'filterArea',
+            'filterSupervisor',
+            'filterStatusVisit',
+            'filterJenisReward',
+            'filterRewardPercent',
+        ]);
 
-        $user = auth()->user();
-        if ($user && !$user->hasRole('admin')) {
-            $regions = DB::table('master_regions')->select('region_code');
-            if (!empty($user->supervisor_code)) {
-                $regions->whereExists(function ($sub) use ($user) {
-                    $sub->selectRaw('1')
-                        ->from('team_elite_code_mappings as tecm')
-                        ->whereColumn('tecm.region_code', 'master_regions.region_code')
-                        ->where('tecm.team_elite_code', $user->supervisor_code);
-                });
-            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
-                $regions->whereExists(function ($sub) use ($user) {
-                    $sub->selectRaw('1')
-                        ->from('team_elite_code_mappings as tecm')
-                        ->whereColumn('tecm.region_code', 'master_regions.region_code')
-                        ->whereIn('tecm.area_code', $user->area_code);
-                });
-            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
-                $regions->whereIn('region_code', $user->region_code);
-            } else {
-                $regions->whereRaw('1 = 0');
-            }
-            $regions = $regions->get();
-            if ($regions->count() === 1) {
-                $this->filterRegion = $regions->first()->region_code;
-            }
-        }
-
+        $this->applyDefaultUserHierarchy();
         $this->isFilterModalOpen = false;
         $this->resetPage();
     }
@@ -211,16 +269,12 @@ class MonitoringParetoRwo extends Component
         // Permissions check
         if ($user && !$user->hasRole('admin')) {
             if (!empty($user->supervisor_code)) {
-                $sisoCodes = DB::table('team_elite_code_mappings')
-                    ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$user->supervisor_code])
-                    ->pluck('siso_code')
-                    ->toArray();
-                
+                $sisoCodes = $this->getSupervisorSisoCodes($user->supervisor_code);
                 if (!empty($sisoCodes)) {
                     $placeholders = implode(',', array_fill(0, count($sisoCodes), '?'));
                     $whereClauses[] = "md.supervisor_code IN ($placeholders)";
                     foreach ($sisoCodes as $code) {
-                        $bindings[] = trim($code);
+                        $bindings[] = $code;
                     }
                 } else {
                     $whereClauses[] = "1 = 0";
@@ -258,37 +312,50 @@ class MonitoringParetoRwo extends Component
 
         // Supervisor Filter
         if ($this->filterSupervisor) {
-            $sisoCodes = DB::table('team_elite_code_mappings')
-                ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$this->filterSupervisor])
-                ->pluck('siso_code')
-                ->toArray();
-            
+            $sisoCodes = $this->getSupervisorSisoCodes($this->filterSupervisor);
             if (!empty($sisoCodes)) {
                 $placeholders = implode(',', array_fill(0, count($sisoCodes), '?'));
                 $whereClauses[] = "md.supervisor_code IN ($placeholders)";
                 foreach ($sisoCodes as $code) {
-                    $bindings[] = trim($code);
+                    $bindings[] = $code;
                 }
             } else {
                 $whereClauses[] = "1 = 0";
             }
         }
 
-        // Reward Percent Filter
+        // Jenis Reward Filter ('CB' or 'BB')
+        if ($this->filterJenisReward === 'CB') {
+            $whereClauses[] = "COALESCE(rwo.jenis_reward, 'CB') = 'CB'";
+        } elseif ($this->filterJenisReward === 'BB') {
+            $whereClauses[] = "COALESCE(rwo.jenis_reward, 'CB') = 'BB'";
+        }
+
+        // Reward Percent / Tier Filter
         if ($this->filterRewardPercent) {
-            if ($this->filterRewardPercent == '0.025') {
-                $whereClauses[] = "rwo.total_target >= 90000000";
-            } elseif ($this->filterRewardPercent == '0.020') {
-                $whereClauses[] = "(rwo.total_target >= 30000000 AND rwo.total_target < 90000000)";
-            } elseif ($this->filterRewardPercent == '0.015') {
-                $whereClauses[] = "(rwo.total_target < 30000000 OR rwo.total_target IS NULL)";
+            if ($this->filterRewardPercent === '0.025') {
+                $whereClauses[] = "COALESCE(rwo.jenis_reward, 'CB') = 'CB' AND rwo.total_target >= 90000000";
+            } elseif ($this->filterRewardPercent === '0.020') {
+                $whereClauses[] = "COALESCE(rwo.jenis_reward, 'CB') = 'CB' AND (rwo.total_target >= 30000000 AND rwo.total_target < 90000000)";
+            } elseif ($this->filterRewardPercent === '0.015') {
+                $whereClauses[] = "COALESCE(rwo.jenis_reward, 'CB') = 'CB' AND (rwo.total_target < 30000000 OR rwo.total_target IS NULL)";
+            } elseif ($this->filterRewardPercent === 'BB') {
+                $whereClauses[] = "COALESCE(rwo.jenis_reward, 'CB') = 'BB'";
             }
         }
 
+        // Status Visit Filter ('Y' or 'N')
+        if ($this->filterStatusVisit === 'Y') {
+            $whereClauses[] = "(COALESCE(v.visit_region, 0) > 0 OR COALESCE(v.visit_area, 0) > 0 OR COALESCE(v.visit_supervisor, 0) > 0)";
+        } elseif ($this->filterStatusVisit === 'N') {
+            $whereClauses[] = "(COALESCE(v.visit_region, 0) = 0 AND COALESCE(v.visit_area, 0) = 0 AND COALESCE(v.visit_supervisor, 0) = 0)";
+        }
+
         // Search Filter
-        if ($this->search) {
-            $whereClauses[] = "(l.customer_code_prc ILIKE ? OR l.customer_name ILIKE ? OR md.distributor_name ILIKE ? OR f.\"SLSNAME\" ILIKE ?)";
-            $searchTerm = '%' . $this->search . '%';
+        if (trim((string) $this->search) !== '') {
+            $whereClauses[] = "(l.customer_code_prc ILIKE ? OR l.uniq_kd ILIKE ? OR l.customer_name ILIKE ? OR md.distributor_name ILIKE ? OR spv.supervisor_name ILIKE ?)";
+            $searchTerm = '%' . trim((string) $this->search) . '%';
+            $bindings[] = $searchTerm;
             $bindings[] = $searchTerm;
             $bindings[] = $searchTerm;
             $bindings[] = $searchTerm;
@@ -300,121 +367,99 @@ class MonitoringParetoRwo extends Component
             $whereSql = ' AND ' . implode(' AND ', $whereClauses);
         }
 
-        // Having clauses for status visit filter
-        $havingClauses = [];
-        if ($this->filterStatusVisit) {
-            $havingClauses[] = "(
-                CASE
-                    WHEN COUNT(CASE WHEN v.level = 'region' THEN 1 END) > 0
-                      OR COUNT(CASE WHEN v.level = 'area' THEN 1 END) > 0
-                      OR COUNT(CASE WHEN v.level = 'supervisor' THEN 1 END) > 0
-                    THEN 'Y'
-                    ELSE 'N'
-                END
-            ) = ?";
-            $bindings[] = $this->filterStatusVisit;
-        }
-
-        $havingSql = '';
-        if (count($havingClauses) > 0) {
-            $havingSql = ' HAVING ' . implode(' AND ', $havingClauses);
-        }
-
         $rawSql = "
             WITH visit_data AS (
                 SELECT
                     z.custno,
-                    LOWER(z.\"level\") AS level
+                    MAX(CASE WHEN LOWER(z.\"level\") = 'region' THEN 1 ELSE 0 END) AS visit_region,
+                    COUNT(CASE WHEN LOWER(z.\"level\") = 'region' THEN 1 END) AS count_region,
+                    MAX(CASE WHEN LOWER(z.\"level\") = 'region' THEN z.tanggal END) AS last_visit_region,
+                    MAX(CASE WHEN LOWER(z.\"level\") = 'area' THEN 1 ELSE 0 END) AS visit_area,
+                    COUNT(CASE WHEN LOWER(z.\"level\") = 'area' THEN 1 END) AS count_area,
+                    MAX(CASE WHEN LOWER(z.\"level\") = 'area' THEN z.tanggal END) AS last_visit_area,
+                    MAX(CASE WHEN LOWER(z.\"level\") = 'supervisor' THEN 1 ELSE 0 END) AS visit_supervisor,
+                    COUNT(CASE WHEN LOWER(z.\"level\") = 'supervisor' THEN 1 END) AS count_supervisor,
+                    MAX(CASE WHEN LOWER(z.\"level\") = 'supervisor' THEN z.tanggal END) AS last_visit_supervisor
                 FROM zv_summary_visit_team_elite z
                 WHERE z.status_visit = 'Y'
-                  AND z.tanggal BETWEEN ? and ?
+                  AND z.tanggal BETWEEN ? AND ?
+                GROUP BY z.custno
+            ),
+            potensi_rwo AS (
+                SELECT DISTINCT ON (customer_code)
+                    customer_code,
+                    distributor_code,
+                    total_target,
+                    COALESCE(NULLIF(TRIM(jenis_reward), ''), 'CB') AS jenis_reward
+                FROM list_potensi_rwo
+                WHERE kuartal = ?
+                  AND customer_code IS NOT NULL
+                ORDER BY customer_code, id DESC
+            ),
+            spv_map AS (
+                SELECT DISTINCT ON (TRIM(t.siso_code))
+                    TRIM(t.siso_code) AS siso_code,
+                    t.team_elite_code AS supervisor_code,
+                    UPPER(f.\"SLSNAME\") AS supervisor_name
+                FROM team_elite_code_mappings t
+                LEFT JOIN fsalesman f
+                    ON TRIM(t.team_elite_code) = TRIM(f.\"SLSNO\")
+                WHERE t.siso_code IS NOT NULL AND TRIM(t.siso_code) != ''
+                ORDER BY TRIM(t.siso_code)
             )
-
             SELECT
                 md.region_code,
                 md.region_name,
                 md.area_code,
                 md.area_name,
-                t.team_elite_code AS supervisor_code,
-                UPPER(f.\"SLSNAME\") AS supervisor_name,
+                spv.supervisor_code,
+                spv.supervisor_name,
                 l.distributor_code,
                 md.distributor_name,
                 l.customer_code_prc AS customer_code,
                 l.uniq_kd,
                 l.customer_name,
                 l.pilar,
-                COALESCE(
-                    CASE
-                        WHEN rwo.total_target >= 90000000 THEN 0.025
-                        WHEN rwo.total_target >= 30000000 THEN 0.020
-                        ELSE 0.015
-                    END,
-                    0.015
-                ) AS reward_percent,
-
+                COALESCE(rwo.jenis_reward, 'CB') AS jenis_reward,
+                COALESCE(rwo.total_target, 0) AS total_target,
                 CASE
-                    WHEN COUNT(CASE WHEN v.level = 'region' THEN 1 END) > 0
-                    THEN 1
-                    ELSE 0
-                END AS visit_region,
-
+                    WHEN COALESCE(rwo.jenis_reward, 'CB') = 'BB' THEN 0
+                    WHEN rwo.total_target >= 90000000 THEN 0.025
+                    WHEN rwo.total_target >= 30000000 THEN 0.020
+                    ELSE 0.015
+                END AS reward_percent,
                 CASE
-                    WHEN COUNT(CASE WHEN v.level = 'area' THEN 1 END) > 0
-                    THEN 1
-                    ELSE 0
-                END AS visit_area,
-
+                    WHEN rwo.total_target >= 90000000 THEN 'RSM'
+                    WHEN rwo.total_target >= 30000000 THEN 'ASM'
+                    ELSE 'SPV'
+                END AS pic,
+                COALESCE(v.visit_region, 0) AS visit_region,
+                COALESCE(v.count_region, 0) AS count_region,
+                v.last_visit_region,
+                COALESCE(v.visit_area, 0) AS visit_area,
+                COALESCE(v.count_area, 0) AS count_area,
+                v.last_visit_area,
+                COALESCE(v.visit_supervisor, 0) AS visit_supervisor,
+                COALESCE(v.count_supervisor, 0) AS count_supervisor,
+                v.last_visit_supervisor,
                 CASE
-                    WHEN COUNT(CASE WHEN v.level = 'supervisor' THEN 1 END) > 0
-                    THEN 1
-                    ELSE 0
-                END AS visit_supervisor,
-
-                CASE
-                    WHEN COUNT(CASE WHEN v.level = 'region' THEN 1 END) > 0
-                      OR COUNT(CASE WHEN v.level = 'area' THEN 1 END) > 0
-                      OR COUNT(CASE WHEN v.level = 'supervisor' THEN 1 END) > 0
+                    WHEN COALESCE(v.visit_region, 0) > 0
+                      OR COALESCE(v.visit_area, 0) > 0
+                      OR COALESCE(v.visit_supervisor, 0) > 0
                     THEN 'Y'
                     ELSE 'N'
                 END AS status_visit
-
             FROM list_toko_pareto_team_elite l
-
             LEFT JOIN master_distributors md
                 ON l.distributor_code = md.distributor_code
-
-            LEFT JOIN team_elite_code_mappings t
-                ON TRIM(t.siso_code) = TRIM(md.supervisor_code)
-
-            LEFT JOIN fsalesman f
-                ON TRIM(t.team_elite_code) = TRIM(f.\"SLSNO\")
-
+            LEFT JOIN spv_map spv
+                ON spv.siso_code = TRIM(md.supervisor_code)
             LEFT JOIN visit_data v
                 ON l.customer_code_prc = v.custno
-
-            LEFT JOIN list_potensi_rwo rwo
+            LEFT JOIN potensi_rwo rwo
                 ON l.uniq_kd = rwo.customer_code
-                AND l.distributor_code = rwo.distributor_code
-                AND rwo.kuartal = ?
-
             WHERE l.pilar = '1. RWO'
               {$whereSql}
-
-            GROUP BY
-                md.region_code,
-                md.region_name,
-                md.area_code,
-                md.area_name,
-                t.team_elite_code,
-                f.\"SLSNAME\",
-                l.distributor_code,
-                md.distributor_name,
-                l.customer_code_prc,
-                l.uniq_kd,
-                l.customer_name,
-                l.pilar,
-                rwo.total_target
-            {$havingSql}
         ";
 
         return [$rawSql, $bindings];
@@ -423,144 +468,89 @@ class MonitoringParetoRwo extends Component
     public function export()
     {
         list($rawSql, $bindings) = $this->buildQueryAndBindings();
-        
+
         $finalQuerySql = $rawSql . " ORDER BY md.region_name ASC, md.area_name ASC, md.distributor_name ASC, l.customer_name ASC";
         $items = DB::select($finalQuerySql, $bindings);
 
         \App\Helpers\ActivityLogger::log('Export Monitoring Visit RWO', "Mengekspor rincian Monitoring Visit RWO dari {$this->startDate} s/d {$this->endDate}.");
 
         return Excel::download(
-            new MonitoringOutletParetoExport($items, 'detail'), // Force detail template
+            new MonitoringOutletParetoExport($items, 'rwo_detail'),
             'Monitoring_Visit_RWO_' . $this->startDate . '_to_' . $this->endDate . '.xlsx'
         );
     }
 
     public function render()
     {
-        $user = auth()->user();
+        $scopeKey = $this->getUserScopeCacheKey();
 
-        // 1. Regions
-        $regionQuery = DB::table('master_distributors')
-            ->select('region_code', 'region_name')
-            ->whereNotNull('region_code')
-            ->distinct();
-        if ($user && !$user->hasRole('admin')) {
-            if (!empty($user->supervisor_code)) {
-                $sisoCodes = DB::table('team_elite_code_mappings')
-                    ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$user->supervisor_code])
-                    ->pluck('siso_code')
-                    ->toArray();
+        // 1. Regions (cached 10m per user scope)
+        $regions = Cache::remember('rwo_mon_regions_' . $scopeKey, 600, function () {
+            $regionQuery = DB::table('master_distributors')
+                ->select('region_code', 'region_name')
+                ->whereNotNull('region_code')
+                ->distinct();
+            $this->applyUserScopeToDistributorQuery($regionQuery);
+            return $regionQuery->orderBy('region_name')->get();
+        });
 
-                if (!empty($sisoCodes)) {
-                    $regionQuery->whereIn('supervisor_code', $sisoCodes);
-                } else {
-                    $regionQuery->whereRaw('1 = 0');
-                }
-            } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
-                $regionQuery->whereIn('area_code', $user->area_code);
-            } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
-                $regionQuery->whereIn('region_code', $user->region_code);
-            } else {
-                $regionQuery->whereRaw('1 = 0');
-            }
-        }
-        $regions = $regionQuery->orderBy('region_name')->get();
-
-        // 2. Areas
+        // 2. Areas (cached 10m per user scope + region)
         $areas = [];
         if ($this->filterRegion) {
-            $areaQuery = DB::table('master_distributors')
-                ->select('area_code', 'area_name')
-                ->where('region_code', $this->filterRegion)
-                ->whereNotNull('area_code')
-                ->distinct();
-            if ($user && !$user->hasRole('admin')) {
-                if (!empty($user->supervisor_code)) {
-                    $sisoCodes = DB::table('team_elite_code_mappings')
-                        ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$user->supervisor_code])
-                        ->pluck('siso_code')
-                        ->toArray();
-
-                    if (!empty($sisoCodes)) {
-                        $areaQuery->whereIn('supervisor_code', $sisoCodes);
-                    } else {
-                        $areaQuery->whereRaw('1 = 0');
-                    }
-                } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
-                    $areaQuery->whereIn('area_code', $user->area_code);
-                } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
-                    $areaQuery->whereIn('region_code', $user->region_code);
-                } else {
-                    $areaQuery->whereRaw('1 = 0');
-                }
-            }
-            $areas = $areaQuery->orderBy('area_name')->get();
+            $areas = Cache::remember('rwo_mon_areas_' . $scopeKey . '_' . $this->filterRegion, 600, function () {
+                $areaQuery = DB::table('master_distributors')
+                    ->select('area_code', 'area_name')
+                    ->where('region_code', $this->filterRegion)
+                    ->whereNotNull('area_code')
+                    ->distinct();
+                $this->applyUserScopeToDistributorQuery($areaQuery);
+                return $areaQuery->orderBy('area_name')->get();
+            });
         }
 
-        // 3. Supervisors
+        // 3. Supervisors (cached 10m per user scope + area)
         $supervisors = [];
         if ($this->filterArea) {
-            $spvQuery = DB::table('master_distributors as md')
-                ->join('team_elite_code_mappings as t', 't.siso_code', '=', 'md.supervisor_code')
-                ->join('fsalesman as f', 't.team_elite_code', '=', 'f.SLSNO')
-                ->select('t.team_elite_code as supervisor_code', 'f.SLSNAME as supervisor_name')
-                ->where('md.area_code', $this->filterArea)
-                ->distinct();
-            if ($user && !$user->hasRole('admin')) {
-                if (!empty($user->supervisor_code)) {
-                    $sisoCodes = DB::table('team_elite_code_mappings')
-                        ->whereRaw("TRIM(team_elite_code) = TRIM(?)", [$user->supervisor_code])
-                        ->pluck('siso_code')
-                        ->toArray();
-
-                    if (!empty($sisoCodes)) {
-                        $spvQuery->whereIn('md.supervisor_code', $sisoCodes);
-                    } else {
-                        $spvQuery->whereRaw('1 = 0');
-                    }
-                } elseif (!empty($user->area_code) && is_array($user->area_code) && count($user->area_code) > 0) {
-                    $spvQuery->whereIn('md.area_code', $user->area_code);
-                } elseif (!empty($user->region_code) && is_array($user->region_code) && count($user->region_code) > 0) {
-                    $spvQuery->whereIn('md.region_code', $user->region_code);
-                } else {
-                    $spvQuery->whereRaw('1 = 0');
-                }
-            }
-            $supervisors = $spvQuery->orderBy('f.SLSNAME')->get();
+            $supervisors = Cache::remember('rwo_mon_spvs_' . $scopeKey . '_' . $this->filterArea, 600, function () {
+                $spvQuery = DB::table('master_distributors as md')
+                    ->join('team_elite_code_mappings as t', 't.siso_code', '=', 'md.supervisor_code')
+                    ->join('fsalesman as f', 't.team_elite_code', '=', 'f.SLSNO')
+                    ->select('t.team_elite_code as supervisor_code', 'f.SLSNAME as supervisor_name')
+                    ->where('md.area_code', $this->filterArea)
+                    ->distinct();
+                $this->applyUserScopeToDistributorQuery($spvQuery, 'md');
+                return $spvQuery->orderBy('f.SLSNAME')->get();
+            });
         }
 
         list($rawSql, $bindings) = $this->buildQueryAndBindings();
 
-        // KPI calculation strictly for 1. RWO
-        $kpiBindings = $bindings;
+        // Single KPI + Total Count calculation strictly for 1. RWO
         $kpiSql = "
             SELECT
                 COUNT(*) as total_outlets,
-                SUM(CASE WHEN status_visit = 'Y' THEN 1 ELSE 0 END) as visited_outlets,
-                SUM(visit_region) as total_visit_region,
-                SUM(visit_area) as total_visit_area,
-                SUM(visit_supervisor) as total_visit_supervisor
+                COUNT(CASE WHEN jenis_reward = 'CB' THEN 1 END) as total_cb,
+                COUNT(CASE WHEN jenis_reward = 'BB' THEN 1 END) as total_bb,
+                COALESCE(SUM(CASE WHEN status_visit = 'Y' THEN 1 ELSE 0 END), 0) as visited_outlets,
+                COALESCE(SUM(CASE WHEN status_visit = 'N' THEN 1 ELSE 0 END), 0) as unvisited_outlets,
+                COALESCE(SUM(visit_region), 0) as total_visit_region,
+                COALESCE(SUM(visit_area), 0) as total_visit_area,
+                COALESCE(SUM(visit_supervisor), 0) as total_visit_supervisor
             FROM (
                 {$rawSql}
             ) as sub
         ";
-        $kpi = DB::selectOne($kpiSql, $kpiBindings);
+        $kpi = DB::selectOne($kpiSql, $bindings);
 
-        // Fetch detail paginated data
-        $finalSql = $rawSql;
-        $orderBySql = " ORDER BY md.region_name ASC, md.area_name ASC, md.distributor_name ASC, l.customer_name ASC";
-        
-        $countSql = "SELECT COUNT(*) as total FROM ({$finalSql}) as total_sub";
-        $totalItems = DB::selectOne($countSql, $bindings)->total;
-
+        $totalItems = (int) ($kpi->total_outlets ?? 0);
         $perPage = 100;
         $page = $this->getPage();
 
-        $paginatedSql = $finalSql . $orderBySql . " LIMIT ? OFFSET ?";
-        $bindings[] = $perPage;
-        $bindings[] = ($page - 1) * $perPage;
+        $orderBySql = " ORDER BY md.region_name ASC, md.area_name ASC, md.distributor_name ASC, l.customer_name ASC";
+        $paginatedSql = $rawSql . $orderBySql . " LIMIT ? OFFSET ?";
+        $pageBindings = array_merge($bindings, [$perPage, ($page - 1) * $perPage]);
 
-        $items = DB::select($paginatedSql, $bindings);
+        $items = DB::select($paginatedSql, $pageBindings);
 
         $data = new \Illuminate\Pagination\LengthAwarePaginator(
             $items,
@@ -575,7 +565,8 @@ class MonitoringParetoRwo extends Component
             'regions' => $regions,
             'areas' => $areas,
             'supervisors' => $supervisors,
-            'kpi' => $kpi
+            'kpi' => $kpi,
         ])->layout('layouts.app');
     }
 }
+

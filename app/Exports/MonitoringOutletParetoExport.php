@@ -45,6 +45,30 @@ class MonitoringOutletParetoExport implements FromArray, WithHeadings, WithMappi
             ];
         }
 
+        if ($this->type === 'rwo_detail') {
+            return [
+                'Region Code',
+                'Region Name',
+                'Area Code',
+                'Area Name',
+                'Supervisor Code',
+                'Supervisor Name',
+                'Distributor Code',
+                'Distributor Name',
+                'Customer Code',
+                'Uniq KD',
+                'Customer Name',
+                'Pilar',
+                'Jenis Reward',
+                'Reward',
+                'PIC',
+                'RSM (Visit Region)',
+                'ASM (Visit Area)',
+                'SPV (Visit Supervisor)',
+                'Status Visit',
+            ];
+        }
+
         return [
             'Region Code',
             'Region Name',
@@ -93,6 +117,38 @@ class MonitoringOutletParetoExport implements FromArray, WithHeadings, WithMappi
             ];
         }
 
+        if ($this->type === 'rwo_detail') {
+            $jenisReward = $row->jenis_reward ?? 'CB';
+            if ($jenisReward === 'BB') {
+                $rewardLabel = '1 KTN';
+            } else {
+                $pct = (float) ($row->reward_percent ?? 0.015);
+                $rewardLabel = rtrim(rtrim(number_format($pct * 100, 2, ',', '.'), '0'), ',') . '%';
+            }
+
+            return [
+                $row->region_code,
+                $row->region_name,
+                $row->area_code,
+                $row->area_name,
+                $row->supervisor_code,
+                $row->supervisor_name,
+                $row->distributor_code,
+                $row->distributor_name,
+                $row->customer_code,
+                $row->uniq_kd,
+                $row->customer_name,
+                $row->pilar,
+                $jenisReward,
+                $rewardLabel,
+                $row->pic ?? 'SPV',
+                $row->visit_region,
+                $row->visit_area,
+                $row->visit_supervisor,
+                $row->status_visit,
+            ];
+        }
+
         return [
             $row->region_code,
             $row->region_name,
@@ -113,3 +169,4 @@ class MonitoringOutletParetoExport implements FromArray, WithHeadings, WithMappi
         ];
     }
 }
+
