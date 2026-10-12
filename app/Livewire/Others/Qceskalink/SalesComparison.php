@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use App\Imports\SellingOutEskalinkImport;
+use App\Exports\SalesComparisonExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 use Livewire\WithFileUploads;
@@ -21,16 +22,20 @@ class SalesComparison extends Component
 
     protected $paginationTheme = 'tailwind';
 
-    // Filters
+    // Inline Filters
+    public $search = '';
     public $monthFilter;
-    public $regionsFilter = [];
-    public $implementasiFilter = 'ALL'; 
-    public $statusFilter = 'ALL'; // New filter: ALL, OK, NOT_OK
+    public $regionFilter = '';
+    public $implementasiFilter = 'ALL'; // ALL, Y (Sudah Tarik), N (Belum Tarik)
+    public $statusFilter = 'ALL';       // ALL, OK, NOT_OK
+
+    // Sorting
+    public $sortField = 'region_name';
+    public $sortDirection = 'asc';
 
     // UI States
-    public $isFilterModalOpen = false;
     public $isImportModalOpen = false;
-    public $isFiltered = false;
+    public $isFiltered = true;
 
     // Import
     public $importFile;
@@ -41,16 +46,14 @@ class SalesComparison extends Component
     // Summary data
     public $summary = null;
 
-    protected $queryString = ['isFiltered'];
-
     /**
      * Helper to filter Query based on user region access.
      */
     private function applyRegionAccess($query, $column = 'region_code')
     {
         $user = auth()->user();
-        if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereIn($column, $user->region_code);
+        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
+            $query->whereIn($column, (array) $user->region_code);
         }
         return $query;
     }
@@ -58,10 +61,11 @@ class SalesComparison extends Component
     public function mount()
     {
         $this->monthFilter = Carbon::now()->subMonth()->format('Y-m');
+        $this->regionFilter = '';
         $this->implementasiFilter = 'ALL';
         $this->statusFilter = 'ALL';
 
-        // Load Region Awal dengan Proteksi
+        // Load Region Options dengan Proteksi Akses
         $query = DB::table('master_distributors')
             ->select('region_code', 'region_name')
             ->where('is_active', true)
@@ -70,73 +74,79 @@ class SalesComparison extends Component
 
         $this->applyRegionAccess($query);
         $this->regionsOption = $query->orderBy('region_name')->get();
-
-        // Auto select all regions and auto load data by default
-        $this->regionsFilter = $this->regionsOption->pluck('region_code')->toArray();
-        $this->isFiltered = true;
-
-        // Restore filters from session
-        if (session()->has('sales_comparison_filters')) {
-            $filters = session()->get('sales_comparison_filters');
-            $this->monthFilter = $filters['monthFilter'] ?? $this->monthFilter;
-            $this->regionsFilter = $filters['regionsFilter'] ?? $this->regionsFilter;
-            $this->implementasiFilter = $filters['implementasiFilter'] ?? $this->implementasiFilter;
-            $this->statusFilter = $filters['statusFilter'] ?? $this->statusFilter;
-            $this->isFiltered = $filters['isFiltered'] ?? $this->isFiltered;
-        }
     }
 
-    public function selectAllRegions()
+    public function updatingSearch()
     {
-        $this->regionsFilter = collect($this->regionsOption)->pluck('region_code')->toArray();
-    }
-
-    public function applyFilters()
-    {
-        $this->validate([
-            'monthFilter'        => 'required',
-            'regionsFilter'      => 'required|array|min:1',
-            'implementasiFilter' => 'required|in:Y,N,ALL', 
-            'statusFilter'       => 'required|in:OK,NOT_OK,ALL',
-        ]);
-
-        $user = auth()->user();
-        if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            $unauthorizedRegions = array_diff($this->regionsFilter, $user->region_code);
-            if (!empty($unauthorizedRegions)) {
-                session()->flash('error', 'Anda tidak memiliki otoritas untuk memfilter beberapa wilayah yang dipilih.');
-                return;
-            }
-        }
-
-        $this->isFiltered = true;
-        $this->isFilterModalOpen = false;
         $this->resetPage();
-        $this->saveFiltersToSession();
+    }
+
+    public function updatingMonthFilter()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingRegionFilter()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingImplementasiFilter()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingStatusFilter()
+    {
+        $this->resetPage();
+    }
+
+    public function sortBy($field)
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            // Untuk kolom angka/selisih, default klik pertama adalah desc (nilai terbesar di atas)
+            $numericFields = ['qty_pcs', 'ld4', 'bb', 'net_eska', 'net_siso', 'selisih'];
+            $this->sortDirection = in_array($field, $numericFields) ? 'desc' : 'asc';
+        }
+        $this->resetPage();
+    }
+
+    public function quickFilter($implementasi = 'ALL', $status = 'ALL')
+    {
+        $this->implementasiFilter = $implementasi;
+        $this->statusFilter = $status;
+        $this->resetPage();
     }
 
     public function resetFilters()
     {
-        $this->reset(['monthFilter', 'regionsFilter', 'implementasiFilter', 'statusFilter', 'isFiltered']);
-        $this->monthFilter = Carbon::now()->subMonth()->format('Y-m');
+        $this->search = '';
+        $this->regionFilter = '';
         $this->implementasiFilter = 'ALL';
         $this->statusFilter = 'ALL';
-        session()->forget('sales_comparison_filters');
-
-        // Reset to all available regions and auto load
-        $this->regionsFilter = $this->regionsOption->pluck('region_code')->toArray();
-        $this->isFiltered = true;
+        $this->sortField = 'region_name';
+        $this->sortDirection = 'asc';
+        $this->resetPage();
     }
 
-    protected function saveFiltersToSession()
+    public function export()
     {
-        session()->put('sales_comparison_filters', [
-            'monthFilter' => $this->monthFilter,
-            'regionsFilter' => $this->regionsFilter,
-            'implementasiFilter' => $this->implementasiFilter,
-            'statusFilter' => $this->statusFilter,
-            'isFiltered' => $this->isFiltered,
-        ]);
+        $fileName = 'Sales_Comparison_' . $this->monthFilter . '_' . date('Ymd_His') . '.xlsx';
+        return Excel::download(
+            new SalesComparisonExport(
+                $this->monthFilter,
+                $this->regionFilter,
+                $this->implementasiFilter,
+                $this->statusFilter,
+                $this->search,
+                $this->sortField,
+                $this->sortDirection
+            ),
+            $fileName
+        );
     }
 
     public function updatedImportFile()
@@ -166,153 +176,153 @@ class SalesComparison extends Component
 
     public function render()
     {
-        $comparisons = collect();
+        $month = $this->monthFilter ?: Carbon::now()->subMonth()->format('Y-m');
+        $startDate = Carbon::parse($month)->startOfMonth()->format('Y-m-d');
+        $endDate = Carbon::parse($month)->endOfMonth()->format('Y-m-d');
 
-        if ($this->isFiltered) {
-            $startDate = Carbon::createFromFormat('Y-m', $this->monthFilter)->startOfMonth()->format('Y-m-d');
-            $endDate = Carbon::createFromFormat('Y-m', $this->monthFilter)->endOfMonth()->format('Y-m-d');
+        // Subquery Selling Out Eskalink (ESKA)
+        $soeSub = DB::table('selling_out_eskalink')
+            ->select(
+                'branch_code',
+                DB::raw('COUNT(*) AS row_count'),
+                DB::raw('SUM(qty3_pcs) AS qty_pcs'),
+                DB::raw('SUM(gross_amount) AS gross'),
+                DB::raw('SUM(line_discount_4) AS ld4'),
+                DB::raw('SUM(line_discount_8) AS bb'),
+                DB::raw('SUM(dpp) AS dpp'),
+                DB::raw('SUM(tax) AS tax'),
+                DB::raw('SUM(nett_amount) AS net_eska')
+            )
+            ->whereBetween('invoice_date', [$startDate, $endDate])
+            ->groupBy('branch_code');
 
-            $finalRegions = $this->regionsFilter;
-            $user = auth()->user();
-            if (!$user->hasRole('admin') && !empty($user->region_code)) {
-                $finalRegions = array_intersect($finalRegions, $user->region_code);
-                if (empty($finalRegions)) {
-                    $finalRegions = $user->region_code;
-                }
-            }
+        // Subquery Sales Invoice Distributor (SID)
+        $sidSub = DB::table('sales_invoice_distributor')
+            ->select(
+                'distributor_code',
+                DB::raw('SUM(net_amount) AS net_siso')
+            )
+            ->whereBetween('invoice_date', [$startDate, $endDate])
+            ->groupBy('distributor_code');
 
-            $regionsString = "'" . implode("','", $finalRegions) . "'";
+        // Base Query (Master Distributor Implementasi Eskalink)
+        $baseQuery = DB::table('distributor_implementasi_eskalink as die')
+            ->leftJoin('master_distributors as md', 'md.distributor_code', '=', 'die.distributor_code')
+            ->leftJoinSub($soeSub, 'soe', 'soe.branch_code', '=', 'die.eskalink_code')
+            ->leftJoinSub($sidSub, 'sid', 'sid.distributor_code', '=', 'die.distributor_code')
+            ->where('die.implementasi', 'Y')
+            ->where('md.is_active', true)
+            ->where('md.region_code', '<>', 'HOINA');
 
-            // Summary calculation
-            $this->summary = DB::table(DB::raw("(
-                SELECT
-                    die.eskalink_code AS branch_code,
-                    FLOOR(COALESCE(soe.net_eska, 0)) AS net_eska,
-                    FLOOR(COALESCE(sid.net_siso, 0)) AS net_siso,
-                    ABS(FLOOR(COALESCE(soe.net_eska, 0)) - FLOOR(COALESCE(sid.net_siso, 0))) AS abs_selisih
-                FROM distributor_implementasi_eskalink die
-                LEFT JOIN master_distributors md
-                    ON md.distributor_code = die.distributor_code
-                LEFT JOIN (
-                    SELECT
-                        branch_code,
-                        SUM(nett_amount) AS net_eska
-                    FROM selling_out_eskalink
-                    WHERE invoice_date BETWEEN '$startDate' AND '$endDate'
-                    GROUP BY branch_code
-                ) soe ON soe.branch_code = die.eskalink_code
-                LEFT JOIN (
-                    SELECT
-                        distributor_code,
-                        SUM(net_amount) AS net_siso
-                    FROM sales_invoice_distributor
-                    WHERE invoice_date BETWEEN '$startDate' AND '$endDate'
-                    GROUP BY distributor_code
-                ) sid ON sid.distributor_code = die.distributor_code
-                WHERE die.implementasi = 'Y'
-                AND md.is_active = true
-                AND md.region_code IN ($regionsString)
-            ) x"))
+        // Proteksi akses region user
+        $this->applyRegionAccess($baseQuery, 'md.region_code');
+
+        // Filter Region
+        if (!empty($this->regionFilter)) {
+            $baseQuery->where('md.region_code', $this->regionFilter);
+        }
+
+        // Filter Search
+        if (!empty($this->search)) {
+            $s = '%' . $this->search . '%';
+            $baseQuery->where(function ($q) use ($s) {
+                $q->where('md.distributor_name', 'ilike', $s)
+                  ->orWhere('die.eskalink_code', 'ilike', $s)
+                  ->orWhere('md.distributor_code', 'ilike', $s)
+                  ->orWhere('md.area_name', 'ilike', $s)
+                  ->orWhere('md.region_name', 'ilike', $s);
+            });
+        }
+
+        // 1. Summary KPI (Poin A: Pisahkan OK dan NOT OK hanya untuk cabang yang sudah tarik data SO Eska)
+        $this->summary = (clone $baseQuery)
             ->selectRaw('
                 COUNT(*) AS total_branch,
-                SUM(CASE WHEN net_eska = 0 THEN 1 ELSE 0 END) AS net_siso_zero,
-                SUM(CASE WHEN net_eska <> 0 THEN 1 ELSE 0 END) AS net_siso_non_zero,
-                SUM(CASE WHEN abs_selisih >= 1000 THEN 1 ELSE 0 END) AS total_not_ok
+                SUM(CASE WHEN FLOOR(COALESCE(soe.net_eska, 0)) = 0 THEN 1 ELSE 0 END) AS net_siso_zero,
+                SUM(CASE WHEN FLOOR(COALESCE(soe.net_eska, 0)) <> 0 THEN 1 ELSE 0 END) AS net_siso_non_zero,
+                SUM(CASE WHEN FLOOR(COALESCE(soe.net_eska, 0)) <> 0 AND ABS(FLOOR(COALESCE(soe.net_eska, 0)) - FLOOR(COALESCE(sid.net_siso, 0))) < 1000 THEN 1 ELSE 0 END) AS total_ok,
+                SUM(CASE WHEN FLOOR(COALESCE(soe.net_eska, 0)) <> 0 AND ABS(FLOOR(COALESCE(soe.net_eska, 0)) - FLOOR(COALESCE(sid.net_siso, 0))) >= 1000 THEN 1 ELSE 0 END) AS total_not_ok
             ')
             ->first();
 
-            // Main Query
-            $query = DB::table(DB::raw("(
-                WITH sid_sum AS (
-                    SELECT
-                        distributor_code,
-                        SUM(net_amount) AS net_siso
-                    FROM sales_invoice_distributor
-                    WHERE invoice_date BETWEEN '$startDate' AND '$endDate'
-                    GROUP BY distributor_code
-                ),
-                soe_sum AS (
-                    SELECT
-                        branch_code,
-                        region_code,
-                        region_name,
-                        entity_code,
-                        entity_name,
-                        branch_name,
-                        COUNT(*) AS row_count,
-                        SUM(qty3_pcs) AS qty_pcs,
-                        SUM(gross_amount) AS gross,
-                        SUM(line_discount_4) AS ld4,
-                        SUM(line_discount_8) AS bb,
-                        SUM(dpp) AS dpp,
-                        SUM(tax) AS tax,
-                        SUM(nett_amount) AS net_eska
-                    FROM selling_out_eskalink
-                    WHERE invoice_date BETWEEN '$startDate' AND '$endDate'
-                    GROUP BY
-                        branch_code,
-                        region_code,
-                        region_name,
-                        entity_code,
-                        entity_name,
-                        branch_name
-                )
-                SELECT
-                    md.region_code,
-                    md.region_name,
-                    md.area_code AS entity_code,
-                    md.area_name AS entity_name,
-                    die.eskalink_code AS branch_code,
-                    md.distributor_name AS branch_name,
+        // 2. Filter Status Penarikan & Status Selisih untuk Tabel dan Grand Total
+        $filteredQuery = clone $baseQuery;
 
-                    COALESCE(soe.row_count, 0) AS row_count,
-                    COALESCE(soe.qty_pcs, 0) AS qty_pcs,
-                    COALESCE(soe.gross, 0) AS gross,
-                    COALESCE(soe.ld4, 0) AS ld4,
-                    COALESCE(soe.bb, 0) AS bb,
-
-                    FLOOR(COALESCE(soe.dpp, 0)) AS dpp,
-                    FLOOR(COALESCE(soe.tax, 0)) AS tax,
-                    FLOOR(COALESCE(soe.net_eska, 0)) AS net_eska,
-                    FLOOR(COALESCE(sid.net_siso, 0)) AS net_siso,
-
-                    FLOOR(COALESCE(soe.net_eska, 0))
-                        - FLOOR(COALESCE(sid.net_siso, 0)) AS selisih
-                FROM distributor_implementasi_eskalink die
-                LEFT JOIN master_distributors md
-                    ON md.distributor_code = die.distributor_code
-                LEFT JOIN soe_sum soe
-                    ON soe.branch_code = die.eskalink_code
-                LEFT JOIN sid_sum sid
-                    ON sid.distributor_code = die.distributor_code
-                WHERE die.implementasi = 'Y'
-                AND md.is_active = true
-                AND md.region_code IN ($regionsString)
-            ) sales_data"));
-
-            // Filter Implementasi (Sudah/Belum/Semua)
-            if ($this->implementasiFilter === 'Y') {
-                $query->where('net_eska', '>', 0);
-            } elseif ($this->implementasiFilter === 'N') {
-                $query->where('net_eska', '=', 0);
-            }
-
-            // Filter Status Selisih (OK / NOT OK)
-            if ($this->statusFilter === 'OK') {
-                $query->whereRaw('ABS(net_eska - net_siso) < 1000');
-            } elseif ($this->statusFilter === 'NOT_OK') {
-                $query->whereRaw('ABS(net_eska - net_siso) >= 1000');
-            }
-
-            $comparisons = $query
-                ->orderBy('region_code')
-                ->orderBy('entity_code')
-                ->paginate(100);
+        if ($this->implementasiFilter === 'Y') {
+            $filteredQuery->whereRaw('FLOOR(COALESCE(soe.net_eska, 0)) <> 0');
+        } elseif ($this->implementasiFilter === 'N') {
+            $filteredQuery->whereRaw('FLOOR(COALESCE(soe.net_eska, 0)) = 0');
         }
+
+        if ($this->statusFilter === 'OK') {
+            $filteredQuery->whereRaw('FLOOR(COALESCE(soe.net_eska, 0)) <> 0')
+                          ->whereRaw('ABS(FLOOR(COALESCE(soe.net_eska, 0)) - FLOOR(COALESCE(sid.net_siso, 0))) < 1000');
+        } elseif ($this->statusFilter === 'NOT_OK') {
+            $filteredQuery->whereRaw('FLOOR(COALESCE(soe.net_eska, 0)) <> 0')
+                          ->whereRaw('ABS(FLOOR(COALESCE(soe.net_eska, 0)) - FLOOR(COALESCE(sid.net_siso, 0))) >= 1000');
+        }
+
+        // 3. Poin B: Hitung Grand Total untuk seluruh baris yang terfilter
+        $totals = (clone $filteredQuery)
+            ->selectRaw('
+                COALESCE(SUM(COALESCE(soe.qty_pcs, 0)), 0) AS total_qty_pcs,
+                COALESCE(SUM(COALESCE(soe.ld4, 0)), 0) AS total_ld4,
+                COALESCE(SUM(COALESCE(soe.bb, 0)), 0) AS total_bb,
+                COALESCE(SUM(FLOOR(COALESCE(soe.net_eska, 0))), 0) AS total_net_eska,
+                COALESCE(SUM(FLOOR(COALESCE(sid.net_siso, 0))), 0) AS total_net_siso,
+                COALESCE(SUM(FLOOR(COALESCE(soe.net_eska, 0)) - FLOOR(COALESCE(sid.net_siso, 0))), 0) AS total_selisih
+            ')
+            ->first();
+
+        // 4. Poin C: Main Table Query dengan Dynamic Sorting
+        $tableQuery = (clone $filteredQuery)
+            ->select(
+                'md.region_code',
+                'md.region_name',
+                'md.area_code AS entity_code',
+                'md.area_name AS entity_name',
+                'die.eskalink_code AS branch_code',
+                'md.distributor_name AS branch_name',
+                DB::raw('COALESCE(soe.row_count, 0) AS row_count'),
+                DB::raw('COALESCE(soe.qty_pcs, 0) AS qty_pcs'),
+                DB::raw('COALESCE(soe.gross, 0) AS gross'),
+                DB::raw('COALESCE(soe.ld4, 0) AS ld4'),
+                DB::raw('COALESCE(soe.bb, 0) AS bb'),
+                DB::raw('FLOOR(COALESCE(soe.dpp, 0)) AS dpp'),
+                DB::raw('FLOOR(COALESCE(soe.tax, 0)) AS tax'),
+                DB::raw('FLOOR(COALESCE(soe.net_eska, 0)) AS net_eska'),
+                DB::raw('FLOOR(COALESCE(sid.net_siso, 0)) AS net_siso'),
+                DB::raw('FLOOR(COALESCE(soe.net_eska, 0)) - FLOOR(COALESCE(sid.net_siso, 0)) AS selisih'),
+                DB::raw('ABS(FLOOR(COALESCE(soe.net_eska, 0)) - FLOOR(COALESCE(sid.net_siso, 0))) AS abs_selisih')
+            );
+
+        $allowedSorts = [
+            'region_name' => 'md.region_name',
+            'entity_name' => 'md.area_name',
+            'branch_code' => 'die.eskalink_code',
+            'branch_name' => 'md.distributor_name',
+            'qty_pcs'     => 'qty_pcs',
+            'ld4'         => 'ld4',
+            'bb'          => 'bb',
+            'net_eska'    => 'net_eska',
+            'net_siso'    => 'net_siso',
+            'selisih'     => 'abs_selisih',
+        ];
+
+        $orderCol = $allowedSorts[$this->sortField] ?? 'md.region_name';
+        $dir = strtolower($this->sortDirection) === 'desc' ? 'desc' : 'asc';
+
+        $comparisons = $tableQuery
+            ->orderBy($orderCol, $dir)
+            ->orderBy('md.region_name')
+            ->orderBy('md.area_name')
+            ->orderBy('md.distributor_name')
+            ->paginate(100);
 
         return view('livewire.others.qceskalink.sales-comparison', [
             'comparisons' => $comparisons,
             'summary'     => $this->summary,
+            'totals'      => $totals,
         ])->layout('layouts.app');
     }
 }

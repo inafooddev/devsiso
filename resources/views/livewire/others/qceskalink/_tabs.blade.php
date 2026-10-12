@@ -7,6 +7,10 @@
         <x-heroicon-s-chart-bar class="w-3.5 h-3.5" /> Sales Comparison
     </x-ui.tab-item>
 
+    <x-ui.tab-item href="{{ route('dashboard.anomaly-check') }}" :active="request()->routeIs('dashboard.anomaly-check')" :navigate="false" class="gap-1.5">
+        <x-heroicon-s-exclamation-triangle class="w-3.5 h-3.5" /> Cek Anomali
+    </x-ui.tab-item>
+
     <x-ui.tab-item href="{{ route('dashboard.extractor-process') }}" :active="request()->routeIs('dashboard.extractor-process')" :navigate="false" class="gap-1.5">
         <x-heroicon-s-cpu-chip class="w-3.5 h-3.5" /> Proses Ekstraksi
     </x-ui.tab-item>
