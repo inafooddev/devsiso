@@ -340,7 +340,8 @@
     {{-- ========== MODAL IMPORT ========== --}}
     <div x-data="{ open: @entangle('isImportModalOpen') }"
          x-show="open" x-cloak
-         class="fixed inset-0 z-[60] overflow-y-auto">
+         style="z-index: 99999;"
+         class="fixed inset-0 z-[99999] overflow-y-auto">
          
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
             <div x-show="open"
@@ -408,7 +409,8 @@
     {{-- ========== MODAL EDIT / UPSERT ========== --}}
     <div x-data="{ open: @entangle('isEditModalOpen') }"
          x-show="open" x-cloak
-         class="fixed inset-0 z-[60] overflow-y-auto">
+         style="z-index: 99999;"
+         class="fixed inset-0 z-[99999] overflow-y-auto">
          
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
             <div x-show="open"
@@ -597,7 +599,8 @@
 
     {{-- ========== MODAL PREVIEW FILE ========== --}}
     <div x-show="previewModalOpen" x-cloak
-         class="fixed inset-0 z-[70] overflow-y-auto">
+         style="z-index: 100000;"
+         class="fixed inset-0 z-[100000] overflow-y-auto">
          
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
             <div x-show="previewModalOpen"

@@ -33,6 +33,8 @@
          [x-cloak] { display: none !important; }
          /* Fix konflik CSS transition antara Tailwind/DaisyUI dan Leaflet saat zoom/pan/cluster */
          .leaflet-container * { transition: none; }
+         /* Pastikan seluruh modal berada di depan sticky navbar (z-[9999]) */
+         .modal, dialog.modal { z-index: 99999 !important; }
     </style>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])

@@ -120,11 +120,11 @@ class TargetSeValue extends Component
     {
         $this->authorizeAction('can_export');
         $timestamp = date('Ymd_His');
-        $yearStr = $this->yearFilter ?: 'ALL';
+        $monthStr = $this->monthFilter ?: 'ALL';
         
-        \App\Helpers\ActivityLogger::log('Export Target SE Value', "Mengekspor data Target SE Value tahun {$yearStr}");
+        \App\Helpers\ActivityLogger::log('Export Target SE Value', "Mengekspor data Target SE Value bulan {$monthStr}");
         
-        return Excel::download(new TargetSeValueExport($this->yearFilter), "Target_SE_Value_{$yearStr}_{$timestamp}.xlsx");
+        return Excel::download(new TargetSeValueExport($this->monthFilter), "Target_SE_Value_{$monthStr}_{$timestamp}.xlsx");
     }
 
     // -- EDIT --

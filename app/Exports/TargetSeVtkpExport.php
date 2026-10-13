@@ -7,8 +7,11 @@ use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class TargetSeVtkpExport implements FromQuery, WithHeadings, WithMapping
+class TargetSeVtkpExport implements FromQuery, WithHeadings, WithMapping, WithTitle, WithStyles
 {
     use Exportable;
 
@@ -24,7 +27,11 @@ class TargetSeVtkpExport implements FromQuery, WithHeadings, WithMapping
         $query = TargetSeVtkp::query();
 
         if (!empty($this->bulanFilter)) {
-            $query->where('bulan', $this->bulanFilter);
+            if (is_array($this->bulanFilter)) {
+                $query->whereIn('bulan', $this->bulanFilter);
+            } else {
+                $query->where('bulan', $this->bulanFilter);
+            }
         }
 
         return $query->orderBy('bulan')->orderBy('distributor_code')->orderBy('salesman_code')->orderBy('produk_grup');
@@ -49,6 +56,18 @@ class TargetSeVtkpExport implements FromQuery, WithHeadings, WithMapping
             $row->salesman_code,
             $row->produk_grup,
             $row->target,
+        ];
+    }
+
+    public function title(): string
+    {
+        return 'Target SE VTKP';
+    }
+
+    public function styles(Worksheet $sheet)
+    {
+        return [
+            1 => ['font' => ['bold' => true]],
         ];
     }
 }

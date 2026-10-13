@@ -288,7 +288,7 @@
         </div>
 
         {{-- Modal Simpan (Pilih Bulan) --}}
-        <div class="modal" :class="{'modal-open': showSaveModal}">
+        <div class="modal !z-[99999]" style="z-index: 99999;" :class="{'modal-open': showSaveModal}">
             <div class="modal-box relative p-0 overflow-hidden rounded-2xl max-w-sm">
                 <div class="p-4 border-b border-base-200 bg-base-200/50 flex items-center justify-between">
                     <h3 class="font-bold text-lg flex items-center gap-2 text-base-content/80">

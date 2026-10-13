@@ -5,7 +5,7 @@
     @include('livewire.others.qceskalink._tabs')
 
     {{-- Notifikasi Toast --}}
-    <div class="toast toast-top toast-center z-[100] mt-16">
+    <div class="toast toast-top toast-center z-[100000] mt-16" style="z-index: 100000;">
         @if (session()->has('message'))
             <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
                  class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
@@ -479,7 +479,8 @@
     {{-- ========== MODAL IMPORT ========== --}}
     <div x-data="{ open: @entangle('isImportModalOpen') }"
          x-show="open" x-cloak
-         class="fixed inset-0 z-50 flex items-center justify-center p-4">
+         style="z-index: 99999;"
+         class="fixed inset-0 z-[99999] flex items-center justify-center p-4">
         <div x-show="open"
              x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
              x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"

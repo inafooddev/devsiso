@@ -5,9 +5,10 @@ namespace App\Imports;
 use App\Models\TargetSeVtkp;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 
-class TargetSeVtkpImport implements ToModel, WithHeadingRow, SkipsEmptyRows
+class TargetSeVtkpImport implements ToModel, WithHeadingRow, WithCalculatedFormulas, SkipsEmptyRows
 {
     protected $errors = [];
     protected $successCount = 0;
@@ -15,9 +16,9 @@ class TargetSeVtkpImport implements ToModel, WithHeadingRow, SkipsEmptyRows
     public function model(array $row)
     {
         $bulanRaw = $row['bulan'] ?? null;
-        $distributorCode = $row['distributor_code'] ?? null;
-        $salesmanCode = $row['salesman_code'] ?? null;
-        $produkGrup = $row['produk_grup'] ?? null;
+        $distributorCode = isset($row['distributor_code']) ? trim((string) $row['distributor_code']) : null;
+        $salesmanCode = isset($row['salesman_code']) ? trim((string) $row['salesman_code']) : null;
+        $produkGrup = isset($row['produk_grup']) ? trim((string) $row['produk_grup']) : null;
         $target = $row['target'] ?? 0;
 
         // Validasi format
@@ -39,6 +40,8 @@ class TargetSeVtkpImport implements ToModel, WithHeadingRow, SkipsEmptyRows
             return null;
         }
 
+        $targetVal = is_numeric($target) ? (float) $target : (float) preg_replace('/[^0-9\.\-]/', '', (string) $target);
+
         // Upsert data
         TargetSeVtkp::updateOrCreate(
             [
@@ -48,7 +51,7 @@ class TargetSeVtkpImport implements ToModel, WithHeadingRow, SkipsEmptyRows
                 'produk_grup' => $produkGrup,
             ],
             [
-                'target' => $target,
+                'target' => $targetVal,
             ]
         );
 

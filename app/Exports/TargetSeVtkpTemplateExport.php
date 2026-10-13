@@ -4,8 +4,11 @@ namespace App\Exports;
 
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class TargetSeVtkpTemplateExport implements FromArray, WithHeadings
+class TargetSeVtkpTemplateExport implements FromArray, WithHeadings, WithTitle, WithStyles
 {
     public function array(): array
     {
@@ -29,6 +32,18 @@ class TargetSeVtkpTemplateExport implements FromArray, WithHeadings
             'Salesman Code',
             'Produk Grup',
             'Target',
+        ];
+    }
+
+    public function title(): string
+    {
+        return 'Format Target SE VTKP';
+    }
+
+    public function styles(Worksheet $sheet)
+    {
+        return [
+            1 => ['font' => ['bold' => true]],
         ];
     }
 }

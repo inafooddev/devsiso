@@ -135,15 +135,12 @@ class TargetSeVtkp extends Component
     {
         $this->authorizeAction('can_export');
         $timestamp = date('Ymd_His');
-        $monthStr = $this->yearFilter . '_' . $this->quarterFilter;
+        $months = $this->getMonthsInQuarter();
+        $periodStr = ($this->yearFilter ?: date('Y')) . '_' . $this->quarterFilter;
         
-        \App\Helpers\ActivityLogger::log('Export Target SE VTKP', "Mengekspor data Target SE VTKP {$monthStr}");
+        \App\Helpers\ActivityLogger::log('Export Target SE VTKP', "Mengekspor data Target SE VTKP periode {$periodStr}");
         
-        // Kita sementara biarkan logic export karena view yang difokuskan. 
-        // Jika TargetSeVtkpExport belum mendukung quarter filter, kita panggil seperti awal saja dulu,
-        // namun untuk menghindari error, kita sesuaikan passing parameternya.
-        // Asumsi TargetSeVtkpExport hanya menerima 1 argumen $monthFilter
-        return Excel::download(new TargetSeVtkpExport($monthStr), "Target_SE_VTKP_{$monthStr}_{$timestamp}.xlsx");
+        return Excel::download(new TargetSeVtkpExport($months), "Target_SE_VTKP_{$periodStr}_{$timestamp}.xlsx");
     }
 
     private function getMonthsInQuarter()

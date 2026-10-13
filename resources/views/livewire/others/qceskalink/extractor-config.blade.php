@@ -5,7 +5,7 @@
     @include('livewire.others.qceskalink._tabs')
 
     {{-- Notifikasi Toast --}}
-    <div class="toast toast-top toast-center z-[100] mt-16">
+    <div class="toast toast-top toast-center z-[100000] mt-16" style="z-index: 100000;">
         @if (session()->has('message'))
             <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3500)"
                  class="alert alert-success shadow-lg rounded-2xl border-none bg-success/20 text-success">
@@ -167,7 +167,8 @@
     {{-- Modal Form --}}
     <div x-data="{ open: @entangle('isModalOpen') }"
          x-show="open" x-cloak
-         class="fixed inset-0 z-50 flex items-center justify-center p-4">
+         style="z-index: 99999;"
+         class="fixed inset-0 z-[99999] flex items-center justify-center p-4">
         <div x-show="open" class="fixed inset-0 bg-base-100/80 backdrop-blur-sm"></div>
         
         <div x-show="open" class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-4xl max-h-[90vh] flex flex-col">

@@ -148,9 +148,9 @@
     </div>
 
     {{-- Save Modal --}}
-    <div x-show="showSaveModal" class="relative z-50" style="display:none">
-        <div class="fixed inset-0 bg-base-300/60 backdrop-blur-sm z-40 transition-opacity"></div>
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div x-show="showSaveModal" class="relative z-[99999]" style="display:none; z-index: 99999;">
+        <div class="fixed inset-0 bg-base-300/60 backdrop-blur-sm z-[99998] transition-opacity" style="z-index: 99998;"></div>
+        <div class="fixed inset-0 z-[99999] flex items-center justify-center p-4" style="z-index: 99999;">
             <div class="modal-box relative p-0 overflow-hidden rounded-2xl max-w-sm" @click.stop>
                 <div class="p-4 border-b border-base-200 bg-base-200/50 flex items-center justify-between">
                     <h3 class="font-bold text-lg flex items-center gap-2 text-base-content/80">
@@ -193,9 +193,9 @@
     </div>
 
     {{-- Preview Modal --}}
-    <div x-show="previewFile !== null" class="relative z-50" style="display:none">
-        <div class="fixed inset-0 bg-base-300/80 backdrop-blur-sm z-40"></div>
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div x-show="previewFile !== null" class="relative z-[100000]" style="display:none; z-index: 100000;">
+        <div class="fixed inset-0 bg-base-300/80 backdrop-blur-sm z-[99999]" style="z-index: 99999;"></div>
+        <div class="fixed inset-0 z-[100000] flex items-center justify-center p-4" style="z-index: 100000;">
             <div class="modal-box w-11/12 max-w-5xl h-[90vh] flex flex-col p-0 rounded-2xl overflow-hidden shadow-2xl" @click.stop>
                 <div class="p-3 border-b border-base-200 bg-base-100 flex items-center justify-between shrink-0">
                     <h3 class="font-bold text-sm flex items-center gap-2 truncate pr-4 text-base-content/80">
