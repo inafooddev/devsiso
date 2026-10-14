@@ -104,7 +104,7 @@
 
                     {{-- Mini Sparkline Chart --}}
                     <div class="w-full mt-2" wire:ignore>
-                        <div id="mini-chart-{{ $kpiKey }}" class="w-full" style="height: 60px;"></div>
+                        <div id="mini-chart-{{ $kpiKey }}" class="w-full" style="height: 90px;"></div>
                     </div>
 
                     {{-- Card Footer Details --}}
@@ -221,7 +221,7 @@
                     return {
                         chart: {
                             type: 'area',
-                            height: 250,
+                            height: 275,
                             toolbar: { show: false },
                             zoom: { enabled: false },
                             fontFamily: 'inherit',
@@ -254,7 +254,29 @@
                             strokeWidth: 2,
                             hover: { size: 6 }
                         },
-                        dataLabels: { enabled: false },
+                        dataLabels: {
+                            enabled: true,
+                            formatter: function(val) {
+                                if (val === null || val === undefined) return '';
+                                return val + '%';
+                            },
+                            offsetY: -8,
+                            style: {
+                                fontSize: '10px',
+                                fontFamily: 'inherit',
+                                fontWeight: 700,
+                                colors: [chartColor]
+                            },
+                            background: {
+                                enabled: true,
+                                foreColor: '#ffffff',
+                                borderRadius: 4,
+                                padding: 3,
+                                borderWidth: 0,
+                                opacity: 0.9,
+                                dropShadow: { enabled: false }
+                            }
+                        },
                         xaxis: {
                             categories: trendData.categories,
                             axisBorder: { show: false },
@@ -279,7 +301,7 @@
                         grid: {
                             borderColor: 'rgba(148, 163, 184, 0.15)',
                             strokeDashArray: 4,
-                            padding: { left: 10, right: 10, top: 0, bottom: 0 }
+                            padding: { left: 15, right: 15, top: 18, bottom: 0 }
                         },
                         annotations: {
                             yaxis: [{
@@ -321,7 +343,7 @@
                         const options = {
                             chart: {
                                 type: 'area',
-                                height: 60,
+                                height: 90,
                                 sparkline: { enabled: true },
                                 animations: { enabled: true }
                             },
@@ -334,6 +356,34 @@
                                 curve: 'smooth',
                                 width: 2
                             },
+                            markers: {
+                                size: 2.5,
+                                strokeWidth: 1,
+                                hover: { size: 4.5 }
+                            },
+                            dataLabels: {
+                                enabled: true,
+                                formatter: function(val) {
+                                    if (val === null || val === undefined) return '';
+                                    return (kpi.key === 'ipt') ? val + '%' : Math.round(val) + '%';
+                                },
+                                offsetY: -4,
+                                style: {
+                                    fontSize: '8px',
+                                    fontFamily: 'inherit',
+                                    fontWeight: 700,
+                                    colors: [kpi.color]
+                                },
+                                background: {
+                                    enabled: true,
+                                    foreColor: '#ffffff',
+                                    borderRadius: 3,
+                                    padding: 2,
+                                    borderWidth: 0,
+                                    opacity: 0.9,
+                                    dropShadow: { enabled: false }
+                                }
+                            },
                             fill: {
                                 type: 'gradient',
                                 gradient: {
@@ -341,6 +391,14 @@
                                     opacityFrom: 0.35,
                                     opacityTo: 0.05,
                                     stops: [0, 100]
+                                }
+                            },
+                            grid: {
+                                padding: {
+                                    top: 15,
+                                    bottom: 5,
+                                    left: 4,
+                                    right: 4
                                 }
                             },
                             tooltip: {

@@ -26,16 +26,17 @@
                     @for($m = 1; $m <= 12; $m++)
                         @php 
                             $cell = $nodeData['months'][$m][$key]; 
-                            $format = in_array($key, ['so', 'rwo']) ? 'number' : 'decimal';
+                            $decimals = ($key === 'ipt') ? 2 : 0;
+                            $achDecimals = ($key === 'ipt') ? 2 : 1;
                         @endphp
                         <td class="border-l border-base-300">
-                            {{ number_format($cell['target'], 0, ',', '.') }}
+                            {{ number_format($cell['target'], $decimals, ',', '.') }}
                         </td>
                         <td>
-                            {{ number_format($cell['actual'], 0, ',', '.') }}
+                            {{ number_format($cell['actual'], $decimals, ',', '.') }}
                         </td>
                         <td class="{{ getColorClass($cell['ach']) }}">
-                            {{ number_format($cell['ach'], 1, ',', '.') }}%
+                            {{ number_format($cell['ach'], $achDecimals, ',', '.') }}%
                         </td>
                         <td class="font-bold">
                             {{ number_format($cell['score'], 1, ',', '.') }}%

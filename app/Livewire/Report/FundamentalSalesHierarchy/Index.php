@@ -320,13 +320,16 @@ class Index extends Component
             $kpiActiveCount = 0;
             $kpiAchSum = 0;
 
+            $kpiDecimals = ($k === 'ipt') ? 2 : 0;
+            $achDecimals = ($k === 'ipt') ? 2 : 1;
+
             for ($m = 1; $m <= 12; $m++) {
                 $cell = $nasionalNode['months'][$m][$k];
-                $ach = round($cell['ach'], 1);
+                $ach = round($cell['ach'], $achDecimals);
                 $achSeries[] = $ach;
                 $scoreSeries[] = round($cell['score'], 1);
-                $targetSeries[] = round($cell['target'], 0);
-                $actualSeries[] = round($cell['actual'], 0);
+                $targetSeries[] = round($cell['target'], $kpiDecimals);
+                $actualSeries[] = round($cell['actual'], $kpiDecimals);
 
                 if ($cell['target'] > 0 || $cell['actual'] > 0) {
                     $kpiActiveCount++;
@@ -334,7 +337,7 @@ class Index extends Component
                 }
             }
 
-            $kpiAvgAch = $kpiActiveCount > 0 ? round($kpiAchSum / $kpiActiveCount, 1) : 0;
+            $kpiAvgAch = $kpiActiveCount > 0 ? round($kpiAchSum / $kpiActiveCount, $achDecimals) : 0;
 
             $kpiSeriesData[$k] = [
                 'key' => $k,

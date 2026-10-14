@@ -167,6 +167,11 @@ class DashboardSheetExport implements FromArray, WithTitle, WithEvents, WithStri
                     $sheet->getStyle("{$cAch}6:{$cAch}13")->getNumberFormat()->setFormatCode('0%;-0%;"0%"');
                     $sheet->getStyle("{$cScore}6:{$cScore}13")->getNumberFormat()->setFormatCode('0%;-0%;"0%"'); // Score format as percent
 
+                    // Row 7 is IPT -> format with 2 decimals
+                    $sheet->getStyle("{$cTarget}7")->getNumberFormat()->setFormatCode('#,##0.00;-#,##0.00;"0.00"');
+                    $sheet->getStyle("{$cActual}7")->getNumberFormat()->setFormatCode('#,##0.00;-#,##0.00;"0.00"');
+                    $sheet->getStyle("{$cAch}7")->getNumberFormat()->setFormatCode('0.00%;-0.00%;"0.00%"');
+
                     // Center align data
                     $sheet->getStyle("{$cTarget}6:{$cScore}13")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 

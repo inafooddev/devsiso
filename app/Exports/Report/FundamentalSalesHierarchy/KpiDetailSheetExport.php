@@ -139,9 +139,11 @@ class KpiDetailSheetExport implements FromArray, WithTitle, WithEvents, WithStri
                     $cAch = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex + 2);
 
                     // Set formats
-                    $sheet->getStyle("{$cTarget}6:{$cTarget}{$totalRows}")->getNumberFormat()->setFormatCode('#,##0;-#,##0;"0"');
-                    $sheet->getStyle("{$cActual}6:{$cActual}{$totalRows}")->getNumberFormat()->setFormatCode('#,##0;-#,##0;"0"');
-                    $sheet->getStyle("{$cAch}6:{$cAch}{$totalRows}")->getNumberFormat()->setFormatCode('0%;-0%;"0%"');
+                    $numFormat = ($this->kpiKey === 'ipt') ? '#,##0.00;-#,##0.00;"0.00"' : '#,##0;-#,##0;"0"';
+                    $achFormat = ($this->kpiKey === 'ipt') ? '0.00%;-0.00%;"0.00%"' : '0%;-0%;"0%"';
+                    $sheet->getStyle("{$cTarget}6:{$cTarget}{$totalRows}")->getNumberFormat()->setFormatCode($numFormat);
+                    $sheet->getStyle("{$cActual}6:{$cActual}{$totalRows}")->getNumberFormat()->setFormatCode($numFormat);
+                    $sheet->getStyle("{$cAch}6:{$cAch}{$totalRows}")->getNumberFormat()->setFormatCode($achFormat);
 
                     // Center align data
                     $sheet->getStyle("{$cTarget}6:{$cAch}{$totalRows}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
