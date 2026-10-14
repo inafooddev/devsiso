@@ -319,6 +319,7 @@ class Index extends Component
             $actualSeries = [];
             $kpiActiveCount = 0;
             $kpiAchSum = 0;
+            $kpiActualSum = 0;
 
             $kpiDecimals = ($k === 'ipt') ? 2 : 0;
             $achDecimals = ($k === 'ipt') ? 2 : 1;
@@ -329,15 +330,18 @@ class Index extends Component
                 $achSeries[] = $ach;
                 $scoreSeries[] = round($cell['score'], 1);
                 $targetSeries[] = round($cell['target'], $kpiDecimals);
-                $actualSeries[] = round($cell['actual'], $kpiDecimals);
+                $actualVal = round($cell['actual'], $kpiDecimals);
+                $actualSeries[] = $actualVal;
 
                 if ($cell['target'] > 0 || $cell['actual'] > 0) {
                     $kpiActiveCount++;
                     $kpiAchSum += $ach;
+                    $kpiActualSum += $actualVal;
                 }
             }
 
             $kpiAvgAch = $kpiActiveCount > 0 ? round($kpiAchSum / $kpiActiveCount, $achDecimals) : 0;
+            $kpiAvgActual = $kpiActiveCount > 0 ? round($kpiActualSum / $kpiActiveCount, $kpiDecimals) : 0;
 
             $kpiSeriesData[$k] = [
                 'key' => $k,
@@ -346,6 +350,7 @@ class Index extends Component
                 'bobot' => $def['bobot'],
                 'color' => $def['color'],
                 'avg_ach' => $kpiAvgAch,
+                'avg_actual' => $kpiAvgActual,
                 'ach_series' => $achSeries,
                 'score_series' => $scoreSeries,
                 'target_series' => $targetSeries,

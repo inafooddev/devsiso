@@ -78,6 +78,7 @@ use App\Livewire\SalesConfig\Index as SalesConfigIndex;
 use App\Livewire\SalesInvoiceImport;
 use App\Livewire\SalesInvoiceReport\Index as SalesInvoiceReportIndex;
 use App\Livewire\Report\AnalisaKunjungan\Index as AnalisaKunjunganIndex;
+use App\Livewire\Report\AnalisaKunjunganSe\Index as AnalisaKunjunganSeIndex;
 use App\Livewire\Report\MonitoringTopItem\Index as MonitoringTopItemIndex;
 use App\Livewire\Report\FundamentalSales\Index as FundamentalSalesIndex;
 use App\Livewire\MasterData\Salesmans\Index as SalesmanIndex;
@@ -397,6 +398,7 @@ Route::middleware(['auth'])->group(function () {
     // SALES INVOICE & CONFIGURATION
     // ==========================================
     Route::get('/report/analisa-kunjungan', AnalisaKunjunganIndex::class)->name('report.analisa-kunjungan.index');
+    Route::get('/report/analisa-kunjungan-se', AnalisaKunjunganSeIndex::class)->name('report.analisa-kunjungan-se.index');
     Route::get('/report/monitoring-top-item', MonitoringTopItemIndex::class)->name('report.monitoring-top-item.index');
     Route::get('/report/fundamental-sales', FundamentalSalesIndex::class)->name('report.fundamental-sales.index');
     Route::get('/report/fundamental-sales-hierarchy', \App\Livewire\Report\FundamentalSalesHierarchy\Index::class)->name('report.fundamental-sales-hierarchy.index');

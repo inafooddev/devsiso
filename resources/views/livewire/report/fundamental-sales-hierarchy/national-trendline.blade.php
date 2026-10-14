@@ -7,10 +7,12 @@
             </div>
             <div>
                 <div class="flex items-center gap-2">
-                    <h3 class="font-extrabold text-base md:text-lg tracking-tight text-base-content" x-text="selectedKpi === 'total' ? 'TRENDLINE PENCAPAIAN TOTAL KPI NASIONAL (% ACH)' : 'TRENDLINE: ' + selectedKpiLabel.toUpperCase() + ' (% ACH)'"></h3>
+                    <h3 class="font-extrabold text-base md:text-lg tracking-tight text-base-content" 
+                        x-text="selectedKpi === 'total' ? 'TRENDLINE PENCAPAIAN TOTAL KPI NASIONAL (% ACH)' : (selectedKpi === 'ipt' ? 'TRENDLINE: ' + selectedKpiLabel.toUpperCase() + ' (NILAI AKTUAL)' : 'TRENDLINE: ' + selectedKpiLabel.toUpperCase() + ' (% ACH)')"></h3>
                     <span class="badge badge-warning badge-sm font-bold">Nasional</span>
                 </div>
-                <p class="text-xs text-base-content/70 mt-0.5" x-text="selectedKpi === 'total' ? 'Pergerakan performa gabungan berbobot 100% sepanjang 12 bulan' : 'Pergerakan pencapaian indikator terhadap target 100%'"></p>
+                <p class="text-xs text-base-content/70 mt-0.5" 
+                   x-text="selectedKpi === 'total' ? 'Pergerakan performa gabungan berbobot 100% sepanjang 12 bulan' : (selectedKpi === 'ipt' ? 'Pergerakan nilai absolut item per transaksi terhadap target 8.00' : 'Pergerakan pencapaian indikator terhadap target 100%')"></p>
             </div>
         </div>
 
@@ -19,7 +21,7 @@
             {{-- YTD Avg Stat Pill --}}
             <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-base-100 border border-base-300 shadow-xs">
                 <span class="text-[11px] font-semibold text-base-content/60 uppercase">Rata-rata:</span>
-                <span class="text-sm font-black" :class="currentAvg >= 100 ? 'text-success' : (currentAvg >= 80 ? 'text-warning' : 'text-error')" x-text="currentAvg + '%'"></span>
+                <span class="text-sm font-black" :class="currentAvgStatusClass" x-text="currentAvgFormatted"></span>
             </div>
 
             {{-- Highest Month Pill --}}
@@ -51,18 +53,18 @@
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-1.5 font-medium">
                     <span class="w-2.5 h-2.5 rounded-full" :style="'background-color: ' + currentChartColor"></span>
-                    <span x-text="selectedKpi === 'total' ? 'Total Score (% Ach)' : selectedKpiLabel"></span>
+                    <span x-text="selectedKpi === 'total' ? 'Total Score (% Ach)' : (selectedKpi === 'ipt' ? selectedKpiLabel + ' (Nilai Aktual)' : selectedKpiLabel + ' (% Ach)')"></span>
                 </div>
                 <div class="flex items-center gap-1.5 font-medium text-error">
                     <span class="w-3 h-0.5 bg-error border-t border-dashed border-error"></span>
-                    <span>Target Acuan (100%)</span>
+                    <span x-text="selectedKpi === 'ipt' ? 'Target Acuan (8.00)' : 'Target Acuan (100%)'"></span>
                 </div>
             </div>
             <span class="text-[11px] italic hidden sm:inline">Pilih KPI di bawah untuk memfokuskan grafik</span>
         </div>
 
         <div wire:ignore class="w-full">
-            <div x-ref="mainTrendChart" class="w-full" style="min-height: 250px;"></div>
+            <div x-ref="mainTrendChart" class="w-full" style="min-height: 275px;"></div>
         </div>
     </div>
 
@@ -77,7 +79,7 @@
                 <p class="text-xs text-base-content/60 mt-0.5">Klik salah satu card untuk menampilkan grafik detailnya di chart utama</p>
             </div>
             <div class="text-[11px] text-base-content/50 italic">
-                *Sparkline menggambarkan tren 12 bulan (Jan–Des)
+                *KPI IPT menampilkan angka absolut (nilai aktual), indikator lainnya persentase (% Ach)
             </div>
         </div>
 
@@ -96,9 +98,15 @@
                         </div>
                         <div class="text-right shrink-0">
                             <span class="text-sm font-black {{ $kpi['avg_ach'] >= 100 ? 'text-success' : ($kpi['avg_ach'] >= 80 ? 'text-warning' : 'text-error') }}">
-                                {{ $kpi['avg_ach'] }}%
+                                @if($kpiKey === 'ipt')
+                                    {{ number_format($kpi['avg_actual'] ?? $kpi['avg_ach'], 2, ',', '.') }}
+                                @else
+                                    {{ $kpi['avg_ach'] }}%
+                                @endif
                             </span>
-                            <span class="block text-[9px] text-base-content/50 uppercase font-semibold">Rata-rata</span>
+                            <span class="block text-[9px] text-base-content/50 uppercase font-semibold">
+                                {{ $kpiKey === 'ipt' ? 'Rata-rata Nilai' : 'Rata-rata' }}
+                            </span>
                         </div>
                     </div>
 
@@ -109,8 +117,13 @@
 
                     {{-- Card Footer Details --}}
                     <div class="mt-2 pt-2 border-t border-base-200/60 flex justify-between items-center text-[10px] text-base-content/60 font-medium">
-                        <span>Min: {{ min($kpi['ach_series']) }}%</span>
-                        <span>Max: {{ max($kpi['ach_series']) }}%</span>
+                        @if($kpiKey === 'ipt')
+                            <span>Min: {{ number_format(min($kpi['actual_series']), 2, ',', '.') }}</span>
+                            <span>Max: {{ number_format(max($kpi['actual_series']), 2, ',', '.') }}</span>
+                        @else
+                            <span>Min: {{ min($kpi['ach_series']) }}%</span>
+                            <span>Max: {{ max($kpi['ach_series']) }}%</span>
+                        @endif
                         <span class="text-primary font-bold" x-show="selectedKpi === '{{ $kpiKey }}'">● Terpilih</span>
                     </div>
                 </div>
@@ -135,11 +148,23 @@
                     return trendData.kpis[this.selectedKpi].short;
                 },
 
-                get currentAvg() {
+                get currentAvgFormatted() {
                     if (this.selectedKpi === 'total' || !trendData.kpis[this.selectedKpi]) {
-                        return trendData.ytd_avg;
+                        return trendData.ytd_avg + '%';
                     }
-                    return trendData.kpis[this.selectedKpi].avg_ach;
+                    if (this.selectedKpi === 'ipt') {
+                        return Number(trendData.kpis.ipt.avg_actual || 0).toFixed(2);
+                    }
+                    return trendData.kpis[this.selectedKpi].avg_ach + '%';
+                },
+
+                get currentAvgStatusClass() {
+                    let ach = (this.selectedKpi === 'total' || !trendData.kpis[this.selectedKpi]) 
+                        ? trendData.ytd_avg 
+                        : trendData.kpis[this.selectedKpi].avg_ach;
+                    if (ach >= 100) return 'text-success';
+                    if (ach >= 80) return 'text-warning';
+                    return 'text-error';
                 },
 
                 get currentHighest() {
@@ -148,10 +173,13 @@
                     }
                     const kpi = trendData.kpis[this.selectedKpi];
                     let maxVal = -1, maxMonth = '-';
-                    kpi.ach_series.forEach((val, idx) => {
+                    let series = (this.selectedKpi === 'ipt') ? kpi.actual_series : kpi.ach_series;
+                    series.forEach((val, idx) => {
                         if (val > maxVal) { maxVal = val; maxMonth = trendData.categories[idx]; }
                     });
-                    return maxMonth + ' (' + maxVal + '%)';
+                    let suffix = (this.selectedKpi === 'ipt') ? '' : '%';
+                    let formattedVal = (this.selectedKpi === 'ipt') ? Number(maxVal).toFixed(2) : maxVal;
+                    return maxMonth + ' (' + formattedVal + suffix + ')';
                 },
 
                 get currentChartColor() {
@@ -208,14 +236,24 @@
                 },
 
                 getMainChartOptions() {
+                    let isIpt = (this.selectedKpi === 'ipt');
                     let seriesName = 'Total Score (% Ach)';
                     let seriesData = trendData.total_score_series;
                     let chartColor = this.currentChartColor;
+                    let targetVal = 100;
+                    let targetLabel = 'Target 100%';
 
                     if (this.selectedKpi !== 'total' && trendData.kpis[this.selectedKpi]) {
                         const kpi = trendData.kpis[this.selectedKpi];
-                        seriesName = kpi.short + ' (% Ach)';
-                        seriesData = kpi.ach_series;
+                        if (isIpt) {
+                            seriesName = kpi.short + ' (Nilai Aktual)';
+                            seriesData = kpi.actual_series;
+                            targetVal = 8.00;
+                            targetLabel = 'Target 8.00';
+                        } else {
+                            seriesName = kpi.short + ' (% Ach)';
+                            seriesData = kpi.ach_series;
+                        }
                     }
 
                     return {
@@ -258,7 +296,7 @@
                             enabled: true,
                             formatter: function(val) {
                                 if (val === null || val === undefined) return '';
-                                return val + '%';
+                                return isIpt ? Number(val).toFixed(2) : val + '%';
                             },
                             offsetY: -8,
                             style: {
@@ -291,7 +329,7 @@
                         },
                         yaxis: {
                             labels: {
-                                formatter: (val) => Math.round(val) + '%',
+                                formatter: (val) => isIpt ? Number(val).toFixed(2) : Math.round(val) + '%',
                                 style: {
                                     colors: '#64748b',
                                     fontSize: '11px'
@@ -305,7 +343,7 @@
                         },
                         annotations: {
                             yaxis: [{
-                                y: 100,
+                                y: targetVal,
                                 borderColor: '#ef4444',
                                 strokeDashArray: 4,
                                 label: {
@@ -316,14 +354,14 @@
                                         fontSize: '10px',
                                         fontWeight: 600
                                     },
-                                    text: 'Target 100%'
+                                    text: targetLabel
                                 }
                             }]
                         },
                         tooltip: {
                             theme: 'dark',
                             y: {
-                                formatter: (val) => val + '%'
+                                formatter: (val) => isIpt ? Number(val).toFixed(2) : val + '%'
                             }
                         }
                     };
@@ -340,6 +378,10 @@
                             this.miniCharts[key].destroy();
                         }
 
+                        const isIpt = (kpi.key === 'ipt');
+                        const seriesData = isIpt ? kpi.actual_series : kpi.ach_series;
+                        const seriesName = isIpt ? kpi.short + ' (Nilai)' : kpi.short;
+
                         const options = {
                             chart: {
                                 type: 'area',
@@ -348,8 +390,8 @@
                                 animations: { enabled: true }
                             },
                             series: [{
-                                name: kpi.short,
-                                data: kpi.ach_series
+                                name: seriesName,
+                                data: seriesData
                             }],
                             colors: [kpi.color],
                             stroke: {
@@ -365,7 +407,7 @@
                                 enabled: true,
                                 formatter: function(val) {
                                     if (val === null || val === undefined) return '';
-                                    return (kpi.key === 'ipt') ? val + '%' : Math.round(val) + '%';
+                                    return isIpt ? Number(val).toFixed(2) : Math.round(val) + '%';
                                 },
                                 offsetY: -4,
                                 style: {
@@ -408,7 +450,7 @@
                                     formatter: (val, opts) => trendData.categories[opts.dataPointIndex]
                                 },
                                 y: {
-                                    formatter: (val) => val + '%'
+                                    formatter: (val) => isIpt ? Number(val).toFixed(2) : val + '%'
                                 },
                                 marker: { show: false }
                             }
