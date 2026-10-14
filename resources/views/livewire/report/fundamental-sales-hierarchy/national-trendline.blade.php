@@ -1,0 +1,366 @@
+<div x-data="nationalTrendlineComponent(@js($trendData))" class="bg-base-100 border border-base-300 rounded-2xl shadow-md overflow-hidden mb-6">
+    {{-- Card Header --}}
+    <div class="p-4 md:p-5 bg-gradient-to-r from-base-200/90 via-base-100 to-base-200/90 border-b border-base-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="p-2.5 rounded-xl bg-primary/10 text-primary">
+                <x-heroicon-o-arrow-trending-up class="w-6 h-6" />
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h3 class="font-extrabold text-base md:text-lg tracking-tight text-base-content" x-text="selectedKpi === 'total' ? 'TRENDLINE PENCAPAIAN TOTAL KPI NASIONAL (% ACH)' : 'TRENDLINE: ' + selectedKpiLabel.toUpperCase() + ' (% ACH)'"></h3>
+                    <span class="badge badge-warning badge-sm font-bold">Nasional</span>
+                </div>
+                <p class="text-xs text-base-content/70 mt-0.5" x-text="selectedKpi === 'total' ? 'Pergerakan performa gabungan berbobot 100% sepanjang 12 bulan' : 'Pergerakan pencapaian indikator terhadap target 100%'"></p>
+            </div>
+        </div>
+
+        {{-- Stat Pills & Action Buttons --}}
+        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-start lg:justify-end">
+            {{-- YTD Avg Stat Pill --}}
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-base-100 border border-base-300 shadow-xs">
+                <span class="text-[11px] font-semibold text-base-content/60 uppercase">Rata-rata:</span>
+                <span class="text-sm font-black" :class="currentAvg >= 100 ? 'text-success' : (currentAvg >= 80 ? 'text-warning' : 'text-error')" x-text="currentAvg + '%'"></span>
+            </div>
+
+            {{-- Highest Month Pill --}}
+            <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-base-100 border border-base-300 shadow-xs">
+                <span class="text-[11px] font-semibold text-base-content/60 uppercase">Tertinggi:</span>
+                <span class="text-xs font-bold text-success" x-text="currentHighest"></span>
+            </div>
+
+            {{-- Reset Button if specific KPI selected --}}
+            <template x-if="selectedKpi !== 'total'">
+                <button @click="resetToTotal()" class="btn btn-xs btn-outline btn-primary rounded-lg gap-1">
+                    <x-heroicon-o-arrow-path class="w-3.5 h-3.5" />
+                    <span>Reset ke Total KPI</span>
+                </button>
+            </template>
+
+            {{-- Expand Detail per KPI Button --}}
+            <button @click="toggleExpand()" class="btn btn-sm btn-ghost border border-base-300 rounded-xl hover:bg-base-200 transition-colors gap-2">
+                <x-heroicon-o-squares-2x2 class="w-4 h-4 text-primary" />
+                <span class="text-xs font-bold" x-text="expandKpis ? 'Tutup Detail KPI' : 'Detail 7 KPI'"></span>
+                <x-heroicon-o-chevron-down class="w-4 h-4 transition-transform duration-300 text-base-content/70" x-bind:class="expandKpis ? 'rotate-180' : ''" />
+            </button>
+        </div>
+    </div>
+
+    {{-- Main Chart Canvas Area --}}
+    <div class="p-4 md:p-5 relative">
+        <div class="flex items-center justify-between text-xs text-base-content/60 mb-2 px-1">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-1.5 font-medium">
+                    <span class="w-2.5 h-2.5 rounded-full" :style="'background-color: ' + currentChartColor"></span>
+                    <span x-text="selectedKpi === 'total' ? 'Total Score (% Ach)' : selectedKpiLabel"></span>
+                </div>
+                <div class="flex items-center gap-1.5 font-medium text-error">
+                    <span class="w-3 h-0.5 bg-error border-t border-dashed border-error"></span>
+                    <span>Target Acuan (100%)</span>
+                </div>
+            </div>
+            <span class="text-[11px] italic hidden sm:inline">Pilih KPI di bawah untuk memfokuskan grafik</span>
+        </div>
+
+        <div wire:ignore class="w-full">
+            <div x-ref="mainTrendChart" class="w-full" style="min-height: 250px;"></div>
+        </div>
+    </div>
+
+    {{-- Expandable Detail per KPI Section --}}
+    <div x-show="expandKpis" x-collapse x-cloak class="border-t border-base-200 bg-base-200/40 p-4 md:p-5">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+            <div>
+                <h4 class="font-bold text-sm tracking-tight uppercase flex items-center gap-2">
+                    <span>DETAIL TREN PENCAPAIAN PER KPI</span>
+                    <span class="badge badge-sm badge-neutral font-semibold">7 Indikator</span>
+                </h4>
+                <p class="text-xs text-base-content/60 mt-0.5">Klik salah satu card untuk menampilkan grafik detailnya di chart utama</p>
+            </div>
+            <div class="text-[11px] text-base-content/50 italic">
+                *Sparkline menggambarkan tren 12 bulan (Jan–Des)
+            </div>
+        </div>
+
+        {{-- Grid of 7 KPI Cards --}}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            @foreach($trendData['kpis'] as $kpiKey => $kpi)
+                <div @click="selectKpi('{{ $kpiKey }}')" 
+                     class="cursor-pointer bg-base-100 border rounded-xl p-4 shadow-xs transition-all duration-200 hover:shadow-md hover:scale-[1.01]"
+                     :class="selectedKpi === '{{ $kpiKey }}' ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-base-300 hover:border-primary/40'">
+                    
+                    {{-- KPI Card Header --}}
+                    <div class="flex justify-between items-start gap-2 mb-2">
+                        <div class="flex-1 min-w-0">
+                            <span class="text-xs font-bold text-base-content block truncate" title="{{ $kpi['label'] }}">{{ $kpi['short'] }}</span>
+                            <span class="badge badge-xs badge-ghost font-medium text-[10px] mt-0.5">Bobot: {{ $kpi['bobot'] }}%</span>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <span class="text-sm font-black {{ $kpi['avg_ach'] >= 100 ? 'text-success' : ($kpi['avg_ach'] >= 80 ? 'text-warning' : 'text-error') }}">
+                                {{ $kpi['avg_ach'] }}%
+                            </span>
+                            <span class="block text-[9px] text-base-content/50 uppercase font-semibold">Rata-rata</span>
+                        </div>
+                    </div>
+
+                    {{-- Mini Sparkline Chart --}}
+                    <div class="w-full mt-2" wire:ignore>
+                        <div id="mini-chart-{{ $kpiKey }}" class="w-full" style="height: 60px;"></div>
+                    </div>
+
+                    {{-- Card Footer Details --}}
+                    <div class="mt-2 pt-2 border-t border-base-200/60 flex justify-between items-center text-[10px] text-base-content/60 font-medium">
+                        <span>Min: {{ min($kpi['ach_series']) }}%</span>
+                        <span>Max: {{ max($kpi['ach_series']) }}%</span>
+                        <span class="text-primary font-bold" x-show="selectedKpi === '{{ $kpiKey }}'">● Terpilih</span>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+
+<script>
+    if (typeof window.nationalTrendlineComponent === 'undefined') {
+        window.nationalTrendlineComponent = function(trendData) {
+            return {
+                expandKpis: false,
+                mainChart: null,
+                miniCharts: {},
+                selectedKpi: 'total',
+
+                get selectedKpiLabel() {
+                    if (this.selectedKpi === 'total' || !trendData.kpis[this.selectedKpi]) {
+                        return 'Total KPI';
+                    }
+                    return trendData.kpis[this.selectedKpi].short;
+                },
+
+                get currentAvg() {
+                    if (this.selectedKpi === 'total' || !trendData.kpis[this.selectedKpi]) {
+                        return trendData.ytd_avg;
+                    }
+                    return trendData.kpis[this.selectedKpi].avg_ach;
+                },
+
+                get currentHighest() {
+                    if (this.selectedKpi === 'total' || !trendData.kpis[this.selectedKpi]) {
+                        return trendData.highest_month.month + ' (' + trendData.highest_month.val + '%)';
+                    }
+                    const kpi = trendData.kpis[this.selectedKpi];
+                    let maxVal = -1, maxMonth = '-';
+                    kpi.ach_series.forEach((val, idx) => {
+                        if (val > maxVal) { maxVal = val; maxMonth = trendData.categories[idx]; }
+                    });
+                    return maxMonth + ' (' + maxVal + '%)';
+                },
+
+                get currentChartColor() {
+                    if (this.selectedKpi === 'total' || !trendData.kpis[this.selectedKpi]) {
+                        return '#3b82f6';
+                    }
+                    return trendData.kpis[this.selectedKpi].color;
+                },
+
+                init() {
+                    this.$nextTick(() => {
+                        this.initMainChart();
+                    });
+                },
+
+                toggleExpand() {
+                    this.expandKpis = !this.expandKpis;
+                    if (this.expandKpis) {
+                        this.$nextTick(() => {
+                            setTimeout(() => { this.initMiniCharts(); }, 150);
+                        });
+                    }
+                },
+
+                selectKpi(kpiKey) {
+                    if (this.selectedKpi === kpiKey) {
+                        this.selectedKpi = 'total';
+                    } else {
+                        this.selectedKpi = kpiKey;
+                    }
+                    this.updateMainChart();
+                },
+
+                resetToTotal() {
+                    this.selectedKpi = 'total';
+                    this.updateMainChart();
+                },
+
+                initMainChart() {
+                    const el = this.$refs.mainTrendChart;
+                    if (!el || typeof ApexCharts === 'undefined') return;
+
+                    if (this.mainChart) {
+                        this.mainChart.destroy();
+                    }
+
+                    this.mainChart = new ApexCharts(el, this.getMainChartOptions());
+                    this.mainChart.render();
+                },
+
+                updateMainChart() {
+                    if (!this.mainChart) return;
+                    this.mainChart.updateOptions(this.getMainChartOptions(), true, true);
+                },
+
+                getMainChartOptions() {
+                    let seriesName = 'Total Score (% Ach)';
+                    let seriesData = trendData.total_score_series;
+                    let chartColor = this.currentChartColor;
+
+                    if (this.selectedKpi !== 'total' && trendData.kpis[this.selectedKpi]) {
+                        const kpi = trendData.kpis[this.selectedKpi];
+                        seriesName = kpi.short + ' (% Ach)';
+                        seriesData = kpi.ach_series;
+                    }
+
+                    return {
+                        chart: {
+                            type: 'area',
+                            height: 250,
+                            toolbar: { show: false },
+                            zoom: { enabled: false },
+                            fontFamily: 'inherit',
+                            animations: {
+                                enabled: true,
+                                easing: 'easeinout',
+                                speed: 400
+                            }
+                        },
+                        series: [{
+                            name: seriesName,
+                            data: seriesData
+                        }],
+                        colors: [chartColor],
+                        fill: {
+                            type: 'gradient',
+                            gradient: {
+                                shadeIntensity: 1,
+                                opacityFrom: 0.4,
+                                opacityTo: 0.05,
+                                stops: [0, 95, 100]
+                            }
+                        },
+                        stroke: {
+                            curve: 'smooth',
+                            width: 3
+                        },
+                        markers: {
+                            size: 4,
+                            strokeWidth: 2,
+                            hover: { size: 6 }
+                        },
+                        dataLabels: { enabled: false },
+                        xaxis: {
+                            categories: trendData.categories,
+                            axisBorder: { show: false },
+                            axisTicks: { show: false },
+                            labels: {
+                                style: {
+                                    colors: '#64748b',
+                                    fontSize: '11px',
+                                    fontWeight: 600
+                                }
+                            }
+                        },
+                        yaxis: {
+                            labels: {
+                                formatter: (val) => Math.round(val) + '%',
+                                style: {
+                                    colors: '#64748b',
+                                    fontSize: '11px'
+                                }
+                            }
+                        },
+                        grid: {
+                            borderColor: 'rgba(148, 163, 184, 0.15)',
+                            strokeDashArray: 4,
+                            padding: { left: 10, right: 10, top: 0, bottom: 0 }
+                        },
+                        annotations: {
+                            yaxis: [{
+                                y: 100,
+                                borderColor: '#ef4444',
+                                strokeDashArray: 4,
+                                label: {
+                                    borderColor: '#ef4444',
+                                    style: {
+                                        color: '#fff',
+                                        background: '#ef4444',
+                                        fontSize: '10px',
+                                        fontWeight: 600
+                                    },
+                                    text: 'Target 100%'
+                                }
+                            }]
+                        },
+                        tooltip: {
+                            theme: 'dark',
+                            y: {
+                                formatter: (val) => val + '%'
+                            }
+                        }
+                    };
+                },
+
+                initMiniCharts() {
+                    if (typeof ApexCharts === 'undefined') return;
+
+                    Object.entries(trendData.kpis).forEach(([key, kpi]) => {
+                        const el = document.getElementById('mini-chart-' + key);
+                        if (!el) return;
+
+                        if (this.miniCharts[key]) {
+                            this.miniCharts[key].destroy();
+                        }
+
+                        const options = {
+                            chart: {
+                                type: 'area',
+                                height: 60,
+                                sparkline: { enabled: true },
+                                animations: { enabled: true }
+                            },
+                            series: [{
+                                name: kpi.short,
+                                data: kpi.ach_series
+                            }],
+                            colors: [kpi.color],
+                            stroke: {
+                                curve: 'smooth',
+                                width: 2
+                            },
+                            fill: {
+                                type: 'gradient',
+                                gradient: {
+                                    shadeIntensity: 1,
+                                    opacityFrom: 0.35,
+                                    opacityTo: 0.05,
+                                    stops: [0, 100]
+                                }
+                            },
+                            tooltip: {
+                                fixed: { enabled: false },
+                                x: {
+                                    show: true,
+                                    formatter: (val, opts) => trendData.categories[opts.dataPointIndex]
+                                },
+                                y: {
+                                    formatter: (val) => val + '%'
+                                },
+                                marker: { show: false }
+                            }
+                        };
+
+                        this.miniCharts[key] = new ApexCharts(el, options);
+                        this.miniCharts[key].render();
+                    });
+                }
+            };
+        };
+    }
+</script>

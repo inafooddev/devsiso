@@ -266,8 +266,102 @@ class Index extends Component
         $this->calculateKPIsForNode($nasionalWrap);
         $nasionalNode = $nasionalWrap[0];
 
+        // Prepare Trendline Data for Nasional Card
+        $kpiDefs = [
+            'so' => ['label' => '1. Penjualan Bersih (SO)', 'short' => 'Penjualan Bersih (SO)', 'bobot' => 35, 'color' => '#3b82f6'],
+            'ipt' => ['label' => '2. Item Per Transaksi (IPT)', 'short' => 'Item Per Transaksi (IPT)', 'bobot' => 15, 'color' => '#8b5cf6'],
+            'jks' => ['label' => '3. Pemenuhan kunjungan JKS SE (AC/PC)', 'short' => 'Kunjungan JKS (AC/PC)', 'bobot' => 5, 'color' => '#06b6d4'],
+            'ec' => ['label' => '4. Pencapaian Efektif Call (EC/AC)', 'short' => 'Efektif Call (EC/AC)', 'bobot' => 10, 'color' => '#10b981'],
+            'standpro' => ['label' => '5. Standpro (SE * 300)', 'short' => 'Standpro (SE * 300)', 'bobot' => 10, 'color' => '#f59e0b'],
+            'ao' => ['label' => '6. Active Outlet (AO/RO)', 'short' => 'Active Outlet (AO/RO)', 'bobot' => 10, 'color' => '#ec4899'],
+            'rwo' => ['label' => '7. Reward Outlet Capai Target (RWO)', 'short' => 'Reward Outlet (RWO)', 'bobot' => 15, 'color' => '#6366f1'],
+        ];
+
+        $monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+        $totalScoreSeries = [];
+        $activeMonthsCount = 0;
+        $totalScoreSum = 0;
+        $highestMonth = ['month' => '-', 'val' => 0];
+        $lowestMonth = ['month' => '-', 'val' => 9999];
+
+        for ($m = 1; $m <= 12; $m++) {
+            $mScore = 0;
+            foreach ($kpiDefs as $k => $def) {
+                $mScore += $nasionalNode['months'][$m][$k]['score'];
+            }
+            $mScore = round($mScore, 1);
+            $totalScoreSeries[] = $mScore;
+
+            if ($nasionalRaw[$m]['target'] > 0 || $nasionalRaw[$m]['selling_out'] > 0 || $mScore > 0) {
+                $activeMonthsCount++;
+                $totalScoreSum += $mScore;
+                if ($mScore >= $highestMonth['val']) {
+                    $highestMonth = ['month' => $monthLabels[$m - 1], 'val' => $mScore];
+                }
+                if ($mScore <= $lowestMonth['val']) {
+                    $lowestMonth = ['month' => $monthLabels[$m - 1], 'val' => $mScore];
+                }
+            }
+        }
+
+        if ($lowestMonth['val'] == 9999) {
+            $lowestMonth = ['month' => '-', 'val' => 0];
+        }
+
+        $ytdAvg = $activeMonthsCount > 0 ? round($totalScoreSum / $activeMonthsCount, 1) : 0;
+
+        $kpiSeriesData = [];
+        foreach ($kpiDefs as $k => $def) {
+            $achSeries = [];
+            $scoreSeries = [];
+            $targetSeries = [];
+            $actualSeries = [];
+            $kpiActiveCount = 0;
+            $kpiAchSum = 0;
+
+            for ($m = 1; $m <= 12; $m++) {
+                $cell = $nasionalNode['months'][$m][$k];
+                $ach = round($cell['ach'], 1);
+                $achSeries[] = $ach;
+                $scoreSeries[] = round($cell['score'], 1);
+                $targetSeries[] = round($cell['target'], 0);
+                $actualSeries[] = round($cell['actual'], 0);
+
+                if ($cell['target'] > 0 || $cell['actual'] > 0) {
+                    $kpiActiveCount++;
+                    $kpiAchSum += $ach;
+                }
+            }
+
+            $kpiAvgAch = $kpiActiveCount > 0 ? round($kpiAchSum / $kpiActiveCount, 1) : 0;
+
+            $kpiSeriesData[$k] = [
+                'key' => $k,
+                'label' => $def['label'],
+                'short' => $def['short'],
+                'bobot' => $def['bobot'],
+                'color' => $def['color'],
+                'avg_ach' => $kpiAvgAch,
+                'ach_series' => $achSeries,
+                'score_series' => $scoreSeries,
+                'target_series' => $targetSeries,
+                'actual_series' => $actualSeries,
+            ];
+        }
+
+        $nasionalTrendline = [
+            'categories' => $monthLabels,
+            'total_score_series' => $totalScoreSeries,
+            'ytd_avg' => $ytdAvg,
+            'highest_month' => $highestMonth,
+            'lowest_month' => $lowestMonth,
+            'kpis' => $kpiSeriesData,
+        ];
+
         return [
             'nasional' => $nasionalNode,
+            'nasional_trendline' => $nasionalTrendline,
             'regions' => $hierarchy
         ];
     }

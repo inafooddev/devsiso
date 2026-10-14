@@ -152,6 +152,12 @@
                 <div class="space-y-4">
                     {{-- Dedicated Executive Summary Card: Nasional (Opsi B) --}}
                     @if($showNasional)
+                        {{-- 1. Trendline Card % Ach Nasional --}}
+                        @if(!empty($data['nasional_trendline']))
+                            @include('livewire.report.fundamental-sales-hierarchy.national-trendline', ['trendData' => $data['nasional_trendline']])
+                        @endif
+
+                        {{-- 2. Matrix Table Card Nasional --}}
                         <div x-data="{ openNasional: false }" class="bg-base-100 border border-primary/40 rounded-xl shadow-md overflow-hidden mb-6">
                             <div @click="openNasional = !openNasional" class="px-4 py-3 bg-base-300/80 cursor-pointer flex justify-between items-center hover:bg-base-300 transition-colors">
                                 <div class="flex items-center gap-3">
