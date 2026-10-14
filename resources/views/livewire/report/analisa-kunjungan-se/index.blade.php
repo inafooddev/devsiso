@@ -3,10 +3,10 @@
 
     {{-- Standar Tab Menu dari resources/views/components/ui/tab-menu.blade.php --}}
     <x-ui.tab-menu class="mb-3 md:mb-4 lg:mb-6">
-        <x-ui.tab-item :active="$activeTab === 'detail'" wire:click.prevent="setTab('detail')" :navigate="false">
+        <x-ui.tab-item :active="true" :href="route('report.analisa-kunjungan-se.index')" :navigate="true">
             <x-heroicon-o-table-cells class="w-4 h-4 inline-block mr-1" /> Detail Data
         </x-ui.tab-item>
-        <x-ui.tab-item :active="$activeTab === 'summary'" wire:click.prevent="setTab('summary')" :navigate="false">
+        <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.summary')" :navigate="true">
             <x-heroicon-o-chart-bar class="w-4 h-4 inline-block mr-1" /> Summary Data
         </x-ui.tab-item>
     </x-ui.tab-menu>

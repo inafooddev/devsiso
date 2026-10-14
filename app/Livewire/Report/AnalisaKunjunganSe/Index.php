@@ -60,9 +60,33 @@ class Index extends Component
         $this->setDatePreset('this_month');
         
         $this->appliedStartDate = $this->startDate;
-        $this->appliedEndDate = $this->endDate;
-
         $this->loadRegions();
+
+        // Check if navigated from Summary with query parameters
+        $urlRegion = request()->query('region');
+        $urlArea = request()->query('area');
+        $urlDistributor = request()->query('distributor');
+        $urlSalesman = request()->query('salesman');
+        $urlStartDate = request()->query('startDate');
+        $urlEndDate = request()->query('endDate');
+
+        if ($urlRegion && $urlArea && $urlDistributor && $urlSalesman) {
+            $this->selectedRegion = $urlRegion;
+            $this->updatedSelectedRegion($urlRegion);
+
+            $this->selectedArea = $urlArea;
+            $this->updatedSelectedArea($urlArea);
+
+            $this->selectedDistributor = $urlDistributor;
+            $this->updatedSelectedDistributor($urlDistributor);
+
+            $this->selectedSalesman = $urlSalesman;
+
+            if ($urlStartDate) $this->startDate = $urlStartDate;
+            if ($urlEndDate) $this->endDate = $urlEndDate;
+
+            $this->applyFilter();
+        }
     }
 
     /**
