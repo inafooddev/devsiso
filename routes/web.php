@@ -398,8 +398,9 @@ Route::middleware(['auth'])->group(function () {
     // SALES INVOICE & CONFIGURATION
     // ==========================================
     Route::get('/report/analisa-kunjungan', AnalisaKunjunganIndex::class)->name('report.analisa-kunjungan.index');
-    Route::get('/report/analisa-kunjungan-se', AnalisaKunjunganSeIndex::class)->name('report.analisa-kunjungan-se.index');
+    Route::get('/report/analisa-kunjungan-se', AnalisaKunjunganSeIndex::class)->name('report.analisa-kunjungan-se.index')->middleware('menu.access');
     Route::get('/report/monitoring-top-item', MonitoringTopItemIndex::class)->name('report.monitoring-top-item.index');
+
     Route::get('/report/fundamental-sales', FundamentalSalesIndex::class)->name('report.fundamental-sales.index');
     Route::get('/report/fundamental-sales-hierarchy', \App\Livewire\Report\FundamentalSalesHierarchy\Index::class)->name('report.fundamental-sales-hierarchy.index');
     Route::get('/report/fundamental-sales/export/{supervisorCode}', [\App\Http\Controllers\Report\FundamentalSalesExportController::class, 'export'])->name('report.fundamental-sales.export');
