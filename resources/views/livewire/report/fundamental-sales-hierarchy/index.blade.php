@@ -137,7 +137,7 @@
                 }
             @endphp
 
-            @if(empty($data))
+            @if(empty($data) || empty($data['regions']))
                 <div class="flex flex-col items-center justify-center h-full text-base-content/50">
                     <x-heroicon-o-document-magnifying-glass class="w-16 h-16 mb-4" />
                     <p class="text-sm font-medium">Belum ada data. Silakan atur filter dan klik Terapkan.</p>
@@ -145,11 +145,46 @@
             @else
                 @php
                     $accessLevel = auth()->user()->getAccessLevel();
+                    $showNasional = ($accessLevel === 'nasional') && empty($appliedRegion) && !empty($data['nasional']);
                     $showRegion = in_array($accessLevel, ['nasional', 'region']);
                     $showArea = in_array($accessLevel, ['nasional', 'region', 'area']);
                 @endphp
                 <div class="space-y-4">
-                    @foreach($data as $regionName => $regionData)
+                    {{-- Dedicated Executive Summary Card: Nasional (Opsi B) --}}
+                    @if($showNasional)
+                        <div x-data="{ openNasional: false }" class="bg-base-100 border border-primary/40 rounded-xl shadow-md overflow-hidden mb-6">
+                            <div @click="openNasional = !openNasional" class="px-4 py-3 bg-base-300/80 cursor-pointer flex justify-between items-center hover:bg-base-300 transition-colors">
+                                <div class="flex items-center gap-3">
+                                    <div class="avatar placeholder">
+                                        <div class="bg-warning text-warning-content rounded-full w-10 shadow-sm">
+                                            <span class="text-sm font-black">N</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h3 class="font-extrabold text-sm md:text-base uppercase tracking-wide text-base-content">PENCAPAIAN NASIONAL (ALL REGION)</h3>
+                                            <span class="badge badge-warning badge-sm font-bold">Nasional</span>
+                                        </div>
+                                        <p class="text-xs text-base-content/70 mt-0.5">Akumulasi performa seluruh region se-Indonesia</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    @canExport('report.fundamental-sales-hierarchy.index')
+                                    <a href="{{ route('report.fundamental-sales-hierarchy.export', ['type' => 'nasional', 'code' => 'NASIONAL', 'year' => $appliedYear]) }}" target="_blank" class="btn btn-sm btn-ghost btn-circle hover:bg-success/20 text-base-content/70 hover:text-success transition-colors" title="Export Excel Nasional" @click.stop>
+                                        <x-heroicon-o-document-arrow-down class="w-5 h-5" />
+                                    </a>
+                                    @endcanExport
+                                    <x-heroicon-o-chevron-down class="w-5 h-5 transition-transform duration-300 text-base-content/70" x-bind:class="openNasional ? 'rotate-180' : ''" />
+                                </div>
+                            </div>
+                            
+                            <div x-show="openNasional" x-collapse x-cloak class="p-4 border-t border-base-300">
+                                @include('livewire.report.fundamental-sales-hierarchy.matrix-table', ['nodeData' => $data['nasional']])
+                            </div>
+                        </div>
+                    @endif
+
+                    @foreach($data['regions'] as $regionName => $regionData)
                         @if($showRegion)
                         <div x-data="{ openRegion: false }" class="bg-base-100 border border-base-300 rounded-xl shadow-sm overflow-hidden mb-4">
                             <div @click="openRegion = !openRegion" class="px-4 py-3 bg-neutral text-neutral-content cursor-pointer flex justify-between items-center hover:bg-neutral/80 transition-colors">

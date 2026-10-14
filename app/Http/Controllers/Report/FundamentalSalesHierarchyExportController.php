@@ -78,6 +78,7 @@ class FundamentalSalesHierarchyExportController extends Controller
             'se' => 0, 'ro' => 0, 'ao' => 0, 'sku' => 0, 'nota' => 0,
             'potensi_rwo' => 0, 'capai_rwo' => 0
         ];
+        $nasionalRaw = array_fill(1, 12, $emptyRaw);
 
         foreach ($rawData as $row) {
             $regionName = $row->region_name ?: 'Unknown Region';
@@ -120,13 +121,28 @@ class FundamentalSalesHierarchyExportController extends Controller
                 $hierarchy[$regionName]['children'][$areaName]['children'][$spvCode]['raw'][$m][$k] += $v;
                 $hierarchy[$regionName]['children'][$areaName]['raw'][$m][$k] += $v;
                 $hierarchy[$regionName]['raw'][$m][$k] += $v;
+                $nasionalRaw[$m][$k] += $v;
             }
         }
 
         $this->calculateKPIsForNode($hierarchy);
 
         // Find the requested node
-        $targetNode = $this->findNode($hierarchy, $type, $code);
+        if ($type === 'nasional') {
+            $nasionalNode = [
+                'type' => 'nasional',
+                'name' => 'NASIONAL',
+                'code' => 'NASIONAL',
+                'raw' => $nasionalRaw,
+                'months' => [],
+                'children' => $hierarchy
+            ];
+            $nasionalWrap = [$nasionalNode];
+            $this->calculateKPIsForNode($nasionalWrap);
+            $targetNode = $nasionalWrap[0];
+        } else {
+            $targetNode = $this->findNode($hierarchy, $type, $code);
+        }
 
         if (!$targetNode) {
             abort(404, 'Data tidak ditemukan.');
@@ -151,8 +167,8 @@ class FundamentalSalesHierarchyExportController extends Controller
         $supervisorInfo->code = $targetNode['code'];
         $supervisorInfo->name = $targetNode['name'];
         $supervisorInfo->type = $type;
-        $supervisorInfo->region_name = $type == 'region' ? $targetNode['name'] : 'N/A';
-        $supervisorInfo->area_name = $type == 'area' ? $targetNode['name'] : 'N/A';
+        $supervisorInfo->region_name = $type == 'region' ? $targetNode['name'] : ($type == 'nasional' ? 'NASIONAL' : 'N/A');
+        $supervisorInfo->area_name = $type == 'area' ? $targetNode['name'] : ($type == 'nasional' ? 'ALL REGION' : 'N/A');
         $supervisorInfo->branches_string = implode(', ', array_keys($dashboardData['branches']));
 
         $kpis = [
@@ -165,7 +181,9 @@ class FundamentalSalesHierarchyExportController extends Controller
             'rwo' => ['label' => 'Reward Outlet (RWO)', 'bobot' => 15],
         ];
 
-        $filename = 'Laporan_KPI_' . ucfirst($type) . '_' . $code . '_' . $year . '.xlsx';
+        $filename = ($type === 'nasional') 
+            ? 'Laporan_KPI_Nasional_' . $year . '.xlsx'
+            : 'Laporan_KPI_' . ucfirst($type) . '_' . $code . '_' . $year . '.xlsx';
         $filename = str_replace(['/', '\\'], '_', $filename);
 
         return Excel::download(

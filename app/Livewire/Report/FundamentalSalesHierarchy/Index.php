@@ -183,6 +183,10 @@ class Index extends Component
         ->orderBy('ifs.cabang')
         ->get();
 
+        if ($rawData->isEmpty()) {
+            return [];
+        }
+
         $hierarchy = [];
 
         // Helper for empty raw data
@@ -193,6 +197,7 @@ class Index extends Component
             'sku' => 0, 'nota' => 0,
             'potensi_rwo' => 0, 'capai_rwo' => 0
         ];
+        $nasionalRaw = array_fill(1, 12, $emptyRaw);
 
         foreach ($rawData as $row) {
             $regionName = $row->region_name ?: 'Unknown Region';
@@ -235,19 +240,36 @@ class Index extends Component
                 'capai_rwo' => (float)$row->total_capai_rwo,
             ];
 
-            // Add to Cabang
+            // Add to Cabang, Supervisor, Area, Region, and Nasional
             foreach ($rawValues as $k => $v) {
                 $hierarchy[$regionName]['children'][$areaName]['children'][$spvCode]['children'][$cabangName]['raw'][$m][$k] += $v;
                 $hierarchy[$regionName]['children'][$areaName]['children'][$spvCode]['raw'][$m][$k] += $v;
                 $hierarchy[$regionName]['children'][$areaName]['raw'][$m][$k] += $v;
                 $hierarchy[$regionName]['raw'][$m][$k] += $v;
+                $nasionalRaw[$m][$k] += $v;
             }
         }
 
-        // Now calculate KPIs recursively
+        // Now calculate KPIs recursively for region hierarchy
         $this->calculateKPIsForNode($hierarchy);
 
-        return $hierarchy;
+        // Calculate KPIs for Nasional node
+        $nasionalNode = [
+            'type' => 'nasional',
+            'name' => 'NASIONAL',
+            'code' => 'NASIONAL',
+            'raw' => $nasionalRaw,
+            'months' => [],
+            'children' => $hierarchy
+        ];
+        $nasionalWrap = [$nasionalNode];
+        $this->calculateKPIsForNode($nasionalWrap);
+        $nasionalNode = $nasionalWrap[0];
+
+        return [
+            'nasional' => $nasionalNode,
+            'regions' => $hierarchy
+        ];
     }
 
     private function calculateKPIsForNode(&$nodes)
