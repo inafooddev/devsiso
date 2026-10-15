@@ -12,6 +12,9 @@
         <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.reason')" :navigate="true">
             <x-heroicon-o-clipboard-document-list class="w-4 h-4 inline-block mr-1" /> Summary Reason
         </x-ui.tab-item>
+        <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.trend')" :navigate="true">
+            <x-heroicon-o-arrow-trending-up class="w-4 h-4 inline-block mr-1" /> Trend Bulanan
+        </x-ui.tab-item>
     </x-ui.tab-menu>
 
     {{-- 5 KPI Cards Section (Tetap statis di atas sesuai standar template) --}}
