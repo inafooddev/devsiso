@@ -334,7 +334,7 @@
                                     <button type="button" 
                                         @click.stop="openDayMap('{{ $day->tanggal }}')"
                                         class="inline-flex items-center justify-center text-rose-500 hover:text-rose-600 hover:scale-110 transition-transform cursor-pointer" 
-                                        title="PERINGATAN AUDIT: Terdeteksi {{ count($day->distributor_warnings) }} kunjungan di titik distributor (&le;30m). Klik untuk lihat di peta">
+                                        title="PERINGATAN AUDIT: Terdeteksi {{ count($day->distributor_warnings) }} kunjungan di titik distributor (&le;100m). Klik untuk lihat di peta">
                                         <x-heroicon-s-building-office-2 class="w-4 h-4" />
                                     </button>
                                 @endif
@@ -458,7 +458,7 @@
                                                 </span>
                                             @endif
                                             @if(!empty($day->distributor_warnings) && count($day->distributor_warnings) > 0)
-                                                <span class="badge badge-sm bg-rose-600 text-white font-bold animate-pulse" title="{{ count($day->distributor_warnings) }} kunjungan dilakukan di lokasi kantor/gudang distributor (&le;30m)">
+                                                <span class="badge badge-sm bg-rose-600 text-white font-bold animate-pulse" title="{{ count($day->distributor_warnings) }} kunjungan dilakukan di lokasi kantor/gudang distributor (&le;100m)">
                                                     🚨 {{ count($day->distributor_warnings) }} Titik Distributor
                                                 </span>
                                             @endif
@@ -594,7 +594,7 @@
                                                     @if(!empty($item->is_at_distributor))
                                                         <div class="mt-0.5">
                                                             <span class="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8px] font-bold bg-rose-600 text-white shadow-2xs" 
-                                                                  title="PERINGATAN AUDIT: Visit dilakukan di lokasi Distributor (Jarak {{ $item->dist_to_distributor }}m &le; 30m)">
+                                                                  title="PERINGATAN AUDIT: Visit dilakukan di lokasi Distributor (Jarak {{ $item->dist_to_distributor }}m &le; 100m)">
                                                                 🚨 Titik Distributor ({{ $item->dist_to_distributor }}m)
                                                             </span>
                                                         </div>
@@ -1116,10 +1116,10 @@
                 if (Math.abs(dLat) > 90 && Math.abs(dLon) <= 90) { const tmp = dLat; dLat = dLon; dLon = tmp; }
                 if (isNaN(dLat) || isNaN(dLon) || Math.abs(dLat) < 0.000001 || Math.abs(dLon) < 0.000001 || dLat < -90 || dLat > 90 || dLon < -180 || dLon > 180) return;
 
-                // 1. Draw 30-meter buffer circle around distributor
-                const circleGeoJson = this.createGeoJSONCircle([dLon, dLat], 30);
+                // 1. Draw 100-meter buffer circle around distributor
+                const circleGeoJson = this.createGeoJSONCircle([dLon, dLat], 100);
                 if (circleGeoJson) {
-                    this.mapInstance.addSource('distributor-buffer-30m', {
+                    this.mapInstance.addSource('distributor-buffer-100m', {
                         type: 'geojson',
                         data: circleGeoJson
                     });
@@ -1127,7 +1127,7 @@
                     this.mapInstance.addLayer({
                         id: 'distributor-buffer-fill',
                         type: 'fill',
-                        source: 'distributor-buffer-30m',
+                        source: 'distributor-buffer-100m',
                         paint: {
                             'fill-color': '#f43f5e',
                             'fill-opacity': 0.25
@@ -1137,7 +1137,7 @@
                     this.mapInstance.addLayer({
                         id: 'distributor-buffer-stroke',
                         type: 'line',
-                        source: 'distributor-buffer-30m',
+                        source: 'distributor-buffer-100m',
                         paint: {
                             'line-color': '#e11d48',
                             'line-width': 2,
@@ -1164,8 +1164,8 @@
                         <div class='font-bold text-slate-900'>${this.distributorPoint.name || this.distributorPoint.code}</div>
                         <div class='text-slate-600 font-mono text-[10px] font-semibold mt-0.5'>Kode: ${this.distributorPoint.code}</div>
                         <div class='mt-2 p-1.5 rounded bg-rose-50 border border-rose-200 text-rose-900 text-[11px] leading-snug'>
-                            📍 <strong>Radius Audit: 30 Meter</strong><br>
-                            Area lingkaran merah putus-putus menunjukkan batas radius audit 30m.
+                            📍 <strong>Radius Audit: 100 Meter</strong><br>
+                            Area lingkaran merah putus-putus menunjukkan batas radius audit 100m.
                         </div>
                         <div class='mt-1.5'>
                             <a href='https://www.google.com/maps/search/?api=1&query=${dLat},${dLon}' target='_blank' class='text-sky-600 hover:underline font-mono text-[10px] inline-flex items-center gap-1 font-semibold'>
@@ -1458,7 +1458,7 @@
                                 <span>🚨 Audit: Kunjungan di Titik Distributor!</span>
                             </div>
                             <div class='text-[10px] mt-1 text-rose-900 leading-snug'>
-                                Check-in toko ini terdeteksi berada di lokasi fisik kantor/gudang distributor (Jarak: <strong>${point.dist_to_distributor ?? 0}m</strong> &le; 30m).
+                                Check-in toko ini terdeteksi berada di lokasi fisik kantor/gudang distributor (Jarak: <strong>${point.dist_to_distributor ?? 0}m</strong> &le; 100m).
                             </div>
                         </div>
                     ` : '';
@@ -1769,13 +1769,13 @@
                                 <template x-if="distributorPoint">
                                     <span class="flex items-center gap-1 font-medium text-rose-300">
                                         <span class="w-3.5 h-3.5 rounded-full bg-slate-950 inline-flex items-center justify-center text-[9px] border border-rose-500">🏢</span>
-                                        <span>Distributor (30m)</span>
+                                        <span>Distributor (100m)</span>
                                     </span>
                                 </template>
                                 <template x-if="distributorWarnings && distributorWarnings.length > 0">
                                     <span class="flex items-center gap-1 font-medium text-rose-400">
                                         <span class="w-3.5 h-3.5 rounded-full bg-rose-600 inline-flex items-center justify-center text-[8px] text-white font-bold border border-white">🚨</span>
-                                        <span>&le;30m Distributor</span>
+                                        <span>&le;100m Distributor</span>
                                     </span>
                                 </template>
                                 <template x-if="duplicateWarnings && duplicateWarnings.length > 0">
@@ -1828,7 +1828,7 @@
                                     <div class="text-xs text-slate-900 font-bold mt-1" x-text="distributorPoint.name || distributorPoint.code"></div>
                                     <div class="text-[11px] text-slate-600 font-mono flex items-center justify-between mt-1 pt-1 border-t border-slate-200">
                                         <span>Kode: <strong class="text-slate-800" x-text="distributorPoint.code"></strong></span>
-                                        <span class="text-rose-600 font-bold">Radius Audit: 30m</span>
+                                        <span class="text-rose-600 font-bold">Radius Audit: 100m</span>
                                     </div>
                                 </div>
                             </template>
@@ -1846,7 +1846,7 @@
                             <template x-if="distributorWarnings && distributorWarnings.length > 0">
                                 <div class="space-y-1.5 mb-3">
                                     <div class="flex items-center justify-between text-xs font-bold text-rose-700 uppercase tracking-wide">
-                                        <span class="flex items-center gap-1">🚨 Di Titik Distributor (&le;30m)</span>
+                                        <span class="flex items-center gap-1">🚨 Di Titik Distributor (&le;100m)</span>
                                         <span class="badge badge-xs badge-error text-white font-bold font-mono" x-text="distributorWarnings.length"></span>
                                     </div>
                                     <template x-for="dw in distributorWarnings" :key="'dist-' + dw.seq">
@@ -1865,7 +1865,7 @@
                                             <div class="font-bold text-slate-950 text-xs truncate" x-text="dw.name"></div>
                                             <div class="flex items-center justify-between text-[11px] text-rose-900 mt-1.5 font-mono pt-1 border-t border-rose-200">
                                                 <span>Jarak: <strong class="text-rose-950" x-text="dw.dist"></strong>m dari gudang</span>
-                                                <span class="badge badge-xs bg-rose-200 border border-rose-400 text-rose-950 font-bold">&le; 30 Meter</span>
+                                                <span class="badge badge-xs bg-rose-200 border border-rose-400 text-rose-950 font-bold">&le; 100 Meter</span>
                                             </div>
                                         </div>
                                     </template>
@@ -1935,7 +1935,7 @@
                                                 <template x-if="idx === points.length - 1 && points.length > 1 && !pt.is_at_distributor && !pt.has_duplicate_coord"><span class="ml-0.5 text-[9px] font-sans font-bold">FINISH</span></template>
                                             </span>
                                             <template x-if="pt.is_at_distributor">
-                                                <span class="badge badge-xs badge-error text-white font-bold font-mono">🚨 &le;30m</span>
+                                                <span class="badge badge-xs badge-error text-white font-bold font-mono">🚨 &le;100m</span>
                                             </template>
                                             <template x-if="pt.has_duplicate_coord">
                                                 <span class="badge badge-xs badge-warning text-slate-900 font-bold font-mono">⚠️ Duplikat</span>

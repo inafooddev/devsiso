@@ -782,14 +782,14 @@ class Index extends Component
                 $item->time_in_fmt = !empty($item->time_in) ? substr($item->time_in, 0, 5) : '-';
                 $item->time_out_fmt = !empty($item->time_out) ? substr($item->time_out, 0, 5) : '-';
 
-                // Audit Kunjungan di Titik Distributor (Radius <= 30 meter)
+                // Audit Kunjungan di Titik Distributor (Radius <= 100 meter)
                 $item->dist_to_distributor = null;
                 $item->is_at_distributor = false;
 
                 if ($appliedDistPoint && $cleanVisit) {
                     $distToD = self::calculateDistance($cleanVisit['lat'], $cleanVisit['lon'], $appliedDistPoint['lat'], $appliedDistPoint['lon']);
                     $item->dist_to_distributor = (int)$distToD;
-                    if ($item->flag_visit === 'Y' && $distToD <= 30) {
+                    if ($item->flag_visit === 'Y' && $distToD <= 100) {
                         $item->is_at_distributor = true;
                     }
                 }
@@ -823,7 +823,7 @@ class Index extends Component
                 }
             }
 
-            // Deteksi kunjungan di titik distributor (Radius <= 30m)
+            // Deteksi kunjungan di titik distributor (Radius <= 100m)
             $dailyDistributorWarnings = [];
             foreach ($mapPoints as $mp) {
                 if (!empty($mp['is_at_distributor'])) {
@@ -1239,7 +1239,7 @@ class Index extends Component
                 $cleanD = self::cleanCoordinate($dCoord->latitude, $dCoord->longitude);
                 if ($cleanD) {
                     $distToD = self::calculateDistance($cleanCoord['lat'], $cleanCoord['lon'], $cleanD['lat'], $cleanD['lon']);
-                    if ($distToD <= 30) {
+                    if ($distToD <= 100) {
                         $isAtDistributor = true;
                     }
                 }
