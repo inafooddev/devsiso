@@ -1,4 +1,11 @@
-<div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full">
+<div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full"
+     x-data="{
+         showKpi: localStorage.getItem('se_detail_show_kpi') === 'true',
+         toggleKpi() {
+             this.showKpi = !this.showKpi;
+             localStorage.setItem('se_detail_show_kpi', this.showKpi);
+         }
+     }">
     <x-slot name="title">Analisa Kunjungan SE</x-slot>
 
     {{-- Standar Tab Menu dari resources/views/components/ui/tab-menu.blade.php --}}
@@ -15,10 +22,41 @@
         <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.trend')" :navigate="true">
             <x-heroicon-o-arrow-trending-up class="w-4 h-4 inline-block mr-1" /> Trend Bulanan
         </x-ui.tab-item>
+
+        <x-slot name="actions">
+            <button type="button" 
+                @click="toggleKpi()" 
+                class="btn btn-xs sm:btn-sm rounded-xl gap-1.5 transition-all font-semibold border shadow-2xs cursor-pointer select-none"
+                :class="showKpi ? 'btn-ghost text-base-content/70 hover:text-base-content border-base-300' : 'btn-primary text-white shadow-sm border-primary'"
+                :title="showKpi ? 'Sembunyikan KPI Card agar ruang tabel lebih lega' : 'Tampilkan kembali KPI Card'">
+                <template x-if="showKpi">
+                    <span class="flex items-center gap-1.5">
+                        <x-heroicon-m-eye-slash class="w-4 h-4 text-base-content/70" />
+                        <span class="text-xs hidden sm:inline">Sembunyikan KPI</span>
+                    </span>
+                </template>
+                <template x-if="!showKpi">
+                    <span class="flex items-center gap-1.5">
+                        <x-heroicon-m-chart-bar class="w-4 h-4 text-white" />
+                        <span class="text-xs">Tampilkan KPI</span>
+                    </span>
+                </template>
+            </button>
+        </x-slot>
     </x-ui.tab-menu>
 
-    {{-- 5 KPI Cards Section (Tetap statis di atas sesuai standar template) --}}
-    @include('livewire.report.analisa-kunjungan-se.kpi-cards')
+    {{-- 5 KPI Cards Section (Default disembunyikan agar ruang tabel lebih lega) --}}
+    <div x-show="showKpi" 
+         x-transition:enter="transition ease-out duration-200" 
+         x-transition:enter-start="opacity-0 -translate-y-2" 
+         x-transition:enter-end="opacity-100 translate-y-0" 
+         x-transition:leave="transition ease-in duration-150" 
+         x-transition:leave-start="opacity-100 translate-y-0" 
+         x-transition:leave-end="opacity-0 -translate-y-2" 
+         class="shrink-0"
+         style="display: none;">
+        @include('livewire.report.analisa-kunjungan-se.kpi-cards')
+    </div>
 
     {{-- Main Card (Tabel) yang mengambil sisa ruang flex --}}
     <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden"
@@ -61,6 +99,26 @@
             <div class="shrink-0 w-full lg:w-auto">
                 <div class="flex items-center gap-2 flex-wrap">
                     <h2 class="text-base md:text-lg font-bold">Data Kunjungan SE</h2>
+
+                    {{-- Button Toggle KPI di Header Card --}}
+                    <button type="button" 
+                        @click="toggleKpi()" 
+                        class="btn btn-xs rounded-lg gap-1 border transition-all font-semibold cursor-pointer shadow-2xs"
+                        :class="showKpi ? 'btn-ghost text-base-content/60 hover:text-base-content border-base-300' : 'btn-primary text-white border-primary'"
+                        :title="showKpi ? 'Sembunyikan KPI Card agar ruang tabel lebih lega' : 'Tampilkan kembali KPI Card'">
+                        <template x-if="showKpi">
+                            <span class="flex items-center gap-1">
+                                <x-heroicon-m-chevron-up class="w-3.5 h-3.5" />
+                                <span class="text-[11px] hidden sm:inline">Sembunyikan KPI</span>
+                            </span>
+                        </template>
+                        <template x-if="!showKpi">
+                            <span class="flex items-center gap-1">
+                                <x-heroicon-m-chart-bar class="w-3.5 h-3.5" />
+                                <span class="text-[11px]">Tampilkan KPI</span>
+                            </span>
+                        </template>
+                    </button>
                     {{-- Territory pills for locked/single access (when filters are hidden) --}}
                     @if($accessLevel !== 'nasional' && count($regions) <= 1 && !empty($selectedRegion))
                         @php
