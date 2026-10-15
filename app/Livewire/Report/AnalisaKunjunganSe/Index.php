@@ -482,22 +482,73 @@ class Index extends Component
         $this->activeTab = $tab;
     }
 
+    /**
+     * Clean, parse, and validate GPS coordinate pair.
+     * Returns ['lat' => float, 'lon' => float] or null if invalid.
+     */
+    public static function cleanCoordinate($rawLat, $rawLon): ?array
+    {
+        if ($rawLat === null || $rawLon === null) return null;
+
+        // Clean string representation (handle comma decimals e.g. "-6,92285")
+        $strLat = trim(str_replace(',', '.', (string)$rawLat));
+        $strLon = trim(str_replace(',', '.', (string)$rawLon));
+
+        if ($strLat === '' || $strLon === '') return null;
+        if (!is_numeric($strLat) || !is_numeric($strLon)) return null;
+
+        $lat = (float)$strLat;
+        $lon = (float)$strLon;
+
+        if (is_nan($lat) || is_nan($lon) || is_infinite($lat) || is_infinite($lon)) {
+            return null;
+        }
+
+        // Ignore dummy (0, 0) coordinates
+        if (abs($lat) < 0.000001 && abs($lon) < 0.000001) {
+            return null;
+        }
+
+        // Check if lat/lon are inverted (mobile GPS often inverts: lat sent as > 90)
+        if (abs($lat) > 90 && abs($lon) <= 90) {
+            $tmp = $lat;
+            $lat = $lon;
+            $lon = $tmp;
+        }
+
+        // WGS84 range validation
+        if ($lat < -90 || $lat > 90 || $lon < -180 || $lon > 180) {
+            return null;
+        }
+
+        return [
+            'lat' => round($lat, 8),
+            'lon' => round($lon, 8),
+        ];
+    }
+
     public static function calculateDistance($lat1, $lon1, $lat2, $lon2)
     {
-        if (!$lat1 || !$lon1 || !$lat2 || !$lon2) return 0;
+        $c1 = self::cleanCoordinate($lat1, $lon1);
+        $c2 = self::cleanCoordinate($lat2, $lon2);
+        if (!$c1 || !$c2) return 0;
         
         $earthRadius = 6371000; // in meters
-        $latFrom = deg2rad((float)$lat1);
-        $lonFrom = deg2rad((float)$lon1);
-        $latTo = deg2rad((float)$lat2);
-        $lonTo = deg2rad((float)$lon2);
+        $latFrom = deg2rad($c1['lat']);
+        $lonFrom = deg2rad($c1['lon']);
+        $latTo = deg2rad($c2['lat']);
+        $lonTo = deg2rad($c2['lon']);
 
         $latDelta = $latTo - $latFrom;
         $lonDelta = $lonTo - $lonFrom;
 
-        $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
-            cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
-        return round($angle * $earthRadius); // in meters
+        $val = pow(sin($latDelta / 2), 2) + cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2);
+        // Clamp to prevent floating-point precision error returning NAN from asin
+        $val = max(0.0, min(1.0, $val));
+        $angle = 2 * asin(sqrt($val));
+        
+        $distance = round($angle * $earthRadius);
+        return (is_nan($distance) || is_infinite($distance)) ? 0 : (int)$distance;
     }
 
     public static function parseSecondsFromTimeString($timeStr)
@@ -643,7 +694,36 @@ class Index extends Component
             ->orderBy('rvah.ID', 'asc')
             ->get();
 
-        $summaries = $rawRows->groupBy('tanggal')->map(function ($items, $tanggal) {
+        // Ambil data koordinat distributor untuk audit kunjungan di titik distributor (radius 15m)
+        $distributorCoords = DB::table('distributor_implementasi_eskalink as die')
+            ->leftJoin('master_distributors as md', 'die.distributor_code', '=', 'md.distributor_code')
+            ->whereNotNull('die.eskalink_code')
+            ->where('die.eskalink_code', '!=', '')
+            ->whereNotNull('md.latitude')
+            ->whereNotNull('md.longitude')
+            ->where('md.latitude', '!=', 0)
+            ->where('md.longitude', '!=', 0)
+            ->select('die.eskalink_code as distributor_code', 'md.distributor_name', 'md.latitude', 'md.longitude')
+            ->get()
+            ->keyBy('distributor_code');
+
+        $appliedDistPoint = null;
+        if (!empty($this->appliedDistributor)) {
+            $mDist = $distributorCoords->get($this->appliedDistributor);
+            if ($mDist) {
+                $cleanD = self::cleanCoordinate($mDist->latitude, $mDist->longitude);
+                if ($cleanD) {
+                    $appliedDistPoint = [
+                        'code' => $this->appliedDistributor,
+                        'name' => trim(preg_replace('/[\r\n\t]+/', ' ', (string)($mDist->distributor_name ?? $this->appliedDistributor))),
+                        'lat' => $cleanD['lat'],
+                        'lon' => $cleanD['lon'],
+                    ];
+                }
+            }
+        }
+
+        $summaries = $rawRows->groupBy('tanggal')->map(function ($items, $tanggal) use ($distributorCoords, $appliedDistPoint) {
             $totalCall = $items->count();
             $pc = $items->where('flag_pjp', 'R')->count();
             $xc = $items->where('flag_pjp', 'N')->count();
@@ -656,8 +736,8 @@ class Index extends Component
             $ecPercent = $totalVisit > 0 ? round(($totalEc / $totalVisit) * 100, 1) : 0;
             $totalValOrder = (float) $items->sum('val_order');
             
-            // Sort items by time_in
-            $sortedItems = $items->sortBy('time_in')->values();
+            // Sort items by time_in (kunjungan dengan jam masuk diutamakan)
+            $sortedItems = $items->sortBy(fn($i) => !empty($i->time_in) ? $i->time_in : '99:99:99')->values();
             $firstIn = $sortedItems->first(fn($i) => !empty($i->time_in))?->time_in;
             $lastOut = $sortedItems->filter(fn($i) => !empty($i->time_out))->sortByDesc('time_out')->first()?->time_out;
             
@@ -675,13 +755,23 @@ class Index extends Component
 
             // Distances & item enhancements
             $outOfRadiusCount = 0;
-            $mapPoints = [];
             $rowNum = 1;
             foreach ($sortedItems as $item) {
                 $item->row_num = $rowNum++;
+                $cleanMaster = self::cleanCoordinate($item->master_lat, $item->master_lon);
+                $cleanVisit = self::cleanCoordinate($item->visit_lat, $item->visit_lon);
+
+                $item->has_clean_visit = ($cleanVisit !== null);
+                $item->has_clean_master = ($cleanMaster !== null);
+                $item->clean_visit_lat = $cleanVisit ? $cleanVisit['lat'] : null;
+                $item->clean_visit_lon = $cleanVisit ? $cleanVisit['lon'] : null;
+
                 $dist = self::calculateDistance($item->master_lat, $item->master_lon, $item->visit_lat, $item->visit_lon);
-                $item->distance = $dist;
-                $item->is_out_of_radius = ($dist > 50);
+                $item->distance = (int)$dist;
+
+                // Kepatuhan radius HANYA dihitung untuk kunjungan rute PJP (FLAG_PJP = 'R') yang benar-benar dikunjungi (FLAG_VISIT = 'Y')
+                $isPjpVisited = ($item->flag_pjp === 'R' && $item->flag_visit === 'Y');
+                $item->is_out_of_radius = ($isPjpVisited && $dist > 50);
                 if ($item->is_out_of_radius) {
                     $outOfRadiusCount++;
                 }
@@ -692,15 +782,117 @@ class Index extends Component
                 $item->time_in_fmt = !empty($item->time_in) ? substr($item->time_in, 0, 5) : '-';
                 $item->time_out_fmt = !empty($item->time_out) ? substr($item->time_out, 0, 5) : '-';
 
-                // Map points for daily map
-                if ($item->flag_visit === 'Y' && !empty($item->visit_lat) && !empty($item->visit_lon)) {
-                    $mapPoints[] = [
-                        'lat' => $item->visit_lat,
-                        'lon' => $item->visit_lon,
-                        'name' => $item->custname,
-                        'spv' => $item->salesman_name,
-                        'date' => $tanggal,
+                // Audit Kunjungan di Titik Distributor (Radius <= 30 meter)
+                $item->dist_to_distributor = null;
+                $item->is_at_distributor = false;
+
+                if ($appliedDistPoint && $cleanVisit) {
+                    $distToD = self::calculateDistance($cleanVisit['lat'], $cleanVisit['lon'], $appliedDistPoint['lat'], $appliedDistPoint['lon']);
+                    $item->dist_to_distributor = (int)$distToD;
+                    if ($item->flag_visit === 'Y' && $distToD <= 30) {
+                        $item->is_at_distributor = true;
+                    }
+                }
+            }
+
+            // Map points for daily route (HANYA Rute PJP = 'R' dan Visit = 'Y' dengan koordinat valid)
+            $mapPoints = [];
+            $routeSeq = 1;
+            foreach ($sortedItems as $item) {
+                if ($item->flag_pjp === 'R' && $item->flag_visit === 'Y') {
+                    $cleanCoord = self::cleanCoordinate($item->visit_lat, $item->visit_lon);
+                    if ($cleanCoord) {
+                        $cleanCustName = trim(preg_replace('/[\r\n\t]+/', ' ', (string)$item->custname));
+                        $mapPoints[] = [
+                            'seq' => $routeSeq++,
+                            'lat' => $cleanCoord['lat'],
+                            'lon' => $cleanCoord['lon'],
+                            'custno' => (string)($item->custno ?? ''),
+                            'name' => $cleanCustName !== '' ? $cleanCustName : 'Toko #' . $item->row_num,
+                            'spv' => (string)($item->salesman_name ?? ''),
+                            'date' => $tanggal,
+                            'time_in' => $item->time_in_fmt,
+                            'time_out' => $item->time_out_fmt,
+                            'time_consume' => $item->time_consume_human,
+                            'order_val' => (float) ($item->val_order ?? 0),
+                            'flag_ec' => $item->flag_ec,
+                            'is_at_distributor' => (bool)$item->is_at_distributor,
+                            'dist_to_distributor' => is_numeric($item->dist_to_distributor) ? (int)$item->dist_to_distributor : null,
+                        ];
+                    }
+                }
+            }
+
+            // Deteksi kunjungan di titik distributor (Radius <= 30m)
+            $dailyDistributorWarnings = [];
+            foreach ($mapPoints as $mp) {
+                if (!empty($mp['is_at_distributor'])) {
+                    $dailyDistributorWarnings[] = [
+                        'seq' => $mp['seq'],
+                        'name' => $mp['name'],
+                        'custno' => $mp['custno'],
+                        'time_in' => $mp['time_in'],
+                        'dist' => $mp['dist_to_distributor'],
                     ];
+                }
+            }
+
+            // Deteksi kunjungan di titik yang sama persis dengan toko lain (Jarak <= 10m atau koordinat identik)
+            $dailyDupWarnings = [];
+            $dupPairs = [];
+            foreach ($mapPoints as $i => &$p1) {
+                $p1['has_duplicate_coord'] = false;
+                $p1['duplicate_with'] = [];
+
+                foreach ($mapPoints as $j => $p2) {
+                    if ($i === $j) continue;
+                    // Hanya bandingkan jika toko berbeda (custno atau nama toko beda)
+                    $isDifferentCust = (!empty($p1['custno']) && !empty($p2['custno'])) 
+                        ? ($p1['custno'] !== $p2['custno'])
+                        : ($p1['name'] !== $p2['name']);
+
+                    if ($isDifferentCust) {
+                        // SAMA PERSIS: nilai latitude dan longitude identik (jarak = 0)
+                        $isExactSame = ((float)$p1['lat'] == (float)$p2['lat'] && (float)$p1['lon'] == (float)$p2['lon']);
+                        if ($isExactSame) {
+                            $p1['has_duplicate_coord'] = true;
+                            $p1['duplicate_with'][] = [
+                                'seq' => $p2['seq'],
+                                'name' => $p2['name'],
+                                'custno' => $p2['custno'],
+                                'time_in' => $p2['time_in'],
+                                'dist' => 0,
+                            ];
+
+                            // Catat pasangan unik untuk summary alert
+                            $pairKey = min($p1['seq'], $p2['seq']) . '-' . max($p1['seq'], $p2['seq']);
+                            if (!isset($dupPairs[$pairKey])) {
+                                $dupPairs[$pairKey] = [
+                                    'seq1' => min($p1['seq'], $p2['seq']),
+                                    'name1' => $p1['seq'] < $p2['seq'] ? $p1['name'] : $p2['name'],
+                                    'time1' => $p1['seq'] < $p2['seq'] ? $p1['time_in'] : $p2['time_in'],
+                                    'seq2' => max($p1['seq'], $p2['seq']),
+                                    'name2' => $p1['seq'] < $p2['seq'] ? $p2['name'] : $p1['name'],
+                                    'time2' => $p1['seq'] < $p2['seq'] ? $p2['time_in'] : $p1['time_in'],
+                                    'dist' => 0,
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+            unset($p1);
+            $dailyDupWarnings = array_values($dupPairs);
+
+            // Berikan flag has_duplicate_coord ke $sortedItems agar muncul juga di tabel detail
+            foreach ($sortedItems as $item) {
+                $matchedPoint = collect($mapPoints)->firstWhere('custno', $item->custno);
+                if ($matchedPoint && !empty($matchedPoint['has_duplicate_coord'])) {
+                    $item->has_duplicate_coord = true;
+                    $item->duplicate_with_info = collect($matchedPoint['duplicate_with'])->pluck('name')->implode(', ');
+                } else {
+                    $item->has_duplicate_coord = false;
+                    $item->duplicate_with_info = '';
                 }
             }
             
@@ -719,6 +911,21 @@ class Index extends Component
             $carbonDate = Carbon::parse($tanggal);
             $isWeekend = $carbonDate->isSaturday() || $carbonDate->isSunday();
             $isSaturday = $carbonDate->isSaturday();
+
+            $dayMapPayload = [
+                'points' => $mapPoints,
+                'isRoute' => true,
+                'title' => 'Rute Kunjungan SE - ' . $carbonDate->locale('id')->translatedFormat('d M Y'),
+                'duplicateWarnings' => $dailyDupWarnings,
+                'distributorWarnings' => $dailyDistributorWarnings,
+                'distributorPoint' => $appliedDistPoint,
+                'consumeStr' => $consumeSec > 0 ? self::formatDurationSeconds($consumeSec) : '0m',
+                'travelStr' => $travelSec > 0 ? self::formatDurationSeconds($travelSec) : '0m',
+                'consumePercent' => $consumePercent,
+                'travelPercent' => $travelPercent,
+                'workDurationStr' => $workDurationStr,
+                'timeRange' => ($firstIn && $lastOut) ? (substr($firstIn, 0, 5) . ' - ' . substr($lastOut, 0, 5)) : null,
+            ];
 
             return (object) [
                 'tanggal' => $tanggal,
@@ -748,6 +955,10 @@ class Index extends Component
                 'travel_percent' => $travelPercent,
                 'out_of_radius_count' => $outOfRadiusCount,
                 'map_points' => $mapPoints,
+                'duplicate_warnings' => $dailyDupWarnings,
+                'distributor_warnings' => $dailyDistributorWarnings,
+                'distributor_point' => $appliedDistPoint,
+                'map_payload_json' => json_encode($dayMapPayload, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE),
                 'items' => $sortedItems,
             ];
         });
@@ -764,6 +975,8 @@ class Index extends Component
             $totConsumeSec = $summaries->sum('consume_sec');
             $totTravelSec = $summaries->sum('travel_sec');
             $totOutOfRadius = $summaries->sum('out_of_radius_count');
+            $totDistWarnings = $summaries->sum(fn($d) => count($d->distributor_warnings ?? []));
+            $totDupWarnings = $summaries->sum(fn($d) => count($d->duplicate_warnings ?? []));
             $totDays = $summaries->count();
 
             $totWorkSec = $summaries->sum('work_duration_sec');
@@ -790,6 +1003,8 @@ class Index extends Component
                 'consume_percent' => $totConsumePercent,
                 'travel_percent' => $totTravelPercent,
                 'out_of_radius_count' => $totOutOfRadius,
+                'duplicate_warnings_count' => $totDupWarnings,
+                'distributor_warnings_count' => $totDistWarnings,
             ];
         }
 
@@ -987,21 +1202,61 @@ class Index extends Component
                 'rvah.V_LG as visit_lon',
                 'rvah.CUSTNAME as custname',
                 'rvah.MUNAME as salesman_name',
+                'rvah.CUSTNO as custno',
+                'rvah.BID as distributor_code',
                 DB::raw('rvah."TANGGAL"::date as tanggal')
             )
+            ->where('rvah.FLAG_PJP', 'R')
             ->where('rvah.FLAG_VISIT', 'Y')
             ->whereNotNull('rvah.V_LA')
-            ->whereNotNull('rvah.V_LG');
+            ->whereNotNull('rvah.V_LG')
+            ->where('rvah.V_LA', '!=', 0)
+            ->where('rvah.V_LG', '!=', 0);
 
-        return $query->get()->map(function($row) {
+        // Ambil data koordinat distributor
+        $distributorCoords = DB::table('distributor_implementasi_eskalink as die')
+            ->leftJoin('master_distributors as md', 'die.distributor_code', '=', 'md.distributor_code')
+            ->whereNotNull('die.eskalink_code')
+            ->where('die.eskalink_code', '!=', '')
+            ->whereNotNull('md.latitude')
+            ->whereNotNull('md.longitude')
+            ->where('md.latitude', '!=', 0)
+            ->where('md.longitude', '!=', 0)
+            ->select('die.eskalink_code as distributor_code', 'md.distributor_name', 'md.latitude', 'md.longitude')
+            ->get()
+            ->keyBy('distributor_code');
+
+        return $query->get()->map(function($row) use ($distributorCoords) {
+            $cleanCoord = self::cleanCoordinate($row->visit_lat, $row->visit_lon);
+            if (!$cleanCoord) {
+                return null;
+            }
+
+            $isAtDistributor = false;
+            $distToD = null;
+            $dCoord = $distributorCoords->get($row->distributor_code);
+            if ($dCoord) {
+                $cleanD = self::cleanCoordinate($dCoord->latitude, $dCoord->longitude);
+                if ($cleanD) {
+                    $distToD = self::calculateDistance($cleanCoord['lat'], $cleanCoord['lon'], $cleanD['lat'], $cleanD['lon']);
+                    if ($distToD <= 30) {
+                        $isAtDistributor = true;
+                    }
+                }
+            }
+
+            $cleanCustName = trim(preg_replace('/[\r\n\t]+/', ' ', (string)$row->custname));
+
             return [
-                'lat' => $row->visit_lat,
-                'lon' => $row->visit_lon,
-                'name' => $row->custname,
-                'spv' => $row->salesman_name,
-                'date' => $row->tanggal ?? '-'
+                'lat' => $cleanCoord['lat'],
+                'lon' => $cleanCoord['lon'],
+                'name' => $cleanCustName !== '' ? $cleanCustName : 'Toko #' . ($row->custno ?? ''),
+                'spv' => (string)($row->salesman_name ?? ''),
+                'date' => $row->tanggal ?? '-',
+                'is_at_distributor' => $isAtDistributor,
+                'dist_to_distributor' => $distToD,
             ];
-        })->toArray();
+        })->filter()->values()->toArray();
     }
 
     /**
@@ -1020,7 +1275,43 @@ class Index extends Component
             return;
         }
 
-        $this->dispatch('open-all-maps-modal', points: $points);
+        $distPoint = null;
+        if (!empty($this->appliedDistributor)) {
+            $mDist = DB::table('distributor_implementasi_eskalink as die')
+                ->leftJoin('master_distributors as md', 'die.distributor_code', '=', 'md.distributor_code')
+                ->where('die.eskalink_code', $this->appliedDistributor)
+                ->whereNotNull('md.latitude')
+                ->whereNotNull('md.longitude')
+                ->where('md.latitude', '!=', 0)
+                ->where('md.longitude', '!=', 0)
+                ->select('die.eskalink_code as distributor_code', 'md.distributor_name', 'md.latitude', 'md.longitude')
+                ->first();
+            if ($mDist) {
+                $cleanD = self::cleanCoordinate($mDist->latitude, $mDist->longitude);
+                if ($cleanD) {
+                    $distPoint = [
+                        'code' => $this->appliedDistributor,
+                        'name' => $mDist->distributor_name ?? $this->appliedDistributor,
+                        'lat' => $cleanD['lat'],
+                        'lon' => $cleanD['lon'],
+                    ];
+                }
+            }
+        }
+
+        $stats = $this->kpiStats();
+        $this->dispatch('open-all-maps-modal', 
+            points: $points, 
+            isRoute: false, 
+            title: 'Peta Sebaran Titik Kunjungan SE',
+            distributorPoint: $distPoint,
+            consumeStr: $stats['consume_badge'] ?? '-',
+            travelStr: $stats['travel_badge'] ?? '-',
+            consumePercent: (int)round($stats['time_in_store_percent'] ?? 50),
+            travelPercent: 100 - (int)round($stats['time_in_store_percent'] ?? 50),
+            workDurationStr: $stats['total_work_str'] ?? '-',
+            timeRange: null
+        );
     }
 
     public function export()

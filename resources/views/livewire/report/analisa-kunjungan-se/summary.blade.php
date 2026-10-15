@@ -9,6 +9,9 @@
         <x-ui.tab-item :active="true" :href="route('report.analisa-kunjungan-se.summary')" :navigate="true">
             <x-heroicon-o-chart-bar class="w-4 h-4 inline-block mr-1" /> Summary Data
         </x-ui.tab-item>
+        <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.reason')" :navigate="true">
+            <x-heroicon-o-clipboard-document-list class="w-4 h-4 inline-block mr-1" /> Summary Reason
+        </x-ui.tab-item>
     </x-ui.tab-menu>
 
     {{-- 5 KPI Cards Section (Sama persis dengan halaman Detail) --}}
@@ -78,10 +81,10 @@
                     </select>
                 @endif
 
-                {{-- Filter Area --}}
+                {{-- Filter Area (Bisa Semua Area) --}}
                 @if(count($areas) > 1 || !in_array($accessLevel, ['area', 'supervisor']))
                     <select wire:model.live="selectedArea" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[130px] text-xs" @disabled(empty($selectedRegion))>
-                        <option value="">Pilih Area</option>
+                        <option value="">Semua Area</option>
                         @foreach($areas as $a)
                             <option value="{{ $a->area_code }}">{{ $a->area_name }}</option>
                         @endforeach
@@ -90,7 +93,7 @@
 
                 {{-- Filter Distributor (Bisa Semua Distributor) --}}
                 <div class="relative w-full sm:w-auto">
-                    <select wire:model.live="selectedDistributor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[150px] text-xs" @disabled(empty($selectedArea)) wire:target="selectedArea, selectedRegion" wire:loading.class="opacity-60">
+                    <select wire:model.live="selectedDistributor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[150px] text-xs" @disabled(empty($selectedRegion)) wire:target="selectedArea, selectedRegion" wire:loading.class="opacity-60">
                         <option value="">Semua Distributor</option>
                         @foreach($distributors as $d)
                             <option value="{{ $d->distributor_code }}">{{ $d->distributor_name }}</option>
@@ -155,10 +158,10 @@
                 {{-- Action Buttons: Terapkan, Reset, Excel --}}
                 <div class="flex flex-wrap items-center gap-1.5 w-full sm:w-auto justify-end">
                     @php
-                        $canApply = !empty($selectedRegion) && !empty($selectedArea);
+                        $canApply = !empty($selectedRegion);
                     @endphp
                     @if(!$canApply)
-                        <div class="tooltip tooltip-bottom" data-tip="Pilih minimal Region dan Area terlebih dahulu">
+                        <div class="tooltip tooltip-bottom" data-tip="Pilih minimal Region terlebih dahulu">
                             <x-ui.button variant="primary" size="sm" class="rounded-xl px-3 font-semibold shadow-sm" disabled icon="funnel">
                                 Terapkan
                             </x-ui.button>
@@ -192,12 +195,12 @@
                 </div>
             </div>
 
-            @if(empty($appliedRegion) || empty($appliedArea))
+            @if(empty($appliedRegion))
                 <div class="h-full flex flex-col items-center justify-center p-8 text-center text-base-content/40">
                     <x-heroicon-o-funnel class="w-12 h-12 mb-2 text-base-content/30" />
                     <h3 class="text-sm font-bold text-base-content/80">Silakan Tentukan Filter</h3>
                     <p class="text-xs text-base-content/60 max-w-sm mt-0.5">
-                        Pilih minimal Region dan Area, lalu klik tombol <span class="text-primary font-bold">Terapkan</span> untuk menampilkan summary performa Sales Exclusive.
+                        Pilih minimal Region (bisa pilih Semua Area atau Area tertentu), lalu klik tombol <span class="text-primary font-bold">Terapkan</span> untuk menampilkan summary performa Sales Exclusive.
                     </p>
                 </div>
             @elseif($rows->isEmpty())
@@ -452,7 +455,7 @@
                                 <td class="text-center whitespace-nowrap">
                                     <a href="{{ route('report.analisa-kunjungan-se.index', [
                                             'region' => $appliedRegion,
-                                            'area' => $appliedArea,
+                                            'area' => $appliedArea ?: $row->area_code,
                                             'distributor' => $row->distributor_code,
                                             'salesman' => $row->salesman_code,
                                             'startDate' => $appliedStartDate,

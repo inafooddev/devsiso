@@ -76,10 +76,12 @@ class Summary extends Component
 
         $this->loadRegions();
 
-        // If URL has pre-filled region & area, apply them automatically
-        if (!empty($this->selectedRegion) && !empty($this->selectedArea)) {
+        // If URL has pre-filled region, apply them automatically
+        if (!empty($this->selectedRegion)) {
             $this->updatedSelectedRegion($this->selectedRegion);
-            $this->updatedSelectedArea($this->selectedArea);
+            if (!empty($this->selectedArea)) {
+                $this->updatedSelectedArea($this->selectedArea);
+            }
             $this->applyFilter();
         }
     }
@@ -278,6 +280,9 @@ class Summary extends Component
 
             $this->areas = $query->get()->toArray();
 
+            // Load all distributors for this region by default (when area is "Semua Area")
+            $this->updatedSelectedArea('');
+
             if (count($this->areas) === 1 && empty($this->selectedArea)) {
                 $this->selectedArea = $this->areas[0]->area_code;
                 $this->updatedSelectedArea($this->selectedArea);
@@ -290,20 +295,25 @@ class Summary extends Component
         $this->selectedDistributor = '';
         $this->distributors = [];
 
-        if ($value && $this->selectedRegion) {
-            if (in_array($this->accessLevel, ['area', 'supervisor']) && !empty($this->allowedAreaCodes) && !in_array($value, $this->allowedAreaCodes)) {
+        if ($this->selectedRegion) {
+            if ($value && in_array($this->accessLevel, ['area', 'supervisor']) && !empty($this->allowedAreaCodes) && !in_array($value, $this->allowedAreaCodes)) {
                 $this->selectedArea = '';
                 return;
             }
 
             $query = DB::table('master_distributors')
                 ->where('region_code', $this->selectedRegion)
-                ->where('area_code', $value)
                 ->where('distributor_code', '!=', 'HOINA')
                 ->where('is_active', true)
                 ->select('distributor_code', 'distributor_name')
                 ->distinct()
                 ->orderBy('distributor_name');
+
+            if (!empty($value)) {
+                $query->where('area_code', $value);
+            } elseif (in_array($this->accessLevel, ['area', 'supervisor']) && !empty($this->allowedAreaCodes)) {
+                $query->whereIn('area_code', $this->allowedAreaCodes);
+            }
 
             if ($this->accessLevel === 'supervisor' && !empty($this->allowedDistributorCodes)) {
                 $query->whereIn('distributor_code', $this->allowedDistributorCodes);
@@ -330,8 +340,8 @@ class Summary extends Component
             }
         }
 
-        if (empty($this->selectedRegion) || empty($this->selectedArea)) {
-            $this->dispatch('notify', msg: 'Harap pilih minimal Region dan Area.', type: 'error');
+        if (empty($this->selectedRegion)) {
+            $this->dispatch('notify', msg: 'Harap pilih minimal Region.', type: 'error');
             return;
         }
 
@@ -340,7 +350,7 @@ class Summary extends Component
             return;
         }
 
-        if (in_array($this->accessLevel, ['area', 'supervisor']) && !empty($this->allowedAreaCodes) && !in_array($this->selectedArea, $this->allowedAreaCodes)) {
+        if (!empty($this->selectedArea) && in_array($this->accessLevel, ['area', 'supervisor']) && !empty($this->allowedAreaCodes) && !in_array($this->selectedArea, $this->allowedAreaCodes)) {
             $this->dispatch('notify', msg: 'Anda tidak memiliki akses ke Area ini.', type: 'error');
             return;
         }
@@ -411,14 +421,17 @@ class Summary extends Component
     #[Computed]
     public function summaryData()
     {
-        if (empty($this->appliedRegion) || empty($this->appliedArea)) {
+        if (empty($this->appliedRegion)) {
             return collect();
         }
 
         $subQuery = DB::table('rpt_visit_an_h as rvah')
             ->where('rvah.RID', '!=', 'HOINA')
-            ->where('rvah.RID', $this->appliedRegion)
-            ->where('rvah.EID', $this->appliedArea);
+            ->where('rvah.RID', $this->appliedRegion);
+
+        if (!empty($this->appliedArea)) {
+            $subQuery->where('rvah.EID', $this->appliedArea);
+        }
 
         // Security check
         if ($this->accessLevel === 'region' && !empty($this->allowedRegionCodes)) {

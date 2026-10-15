@@ -3,6 +3,7 @@ import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
 
 export default {
+  darkMode: ['selector', '[data-theme="neon-dark"]'],
   content: [
     "./resources/**/*.blade.php",
     "./resources/**/*.js",
