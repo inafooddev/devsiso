@@ -23,14 +23,26 @@ class PerbaikanTikorEliteExport extends DefaultValueBinder implements FromQuery,
     protected $dateStart;
     protected $dateEnd;
     protected $selectedIds;
+    protected $distributorFilter;
+    protected $salesFilter;
 
-    public function __construct($search = '', $statusFilter = '', $dateStart = '', $dateEnd = '', $selectedIds = [])
+    public function __construct(
+        $search = '', 
+        $statusFilter = '', 
+        $dateStart = '', 
+        $dateEnd = '', 
+        $selectedIds = [],
+        $distributorFilter = '',
+        $salesFilter = ''
+    )
     {
         $this->search = $search;
         $this->statusFilter = $statusFilter;
         $this->dateStart = $dateStart;
         $this->dateEnd = $dateEnd;
         $this->selectedIds = $selectedIds;
+        $this->distributorFilter = $distributorFilter;
+        $this->salesFilter = $salesFilter;
     }
 
     public function query()
@@ -73,6 +85,14 @@ class PerbaikanTikorEliteExport extends DefaultValueBinder implements FromQuery,
                       ->orWhere('p.sales_code', 'like', '%' . $this->search . '%')
                       ->orWhere('cpe.custname', 'like', '%' . $this->search . '%');
                 });
+            }
+
+            if ($this->distributorFilter) {
+                $query->where('p.distributor_code', $this->distributorFilter);
+            }
+
+            if ($this->salesFilter) {
+                $query->where('p.sales_code', $this->salesFilter);
             }
 
             if ($this->dateStart) {

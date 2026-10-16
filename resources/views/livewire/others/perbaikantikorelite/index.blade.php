@@ -1,5 +1,5 @@
 <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full" 
-        x-data="{ showPhotoModal: false, photoUrl: '', showRejectModal: false, showMapModal: false, mapDist: 0, showReasonModal: false, reasonText: '', copyToast: { show: false, message: '' }, showSummaryModal: false, showExportModal: false }"
+        x-data="{ showDetailModal: false, detailData: null, detailPhotoRotation: 0, detailPhotoZoom: 1, detailPhotoPanX: 0, detailPhotoPanY: 0, isPanning: false, panStartX: 0, panStartY: 0, showRejectModal: false, showMapModal: false, mapDist: 0, showReasonModal: false, reasonText: '', copyToast: { show: false, message: '' }, showSummaryModal: false, showExportModal: false, showKpi: false }"
         x-on:open-summary-modal.window="showSummaryModal = true"
         x-on:open-map-modal.window="
         if (!window.L) {
@@ -50,16 +50,41 @@
 
     {{-- Toast Notification sekarang menggunakan Vanilla JS --}}
 
-    {{-- TABS --}}
-    <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex items-center shadow-sm relative z-10 -mb-1 md:-mb-2">
+    {{-- TABS & TOGGLE KPI --}}
+    <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex items-center justify-between shadow-sm relative z-10 -mb-1 md:-mb-2">
         <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
             <a href="{{ route('others.perbaikantikor') }}" class="tab tab-xs px-4 {{ request()->routeIs('others.perbaikantikor') ? 'tab-active font-bold shadow-sm bg-base-100' : 'text-base-content/70 hover:text-base-content transition-colors' }}" wire:navigate>SE (Reguler)</a>
             <a href="{{ route('others.perbaikantikor.elite') }}" class="tab tab-xs px-4 {{ request()->routeIs('others.perbaikantikor.elite') ? 'tab-active font-bold shadow-sm bg-base-100' : 'text-base-content/70 hover:text-base-content transition-colors' }}" wire:navigate>SPV (Tim Elite)</a>
         </div>
+
+        {{-- Toggle KPI Button --}}
+        <button 
+            type="button" 
+            @click="showKpi = !showKpi" 
+            class="btn btn-xs btn-ghost gap-1.5 rounded-lg border border-base-300 text-xs font-semibold hover:bg-base-200 transition-all duration-200"
+            :class="{ 'bg-primary/10 text-primary border-primary/30 shadow-xs': showKpi, 'text-base-content/60': !showKpi }"
+            title="Sembunyikan / Tampilkan Ringkasan KPI"
+        >
+            <x-heroicon-o-chart-bar class="w-3.5 h-3.5" />
+            <span x-text="showKpi ? 'Sembunyikan KPI' : 'Tampilkan KPI'">Tampilkan KPI</span>
+            <span class="inline-block transition-transform duration-200" :class="{ 'rotate-180': showKpi }">
+                <x-heroicon-o-chevron-down class="w-3 h-3" />
+            </span>
+        </button>
     </div>
 
-    {{-- KPI Cards Section --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6 shrink-0">
+    {{-- KPI Cards Section (Default Tertutup) --}}
+    <div 
+        x-show="showKpi" 
+        x-transition:enter="transition ease-out duration-250"
+        x-transition:enter-start="opacity-0 -translate-y-2"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 translate-y-0"
+        x-transition:leave-end="opacity-0 -translate-y-2"
+        style="display: none;"
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6 shrink-0"
+    >
         {{-- Total --}}
         <div class="bg-base-100 p-3 lg:p-4 rounded-xl shadow-sm border border-base-300 flex flex-col relative overflow-hidden group">
             <div class="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-gradient-to-br from-primary/10 to-primary/5 transition-transform duration-500 group-hover:scale-150"></div>
@@ -125,6 +150,24 @@
                     <input wire:model.live.debounce.500ms="search" type="text" placeholder="Cari Toko/Sales..." class="input input-sm input-bordered rounded-xl bg-base-100 border-base-300 pl-8 w-full sm:w-auto" />
                     <x-heroicon-o-magnifying-glass class="w-4 h-4 absolute left-2.5 top-2.5 text-base-content/50" />
                 </div>
+
+                {{-- Filter Distributor (Searchable) --}}
+                <div class="w-full sm:w-64 z-30">
+                    <x-searchable-select 
+                        wire:key="filter-distributor-elite-searchable"
+                        wire:model.live="distributorFilter"
+                        :options="$this->distributorSelectOptions"
+                        placeholder="Semua Distributor"
+                    />
+                </div>
+
+                {{-- Filter SPV / Sales --}}
+                <select wire:model.live="salesFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto sm:max-w-[190px] text-xs">
+                    <option value="">Semua SPV / Sales</option>
+                    @foreach($this->salesOptions as $sales)
+                        <option value="{{ $sales->sales_code }}">{{ $sales->sales_code }}{{ $sales->sales_name ? ' - ' . $sales->sales_name : '' }}</option>
+                    @endforeach
+                </select>
                 
                 {{-- Filter Date Range --}}
                 <div class="flex items-center gap-1">
@@ -141,9 +184,17 @@
                     <option value="Rejected">Rejected</option>
                 </select>
 
+                {{-- Reset Filter Button --}}
+                @if($search || $statusFilter || $dateStart || $dateEnd || $distributorFilter || $salesFilter)
+                    <button type="button" wire:click="resetFilters" class="btn btn-sm btn-ghost text-error hover:bg-error/10 rounded-xl gap-1 text-xs px-2" title="Reset Semua Filter">
+                        <x-heroicon-o-x-mark class="w-4 h-4" />
+                        <span class="hidden md:inline">Reset</span>
+                    </button>
+                @endif
+
                 {{-- Actions Button (Optional Export dll) --}}
                 <div class="flex flex-wrap items-center gap-1 md:gap-2">
-                    @if($this->canManage && $this->selectedPendingCount > 0)
+                    @if($enableBulkApprove && $this->canManage && $this->selectedPendingCount > 0)
                         <button type="button" wire:click="bulkApprove" wire:confirm="Setujui {{ $this->selectedPendingCount }} usulan perbaikan terpilih?" class="btn btn-sm btn-success text-white shadow-sm" wire:loading.attr="disabled" wire:target="bulkApprove">
                             <span wire:loading wire:target="bulkApprove" class="loading loading-spinner loading-xs mr-1"></span>
                             <x-heroicon-s-check-circle class="w-4 h-4" wire:loading.remove wire:target="bulkApprove" /> Terima Terpilih ({{ $this->selectedPendingCount }})
@@ -168,7 +219,7 @@
             <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
                 <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
                     <tr>
-                        @if($this->canManage)
+                        @if($enableBulkApprove && $this->canManage)
                         <th class="w-10 text-center px-2">
                             <input type="checkbox" wire:model.live="selectAll" class="checkbox checkbox-sm checkbox-success rounded" title="Pilih Semua (Select All)" />
                         </th>
@@ -186,13 +237,13 @@
                         <th class="text-center">Status</th>
                         <th>Waktu Pengajuan</th>
                         <th>Waktu Proses</th>
-                        <th class="text-center bg-base-200 shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] w-48">Aksi</th>
+                        <th class="text-center bg-base-200 shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] w-28">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="text-sm">
                     @forelse($data as $index => $item)
-                    <tr class="transition-colors {{ in_array($item->id, $selectedIds) ? 'bg-success/10 hover:bg-success/15' : 'hover:bg-base-200/50' }}">
-                        @if($this->canManage)
+                    <tr class="transition-colors {{ ($enableBulkApprove && in_array($item->id, $selectedIds)) ? 'bg-success/10 hover:bg-success/15' : 'hover:bg-base-200/50' }}">
+                        @if($enableBulkApprove && $this->canManage)
                         <th class="text-center px-2">
                             <input type="checkbox" wire:model.live="selectedIds" value="{{ $item->id }}" class="checkbox checkbox-sm checkbox-success rounded" />
                         </th>
@@ -334,37 +385,47 @@
                                 <span class="text-base-content/30 italic text-[10px]">-</span>
                             @endif
                         </td>
+                        @php
+                            $detailItem = [
+                                'id' => $item->id,
+                                'customer_code' => $item->customer_code,
+                                'customer_name' => $item->elite_customer_name ?? 'N/A',
+                                'customer_address' => $item->elite_customer_address ?? '-',
+                                'customer_city' => '-',
+                                'distributor_code' => $item->distributor_code,
+                                'distributor_name' => $item->distributorImplementasiEskalink->distributor_name ?? $item->distributor_code,
+                                'sales_code' => $item->sales_code,
+                                'sales_name' => $item->sales_name ?? '-',
+                                'latitude_old' => $item->elite_lat ?? null,
+                                'longitude_old' => $item->elite_long ?? null,
+                                'latitude' => $item->latitude,
+                                'longitude' => $item->longitude,
+                                'accuracy' => $item->accuracy,
+                                'distance' => $dist !== null ? round($dist) : null,
+                                'status' => $item->status,
+                                'keterangan' => $item->keterangan,
+                                'foto_url' => $item->foto ? asset('storage/' . $item->foto) : null,
+                                'created_at_formatted' => $item->created_at->format('d M Y H:i'),
+                                'updated_at_formatted' => $item->updated_at->format('d M Y H:i'),
+                            ];
+                        @endphp
                         <th class="text-center bg-base-200/40 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)]">
-                            <div class="flex items-center justify-center gap-1">
-                                {{-- Lihat Foto --}}
-                                @if($item->foto)
-                                <button type="button" @click="photoUrl = '{{ asset('storage/' . $item->foto) }}'; showPhotoModal = true;" class="btn btn-sm btn-ghost text-info hover:bg-info/10 btn-square" title="Lihat Foto Bukti">
-                                    <x-heroicon-o-photo class="w-4 h-4" />
+                            <div class="flex items-center justify-center">
+                                <button 
+                                    type="button" 
+                                    @click="detailPhotoRotation = 0; detailPhotoZoom = 1; detailPhotoPanX = 0; detailPhotoPanY = 0; detailData = @js($detailItem); showDetailModal = true;" 
+                                    class="btn btn-xs btn-primary text-white rounded-lg gap-1 shadow-sm px-2.5 py-1 hover:brightness-110 transition-all font-semibold"
+                                    title="Lihat Detail Toko, Foto & Street View"
+                                >
+                                    <x-heroicon-s-eye class="w-3.5 h-3.5" />
+                                    <span>Detail</span>
                                 </button>
-                                @endif
-
-                                @if($this->canManage && $item->status == 'Pending')
-                                {{-- Setujui --}}
-                                <button type="button" wire:click="approve({{ $item->id }})" wire:confirm="Yakin ingin menyetujui perubahan koordinat ini?" class="btn btn-sm btn-ghost text-success hover:bg-success/10 btn-square" title="Setujui" wire:loading.attr="disabled" wire:target="approve({{ $item->id }})">
-                                    <x-heroicon-o-check class="w-4 h-4" wire:loading.remove wire:target="approve({{ $item->id }})" />
-                                    <span wire:loading wire:target="approve({{ $item->id }})" class="loading loading-spinner loading-xs text-success"></span>
-                                </button>
-                                {{-- Tolak --}}
-                                <button type="button" wire:click="promptReject({{ $item->id }})" class="btn btn-sm btn-ghost text-error hover:bg-error/10 btn-square" title="Tolak" wire:loading.attr="disabled" wire:target="promptReject({{ $item->id }})">
-                                    <x-heroicon-o-x-mark class="w-4 h-4" wire:loading.remove wire:target="promptReject({{ $item->id }})" />
-                                    <span wire:loading wire:target="promptReject({{ $item->id }})" class="loading loading-spinner loading-xs text-error"></span>
-                                </button>
-                                @elseif($item->status != 'Pending')
-                                <span class="text-[10px] text-base-content/50 italic font-normal">Selesai</span>
-                                @else
-                                <span class="text-[10px] text-base-content/50 italic font-normal">Pending</span>
-                                @endif
                             </div>
                         </th>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ $this->canManage ? '14' : '13' }}" class="text-center py-12">
+                        <td colspan="{{ ($enableBulkApprove && $this->canManage) ? '14' : '13' }}" class="text-center py-12">
                             <div class="flex flex-col items-center justify-center text-base-content/40">
                                 <x-heroicon-o-inbox class="w-12 h-12 mb-2" />
                                 <p class="text-sm">Tidak ada data pengajuan perbaikan tikor.</p>
@@ -384,26 +445,338 @@
         </div>
     </div>
 
-    {{-- MODAL PREVIEW FOTO --}}
-    <div x-show="showPhotoModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
-        <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]" @click.outside="showPhotoModal = false">
-            <div class="p-4 border-b border-base-300 flex items-center justify-between bg-base-200/50">
-                <h3 class="font-bold text-lg">Foto Bukti Perbaikan Tikor</h3>
-                <button type="button" @click="showPhotoModal = false" class="btn btn-sm btn-circle btn-ghost">
+    {{-- MODAL DETAIL PERBAIKAN TIKOR (Ukuran Besar, Layout Foto & Street View Maksimal) --}}
+    <div x-show="showDetailModal" class="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-3 md:p-4 bg-black/80 backdrop-blur-sm" style="display: none;" x-transition>
+        <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-[97vw] 2xl:max-w-[1700px] h-[96vh] overflow-hidden flex flex-col border border-base-300" @click.outside="showDetailModal = false">
+            
+            {{-- Header Modal Detail --}}
+            <div class="px-4 py-2.5 md:px-5 md:py-3 border-b border-base-300 flex items-center justify-between bg-base-200/60 shrink-0">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 shadow-sm">
+                        <x-heroicon-s-building-storefront class="w-4 h-4 md:w-5 md:h-5" />
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="font-black text-sm md:text-base text-base-content leading-tight truncate" x-text="detailData?.customer_name"></h3>
+                            <span class="badge badge-sm badge-neutral font-mono font-bold" x-text="detailData?.customer_code"></span>
+                            <template x-if="detailData?.status === 'Approved'">
+                                <span class="badge badge-sm badge-success text-white font-bold">Approved</span>
+                            </template>
+                            <template x-if="detailData?.status === 'Pending'">
+                                <span class="badge badge-sm badge-warning font-bold">Pending</span>
+                            </template>
+                            <template x-if="detailData?.status === 'Rejected'">
+                                <span class="badge badge-sm badge-error text-white font-bold">Rejected</span>
+                            </template>
+                        </div>
+                        <div class="flex items-center gap-2 text-[11px] md:text-xs text-base-content/60 font-medium truncate mt-0.5">
+                            <span x-text="detailData?.distributor_name ? detailData.distributor_name + ' (' + detailData.distributor_code + ')' : detailData?.distributor_code"></span >
+                            <span>•</span>
+                            <span>Sales: <strong class="text-base-content/80" x-text="detailData?.sales_name"></strong> (<span class="font-mono" x-text="detailData?.sales_code || '-'"></span>)</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" @click="showDetailModal = false" class="btn btn-sm btn-circle btn-ghost">
                     <x-heroicon-o-x-mark class="w-5 h-5" />
                 </button>
             </div>
-            <div class="p-4 overflow-auto flex-1 flex items-center justify-center bg-base-300/30">
-                <img :src="photoUrl" class="max-w-full h-auto max-h-[70vh] rounded-xl shadow-md border border-base-300 object-contain" alt="Foto Bukti" />
+
+            {{-- Body Modal Detail --}}
+            <div class="p-3 md:p-3.5 flex-1 flex flex-col gap-2.5 bg-base-100 min-h-0 overflow-y-auto">
+                
+                {{-- Bar Info Kompak: Alamat, Koordinat Master vs Usulan, Jarak & Akurasi --}}
+                <div class="bg-base-200/50 px-3.5 py-2 rounded-xl border border-base-300 shrink-0 text-xs shadow-sm">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-3 items-center">
+                        
+                        {{-- Alamat Toko --}}
+                        <div class="md:col-span-5 flex items-center gap-2 min-w-0">
+                            <x-heroicon-o-map-pin class="w-4 h-4 text-error shrink-0" />
+                            <div class="min-w-0">
+                                <span class="text-[9px] uppercase font-bold text-base-content/50 block leading-none">Alamat Toko</span>
+                                <p class="font-semibold text-base-content text-xs truncate mt-0.5" :title="detailData?.customer_address" x-text="detailData?.customer_address || '-'"></p>
+                            </div>
+                        </div>
+
+                        {{-- Titik Master Lama --}}
+                        <div class="md:col-span-2 border-t md:border-t-0 md:border-l border-base-300 pt-1 md:pt-0 md:pl-3 min-w-0">
+                            <span class="text-[9px] uppercase font-bold text-base-content/50 block leading-none">Titik Lama (Master)</span>
+                            <div class="font-mono text-xs font-medium text-base-content/70 truncate mt-0.5">
+                                <template x-if="detailData?.latitude_old && detailData?.longitude_old">
+                                    <span x-text="detailData.latitude_old + ', ' + detailData.longitude_old" :title="detailData.latitude_old + ', ' + detailData.longitude_old"></span>
+                                </template>
+                                <template x-if="!detailData?.latitude_old || !detailData?.longitude_old">
+                                    <span class="text-base-content/40 italic font-sans text-[11px]">Belum ada</span>
+                                </template>
+                            </div>
+                        </div>
+
+                        {{-- Titik Usulan Baru --}}
+                        <div class="md:col-span-3 border-t md:border-t-0 md:border-l border-base-300 pt-1 md:pt-0 md:pl-3 min-w-0">
+                            <span class="text-[9px] uppercase font-bold text-primary block leading-none">Titik Baru (Usulan)</span>
+                            <div class="font-mono text-xs font-bold text-primary truncate mt-0.5 flex items-center justify-between gap-1">
+                                <span x-text="detailData?.latitude + ', ' + detailData?.longitude" :title="detailData?.latitude + ', ' + detailData?.longitude"></span>
+                                <a :href="'https://www.google.com/maps?q=' + detailData?.latitude + ',' + detailData?.longitude" target="_blank" class="text-error hover:text-error/70 shrink-0" title="Buka di Google Maps">
+                                    <x-heroicon-s-map-pin class="w-3.5 h-3.5" />
+                                </a>
+                            </div>
+                        </div>
+
+                        {{-- Jarak & Akurasi --}}
+                        <div class="md:col-span-2 border-t md:border-t-0 md:border-l border-base-300 pt-1 md:pt-0 md:pl-3 flex items-center justify-between md:justify-around gap-2">
+                            <div>
+                                <span class="text-[9px] uppercase font-bold text-base-content/50 block leading-none">Geser</span>
+                                <span class="font-extrabold text-info text-xs mt-0.5 block" x-text="detailData?.distance !== null ? detailData.distance + ' m' : '-'"></span>
+                            </div>
+                            <div class="text-right md:text-left">
+                                <span class="text-[9px] uppercase font-bold text-base-content/50 block leading-none">Akurasi HP</span>
+                                <span class="font-extrabold text-xs mt-0.5 block" :class="detailData?.accuracy <= 15 ? 'text-success' : 'text-warning'" x-text="detailData?.accuracy ? detailData.accuracy + ' m' : '-'"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Jika Status Rejected: Tampilkan Alasan Penolakan Singkat --}}
+                <template x-if="detailData?.status === 'Rejected'">
+                    <div class="px-3.5 py-1.5 bg-error/10 border border-error/20 rounded-xl text-xs text-error flex items-center gap-2 shrink-0">
+                        <x-heroicon-s-exclamation-triangle class="w-4 h-4 shrink-0" />
+                        <span class="font-bold shrink-0">Alasan Penolakan:</span>
+                        <span class="font-medium truncate" :title="detailData?.keterangan" x-text="detailData?.keterangan || 'Tidak ada catatan penolakan.'"></span>
+                    </div>
+                </template>
+
+                {{-- Grid Visual Utama: Foto Bukti Toko & Street View Berukuran Besar --}}
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1 min-h-[500px]">
+                    
+                    {{-- SISI KIRI: Foto Bukti Toko --}}
+                    <div class="bg-base-200/40 p-2.5 rounded-2xl border border-base-300 flex flex-col h-full min-h-[460px]">
+                        <div class="flex items-center justify-between mb-1.5 px-1 shrink-0">
+                            <div class="flex items-center gap-1.5">
+                                <h4 class="font-extrabold text-xs md:text-sm flex items-center gap-1.5 text-base-content">
+                                    <x-heroicon-s-camera class="w-4 h-4 text-primary" />
+                                    <span>Foto Fisik Toko</span>
+                                </h4>
+                                {{-- Badge Zoom --}}
+                                <template x-if="detailPhotoZoom !== 1">
+                                    <span class="badge badge-xs badge-info/20 text-info font-bold text-[10px]" x-text="Math.round(detailPhotoZoom * 100) + '%'"></span>
+                                </template>
+                                {{-- Badge Rotasi --}}
+                                <template x-if="detailPhotoRotation % 360 !== 0">
+                                    <span class="badge badge-xs badge-ghost text-[10px]" x-text="((detailPhotoRotation % 360 + 360) % 360) + '°'"></span>
+                                </template>
+                            </div>
+                            <template x-if="detailData?.foto_url">
+                                <div class="flex items-center gap-1">
+                                    {{-- Zoom Out --}}
+                                    <button type="button" 
+                                        @click="detailPhotoZoom = Math.max(0.5, Math.round((detailPhotoZoom - 0.25) * 100) / 100); if(detailPhotoZoom <= 1) { detailPhotoPanX = 0; detailPhotoPanY = 0; }" 
+                                        :disabled="detailPhotoZoom <= 0.5"
+                                        class="btn btn-xs btn-ghost btn-square text-base-content/70 hover:text-primary hover:bg-base-200 disabled:opacity-30" 
+                                        title="Perkecil Foto (Zoom Out)"
+                                    >
+                                        <x-heroicon-o-magnifying-glass-minus class="w-3.5 h-3.5" />
+                                    </button>
+
+                                    {{-- Zoom In --}}
+                                    <button type="button" 
+                                        @click="detailPhotoZoom = Math.min(3, Math.round((detailPhotoZoom + 0.25) * 100) / 100)" 
+                                        :disabled="detailPhotoZoom >= 3"
+                                        class="btn btn-xs btn-ghost btn-square text-base-content/70 hover:text-primary hover:bg-base-200 disabled:opacity-30" 
+                                        title="Perbesar Foto (Zoom In)"
+                                    >
+                                        <x-heroicon-o-magnifying-glass-plus class="w-3.5 h-3.5" />
+                                    </button>
+
+                                    <div class="h-3 w-px bg-base-300 mx-0.5"></div>
+
+                                    {{-- Putar Kiri --}}
+                                    <button type="button" 
+                                        @click="detailPhotoRotation -= 90" 
+                                        class="btn btn-xs btn-ghost btn-square text-base-content/70 hover:text-primary hover:bg-base-200" 
+                                        title="Putar 90° ke Kiri"
+                                    >
+                                        <x-heroicon-s-arrow-uturn-left class="w-3.5 h-3.5" />
+                                    </button>
+
+                                    {{-- Putar Kanan --}}
+                                    <button type="button" 
+                                        @click="detailPhotoRotation += 90" 
+                                        class="btn btn-xs btn-ghost btn-square text-base-content/70 hover:text-primary hover:bg-base-200" 
+                                        title="Putar 90° ke Kanan"
+                                    >
+                                        <x-heroicon-s-arrow-uturn-right class="w-3.5 h-3.5" />
+                                    </button>
+
+                                    {{-- Reset Rotasi & Zoom --}}
+                                    <template x-if="detailPhotoRotation % 360 !== 0 || detailPhotoZoom !== 1 || detailPhotoPanX !== 0 || detailPhotoPanY !== 0">
+                                        <button type="button" 
+                                            @click="detailPhotoRotation = 0; detailPhotoZoom = 1; detailPhotoPanX = 0; detailPhotoPanY = 0;" 
+                                            class="btn btn-xs btn-ghost text-error text-[10px] px-1.5 h-6 min-h-0 font-bold ml-0.5" 
+                                            title="Kembalikan Posisi & Ukuran Normal"
+                                        >
+                                            Reset
+                                        </button>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+
+                        <div class="relative w-full flex-1 rounded-xl overflow-hidden bg-base-300/40 border border-base-300 flex items-center justify-center min-h-[400px]">
+                            <template x-if="detailData?.foto_url">
+                                <div class="w-full h-full flex items-center justify-center p-2 select-none overflow-hidden"
+                                     :class="detailPhotoZoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'"
+                                     @mousedown="if (detailPhotoZoom > 1) { isPanning = true; panStartX = $event.clientX - detailPhotoPanX; panStartY = $event.clientY - detailPhotoPanY; }"
+                                     @mousemove="if (isPanning && detailPhotoZoom > 1) { detailPhotoPanX = $event.clientX - panStartX; detailPhotoPanY = $event.clientY - panStartY; }"
+                                     @mouseup="isPanning = false"
+                                     @mouseleave="isPanning = false"
+                                     @wheel.prevent="
+                                         if ($event.deltaY < 0) { 
+                                             detailPhotoZoom = Math.min(3, Math.round((detailPhotoZoom + 0.25) * 100) / 100); 
+                                         } else { 
+                                             detailPhotoZoom = Math.max(0.5, Math.round((detailPhotoZoom - 0.25) * 100) / 100); 
+                                             if (detailPhotoZoom <= 1) { detailPhotoPanX = 0; detailPhotoPanY = 0; } 
+                                         }
+                                     ">
+                                    <img :src="detailData.foto_url" 
+                                         draggable="false"
+                                         class="max-w-full max-h-full object-contain rounded-lg select-none pointer-events-none" 
+                                         :class="isPanning ? 'transition-none' : 'transition-transform duration-200 ease-out'"
+                                         :style="`transform: translate(${detailPhotoPanX}px, ${detailPhotoPanY}px) rotate(${detailPhotoRotation}deg) scale(${detailPhotoZoom * (Math.abs(detailPhotoRotation % 180) === 90 ? 0.75 : 1)});`" 
+                                         alt="Foto Fisik Toko" />
+                                </div>
+                            </template>
+                            <template x-if="detailPhotoZoom > 1">
+                                <div class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-md pointer-events-none opacity-75">
+                                    Geser (drag) foto untuk melihat bagian lain
+                                </div>
+                            </template>
+                            <template x-if="!detailData?.foto_url">
+                                <div class="flex flex-col items-center justify-center text-base-content/40 p-6 text-center">
+                                    <x-heroicon-o-photo class="w-12 h-12 mb-2 stroke-1" />
+                                    <span class="text-xs font-semibold">Tidak ada foto bukti yang dilampirkan</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    {{-- SISI KANAN: Street View dari Titik Perbaikan (Ukuran Maksimal & Interaktif) --}}
+                    <div class="bg-base-200/40 p-2.5 rounded-2xl border border-base-300 flex flex-col h-full min-h-[460px]">
+                        <div class="flex items-center justify-between mb-1.5 px-1 shrink-0">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-extrabold text-xs md:text-sm flex items-center gap-1.5 text-base-content">
+                                    <x-heroicon-s-map-pin class="w-4 h-4 text-error" />
+                                    <span>Street View Titik Usulan (360° Panorama)</span>
+                                </h4>
+                                <span class="badge badge-xs badge-info text-white font-bold text-[10px]">Interaktif</span>
+                            </div>
+                            <template x-if="detailData?.latitude && detailData?.longitude">
+                                <a :href="'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + detailData.latitude + ',' + detailData.longitude" target="_blank" class="btn btn-xs btn-ghost text-error gap-1" title="Buka Street View di Tab Baru Google Maps">
+                                    <x-heroicon-o-arrow-top-right-on-square class="w-3.5 h-3.5" />
+                                    <span>Tab Baru</span>
+                                </a>
+                            </template>
+                        </div>
+
+                        <div class="relative w-full flex-1 rounded-xl overflow-hidden bg-base-300 border border-base-300 min-h-[400px]">
+                            <template x-if="detailData?.latitude && detailData?.longitude">
+                                <iframe 
+                                    class="w-full h-full border-0 absolute inset-0"
+                                    loading="lazy"
+                                    allowfullscreen
+                                    referrerpolicy="no-referrer-when-downgrade"
+                                    :src="'https://maps.google.com/maps?q=&layer=c&cbll=' + detailData.latitude + ',' + detailData.longitude + '&cbp=11,0,0,0,0&output=svembed'"
+                                ></iframe>
+                            </template>
+                            <template x-if="!detailData?.latitude || !detailData?.longitude">
+                                <div class="flex flex-col items-center justify-center text-base-content/40 p-6 text-center h-full">
+                                    <x-heroicon-o-map class="w-12 h-12 mb-2 stroke-1" />
+                                    <span class="text-xs font-semibold">Koordinat titik perbaikan tidak tersedia</span>
+                                </div>
+                            </template>
+                        </div>
+                        
+                        <div class="flex items-center justify-between text-[11px] text-base-content/60 mt-1 px-1 shrink-0">
+                            <span>*Putar 360° & zoom langsung di dalam panel tanpa perlu buka maps</span>
+                            <a :href="'https://www.google.com/maps?q=' + detailData?.latitude + ',' + detailData?.longitude" target="_blank" class="text-primary hover:underline font-semibold flex items-center gap-1 shrink-0">
+                                Buka di Google Maps →
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
             </div>
-            <div class="p-4 border-t border-base-300 bg-base-200/50 text-right">
-                <button type="button" @click="showPhotoModal = false" class="btn btn-outline">Tutup</button>
+
+            {{-- Footer Modal: Waktu Pengajuan & Action Buttons --}}
+            <div class="px-4 py-2.5 md:px-5 md:py-3 border-t border-base-300 bg-base-200/60 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                <div class="flex items-center gap-2 text-xs text-base-content/60">
+                    <div>Diajukan: <span class="font-semibold text-base-content/80" x-text="detailData?.created_at_formatted"></span></div>
+                    <template x-if="detailData?.status !== 'Pending'">
+                        <div>• Diproses: <span class="font-semibold text-base-content/80" x-text="detailData?.updated_at_formatted"></span></div>
+                    </template>
+                </div>
+
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <button type="button" @click="showDetailModal = false" class="btn btn-sm btn-ghost rounded-xl">
+                        Tutup
+                    </button>
+                    <button type="button" 
+                        @click="showDetailModal = false; $dispatch('open-map-modal', { lat1: detailData?.latitude_old || '', lon1: detailData?.longitude_old || '', lat2: detailData?.latitude, lon2: detailData?.longitude, dist: detailData?.distance || '' })" 
+                        class="btn btn-sm btn-outline btn-info rounded-xl gap-1.5"
+                        title="Buka Peta Perbandingan Dua Titik"
+                    >
+                        <x-heroicon-s-map class="w-4 h-4" />
+                        <span>Peta Perbandingan</span>
+                    </button>
+
+                    @if($this->canManage)
+                        <template x-if="detailData?.status === 'Pending'">
+                            <div class="flex items-center gap-2">
+                                {{-- Tombol Tolak --}}
+                                <button 
+                                    type="button" 
+                                    @click="showDetailModal = false; $wire.promptReject(detailData.id);" 
+                                    class="btn btn-sm btn-error text-white rounded-xl gap-1.5 shadow-sm shadow-error/20"
+                                    title="Tolak Usulan Perbaikan Ini"
+                                >
+                                    <x-heroicon-s-x-circle class="w-4 h-4" />
+                                    <span>Tolak</span>
+                                </button>
+
+                                {{-- Tombol Setujui --}}
+                                <button 
+                                    type="button" 
+                                    @click="if(confirm('Yakin ingin menyetujui perbaikan koordinat toko ' + (detailData.customer_name || detailData.customer_code) + '?')) { showDetailModal = false; $wire.approve(detailData.id); }" 
+                                    class="btn btn-sm btn-success text-white rounded-xl gap-1.5 shadow-sm shadow-success/20"
+                                    title="Setujui Usulan Perbaikan Ini"
+                                >
+                                    <x-heroicon-s-check-circle class="w-4 h-4" />
+                                    <span>Setujui</span>
+                                </button>
+                            </div>
+                        </template>
+                    @endif
+
+                    <template x-if="detailData?.status === 'Approved'">
+                        <div class="flex items-center gap-1.5 text-xs font-bold text-success bg-success/10 border border-success/20 px-3 py-1.5 rounded-xl">
+                            <x-heroicon-s-check-circle class="w-4 h-4" />
+                            <span>Usulan Disetujui</span>
+                        </div>
+                    </template>
+
+                    <template x-if="detailData?.status === 'Rejected'">
+                        <div class="flex items-center gap-1.5 text-xs font-bold text-error bg-error/10 border border-error/20 px-3 py-1.5 rounded-xl">
+                            <x-heroicon-s-x-circle class="w-4 h-4" />
+                            <span>Usulan Ditolak</span>
+                        </div>
+                    </template>
+                </div>
             </div>
         </div>
     </div>
 
+
+
     {{-- MODAL PENOLAKAN --}}
-    <div x-show="showRejectModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
+    <div x-show="showRejectModal" class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
         <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col" @click.outside="showRejectModal = false">
             <div class="p-4 border-b border-error/20 flex items-center justify-between bg-error/10">
                 <div class="flex items-center gap-2 text-error">
@@ -436,7 +809,7 @@
     </div>
 
     {{-- MODAL ALASAN PENOLAKAN --}}
-    <div x-show="showReasonModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
+    <div x-show="showReasonModal" class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
         <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col" @click.outside="showReasonModal = false">
             <div class="p-4 border-b border-base-300 flex items-center justify-between bg-base-200/50">
                 <div class="flex items-center gap-2 text-error">
@@ -457,7 +830,7 @@
     </div>
 
     {{-- MODAL SUMMARY --}}
-    <div x-show="showSummaryModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
+    <div x-show="showSummaryModal" class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
         <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-[95vw] overflow-hidden flex flex-col max-h-[90vh]" @click.outside="showSummaryModal = false">
             <div class="p-4 border-b border-base-300 flex items-center justify-between bg-base-200/50">
                 <h3 class="font-bold text-lg flex items-center gap-2">
@@ -532,7 +905,7 @@
     </div>
 
     {{-- MODAL MAP --}}
-    <div x-show="showMapModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
+    <div x-show="showMapModal" class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
         <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col h-[80vh]" @click.outside="showMapModal = false">
             <div class="p-4 border-b border-base-300 flex items-center justify-between bg-base-200/50">
                 <h3 class="font-bold text-lg flex items-center gap-2">
@@ -558,7 +931,7 @@
     </div>
 
     {{-- MODAL EXPORT --}}
-    <div x-show="showExportModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
+    <div x-show="showExportModal" class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
         <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col" @click.outside="showExportModal = false">
             <div class="p-4 border-b border-base-300 flex items-center justify-between bg-base-200/50">
                 <div class="flex items-center gap-2 text-success">
@@ -597,7 +970,7 @@
     </div>
 
     {{-- LOCAL TOAST NOTIFICATION --}}
-    <div x-show="copyToast.show" class="toast toast-top toast-center z-[200] mt-16" style="display: none;" x-transition.opacity.duration.300ms>
+    <div x-show="copyToast.show" class="toast toast-top toast-center z-[100010] mt-16" style="display: none;" x-transition.opacity.duration.300ms>
         <div class="alert alert-success shadow-lg text-white font-bold text-sm px-4 py-2 rounded-xl flex items-center gap-2">
             <x-heroicon-o-check-circle class="w-5 h-5" />
             <span x-text="copyToast.message"></span>
@@ -632,7 +1005,7 @@
             if(!container) {
                 container = document.createElement('div');
                 container.id = 'vanilla-toast-container';
-                container.className = 'toast toast-top toast-center z-[9999] pt-4';
+                container.className = 'toast toast-top toast-center z-[100010] pt-4';
                 document.body.appendChild(container);
             }
             

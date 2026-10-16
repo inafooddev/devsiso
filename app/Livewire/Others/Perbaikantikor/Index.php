@@ -27,6 +27,12 @@ class Index extends Component
     public $search = '';
 
     #[Url]
+    public $distributorFilter = '';
+
+    #[Url]
+    public $salesFilter = '';
+
+    #[Url]
     public $statusFilter = '';
 
     #[Url]
@@ -45,6 +51,8 @@ class Index extends Component
     public $summarySearch = '';
 
     public $selectAll = false;
+    // Fitur bulk approve dimatikan sementara agar reviewer memeriksa foto & titik koordinat di modal detail
+    public bool $enableBulkApprove = false;
 
     #[Computed]
     public function canManage()
@@ -60,9 +68,77 @@ class Index extends Component
         return $this->baseQuery()->whereIn('perbaikan_tikor_toko.id', $this->selectedIds)->where('perbaikan_tikor_toko.status', 'Pending')->count();
     }
 
+    #[Computed]
+    public function distributorOptions()
+    {
+        return (clone $this->baseQuery())
+            ->leftJoin('distributor_implementasi_eskalink as die', 'die.eskalink_code', '=', 'perbaikan_tikor_toko.distributor_code')
+            ->select('perbaikan_tikor_toko.distributor_code', 'die.distributor_name')
+            ->whereNotNull('perbaikan_tikor_toko.distributor_code')
+            ->distinct()
+            ->orderBy('die.distributor_name')
+            ->orderBy('perbaikan_tikor_toko.distributor_code')
+            ->get();
+    }
+
+    #[Computed]
+    public function distributorSelectOptions()
+    {
+        $options = $this->distributorOptions()->map(function ($d) {
+            return [
+                'value' => (string) $d->distributor_code,
+                'label' => $d->distributor_code . ($d->distributor_name ? ' - ' . $d->distributor_name : ''),
+            ];
+        })->values()->toArray();
+
+        array_unshift($options, [
+            'value' => '',
+            'label' => 'Semua Distributor',
+        ]);
+
+        return $options;
+    }
+
+    #[Computed]
+    public function salesOptions()
+    {
+        $query = (clone $this->baseQuery());
+
+        if ($this->distributorFilter) {
+            $query->where('perbaikan_tikor_toko.distributor_code', $this->distributorFilter);
+        }
+
+        return $query
+            ->leftJoin('fsalesman as fs', function ($join) {
+                $join->on('fs.SLSNO', '=', 'perbaikan_tikor_toko.sales_code')
+                     ->on('fs.KD', '=', 'perbaikan_tikor_toko.distributor_code');
+            })
+            ->select('perbaikan_tikor_toko.sales_code', 'fs.SLSNAME as sales_name')
+            ->whereNotNull('perbaikan_tikor_toko.sales_code')
+            ->distinct()
+            ->orderBy('fs.SLSNAME')
+            ->orderBy('perbaikan_tikor_toko.sales_code')
+            ->get();
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();
+    }
+
+    public function updatingDistributorFilter()
+    {
+        $this->resetPage();
+        $this->salesFilter = '';
+        $this->selectAll = false;
+        $this->selectedIds = [];
+    }
+
+    public function updatingSalesFilter()
+    {
+        $this->resetPage();
+        $this->selectAll = false;
+        $this->selectedIds = [];
     }
 
     public function updatingStatusFilter()
@@ -78,6 +154,14 @@ class Index extends Component
     public function updatingDateEnd()
     {
         $this->resetPage();
+    }
+
+    public function resetFilters()
+    {
+        $this->reset(['search', 'statusFilter', 'dateStart', 'dateEnd', 'distributorFilter', 'salesFilter']);
+        $this->resetPage();
+        $this->selectAll = false;
+        $this->selectedIds = [];
     }
 
     public function updatingSelectAll($value)
@@ -122,6 +206,11 @@ class Index extends Component
 
     public function bulkApprove()
     {
+        if (!$this->enableBulkApprove) {
+            $this->dispatch('show-toast', type: 'error', message: 'Fitur persetujuan massal (bulk approve) saat ini dinonaktifkan.');
+            return;
+        }
+
         if (!$this->canManage) {
             abort(403, 'Anda tidak memiliki hak akses untuk menyetujui perbaikan koordinat.');
         }
@@ -203,7 +292,9 @@ class Index extends Component
             $this->statusFilter, 
             $this->exportDateStart, 
             $this->exportDateEnd, 
-            $this->selectedIds
+            $this->selectedIds,
+            $this->distributorFilter,
+            $this->salesFilter
         );
 
         if ($exportData->query()->count() === 0) {
@@ -289,6 +380,14 @@ class Index extends Component
                           ->where('SLSNAME', 'ilike', '%' . $this->search . '%');
                   });
             });
+        }
+
+        if ($this->distributorFilter) {
+            $query->where('perbaikan_tikor_toko.distributor_code', $this->distributorFilter);
+        }
+
+        if ($this->salesFilter) {
+            $query->where('perbaikan_tikor_toko.sales_code', $this->salesFilter);
         }
 
         if ($this->statusFilter && $this->statusFilter !== 'Semua Kategori' && $this->statusFilter !== 'Semua Status') {
