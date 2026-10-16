@@ -909,15 +909,26 @@
                               searchQuery: '',
                               banks: [
                                   'BANK BCA', 'BANK MANDIRI', 'BANK BNI', 'BANK BRI', 'BANK SYARIAH INDONESIA (BSI)',
-                                  'BANK DANAMON', 'BANK CIMB NIAGA', 'BANK PERMATA', 'BANK BTN', 'BANK BUKOPIN',
-                                  'BANK MEGA', 'BANK OCBC NISP', 'BANK MAYBANK', 'BANK BTPN / JENIUS', 'BANK JAGO', 
-                                  'BANK ALLOBANK', 'BANK NEO COMMERCE', 'SEABANK', 'BANK SINARMAS', 
+                                  'BANK MUAMALAT', 'BANK DANAMON', 'BANK CIMB NIAGA', 'BANK PERMATA', 'BANK BTN', 
+                                  'BANK BUKOPIN', 'BANK MEGA', 'BANK OCBC NISP', 'BANK MAYBANK', 'BANK BTPN / JENIUS', 
+                                  'BANK JAGO', 'BANK ALLOBANK', 'BANK NEO COMMERCE', 'SEABANK', 'BANK SINARMAS', 
+                                  'BANK UOB INDONESIA', 'BANK BCA SYARIAH', 'BANK MEGA SYARIAH', 'BANK ALADIN SYARIAH',
+                                  'BLU BY BCA DIGITAL', 'SUPERBANK', 'BANK SAQU', 'BANK RAYA INDONESIA', 'BANK NOBU',
                                   'BPD JAWA TIMUR (BANK JATIM)', 'BPD JAWA TENGAH (BANK JATENG)', 'BPD JAWA BARAT BANTEN (BJB)', 
-                                  'BPD DKI (BANK DKI)', 'BPD BALI', 'BPD D.I. YOGYAKARTA (BPD DIY)'
+                                  'BPD DKI (BANK DKI)', 'BPD BALI', 'BPD D.I. YOGYAKARTA (BPD DIY)', 'BPD SUMATERA UTARA (BANK SUMUT)',
+                                  'BPD SUMATERA BARAT (BANK NAGARI)', 'BANK RIAU KEPRI SYARIAH', 'BPD SUMSEL BABEL',
+                                  'BPD LAMPUNG', 'BPD KALIMANTAN BARAT (BANK KALBAR)', 'BPD KALIMANTAN SELATAN (BANK KALSEL)',
+                                  'BPD KALIMANTAN TIMUR (BANK KALTIMTARA)', 'BPD SULAWESI SELATAN (BANK SULSELBAR)',
+                                  'BPD SULAWESI UTARA (BANK SULUTGO)', 'BPD NTB SYARIAH', 'BPD NTT', 'BPD PAPUA',
+                                  'BANK MAS (MULTIARTA SENTOSA)', 'BANK SAHABAT SAMPOERNA', 'BANK MASPION', 'BANK MNC'
                               ],
                               get filteredBanks() {
                                   if (!this.searchQuery) return this.banks;
-                                  return this.banks.filter(b => b.toLowerCase().includes(this.searchQuery.toLowerCase()));
+                                  const q = this.searchQuery.toLowerCase().trim();
+                                  return this.banks.filter(b => {
+                                      const bl = b.toLowerCase();
+                                      return bl.includes(q) || (q.includes('mamalat') && bl.includes('muamalat'));
+                                  });
                               }
                           }" @click.away="open = false">
                               <label class="label py-0.5"><span class="label-text text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Nama Bank</span></label>

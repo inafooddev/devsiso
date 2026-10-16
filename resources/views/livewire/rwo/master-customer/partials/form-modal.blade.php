@@ -195,7 +195,7 @@
                         <div class="space-y-1.5" x-data="{
                             open: false,
                             search: '',
-                            selectedBank: @entangle('nama_bank'),
+                            selectedBank: @entangle('form.nama_bank'),
                             banks: @js($this->getBanksList())
                         }">
                             <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Nama Bank</label>
@@ -226,18 +226,24 @@
                                      class="absolute z-[60] mt-1 w-full bg-base-200 border border-base-300 rounded-2xl shadow-xl max-h-60 overflow-y-auto" 
                                      x-cloak>
                                     <div class="p-2 sticky top-0 bg-base-200 border-b border-base-300">
-                                        <input type="text" x-model="search" placeholder="Cari nama bank..." 
+                                        <input type="text" x-model="search" placeholder="Cari nama bank (contoh: Muamalat, BCA, Mandiri)..." 
                                                class="input input-sm input-bordered w-full bg-base-100 border-base-300 rounded-xl focus:ring-1 focus:ring-primary" 
                                                @click.stop>
                                     </div>
                                     <ul class="py-1">
                                         <template x-for="bank in banks" :key="bank">
-                                            <li x-show="bank.toLowerCase().includes(search.toLowerCase())"
+                                            <li x-show="bank.toLowerCase().includes(search.toLowerCase().trim()) || (search.toLowerCase().includes('mamalat') && bank.toLowerCase().includes('muamalat'))"
                                                 @click="selectedBank = bank; open = false; search = ''"
                                                 class="px-4 py-2.5 hover:bg-primary hover:text-primary-content cursor-pointer text-sm transition-colors duration-150">
                                                 <span x-text="bank"></span>
                                             </li>
                                         </template>
+                                        <li x-show="search.trim() && !banks.some(b => b.toLowerCase() === search.trim().toLowerCase())"
+                                            @click="selectedBank = search.trim(); open = false; search = ''"
+                                            class="px-4 py-2.5 hover:bg-primary hover:text-primary-content cursor-pointer text-sm transition-colors duration-150 border-t border-base-300 text-primary font-semibold flex items-center gap-1.5">
+                                            <x-heroicon-s-plus class="w-4 h-4 shrink-0" />
+                                            <span>Gunakan: "<span x-text="search.trim()"></span>"</span>
+                                        </li>
                                     </ul>
                                 </div>
                             </div>
