@@ -24,15 +24,22 @@ class CheckMenuAccess
         }
 
         // Get the current route name
-        $currentRouteName = Route::currentRouteName();
+        $currentRouteName = $request->route()?->getName() ?: Route::currentRouteName();
 
         // If route has no name, we cannot check by name, allow it or handle differently
         if (!$currentRouteName) {
             return $next($request);
         }
 
+        // Route aliases for sub-pages or tabs that share parent menu access
+        $routeAliases = [
+            'others.perbaikantikor.elite' => 'others.perbaikantikor',
+        ];
+
+        $checkRoute = $routeAliases[$currentRouteName] ?? $currentRouteName;
+
         // Check access using the new matrix method
-        if ($user->hasMenuAccess($currentRouteName, 'can_view')) {
+        if ($user->hasMenuAccess($checkRoute, 'can_view')) {
             return $next($request);
         }
 

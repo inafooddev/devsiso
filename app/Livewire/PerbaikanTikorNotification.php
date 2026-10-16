@@ -22,16 +22,24 @@ class PerbaikanTikorNotification extends Component
         $user = Auth::user();
         if (!$user) return;
 
-        $query = PerbaikanTikorToko::where('status', 'Pending');
-        if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereIn('region_code', is_array($user->region_code) ? $user->region_code : [$user->region_code]);
+        if (!$user->hasMenuAccess('others.perbaikantikor', 'can_view')) {
+            $this->pendingCount = 0;
+            return;
         }
 
-        $this->pendingCount = $query->count();
+        $this->pendingCount = PerbaikanTikorToko::query()
+            ->forUserAccess($user, null, 'perbaikan_tikor_toko')
+            ->where('status', 'Pending')
+            ->count();
     }
 
     public function render()
     {
+        $user = Auth::user();
+        if (!$user || !$user->hasMenuAccess('others.perbaikantikor', 'can_view')) {
+            return '<div></div>';
+        }
+
         return view('livewire.perbaikan-tikor-notification');
     }
 }

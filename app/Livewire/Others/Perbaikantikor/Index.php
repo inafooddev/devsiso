@@ -7,10 +7,21 @@ use Livewire\WithPagination;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\Computed;
 use App\Models\PerbaikanTikorToko;
+use App\Traits\EnforcesMenuPermissions;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, EnforcesMenuPermissions;
+
+    public $menuRoute = 'others.perbaikantikor';
+    public $canManage = false;
+
+    public function mount()
+    {
+        $this->authorizeAction('can_view');
+        $user = auth()->user();
+        $this->canManage = $user && $user->hasRole(['admin', 'user', 'spm']);
+    }
 
     #[Url]
     public $search = '';
@@ -36,10 +47,17 @@ class Index extends Component
     public $selectAll = false;
 
     #[Computed]
+    public function canManage()
+    {
+        $user = auth()->user();
+        return $user && $user->hasRole(['admin', 'user', 'spm']);
+    }
+
+    #[Computed]
     public function selectedPendingCount()
     {
-        if (empty($this->selectedIds)) return 0;
-        return PerbaikanTikorToko::whereIn('id', $this->selectedIds)->where('status', 'Pending')->count();
+        if (empty($this->selectedIds) || !$this->canManage) return 0;
+        return $this->baseQuery()->whereIn('perbaikan_tikor_toko.id', $this->selectedIds)->where('perbaikan_tikor_toko.status', 'Pending')->count();
     }
 
     public function updatingSearch()
@@ -64,6 +82,12 @@ class Index extends Component
 
     public function updatingSelectAll($value)
     {
+        if (!$this->canManage) {
+            $this->selectedIds = [];
+            $this->selectAll = false;
+            return;
+        }
+
         if ($value) {
             $this->selectedIds = $this->filteredQuery->pluck('id')->map(fn($id) => (string) $id)->toArray();
         } else {
@@ -83,7 +107,11 @@ class Index extends Component
 
     public function approve($id)
     {
-        $record = PerbaikanTikorToko::find($id);
+        if (!$this->canManage) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menyetujui perbaikan koordinat.');
+        }
+
+        $record = $this->baseQuery()->where('perbaikan_tikor_toko.id', $id)->first();
         if ($record && $record->status == 'Pending') {
             $record->status = 'Approved';
             $record->keterangan = null;
@@ -94,10 +122,15 @@ class Index extends Component
 
     public function bulkApprove()
     {
+        if (!$this->canManage) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menyetujui perbaikan koordinat.');
+        }
+
         if (empty($this->selectedIds)) return;
         
-        $count = PerbaikanTikorToko::whereIn('id', $this->selectedIds)
-            ->where('status', 'Pending')
+        $count = $this->baseQuery()
+            ->whereIn('perbaikan_tikor_toko.id', $this->selectedIds)
+            ->where('perbaikan_tikor_toko.status', 'Pending')
             ->update([
                 'status' => 'Approved',
                 'keterangan' => null
@@ -161,6 +194,10 @@ class Index extends Component
 
     public function export()
     {
+        if (!$this->canManage) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengekspor data.');
+        }
+
         $exportData = new \App\Exports\PerbaikanTikorExport(
             $this->search, 
             $this->statusFilter, 
@@ -182,6 +219,10 @@ class Index extends Component
 
     public function promptReject($id)
     {
+        if (!$this->canManage) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menolak perbaikan koordinat.');
+        }
+
         $this->selectedId = $id;
         $this->keteranganReject = '';
         $this->dispatch('open-reject-modal');
@@ -189,6 +230,10 @@ class Index extends Component
 
     public function reject()
     {
+        if (!$this->canManage) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menolak perbaikan koordinat.');
+        }
+
         $this->validate([
             'keteranganReject' => 'required|min:5'
         ], [
@@ -196,7 +241,7 @@ class Index extends Component
             'keteranganReject.min' => 'Keterangan terlalu singkat'
         ]);
 
-        $record = PerbaikanTikorToko::find($this->selectedId);
+        $record = $this->baseQuery()->where('perbaikan_tikor_toko.id', $this->selectedId)->first();
         if ($record) {
             $record->status = 'Rejected';
             $record->keterangan = $this->keteranganReject;
@@ -208,14 +253,7 @@ class Index extends Component
 
     private function baseQuery()
     {
-        $query = PerbaikanTikorToko::query()->where('perbaikan_tikor_toko.source', 'se');
-        
-        $user = auth()->user();
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereIn('perbaikan_tikor_toko.region_code', is_array($user->region_code) ? $user->region_code : [$user->region_code]);
-        }
-
-        return $query;
+        return PerbaikanTikorToko::query()->forUserAccess(auth()->user(), 'se', 'perbaikan_tikor_toko');
     }
 
     #[Computed]
@@ -290,8 +328,9 @@ class Index extends Component
             'rejected' => $this->baseQuery()->where('perbaikan_tikor_toko.status', 'Rejected')->count(),
         ];
 
-        $duplicates = PerbaikanTikorToko::selectRaw('distributor_code, sales_code, customer_code')
-            ->groupBy('distributor_code', 'sales_code', 'customer_code')
+        $duplicates = (clone $this->baseQuery())
+            ->selectRaw('perbaikan_tikor_toko.distributor_code, perbaikan_tikor_toko.sales_code, perbaikan_tikor_toko.customer_code')
+            ->groupBy('perbaikan_tikor_toko.distributor_code', 'perbaikan_tikor_toko.sales_code', 'perbaikan_tikor_toko.customer_code')
             ->havingRaw('COUNT(*) > 1')
             ->get()
             ->map(function ($item) {

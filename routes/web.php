@@ -432,8 +432,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/others/component-standard', ComponentStandardIndex::class)->name('others.component-standard');
     Route::get('/others/layout-standard', LayoutStandardIndex::class)->name('others.layout-standard');
     Route::get('/others/page-template-standard', PageTemplateStandardIndex::class)->name('others.page-template-standard');
-    Route::get('/others/perbaikantikor', AdminPerbaikantikorIndex::class)->name('others.perbaikantikor');
-    Route::get('/others/perbaikantikor-elite', AdminPerbaikantikorEliteIndex::class)->name('others.perbaikantikor.elite');
+    Route::get('/others/perbaikantikor', AdminPerbaikantikorIndex::class)->name('others.perbaikantikor')->middleware('menu.access');
+    Route::get('/others/perbaikantikor-elite', AdminPerbaikantikorEliteIndex::class)->name('others.perbaikantikor.elite')->middleware('menu.access');
     Route::get('/others/audit-toko', AdminAuditTokoIndex::class)->name('others.audit-toko');
     Route::get('/others/audit-toko/master-customer', AdminAuditTokoMasterCustomer::class)->name('others.audit-toko.master');
     Route::get('/others/produk-lama', \App\Livewire\Others\ProdukLama\Index::class)->name('others.produk-lama');

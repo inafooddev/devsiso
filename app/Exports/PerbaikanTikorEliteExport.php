@@ -59,13 +59,9 @@ class PerbaikanTikorEliteExport extends DefaultValueBinder implements FromQuery,
                 'fs.SLSNAME as sales_name',
                 'p.latitude',
                 'p.longitude'
-            )
-            ->where('p.source', 'elite');
+            );
 
-        $user = auth()->user();
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereIn('p.region_code', is_array($user->region_code) ? $user->region_code : [$user->region_code]);
-        }
+        \App\Models\PerbaikanTikorToko::applyUserAccessFilter($query, auth()->user(), 'elite', 'p');
 
         if (!empty($this->selectedIds)) {
             $query->whereIn('p.id', $this->selectedIds);

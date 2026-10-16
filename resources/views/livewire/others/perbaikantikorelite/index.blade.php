@@ -143,16 +143,18 @@
 
                 {{-- Actions Button (Optional Export dll) --}}
                 <div class="flex flex-wrap items-center gap-1 md:gap-2">
-                    @if($this->selectedPendingCount > 0)
+                    @if($this->canManage && $this->selectedPendingCount > 0)
                         <button type="button" wire:click="bulkApprove" wire:confirm="Setujui {{ $this->selectedPendingCount }} usulan perbaikan terpilih?" class="btn btn-sm btn-success text-white shadow-sm" wire:loading.attr="disabled" wire:target="bulkApprove">
                             <span wire:loading wire:target="bulkApprove" class="loading loading-spinner loading-xs mr-1"></span>
                             <x-heroicon-s-check-circle class="w-4 h-4" wire:loading.remove wire:target="bulkApprove" /> Terima Terpilih ({{ $this->selectedPendingCount }})
                         </button>
                     @endif
+                    @if($this->canManage)
                     <button type="button" @click="showExportModal = true" class="btn btn-sm btn-success text-white shadow-sm shadow-success/20 rounded-xl gap-1 md:gap-2 whitespace-nowrap">
                         <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
                         <span>Export</span>
                     </button>
+                    @endif
                     <button type="button" wire:click="loadSummary" class="btn btn-sm btn-info text-white shadow-sm" wire:loading.attr="disabled" wire:target="loadSummary">
                         <span wire:loading wire:target="loadSummary" class="loading loading-spinner loading-xs mr-1"></span>
                         <x-heroicon-s-chart-bar class="w-4 h-4" wire:loading.remove wire:target="loadSummary" /> Summary
@@ -166,9 +168,11 @@
             <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
                 <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
                     <tr>
+                        @if($this->canManage)
                         <th class="w-10 text-center px-2">
                             <input type="checkbox" wire:model.live="selectAll" class="checkbox checkbox-sm checkbox-success rounded" title="Pilih Semua (Select All)" />
                         </th>
+                        @endif
                         <th class="w-12">No</th>
 
                         <th>Nama Sales</th>
@@ -188,9 +192,11 @@
                 <tbody class="text-sm">
                     @forelse($data as $index => $item)
                     <tr class="transition-colors {{ in_array($item->id, $selectedIds) ? 'bg-success/10 hover:bg-success/15' : 'hover:bg-base-200/50' }}">
+                        @if($this->canManage)
                         <th class="text-center px-2">
                             <input type="checkbox" wire:model.live="selectedIds" value="{{ $item->id }}" class="checkbox checkbox-sm checkbox-success rounded" />
                         </th>
+                        @endif
                         <th class="text-base-content/60">{{ $data->firstItem() + $index }}</th>
 
                         <td>
@@ -337,7 +343,7 @@
                                 </button>
                                 @endif
 
-                                @if($item->status == 'Pending')
+                                @if($this->canManage && $item->status == 'Pending')
                                 {{-- Setujui --}}
                                 <button type="button" wire:click="approve({{ $item->id }})" wire:confirm="Yakin ingin menyetujui perubahan koordinat ini?" class="btn btn-sm btn-ghost text-success hover:bg-success/10 btn-square" title="Setujui" wire:loading.attr="disabled" wire:target="approve({{ $item->id }})">
                                     <x-heroicon-o-check class="w-4 h-4" wire:loading.remove wire:target="approve({{ $item->id }})" />
@@ -348,15 +354,17 @@
                                     <x-heroicon-o-x-mark class="w-4 h-4" wire:loading.remove wire:target="promptReject({{ $item->id }})" />
                                     <span wire:loading wire:target="promptReject({{ $item->id }})" class="loading loading-spinner loading-xs text-error"></span>
                                 </button>
-                                @else
+                                @elseif($item->status != 'Pending')
                                 <span class="text-[10px] text-base-content/50 italic font-normal">Selesai</span>
+                                @else
+                                <span class="text-[10px] text-base-content/50 italic font-normal">Pending</span>
                                 @endif
                             </div>
                         </th>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="text-center py-12">
+                        <td colspan="{{ $this->canManage ? '14' : '13' }}" class="text-center py-12">
                             <div class="flex flex-col items-center justify-center text-base-content/40">
                                 <x-heroicon-o-inbox class="w-12 h-12 mb-2" />
                                 <p class="text-sm">Tidak ada data pengajuan perbaikan tikor.</p>
