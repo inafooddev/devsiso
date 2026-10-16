@@ -5,6 +5,8 @@ namespace App\Livewire\CallPlan\JksApprovals;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\JksApprovalExport;
 
 class Index extends Component
 {
@@ -145,13 +147,16 @@ class Index extends Component
         return $prcIssues;
     }
 
-    public function getApprovalsQuery()
+    public function getApprovalsQuery($allStatus = false)
     {
         $query = DB::table('jks_approvals as ja')
             ->join('users as u', 'ja.maker_id', '=', 'u.id')
             ->leftJoin('users as c', 'ja.checker_id', '=', 'c.id')
-            ->select('ja.*', 'u.name as maker_name', 'c.name as checker_name')
-            ->where('ja.status', $this->filterStatus);
+            ->select('ja.*', 'u.name as maker_name', 'c.name as checker_name');
+
+        if (!$allStatus) {
+            $query->where('ja.status', $this->filterStatus);
+        }
             
         $query = $this->applyHierarchyAccess($query, 'ja.');
 
@@ -173,6 +178,42 @@ class Index extends Component
         }
 
         return $query;
+    }
+
+    public function exportExcel($allStatus = false)
+    {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm'])) {
+            $this->dispatch('toast', [
+                'type' => 'error',
+                'message' => 'Akses ditolak. Fitur export laporan persetujuan hanya dapat diakses oleh Admin dan SPM.'
+            ]);
+            return;
+        }
+
+        $query = $this->getApprovalsQuery($allStatus);
+
+        // Pastikan join ke master_distributors ada untuk nama distributor, region, dan area
+        $hasMdJoin = collect($query->joins ?? [])->contains(function ($join) {
+            return str_contains($join->table, 'master_distributors');
+        });
+        if (!$hasMdJoin) {
+            $query->leftJoin('master_distributors as md', 'ja.distributor_code', '=', 'md.distributor_code');
+        }
+
+        $query->addSelect([
+            'md.distributor_name',
+            'md.region_name',
+            'md.area_name',
+        ]);
+
+        $statusLabel = $allStatus ? 'SEMUA_STATUS' : $this->filterStatus;
+        $timestamp = date('Ymd_His');
+        $fileName = "Laporan_Persetujuan_JKS_{$statusLabel}_{$timestamp}.xlsx";
+
+        return Excel::download(
+            new JksApprovalExport($query),
+            $fileName
+        );
     }
 
     private function executeApprovalLogic($id, $newPrcs = [])

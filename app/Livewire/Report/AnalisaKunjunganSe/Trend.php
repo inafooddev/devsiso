@@ -297,24 +297,49 @@ class Trend extends Component
             $query->whereIn('rvah.BID', $this->allowedDistributorCodes);
         }
 
-        $dbRows = $query->select(
+        // Subquery: Distinct per hari per toko (1 Toko per Hari = Maksimal 1 Call target & realisasi)
+        $subQuery = $query->select(
             DB::raw('EXTRACT(MONTH FROM rvah."TANGGAL"::date)::int as bulan'),
-            DB::raw('COUNT(DISTINCT rvah."MUID") as active_se'),
-            DB::raw('COUNT(DISTINCT rvah."TANGGAL"::date) as active_days'),
-            DB::raw('COUNT(*) as total_pc'),
-            DB::raw("SUM(CASE WHEN rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as total_ac"),
-            DB::raw("SUM(CASE WHEN rvah.\"FLAG_EC\" = 'Y' THEN 1 ELSE 0 END) as total_ec"),
-            DB::raw("SUM(CASE WHEN rvah.\"FLAG_PJP\" = 'R' THEN 1 ELSE 0 END) as pjp_pc"),
-            DB::raw("SUM(CASE WHEN rvah.\"FLAG_PJP\" = 'R' AND rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as pjp_ac"),
-            DB::raw("SUM(CASE WHEN rvah.\"FLAG_PJP\" = 'R' AND rvah.\"FLAG_EC\" = 'Y' THEN 1 ELSE 0 END) as pjp_ec"),
-            DB::raw("SUM(CASE WHEN rvah.\"FLAG_PJP\" != 'R' THEN 1 ELSE 0 END) as xc_pc"),
-            DB::raw("SUM(CASE WHEN rvah.\"FLAG_PJP\" != 'R' AND rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as xc_ac"),
-            DB::raw("SUM(CASE WHEN rvah.\"FLAG_PJP\" != 'R' AND rvah.\"FLAG_EC\" = 'Y' THEN 1 ELSE 0 END) as xc_ec"),
-            DB::raw('SUM(CASE WHEN rvah."ORDER_VAL" > 0 AND rvah."ORDER_VAL" < 5000000000 THEN rvah."ORDER_VAL" ELSE 0 END) as total_order_val')
+            DB::raw('rvah."TANGGAL"::date as tanggal'),
+            'rvah.CUSTNO as custno',
+            'rvah.MUID as muid',
+            DB::raw("MAX(CASE WHEN rvah.\"FLAG_PJP\" = 'R' THEN 1 ELSE 0 END) as is_pjp"),
+            DB::raw("MAX(CASE WHEN rvah.\"FLAG_PJP\" != 'R' THEN 1 ELSE 0 END) as is_xc"),
+            DB::raw("MAX(CASE WHEN rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as is_visit"),
+            DB::raw("MAX(CASE WHEN rvah.\"FLAG_EC\" = 'Y' THEN 1 ELSE 0 END) as is_ec"),
+            DB::raw("MAX(CASE WHEN rvah.\"FLAG_PJP\" = 'R' AND rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as is_pjp_visit"),
+            DB::raw("MAX(CASE WHEN rvah.\"FLAG_PJP\" = 'R' AND rvah.\"FLAG_EC\" = 'Y' THEN 1 ELSE 0 END) as is_pjp_ec"),
+            DB::raw("MAX(CASE WHEN rvah.\"FLAG_PJP\" != 'R' AND rvah.\"FLAG_VISIT\" = 'Y' THEN 1 ELSE 0 END) as is_xc_visit"),
+            DB::raw("MAX(CASE WHEN rvah.\"FLAG_PJP\" != 'R' AND rvah.\"FLAG_EC\" = 'Y' THEN 1 ELSE 0 END) as is_xc_ec"),
+            DB::raw('SUM(CASE WHEN rvah."ORDER_VAL" > 0 AND rvah."ORDER_VAL" < 5000000000 THEN rvah."ORDER_VAL" ELSE 0 END) as cust_order_val')
         )
-        ->groupBy(DB::raw('EXTRACT(MONTH FROM rvah."TANGGAL"::date)'))
-        ->get()
-        ->keyBy('bulan');
+        ->groupBy(
+            DB::raw('EXTRACT(MONTH FROM rvah."TANGGAL"::date)'),
+            DB::raw('rvah."TANGGAL"::date'),
+            'rvah.CUSTNO',
+            'rvah.MUID'
+        );
+
+        $dbRows = DB::table(DB::raw("({$subQuery->toSql()}) as d"))
+            ->mergeBindings($subQuery)
+            ->select(
+                'bulan',
+                DB::raw('COUNT(DISTINCT muid) as active_se'),
+                DB::raw('COUNT(DISTINCT tanggal) as active_days'),
+                DB::raw('COUNT(*) as total_pc'),
+                DB::raw('SUM(is_visit) as total_ac'),
+                DB::raw('SUM(is_ec) as total_ec'),
+                DB::raw('SUM(is_pjp) as pjp_pc'),
+                DB::raw('SUM(is_pjp_visit) as pjp_ac'),
+                DB::raw('SUM(is_pjp_ec) as pjp_ec'),
+                DB::raw('SUM(is_xc) as xc_pc'),
+                DB::raw('SUM(is_xc_visit) as xc_ac'),
+                DB::raw('SUM(is_xc_ec) as xc_ec'),
+                DB::raw('SUM(cust_order_val) as total_order_val')
+            )
+            ->groupBy('bulan')
+            ->get()
+            ->keyBy('bulan');
 
         $monthNames = [
             1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',

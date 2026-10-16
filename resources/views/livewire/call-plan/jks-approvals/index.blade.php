@@ -138,6 +138,41 @@
                         <option value="{{ $type }}">{{ str_replace('_', ' ', $type) }}</option>
                     @endforeach
                 </select>
+
+                {{-- Export Excel (Khusus Admin dan SPM) --}}
+                @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm']))
+                    <div class="dropdown dropdown-end">
+                        <div tabindex="0" role="button" class="btn btn-sm btn-success text-white rounded-xl gap-1.5 shadow-sm">
+                            <span wire:loading.remove wire:target="exportExcel">
+                                <x-heroicon-s-document-arrow-down class="w-4 h-4" />
+                            </span>
+                            <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
+                            <span>Export Excel</span>
+                            <x-heroicon-m-chevron-down class="w-3.5 h-3.5 opacity-70" />
+                        </div>
+                        <ul tabindex="0" class="dropdown-content z-30 menu p-1.5 shadow-xl bg-base-100 rounded-xl border border-base-300 w-60 text-xs mt-1">
+                            <li class="menu-title text-[10px] uppercase font-bold tracking-wider text-base-content/60 px-2 py-1">Opsi Laporan Excel</li>
+                            <li>
+                                <a wire:click="exportExcel(false)" class="flex items-center gap-2 py-2 hover:bg-base-200 rounded-lg">
+                                    <x-heroicon-o-funnel class="w-4 h-4 text-warning shrink-0" />
+                                    <div class="flex flex-col">
+                                        <span class="font-semibold text-base-content">Filter Aktif ({{ $filterStatus }})</span>
+                                        <span class="text-[10px] text-base-content/50">Hanya status {{ strtolower($filterStatus) }}</span>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a wire:click="exportExcel(true)" class="flex items-center gap-2 py-2 hover:bg-base-200 rounded-lg">
+                                    <x-heroicon-o-document-duplicate class="w-4 h-4 text-primary shrink-0" />
+                                    <div class="flex flex-col">
+                                        <span class="font-semibold text-base-content">Semua Status (All)</span>
+                                        <span class="text-[10px] text-base-content/50">Pending, Approved, Rejected</span>
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                @endif
             </div>
         </div>
 
