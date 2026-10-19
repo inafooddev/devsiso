@@ -55,6 +55,7 @@ class Index extends Component
     public $mapModalData = [];
     public $mapTanggal = '';
     public $mapKodeTeam = '';
+    public $mapModalSummary = [];
 
     protected $queryString = ['filterTeam', 'filterStartDate', 'filterEndDate'];
 
@@ -172,6 +173,59 @@ class Index extends Component
     public function updatedFilterStartDate() { $this->resetPage(); }
     public function updatedFilterEndDate() { $this->resetPage(); }
     public function updatedSearch() { $this->resetPage(); }
+
+    public function setDatePreset(string $preset): void
+    {
+        $today = Carbon::today();
+
+        switch ($preset) {
+            case 'today':
+                $this->filterStartDate = $today->format('Y-m-d');
+                $this->filterEndDate = $today->format('Y-m-d');
+                break;
+
+            case 'yesterday':
+                $yesterday = Carbon::yesterday()->format('Y-m-d');
+                $this->filterStartDate = $yesterday;
+                $this->filterEndDate = $yesterday;
+                break;
+
+            case 'this_week':
+                $this->filterStartDate = $today->copy()->startOfWeek()->format('Y-m-d');
+                $this->filterEndDate = $today->copy()->endOfWeek()->format('Y-m-d');
+                break;
+
+            case 'last_week':
+                $lastWeek = Carbon::today()->subWeek();
+                $this->filterStartDate = $lastWeek->copy()->startOfWeek()->format('Y-m-d');
+                $this->filterEndDate = $lastWeek->copy()->endOfWeek()->format('Y-m-d');
+                break;
+
+            case 'this_month':
+                $this->filterStartDate = $today->copy()->startOfMonth()->format('Y-m-d');
+                $this->filterEndDate = $today->copy()->endOfMonth()->format('Y-m-d');
+                break;
+
+            case 'last_month':
+                $lastMonth = Carbon::today()->subMonth();
+                $this->filterStartDate = $lastMonth->copy()->startOfMonth()->format('Y-m-d');
+                $this->filterEndDate = $lastMonth->copy()->endOfMonth()->format('Y-m-d');
+                break;
+
+            case 'next_month':
+                $nextMonth = Carbon::today()->addMonth();
+                $this->filterStartDate = $nextMonth->copy()->startOfMonth()->format('Y-m-d');
+                $this->filterEndDate = $nextMonth->copy()->endOfMonth()->format('Y-m-d');
+                break;
+
+            case 'clear':
+                $this->filterStartDate = '';
+                $this->filterEndDate = '';
+                break;
+        }
+
+        $this->resetPage();
+    }
 
     public function sortBy($field)
     {
@@ -380,7 +434,14 @@ class Index extends Component
         $this->storeModalTitle = "Daftar Toko - " . \Carbon\Carbon::parse($tanggal)->format('d M Y') . " - {$kodeTeam}{$titlePilar}";
         
         $query = JksTeamElite::query()
-            ->select('jks_team_elite.custno', 'jks_team_elite.custname', 'jks_team_elite.distributor_name', 'l.pilar', 'l.target')
+            ->select(
+                'jks_team_elite.custno',
+                'jks_team_elite.custname',
+                DB::raw('COALESCE(jks_team_elite.addres, l.customer_address) as addres'),
+                'jks_team_elite.distributor_name',
+                'l.pilar',
+                'l.target'
+            )
             ->leftJoin('list_toko_pareto_team_elite as l', function($join) {
                 $join->on('jks_team_elite.custno', '=', 'l.customer_code_prc')
                      ->on('jks_team_elite.distributor_code', '=', 'l.distributor_code');
@@ -410,14 +471,364 @@ class Index extends Component
         $this->isStoreModalOpen = true;
     }
 
+    /**
+     * Efficiently retrieve Pareto stores geographically near the given scheduled stores.
+     * Uses SQL bounding box filtering + fast Euclidean distance pre-check before exact Haversine.
+     */
+    private function getNearbyParetoStores($jksStores, array $distributorCodes, array $excludeCustNos = [], float $maxRadiusKm = 10.0, int $limit = 500): array
+    {
+        if (empty($distributorCodes) || empty($jksStores)) {
+            return [];
+        }
+
+        $scheduledCoords = [];
+        foreach ($jksStores as $s) {
+            $lat = is_array($s) ? ($s['latitude'] ?? null) : ($s->latitude ?? null);
+            $lon = is_array($s) ? ($s['longitude'] ?? null) : ($s->longitude ?? null);
+
+            if ($lat !== null && $lon !== null) {
+                $latF = (float) $lat;
+                $lonF = (float) $lon;
+                // Exclude invalid or null island coordinates
+                if ($latF != 0.0 && $lonF != 0.0 && $latF >= -90 && $latF <= 90 && $lonF >= -180 && $lonF <= 180) {
+                    $scheduledCoords[] = [
+                        'lat' => $latF,
+                        'lon' => $lonF,
+                        'latRad' => deg2rad($latF),
+                    ];
+                }
+            }
+        }
+
+        if (empty($scheduledCoords)) {
+            return [];
+        }
+
+        // 1. Calculate Bounding Box of all scheduled stores
+        $lats = array_column($scheduledCoords, 'lat');
+        $lons = array_column($scheduledCoords, 'lon');
+
+        $minLat = min($lats);
+        $maxLat = max($lats);
+        $minLon = min($lons);
+        $maxLon = max($lons);
+
+        // 1 degree latitude ~ 111 km. Add buffer based on maxRadiusKm + safety margin
+        $latBuffer = ($maxRadiusKm / 111.0) + 0.02;
+        $midLat = ($minLat + $maxLat) / 2.0;
+        $cosMidLat = cos(deg2rad($midLat));
+        $lonBuffer = ($cosMidLat > 0.01) ? (($maxRadiusKm / (111.0 * $cosMidLat)) + 0.02) : $latBuffer;
+
+        // 2. Query Pareto table with SQL bounding box, 3 pilar filter, and distributor filter
+        $query = DB::table('list_toko_pareto_team_elite')
+            ->whereIn('distributor_code', $distributorCodes)
+            ->whereIn('pilar', ['1. RWO', '2. PNR', '3. NGVO'])
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->whereBetween('latitude', [$minLat - $latBuffer, $maxLat + $latBuffer])
+            ->whereBetween('longitude', [$minLon - $lonBuffer, $maxLon + $lonBuffer]);
+
+        if (!empty($excludeCustNos)) {
+            $query->whereNotIn('customer_code_prc', $excludeCustNos);
+        }
+
+        $candidates = $query->select(
+            'customer_code_prc as custno',
+            'customer_name as custname',
+            'distributor_code',
+            'latitude',
+            'longitude',
+            'customer_address',
+            'pilar'
+        )->get();
+
+        if ($candidates->isEmpty()) {
+            return [];
+        }
+
+        // 3. Fast Euclidean pre-check & Haversine distance verification
+        $maxRadiusSquared = $maxRadiusKm * $maxRadiusKm;
+        $filtered = [];
+
+        foreach ($candidates as $pareto) {
+            $pLat = (float) $pareto->latitude;
+            $pLon = (float) $pareto->longitude;
+
+            if ($pLat == 0.0 && $pLon == 0.0) {
+                continue;
+            }
+
+            $pLatRad = deg2rad($pLat);
+            $isNear = false;
+
+            foreach ($scheduledCoords as $sch) {
+                // Fast flat-surface Euclidean distance approximation:
+                // d_km^2 = (dLat * 111)^2 + (dLon * 111 * cos(midLat))^2
+                $dLatKm = ($sch['lat'] - $pLat) * 111.0;
+                $dLonKm = ($sch['lon'] - $pLon) * (111.0 * $cosMidLat);
+                $approxDistSq = ($dLatKm * $dLatKm) + ($dLonKm * $dLonKm);
+
+                // Pre-check with a 20% margin to prevent edge false-negatives
+                if ($approxDistSq <= ($maxRadiusSquared * 1.2)) {
+                    // Full Haversine verification
+                    $dLatRad = deg2rad($sch['lat'] - $pLat);
+                    $dLonRad = deg2rad($sch['lon'] - $pLon);
+                    $a = sin($dLatRad / 2) * sin($dLatRad / 2) + cos($pLatRad) * cos($sch['latRad']) * sin($dLonRad / 2) * sin($dLonRad / 2);
+                    $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+                    $actualDistance = 6371.0 * $c;
+
+                    if ($actualDistance <= $maxRadiusKm) {
+                        $isNear = true;
+                        break;
+                    }
+                }
+            }
+
+            if ($isNear) {
+                // Priority rank for sorting: Pilar 1 RWO > Pilar 2 PNR > Pilar 3 NGVO > Lainnya
+                $priority = 1;
+                if ($pareto->pilar) {
+                    if (str_contains($pareto->pilar, '1. RWO')) $priority = 4;
+                    elseif (str_contains($pareto->pilar, '2. PNR')) $priority = 3;
+                    elseif (str_contains($pareto->pilar, '3. NGVO')) $priority = 2;
+                }
+
+                $filtered[] = [
+                    'custno' => $pareto->custno,
+                    'custname' => $pareto->custname,
+                    'distributor_code' => $pareto->distributor_code,
+                    'latitude' => $pLat,
+                    'longitude' => $pLon,
+                    'customer_address' => \Illuminate\Support\Str::limit($pareto->customer_address, 100),
+                    'pilar' => $pareto->pilar,
+                    'priority' => $priority,
+                ];
+            }
+        }
+
+        // 4. Sort by priority desc (Pilar 1 first), and cap at $limit
+        usort($filtered, fn($a, $b) => $b['priority'] <=> $a['priority']);
+
+        if (count($filtered) > $limit) {
+            $filtered = array_slice($filtered, 0, $limit);
+        }
+
+        // Clean up internal priority field
+        return array_map(function($item) {
+            unset($item['priority']);
+            return $item;
+        }, $filtered);
+    }
+
+    /**
+     * Hitung ringkasan perbandingan toko Pareto vs yang masuk JKS (3 Pilar, kecuali 4. GRO)
+     */
+    private function calculateMapSummary(array $teams, $startDate, $endDate): array
+    {
+        $default = [
+            'total' => ['label' => 'Total Toko', 'pareto' => 0, 'jks' => 0, 'gap' => 0, 'pct' => 0],
+            'rwo'   => ['label' => 'Pilar 1 (RWO)', 'pareto' => 0, 'jks' => 0, 'gap' => 0, 'pct' => 0],
+            'pnr'   => ['label' => 'Pilar 2 (PNR)', 'pareto' => 0, 'jks' => 0, 'gap' => 0, 'pct' => 0],
+            'ngvo'  => ['label' => 'Pilar 3 (NGVO)', 'pareto' => 0, 'jks' => 0, 'gap' => 0, 'pct' => 0],
+        ];
+
+        if (empty($teams) || empty($startDate) || empty($endDate)) {
+            return $default;
+        }
+
+        // 1. Ambil kode distributor terkait team ini
+        $distributorCodes = DB::table('jks_team_elite')
+            ->whereIn('kode_team', $teams)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->pluck('distributor_code')
+            ->unique()
+            ->filter()
+            ->values()
+            ->toArray();
+
+        if (empty($distributorCodes)) {
+            $distributorCodes = DB::table('jks_team_elite')
+                ->whereIn('kode_team', $teams)
+                ->pluck('distributor_code')
+                ->unique()
+                ->filter()
+                ->values()
+                ->toArray();
+        }
+
+        if (empty($distributorCodes)) {
+            return $default;
+        }
+
+        // 2. Total Toko Pareto (3 Pilar: RWO, PNR, NGVO - Kecuali 4. GRO)
+        $paretoStats = DB::table('list_toko_pareto_team_elite')
+            ->whereIn('distributor_code', $distributorCodes)
+            ->selectRaw("
+                SUM(CASE WHEN pilar = '1. RWO' THEN 1 ELSE 0 END) as rwo,
+                SUM(CASE WHEN pilar = '2. PNR' THEN 1 ELSE 0 END) as pnr,
+                SUM(CASE WHEN pilar = '3. NGVO' THEN 1 ELSE 0 END) as ngvo
+            ")
+            ->first();
+
+        $paretoRwo = (int) ($paretoStats->rwo ?? 0);
+        $paretoPnr = (int) ($paretoStats->pnr ?? 0);
+        $paretoNgvo = (int) ($paretoStats->ngvo ?? 0);
+        $paretoTotal = $paretoRwo + $paretoPnr + $paretoNgvo;
+
+        // 3. Toko Unik yang Masuk JKS dalam periode tersebut (3 Pilar)
+        $jksQuery = DB::table(function ($q) use ($teams, $startDate, $endDate) {
+            $q->select('jks_team_elite.custno', 'jks_team_elite.distributor_code', 'l.pilar')
+                ->from('jks_team_elite')
+                ->leftJoin('list_toko_pareto_team_elite as l', function($join) {
+                    $join->on('jks_team_elite.custno', '=', 'l.customer_code_prc')
+                         ->on('jks_team_elite.distributor_code', '=', 'l.distributor_code');
+                })
+                ->whereIn('jks_team_elite.kode_team', $teams)
+                ->whereBetween('jks_team_elite.tanggal', [$startDate, $endDate])
+                ->whereRaw("jks_team_elite.custno NOT ILIKE '%BRIF%' AND jks_team_elite.custno NOT ILIKE '%BRIEF%' AND jks_team_elite.custno NOT ILIKE '%EVAL%'")
+                ->distinct();
+        }, 'unique_jks')
+        ->selectRaw("
+            SUM(CASE WHEN pilar = '1. RWO' THEN 1 ELSE 0 END) as jks_rwo,
+            SUM(CASE WHEN pilar = '2. PNR' THEN 1 ELSE 0 END) as jks_pnr,
+            SUM(CASE WHEN pilar = '3. NGVO' THEN 1 ELSE 0 END) as jks_ngvo
+        ")
+        ->first();
+
+        $jksRwo = (int) ($jksQuery->jks_rwo ?? 0);
+        $jksPnr = (int) ($jksQuery->jks_pnr ?? 0);
+        $jksNgvo = (int) ($jksQuery->jks_ngvo ?? 0);
+        $jksTotal = $jksRwo + $jksPnr + $jksNgvo;
+
+        return [
+            'total' => [
+                'label'  => 'Total Toko',
+                'pareto' => $paretoTotal,
+                'jks'    => $jksTotal,
+                'gap'    => max(0, $paretoTotal - $jksTotal),
+                'pct'    => $paretoTotal > 0 ? round(($jksTotal / $paretoTotal) * 100) : 0,
+            ],
+            'rwo' => [
+                'label'  => 'Pilar 1 (RWO)',
+                'pareto' => $paretoRwo,
+                'jks'    => $jksRwo,
+                'gap'    => max(0, $paretoRwo - $jksRwo),
+                'pct'    => $paretoRwo > 0 ? round(($jksRwo / $paretoRwo) * 100) : 0,
+            ],
+            'pnr' => [
+                'label'  => 'Pilar 2 (PNR)',
+                'pareto' => $paretoPnr,
+                'jks'    => $jksPnr,
+                'gap'    => max(0, $paretoPnr - $jksPnr),
+                'pct'    => $paretoPnr > 0 ? round(($jksPnr / $paretoPnr) * 100) : 0,
+            ],
+            'ngvo' => [
+                'label'  => 'Pilar 3 (NGVO)',
+                'pareto' => $paretoNgvo,
+                'jks'    => $jksNgvo,
+                'gap'    => max(0, $paretoNgvo - $jksNgvo),
+                'pct'    => $paretoNgvo > 0 ? round(($jksNgvo / $paretoNgvo) * 100) : 0,
+            ],
+        ];
+    }
+
+    /**
+     * Process scheduled stores: assign day_number, order_in_day, and build daily routes per date and team.
+     */
+    private function processScheduledStoresAndRoutes($storesCollection): array
+    {
+        $orderedStores = [];
+        $routes = [];
+        $availableDates = [];
+
+        // Group stores by date and team
+        $grouped = [];
+        foreach ($storesCollection as $store) {
+            $c = \Carbon\Carbon::parse($store->tanggal);
+            $item = [
+                'id' => $store->id,
+                'custno' => $store->custno,
+                'custname' => $store->custname,
+                'distributor_code' => $store->distributor_code,
+                'latitude' => (float) $store->latitude,
+                'longitude' => (float) $store->longitude,
+                'customer_address' => \Illuminate\Support\Str::limit($store->customer_address, 100),
+                'pilar' => $store->pilar,
+                'tgl_format' => $c->format('d M Y'),
+                'tanggal_ymd' => $c->format('Y-m-d'),
+                'day_number' => (string) (int) $c->format('j'),
+                'minggu' => $store->minggu,
+                'hari' => $store->hari,
+                'kode_team' => $store->kode_team,
+                'nama_team' => $store->nama_team,
+            ];
+
+            $groupKey = $item['tanggal_ymd'] . '_' . $item['kode_team'];
+            $grouped[$groupKey][] = $item;
+        }
+
+        foreach ($grouped as $groupKey => $groupStores) {
+            $coords = [];
+            $date = $groupStores[0]['tanggal_ymd'];
+            $dateFormatted = $groupStores[0]['tgl_format'];
+            $dayNum = $groupStores[0]['day_number'];
+            $team = $groupStores[0]['kode_team'];
+            $teamName = $groupStores[0]['nama_team'];
+
+            if (!isset($availableDates[$date])) {
+                $availableDates[$date] = [
+                    'date' => $date,
+                    'day_number' => $dayNum,
+                    'formatted' => $dateFormatted,
+                    'count' => 0,
+                ];
+            }
+            $availableDates[$date]['count'] += count($groupStores);
+
+            $order = 1;
+            foreach ($groupStores as $s) {
+                $s['order_in_day'] = $order;
+                $orderedStores[] = $s;
+
+                if (!empty($s['latitude']) && !empty($s['longitude']) && (float)$s['latitude'] != 0.0 && (float)$s['longitude'] != 0.0) {
+                    $coords[] = [(float)$s['longitude'], (float)$s['latitude']];
+                }
+                $order++;
+            }
+
+            if (count($coords) >= 2) {
+                $routes[] = [
+                    'date' => $date,
+                    'day_number' => $dayNum,
+                    'team' => $team,
+                    'team_name' => $teamName,
+                    'coordinates' => $coords,
+                    'store_count' => count($coords),
+                ];
+            }
+        }
+
+        ksort($availableDates);
+
+        return [
+            'stores' => $orderedStores,
+            'routes' => $routes,
+            'availableDates' => array_values($availableDates),
+        ];
+    }
+
     public function showMap($tanggal, $kodeTeam, $dispatchInit = true)
     {
         $this->mapTanggal = $tanggal;
         $this->mapKodeTeam = $kodeTeam;
         $this->mapModalTitle = "Peta Persebaran Toko - " . \Carbon\Carbon::parse($tanggal)->format('d M Y') . " ($kodeTeam)";
         
+        $startDate = \Carbon\Carbon::parse($tanggal)->startOfMonth()->format('Y-m-d');
+        $endDate = \Carbon\Carbon::parse($tanggal)->endOfMonth()->format('Y-m-d');
+        $this->mapModalSummary = $this->calculateMapSummary([$kodeTeam], $startDate, $endDate);
+
         $query = JksTeamElite::query()
-            ->select('jks_team_elite.custno', 'jks_team_elite.custname', 'jks_team_elite.distributor_code', 'jks_team_elite.tanggal', 'jks_team_elite.kode_team', 'jks_team_elite.nama_team', 'l.latitude', 'l.longitude', 'l.customer_address', 'mc.week_month as minggu', 'mc.day as hari', 'l.pilar')
+            ->select('jks_team_elite.id', 'jks_team_elite.custno', 'jks_team_elite.custname', 'jks_team_elite.distributor_code', 'jks_team_elite.tanggal', 'jks_team_elite.kode_team', 'jks_team_elite.nama_team', 'l.latitude', 'l.longitude', 'l.customer_address', 'mc.week_month as minggu', 'mc.day as hari', 'l.pilar')
             ->leftJoin('list_toko_pareto_team_elite as l', function($join) {
                 $join->on('jks_team_elite.custno', '=', 'l.customer_code_prc')
                      ->on('jks_team_elite.distributor_code', '=', 'l.distributor_code');
@@ -426,19 +837,16 @@ class Index extends Component
             ->where('jks_team_elite.tanggal', $tanggal)
             ->where('jks_team_elite.kode_team', $kodeTeam)
             ->whereNotNull('l.latitude')
-            ->whereNotNull('l.longitude');
+            ->whereNotNull('l.longitude')
+            ->orderBy('jks_team_elite.id', 'asc');
             
         $this->applyHierarchyAccess($query, 'jks_team_elite.distributor_code');
             
-        $jksStores = $query->get()
-            ->map(function ($store) {
-                $c = \Carbon\Carbon::parse($store->tanggal);
-                $store->tgl_format = $c->format('d M Y');
-                $store->tanggal_ymd = $c->format('Y-m-d');
-                return $store;
-            });
+        $jksStoresRaw = $query->get();
+        $processed = $this->processScheduledStoresAndRoutes($jksStoresRaw);
+        $jksStores = $processed['stores'];
 
-        $distributorCodes = $jksStores->pluck('distributor_code')->unique()->toArray();
+        $distributorCodes = collect($jksStores)->pluck('distributor_code')->unique()->filter()->values()->toArray();
         
         // Ambil semua toko yang SUDAH dijadwalkan oleh tim ini pada BULAN yang sama
         $month = \Carbon\Carbon::parse($tanggal)->format('m');
@@ -448,42 +856,20 @@ class Index extends Component
             ->whereMonth('tanggal', $month)
             ->whereYear('tanggal', $year)
             ->pluck('custno')
+            ->unique()
+            ->filter()
+            ->values()
             ->toArray();
 
-        $paretoStores = DB::table('list_toko_pareto_team_elite')
-            ->whereIn('distributor_code', $distributorCodes)
-            ->whereNotIn('customer_code_prc', $alreadyScheduledCustNos)
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->select('customer_code_prc as custno', 'customer_name as custname', 'distributor_code', 'latitude', 'longitude', 'customer_address', 'pilar')
-            ->get();
-            
-        // Limit Pareto stores to a 10km radius from ANY scheduled store
-        $filteredPareto = $paretoStores->filter(function($pareto) use ($jksStores) {
-            foreach ($jksStores as $jks) {
-                $lat1 = (float) $pareto->latitude;
-                $lon1 = (float) $pareto->longitude;
-                $lat2 = (float) $jks->latitude;
-                $lon2 = (float) $jks->longitude;
-                
-                // Haversine formula
-                $earthRadius = 6371; // in kilometers
-                $dLat = deg2rad($lat2 - $lat1);
-                $dLon = deg2rad($lon2 - $lon1);
-                $a = sin($dLat/2) * sin($dLat/2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon/2) * sin($dLon/2);
-                $c = 2 * asin(sqrt($a));
-                $distance = $earthRadius * $c;
-                
-                if ($distance <= 8) { // 8 KM Radius
-                    return true;
-                }
-            }
-            return false;
-        });
+        $filteredPareto = $this->getNearbyParetoStores($jksStores, $distributorCodes, $alreadyScheduledCustNos, 8.0, 300);
 
         $this->mapModalData = [
-            'scheduled' => $jksStores->toArray(),
-            'pareto' => $filteredPareto->values()->toArray()
+            'isGlobal' => false,
+            'summary' => $this->mapModalSummary,
+            'scheduled' => $jksStores,
+            'routes' => $processed['routes'],
+            'availableDates' => $processed['availableDates'],
+            'pareto' => $filteredPareto
         ];
             
         $this->isMapModalOpen = true;
@@ -496,6 +882,12 @@ class Index extends Component
 
     public function showGlobalMap()
     {
+        $this->mapModalSummary = $this->calculateMapSummary(
+            $this->filterTeam,
+            $this->filterStartDate,
+            $this->filterEndDate
+        );
+
         $jksQuery = JksTeamElite::query();
         
         if (!empty($this->filterTeam)) {
@@ -518,8 +910,8 @@ class Index extends Component
         
         $this->applyHierarchyAccess($jksQuery, 'jks_team_elite.distributor_code');
         
-        $jksStores = $jksQuery
-            ->select('jks_team_elite.custno', 'jks_team_elite.custname', 'jks_team_elite.distributor_code', 'jks_team_elite.tanggal', 'jks_team_elite.kode_team', 'jks_team_elite.nama_team', 'l.latitude', 'l.longitude', 'l.customer_address', 'mc.week_month as minggu', 'mc.day as hari', 'l.pilar')
+        $jksStoresRaw = $jksQuery
+            ->select('jks_team_elite.id', 'jks_team_elite.custno', 'jks_team_elite.custname', 'jks_team_elite.distributor_code', 'jks_team_elite.tanggal', 'jks_team_elite.kode_team', 'jks_team_elite.nama_team', 'l.latitude', 'l.longitude', 'l.customer_address', 'mc.week_month as minggu', 'mc.day as hari', 'l.pilar')
             ->leftJoin('list_toko_pareto_team_elite as l', function($join) {
                 $join->on('jks_team_elite.custno', '=', 'l.customer_code_prc')
                      ->on('jks_team_elite.distributor_code', '=', 'l.distributor_code');
@@ -527,46 +919,18 @@ class Index extends Component
             ->leftJoin('master_calender as mc', 'jks_team_elite.tanggal', '=', 'mc.date')
             ->whereNotNull('l.latitude')
             ->whereNotNull('l.longitude')
-            ->get()
-            ->map(function ($store) {
-                $c = \Carbon\Carbon::parse($store->tanggal);
-                $store->tgl_format = $c->format('d M Y');
-                $store->tanggal_ymd = $c->format('Y-m-d');
-                return $store;
-            });
-            
-        $distributorCodes = $jksStores->pluck('distributor_code')->unique()->toArray();
-        $jksCustNos = $jksStores->pluck('custno')->toArray(); 
-        
-        $paretoStores = DB::table('list_toko_pareto_team_elite')
-            ->whereIn('distributor_code', $distributorCodes)
-            ->whereNotIn('customer_code_prc', $jksCustNos)
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->select('customer_code_prc as custno', 'customer_name as custname', 'distributor_code', 'latitude', 'longitude', 'customer_address', 'pilar')
+            ->orderBy('jks_team_elite.tanggal', 'asc')
+            ->orderBy('jks_team_elite.kode_team', 'asc')
+            ->orderBy('jks_team_elite.id', 'asc')
             ->get();
             
-        // Limit Pareto stores to a 10km radius from ANY scheduled store in the current global view
-        $filteredPareto = $paretoStores->filter(function($pareto) use ($jksStores) {
-            foreach ($jksStores as $jks) {
-                $lat1 = (float) $pareto->latitude;
-                $lon1 = (float) $pareto->longitude;
-                $lat2 = (float) $jks->latitude;
-                $lon2 = (float) $jks->longitude;
-                
-                $earthRadius = 6371;
-                $dLat = deg2rad($lat2 - $lat1);
-                $dLon = deg2rad($lon2 - $lon1);
-                $a = sin($dLat/2) * sin($dLat/2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon/2) * sin($dLon/2);
-                $c = 2 * asin(sqrt($a));
-                $distance = $earthRadius * $c;
-                
-                if ($distance <= 10) {
-                    return true;
-                }
-            }
-            return false;
-        });
+        $processed = $this->processScheduledStoresAndRoutes($jksStoresRaw);
+        $jksStores = $processed['stores'];
+
+        $distributorCodes = collect($jksStores)->pluck('distributor_code')->unique()->filter()->values()->toArray();
+        $jksCustNos = collect($jksStores)->pluck('custno')->unique()->filter()->values()->toArray(); 
+        
+        $filteredPareto = $this->getNearbyParetoStores($jksStores, $distributorCodes, $jksCustNos, 10.0, 500);
 
         $this->mapModalTitle = "Peta Global Persebaran Toko";
         
@@ -577,8 +941,11 @@ class Index extends Component
         $this->mapModalData = [
             'isGlobal' => true,
             'availableTeams' => $availableTeams,
-            'scheduled' => $jksStores->toArray(),
-            'pareto' => $filteredPareto->values()->toArray()
+            'summary' => $this->mapModalSummary,
+            'scheduled' => $jksStores,
+            'routes' => $processed['routes'],
+            'availableDates' => $processed['availableDates'],
+            'pareto' => $filteredPareto
         ];
             
         $this->isMapModalOpen = true;
@@ -775,8 +1142,8 @@ class Index extends Component
                     'jks_team_elite.kode_team',
                     'jks_team_elite.nama_team',
                     'mc.week_month',
-                    DB::raw("COUNT(CASE WHEN jks_team_elite.custno NOT ILIKE '%BRI%' AND jks_team_elite.custno NOT ILIKE '%EVA%' THEN 1 END) as total_toko"),
-                    DB::raw("COUNT(CASE WHEN jks_team_elite.custno ILIKE '%BRI%' OR jks_team_elite.custno ILIKE '%EVA%' THEN 1 END) as total_toko_bri_eva"),
+                    DB::raw("COUNT(CASE WHEN jks_team_elite.custno NOT ILIKE '%BRIF%' AND jks_team_elite.custno NOT ILIKE '%BRIEF%' AND jks_team_elite.custno NOT ILIKE '%EVAL%' THEN 1 END) as total_toko"),
+                    DB::raw("COUNT(CASE WHEN jks_team_elite.custno ILIKE '%BRIF%' OR jks_team_elite.custno ILIKE '%BRIEF%' OR jks_team_elite.custno ILIKE '%EVAL%' THEN 1 END) as total_toko_bri_eva"),
                     DB::raw('SUM(CASE WHEN l.pilar = \'1. RWO\' THEN 1 ELSE 0 END) as total_rwo'),
                     DB::raw('SUM(CASE WHEN l.pilar = \'2. PNR\' THEN 1 ELSE 0 END) as total_pnr'),
                     DB::raw('SUM(CASE WHEN l.pilar = \'3. NGVO\' THEN 1 ELSE 0 END) as total_ngvo')
@@ -832,7 +1199,12 @@ class Index extends Component
                              ->on('jks_team_elite.distributor_code', '=', 'l.distributor_code');
                     })
                     ->whereIn('jks_team_elite.kode_team', $filterTeam)
-                    ->whereBetween('jks_team_elite.tanggal', [$filterStartDate, $filterEndDate]);
+                    ->whereBetween('jks_team_elite.tanggal', [$filterStartDate, $filterEndDate])
+                    ->where(function($q) {
+                        $q->where('jks_team_elite.custno', 'not ilike', '%BRIF%')
+                          ->where('jks_team_elite.custno', 'not ilike', '%BRIEF%')
+                          ->where('jks_team_elite.custno', 'not ilike', '%EVAL%');
+                    });
 
                 $this->applyHierarchyAccess($query, 'jks_team_elite.distributor_code');
 

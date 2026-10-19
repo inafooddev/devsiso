@@ -3,7 +3,7 @@
     <div x-data="{ open: @entangle('isImportModalOpen') }" 
          x-show="open" 
          x-cloak 
-         class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+         class="fixed inset-0 z-[99999] flex items-center justify-center p-4">
         
         <div x-show="open" class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" 
              wire:loading.class="pointer-events-none" 

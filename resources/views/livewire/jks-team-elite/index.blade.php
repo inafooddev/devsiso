@@ -1,8 +1,20 @@
-<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-2 md:gap-3 w-full h-full -mb-2 md:-mb-3 lg:-mb-4"
+     x-data="{
+         showKpi: false,
+         init() {
+             localStorage.removeItem('jks_team_elite_show_kpi');
+         },
+         toggleKpi() {
+             this.showKpi = !this.showKpi;
+         }
+     }">
     <x-slot name="title">JKS Team Elite</x-slot>
 
-    {{-- TABS --}}
-    <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex items-center shadow-sm relative z-10 -mb-1 md:-mb-2">
+    {{-- TABS & TOGGLE KPI --}}
+    @php
+        $hasKpiData = !empty($filterTeam) && !empty($filterStartDate) && !empty($filterEndDate);
+    @endphp
+    <div class="shrink-0 -mx-3 md:-mx-4 lg:-mx-6 -mt-3 md:-mt-4 lg:-mt-6 px-3 md:px-4 lg:px-6 py-2 bg-base-100 border-b border-base-300 flex items-center justify-between shadow-sm relative z-10 -mb-1 md:-mb-2">
         <div class="tabs tabs-boxed w-fit bg-base-200 p-1">
             <a href="{{ route('call-plan.jks-team-elite.monitoring') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors">Summary</a>
             <a href="{{ route('jks-team-elite.index') }}" class="tab tab-xs px-4 tab-active font-bold shadow-sm bg-base-100">Detail</a>
@@ -10,9 +22,26 @@
             <a href="{{ route('call-plan.jks-team-elite.route-efficiency') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors">Route Efficiency</a>
             <a href="{{ route('call-plan.jks-team-elite.clustering') }}" class="tab tab-xs px-4 text-base-content/70 hover:text-base-content transition-colors">Clustering</a>
         </div>
+
+        {{-- Toggle KPI Button di Tabs Bar --}}
+        <div class="tooltip tooltip-left" data-tip="{{ !$hasKpiData ? 'Pilih Team dan tanggal untuk melihat KPI' : 'Sembunyikan / Tampilkan Ringkasan KPI' }}">
+            <button 
+                type="button" 
+                @click="toggleKpi()" 
+                class="btn btn-xs gap-1.5 rounded-lg border transition-all duration-200 font-semibold select-none shadow-2xs"
+                :class="showKpi ? 'btn-ghost text-base-content/70 hover:text-base-content border-base-300' : 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'"
+                @if(!$hasKpiData) disabled @endif
+            >
+                <x-heroicon-o-chart-bar class="w-3.5 h-3.5" />
+                <span x-text="showKpi ? 'Sembunyikan KPI' : 'Tampilkan KPI'">Tampilkan KPI</span>
+                <span class="inline-block transition-transform duration-200" :class="{ 'rotate-180': showKpi }">
+                    <x-heroicon-o-chevron-down class="w-3 h-3" />
+                </span>
+            </button>
+        </div>
     </div>
 
-    <div class="flex flex-col flex-1 min-h-0 h-full">
+    <div class="flex flex-col flex-1 min-h-0">
         {{-- Notifikasi --}}
         @if (session()->has('message') || session()->has('error'))
             <div class="mb-6 mt-4">
@@ -49,7 +78,17 @@
         @endif
 
         @if(!empty($filterTeam) && !empty($filterStartDate) && !empty($filterEndDate))
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-6 shrink-0 mb-4">
+            <div 
+                x-show="showKpi"
+                x-transition:enter="transition ease-out duration-250"
+                x-transition:enter-start="opacity-0 -translate-y-2"
+                x-transition:enter-end="opacity-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100 translate-y-0"
+                x-transition:leave-end="opacity-0 -translate-y-2"
+                style="display: none;"
+                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-6 shrink-0 mb-4"
+            >
                 {{-- Card Total Toko --}}
                 @php
                     $gapToko = max(0, $paretoKpi['total_toko'] - $kpi['total_toko']);
@@ -206,9 +245,27 @@
         <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
             
             {{-- Header Card & Actions --}}
-            <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
+            <div class="px-4 py-3 md:px-5 md:py-3.5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 md:gap-4 bg-base-200/30">
                 <div class="shrink-0 w-full sm:w-auto">
-                    <h2 class="text-base md:text-lg font-bold">JKS Team Elite</h2>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-base md:text-lg font-bold">JKS Team Elite</h2>
+                        {{-- Button Toggle KPI di Header Card --}}
+                        <div class="tooltip tooltip-right" data-tip="{{ !$hasKpiData ? 'Pilih Team dan tanggal untuk melihat KPI' : 'Sembunyikan / Tampilkan Ringkasan KPI' }}">
+                            <button 
+                                type="button" 
+                                @click="toggleKpi()" 
+                                class="btn btn-xs gap-1 rounded-lg border transition-all duration-200 font-semibold cursor-pointer shadow-2xs select-none"
+                                :class="showKpi ? 'btn-ghost text-base-content/70 hover:text-base-content border-base-300' : 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'"
+                                @if(!$hasKpiData) disabled @endif
+                            >
+                                <x-heroicon-o-chart-bar class="w-3.5 h-3.5" />
+                                <span x-text="showKpi ? 'Sembunyikan KPI' : 'Tampilkan KPI'">Tampilkan KPI</span>
+                                <span class="inline-block transition-transform duration-200" :class="{ 'rotate-180': showKpi }">
+                                    <x-heroicon-o-chevron-down class="w-3 h-3" />
+                                </span>
+                            </button>
+                        </div>
+                    </div>
                     <p class="text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Kelola data JKS Team Elite</p>
                 </div>
                 
@@ -265,11 +322,33 @@
                         </div>
                     </div>
 
-                    {{-- Filter Date Range --}}
-                    <div class="flex items-center gap-2 w-full sm:w-auto">
-                        <input wire:model.live.debounce.300ms="filterStartDate" type="date" class="input input-sm input-bordered w-full sm:w-32 rounded-xl bg-base-100 border-base-300">
-                        <span class="text-base-content/50 text-sm hidden sm:inline">s/d</span>
-                        <input wire:model.live.debounce.300ms="filterEndDate" type="date" class="input input-sm input-bordered w-full sm:w-32 rounded-xl bg-base-100 border-base-300">
+                    {{-- Filter Date Range & Smart Presets --}}
+                    <div class="flex items-center gap-1.5 w-full sm:w-auto">
+                        <input wire:model.live.debounce.300ms="filterStartDate" type="date" class="input input-sm input-bordered w-full sm:w-32 rounded-xl bg-base-100 border-base-300 text-xs" title="Tanggal Mulai">
+                        <span class="text-base-content/50 text-xs hidden sm:inline">s/d</span>
+                        <input wire:model.live.debounce.300ms="filterEndDate" type="date" class="input input-sm input-bordered w-full sm:w-32 rounded-xl bg-base-100 border-base-300 text-xs" title="Tanggal Akhir">
+                        
+                        {{-- Dropdown Pintasan Periode Cerdas --}}
+                        <div class="dropdown dropdown-end">
+                            <button type="button" tabindex="0" class="btn btn-sm btn-square btn-outline border-base-300 rounded-xl bg-base-100 text-primary hover:bg-base-200 hover:border-base-300" title="Pintasan Periode Cerdas">
+                                <x-heroicon-m-calendar-days class="w-4 h-4" />
+                            </button>
+                            <ul tabindex="0" @click="document.activeElement?.blur()" class="dropdown-content z-30 menu menu-sm p-1.5 shadow-xl bg-base-100 rounded-2xl border border-base-300 w-44 text-xs mt-1">
+                                <li class="menu-title text-[10px] uppercase tracking-wider text-base-content/50 px-2 py-1 font-bold">Periode Cepat</li>
+                                <li><a wire:click="setDatePreset('today')" class="py-1.5 rounded-lg hover:bg-base-200">Hari Ini</a></li>
+                                <li><a wire:click="setDatePreset('yesterday')" class="py-1.5 rounded-lg hover:bg-base-200">Kemarin</a></li>
+                                <li><a wire:click="setDatePreset('this_week')" class="py-1.5 rounded-lg hover:bg-base-200">Minggu Ini</a></li>
+                                <li><a wire:click="setDatePreset('last_week')" class="py-1.5 rounded-lg hover:bg-base-200">Minggu Lalu</a></li>
+                                <div class="divider my-0.5"></div>
+                                <li><a wire:click="setDatePreset('this_month')" class="py-1.5 rounded-lg font-semibold text-primary hover:bg-primary/10">Bulan Ini</a></li>
+                                <li><a wire:click="setDatePreset('last_month')" class="py-1.5 rounded-lg hover:bg-base-200">Bulan Lalu</a></li>
+                                <li><a wire:click="setDatePreset('next_month')" class="py-1.5 rounded-lg hover:bg-base-200">Bulan Depan</a></li>
+                                @if(!empty($filterStartDate) || !empty($filterEndDate))
+                                    <div class="divider my-0.5"></div>
+                                    <li><a wire:click="setDatePreset('clear')" class="py-1.5 rounded-lg text-error hover:bg-error/10">Kosongkan Tanggal</a></li>
+                                @endif
+                            </ul>
+                        </div>
                     </div>
 
 
@@ -494,12 +573,15 @@
             </div>
 
             {{-- Footer Card (Pagination) --}}
-            <div class="p-3 md:p-4 lg:p-5 border-t border-base-300 shrink-0 bg-base-200">
+            <div class="px-4 py-2.5 sm:py-3 border-t border-base-200 shrink-0 bg-base-100 flex items-center justify-between">
                 @if($records->hasPages())
-                    {{ $records->links() }}
+                    <div class="w-full">
+                        {{ $records->links() }}
+                    </div>
                 @else
-                    <div class="text-xs md:text-sm text-base-content/60 text-center sm:text-left">
-                        Menampilkan seluruh data
+                    <div class="text-xs text-base-content/60 flex items-center gap-2">
+                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-success"></span>
+                        <span>Menampilkan seluruh data ({{ $records->total() }} record)</span>
                     </div>
                 @endif
             </div>
@@ -513,7 +595,7 @@
     <div x-data="{ open: @entangle('isDeleteModalOpen') }" 
          x-show="open" 
          x-cloak 
-         class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+         class="fixed inset-0 z-[99999] flex items-center justify-center p-4">
         
         <div x-show="open" class="fixed inset-0 bg-neutral/40 backdrop-blur-sm" @click="open = false"></div>
 
@@ -539,61 +621,91 @@
     <div x-data="{ open: @entangle('isStoreModalOpen') }" 
          x-show="open" 
          x-cloak 
-         class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+         class="fixed inset-0 z-[99999] flex items-center justify-center p-4">
         
         <div x-show="open" class="fixed inset-0 bg-neutral/40 backdrop-blur-sm" @click="open = false"></div>
 
-        <div x-show="open" class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-[95%] sm:w-full max-w-4xl overflow-hidden flex flex-col">
-            <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30">
-                <h3 class="font-bold text-lg text-base-content">{{ $storeModalTitle }}</h3>
-                <button @click="open = false" class="btn btn-sm btn-circle btn-ghost">
+        <div x-show="open" class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-[95vw] xl:max-w-7xl max-h-[92vh] flex flex-col overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-base-200 bg-base-100 shrink-0">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <x-heroicon-s-building-storefront class="w-5 h-5" />
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2.5">
+                            <h3 class="font-bold text-base md:text-lg text-base-content truncate">{{ $storeModalTitle }}</h3>
+                            <span class="badge badge-primary badge-sm font-bold text-white shrink-0">{{ count($storeModalData) }} Toko</span>
+                        </div>
+                    </div>
+                </div>
+                <button @click="open = false" class="btn btn-sm btn-circle btn-ghost hover:bg-base-200 text-base-content/60 hover:text-base-content">
                     <x-heroicon-s-x-mark class="w-5 h-5" />
                 </button>
             </div>
             
-            <div class="p-0 overflow-hidden">
-                <div class="max-h-[60vh] overflow-y-auto">
-                    <table class="table table-sm table-pin-rows table-zebra w-full">
-                        <thead>
-                            <tr class="bg-base-200/50">
-                                <th class="whitespace-nowrap">CustNo</th>
-                                <th>Nama Toko</th>
-                                <th>Distributor</th>
-                                <th class="text-center whitespace-nowrap">Pilar</th>
-                                <th class="text-right whitespace-nowrap">Target</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($storeModalData as $store)
-                                <tr class="hover:bg-base-200/50 transition-colors">
-                                    <td class="font-medium text-base-content/80 whitespace-nowrap">{{ $store['custno'] }}</td>
-                                    <td>{{ $store['custname'] }}</td>
-                                    <td class="text-base-content/60">{{ $store['distributor_name'] }}</td>
-                                    <td class="text-center whitespace-nowrap"><span class="badge badge-sm badge-outline">{{ $store['pilar'] ?? '-' }}</span></td>
-                                    <td class="text-right font-medium text-success whitespace-nowrap">{{ $store['target'] ? number_format($store['target']) : '-' }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="5" class="text-center py-8 text-base-content/50">Tidak ada data toko.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                        @if(count($storeModalData) > 0)
-                        <tfoot>
-                            <tr class="bg-base-300 font-bold text-base-content border-t-2 border-base-content/10">
-                                <td colspan="4" class="text-right px-4 py-3 uppercase tracking-wider text-xs">Total Subtotal Target:</td>
-                                <td class="text-right px-4 py-3 text-success whitespace-nowrap">
-                                    {{ number_format(collect($storeModalData)->sum('target')) }}
+            <div class="flex-1 overflow-y-auto max-h-[78vh] p-0">
+                <table class="table table-sm table-pin-rows table-zebra w-full text-xs">
+                    <thead>
+                        <tr class="bg-base-200/80 text-base-content/70">
+                            <th class="w-12 text-center font-bold">No</th>
+                            <th class="whitespace-nowrap font-bold">Distributor</th>
+                            <th class="whitespace-nowrap font-bold">CustNo</th>
+                            <th class="whitespace-nowrap font-bold">Nama Toko</th>
+                            <th class="min-w-[240px] font-bold">Alamat</th>
+                            <th class="text-center whitespace-nowrap font-bold">Pilar</th>
+                            <th class="text-right whitespace-nowrap font-bold">Target</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($storeModalData as $index => $store)
+                            <tr class="hover:bg-base-200/50 transition-colors">
+                                <td class="text-center font-bold text-base-content/50 text-xs">{{ $index + 1 }}</td>
+                                <td class="whitespace-nowrap font-medium text-base-content/80">{{ $store['distributor_name'] }}</td>
+                                <td class="font-mono text-xs text-base-content/70 whitespace-nowrap">{{ $store['custno'] }}</td>
+                                <td class="font-bold text-base-content whitespace-nowrap">{{ $store['custname'] }}</td>
+                                <td class="text-base-content/80 text-[11px] leading-relaxed">
+                                    {{ $store['addres'] ?? '-' }}
+                                </td>
+                                <td class="text-center whitespace-nowrap">
+                                    @if(!empty($store['pilar']))
+                                        @php
+                                            $pColor = 'badge-ghost';
+                                            if (str_contains($store['pilar'], '1. RWO')) $pColor = 'badge-info text-white font-bold';
+                                            elseif (str_contains($store['pilar'], '2. PNR')) $pColor = 'badge-secondary text-white font-bold';
+                                            elseif (str_contains($store['pilar'], '3. NGVO')) $pColor = 'badge-warning text-white font-bold';
+                                            elseif (str_contains($store['pilar'], '4. GRO')) $pColor = 'badge-neutral text-white font-semibold';
+                                        @endphp
+                                        <span class="badge badge-sm {{ $pColor }}">{{ $store['pilar'] }}</span>
+                                    @else
+                                        <span class="badge badge-sm badge-ghost text-base-content/40">-</span>
+                                    @endif
+                                </td>
+                                <td class="text-right font-semibold text-success whitespace-nowrap font-mono text-xs">
+                                    {{ !empty($store['target']) ? number_format($store['target']) : '-' }}
                                 </td>
                             </tr>
-                        </tfoot>
-                        @endif
-                    </table>
-                </div>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="text-center py-8 text-base-content/50">Tidak ada data toko.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                    @if(count($storeModalData) > 0)
+                    <tfoot>
+                        <tr class="bg-base-300 font-bold text-base-content border-t-2 border-base-content/10">
+                            <td colspan="6" class="text-right px-4 py-3 uppercase tracking-wider text-xs">Total Subtotal Target:</td>
+                            <td class="text-right px-4 py-3 text-success whitespace-nowrap font-mono text-sm">
+                                {{ number_format(collect($storeModalData)->sum('target')) }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                    @endif
+                </table>
             </div>
 
-            <div class="flex items-center justify-end px-6 py-4 border-t border-base-300 bg-base-200/50">
-                <button type="button" @click="open = false" class="btn btn-ghost rounded-xl normal-case">Tutup</button>
+            <div class="flex items-center justify-between px-6 py-3 border-t border-base-200 bg-base-100 shrink-0">
+                <span class="text-xs text-base-content/50 font-medium">Menampilkan {{ count($storeModalData) }} toko terjadwal</span>
+                <button type="button" @click="open = false" class="btn btn-ghost btn-sm rounded-xl normal-case">Tutup</button>
             </div>
         </div>
     </div>
@@ -602,7 +714,7 @@
     <div x-data="{ open: @entangle('isExportEskaModalOpen') }" 
          x-show="open" 
          x-cloak 
-         class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+         class="fixed inset-0 z-[99999] flex items-center justify-center p-4">
         
         <div x-show="open" class="fixed inset-0 bg-neutral/40 backdrop-blur-sm" @click="open = false"></div>
 
@@ -656,12 +768,37 @@
                     return;
                 }
                 
+                const currentBasemap = window._currentBasemapStyle || 'light';
+                
                 this.map = new maplibregl.Map({
                     container: 'store-map',
                     style: {
                         'version': 8,
+                        'glyphs': 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
                         'sources': {
-                            'raster-tiles': {
+                            'raster-tiles-light': {
+                                'type': 'raster',
+                                'tiles': [
+                                    'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                    'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                    'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                    'https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc'
+                                ],
+                                'tileSize': 256,
+                                'attribution': '© OpenStreetMap contributors, © CARTO'
+                            },
+                            'raster-tiles-dark': {
+                                'type': 'raster',
+                                'tiles': [
+                                    'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                    'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                    'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                    'https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc'
+                                ],
+                                'tileSize': 256,
+                                'attribution': '© OpenStreetMap contributors, © CARTO'
+                            },
+                            'raster-tiles-voyager': {
                                 'type': 'raster',
                                 'tiles': [
                                     'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
@@ -675,11 +812,28 @@
                         },
                         'layers': [
                             {
-                                'id': 'simple-tiles',
+                                'id': 'basemap-light',
                                 'type': 'raster',
-                                'source': 'raster-tiles',
+                                'source': 'raster-tiles-light',
                                 'minzoom': 0,
-                                'maxzoom': 19
+                                'maxzoom': 19,
+                                'layout': { 'visibility': currentBasemap === 'light' ? 'visible' : 'none' }
+                            },
+                            {
+                                'id': 'basemap-dark',
+                                'type': 'raster',
+                                'source': 'raster-tiles-dark',
+                                'minzoom': 0,
+                                'maxzoom': 19,
+                                'layout': { 'visibility': currentBasemap === 'dark' ? 'visible' : 'none' }
+                            },
+                            {
+                                'id': 'basemap-voyager',
+                                'type': 'raster',
+                                'source': 'raster-tiles-voyager',
+                                'minzoom': 0,
+                                'maxzoom': 19,
+                                'layout': { 'visibility': currentBasemap === 'voyager' ? 'visible' : 'none' }
                             }
                         ]
                     },
@@ -687,6 +841,7 @@
                     zoom: 10
                 });
 
+                window.storeMap = this.map;
                 this.map.addControl(new maplibregl.NavigationControl());
                 
                 // Add resize listener to fix modal sizing issue
@@ -707,8 +862,8 @@
         @global-map-update-store.window="$wire.updateStoreFromGlobalMap($event.detail.custno, $event.detail.dist, $event.detail.oldDate, $event.detail.oldTeam, $event.detail.newDate, $event.detail.newTeam)"
         @global-map-delete-store.window="$wire.deleteStoreFromGlobalMap($event.detail.custno, $event.detail.dist, $event.detail.date, $event.detail.team)"
     >
-        <div class="modal" :class="{ 'modal-open': $wire.isMapModalOpen }">
-            <div class="modal-box max-w-5xl p-0 overflow-hidden bg-base-100 rounded-2xl shadow-xl flex flex-col h-[90vh] md:h-[80vh] w-[95%] md:w-full">
+        <div class="modal z-[99999]" :class="{ 'modal-open': $wire.isMapModalOpen }">
+            <div class="modal-box w-full !max-w-[95vw] h-[92vh] md:h-[90vh] p-0 overflow-hidden bg-base-100 rounded-2xl shadow-2xl flex flex-col">
                 {{-- Header --}}
                 <div class="flex items-center justify-between px-6 py-4 border-b border-base-200 bg-base-100/50 backdrop-blur z-10 shrink-0">
                     <h3 class="text-lg font-black text-base-content tracking-tight flex items-center gap-3">
@@ -726,6 +881,154 @@
                         </button>
                     </div>
                 </div>
+
+                {{-- Mini Summary Cards Bar (Total & 3 Pilar Pareto vs JKS) --}}
+                @if(!empty($mapModalSummary))
+                    <div class="px-4 py-2.5 bg-base-100 border-b border-base-200 shrink-0">
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3">
+                            {{-- Card 1: Total Toko (3 Pilar) --}}
+                            <div class="bg-base-200/50 rounded-xl p-2.5 border border-base-300 flex items-center justify-between gap-2 shadow-xs hover:border-success/40 transition-colors">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center text-success shrink-0">
+                                        <x-heroicon-s-building-storefront class="w-4 h-4" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider truncate">Total Toko (3 Pilar)</div>
+                                        <div class="flex items-baseline gap-1 mt-0.5">
+                                            <span class="text-sm md:text-base font-black text-success leading-none">{{ number_format($mapModalSummary['total']['jks'] ?? 0) }}</span>
+                                            <span class="text-[11px] font-bold text-base-content/40 leading-none">/ {{ number_format($mapModalSummary['total']['pareto'] ?? 0) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <div class="badge badge-success badge-sm font-bold text-[10px] text-white px-1.5 py-0">{{ $mapModalSummary['total']['pct'] ?? 0 }}%</div>
+                                    <div class="text-[9px] text-base-content/50 font-semibold mt-1">Gap: <span class="text-error font-bold">{{ number_format($mapModalSummary['total']['gap'] ?? 0) }}</span></div>
+                                </div>
+                            </div>
+
+                            {{-- Card 2: Pilar 1 (RWO) --}}
+                            <div class="bg-base-200/50 rounded-xl p-2.5 border border-base-300 flex items-center justify-between gap-2 shadow-xs hover:border-info/40 transition-colors">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="w-8 h-8 rounded-lg bg-info/10 flex items-center justify-center text-info shrink-0">
+                                        <x-heroicon-s-shopping-bag class="w-4 h-4" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider truncate">Pilar 1 (RWO)</div>
+                                        <div class="flex items-baseline gap-1 mt-0.5">
+                                            <span class="text-sm md:text-base font-black text-info leading-none">{{ number_format($mapModalSummary['rwo']['jks'] ?? 0) }}</span>
+                                            <span class="text-[11px] font-bold text-base-content/40 leading-none">/ {{ number_format($mapModalSummary['rwo']['pareto'] ?? 0) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <div class="badge badge-info badge-sm font-bold text-[10px] text-white px-1.5 py-0">{{ $mapModalSummary['rwo']['pct'] ?? 0 }}%</div>
+                                    <div class="text-[9px] text-base-content/50 font-semibold mt-1">Gap: <span class="text-error font-bold">{{ number_format($mapModalSummary['rwo']['gap'] ?? 0) }}</span></div>
+                                </div>
+                            </div>
+
+                            {{-- Card 3: Pilar 2 (PNR) --}}
+                            <div class="bg-base-200/50 rounded-xl p-2.5 border border-base-300 flex items-center justify-between gap-2 shadow-xs hover:border-secondary/40 transition-colors">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
+                                        <x-heroicon-s-archive-box class="w-4 h-4" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider truncate">Pilar 2 (PNR)</div>
+                                        <div class="flex items-baseline gap-1 mt-0.5">
+                                            <span class="text-sm md:text-base font-black text-secondary leading-none">{{ number_format($mapModalSummary['pnr']['jks'] ?? 0) }}</span>
+                                            <span class="text-[11px] font-bold text-base-content/40 leading-none">/ {{ number_format($mapModalSummary['pnr']['pareto'] ?? 0) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <div class="badge badge-secondary badge-sm font-bold text-[10px] text-white px-1.5 py-0">{{ $mapModalSummary['pnr']['pct'] ?? 0 }}%</div>
+                                    <div class="text-[9px] text-base-content/50 font-semibold mt-1">Gap: <span class="text-error font-bold">{{ number_format($mapModalSummary['pnr']['gap'] ?? 0) }}</span></div>
+                                </div>
+                            </div>
+
+                            {{-- Card 4: Pilar 3 (NGVO) --}}
+                            <div class="bg-base-200/50 rounded-xl p-2.5 border border-base-300 flex items-center justify-between gap-2 shadow-xs hover:border-warning/40 transition-colors">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center text-warning shrink-0">
+                                        <x-heroicon-s-sparkles class="w-4 h-4" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider truncate">Pilar 3 (NGVO)</div>
+                                        <div class="flex items-baseline gap-1 mt-0.5">
+                                            <span class="text-sm md:text-base font-black text-warning leading-none">{{ number_format($mapModalSummary['ngvo']['jks'] ?? 0) }}</span>
+                                            <span class="text-[11px] font-bold text-base-content/40 leading-none">/ {{ number_format($mapModalSummary['ngvo']['pareto'] ?? 0) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <div class="badge badge-warning badge-sm font-bold text-[10px] text-white px-1.5 py-0">{{ $mapModalSummary['ngvo']['pct'] ?? 0 }}%</div>
+                                    <div class="text-[9px] text-base-content/50 font-semibold mt-1">Gap: <span class="text-error font-bold">{{ number_format($mapModalSummary['ngvo']['gap'] ?? 0) }}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Toolbar Filter Tanggal / Rute & Legend --}}
+                <div class="px-4 py-2 bg-base-100 border-b border-base-200 flex flex-wrap items-center justify-between gap-3 text-xs z-10 shrink-0">
+                    <div class="flex items-center gap-2">
+                        <label for="map-date-filter" class="font-bold text-base-content/70 flex items-center gap-1.5 shrink-0 text-xs">
+                            <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            Filter Rute / Tanggal:
+                        </label>
+                        <select id="map-date-filter" onchange="window.filterMapByDate(this.value)" class="select select-xs select-bordered bg-base-200/80 font-semibold rounded-lg focus:outline-emerald-500 text-xs max-w-xs">
+                            <option value="all">Semua Hari / Rute</option>
+                        </select>
+                        <button type="button" onclick="window.resetMapZoom && window.resetMapZoom()" class="btn btn-ghost btn-xs text-base-content/60 hover:text-base-content rounded-lg gap-1" title="Reset Zoom">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                            </svg>
+                            <span>Reset View</span>
+                        </button>
+
+                        {{-- Basemap Switcher --}}
+                        <div class="flex items-center gap-1.5 ml-1 pl-2 border-l border-base-300">
+                            <label for="map-basemap-switcher" class="text-base-content/60 font-bold text-[11px] flex items-center gap-1 shrink-0">
+                                <svg class="w-3.5 h-3.5 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                </svg>
+                                Basemap:
+                            </label>
+                            <select id="map-basemap-switcher" onchange="window.setBasemapStyle(this.value)" class="select select-xs select-bordered bg-base-200/80 font-semibold rounded-lg text-xs focus:outline-primary">
+                                <option value="light" selected>☀️ Clean Light (Positron)</option>
+                                <option value="dark">🌙 Clean Dark (Matter)</option>
+                                <option value="voyager">🧭 Voyager (Street)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Legend --}}
+                    <div class="flex flex-wrap items-center gap-3 text-[11px] font-semibold text-base-content/75">
+                        <div class="flex items-center gap-1.5" title="Toko yang sudah terjadwal di JKS (Nomor adalah tanggal kunjungan)">
+                            <span class="w-4 h-4 rounded-full bg-emerald-500 text-white text-[9px] font-black flex items-center justify-center shadow-xs">25</span>
+                            <span>Jadwal JKS</span>
+                        </div>
+                        <div class="flex items-center gap-1.5" title="Garis rute menghubungkan urutan kunjungan toko dalam satu hari">
+                            <span class="w-4 h-1 bg-emerald-500 rounded"></span>
+                            <span>Rute Harian</span>
+                        </div>
+                        <div class="flex items-center gap-1.5" title="Toko Pareto Pilar 1 RWO (Belum Dijadwalkan)">
+                            <span class="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-xs"></span>
+                            <span>Pilar 1 (RWO)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5" title="Toko Pareto Pilar 2 PNR (Belum Dijadwalkan)">
+                            <span class="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-xs"></span>
+                            <span>Pilar 2 (PNR)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5" title="Toko Pareto Pilar 3 NGVO (Belum Dijadwalkan)">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-xs"></span>
+                            <span>Pilar 3 (NGVO)</span>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Content --}}
                 <div class="flex-1 w-full bg-base-200 relative">
                     <div id="store-map" wire:ignore style="height: 100%; width: 100%; z-index: 1;"></div>
@@ -757,232 +1060,520 @@
 
             const canEditMap = @json(auth()->check() && auth()->user()->hasMenuAccess('jks-team-elite.index', 'can_edit'));
 
+            function buildStorePopupHtml(store, currentData) {
+                const lat = store.lat;
+                const lng = store.lng;
+                const isScheduled = store.type === 'scheduled';
+                const isGlobal = currentData?.isGlobal ?? false;
+                const availableTeams = currentData?.availableTeams ?? [];
+                
+                let html = `<div class="p-1 space-y-1.5 text-xs text-gray-800">`;
+                html += `<div><b class="text-sm font-bold text-gray-900">${escHtml(store.custname)}</b><span class="text-gray-500 font-mono text-[10px] ml-1">(${escHtml(store.custno)})</span></div>`;
+                if (store.customer_address) {
+                    html += `<div class="text-[11px] text-gray-600 leading-tight">${escHtml(store.customer_address)}</div>`;
+                }
+                html += `<div class="text-[10px] text-gray-500 font-mono flex items-center gap-1 cursor-pointer hover:text-primary transition-colors" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${lat},${lng}', '_blank');" title="Buka di Google Maps">📍 ${lat}, ${lng} <span class="underline text-primary">Maps</span></div>`;
+                
+                if (isScheduled) {
+                    if (store.tgl_format) {
+                        html += `<div class="bg-gray-50 p-1.5 rounded-lg border border-gray-200 mt-1 space-y-0.5">
+                            <div class="text-[11px] font-semibold text-gray-700 flex items-center justify-between">
+                                <span>🕒 ${escHtml(store.tgl_format)} (${escHtml(store.hari)})</span>
+                                <span class="badge badge-success badge-xs font-bold text-white shadow-xs">#${store.order_in_day || 1}</span>
+                            </div>
+                            <div class="text-[11px] font-semibold text-gray-700 flex items-center gap-1">👤 ${escHtml(store.nama_team)} - W${escHtml(store.minggu)}</div>
+                        </div>`;
+                    }
+                    if (store.pilar) {
+                        html += `<div class="mt-1"><span class="badge badge-outline badge-xs font-bold border-gray-300 text-gray-600 shadow-sm">Pilar: ${escHtml(store.pilar)}</span></div>`;
+                    }
+                    html += `<div class="mt-1 flex items-center gap-1.5">
+                        <span class="badge badge-success badge-xs font-bold text-white shadow-sm">Dijadwalkan JKS</span>
+                        ${store.day_number ? `<span class="badge badge-ghost badge-xs font-semibold text-gray-600">Tgl ${escHtml(store.day_number)}</span>` : ''}
+                    </div>`;
+
+                    if (store.tanggal_ymd) {
+                        html += `
+                            <button type="button" onclick="window.filterMapByDate('${store.tanggal_ymd}')" class="btn btn-outline btn-success btn-xs w-full rounded-lg mt-1 gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                                Fokus Rute Tgl ${escHtml(store.day_number || '')}
+                            </button>
+                        `;
+                    }
+                    
+                    if (canEditMap && isGlobal) {
+                        let teamOptions = availableTeams.map(t => `<option value="${escHtml(t.kode_team)}" ${t.kode_team == store.kode_team ? 'selected' : ''}>${escHtml(t.nama_team)}</option>`).join('');
+                        html += `
+                            <div class="mt-2 border-t border-gray-200 pt-2 space-y-1.5">
+                                <div class="form-control w-full">
+                                    <label class="label p-0 pb-0.5"><span class="label-text text-[10px] font-semibold text-gray-600">Pindah Tanggal</span></label>
+                                    <input type="date" id="edit_date_${store.custno}" value="${store.tanggal_ymd}" class="input input-xs input-bordered w-full bg-white text-gray-900 border-gray-300 rounded-lg" />
+                                </div>
+                                <div class="form-control w-full">
+                                    <label class="label p-0 pb-0.5"><span class="label-text text-[10px] font-semibold text-gray-600">Pindah Team</span></label>
+                                    <select id="edit_team_${store.custno}" class="select select-xs select-bordered w-full bg-white text-gray-900 border-gray-300 rounded-lg">
+                                        ${teamOptions}
+                                    </select>
+                                </div>
+                                <div id="popup_err_edit_${store.custno}" style="display:none;color:#ef4444;font-size:11px;margin-top:2px;">⚠️ Tanggal dan Team wajib diisi!</div>
+                                <div class="flex gap-1.5 pt-1">
+                                    <button type="button" onclick="
+                                        let d = document.getElementById('edit_date_${store.custno}').value;
+                                        let t = document.getElementById('edit_team_${store.custno}').value;
+                                        if(!d || !t) { 
+                                             let errEl = document.getElementById('popup_err_edit_${store.custno}');
+                                             if(errEl) { errEl.style.display='block'; setTimeout(()=>errEl.style.display='none',3000); }
+                                             return; 
+                                        }
+                                        window.dispatchEvent(new CustomEvent('global-map-update-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}', oldDate: '${store.tanggal_ymd}', oldTeam: '${store.kode_team}', newDate: d, newTeam: t } }))
+                                    " class="btn btn-warning btn-xs flex-1 rounded-lg">Update</button>
+                                    
+                                    <button type="button" onclick="
+                                        if(confirm('Yakin ingin menghapus jadwal ini?')) {
+                                            window.dispatchEvent(new CustomEvent('global-map-delete-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}', date: '${store.tanggal_ymd}', team: '${store.kode_team}' } }))
+                                        }
+                                    " class="btn btn-error btn-xs text-white px-2.5 rounded-lg" title="Hapus Jadwal">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // Pareto store (Belum dijadwalkan - 3 Pilar only)
+                    if (store.pilar) {
+                        html += `<div class="mt-1"><span class="badge badge-outline badge-xs font-bold border-gray-300 text-gray-600 shadow-sm">Pilar: ${escHtml(store.pilar)}</span></div>`;
+                    }
+                    html += `<div class="mt-1"><span class="badge badge-ghost badge-xs border-none bg-gray-200 text-gray-700 font-semibold shadow-sm">Belum Dijadwalkan</span></div>`;
+                    
+                    if (canEditMap) {
+                        let activeDate = document.getElementById('map-date-filter')?.value;
+                        let defaultDate = (activeDate && activeDate !== 'all') ? activeDate : '';
+
+                        if (!isGlobal) {
+                            html += `
+                                <div class="mt-2 pt-1 border-t border-gray-200">
+                                    <button type="button" onclick="window.dispatchEvent(new CustomEvent('map-add-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}' } }))" class="btn btn-primary btn-xs text-white w-full rounded-lg">Tambahkan Jadwal</button>
+                                </div>
+                            `;
+                        } else {
+                            let teamOptions = availableTeams.map(t => `<option value="${escHtml(t.kode_team)}">${escHtml(t.nama_team)}</option>`).join('');
+                            html += `
+                                <div class="mt-2 border-t border-gray-200 pt-2 space-y-1.5">
+                                    <div class="form-control w-full">
+                                        <label class="label p-0 pb-0.5"><span class="label-text text-[10px] font-semibold text-gray-600">Tanggal</span></label>
+                                        <input type="date" id="date_${store.custno}" value="${defaultDate}" class="input input-xs input-bordered w-full bg-white text-gray-900 border-gray-300 rounded-lg" />
+                                    </div>
+                                    <div class="form-control w-full">
+                                        <label class="label p-0 pb-0.5"><span class="label-text text-[10px] font-semibold text-gray-600">Team</span></label>
+                                        <select id="team_${store.custno}" class="select select-xs select-bordered w-full bg-white text-gray-900 border-gray-300 rounded-lg">
+                                            ${teamOptions}
+                                        </select>
+                                    </div>
+                                    <div id="popup_err_${store.custno}" style="display:none;color:#ef4444;font-size:11px;margin-top:2px;">⚠️ Tanggal dan Team wajib diisi!</div>
+                                    <button type="button" onclick="
+                                        let d = document.getElementById('date_${store.custno}').value;
+                                        let t = document.getElementById('team_${store.custno}').value;
+                                        if(!d || !t) { 
+                                            let errEl = document.getElementById('popup_err_${store.custno}');
+                                            if(errEl) { errEl.style.display='block'; setTimeout(()=>errEl.style.display='none',3000); }
+                                            return; 
+                                        }
+                                        window.dispatchEvent(new CustomEvent('global-map-add-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}', date: d, team: t } }))
+                                    " class="btn btn-primary btn-xs text-white w-full mt-1 rounded-lg">Simpan Jadwal</button>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+                
+                html += `</div>`;
+                return html;
+            }
+
             window.renderMapMarkers = function(map, markers, data) {
-                // Wait for map to load
-                if (!map || !map.isStyleLoaded()) {
-                    setTimeout(() => window.renderMapMarkers(map, markers, data), 200);
+                if (!map) return;
+                
+                // Wait for style to load before adding source/layers
+                if (!map.isStyleLoaded()) {
+                    map.once('load', () => window.renderMapMarkers(map, markers, data));
                     return;
                 }
 
-                // clear old markers
-                markers.forEach(m => m.remove());
-                markers.length = 0; // empty array safely
+                // Clear any active popup
+                if (map._activePopup) {
+                    map._activePopup.remove();
+                    map._activePopup = null;
+                }
+
+                // Clear old DOM markers if any exist
+                if (Array.isArray(markers)) {
+                    markers.forEach(m => m.remove && m.remove());
+                    markers.length = 0;
+                }
                 
                 if (!data) return;
+                map._currentMapData = data;
+
+                // Populate date filter dropdown
+                const dateFilterSelect = document.getElementById('map-date-filter');
+                if (dateFilterSelect) {
+                    const prevVal = dateFilterSelect.value;
+                    let opts = '<option value="all">Semua Hari / Rute</option>';
+                    if (Array.isArray(data.availableDates)) {
+                        data.availableDates.forEach(d => {
+                            opts += `<option value="${d.date}">Tgl ${d.day_number} (${d.formatted}) - ${d.count} Toko</option>`;
+                        });
+                    }
+                    dateFilterSelect.innerHTML = opts;
+                    if (prevVal && dateFilterSelect.querySelector(`option[value="${prevVal}"]`)) {
+                        dateFilterSelect.value = prevVal;
+                    } else {
+                        dateFilterSelect.value = 'all';
+                    }
+                }
+
+                // Sync basemap switcher with active basemap
+                const basemapSwitcher = document.getElementById('map-basemap-switcher');
+                if (basemapSwitcher) {
+                    basemapSwitcher.value = window._currentBasemapStyle || 'light';
+                }
 
                 let bounds = new maplibregl.LngLatBounds();
-                let hasValidMarker = false;
+                let hasValidPoint = false;
 
-                // Add Legend once
-                if (!map.customLegend) {
-                    class LegendControl {
-                        onAdd(map) {
-                            this._map = map;
-                            this._container = document.createElement('div');
-                            this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group info legend bg-white p-3 rounded-xl shadow-lg border border-gray-200 text-xs';
-                            this._container.style.margin = '10px';
-                            this._container.innerHTML = `
-                                <div class="font-bold mb-2 pb-1 border-b border-gray-200 text-gray-800 tracking-wide">Keterangan Warna</div>
-                                <div class="flex flex-col gap-1.5">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-3 h-3 rounded-full shadow-sm" style="background-color: #22c55e;"></div>
-                                        <span class="text-gray-700 font-medium">Sudah Terjadwal (JKS)</span>
-                                    </div>
-                                    <div class="flex items-center gap-2 mt-2 pt-2 border-t border-gray-200">
-                                        <span class="font-bold text-gray-800">Pareto (Belum Terjadwal)</span>
-                                    </div>
-                                    <div class="flex items-center gap-2 mt-1">
-                                        <div class="w-3 h-3 rounded-full shadow-sm" style="background-color: #3b82f6;"></div>
-                                        <span class="text-gray-600 font-medium italic">Pilar 1 (RWO)</span>
-                                    </div>
-                                    <div class="flex items-center gap-2 mt-1">
-                                        <div class="w-3 h-3 rounded-full shadow-sm" style="background-color: #8b5cf6;"></div>
-                                        <span class="text-gray-600 font-medium italic">Pilar 2 (PNR)</span>
-                                    </div>
-                                    <div class="flex items-center gap-2 mt-1">
-                                        <div class="w-3 h-3 rounded-full shadow-sm" style="background-color: #f97316;"></div>
-                                        <span class="text-gray-600 font-medium italic">Pilar 3 (NGVO)</span>
-                                    </div>
-                                    <div class="flex items-center gap-2 mt-1">
-                                        <div class="w-3 h-3 rounded-full shadow-sm" style="background-color: #6b7280;"></div>
-                                        <span class="text-gray-600 font-medium italic">Lainnya</span>
-                                    </div>
-                                </div>
-                            `;
-                            return this._container;
-                        }
-                        onRemove() {
-                            this._container.parentNode.removeChild(this._container);
-                            this._map = undefined;
-                        }
-                    }
-                    map.addControl(new LegendControl(), 'bottom-left');
-                    map.customLegend = true;
-                }
-                
-                function getPilarPriority(store) {
-                    if (!store.pilar) return 1; // Lainnya
-                    if (store.pilar.includes('1. RWO')) return 4; // Paling atas
-                    if (store.pilar.includes('2. PNR')) return 3;
-                    if (store.pilar.includes('3. NGVO')) return 2;
-                    return 1;
+                function getPilarColor(pilar) {
+                    if (!pilar) return '#6b7280';
+                    if (pilar.includes('1. RWO')) return '#3b82f6';
+                    if (pilar.includes('2. PNR')) return '#8b5cf6';
+                    if (pilar.includes('3. NGVO')) return '#f97316';
+                    return '#6b7280';
                 }
 
-                // Gambar Pareto terlebih dahulu agar ada di lapisan bawah
-                if (data.pareto) {
-                    // Sortir berdasar prioritas (nilai terkecil digambar duluan, nilai terbesar digambar terakhir agar di atas)
-                    data.pareto.sort((a, b) => getPilarPriority(a) - getPilarPriority(b));
-                    
-                    data.pareto.forEach(store => {
-                        if(store.latitude && store.longitude) {
-                            let lat = parseFloat(store.latitude);
-                            let lng = parseFloat(store.longitude);
-                            
-                            // Abaikan koordinat 0,0 (di laut)
-                            if (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng)) {
-                            
-                            let popupContent = `<b>${escHtml(store.custname)}</b><br>${escHtml(store.customer_address || '')}<br><span class="text-[0.625rem] text-gray-500 font-mono cursor-pointer hover:text-primary" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${lat},${lng}', '_blank');" title="Buka di Google Maps">📍 ${lat}, ${lng}</span><div class="mt-2 flex flex-col gap-1">`;
-                            if (store.pilar) {
-                                popupContent += `<span class="badge badge-outline badge-sm font-bold border-gray-300 text-gray-600 shadow-sm w-max">Pilar: ${store.pilar}</span>`;
-                            }
-                            popupContent += `<span class="badge badge-ghost badge-sm border-none bg-base-300 text-base-content font-semibold shadow-sm w-max mt-1 mb-1">Belum Dijadwalkan</span>`;
-                            
-                            if (canEditMap) {
-                                if (!data.isGlobal) {
-                                    popupContent += `<button type="button" onclick="window.dispatchEvent(new CustomEvent('map-add-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}' } }))" class="btn btn-primary btn-xs text-white">Tambahkan Jadwal</button>`;
-                                } else {
-                                    let teamOptions = data.availableTeams.map(t => `<option value="${escHtml(t.kode_team)}">${escHtml(t.nama_team)}</option>`).join('');
-                                    popupContent += `
-                                        <div class="form-control w-full">
-                                            <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Tanggal</span></label>
-                                            <input type="date" id="date_${store.custno}" class="input input-xs input-bordered w-full bg-white text-gray-900 border-gray-300" />
-                                        </div>
-                                        <div class="form-control w-full mt-1">
-                                            <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Team</span></label>
-                                            <select id="team_${store.custno}" class="select select-xs select-bordered w-full bg-white text-gray-900 border-gray-300">
-                                                ${teamOptions}
-                                            </select>
-                                        </div>
-                                        <div id="popup_err_${store.custno}" style="display:none;color:#ef4444;font-size:0.75rem;margin-top:4px;">⚠️ Tanggal dan Team wajib diisi!</div>
-                                        <button type="button" onclick="
-                                            let d = document.getElementById('date_${store.custno}').value;
-                                            let t = document.getElementById('team_${store.custno}').value;
-                                            if(!d || !t) { 
-                                                let errEl = document.getElementById('popup_err_${store.custno}');
-                                                if(errEl) { errEl.style.display='block'; setTimeout(()=>errEl.style.display='none',3000); }
-                                                return; 
-                                            }
-                                            window.dispatchEvent(new CustomEvent('global-map-add-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}', date: d, team: t } }))
-                                        " class="btn btn-primary btn-xs text-white mt-1">Simpan Jadwal</button>
-                                    `;
+                // 1. Build Route Features (LineStrings per date & team)
+                const routeFeatures = [];
+                if (Array.isArray(data.routes)) {
+                    data.routes.forEach(r => {
+                        if (Array.isArray(r.coordinates) && r.coordinates.length >= 2) {
+                            routeFeatures.push({
+                                type: 'Feature',
+                                geometry: {
+                                    type: 'LineString',
+                                    coordinates: r.coordinates
+                                },
+                                properties: {
+                                    date: String(r.date || ''),
+                                    day_number: String(r.day_number || ''),
+                                    team: String(r.team || ''),
+                                    team_name: String(r.team_name || ''),
+                                    store_count: Number(r.store_count || 0)
                                 }
-                            }
-                            
-                            popupContent += `</div>`;
-                            
-                            let markerColor = '#6b7280'; // grey
-                            if (store.pilar) {
-                                if (store.pilar.includes('1. RWO')) markerColor = '#3b82f6'; // blue
-                                else if (store.pilar.includes('2. PNR')) markerColor = '#8b5cf6'; // violet
-                                else if (store.pilar.includes('3. NGVO')) markerColor = '#f97316'; // orange
-                            }
-                            
-                            let popup = new maplibregl.Popup({ offset: 25, maxWidth: '300px' }).setHTML(popupContent);
-                            let m = new maplibregl.Marker({ color: markerColor })
-                                .setLngLat([lng, lat])
-                                .setPopup(popup)
-                                .addTo(map);
-                                
-                            markers.push(m);
-                            bounds.extend([lng, lat]);
-                            hasValidMarker = true;
-                            }
+                            });
                         }
                     });
                 }
-                
-                // Gambar Scheduled setelah Pareto agar ada di paling atas
-                if (data.scheduled) {
-                    // Sortir juga agar yg penting di atas (walau sama-sama hijau)
-                    data.scheduled.sort((a, b) => getPilarPriority(a) - getPilarPriority(b));
-                    
-                    data.scheduled.forEach(store => {
-                        if(store.latitude && store.longitude) {
-                            let lat = parseFloat(store.latitude);
-                            let lng = parseFloat(store.longitude);
-                            
-                            // Abaikan koordinat 0,0 (di laut)
-                            if (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng)) {
-                            
-                            let popupHtml = `<b>${escHtml(store.custname)}</b><br>${escHtml(store.customer_address || '')}<br><span class="text-[0.625rem] text-gray-500 font-mono cursor-pointer hover:text-primary" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${lat},${lng}', '_blank');" title="Buka di Google Maps">📍 ${lat}, ${lng}</span><div class="mt-2 flex flex-col gap-1">`;
-                            if (store.tgl_format) {
-                                popupHtml += `<span class="text-[0.6875rem] font-bold text-gray-700 flex items-center gap-1">🕒 ${escHtml(store.tgl_format)} (${escHtml(store.hari)}) - W${escHtml(store.minggu)}</span>`;
-                                popupHtml += `<span class="text-[0.6875rem] font-bold text-gray-700 flex items-center gap-1">👤 ${escHtml(store.nama_team)}</span>`;
-                            }
-                            if (store.pilar) {
-                                popupHtml += `<span class="badge badge-outline badge-sm font-bold border-gray-300 text-gray-600 shadow-sm mt-1 w-max">Pilar: ${store.pilar}</span>`;
-                            }
-                            popupHtml += `<span class="badge badge-primary badge-sm font-bold border-none text-white shadow-sm mt-1 w-max">Dijadwalkan JKS</span>`;
-                            
-                            if (canEditMap && data.isGlobal) {
-                                let teamOptions = (data.availableTeams || []).map(t => `<option value="${escHtml(t.kode_team)}" ${t.kode_team == store.kode_team ? 'selected' : ''}>${escHtml(t.nama_team)}</option>`).join('');
-                                popupHtml += `
-                                    <div class="mt-2 border-t border-gray-200 pt-2">
-                                        <div class="form-control w-full">
-                                            <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Pindah Tanggal</span></label>
-                                            <input type="date" id="edit_date_${store.custno}" value="${store.tanggal_ymd}" class="input input-xs input-bordered w-full bg-white text-gray-900 border-gray-300" />
-                                        </div>
-                                        <div class="form-control w-full mt-1">
-                                            <label class="label p-0 pb-1"><span class="label-text text-[0.625rem]">Pindah Team</span></label>
-                                            <select id="edit_team_${store.custno}" class="select select-xs select-bordered w-full bg-white text-gray-900 border-gray-300">
-                                                ${teamOptions}
-                                            </select>
-                                        </div>
-                                        <div id="popup_err_edit_${store.custno}" style="display:none;color:#ef4444;font-size:0.75rem;margin-top:4px;width:100%;">⚠️ Tanggal dan Team wajib diisi!</div>
-                                        <div class="flex gap-1 mt-2">
-                                            <button type="button" onclick="
-                                                let d = document.getElementById('edit_date_${store.custno}').value;
-                                                let t = document.getElementById('edit_team_${store.custno}').value;
-                                                if(!d || !t) { 
-                                                    let errEl = document.getElementById('popup_err_edit_${store.custno}');
-                                                    if(errEl) { errEl.style.display='block'; setTimeout(()=>errEl.style.display='none',3000); }
-                                                    return; 
-                                                }
-                                                window.dispatchEvent(new CustomEvent('global-map-update-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}', oldDate: '${store.tanggal_ymd}', oldTeam: '${store.kode_team}', newDate: d, newTeam: t } }))
-                                            " class="btn btn-warning btn-xs flex-1">Update</button>
-                                            
-                                            <button type="button" onclick="
-                                                if(confirm('Yakin ingin menghapus jadwal ini?')) {
-                                                    window.dispatchEvent(new CustomEvent('global-map-delete-store', { detail: { custno: '${store.custno}', dist: '${store.distributor_code}', date: '${store.tanggal_ymd}', team: '${store.kode_team}' } }))
-                                                }
-                                            " class="btn btn-error btn-xs text-white px-2" title="Hapus Jadwal">
-                                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                `;
-                            }
-                            popupHtml += `</div>`;
-                            
-                            let popup = new maplibregl.Popup({ offset: 25, maxWidth: '300px' }).setHTML(popupHtml);
-                            let m = new maplibregl.Marker({ color: '#22c55e' }) // green
-                                .setLngLat([lng, lat])
-                                .setPopup(popup)
-                                .addTo(map);
-                                
-                            markers.push(m);
+                const routesGeojson = {
+                    type: 'FeatureCollection',
+                    features: routeFeatures
+                };
+
+                // 2. Build Point Features (Unclustered: only scheduled + 3 Pilar Pareto)
+                const pointFeatures = [];
+
+                // 2a. Pareto stores (Unscheduled, 3 Pilar only)
+                if (Array.isArray(data.pareto)) {
+                    data.pareto.forEach(store => {
+                        let lat = parseFloat(store.latitude);
+                        let lng = parseFloat(store.longitude);
+                        if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+                            pointFeatures.push({
+                                type: 'Feature',
+                                geometry: {
+                                    type: 'Point',
+                                    coordinates: [lng, lat]
+                                },
+                                properties: {
+                                    type: 'pareto',
+                                    custno: String(store.custno || ''),
+                                    custname: String(store.custname || ''),
+                                    distributor_code: String(store.distributor_code || ''),
+                                    customer_address: String(store.customer_address || ''),
+                                    pilar: String(store.pilar || ''),
+                                    color: getPilarColor(store.pilar),
+                                    day_number: '',
+                                    lat: lat,
+                                    lng: lng
+                                }
+                            });
                             bounds.extend([lng, lat]);
-                            hasValidMarker = true;
+                            hasValidPoint = true;
+                        }
+                    });
+                }
+
+                // 2b. Scheduled stores (Emerald green with date number)
+                if (Array.isArray(data.scheduled)) {
+                    data.scheduled.forEach(store => {
+                        let lat = parseFloat(store.latitude);
+                        let lng = parseFloat(store.longitude);
+                        if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+                            pointFeatures.push({
+                                type: 'Feature',
+                                geometry: {
+                                    type: 'Point',
+                                    coordinates: [lng, lat]
+                                },
+                                properties: {
+                                    type: 'scheduled',
+                                    custno: String(store.custno || ''),
+                                    custname: String(store.custname || ''),
+                                    distributor_code: String(store.distributor_code || ''),
+                                    customer_address: String(store.customer_address || ''),
+                                    pilar: String(store.pilar || ''),
+                                    color: '#10b981',
+                                    day_number: String(store.day_number || ''),
+                                    order_in_day: Number(store.order_in_day || 1),
+                                    tgl_format: String(store.tgl_format || ''),
+                                    tanggal_ymd: String(store.tanggal_ymd || ''),
+                                    hari: String(store.hari || ''),
+                                    minggu: String(store.minggu || ''),
+                                    kode_team: String(store.kode_team || ''),
+                                    nama_team: String(store.nama_team || ''),
+                                    lat: lat,
+                                    lng: lng
+                                }
+                            });
+                            bounds.extend([lng, lat]);
+                            hasValidPoint = true;
+                        }
+                    });
+                }
+
+                const pointsGeojson = {
+                    type: 'FeatureCollection',
+                    features: pointFeatures
+                };
+                map._allBounds = bounds;
+
+                // Clean up any legacy cluster layers
+                if (map.getLayer('clusters')) map.removeLayer('clusters');
+                if (map.getLayer('cluster-count')) map.removeLayer('cluster-count');
+
+                // Source & Layer for Route Lines (Render underneath points)
+                const routeSource = map.getSource('store-routes');
+                if (routeSource) {
+                    routeSource.setData(routesGeojson);
+                } else {
+                    map.addSource('store-routes', {
+                        type: 'geojson',
+                        data: routesGeojson
+                    });
+
+                    map.addLayer({
+                        id: 'route-lines',
+                        type: 'line',
+                        source: 'store-routes',
+                        layout: {
+                            'line-join': 'round',
+                            'line-cap': 'round'
+                        },
+                        paint: {
+                            'line-color': '#10b981',
+                            'line-width': 2.5,
+                            'line-opacity': 0.75
+                        }
+                    });
+                }
+
+                // Source & Layers for Store Points (Unclustered: cluster = false)
+                const pointSource = map.getSource('store-points');
+                if (pointSource) {
+                    pointSource.setData(pointsGeojson);
+                } else {
+                    map.addSource('store-points', {
+                        type: 'geojson',
+                        data: pointsGeojson,
+                        cluster: false
+                    });
+
+                    // Layer: Unclustered Circles
+                    map.addLayer({
+                        id: 'unclustered-point',
+                        type: 'circle',
+                        source: 'store-points',
+                        paint: {
+                            'circle-color': ['get', 'color'],
+                            'circle-radius': [
+                                'case',
+                                ['==', ['get', 'type'], 'scheduled'],
+                                9.5,
+                                6.0
+                            ],
+                            'circle-stroke-width': 1.5,
+                            'circle-stroke-color': '#ffffff'
+                        }
+                    });
+
+                    // Layer: Date Number Labels on Scheduled Points
+                    map.addLayer({
+                        id: 'point-labels',
+                        type: 'symbol',
+                        source: 'store-points',
+                        filter: ['==', ['get', 'type'], 'scheduled'],
+                        layout: {
+                            'text-field': '{day_number}',
+                            'text-font': ['Open Sans Semibold'],
+                            'text-size': 9.5,
+                            'text-allow-overlap': true,
+                            'text-ignore-placement': true
+                        },
+                        paint: {
+                            'text-color': '#ffffff'
+                        }
+                    });
+                }
+
+                // Attach click & hover events once to the map instance
+                if (!map._pointListenersAttached) {
+                    // Open on-demand rich popup on store point click
+                    map.on('click', 'unclustered-point', (e) => {
+                        const renderedFeatures = map.queryRenderedFeatures(e.point, { layers: ['unclustered-point'] });
+                        if (!renderedFeatures.length) return;
+
+                        const coordinates = e.features[0].geometry.coordinates.slice();
+                        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                            coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+                        }
+
+                        let popupContent = '';
+                        if (renderedFeatures.length === 1) {
+                            popupContent = buildStorePopupHtml(renderedFeatures[0].properties, map._currentMapData);
+                        } else {
+                            popupContent = `<div class="p-1 space-y-2 max-h-72 overflow-y-auto">
+                                <div class="text-[11px] font-bold text-gray-700 pb-1 border-b border-gray-200">${renderedFeatures.length} Toko di Titik Ini:</div>`;
+                            renderedFeatures.forEach((feat, idx) => {
+                                popupContent += `<div class="${idx > 0 ? 'pt-2 border-t border-dashed border-gray-200' : ''}">`;
+                                popupContent += buildStorePopupHtml(feat.properties, map._currentMapData);
+                                popupContent += `</div>`;
+                            });
+                            popupContent += `</div>`;
+                        }
+
+                        if (map._activePopup) {
+                            map._activePopup.remove();
+                        }
+
+                        map._activePopup = new maplibregl.Popup({ offset: 12, maxWidth: '320px' })
+                            .setLngLat(coordinates)
+                            .setHTML(popupContent)
+                            .addTo(map);
+                    });
+
+                    // Cursor interactions
+                    map.on('mouseenter', 'unclustered-point', () => { map.getCanvas().style.cursor = 'pointer'; });
+                    map.on('mouseleave', 'unclustered-point', () => { map.getCanvas().style.cursor = ''; });
+
+                    map._pointListenersAttached = true;
+                }
+
+                // Fit bounds
+                if (hasValidPoint && !bounds.isEmpty()) {
+                    map.fitBounds(bounds, { padding: 50, duration: 1000, maxZoom: 15 });
+                    setTimeout(() => map.resize(), 500);
+                }
+            };
+
+            window.filterMapByDate = function(targetDate) {
+                if (!window.storeMap || !window.storeMap._currentMapData) return;
+                const map = window.storeMap;
+                const data = map._currentMapData;
+
+                const selectEl = document.getElementById('map-date-filter');
+                if (selectEl && selectEl.value !== targetDate) {
+                    selectEl.value = targetDate;
+                }
+
+                if (!targetDate || targetDate === 'all') {
+                    if (map.getLayer('route-lines')) {
+                        map.setFilter('route-lines', null);
+                        map.setPaintProperty('route-lines', 'line-opacity', 0.75);
+                        map.setPaintProperty('route-lines', 'line-width', 2.5);
+                    }
+                    if (map.getLayer('unclustered-point')) {
+                        map.setFilter('unclustered-point', null);
+                    }
+                    if (map.getLayer('point-labels')) {
+                        map.setFilter('point-labels', ['==', ['get', 'type'], 'scheduled']);
+                    }
+                    if (map._allBounds && !map._allBounds.isEmpty()) {
+                        map.fitBounds(map._allBounds, { padding: 50, duration: 800, maxZoom: 15 });
+                    }
+                    return;
+                }
+
+                // Filter to specific date
+                if (map.getLayer('route-lines')) {
+                    map.setFilter('route-lines', ['==', ['get', 'date'], targetDate]);
+                    map.setPaintProperty('route-lines', 'line-opacity', 1.0);
+                    map.setPaintProperty('route-lines', 'line-width', 3.5);
+                }
+
+                if (map.getLayer('unclustered-point')) {
+                    map.setFilter('unclustered-point', [
+                        'any',
+                        ['==', ['get', 'type'], 'pareto'],
+                        ['all', ['==', ['get', 'type'], 'scheduled'], ['==', ['get', 'tanggal_ymd'], targetDate]]
+                    ]);
+                }
+
+                if (map.getLayer('point-labels')) {
+                    map.setFilter('point-labels', [
+                        'all',
+                        ['==', ['get', 'type'], 'scheduled'],
+                        ['==', ['get', 'tanggal_ymd'], targetDate]
+                    ]);
+                }
+
+                // Fit bounds to that day's scheduled stores
+                let dayBounds = new maplibregl.LngLatBounds();
+                let hasDayPoint = false;
+                if (Array.isArray(data.scheduled)) {
+                    data.scheduled.forEach(s => {
+                        if (s.tanggal_ymd === targetDate && s.latitude && s.longitude) {
+                            let lat = parseFloat(s.latitude);
+                            let lng = parseFloat(s.longitude);
+                            if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+                                dayBounds.extend([lng, lat]);
+                                hasDayPoint = true;
                             }
                         }
                     });
                 }
 
-                if (hasValidMarker) {
-                    map.fitBounds(bounds, {padding: 50, duration: 1000});
-                    setTimeout(() => map.resize(), 500); // Fix rendering after fitBounds
+                if (hasDayPoint && !dayBounds.isEmpty()) {
+                    map.fitBounds(dayBounds, { padding: 70, duration: 800, maxZoom: 16 });
                 }
-            }
+            };
+
+            window.resetMapZoom = function() {
+                window.filterMapByDate('all');
+            };
+
+            window.setBasemapStyle = function(styleKey) {
+                window._currentBasemapStyle = styleKey;
+                const selectEl = document.getElementById('map-basemap-switcher');
+                if (selectEl && selectEl.value !== styleKey) {
+                    selectEl.value = styleKey;
+                }
+                if (!window.storeMap) return;
+                const map = window.storeMap;
+                ['light', 'dark', 'voyager'].forEach(k => {
+                    const layerId = 'basemap-' + k;
+                    if (map.getLayer(layerId)) {
+                        map.setLayoutProperty(layerId, 'visibility', k === styleKey ? 'visible' : 'none');
+                    }
+                });
+            };
 
             // Form Map Logic
             window.formMap = null;
@@ -1004,14 +1595,15 @@
                         container: mapContainer,
                         style: {
                             'version': 8,
+                            'glyphs': 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
                             'sources': {
                                 'raster-tiles': {
                                     'type': 'raster',
                                     'tiles': [
-                                        'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
-                                        'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
-                                        'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
-                                        'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc'
+                                        'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                        'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                        'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                        'https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc'
                                     ],
                                     'tileSize': 256,
                                     'attribution': '© OpenStreetMap contributors, © CARTO'
