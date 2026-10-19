@@ -12,15 +12,19 @@ class ActivityLogExport implements FromQuery, WithHeadings, WithMapping, ShouldA
 {
     protected $search;
     protected $actionFilter;
+    protected $activityCategory;
     protected $dateFrom;
     protected $dateTo;
+    protected $userId;
 
     public function __construct($filters)
     {
         $this->search = $filters['search'] ?? null;
         $this->actionFilter = $filters['actionFilter'] ?? null;
+        $this->activityCategory = $filters['activityCategory'] ?? null;
         $this->dateFrom = $filters['dateFrom'] ?? null;
         $this->dateTo = $filters['dateTo'] ?? null;
+        $this->userId = $filters['userId'] ?? null;
     }
 
     /**
@@ -29,6 +33,36 @@ class ActivityLogExport implements FromQuery, WithHeadings, WithMapping, ShouldA
     public function query()
     {
         return ActivityLog::query()
+            ->when($this->userId, function($q) {
+                if ($this->userId === '__SYSTEM__') {
+                    $q->whereNull('user_id');
+                } else {
+                    $q->where('user_id', $this->userId);
+                }
+            })
+            ->when($this->activityCategory && $this->activityCategory !== 'all', function($q) {
+                if ($this->activityCategory === 'mutation') {
+                    $q->where(function($sub) {
+                        $sub->where('action', 'ilike', '%create%')
+                            ->orWhere('action', 'ilike', '%update%')
+                            ->orWhere('action', 'ilike', '%delete%')
+                            ->orWhere('action', 'ilike', '%import%')
+                            ->orWhere('action', 'ilike', '%store%')
+                            ->orWhere('action', 'ilike', '%edit%')
+                            ->orWhere('action', 'ilike', '%hapus%')
+                            ->orWhere('action', 'ilike', '%process%')
+                            ->orWhere('action', 'ilike', '%map%');
+                    });
+                } elseif ($this->activityCategory === 'menu') {
+                    $q->where('action', 'ilike', '%Access Menu%');
+                } elseif ($this->activityCategory === 'auth') {
+                    $q->where(function($sub) {
+                        $sub->where('action', 'ilike', '%login%')
+                            ->orWhere('action', 'ilike', '%logout%')
+                            ->orWhere('action', 'ilike', '%auth%');
+                    });
+                }
+            })
             ->when($this->search, function($q) {
                 $q->where(function($sub) {
                     $sub->where('user_name', 'ilike', '%' . $this->search . '%')
@@ -41,10 +75,10 @@ class ActivityLogExport implements FromQuery, WithHeadings, WithMapping, ShouldA
                 $q->where('action', $this->actionFilter);
             })
             ->when($this->dateFrom, function($q) {
-                $q->whereDate('created_at', '>=', $this->dateFrom);
+                $q->where('created_at', '>=', \Carbon\Carbon::parse($this->dateFrom)->startOfDay());
             })
             ->when($this->dateTo, function($q) {
-                $q->whereDate('created_at', '<=', $this->dateTo);
+                $q->where('created_at', '<=', \Carbon\Carbon::parse($this->dateTo)->endOfDay());
             })
             ->latest();
     }
