@@ -10,6 +10,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\JksTeamEliteTemplateExport;
 use App\Imports\JksTeamEliteImport;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use App\Traits\EnforcesMenuPermissions;
 
 class ImportModal extends Component
@@ -30,8 +32,12 @@ class ImportModal extends Component
 
     // Preview Metrics
     public $previewTotalRows = 0;
+    public $previewDuplicateRows = 0;
     public $previewTotalTeams = 0;
     public $previewExistingRows = 0;
+
+    // Temporary payload storage path (to avoid double parsing Excel)
+    public $tempPayloadFile = null;
 
     public function mount()
     {
@@ -43,11 +49,20 @@ class ImportModal extends Component
     #[On('open-import-modal')]
     public function openImportModal()
     {
+        $this->cleanupTempPayload();
         $this->resetValidation();
         $this->excel_file = null;
         $this->importErrors = [];
         $this->importStep = 1;
         $this->isImportModalOpen = true;
+    }
+
+    protected function cleanupTempPayload()
+    {
+        if ($this->tempPayloadFile && Storage::disk('local')->exists($this->tempPayloadFile)) {
+            Storage::disk('local')->delete($this->tempPayloadFile);
+        }
+        $this->tempPayloadFile = null;
     }
 
     public function downloadTemplate()
@@ -66,8 +81,11 @@ class ImportModal extends Component
             'importMethod' => 'required|in:full_sync,partial_update',
         ]);
 
+        $this->cleanupTempPayload();
+
         try {
-            $import = new JksTeamEliteImport();
+            // Pass date range to import constructor to guard against out-of-range dates
+            $import = new JksTeamEliteImport($this->importStartDate, $this->importEndDate);
             Excel::import($import, $this->excel_file->getRealPath());
 
             if (count($import->errors) > 0) {
@@ -76,11 +94,23 @@ class ImportModal extends Component
             } else {
                 $this->importErrors = [];
                 $this->previewTotalRows = $import->successCount;
+                $this->previewDuplicateRows = $import->duplicateCount;
                 $this->previewTotalTeams = count($import->distinctTeams);
                 
                 $this->previewExistingRows = JksTeamElite::whereBetween('tanggal', [$this->importStartDate, $this->importEndDate])
                     ->whereIn('kode_team', $import->distinctTeams)
                     ->count();
+
+                // Save verified payload to temporary storage to avoid parsing Excel twice in executeImport()
+                $payload = [
+                    'validInserts'  => $import->validInserts,
+                    'distinctTeams' => $import->distinctTeams,
+                    'successCount'  => $import->successCount,
+                ];
+
+                $fileName = 'temp/import_jks_' . (auth()->id() ?? 'guest') . '_' . time() . '.json';
+                Storage::disk('local')->put($fileName, json_encode($payload));
+                $this->tempPayloadFile = $fileName;
 
                 $this->importStep = 2;
             }
@@ -93,48 +123,59 @@ class ImportModal extends Component
     {
         $this->authorizeAction('can_import');
 
-        $this->validate([
-            'excel_file' => 'required|mimes:xls,xlsx,csv|max:10240',
-        ]);
-
         try {
-            $import = new JksTeamEliteImport();
-            Excel::import($import, $this->excel_file->getRealPath());
-
-            if (count($import->errors) > 0) {
-                $this->importErrors = $import->errors;
+            // Read verified payload from temporary storage (Instant execution, no Excel re-parsing!)
+            if (!$this->tempPayloadFile || !Storage::disk('local')->exists($this->tempPayloadFile)) {
                 $this->importStep = 1;
-                session()->flash('error', 'Terdapat error saat membaca ulang file.');
+                session()->flash('error', 'Sesi payload import telah kedaluwarsa atau file hilang. Silakan preview ulang.');
                 return;
             }
 
-            if ($this->importMethod === 'full_sync') {
-                JksTeamElite::whereBetween('tanggal', [$this->importStartDate, $this->importEndDate])
-                    ->whereIn('kode_team', $import->distinctTeams)
-                    ->delete();
-                
-                foreach (array_chunk($import->validInserts, 500) as $chunk) {
-                    JksTeamElite::insert($chunk);
-                }
-            } else {
-                foreach (array_chunk($import->validInserts, 500) as $chunk) {
-                    JksTeamElite::upsert(
-                        $chunk, 
-                        ['tanggal', 'kode_team', 'distributor_code', 'custno'], 
-                        ['nama_team', 'kode_region', 'nama_region', 'kode_area', 'nama_area', 'distributor_name', 'custname', 'addres', 'updated_at']
-                    );
-                }
+            $content = Storage::disk('local')->get($this->tempPayloadFile);
+            $payload = json_decode($content, true);
+
+            if (!$payload || empty($payload['validInserts'])) {
+                $this->importStep = 1;
+                session()->flash('error', 'Tidak ada baris data valid yang ditemukan untuk diimport.');
+                return;
             }
 
-            \App\Helpers\ActivityLogger::log('Import JKS Team Elite', "Mengimpor " . $import->successCount . " data JKS. Metode: {$this->importMethod}");
+            $validInserts  = $payload['validInserts'];
+            $distinctTeams = $payload['distinctTeams'];
+            $successCount  = $payload['successCount'];
 
-            $message = $import->successCount . ' Data berhasil diimport (Metode: ' . strtoupper(str_replace('_', ' ', $this->importMethod)) . ').';
+            DB::transaction(function () use ($validInserts, $distinctTeams) {
+                if ($this->importMethod === 'full_sync') {
+                    JksTeamElite::whereBetween('tanggal', [$this->importStartDate, $this->importEndDate])
+                        ->whereIn('kode_team', $distinctTeams)
+                        ->delete();
+                    
+                    foreach (array_chunk($validInserts, 500) as $chunk) {
+                        JksTeamElite::insert($chunk);
+                    }
+                } else {
+                    foreach (array_chunk($validInserts, 500) as $chunk) {
+                        JksTeamElite::upsert(
+                            $chunk, 
+                            ['tanggal', 'kode_team', 'distributor_code', 'custno'], 
+                            ['nama_team', 'kode_region', 'nama_region', 'kode_area', 'nama_area', 'distributor_name', 'custname', 'addres', 'updated_at']
+                        );
+                    }
+                }
+            });
+
+            // Cleanup temp file
+            $this->cleanupTempPayload();
+
+            \App\Helpers\ActivityLogger::log('Import JKS Team Elite', "Mengimpor " . $successCount . " data JKS. Metode: {$this->importMethod}");
+
+            $message = $successCount . ' Data berhasil diimport (Metode: ' . strtoupper(str_replace('_', ' ', $this->importMethod)) . ').';
             $this->isImportModalOpen = false;
             $this->excel_file = null;
             $this->importStep = 1;
             $this->importErrors = [];
             
-            // Beritahu parent untuk reload
+            // Beritahu parent untuk reload data
             $this->dispatch('refresh-jks-data', message: $message);
 
         } catch (\Exception $e) {

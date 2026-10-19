@@ -80,9 +80,15 @@
                                     <span class="font-bold">{{ $importStartDate }} s/d {{ $importEndDate }}</span>
                                 </div>
                                 <div class="flex justify-between border-b border-base-300 pb-1">
-                                    <span>Total Data di Excel:</span>
-                                    <span class="font-bold">{{ $previewTotalRows }} Baris</span>
+                                    <span>Total Data Bersih di Excel:</span>
+                                    <span class="font-bold text-success">{{ $previewTotalRows }} Baris</span>
                                 </div>
+                                @if($previewDuplicateRows > 0)
+                                    <div class="flex justify-between border-b border-base-300 pb-1 text-warning">
+                                        <span>Baris Duplikat Tereliminasi:</span>
+                                        <span class="font-bold">{{ $previewDuplicateRows }} Baris</span>
+                                    </div>
+                                @endif
                                 <div class="flex justify-between border-b border-base-300 pb-1">
                                     <span>Total Tim Terpengaruh:</span>
                                     <span class="font-bold">{{ $previewTotalTeams }} Tim</span>
