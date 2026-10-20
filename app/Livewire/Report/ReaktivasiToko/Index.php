@@ -73,7 +73,7 @@ class Index extends Component
         $this->resetPage();
     }
 
-    public function export()
+    public function export($format = 'xlsx')
     {
         $filters = [
             'search' => $this->search,
@@ -85,10 +85,10 @@ class Index extends Component
             'type' => $this->filterType,
             'bulan' => $this->filterBulan,
             'tahun' => $this->filterTahun,
+            'format' => $format,
         ];
 
-        $fileName = 'Report_Reaktivasi_Toko_' . date('Ymd_His') . '.xlsx';
-        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ReportReaktivasiTokoExport($filters, auth()->user()), $fileName);
+        return redirect()->route('report.reaktivasi-toko.export', $filters);
     }
 
     public function applyRbac($query)

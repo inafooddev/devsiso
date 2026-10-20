@@ -413,6 +413,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/report/fundamental-sales-hierarchy/export/{type}', [\App\Http\Controllers\Report\FundamentalSalesHierarchyExportController::class, 'export'])->name('report.fundamental-sales-hierarchy.export');
     Route::get('/sales-invoice-report', SalesInvoiceReportIndex::class)->name('sales-invoice-report.index');
     Route::get('/report/reaktivasi-toko', ReportReaktivasiTokoIndex::class)->name('report.reaktivasi-toko.index');
+    Route::get('/report/reaktivasi-toko/export', [\App\Http\Controllers\Report\ReaktivasiTokoExportController::class, 'export'])->name('report.reaktivasi-toko.export');
     Route::get('/report/reaktivasi-toko/summary', \App\Livewire\Report\ReaktivasiToko\Summary::class)->name('report.reaktivasi-toko.summary');
     Route::get('/report/reaktivasi-toko/dashboard', \App\Livewire\Report\ReaktivasiToko\Dashboard::class)->name('report.reaktivasi-toko.dashboard');
     Route::get('/import-sales-invoices', SalesInvoiceImport::class)->name('sales-invoices.import');

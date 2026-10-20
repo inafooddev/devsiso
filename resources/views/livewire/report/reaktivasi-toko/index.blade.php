@@ -142,8 +142,58 @@
                     </svg>
                 </button>
                 
-                <div class="flex flex-wrap items-center gap-1 md:gap-2">
-                    <x-ui.action-button type="export" wire:click="export" wire:loading.attr="disabled" />
+                {{-- Export Dropdown --}}
+                <div class="dropdown dropdown-end">
+                    <label tabindex="0" class="btn btn-sm btn-success text-white rounded-xl gap-1 md:gap-2 shadow-sm shadow-success/20 cursor-pointer">
+                        <x-dynamic-component component="heroicon-s-arrow-down-tray" class="w-4 h-4" />
+                        <span>Export</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 opacity-80" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </label>
+                    <ul tabindex="0" class="dropdown-content menu p-2 shadow-xl bg-base-100 rounded-2xl w-56 z-50 border border-base-300 text-xs mt-1">
+                        <li class="menu-title text-[10px] uppercase font-bold tracking-wider text-base-content/50 px-2 py-1">Pilih Format Export</li>
+                        <li>
+                            <a href="{{ route('report.reaktivasi-toko.export', [
+                                'search' => $search,
+                                'region' => $filterRegion,
+                                'area' => $filterArea,
+                                'supervisor' => $filterSupervisor,
+                                'distributor' => $filterDistributor,
+                                'status' => $filterStatus,
+                                'type' => $filterType,
+                                'bulan' => $filterBulan,
+                                'tahun' => $filterTahun,
+                                'format' => 'xlsx',
+                            ]) }}" target="_blank" class="flex items-center gap-2 py-2 hover:bg-success/10 rounded-xl">
+                                <span class="badge badge-sm badge-success text-white font-mono font-bold">XLSX</span>
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-base-content">Excel (.xlsx)</span>
+                                    <span class="text-[10px] text-base-content/60">Format standar Excel</span>
+                                </div>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('report.reaktivasi-toko.export', [
+                                'search' => $search,
+                                'region' => $filterRegion,
+                                'area' => $filterArea,
+                                'supervisor' => $filterSupervisor,
+                                'distributor' => $filterDistributor,
+                                'status' => $filterStatus,
+                                'type' => $filterType,
+                                'bulan' => $filterBulan,
+                                'tahun' => $filterTahun,
+                                'format' => 'csv',
+                            ]) }}" target="_blank" class="flex items-center gap-2 py-2 hover:bg-info/10 rounded-xl">
+                                <span class="badge badge-sm badge-info text-white font-mono font-bold">CSV</span>
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-base-content">CSV (.csv)</span>
+                                    <span class="text-[10px] text-base-content/60">Super Cepat (&lt;10 dtk)</span>
+                                </div>
+                            </a>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>

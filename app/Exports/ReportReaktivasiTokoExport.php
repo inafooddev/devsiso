@@ -9,13 +9,12 @@ use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
-class ReportReaktivasiTokoExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithColumnFormatting
+class ReportReaktivasiTokoExport implements FromQuery, WithHeadings, WithMapping, WithStyles, WithColumnFormatting
 {
     protected $filters;
     protected $user;
@@ -29,15 +28,18 @@ class ReportReaktivasiTokoExport implements FromQuery, WithHeadings, WithMapping
 
     public function query()
     {
-        $selectedDate = Carbon::createFromDate($this->filters['tahun'] ?: date('Y'), $this->filters['bulan'] ?: date('m'), 1);
+        $tahun = (int) ($this->filters['tahun'] ?: date('Y'));
+        $bulan = (int) ($this->filters['bulan'] ?: date('m'));
+        $selectedDate = Carbon::createFromDate($tahun, $bulan, 1);
+
         $monthStart = $selectedDate->copy()->startOfMonth()->format('Y-m-d');
         $monthEnd = $selectedDate->copy()->endOfMonth()->format('Y-m-d');
         
         $avgMonthStart = $selectedDate->copy()->subMonths(6)->format('Y-m-01');
         $avgMonthEnd = $selectedDate->copy()->subMonth()->endOfMonth()->format('Y-m-d');
 
-        $yearStart = "{$this->filters['tahun']}-01-01";
-        $yearEnd = "{$this->filters['tahun']}-12-31";
+        $yearStart = "{$tahun}-01-01";
+        $yearEnd = "{$tahun}-12-31";
 
         $query = ReportReaktivasiToko::query()
             ->select(
@@ -56,7 +58,7 @@ class ReportReaktivasiTokoExport implements FromQuery, WithHeadings, WithMapping
 
         for ($i = 1; $i <= 12; $i++) {
             $m = str_pad($i, 2, '0', STR_PAD_LEFT);
-            $start = "{$this->filters['tahun']}-$m-01";
+            $start = "{$tahun}-{$m}-01";
             $end = Carbon::createFromFormat('Y-m-d', $start)->endOfMonth()->format('Y-m-d');
             $query->addSelect(DB::raw("SUM(CASE WHEN bulan >= '$start' AND bulan <= '$end' THEN neto ELSE 0 END) as bln_$m"));
         }
@@ -117,6 +119,8 @@ class ReportReaktivasiTokoExport implements FromQuery, WithHeadings, WithMapping
 
     public function headings(): array
     {
+        $tahun = (int) ($this->filters['tahun'] ?: date('Y'));
+
         $headers = [
             'No',
             'Region',
@@ -131,7 +135,7 @@ class ReportReaktivasiTokoExport implements FromQuery, WithHeadings, WithMapping
             'Class',
             'Status Aktif',
             'Last Transaksi',
-            'Total Transaksi (' . $this->filters['tahun'] . ')',
+            'Total Transaksi (' . $tahun . ')',
             'Avg 6 Bulan',
             'Pencapaian Bln Ini'
         ];
@@ -147,14 +151,14 @@ class ReportReaktivasiTokoExport implements FromQuery, WithHeadings, WithMapping
     {
         $this->rowNumber++;
 
-        $avg = $row->avg_6_months;
+        $avg = (float) $row->avg_6_months;
         $type = 'R';
         if ($avg > 10000000) $type = 'SO';
         elseif ($avg >= 5000000) $type = 'G';
         elseif ($avg >= 3000000) $type = 'SG';
 
         $class = ($type === 'R') ? 'Non Pareto' : 'Pareto';
-        $isAktif = $row->pencapaian_bulan_ini > 0;
+        $isAktif = (float) $row->pencapaian_bulan_ini > 0;
 
         $mapped = [
             $this->rowNumber,
@@ -170,17 +174,26 @@ class ReportReaktivasiTokoExport implements FromQuery, WithHeadings, WithMapping
             $class,
             $isAktif ? 'Aktif' : 'Tidak Aktif',
             $row->last_transaksi ? Carbon::parse($row->last_transaksi)->format('d M Y') : '-',
-            $row->total_transaksi ?: 0,
-            $row->avg_6_months ?: 0,
-            $row->pencapaian_bulan_ini ?: 0
+            (float) ($row->total_transaksi ?: 0),
+            (float) ($row->avg_6_months ?: 0),
+            (float) ($row->pencapaian_bulan_ini ?: 0)
         ];
 
         for ($i = 1; $i <= 12; $i++) {
             $col = 'bln_' . str_pad($i, 2, '0', STR_PAD_LEFT);
-            $mapped[] = $row->$col ?: 0;
+            $mapped[] = (float) ($row->$col ?: 0);
         }
 
         return $mapped;
+    }
+
+    /**
+     * Maps the row into an associative array for FastExcel / OpenSpout
+     */
+    public function mapAssoc($row): array
+    {
+        $mapped = $this->map($row);
+        return array_combine($this->headings(), $mapped);
     }
 
     public function columnFormats(): array
