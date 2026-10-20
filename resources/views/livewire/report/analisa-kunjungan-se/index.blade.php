@@ -22,6 +22,9 @@
         <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.trend')" :navigate="true">
             <x-heroicon-o-arrow-trending-up class="w-4 h-4 inline-block mr-1" /> Trend Bulanan
         </x-ui.tab-item>
+        <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.findings')" :navigate="true">
+            <x-heroicon-o-exclamation-triangle class="w-4 h-4 inline-block mr-1 text-warning" /> Temuan
+        </x-ui.tab-item>
 
         <x-slot name="actions">
             <button type="button" 

@@ -82,6 +82,7 @@ use App\Livewire\Report\AnalisaKunjunganSe\Index as AnalisaKunjunganSeIndex;
 use App\Livewire\Report\AnalisaKunjunganSe\Summary as AnalisaKunjunganSeSummary;
 use App\Livewire\Report\AnalisaKunjunganSe\Reason as AnalisaKunjunganSeReason;
 use App\Livewire\Report\AnalisaKunjunganSe\Trend as AnalisaKunjunganSeTrend;
+use App\Livewire\Report\AnalisaKunjunganSe\Findings as AnalisaKunjunganSeFindings;
 use App\Livewire\Report\MonitoringTopItem\Index as MonitoringTopItemIndex;
 use App\Livewire\Report\FundamentalSales\Index as FundamentalSalesIndex;
 use App\Livewire\MasterData\Salesmans\Index as SalesmanIndex;
@@ -405,6 +406,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/report/analisa-kunjungan-se/summary', AnalisaKunjunganSeSummary::class)->name('report.analisa-kunjungan-se.summary');
     Route::get('/report/analisa-kunjungan-se/reason', AnalisaKunjunganSeReason::class)->name('report.analisa-kunjungan-se.reason');
     Route::get('/report/analisa-kunjungan-se/trend', AnalisaKunjunganSeTrend::class)->name('report.analisa-kunjungan-se.trend');
+    Route::get('/report/analisa-kunjungan-se/findings', AnalisaKunjunganSeFindings::class)->name('report.analisa-kunjungan-se.findings');
     Route::get('/report/monitoring-top-item', MonitoringTopItemIndex::class)->name('report.monitoring-top-item.index');
 
     Route::get('/report/fundamental-sales', FundamentalSalesIndex::class)->name('report.fundamental-sales.index');

@@ -22,6 +22,15 @@ class IndexController extends Controller
         $riwayatPerbaikan = collect();
 
         if ($salesCode) {
+            $latestPerbaikanSub = DB::table('perbaikan_tikor_toko')
+                ->select('distributor_code', 'customer_code', 'status')
+                ->whereIn('id', function($q) use ($salesCode) {
+                    $q->select(DB::raw('MAX(id)'))
+                      ->from('perbaikan_tikor_toko')
+                      ->where('sales_code', $salesCode)
+                      ->groupBy('distributor_code', 'customer_code');
+                });
+
             $tokoList = DB::table('frute as f')
                 ->selectRaw('
                     f.region as region_code,
@@ -49,25 +58,15 @@ class IndexController extends Controller
                     $join->on('cpe.kodecabang', '=', 'f.kodecabang')
                          ->on('cpe.custno', '=', 'f.custno');
                 })
-                ->leftJoinSub(
-                    DB::table('perbaikan_tikor_toko')
-                        ->whereIn('id', function($q) {
-                            $q->select(DB::raw('MAX(id)'))
-                              ->from('perbaikan_tikor_toko')
-                              ->groupBy('distributor_code', 'customer_code');
-                        }),
-                    'ptt',
-                    function($join) {
-                        $join->on('ptt.distributor_code', '=', 'f.kodecabang')
-                             ->on('ptt.customer_code', '=', 'f.custno');
-                    }
-                )
+                ->leftJoinSub($latestPerbaikanSub, 'ptt', function($join) {
+                    $join->on('ptt.distributor_code', '=', 'f.kodecabang')
+                         ->on('ptt.customer_code', '=', 'f.custno');
+                })
                 ->where('md.is_active', true)
                 ->where('md.region_code', '<>', 'HOINA')
                 ->where('f.slsno', $salesCode)
                 ->distinct()
                 ->orderBy('f.custno')
-                ->limit(500)
                 ->get();
 
             $riwayatPerbaikan = DB::table('perbaikan_tikor_toko as ptt')
@@ -197,10 +196,21 @@ class IndexController extends Controller
         $isOwner = DB::table('frute as f')
             ->where('f.slsno', $salesCode)
             ->where('f.custno', $request->customer_code)
-            ->where('f.kodecabang', DB::raw("(
-                SELECT die.eskalink_code FROM distributor_implementasi_eskalink die 
-                WHERE die.distributor_code = '{$request->distributor_code}' LIMIT 1
-            )"))
+            ->where(function ($q) use ($request) {
+                $q->where('f.kodecabang', $request->distributor_code)
+                  ->orWhere('f.kodecabang', function ($sub) use ($request) {
+                      $sub->select('die.eskalink_code')
+                          ->from('distributor_implementasi_eskalink as die')
+                          ->where('die.distributor_code', $request->distributor_code)
+                          ->limit(1);
+                  })
+                  ->orWhere('f.kodecabang', function ($sub) use ($request) {
+                      $sub->select('die.distributor_code')
+                          ->from('distributor_implementasi_eskalink as die')
+                          ->where('die.eskalink_code', $request->distributor_code)
+                          ->limit(1);
+                  });
+            })
             ->exists();
 
         if (!$isOwner) {
@@ -212,7 +222,7 @@ class IndexController extends Controller
             ->where('distributor_code', $request->distributor_code)
             ->where('customer_code', $request->customer_code)
             ->where('sales_code', $salesCode)
-            ->where('status', 'Pending')
+            ->whereRaw('LOWER(status) = ?', ['pending'])
             ->exists();
 
         if ($isPending) {
