@@ -76,11 +76,24 @@ class Summary extends Component
 
         $this->loadRegions();
 
-        // If URL has pre-filled region, apply them automatically
+        // Restore filter dari session jika URL kosong
+        if (empty($this->selectedRegion) && session()->has('analisa_kunjungan_se_shared_filter')) {
+            $saved = session()->get('analisa_kunjungan_se_shared_filter');
+            $this->selectedRegion = $saved['region'] ?? '';
+            $this->selectedArea = $saved['area'] ?? '';
+            $this->selectedDistributor = $saved['distributor'] ?? '';
+            if (!empty($saved['startDate'])) $this->startDate = $saved['startDate'];
+            if (!empty($saved['endDate'])) $this->endDate = $saved['endDate'];
+        }
+
+        // If pre-filled region exists, apply them automatically
         if (!empty($this->selectedRegion)) {
             $this->updatedSelectedRegion($this->selectedRegion);
             if (!empty($this->selectedArea)) {
                 $this->updatedSelectedArea($this->selectedArea);
+                if (!empty($this->selectedDistributor)) {
+                    $this->updatedSelectedDistributor($this->selectedDistributor);
+                }
             }
             $this->applyFilter();
         }
@@ -366,11 +379,22 @@ class Summary extends Component
         $this->appliedStartDate = $this->startDate;
         $this->appliedEndDate = $this->endDate;
 
+        session()->put('analisa_kunjungan_se_shared_filter', [
+            'region' => $this->appliedRegion,
+            'area' => $this->appliedArea,
+            'distributor' => $this->appliedDistributor,
+            'salesman' => '',
+            'startDate' => $this->appliedStartDate,
+            'endDate' => $this->appliedEndDate,
+        ]);
+
         $this->resetPage();
     }
 
     public function resetFilters()
     {
+        session()->forget('analisa_kunjungan_se_shared_filter');
+
         $this->selectedRegion = '';
         $this->selectedArea = '';
         $this->selectedDistributor = '';

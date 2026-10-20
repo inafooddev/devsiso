@@ -155,21 +155,31 @@
     <x-slot name="title">Trend Bulanan Kunjungan SE</x-slot>
 
     {{-- Standar Tab Menu --}}
+    @php
+        $shared = session('analisa_kunjungan_se_shared_filter', []);
+        $tabParams = array_filter([
+            'region' => $appliedRegion ?: $selectedRegion,
+            'area' => $appliedArea ?: $selectedArea,
+            'distributor' => $appliedDistributor ?: $selectedDistributor,
+            'startDate' => $shared['startDate'] ?? null,
+            'endDate' => $shared['endDate'] ?? null,
+        ], fn($v) => !empty($v));
+    @endphp
     <div class="shrink-0">
         <x-ui.tab-menu class="mb-1">
-            <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.index')" :navigate="true">
+            <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.index', $tabParams)" :navigate="true">
                 <x-heroicon-o-table-cells class="w-4 h-4 inline-block mr-1" /> Detail Data
             </x-ui.tab-item>
-            <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.summary')" :navigate="true">
+            <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.summary', $tabParams)" :navigate="true">
                 <x-heroicon-o-chart-bar class="w-4 h-4 inline-block mr-1" /> Summary Data
             </x-ui.tab-item>
-            <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.reason')" :navigate="true">
+            <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.reason', $tabParams)" :navigate="true">
                 <x-heroicon-o-clipboard-document-list class="w-4 h-4 inline-block mr-1" /> Summary Reason
             </x-ui.tab-item>
-            <x-ui.tab-item :active="true" :href="route('report.analisa-kunjungan-se.trend')" :navigate="true">
+            <x-ui.tab-item :active="true" :href="route('report.analisa-kunjungan-se.trend', $tabParams)" :navigate="true">
                 <x-heroicon-o-arrow-trending-up class="w-4 h-4 inline-block mr-1" /> Trend Bulanan
             </x-ui.tab-item>
-            <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.findings')" :navigate="true">
+            <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.findings', $tabParams)" :navigate="true">
                 <x-heroicon-o-exclamation-triangle class="w-4 h-4 inline-block mr-1 text-warning" /> Temuan
             </x-ui.tab-item>
         </x-ui.tab-menu>

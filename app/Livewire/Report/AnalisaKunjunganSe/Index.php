@@ -70,22 +70,45 @@ class Index extends Component
         $urlStartDate = request()->query('startDate');
         $urlEndDate = request()->query('endDate');
 
-        if ($urlRegion && $urlArea && $urlDistributor && $urlSalesman) {
+        if ($urlRegion && $urlArea) {
             $this->selectedRegion = $urlRegion;
             $this->updatedSelectedRegion($urlRegion);
 
             $this->selectedArea = $urlArea;
             $this->updatedSelectedArea($urlArea);
 
-            $this->selectedDistributor = $urlDistributor;
-            $this->updatedSelectedDistributor($urlDistributor);
+            if ($urlDistributor) {
+                $this->selectedDistributor = $urlDistributor;
+                $this->updatedSelectedDistributor($urlDistributor);
+            }
 
-            $this->selectedSalesman = $urlSalesman;
+            if ($urlSalesman) {
+                $this->selectedSalesman = $urlSalesman;
+            }
 
             if ($urlStartDate) $this->startDate = $urlStartDate;
             if ($urlEndDate) $this->endDate = $urlEndDate;
 
             $this->applyFilter();
+        } elseif (session()->has('analisa_kunjungan_se_shared_filter')) {
+            $saved = session()->get('analisa_kunjungan_se_shared_filter');
+            $this->selectedRegion = $saved['region'] ?? '';
+            $this->updatedSelectedRegion($this->selectedRegion);
+            $this->selectedArea = $saved['area'] ?? '';
+            $this->updatedSelectedArea($this->selectedArea);
+            if (!empty($saved['distributor'])) {
+                $this->selectedDistributor = $saved['distributor'];
+                $this->updatedSelectedDistributor($saved['distributor']);
+            }
+            if (!empty($saved['salesman'])) {
+                $this->selectedSalesman = $saved['salesman'];
+            }
+            if (!empty($saved['startDate'])) $this->startDate = $saved['startDate'];
+            if (!empty($saved['endDate'])) $this->endDate = $saved['endDate'];
+
+            if (!empty($this->selectedRegion) && !empty($this->selectedArea)) {
+                $this->applyFilter();
+            }
         }
     }
 
@@ -446,11 +469,22 @@ class Index extends Component
         $this->appliedStartDate = $this->startDate;
         $this->appliedEndDate = $this->endDate;
 
+        session()->put('analisa_kunjungan_se_shared_filter', [
+            'region' => $this->appliedRegion,
+            'area' => $this->appliedArea,
+            'distributor' => $this->appliedDistributor,
+            'salesman' => $this->appliedSalesman,
+            'startDate' => $this->appliedStartDate,
+            'endDate' => $this->appliedEndDate,
+        ]);
+
         $this->resetPage();
     }
 
     public function resetFilter()
     {
+        session()->forget('analisa_kunjungan_se_shared_filter');
+
         $this->selectedRegion = '';
         $this->selectedArea = '';
         $this->selectedDistributor = '';

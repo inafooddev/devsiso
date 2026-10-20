@@ -84,10 +84,23 @@ class Reason extends Component
 
         $this->loadRegions();
 
+        // Restore filter dari session jika URL kosong
+        if (empty($this->selectedRegion) && session()->has('analisa_kunjungan_se_shared_filter')) {
+            $saved = session()->get('analisa_kunjungan_se_shared_filter');
+            $this->selectedRegion = $saved['region'] ?? '';
+            $this->selectedArea = $saved['area'] ?? '';
+            $this->selectedDistributor = $saved['distributor'] ?? '';
+            if (!empty($saved['startDate'])) $this->startDate = $saved['startDate'];
+            if (!empty($saved['endDate'])) $this->endDate = $saved['endDate'];
+        }
+
         if (!empty($this->selectedRegion)) {
             $this->updatedSelectedRegion($this->selectedRegion);
             if (!empty($this->selectedArea)) {
                 $this->updatedSelectedArea($this->selectedArea);
+                if (!empty($this->selectedDistributor)) {
+                    $this->updatedSelectedDistributor($this->selectedDistributor);
+                }
             }
             $this->applyFilter();
         }
@@ -335,10 +348,21 @@ class Reason extends Component
         $this->appliedStartDate = $this->startDate;
         $this->appliedEndDate = $this->endDate;
         $this->appliedReasonType = $this->reasonType;
+
+        session()->put('analisa_kunjungan_se_shared_filter', [
+            'region' => $this->appliedRegion,
+            'area' => $this->appliedArea,
+            'distributor' => $this->appliedDistributor,
+            'salesman' => '',
+            'startDate' => $this->appliedStartDate,
+            'endDate' => $this->appliedEndDate,
+        ]);
     }
 
     public function resetFilter()
     {
+        session()->forget('analisa_kunjungan_se_shared_filter');
+
         $this->selectedRegion = count($this->regions) === 1 ? $this->regions[0]->region_code : '';
         $this->selectedArea = '';
         $this->selectedDistributor = '';

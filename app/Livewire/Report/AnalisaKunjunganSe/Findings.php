@@ -7,6 +7,7 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use App\Traits\EnforcesMenuPermissions;
 use Livewire\WithPagination;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -88,7 +89,18 @@ class Findings extends Component
 
         $this->loadRegions();
 
-        // Check if query params were passed from other tabs
+        // Restore filter dari session jika tidak ada parameter URL spesifik
+        if (empty($this->selectedRegion) && session()->has('analisa_kunjungan_se_shared_filter')) {
+            $saved = session()->get('analisa_kunjungan_se_shared_filter');
+            $this->selectedRegion = $saved['region'] ?? '';
+            $this->selectedArea = $saved['area'] ?? '';
+            $this->selectedDistributor = $saved['distributor'] ?? '';
+            $this->selectedSalesman = $saved['salesman'] ?? '';
+            if (!empty($saved['startDate'])) $this->startDate = $saved['startDate'];
+            if (!empty($saved['endDate'])) $this->endDate = $saved['endDate'];
+        }
+
+        // Check if query params were passed from other tabs or restored from session
         if (!empty($this->selectedRegion)) {
             $this->updatedSelectedRegion($this->selectedRegion);
             if (!empty($this->selectedArea)) {
@@ -97,7 +109,7 @@ class Findings extends Component
                     $this->updatedSelectedDistributor($this->selectedDistributor);
                 }
             }
-            $this->applyFilter();
+            $this->applyFilter(forceRefresh: false);
         }
     }
 
@@ -378,7 +390,7 @@ class Findings extends Component
         }
     }
 
-    public function applyFilter()
+    public function applyFilter(bool $forceRefresh = true)
     {
         if (empty($this->selectedRegion)) {
             $this->dispatch('notify', msg: 'Pilih Region terlebih dahulu.', type: 'warning');
@@ -401,11 +413,29 @@ class Findings extends Component
         $this->appliedStartDate = $this->startDate;
         $this->appliedEndDate = $this->endDate;
 
+        // Persist filter ke session lintas tab menu
+        session()->put('analisa_kunjungan_se_shared_filter', [
+            'region' => $this->appliedRegion,
+            'area' => $this->appliedArea,
+            'distributor' => $this->appliedDistributor,
+            'salesman' => $this->appliedSalesman,
+            'startDate' => $this->appliedStartDate,
+            'endDate' => $this->appliedEndDate,
+        ]);
+
+        // Bersihkan cache jika user menekan tombol Filter secara eksplisit agar data ter-refresh
+        if ($forceRefresh) {
+            Cache::forget($this->getCacheKey());
+        }
+
         $this->resetPage();
     }
 
     public function resetFilters()
     {
+        Cache::forget($this->getCacheKey());
+        session()->forget('analisa_kunjungan_se_shared_filter');
+
         $this->selectedRegion = '';
         $this->selectedArea = '';
         $this->selectedDistributor = '';
@@ -530,12 +560,28 @@ class Findings extends Component
         return 0;
     }
 
+    public function getCacheKey(): string
+    {
+        $userId = auth()->id() ?? 'guest';
+        return "se_findings_{$userId}_{$this->appliedRegion}_{$this->appliedArea}_{$this->appliedDistributor}_{$this->appliedSalesman}_{$this->appliedStartDate}_{$this->appliedEndDate}";
+    }
+
     #[Computed]
     public function allFindings()
     {
         if (empty($this->appliedRegion) || empty($this->appliedArea)) {
             return collect();
         }
+
+        $cacheKey = $this->getCacheKey();
+
+        return Cache::remember($cacheKey, 300, function () {
+            return $this->computeAllFindings();
+        });
+    }
+
+    protected function computeAllFindings()
+    {
 
         // Ambil titik koordinat seluruh distributor di area ini (atau 1 distributor spesifik)
         $distPoints = [];

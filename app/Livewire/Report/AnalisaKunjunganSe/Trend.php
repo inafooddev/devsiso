@@ -73,10 +73,21 @@ class Trend extends Component
 
         $this->loadRegions();
 
+        // Restore filter dari session jika URL kosong
+        if (empty($this->selectedRegion) && session()->has('analisa_kunjungan_se_shared_filter')) {
+            $saved = session()->get('analisa_kunjungan_se_shared_filter');
+            $this->selectedRegion = $saved['region'] ?? '';
+            $this->selectedArea = $saved['area'] ?? '';
+            $this->selectedDistributor = $saved['distributor'] ?? '';
+        }
+
         if (!empty($this->selectedRegion)) {
             $this->updatedSelectedRegion($this->selectedRegion);
             if (!empty($this->selectedArea)) {
                 $this->updatedSelectedArea($this->selectedArea);
+                if (!empty($this->selectedDistributor)) {
+                    $this->updatedSelectedDistributor($this->selectedDistributor);
+                }
             }
         }
 
@@ -221,12 +232,25 @@ class Trend extends Component
         $this->appliedRegion = $this->selectedRegion;
         $this->appliedArea = $this->selectedArea;
         $this->appliedDistributor = $this->selectedDistributor;
+
+        $existing = session()->get('analisa_kunjungan_se_shared_filter', []);
+        session()->put('analisa_kunjungan_se_shared_filter', [
+            'region' => $this->appliedRegion,
+            'area' => $this->appliedArea,
+            'distributor' => $this->appliedDistributor,
+            'salesman' => $existing['salesman'] ?? '',
+            'startDate' => $existing['startDate'] ?? "{$this->appliedYear}-01-01",
+            'endDate' => $existing['endDate'] ?? "{$this->appliedYear}-12-31",
+        ]);
+
         $trend = $this->monthlyTrendData(true);
         $this->dispatch('chart-data-updated', trend: $trend);
     }
 
     public function resetFilter()
     {
+        session()->forget('analisa_kunjungan_se_shared_filter');
+
         $currentYear = (int) date('Y');
         $this->selectedYear = $currentYear;
         $this->callType = 'ALL';
