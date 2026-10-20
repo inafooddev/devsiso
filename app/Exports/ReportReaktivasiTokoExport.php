@@ -28,8 +28,8 @@ class ReportReaktivasiTokoExport implements FromQuery, WithHeadings, WithMapping
 
     public function query()
     {
-        $tahun = (int) ($this->filters['tahun'] ?: date('Y'));
-        $bulan = (int) ($this->filters['bulan'] ?: date('m'));
+        $tahun = (int) (!empty($this->filters['tahun']) ? $this->filters['tahun'] : date('Y'));
+        $bulan = (int) (!empty($this->filters['bulan']) ? $this->filters['bulan'] : date('m'));
         $selectedDate = Carbon::createFromDate($tahun, $bulan, 1);
 
         $monthStart = $selectedDate->copy()->startOfMonth()->format('Y-m-d');
@@ -91,9 +91,9 @@ class ReportReaktivasiTokoExport implements FromQuery, WithHeadings, WithMapping
         if (!empty($this->filters['supervisor'])) $query->where('supervisor', $this->filters['supervisor']);
         if (!empty($this->filters['distributor'])) $query->where('distributor', $this->filters['distributor']);
 
-        if ($this->filters['status'] === 'aktif') {
+        if (!empty($this->filters['status']) && $this->filters['status'] === 'aktif') {
             $query->having(DB::raw("SUM(CASE WHEN bulan >= '$monthStart' AND bulan <= '$monthEnd' THEN neto ELSE 0 END)"), '>', 0);
-        } elseif ($this->filters['status'] === 'tidak_aktif') {
+        } elseif (!empty($this->filters['status']) && $this->filters['status'] === 'tidak_aktif') {
             $query->having(DB::raw("SUM(CASE WHEN bulan >= '$monthStart' AND bulan <= '$monthEnd' THEN neto ELSE 0 END)"), '<=', 0)
                   ->orHavingRaw("SUM(CASE WHEN bulan >= '$monthStart' AND bulan <= '$monthEnd' THEN neto ELSE 0 END) IS NULL");
         }
@@ -119,7 +119,7 @@ class ReportReaktivasiTokoExport implements FromQuery, WithHeadings, WithMapping
 
     public function headings(): array
     {
-        $tahun = (int) ($this->filters['tahun'] ?: date('Y'));
+        $tahun = (int) (!empty($this->filters['tahun']) ? $this->filters['tahun'] : date('Y'));
 
         $headers = [
             'No',

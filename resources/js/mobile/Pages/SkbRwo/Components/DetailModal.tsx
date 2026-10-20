@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
     XMarkIcon, PhotoIcon, ArrowPathIcon, MapPinIcon, PencilSquareIcon, ShieldCheckIcon, MagnifyingGlassIcon, ChartPieIcon, ChartBarIcon
 } from '@heroicons/react/24/outline';
-import { SkbRwoItem } from './StoreCard';
+import { SkbRwoItem, getRewardDisplay } from './StoreCard';
 
 interface DetailModalProps {
     data: SkbRwoItem | null;
@@ -19,6 +19,11 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast, fo
     const [activeTab, setActiveTab] = useState<'pencapaian' | 'history'>('pencapaian');
     const [isEditing, setIsEditing] = useState(false);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+    // Kepatuhan Regulasi Q4: Sembunyikan Identitas KTP & Data Rekening Pemilik
+    const isQ4 = String(data?.kuartal) === '4';
+    const HIDE_SENSITIVE_DATA_Q4 = true;
+    const shouldHideOwnerIdentityAndBank = HIDE_SENSITIVE_DATA_Q4 && isQ4;
 
     const [formData, setFormData] = useState({
         no_hp: '',
@@ -394,7 +399,7 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast, fo
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!data.nik_ktp && formData.nik_ktp && formData.nik_ktp.toString().length !== 16) {
+        if (!shouldHideOwnerIdentityAndBank && !data.nik_ktp && formData.nik_ktp && formData.nik_ktp.toString().length !== 16) {
             showToast('NIK KTP harus tepat 16 digit.', 'error');
             return;
         }
@@ -501,7 +506,7 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast, fo
     return (
         <>
             <div className="fixed inset-0 z-[70] bg-slate-900/60 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-4 animate-fade-in">
-                <div className="bg-white w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl max-h-[95vh] flex flex-col shadow-2xl animate-slide-up">
+                <div className="bg-white w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl max-h-[95vh] flex flex-col shadow-2xl animate-slide-up overflow-hidden">
                     <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur z-10 rounded-t-3xl shrink-0">
                         <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">{isEditing ? 'Edit Data Toko' : 'Detail Toko'}</h3>
                         <button onClick={handleClose} disabled={isSubmitting} className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-full transition-colors disabled:opacity-50">
@@ -799,11 +804,7 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast, fo
                                             <div className="flex justify-between border-b border-slate-100 pb-2">
                                                 <span className="text-xs text-slate-500 font-medium">Reward</span>
                                                 <span className="text-xs font-black text-slate-800">
-                                                    {(() => {
-                                                        const target = data.total_target || 0;
-                                                        const pct = target >= 90000000 ? 2.5 : (target >= 30000000 ? 2.0 : 1.5);
-                                                        return pct + '%';
-                                                    })()}
+                                                    {getRewardDisplay(data)}
                                                 </span>
                                             </div>
                                             <div className="flex justify-between border-b border-slate-100 pb-2 items-center">
@@ -842,7 +843,9 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast, fo
                                             { key: 'nama_pemilik_norek', label: 'Nama Pemilik Norek' },
                                             { key: 'latitude', label: 'Latitude' },
                                             { key: 'longitude', label: 'Longitude' }
-                                        ].map(field => (
+                                        ]
+                                        .filter(field => !shouldHideOwnerIdentityAndBank || !['nik_ktp', 'nama_ktp', 'nama_bank', 'no_rekening', 'nama_pemilik_norek'].includes(field.key))
+                                        .map(field => (
                                             <div key={field.key} className="flex items-center justify-between border-b border-slate-100 pb-2">
                                                 <span className="text-xs text-slate-600 font-medium">{field.label}</span>
                                                 {data[field.key] ? (
@@ -861,13 +864,15 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast, fo
                                 {/* Dokumentasi Foto */}
                                 <div className="pt-4 border-t border-slate-100 pb-6 mt-4">
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">Dokumentasi Foto</p>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className={`grid gap-4 ${shouldHideOwnerIdentityAndBank ? 'grid-cols-3' : 'grid-cols-2 md:grid-cols-4'}`}>
                                         {[
                                             { key: 'foto_ktp', label: 'Foto KTP' },
                                             { key: 'foto_toko2', label: 'Foto Depan' },
                                             { key: 'foto_toko3', label: 'Foto Dalam' },
                                             { key: 'skb_foto', label: 'Foto SKB' }
-                                        ].map(photo => (
+                                        ]
+                                        .filter(photo => !shouldHideOwnerIdentityAndBank || photo.key !== 'foto_ktp')
+                                        .map(photo => (
                                             <div key={photo.key} className="flex flex-col gap-2">
                                                 <span className="text-[10px] font-bold text-slate-700 text-center uppercase tracking-wider">{photo.label}</span>
                                                 {data[photo.key] ? (
@@ -914,71 +919,75 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast, fo
                                 </div>
 
                                 {/* Section KTP */}
-                                <div className="flex flex-col gap-3">
-                                    <h5 className="text-[11px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-1 mt-2">Data Identitas (KTP)</h5>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">NIK KTP {data.nik_ktp && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
-                                        <input type="text" inputMode="numeric" maxLength={16} disabled={!!data.nik_ktp} value={formData.nik_ktp} onChange={e => handleTextChange('nik_ktp', e.target.value)} className={getInputClass('nik_ktp', !data.nik_ktp && !!formData.nik_ktp && formData.nik_ktp.toString().length !== 16)} placeholder="16 Digit NIK" />
-                                        {!data.nik_ktp && formData.nik_ktp && formData.nik_ktp.toString().length !== 16 && (
-                                            <span className="text-[9px] font-medium text-rose-500 mt-1 block">NIK harus 16 digit. Saat ini: {formData.nik_ktp.toString().length} digit</span>
-                                        )}
+                                {!shouldHideOwnerIdentityAndBank && (
+                                    <div className="flex flex-col gap-3">
+                                        <h5 className="text-[11px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-1 mt-2">Data Identitas (KTP)</h5>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">NIK KTP {data.nik_ktp && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
+                                            <input type="text" inputMode="numeric" maxLength={16} disabled={!!data.nik_ktp} value={formData.nik_ktp} onChange={e => handleTextChange('nik_ktp', e.target.value)} className={getInputClass('nik_ktp', !data.nik_ktp && !!formData.nik_ktp && formData.nik_ktp.toString().length !== 16)} placeholder="16 Digit NIK" />
+                                            {!data.nik_ktp && formData.nik_ktp && formData.nik_ktp.toString().length !== 16 && (
+                                                <span className="text-[9px] font-medium text-rose-500 mt-1 block">NIK harus 16 digit. Saat ini: {formData.nik_ktp.toString().length} digit</span>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nama Sesuai KTP {data.nama_ktp && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
+                                            <input type="text" disabled={!!data.nama_ktp} value={formData.nama_ktp} onChange={e => handleTextChange('nama_ktp', e.target.value)} className={getInputClass('nama_ktp')} placeholder="Ketik nama di KTP" />
+                                        </div>
+                                        {renderFileInput('foto_ktp', 'Foto KTP', ktpRef, true)}
                                     </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nama Sesuai KTP {data.nama_ktp && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
-                                        <input type="text" disabled={!!data.nama_ktp} value={formData.nama_ktp} onChange={e => handleTextChange('nama_ktp', e.target.value)} className={getInputClass('nama_ktp')} placeholder="Ketik nama di KTP" />
-                                    </div>
-                                    {renderFileInput('foto_ktp', 'Foto KTP', ktpRef, true)}
-                                </div>
+                                )}
 
                                 {/* Section Bank */}
-                                <div className="flex flex-col gap-3">
-                                    <h5 className="text-[11px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-1 mt-2">Data Rekening</h5>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nama Bank {data.nama_bank && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
-                                        <select disabled={!!data.nama_bank} value={formData.nama_bank} onChange={e => handleTextChange('nama_bank', e.target.value)} className={getInputClass('nama_bank')}>
-                                            <option value="">Pilih Bank</option>
-                                            <optgroup label="Bank Nasional (Himbara & Swasta)">
-                                                <option value="BCA">BCA (Bank Central Asia)</option>
-                                                <option value="BRI">BRI (Bank Rakyat Indonesia)</option>
-                                                <option value="BNI">BNI (Bank Negara Indonesia)</option>
-                                                <option value="Mandiri">Bank Mandiri</option>
-                                                <option value="BSI">BSI (Bank Syariah Indonesia)</option>
-                                                <option value="BTN">BTN (Bank Tabungan Negara)</option>
-                                                <option value="CIMB Niaga">Bank CIMB Niaga</option>
-                                                <option value="Permata">Bank Permata</option>
-                                                <option value="Danamon">Bank Danamon</option>
-                                                <option value="Mega">Bank Mega</option>
-                                                <option value="BTPN">Bank BTPN</option>
-                                            </optgroup>
-                                            <optgroup label="Bank Digital">
-                                                <option value="Jago">Bank Jago</option>
-                                                <option value="SeaBank">SeaBank</option>
-                                                <option value="Blu">Blu by BCA Digital</option>
-                                                <option value="Neo">Bank Neo Commerce (BNC)</option>
-                                                <option value="Allo">Allo Bank</option>
-                                                <option value="Jenius">Jenius (BTPN)</option>
-                                            </optgroup>
-                                            <optgroup label="Bank Pembangunan Daerah (BPD)">
-                                                <option value="BJB">Bank BJB (Jawa Barat & Banten)</option>
-                                                <option value="DKI">Bank DKI</option>
-                                                <option value="Jateng">Bank Jateng</option>
-                                                <option value="Jatim">Bank Jatim</option>
-                                                <option value="DIY">Bank DIY</option>
-                                            </optgroup>
-                                            <optgroup label="Lainnya">
-                                                <option value="Lainnya">Bank Lainnya</option>
-                                            </optgroup>
-                                        </select>
+                                {!shouldHideOwnerIdentityAndBank && (
+                                    <div className="flex flex-col gap-3">
+                                        <h5 className="text-[11px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 pb-1 mt-2">Data Rekening</h5>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nama Bank {data.nama_bank && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
+                                            <select disabled={!!data.nama_bank} value={formData.nama_bank} onChange={e => handleTextChange('nama_bank', e.target.value)} className={getInputClass('nama_bank')}>
+                                                <option value="">Pilih Bank</option>
+                                                <optgroup label="Bank Nasional (Himbara & Swasta)">
+                                                    <option value="BCA">BCA (Bank Central Asia)</option>
+                                                    <option value="BRI">BRI (Bank Rakyat Indonesia)</option>
+                                                    <option value="BNI">BNI (Bank Negara Indonesia)</option>
+                                                    <option value="Mandiri">Bank Mandiri</option>
+                                                    <option value="BSI">BSI (Bank Syariah Indonesia)</option>
+                                                    <option value="BTN">BTN (Bank Tabungan Negara)</option>
+                                                    <option value="CIMB Niaga">Bank CIMB Niaga</option>
+                                                    <option value="Permata">Bank Permata</option>
+                                                    <option value="Danamon">Bank Danamon</option>
+                                                    <option value="Mega">Bank Mega</option>
+                                                    <option value="BTPN">Bank BTPN</option>
+                                                </optgroup>
+                                                <optgroup label="Bank Digital">
+                                                    <option value="Jago">Bank Jago</option>
+                                                    <option value="SeaBank">SeaBank</option>
+                                                    <option value="Blu">Blu by BCA Digital</option>
+                                                    <option value="Neo">Bank Neo Commerce (BNC)</option>
+                                                    <option value="Allo">Allo Bank</option>
+                                                    <option value="Jenius">Jenius (BTPN)</option>
+                                                </optgroup>
+                                                <optgroup label="Bank Pembangunan Daerah (BPD)">
+                                                    <option value="BJB">Bank BJB (Jawa Barat & Banten)</option>
+                                                    <option value="DKI">Bank DKI</option>
+                                                    <option value="Jateng">Bank Jateng</option>
+                                                    <option value="Jatim">Bank Jatim</option>
+                                                    <option value="DIY">Bank DIY</option>
+                                                </optgroup>
+                                                <optgroup label="Lainnya">
+                                                    <option value="Lainnya">Bank Lainnya</option>
+                                                </optgroup>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nomor Rekening {data.no_rekening && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
+                                            <input type="number" disabled={!!data.no_rekening} value={formData.no_rekening} onChange={e => handleTextChange('no_rekening', e.target.value)} className={getInputClass('no_rekening')} placeholder="Ketik nomor rekening" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nama Pemilik Rekening {data.nama_pemilik_norek && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
+                                            <input type="text" disabled={!!data.nama_pemilik_norek} value={formData.nama_pemilik_norek} onChange={e => handleTextChange('nama_pemilik_norek', e.target.value)} className={getInputClass('nama_pemilik_norek')} placeholder="Ketik nama di buku tabungan" />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nomor Rekening {data.no_rekening && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
-                                        <input type="number" disabled={!!data.no_rekening} value={formData.no_rekening} onChange={e => handleTextChange('no_rekening', e.target.value)} className={getInputClass('no_rekening')} placeholder="Ketik nomor rekening" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nama Pemilik Rekening {data.nama_pemilik_norek && <ShieldCheckIcon className="w-3 h-3 inline text-emerald-500 mb-0.5" />}</label>
-                                        <input type="text" disabled={!!data.nama_pemilik_norek} value={formData.nama_pemilik_norek} onChange={e => handleTextChange('nama_pemilik_norek', e.target.value)} className={getInputClass('nama_pemilik_norek')} placeholder="Ketik nama di buku tabungan" />
-                                    </div>
-                                </div>
+                                )}
 
                                 {/* Section Geolocation */}
                                 <div className="flex flex-col gap-3">
@@ -1013,7 +1022,8 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast, fo
                         )}
                     </div>
                     
-                    <div className="p-4 border-t border-slate-100 shrink-0 bg-white rounded-b-3xl">
+                    {!isMonitoring && (
+                        <div className="p-4 border-t border-slate-100 shrink-0 bg-white rounded-b-3xl">
                         {isEditing ? (
                             <>
                                 <button
@@ -1039,7 +1049,8 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast, fo
                                 <PencilSquareIcon className="w-4 h-4" /> Lengkapi / Edit Data Toko
                             </button>
                         )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

@@ -86,7 +86,7 @@ export default function KuartalFilterSheet({
 
                     {/* Filter Reward */}
                     <div className="flex flex-col gap-2">
-                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Percentage Reward</label>
+                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Reward</label>
                         <div className="relative">
                             <select 
                                 value={localReward}
@@ -94,6 +94,7 @@ export default function KuartalFilterSheet({
                                 className="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl p-3 pr-10 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                             >
                                 <option value="Semua">Semua Reward</option>
+                                <option value="1 Ktn">1 Ktn (BB - Bonus Barang)</option>
                                 <option value="1.5%">1.5%</option>
                                 <option value="2%">2.0%</option>
                                 <option value="2.5%">2.5%</option>

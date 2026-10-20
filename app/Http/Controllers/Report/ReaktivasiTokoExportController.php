@@ -29,6 +29,11 @@ class ReaktivasiTokoExportController extends Controller
             abort(401, 'Unauthorized');
         }
 
+        // Authorize menu access (Perlindungan akses langsung via route/link)
+        if (!$user->hasRole(['admin', 'spm']) && !$user->hasMenuAccess('report.reaktivasi-toko.index', 'can_view')) {
+            abort(403, 'Akses Ditolak: Anda tidak memiliki izin untuk mengakses laporan ini.');
+        }
+
         $filters = [
             'search' => trim((string) $request->query('search', '')),
             'region' => trim((string) $request->query('region', '')),

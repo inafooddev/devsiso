@@ -43,6 +43,11 @@ class Index extends Component
 
     public function mount()
     {
+        $user = auth()->user();
+        if ($user && !$user->hasRole(['admin', 'spm']) && !$user->hasMenuAccess('report.reaktivasi-toko.index', 'can_view')) {
+            abort(403, 'Akses Ditolak: Anda tidak memiliki izin untuk membuka halaman ini.');
+        }
+
         if (empty($this->filterBulan)) $this->filterBulan = date('m');
         if (empty($this->filterTahun)) $this->filterTahun = date('Y');
     }

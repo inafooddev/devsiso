@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { TabType, SkbStatusType, ProgressStatusType, PAGINATION_LIMIT, INCENTIVE_THRESHOLDS } from '../constants';
-import { SkbRwoItem, getProratedTarget } from '../Components/StoreCard';
+import { SkbRwoItem, getProratedTarget, getRewardDisplay } from '../Components/StoreCard';
 import { haversineDistance, NEARBY_RADIUS_KM } from '../utils/geo';
 import { UserLocation } from './useNearby';
 
@@ -96,13 +96,7 @@ export function useSkbRwoFilter({ listPotensi, listMonitoring, listPlan, activeK
                 );
             }
             if (filterReward !== 'Semua') {
-                result = result.filter(item => {
-                    const targetAmount = Number(item.total_target) || 0;
-                    const pct = targetAmount >= INCENTIVE_THRESHOLDS.TIER_1.minTarget 
-                        ? INCENTIVE_THRESHOLDS.TIER_1.rewardPct 
-                        : (targetAmount >= INCENTIVE_THRESHOLDS.TIER_2.minTarget ? INCENTIVE_THRESHOLDS.TIER_2.rewardPct : INCENTIVE_THRESHOLDS.DEFAULT.rewardPct);
-                    return pct === filterReward;
-                });
+                result = result.filter(item => getRewardDisplay(item) === filterReward);
             }
         }
         else if (activeTab === 'plan') {
@@ -138,8 +132,19 @@ export function useSkbRwoFilter({ listPotensi, listMonitoring, listPlan, activeK
     }, [listPotensi, listMonitoring, listPlan, activeTab, search, selectedDate, filterSkbStatus, filterKuartal, filterStatus, filterDistributor, filterReward, nearbyActive, userLocation]);
 
     const filteredSummaryData = useMemo(() => {
-        return listMonitoring;
-    }, [listMonitoring]);
+        let result = listMonitoring;
+        if (filterDistributor !== 'Semua') {
+            const qDist = String(filterDistributor || '').toLowerCase();
+            result = result.filter(item => 
+                String(item.distributor_name || '').toLowerCase().includes(qDist) ||
+                String(item.distributor_code || '').toLowerCase().includes(qDist)
+            );
+        }
+        if (filterReward !== 'Semua') {
+            result = result.filter(item => getRewardDisplay(item) === filterReward);
+        }
+        return result;
+    }, [listMonitoring, filterDistributor, filterReward]);
 
     const handleLoadMore = () => {
         setDisplayLimit(prev => prev + PAGINATION_LIMIT);

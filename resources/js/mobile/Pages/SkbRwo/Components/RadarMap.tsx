@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { SkbRwoItem } from './StoreCard';
 import { INCENTIVE_THRESHOLDS } from '../constants';
+import { getRewardDisplay } from './StoreCard';
 import { haversineDistance, formatDistance } from '../utils/geo';
 import { ArrowTopRightOnSquareIcon, MapPinIcon, ShieldExclamationIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { UserLocation } from '../hooks/useNearby';
@@ -227,9 +228,7 @@ export default function RadarMap({ data, showToast }: RadarMapProps) {
                             icon = PIN_ICONS.BLUE;
                         }
 
-                        let rewardText = INCENTIVE_THRESHOLDS.DEFAULT.rewardPct;
-                        if (val >= INCENTIVE_THRESHOLDS.TIER_1.minTarget) rewardText = INCENTIVE_THRESHOLDS.TIER_1.rewardPct;
-                        else if (val >= INCENTIVE_THRESHOLDS.TIER_2.minTarget) rewardText = INCENTIVE_THRESHOLDS.TIER_2.rewardPct;
+                        let rewardText = getRewardDisplay(store);
 
                         return (
                             <Marker 

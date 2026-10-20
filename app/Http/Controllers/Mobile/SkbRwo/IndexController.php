@@ -29,6 +29,31 @@ class IndexController extends Controller
         $currentQuarter = in_array($requestedQuarter, [1, 2, 3, 4, '1', '2', '3', '4']) ? (int) $requestedQuarter : ceil(date('n') / 3);
 
         // 1. Data List Potensi RWO
+        $statusLengkapSql = $currentQuarter == 4 ? "
+            CASE WHEN 
+                NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_pemilik_toko), '') IS NOT NULL AND
+                NULLIF(TRIM(r.latitude), '') IS NOT NULL AND
+                NULLIF(TRIM(r.longitude), '') IS NOT NULL AND
+                NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND
+                NULLIF(TRIM(r.foto_toko3), '') IS NOT NULL
+            THEN 'Lengkap' ELSE 'Belum' END
+        " : "
+            CASE WHEN 
+                NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_pemilik_toko), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nik_ktp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_ktp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.foto_ktp), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_bank), '') IS NOT NULL AND
+                NULLIF(TRIM(r.no_rekening), '') IS NOT NULL AND
+                NULLIF(TRIM(r.nama_pemilik_norek), '') IS NOT NULL AND
+                NULLIF(TRIM(r.latitude), '') IS NOT NULL AND
+                NULLIF(TRIM(r.longitude), '') IS NOT NULL AND
+                NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND
+                NULLIF(TRIM(r.foto_toko3), '') IS NOT NULL
+            THEN 'Lengkap' ELSE 'Belum' END
+        ";
         $queryPotensi = DB::table('list_potensi_rwo as l')
             ->leftJoin('master_distributors as md', 'md.distributor_code', '=', 'l.distributor_code')
             ->leftJoin('team_elite_code_mappings as te', 'te.siso_code', '=', 'md.supervisor_code')
@@ -52,20 +77,7 @@ class IndexController extends Controller
                 'r.foto_toko2', 'r.foto_toko3',
                 'skb.is_approved', 'skb.foto_skb as skb_foto', 'skb.reason as skb_reason', 'skb.ho_is_valid', 'skb.ho_notes',
                 DB::raw("CASE WHEN skb.customer_code IS NOT NULL THEN 'Sudah' ELSE 'Belum' END AS status_skb"),
-                DB::raw("CASE WHEN 
-                    NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_pemilik_toko), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nik_ktp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_ktp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.foto_ktp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_bank), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.no_rekening), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_pemilik_norek), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.latitude), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.longitude), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.foto_toko3), '') IS NOT NULL
-                    THEN 'Lengkap' ELSE 'Belum' END AS status_data_lengkap")
+                DB::raw("$statusLengkapSql AS status_data_lengkap")
             )
             ->distinct();
 
@@ -94,7 +106,6 @@ class IndexController extends Controller
                      ->on('skb.tahun', '=', 'lp.tahun');
             })
             ->where('l.pilar', '1. RWO')
-            ->where('lp.jenis_reward', 'ILIKE', '%CB%')
             ->select(
                 'j.tanggal',
                 'j.distributor_code',
@@ -102,6 +113,7 @@ class IndexController extends Controller
                 'l.customer_code_prc as customer_prc',
                 'md.region_name', 'md.area_name', 'md.supervisor_name', 'md.distributor_name',
                 'lp.total_target',
+                'lp.jenis_reward',
                 'j.custname as customer_name',
                 'j.addres as address',
                 'r.no_hp', 'r.nama_pemilik_toko', 'r.nik_ktp', 'r.nama_ktp', 'r.foto_ktp', 
@@ -109,20 +121,7 @@ class IndexController extends Controller
                 'r.foto_toko2', 'r.foto_toko3',
                 'skb.is_approved', 'skb.foto_skb as skb_foto', 'skb.reason as skb_reason', 'skb.ho_is_valid', 'skb.ho_notes',
                 DB::raw("CASE WHEN skb.customer_code IS NOT NULL THEN 'Sudah' ELSE 'Belum' END AS status_skb"),
-                DB::raw("CASE WHEN 
-                    NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_pemilik_toko), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nik_ktp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_ktp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.foto_ktp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_bank), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.no_rekening), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_pemilik_norek), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.latitude), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.longitude), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.foto_toko3), '') IS NOT NULL
-                    THEN 'Lengkap' ELSE 'Belum' END AS status_data_lengkap"),
+                DB::raw("$statusLengkapSql AS status_data_lengkap"),
                 DB::raw("$currentQuarter as kuartal")
             );
 
@@ -139,7 +138,6 @@ class IndexController extends Controller
             })
             ->leftJoin('list_toko_pareto_team_elite as lt', 'lt.uniq_kd', '=', 'l.customer_code')
             ->where('l.kuartal', $currentQuarter)
-            ->where('l.jenis_reward', 'ILIKE', '%CB%')
             ->select(
                 'l.*', 
                 'lt.customer_code_prc as customer_prc',
@@ -150,20 +148,7 @@ class IndexController extends Controller
                 'r.foto_toko2', 'r.foto_toko3',
                 'skb.is_approved', 'skb.foto_skb as skb_foto', 'skb.reason as skb_reason', 'skb.ho_is_valid', 'skb.ho_notes',
                 DB::raw("CASE WHEN skb.customer_code IS NOT NULL THEN 'Sudah' ELSE 'Belum' END AS status_skb"),
-                DB::raw("CASE WHEN 
-                    NULLIF(TRIM(r.no_hp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_pemilik_toko), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nik_ktp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_ktp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.foto_ktp), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_bank), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.no_rekening), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.nama_pemilik_norek), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.latitude), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.longitude), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.foto_toko2), '') IS NOT NULL AND
-                    NULLIF(TRIM(r.foto_toko3), '') IS NOT NULL
-                    THEN 'Lengkap' ELSE 'Belum' END AS status_data_lengkap")
+                DB::raw("$statusLengkapSql AS status_data_lengkap")
             )
             ->distinct();
 

@@ -28,6 +28,7 @@ export interface SkbRwoItem {
     month_3_value?: number;
     latitude?: string | null;
     longitude?: string | null;
+    jenis_reward?: string | null;
     [key: string]: any;
 }
 
@@ -43,6 +44,17 @@ export interface StoreCardProps {
     onOpenActual?: (item: SkbRwoItem) => void;
     onOpenSkb?: (item: SkbRwoItem) => void;
 }
+
+export const getRewardDisplay = (item: SkbRwoItem): string => {
+    const jenis = String(item.jenis_reward || '').trim().toUpperCase();
+    if (jenis === 'BB') {
+        return '1 Ktn';
+    }
+    const targetAmount = Number(item.total_target) || 0;
+    if (targetAmount >= INCENTIVE_THRESHOLDS.TIER_1.minTarget) return INCENTIVE_THRESHOLDS.TIER_1.rewardPct;
+    if (targetAmount >= INCENTIVE_THRESHOLDS.TIER_2.minTarget) return INCENTIVE_THRESHOLDS.TIER_2.rewardPct;
+    return INCENTIVE_THRESHOLDS.DEFAULT.rewardPct;
+};
 
 export const getProratedTarget = (totalTarget: number, kuartalStr?: string | null): number => {
     if (!totalTarget || !kuartalStr) return totalTarget;
@@ -103,10 +115,7 @@ export default function StoreCard({ item, showProgress, showSkbAction = true, sh
         }
     }
     
-    const targetAmount = Number(item.total_target) || 0;
-    const rewardPct = targetAmount >= INCENTIVE_THRESHOLDS.TIER_1.minTarget 
-        ? INCENTIVE_THRESHOLDS.TIER_1.rewardPct 
-        : (targetAmount >= INCENTIVE_THRESHOLDS.TIER_2.minTarget ? INCENTIVE_THRESHOLDS.TIER_2.rewardPct : INCENTIVE_THRESHOLDS.DEFAULT.rewardPct);
+    const rewardText = getRewardDisplay(item);
     
     return (
         <div className={`bg-white p-3 rounded-2xl shadow-sm flex flex-col gap-3 animate-fade-in relative overflow-hidden group ${borderClass}`}>
@@ -127,7 +136,7 @@ export default function StoreCard({ item, showProgress, showSkbAction = true, sh
                 <div className="flex items-center justify-end gap-1.5 shrink-0">
                     {showProgress && (
                         <div className={`px-1.5 py-0.5 flex items-center gap-1 rounded-md border bg-indigo-50 border-indigo-200 text-indigo-700 shrink-0`}>
-                            <span className="text-[9px] font-bold uppercase tracking-wider">{rewardPct}</span>
+                            <span className="text-[9px] font-bold uppercase tracking-wider">{rewardText}</span>
                         </div>
                     )}
                     <div className={`px-1.5 py-0.5 flex items-center gap-1 rounded-md border ${item.status_skb === 'Sudah' ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'} shrink-0`}>

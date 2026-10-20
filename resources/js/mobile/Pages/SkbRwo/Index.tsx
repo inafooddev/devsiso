@@ -224,11 +224,21 @@ export default function Index({
                 )}
 
                 {activeTab === 'plan' && (
-                    <ScrollCalendar
-                        selectedDate={selectedDate}
-                        setSelectedDate={setSelectedDate}
-                        markedDates={listPlan.map(p => p.tanggal).filter(Boolean) as string[]}
-                    />
+                    <>
+                        <ScrollCalendar
+                            selectedDate={selectedDate}
+                            setSelectedDate={setSelectedDate}
+                            markedDates={listPlan.map(p => p.tanggal).filter(Boolean) as string[]}
+                        />
+                        <div className="flex items-center justify-between px-4 pb-2 pt-1">
+                            <span className="text-[11px] font-black text-slate-700 tracking-wider ml-1">
+                                Jadwal Kunjungan ({displayedData.length})
+                            </span>
+                            <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md mr-1">
+                                {selectedDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                        </div>
+                    </>
                 )}
             </div>
 
@@ -237,7 +247,13 @@ export default function Index({
                     <SummaryDashboard
                         data={filteredSummaryData}
                         filterKuartal={filterKuartal}
+                        filterDistributor={filterDistributor}
+                        filterReward={filterReward}
                         onOpenFilter={() => setIsKuartalSheetOpen(true)}
+                        onResetFilter={() => {
+                            setFilterDistributor('Semua');
+                            setFilterReward('Semua');
+                        }}
                     />
                 ) : activeTab === 'radar' ? (
                     <RadarMap data={listMonitoring} showToast={showToast} />
@@ -251,7 +267,7 @@ export default function Index({
                             showProgress={activeTab === 'monitoring' || activeTab === 'plan'}
                             showSkbAction={activeTab !== 'monitoring'}
                             showActualAction={activeTab === 'plan'}
-                            showDirection={activeTab === 'monitoring'}
+                            showDirection={activeTab === 'monitoring' || activeTab === 'plan'}
                             onOpenDetail={openDetailModal}
                             onOpenActual={openActualModal}
                             onOpenSkb={openSkbModal}
