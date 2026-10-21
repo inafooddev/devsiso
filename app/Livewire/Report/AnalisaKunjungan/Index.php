@@ -44,6 +44,15 @@ class Index extends Component
     public $appliedStartDate = '';
     public $appliedEndDate = '';
 
+    // Secondary Detail Filters & Search
+    public $search = '';
+    public $filterVisit = 'all';     // 'all', 'Y', 'N'
+    public $filterEc = 'all';        // 'all', 'Y', 'N'
+    public $filterPjp = 'all';       // 'all', 'Y', 'N'
+    public $filterDistance = 'all';  // 'all', 'within' (<=50m), 'out' (>50m)
+    public $filterReason = 'all';    // 'all', 'with', 'without'
+    public $filterDepo = 'all';      // 'all', 'at_depo' (<=100m), 'not_depo' (>100m)
+
     #[Locked]
     public $appliedSummaryStartDate;
     public $appliedSummaryEndDate;
@@ -63,8 +72,7 @@ class Index extends Component
 
     public function mount()
     {
-        $this->startDate = date('Y-m-01');
-        $this->endDate = date('Y-m-d');
+        $this->setDatePreset('this_month');
         
         $this->appliedStartDate = $this->startDate;
         $this->appliedEndDate = $this->endDate;
@@ -75,6 +83,165 @@ class Index extends Component
         $this->loadRegions();
 
         $this->summaryRegion = $this->selectedRegion;
+    }
+
+    /**
+     * Set quick date preset (Hari Ini, Kemarin, 7 Hari Terakhir, Bulan Ini, 30 Hari, Bulan Lalu).
+     */
+    public function setDatePreset(string $preset): void
+    {
+        $today = \Carbon\Carbon::today();
+
+        switch ($preset) {
+            case 'today':
+                $this->startDate = $today->format('Y-m-d');
+                $this->endDate = $today->format('Y-m-d');
+                break;
+            case 'yesterday':
+                $yesterday = $today->copy()->subDay()->format('Y-m-d');
+                $this->startDate = $yesterday;
+                $this->endDate = $yesterday;
+                break;
+            case 'last_7_days':
+                $this->startDate = $today->copy()->subDays(6)->format('Y-m-d');
+                $this->endDate = $today->format('Y-m-d');
+                break;
+            case 'this_month':
+                $this->startDate = $today->copy()->startOfMonth()->format('Y-m-d');
+                $this->endDate = $today->format('Y-m-d');
+                break;
+            case 'last_30_days':
+                $this->startDate = $today->copy()->subDays(29)->format('Y-m-d');
+                $this->endDate = $today->format('Y-m-d');
+                break;
+            case 'last_month':
+                $lastMonth = $today->copy()->subMonthNoOverflow();
+                $this->startDate = $lastMonth->copy()->startOfMonth()->format('Y-m-d');
+                $this->endDate = $lastMonth->copy()->endOfMonth()->format('Y-m-d');
+                break;
+        }
+    }
+
+    /**
+     * Quick navigate to previous month.
+     */
+    public function previousMonth(): void
+    {
+        $currentStart = !empty($this->startDate) ? \Carbon\Carbon::parse($this->startDate) : \Carbon\Carbon::today();
+        $prevMonth = $currentStart->copy()->subMonthNoOverflow();
+        $this->startDate = $prevMonth->copy()->startOfMonth()->format('Y-m-d');
+        $this->endDate = $prevMonth->copy()->endOfMonth()->format('Y-m-d');
+    }
+
+    /**
+     * Quick navigate to next month (capped at today if future).
+     */
+    public function nextMonth(): void
+    {
+        $currentStart = !empty($this->startDate) ? \Carbon\Carbon::parse($this->startDate) : \Carbon\Carbon::today();
+        $nextMonth = $currentStart->copy()->addMonthNoOverflow();
+        $today = \Carbon\Carbon::today();
+
+        $this->startDate = $nextMonth->copy()->startOfMonth()->format('Y-m-d');
+        $end = $nextMonth->copy()->endOfMonth();
+        $this->endDate = $end->gt($today) ? $today->format('Y-m-d') : $end->format('Y-m-d');
+
+        if (\Carbon\Carbon::parse($this->startDate)->gt($today)) {
+            $this->startDate = $today->copy()->startOfMonth()->format('Y-m-d');
+            $this->endDate = $today->format('Y-m-d');
+        }
+    }
+
+    public function updatedStartDate($value): void
+    {
+        if (empty($value)) return;
+        try {
+            $start = \Carbon\Carbon::parse($value);
+            $today = \Carbon\Carbon::today();
+            if ($start->gt($today)) {
+                $this->startDate = $today->format('Y-m-d');
+                $start = $today;
+            }
+            if (!empty($this->endDate)) {
+                $end = \Carbon\Carbon::parse($this->endDate);
+                if ($start->gt($end)) {
+                    $this->endDate = $start->format('Y-m-d');
+                } elseif ($start->diffInDays($end) > 30) {
+                    $this->endDate = $start->copy()->addDays(30)->format('Y-m-d');
+                }
+            } else {
+                $this->endDate = $start->copy()->addDays(30)->min($today)->format('Y-m-d');
+            }
+        } catch (\Exception $e) {}
+    }
+
+    public function updatedEndDate($value): void
+    {
+        if (empty($value)) return;
+        try {
+            $end = \Carbon\Carbon::parse($value);
+            $today = \Carbon\Carbon::today();
+            if ($end->gt($today)) {
+                $this->endDate = $today->format('Y-m-d');
+                $end = $today;
+            }
+            if (!empty($this->startDate)) {
+                $start = \Carbon\Carbon::parse($this->startDate);
+                if ($end->lt($start)) {
+                    $this->startDate = $end->format('Y-m-d');
+                } elseif ($start->diffInDays($end) > 30) {
+                    $this->startDate = $end->copy()->subDays(30)->format('Y-m-d');
+                }
+            }
+        } catch (\Exception $e) {}
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterVisit(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterEc(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterPjp(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterDistance(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterReason(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterDepo(): void
+    {
+        $this->resetPage();
+    }
+
+    public function resetDetailFilters(): void
+    {
+        $this->search = '';
+        $this->filterVisit = 'all';
+        $this->filterEc = 'all';
+        $this->filterPjp = 'all';
+        $this->filterDistance = 'all';
+        $this->filterReason = 'all';
+        $this->filterDepo = 'all';
+        $this->filterDepo = 'all';
+        $this->resetPage();
     }
 
     public function loadRegions()
@@ -181,10 +348,15 @@ class Index extends Component
                     return;
                 }
                 
-                if ($start->diffInDays($end) > 31) {
-                    $this->dispatch('notify', msg: 'Rentang waktu maksimal adalah 1 bulan (31 hari).', type: 'error');
-                    return;
+                if ($start->diffInDays($end) > 30) {
+                    $this->endDate = $start->copy()->addDays(30)->format('Y-m-d');
+                    $this->dispatch('notify', msg: 'Rentang waktu disesuaikan otomatis maksimal 31 hari.', type: 'info');
                 }
+            }
+
+            if (empty($this->selectedSupervisor)) {
+                $this->dispatch('notify', msg: 'Harap pilih Supervisor terlebih dahulu.', type: 'error');
+                return;
             }
 
             $this->appliedRegion = $this->selectedRegion;
@@ -221,8 +393,7 @@ class Index extends Component
         $this->selectedRegion = '';
         $this->selectedArea = '';
         $this->selectedSupervisor = '';
-        $this->startDate = date('Y-m-01');
-        $this->endDate = date('Y-m-d');
+        $this->setDatePreset('this_month');
         
         $this->appliedRegion = '';
         $this->appliedArea = '';
@@ -240,8 +411,17 @@ class Index extends Component
         $this->appliedSummaryRegion = '';
         $this->appliedSummaryLevels = [];
 
+        $this->search = '';
+        $this->filterVisit = 'all';
+        $this->filterEc = 'all';
+        $this->filterPjp = 'all';
+        $this->filterDistance = 'all';
+        $this->filterReason = 'all';
+        $this->filterDepo = 'all';
+
         $this->areas = [];
         $this->supervisors = [];
+        $this->loadRegions();
         $this->resetPage();
     }
 
@@ -316,55 +496,9 @@ class Index extends Component
             return;
         }
 
-        $query = $this->getBaseQuery()
-            ->select(
-                'rvah.ID as id',
-                'rvah.MUID as supervisor_code',
-                'rvah.MUNAME as supervisor_name',
-                'rvah.CUSTNO as custno',
-                'rvah.CUSTNAME as custname',
-                'rvah.CUSTADD1 as address',
-                'l.pilar as pilar',
-                'l.target as target',
-                DB::raw('rvah."TANGGAL"::date as tanggal'),
-                DB::raw('(rvah."TIME_IN"::timestamp)::time as time_in'),
-                DB::raw('(rvah."TIME_OUT"::timestamp)::time as time_out'),
-                DB::raw('rvah."TIME_CONSUME"::time as time_consume'),
-                DB::raw('rvah."TIME_TRAVEL"::time as time_travel'),
-                DB::raw('rvah."TIME_PAUSE"::time as time_pause'),
-                'rvah.ORDER_QTY as qty_order',
-                'rvah.ORDER_VAL as val_order',
-                'rvah.FLAG_PJP as flag_pjp',
-                'rvah.FLAG_VISIT as flag_visit',
-                'rvah.FLAG_EC as flag_ec',
-                'rvah.FLAG_BUY as flag_buy',
-                'rvah.FLAG_PAUSE as flag_pause',
-                'rvah.M_LA as master_lat',
-                'rvah.M_LG as master_lon',
-                'rvah.V_LA as visit_lat',
-                'rvah.V_LG as visit_lon',
-                'rvar.REASON_TYPE as reason_type',
-                'rvar.REASON_DESC as reason_desc',
-                'rak.remark as action_remark'
-            )
-            ->leftJoin('rpt_visit_an_r as rvar', function($join) {
-                $join->on('rvah.ID', '=', 'rvar.HID')
-                     ->on('rvah.MUID', '=', 'rvar.MUID')
-                     ->on('rvah.CUSTNO', '=', 'rvar.CUSTNO')
-                     ->on(DB::raw('rvah."TANGGAL"::date'), '=', 'rvar.TANGGAL');
-            })
-            ->leftJoin('remark_analisa_kunjungan as rak', function($join) {
-                $join->on('rvah.ID', '=', 'rak.visit_id')
-                     ->on('rvah.MUID', '=', 'rak.muid')
-                     ->on('rvah.CUSTNO', '=', 'rak.custno')
-                     ->on(DB::raw('rvah."TANGGAL"::date'), '=', 'rak.tanggal');
-            })
-            ->leftJoin('list_toko_pareto_team_elite as l', 'l.customer_code_prc', '=', 'rvah.CUSTNO');
+        $query = $this->getDetailQuery();
 
-        $query->orderBy(DB::raw('rvah."TANGGAL"::date'), 'asc')
-              ->orderBy('rvah.ID', 'asc');
-
-        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\AnalisaKunjunganExport($query), 'analisa_kunjungan_' . date('Ymd_His') . '.xlsx');
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\AnalisaKunjunganExport($query, $this->filterDepo), 'analisa_kunjungan_' . date('Ymd_His') . '.xlsx');
     }
 
     public function exportSummary()
@@ -504,22 +638,134 @@ class Index extends Component
         return $grouped;
     }
 
-    public function getDistance($lat1, $lon1, $lat2, $lon2)
+    public static function isBriefingOrEvaluasi(?string $custno, ?string $custname = null): bool
     {
-        if (!$lat1 || !$lon1 || !$lat2 || !$lon2) return 0;
+        if (!empty($custno)) {
+            $upperNo = strtoupper(trim($custno));
+            if (str_starts_with($upperNo, 'BRIEF') 
+                || str_starts_with($upperNo, 'BRIF') 
+                || str_starts_with($upperNo, 'EVAL') 
+                || str_starts_with($upperNo, 'EVA')
+                || str_starts_with($upperNo, 'BRF')
+                || str_starts_with($upperNo, 'BRV')) {
+                return true;
+            }
+        }
+        if (!empty($custname)) {
+            $upperName = strtoupper(trim($custname));
+            if (str_contains($upperName, 'BRIEFING') 
+                || str_contains($upperName, 'BRIFING') 
+                || str_contains($upperName, 'BRIVING') 
+                || str_contains($upperName, 'EVALUASI')
+                || str_starts_with($upperName, 'BRIEF ')
+                || str_starts_with($upperName, 'EVAL ')) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static function cleanCoordinate($rawLat, $rawLon): ?array
+    {
+        if ($rawLat === null || $rawLon === null) return null;
+
+        $strLat = trim(str_replace(',', '.', (string)$rawLat));
+        $strLon = trim(str_replace(',', '.', (string)$rawLon));
+
+        if ($strLat === '' || $strLon === '') return null;
+        if (!is_numeric($strLat) || !is_numeric($strLon)) return null;
+
+        $lat = (float)$strLat;
+        $lon = (float)$strLon;
+
+        if (is_nan($lat) || is_nan($lon) || is_infinite($lat) || is_infinite($lon)) {
+            return null;
+        }
+
+        if (abs($lat) < 0.000001 && abs($lon) < 0.000001) {
+            return null;
+        }
+
+        if (abs($lat) > 90 && abs($lon) <= 90) {
+            $tmp = $lat;
+            $lat = $lon;
+            $lon = $tmp;
+        }
+
+        if ($lat < -90 || $lat > 90 || $lon < -180 || $lon > 180) {
+            return null;
+        }
+
+        return [
+            'lat' => round($lat, 8),
+            'lon' => round($lon, 8),
+        ];
+    }
+
+    public static function calculateDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        $c1 = self::cleanCoordinate($lat1, $lon1);
+        $c2 = self::cleanCoordinate($lat2, $lon2);
+        if (!$c1 || !$c2) return 0;
         
         $earthRadius = 6371000; // in meters
-        $latFrom = deg2rad((float)$lat1);
-        $lonFrom = deg2rad((float)$lon1);
-        $latTo = deg2rad((float)$lat2);
-        $lonTo = deg2rad((float)$lon2);
+        $latFrom = deg2rad($c1['lat']);
+        $lonFrom = deg2rad($c1['lon']);
+        $latTo = deg2rad($c2['lat']);
+        $lonTo = deg2rad($c2['lon']);
 
         $latDelta = $latTo - $latFrom;
         $lonDelta = $lonTo - $lonFrom;
 
-        $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
-            cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
-        return round($angle * $earthRadius); // in meters
+        $val = pow(sin($latDelta / 2), 2) + cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2);
+        $val = max(0.0, min(1.0, $val));
+        $angle = 2 * asin(sqrt($val));
+        
+        $distance = round($angle * $earthRadius);
+        return (is_nan($distance) || is_infinite($distance)) ? 0 : (int)$distance;
+    }
+
+    public static function parseSecondsFromTimeString($timeStr)
+    {
+        if (empty($timeStr)) return 0;
+        if (preg_match('/^(\d{1,2}):(\d{2}):(\d{2})/', $timeStr, $m)) {
+            return ($m[1] * 3600) + ($m[2] * 60) + (int)$m[3];
+        }
+        return 0;
+    }
+
+    public static function formatDurationSeconds($sec)
+    {
+        if (!$sec || $sec <= 0) return '0m';
+        $h = floor($sec / 3600);
+        $m = round(($sec % 3600) / 60);
+        if ($h > 0) {
+            return "{$h}j {$m}m";
+        }
+        return "{$m}m";
+    }
+
+    public static function formatTimeStringHuman($timeStr)
+    {
+        if (empty($timeStr) || $timeStr === '-' || $timeStr === '00:00:00') return '-';
+        $sec = self::parseSecondsFromTimeString($timeStr);
+        if ($sec <= 0) return '-';
+        $h = floor($sec / 3600);
+        $m = floor(($sec % 3600) / 60);
+        $s = $sec % 60;
+        
+        if ($h > 0) {
+            return "{$h}j {$m}m";
+        }
+        if ($m > 0) {
+            return $s > 0 ? "{$m}m {$s}d" : "{$m}m";
+        }
+        return "{$s}d";
+    }
+
+    public function getDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        return self::calculateDistance($lat1, $lon1, $lat2, $lon2);
     }
 
     protected function getBaseQuery()
@@ -578,13 +824,8 @@ class Index extends Component
         return $query;
     }
 
-    #[Computed]
-    public function dataKunjungan()
+    protected function getDetailQuery()
     {
-        if (empty($this->appliedRegion) && empty($this->appliedArea) && empty($this->appliedSupervisor)) {
-            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, 300);
-        }
-
         $query = $this->getBaseQuery()
             ->select(
                 'rvah.ID as id',
@@ -614,7 +855,11 @@ class Index extends Component
                 'rvah.V_LG as visit_lon',
                 'rvar.REASON_TYPE as reason_type',
                 'rvar.REASON_DESC as reason_desc',
-                'rak.remark as action_remark'
+                'rak.remark as action_remark',
+                't.siso_code as siso_code',
+                't.area_code as area_code',
+                't.region_code as region_code',
+                'l.distributor_code as toko_distributor_code'
             )
             ->leftJoin('rpt_visit_an_r as rvar', function($join) {
                 $join->on('rvah.ID', '=', 'rvar.HID')
@@ -630,10 +875,362 @@ class Index extends Component
             })
             ->leftJoin('list_toko_pareto_team_elite as l', 'l.customer_code_prc', '=', 'rvah.CUSTNO');
 
+        if (!empty($this->search)) {
+            $term = trim($this->search);
+            $query->where(function($q) use ($term) {
+                $q->where('rvah.CUSTNO', 'ilike', "%{$term}%")
+                  ->orWhere('rvah.CUSTNAME', 'ilike', "%{$term}%")
+                  ->orWhere('rvah.CUSTADD1', 'ilike', "%{$term}%")
+                  ->orWhere('l.pilar', 'ilike', "%{$term}%")
+                  ->orWhere('rvah.MUNAME', 'ilike', "%{$term}%");
+            });
+        }
+
+        if ($this->filterVisit === 'Y') {
+            $query->where('rvah.FLAG_VISIT', 'Y');
+        } elseif ($this->filterVisit === 'N') {
+            $query->where(function($q) {
+                $q->where('rvah.FLAG_VISIT', '!=', 'Y')
+                  ->orWhereNull('rvah.FLAG_VISIT');
+            });
+        }
+
+        if ($this->filterEc === 'Y') {
+            $query->where('rvah.FLAG_EC', 'Y');
+        } elseif ($this->filterEc === 'N') {
+            $query->where(function($q) {
+                $q->where('rvah.FLAG_EC', '!=', 'Y')
+                  ->orWhereNull('rvah.FLAG_EC');
+            });
+        }
+
+        if ($this->filterPjp === 'Y' || $this->filterPjp === 'R') {
+            $query->whereIn('rvah.FLAG_PJP', ['R', 'Y']);
+        } elseif ($this->filterPjp === 'N') {
+            $query->where(function($q) {
+                $q->whereNotIn('rvah.FLAG_PJP', ['R', 'Y'])
+                  ->orWhereNull('rvah.FLAG_PJP');
+            });
+        }
+
+        $distanceSql = "
+            (ACOS(
+                LEAST(1.0, GREATEST(-1.0, 
+                    SIN(RADIANS(rvah.\"V_LA\")) * 
+                    SIN(RADIANS(rvah.\"M_LA\")) + 
+                    COS(RADIANS(rvah.\"V_LA\")) * 
+                    COS(RADIANS(rvah.\"M_LA\")) * 
+                    COS(RADIANS(rvah.\"V_LG\" - rvah.\"M_LG\"))
+                ))
+            ) * 6371000)
+        ";
+
+        if ($this->filterDistance === 'within') {
+            $query->whereNotNull('rvah.V_LA')
+                  ->where('rvah.V_LA', '!=', 0)
+                  ->whereNotNull('rvah.M_LA')
+                  ->where('rvah.M_LA', '!=', 0)
+                  ->whereNotNull('rvah.V_LG')
+                  ->whereNotNull('rvah.M_LG')
+                  ->whereRaw("{$distanceSql} <= 50");
+        } elseif ($this->filterDistance === 'out') {
+            $query->whereNotNull('rvah.V_LA')
+                  ->where('rvah.V_LA', '!=', 0)
+                  ->whereNotNull('rvah.M_LA')
+                  ->where('rvah.M_LA', '!=', 0)
+                  ->whereNotNull('rvah.V_LG')
+                  ->whereNotNull('rvah.M_LG')
+                  ->whereRaw("{$distanceSql} > 50");
+        }
+
+        if ($this->filterReason === 'with') {
+            $query->where(function($q) {
+                $q->whereNotNull('rvar.REASON_TYPE')
+                  ->orWhereNotNull('rvar.REASON_DESC');
+            });
+        } elseif ($this->filterReason === 'without') {
+            $query->whereNull('rvar.REASON_TYPE')
+                  ->whereNull('rvar.REASON_DESC');
+        }
+
         $query->orderBy(DB::raw('rvah."TANGGAL"::date'), 'asc')
               ->orderBy('rvah.ID', 'asc');
 
-        return $query->paginate(300);
+        return $query;
+    }
+
+    #[Computed]
+    public function dailyData()
+    {
+        if (empty($this->appliedRegion) && empty($this->appliedArea) && empty($this->appliedSupervisor)) {
+            return [
+                'summaries' => collect(),
+                'grandTotal' => null,
+            ];
+        }
+
+        $rawRows = $this->getDetailQuery()->get();
+
+        // Ambil daftar titik koordinat seluruh depo / distributor aktif
+        $allDepos = DB::table('master_distributors as md')
+            ->whereNotNull('md.latitude')
+            ->whereNotNull('md.longitude')
+            ->where('md.latitude', '!=', 0)
+            ->where('md.longitude', '!=', 0)
+            ->select('md.distributor_code', 'md.distributor_name', 'md.supervisor_code', 'md.area_code', 'md.region_code', 'md.latitude', 'md.longitude')
+            ->get();
+
+        // Evaluasi jarak ke Depo untuk setiap baris kunjungan
+        foreach ($rawRows as $item) {
+            $isBriefingEva = self::isBriefingOrEvaluasi($item->custno, $item->custname);
+            $cleanVisit = self::cleanCoordinate($item->visit_lat, $item->visit_lon);
+            $item->is_briefing_eva = $isBriefingEva;
+            $item->is_at_depo = false;
+            $item->dist_to_depo = null;
+            $item->depo_name = null;
+            $item->depo_lat = null;
+            $item->depo_lon = null;
+
+            if ($cleanVisit && $allDepos->isNotEmpty()) {
+                // Prioritaskan depo milik SPV ini
+                $spvDepos = $allDepos->where('supervisor_code', $item->siso_code);
+                if ($spvDepos->isEmpty() && !empty($item->area_code)) {
+                    $spvDepos = $allDepos->where('area_code', $item->area_code);
+                }
+                if ($spvDepos->isEmpty()) {
+                    $spvDepos = $allDepos;
+                }
+
+                $closest = null;
+                $minDist = null;
+                foreach ($spvDepos as $depo) {
+                    $d = self::calculateDistance($cleanVisit['lat'], $cleanVisit['lon'], $depo->latitude, $depo->longitude);
+                    if ($d !== null && ($minDist === null || $d < $minDist)) {
+                        $minDist = (int)$d;
+                        $closest = $depo;
+                    }
+                }
+
+                // Cek jika ada depo lain yang berada dalam radius <= 100m
+                if ($minDist === null || $minDist > 100) {
+                    foreach ($allDepos as $depo) {
+                        $d = self::calculateDistance($cleanVisit['lat'], $cleanVisit['lon'], $depo->latitude, $depo->longitude);
+                        if ($d !== null && $d <= 100) {
+                            $minDist = (int)$d;
+                            $closest = $depo;
+                            break;
+                        }
+                    }
+                }
+
+                if ($closest !== null && $minDist !== null) {
+                    $item->dist_to_depo = $minDist;
+                    $item->depo_name = trim(preg_replace('/[\r\n\t]+/', ' ', (string)$closest->distributor_name));
+                    $item->depo_lat = $closest->latitude;
+                    $item->depo_lon = $closest->longitude;
+                    // Abaikan briefing pagi & evaluasi sore karena memang dilakukan di distributor/depo
+                    $item->is_at_depo = (!$isBriefingEva && $item->flag_visit === 'Y' && $minDist <= 100);
+                }
+            }
+        }
+
+        // Terapkan filter lokasi depo jika dipilih
+        if ($this->filterDepo === 'at_depo') {
+            $rawRows = $rawRows->filter(fn($i) => $i->is_at_depo);
+        } elseif ($this->filterDepo === 'not_depo') {
+            $rawRows = $rawRows->filter(fn($i) => !$i->is_at_depo && !$i->is_briefing_eva);
+        }
+
+        $summaries = $rawRows->groupBy('tanggal')->map(function ($items, $tanggal) {
+            $totalCall = $items->count();
+            $pc = $items->filter(fn($i) => in_array($i->flag_pjp, ['R', 'Y']))->count();
+            $xc = $totalCall - $pc;
+            $visited = $items->where('flag_visit', 'Y');
+            $totalVisit = $visited->count();
+            $visitPercent = $totalCall > 0 ? round(($totalVisit / $totalCall) * 100, 1) : 0;
+            
+            $ec = $items->where('flag_ec', 'Y');
+            $totalEc = $ec->count();
+            $ecPercent = $totalVisit > 0 ? round(($totalEc / $totalVisit) * 100, 1) : 0;
+            $totalTarget = (float) $items->sum('target');
+            $totalValOrder = (float) $items->sum('val_order');
+            
+            // Sort items by time_in (kunjungan dengan jam masuk diutamakan)
+            $sortedItems = $items->sortBy(fn($i) => !empty($i->time_in) ? $i->time_in : '99:99:99')->values();
+            $firstIn = $sortedItems->first(fn($i) => !empty($i->time_in))?->time_in;
+            $lastOut = $sortedItems->filter(fn($i) => !empty($i->time_out))->sortByDesc('time_out')->first()?->time_out;
+            
+            // Work duration
+            $workDurationStr = '-';
+            $workDurationSec = 0;
+            if ($firstIn && $lastOut) {
+                $secIn = self::parseSecondsFromTimeString($firstIn);
+                $secOut = self::parseSecondsFromTimeString($lastOut);
+                if ($secOut >= $secIn) {
+                    $workDurationSec = $secOut - $secIn;
+                    $workDurationStr = self::formatDurationSeconds($workDurationSec);
+                }
+            }
+
+            // Distances & item enhancements
+            $outOfRadiusCount = 0;
+            $rowNum = 1;
+            foreach ($sortedItems as $item) {
+                $item->row_num = $rowNum++;
+                $dist = self::calculateDistance($item->master_lat, $item->master_lon, $item->visit_lat, $item->visit_lon);
+                $item->distance = (int)$dist;
+
+                $isPjpVisited = (in_array($item->flag_pjp, ['R', 'Y']) && $item->flag_visit === 'Y');
+                $item->is_out_of_radius = ($isPjpVisited && $dist > 50);
+                if ($item->is_out_of_radius) {
+                    $outOfRadiusCount++;
+                }
+
+                $item->time_consume_human = self::formatTimeStringHuman($item->time_consume);
+                $item->time_travel_human = self::formatTimeStringHuman($item->time_travel);
+                $item->time_pause_human = self::formatTimeStringHuman($item->time_pause);
+                $item->time_in_fmt = !empty($item->time_in) ? substr($item->time_in, 0, 5) : '-';
+                $item->time_out_fmt = !empty($item->time_out) ? substr($item->time_out, 0, 5) : '-';
+            }
+
+            // Map points for daily route
+            $mapPoints = [];
+            $routeSeq = 1;
+            foreach ($sortedItems as $item) {
+                if ($item->flag_visit === 'Y') {
+                    $cleanCoord = self::cleanCoordinate($item->visit_lat, $item->visit_lon);
+                    if ($cleanCoord) {
+                        $cleanCustName = trim(preg_replace('/[\r\n\t]+/', ' ', (string)$item->custname));
+                        $mapPoints[] = [
+                            'seq' => $routeSeq++,
+                            'lat' => $cleanCoord['lat'],
+                            'lon' => $cleanCoord['lon'],
+                            'custno' => (string)($item->custno ?? ''),
+                            'name' => $cleanCustName !== '' ? $cleanCustName : 'Toko #' . $item->row_num,
+                            'spv' => (string)($item->supervisor_name ?? ''),
+                            'date' => $tanggal,
+                            'time_in' => $item->time_in_fmt,
+                            'time_out' => $item->time_out_fmt,
+                            'time_consume' => $item->time_consume_human,
+                            'order_val' => (float) ($item->val_order ?? 0),
+                            'flag_ec' => $item->flag_ec,
+                            'is_at_depo' => $item->is_at_depo,
+                            'is_briefing_eva' => $item->is_briefing_eva,
+                            'dist_to_depo' => $item->dist_to_depo,
+                            'depo_name' => $item->depo_name,
+                        ];
+                    }
+                }
+            }
+
+            // Time sums (in seconds)
+            $consumeSec = 0;
+            $travelSec = 0;
+            foreach ($sortedItems as $item) {
+                $consumeSec += self::parseSecondsFromTimeString($item->time_consume);
+                $travelSec += self::parseSecondsFromTimeString($item->time_travel);
+            }
+
+            $totalActiveSec = $consumeSec + $travelSec;
+            $consumePercent = $totalActiveSec > 0 ? (int) round(($consumeSec / $totalActiveSec) * 100) : 50;
+            $travelPercent = 100 - $consumePercent;
+
+            $carbonDate = \Carbon\Carbon::parse($tanggal);
+            $isWeekend = $carbonDate->isSaturday() || $carbonDate->isSunday();
+            $isSaturday = $carbonDate->isSaturday();
+
+            return (object) [
+                'tanggal' => $tanggal,
+                'carbon_date' => $carbonDate,
+                'day_name' => $carbonDate->locale('id')->translatedFormat('l'),
+                'formatted_date' => $carbonDate->locale('id')->translatedFormat('d M Y'),
+                'is_weekend' => $isWeekend,
+                'is_saturday' => $isSaturday,
+                'total_call' => $totalCall,
+                'pc' => $pc,
+                'xc' => $xc,
+                'total_visit' => $totalVisit,
+                'visit_percent' => $visitPercent,
+                'total_ec' => $totalEc,
+                'ec_percent' => $ecPercent,
+                'total_target' => $totalTarget,
+                'total_val_order' => $totalValOrder,
+                'first_time_in' => $firstIn ? substr($firstIn, 0, 5) : '-',
+                'last_time_out' => $lastOut ? substr($lastOut, 0, 5) : '-',
+                'work_duration_sec' => $workDurationSec,
+                'work_duration_str' => $workDurationStr,
+                'consume_sec' => $consumeSec,
+                'consume_str' => self::formatDurationSeconds($consumeSec),
+                'travel_sec' => $travelSec,
+                'travel_str' => self::formatDurationSeconds($travelSec),
+                'consume_percent' => $consumePercent,
+                'travel_percent' => $travelPercent,
+                'out_of_radius_count' => $outOfRadiusCount,
+                'at_depo_count' => $items->where('is_at_depo', true)->count(),
+                'map_points' => $mapPoints,
+                'items' => $sortedItems,
+            ];
+        });
+
+        // Grand Total across all dates
+        $grandTotal = null;
+        if ($summaries->isNotEmpty()) {
+            $totCalls = $summaries->sum('total_call');
+            $totPc = $summaries->sum('pc');
+            $totXc = $summaries->sum('xc');
+            $totVisits = $summaries->sum('total_visit');
+            $totEc = $summaries->sum('total_ec');
+            $totTarget = $summaries->sum('total_target');
+            $totVal = $summaries->sum('total_val_order');
+            $totConsumeSec = $summaries->sum('consume_sec');
+            $totTravelSec = $summaries->sum('travel_sec');
+            $totOutOfRadius = $summaries->sum('out_of_radius_count');
+            $totAtDepo = $summaries->sum('at_depo_count');
+            $totDays = $summaries->count();
+
+            $totWorkSec = $summaries->sum('work_duration_sec');
+            $avgWorkSec = $totDays > 0 ? (int) round($totWorkSec / $totDays) : 0;
+            $avgWorkStr = self::formatDurationSeconds($avgWorkSec);
+
+            $totActiveSec = $totConsumeSec + $totTravelSec;
+            $totConsumePercent = $totActiveSec > 0 ? (int) round(($totConsumeSec / $totActiveSec) * 100) : 50;
+            $totTravelPercent = 100 - $totConsumePercent;
+
+            $grandTotal = (object) [
+                'total_days' => $totDays,
+                'total_call' => $totCalls,
+                'pc' => $totPc,
+                'xc' => $totXc,
+                'total_visit' => $totVisits,
+                'visit_percent' => $totCalls > 0 ? round(($totVisits / $totCalls) * 100, 1) : 0,
+                'total_ec' => $totEc,
+                'ec_percent' => $totVisits > 0 ? round(($totEc / $totVisits) * 100, 1) : 0,
+                'total_target' => $totTarget,
+                'total_val_order' => $totVal,
+                'avg_work_str' => $avgWorkStr,
+                'consume_str' => self::formatDurationSeconds($totConsumeSec),
+                'travel_str' => self::formatDurationSeconds($totTravelSec),
+                'consume_percent' => $totConsumePercent,
+                'travel_percent' => $totTravelPercent,
+                'out_of_radius_count' => $totOutOfRadius,
+                'at_depo_count' => $totAtDepo,
+            ];
+        }
+
+        return [
+            'summaries' => $summaries,
+            'grandTotal' => $grandTotal,
+        ];
+    }
+
+    #[Computed]
+    public function dataKunjungan()
+    {
+        if (empty($this->appliedRegion) && empty($this->appliedArea) && empty($this->appliedSupervisor)) {
+            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, 300);
+        }
+
+        return $this->getDetailQuery()->paginate(300);
     }
 
     #[Computed]
@@ -833,7 +1430,8 @@ class Index extends Component
     public function render()
     {
         return view('livewire.report.analisa-kunjungan.index', [
-            'dataKunjungan' => $this->dataKunjungan
+            'dailyData' => $this->dailyData,
+            'dataKunjungan' => $this->dataKunjungan,
         ])->layout('layouts.app');
     }
 }

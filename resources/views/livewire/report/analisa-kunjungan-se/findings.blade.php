@@ -35,6 +35,12 @@
         <x-ui.tab-item :active="true" :href="route('report.analisa-kunjungan-se.findings', $tabParams)" :navigate="true">
             <x-heroicon-o-exclamation-triangle class="w-4 h-4 inline-block mr-1 text-warning" /> Temuan
         </x-ui.tab-item>
+        <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.tracking', $tabParams)" :navigate="true">
+            <x-heroicon-o-clipboard-document-check class="w-4 h-4 inline-block mr-1 text-primary" /> Tracking Toko
+        </x-ui.tab-item>
+        <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.raport', $tabParams)" :navigate="true">
+            <x-heroicon-o-academic-cap class="w-4 h-4 inline-block mr-1 text-emerald-500" /> Raport SE
+        </x-ui.tab-item>
 
         <x-slot name="actions">
             <div class="flex items-center gap-2">
@@ -110,7 +116,7 @@
                 <span class="badge badge-error badge-xs text-white font-bold">Prioritas Audit</span>
             </div>
             <div class="text-[10px] text-base-content/60 mt-1">
-                Titik Depo ({{ $metrics->type_counts['at_distributor'] }}), Kembar ({{ $metrics->type_counts['duplicate_coord'] }}), Ghost ({{ $metrics->type_counts['ec_no_visit'] }})
+                Titik Depo ({{ $metrics->type_counts['at_distributor'] }}), Kembar ({{ $metrics->type_counts['duplicate_coord'] }})
             </div>
         </div>
 
@@ -362,20 +368,6 @@
                     class="btn btn-xs rounded-lg transition-all {{ $typeFilter === 'duplicate_coord' ? 'btn-error text-white font-bold shadow-2xs' : 'btn-ghost text-rose-600 border border-rose-300 hover:bg-rose-50' }}"
                     title="Titik GPS identik/kembar (toleransi ≤ 3m) untuk toko yang berbeda di hari yang sama">
                     📑 Koordinat Kembar ({{ $metrics->type_counts['duplicate_coord'] }})
-                </button>
-
-                <button type="button" 
-                    wire:click="setTypeFilter('ec_no_visit')"
-                    class="btn btn-xs rounded-lg transition-all {{ $typeFilter === 'ec_no_visit' ? 'btn-error text-white font-bold shadow-2xs' : 'btn-ghost text-rose-600 border border-rose-300 hover:bg-rose-50' }}"
-                    title="Tercatat transaksi EC tetapi toko tidak dikunjungi fisik">
-                    🛒 Order Tanpa Visit ({{ $metrics->type_counts['ec_no_visit'] }})
-                </button>
-
-                <button type="button" 
-                    wire:click="setTypeFilter('impossible_travel')"
-                    class="btn btn-xs rounded-lg transition-all {{ $typeFilter === 'impossible_travel' ? 'btn-error text-white font-bold shadow-2xs' : 'btn-ghost text-rose-600 border border-rose-300 hover:bg-rose-50' }}"
-                    title="Kecepatan perpindahan antar toko tidak masuk akal (> 120 km/jam)">
-                    ⚡ Teleportasi ({{ $metrics->type_counts['impossible_travel'] }})
                 </button>
 
                 <button type="button" 
@@ -654,6 +646,10 @@
                                                                             <div class="text-amber-600 font-mono font-semibold" title="Jarak Kunjungan ke Titik Master Toko">
                                                                                 Master: {{ number_format($item->dist_to_master, 0, ',', '.') }}m
                                                                             </div>
+                                                                        @elseif(!$item->clean_master)
+                                                                            <div class="text-rose-500 font-mono font-semibold text-[10px]" title="Toko Tidak Memiliki Koordinat Master (0, 0)">
+                                                                                Master: Kosong (0, 0)
+                                                                            </div>
                                                                         @endif
                                                                     </td>
 
@@ -696,6 +692,7 @@
                                                                                     'distributor_point' => $item->distributor_point,
                                                                                     'dist_to_distributor' => $item->dist_to_distributor,
                                                                                     'dist_to_master' => $item->dist_to_master,
+                                                                                    'dist_master_to_distributor' => $item->dist_master_to_distributor ?? null,
                                                                                 ];
                                                                             @endphp
 
@@ -872,6 +869,11 @@
                             <div class="flex items-center gap-1">
                                 <span class="text-base-content/60">Jarak ke Master:</span>
                                 <strong class="font-mono text-amber-600 font-bold" x-text="Number(activeFinding.dist_to_master).toLocaleString('id-ID') + ' m'"></strong>
+                            </div>
+                        </template>
+                        <template x-if="activeFinding && (!activeFinding.master_lat || activeFinding.master_lat == 0)">
+                            <div class="flex items-center gap-1">
+                                <span class="badge badge-error badge-xs text-white font-bold py-1.5 px-2">Master GPS: Kosong (0, 0)</span>
                             </div>
                         </template>
                     </div>

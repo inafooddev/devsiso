@@ -563,7 +563,7 @@ class Findings extends Component
     public function getCacheKey(): string
     {
         $userId = auth()->id() ?? 'guest';
-        return "se_findings_{$userId}_{$this->appliedRegion}_{$this->appliedArea}_{$this->appliedDistributor}_{$this->appliedSalesman}_{$this->appliedStartDate}_{$this->appliedEndDate}";
+        return "se_findings_v4_{$userId}_{$this->appliedRegion}_{$this->appliedArea}_{$this->appliedDistributor}_{$this->appliedSalesman}_{$this->appliedStartDate}_{$this->appliedEndDate}";
     }
 
     #[Computed]
@@ -677,6 +677,8 @@ class Findings extends Component
             $visitCount = $visited->count();
 
             // 1. Koordinat Kembar (Duplicate Coordinates) dalam 1 hari untuk toko berbeda
+            // Smart Market Filter: Kunjungan di area pasar/kluster toko yang sah (kedua master valid <= 100m dan jeda waktu wajar)
+            // otomatis dikecualikan dari anomali agar tidak menimbulkan false positive pada toko-toko berdekatan di pasar.
             $duplicateMap = [];
             for ($i = 0; $i < $visitCount; $i++) {
                 $p1 = $visited[$i];
@@ -691,30 +693,35 @@ class Findings extends Component
 
                         $d = self::calculateDistance($c1['lat'], $c1['lon'], $c2['lat'], $c2['lon']);
                         if ($d <= 3) {
-                            $duplicateMap[$p1->id][] = $p2->custname . ($d > 0 ? " ({$d}m)" : " (0m)");
-                            $duplicateMap[$p2->id][] = $p1->custname . ($d > 0 ? " ({$d}m)" : " (0m)");
+                            $m1 = self::cleanCoordinate($p1->master_lat, $p1->master_lon);
+                            $m2 = self::cleanCoordinate($p2->master_lat, $p2->master_lon);
+
+                            $t1 = !empty($p1->time_in) ? strtotime($p1->tanggal . ' ' . $p1->time_in) : null;
+                            $t2 = !empty($p2->time_in) ? strtotime($p2->tanggal . ' ' . $p2->time_in) : null;
+                            $timeDiff = ($t1 && $t2) ? abs($t1 - $t2) : null;
+
+                            // Jika kedua master toko valid dan berdekatan (radius irisan geofence <= 100m) serta jeda waktu wajar (>= 2 menit),
+                            // ini adalah KUNJUNGAN PASAR/KLUSTER YANG SAH -> Abaikan (bukan anomali)
+                            if ($m1 && $m2) {
+                                $dMaster = self::calculateDistance($m1['lat'], $m1['lon'], $m2['lat'], $m2['lon']);
+                                if ($dMaster <= 100 && ($timeDiff === null || $timeDiff >= 120)) {
+                                    continue; // Valid kunjungan pasar, lewati
+                                }
+                            }
+
+                            // Keterangan spesifik mengapa terdeteksi anomali
+                            $reason = '';
+                            if (!$m1 || !$m2) {
+                                $reason = ' (Master GPS kosong)';
+                            } elseif ($timeDiff !== null && $timeDiff < 120) {
+                                $reason = " (Check-in instan: {$timeDiff}d)";
+                            } elseif (isset($dMaster)) {
+                                $reason = " (Jarak master {$dMaster}m)";
+                            }
+
+                            $duplicateMap[$p1->id][] = $p2->custname . ($d > 0 ? " ({$d}m{$reason})" : " (0m{$reason})");
+                            $duplicateMap[$p2->id][] = $p1->custname . ($d > 0 ? " ({$d}m{$reason})" : " (0m{$reason})");
                         }
-                    }
-                }
-            }
-
-            // 2. Teleportasi / Perjalanan Mustahil (> 3km dalam <= 60 detik)
-            $teleportMap = [];
-            $sortedVisited = $visited->filter(fn($x) => !empty($x->time_in))->sortBy('time_in')->values();
-            for ($k = 0; $k < $sortedVisited->count() - 1; $k++) {
-                $curr = $sortedVisited[$k];
-                $next = $sortedVisited[$k + 1];
-
-                $cCurr = self::cleanCoordinate($curr->visit_lat, $curr->visit_lon);
-                $cNext = self::cleanCoordinate($next->visit_lat, $next->visit_lon);
-
-                if ($cCurr && $cNext) {
-                    $distMeters = self::calculateDistance($cCurr['lat'], $cCurr['lon'], $cNext['lat'], $cNext['lon']);
-                    $travelSec = self::parseSecondsFromTimeString($next->time_travel);
-
-                    if ($distMeters >= 3000 && $travelSec > 0 && $travelSec <= 60) {
-                        $speedKmh = round(($distMeters / 1000) / ($travelSec / 3600));
-                        $teleportMap[$next->id] = "Jarak {$distMeters}m dalam {$travelSec}d ({$speedKmh} km/j)";
                     }
                 }
             }
@@ -736,14 +743,27 @@ class Findings extends Component
                     $distToMaster = self::calculateDistance($cleanVisit['lat'], $cleanVisit['lon'], $cleanMaster['lat'], $cleanMaster['lon']);
                 }
 
+                $distMasterToDepo = null;
+                if ($distPoint && $cleanMaster) {
+                    $distMasterToDepo = self::calculateDistance($cleanMaster['lat'], $cleanMaster['lon'], $distPoint['lat'], $distPoint['lon']);
+                }
+
                 // Anomali 1: Kunjungan di Titik Depo / Distributor (Radius <= 100m)
                 if ($item->flag_visit === 'Y' && $distToDepo !== null && $distToDepo <= 100) {
+                    if (!$cleanMaster) {
+                        $depoDetail = "Check-in di depo ({$distToDepo}m) • Master GPS KOSONG (0, 0) — Bebas check-in tanpa validasi radius 50m";
+                    } elseif ($distMasterToDepo !== null && $distMasterToDepo <= 100) {
+                        $depoDetail = "Check-in di depo ({$distToDepo}m) • Master Toko TERDAFTAR DI DEPO ({$distMasterToDepo}m) — Terindikasi titik master sengaja dititikkan di distributor";
+                    } else {
+                        $depoDetail = "Check-in di depo ({$distToDepo}m) • Master Toko DI LUAR DEPO ({$distMasterToDepo}m dari depo)";
+                    }
+
                     $itemAnomalies[] = [
                         'type' => 'at_distributor',
                         'label' => 'Kunjungan di Depo',
                         'severity' => 'high',
                         'icon' => 'building-office',
-                        'detail' => "Check-in berjarak {$distToDepo}m dari kantor/gudang distributor",
+                        'detail' => $depoDetail,
                     ];
                 }
 
@@ -759,29 +779,7 @@ class Findings extends Component
                     ];
                 }
 
-                // Anomali 3: Teleportasi / Perjalanan Mustahil
-                if (isset($teleportMap[$item->id])) {
-                    $itemAnomalies[] = [
-                        'type' => 'impossible_travel',
-                        'label' => 'Perjalanan Mustahil',
-                        'severity' => 'high',
-                        'icon' => 'bolt',
-                        'detail' => $teleportMap[$item->id],
-                    ];
-                }
-
-                // Anomali 4: Order Tanpa Kunjungan Fisik (Ghost Order)
-                if ($item->flag_ec === 'Y' && $item->flag_visit !== 'Y') {
-                    $itemAnomalies[] = [
-                        'type' => 'ec_no_visit',
-                        'label' => 'Order Tanpa Kunjungan',
-                        'severity' => 'high',
-                        'icon' => 'shopping-cart',
-                        'detail' => 'Tercatat transaksi Effective Call (EC) tetapi toko tidak dikunjungi',
-                    ];
-                }
-
-                // Anomali 5: Durasi Kunjungan Sangat Singkat (< 2 menit)
+                // Anomali 3: Durasi Kunjungan Sangat Singkat (< 2 menit)
                 if ($item->flag_visit === 'Y' && !empty($item->time_consume) && $item->time_consume < '00:02:00' && $item->time_consume !== '00:00:00') {
                     $consumeSec = self::parseSecondsFromTimeString($item->time_consume);
                     $itemAnomalies[] = [
@@ -793,7 +791,7 @@ class Findings extends Component
                     ];
                 }
 
-                // Anomali 6: Di Luar Radius Master Toko (> 50m)
+                // Anomali 4: Di Luar Radius Master Toko (> 50m)
                 if ($item->flag_visit === 'Y' && $item->flag_pjp === 'R' && $distToMaster !== null && $distToMaster > 50) {
                     $itemAnomalies[] = [
                         'type' => 'out_of_radius',
@@ -804,7 +802,7 @@ class Findings extends Component
                     ];
                 }
 
-                // Anomali 7: GPS Kosong / Blank
+                // Anomali 5: GPS Kosong / Blank
                 if ($item->flag_visit === 'Y' && !$cleanVisit) {
                     $itemAnomalies[] = [
                         'type' => 'no_gps',
@@ -845,6 +843,7 @@ class Findings extends Component
                         'distributor_point' => $distPoint,
                         'dist_to_distributor' => $distToDepo,
                         'dist_to_master' => $distToMaster,
+                        'dist_master_to_distributor' => $distMasterToDepo,
                         'time_consume' => $item->time_consume,
                         'time_travel' => $item->time_travel,
                         'val_order' => (float)$item->val_order,
@@ -873,8 +872,6 @@ class Findings extends Component
                 'type_counts' => [
                     'at_distributor' => 0,
                     'duplicate_coord' => 0,
-                    'impossible_travel' => 0,
-                    'ec_no_visit' => 0,
                     'quick_visit' => 0,
                     'out_of_radius' => 0,
                     'no_gps' => 0,
@@ -890,8 +887,6 @@ class Findings extends Component
         $typeCounts = [
             'at_distributor' => $all->filter(fn($x) => in_array('at_distributor', $x->anomaly_types))->count(),
             'duplicate_coord' => $all->filter(fn($x) => in_array('duplicate_coord', $x->anomaly_types))->count(),
-            'impossible_travel' => $all->filter(fn($x) => in_array('impossible_travel', $x->anomaly_types))->count(),
-            'ec_no_visit' => $all->filter(fn($x) => in_array('ec_no_visit', $x->anomaly_types))->count(),
             'quick_visit' => $all->filter(fn($x) => in_array('quick_visit', $x->anomaly_types))->count(),
             'out_of_radius' => $all->filter(fn($x) => in_array('out_of_radius', $x->anomaly_types))->count(),
             'no_gps' => $all->filter(fn($x) => in_array('no_gps', $x->anomaly_types))->count(),
@@ -937,40 +932,26 @@ class Findings extends Component
                 'severity' => 'high',
                 'order' => 2,
             ],
-            'ec_no_visit' => [
-                'type' => 'ec_no_visit',
-                'label' => 'Order Tanpa Kunjungan Fisik',
-                'description' => 'Tercatat transaksi EC tetapi toko tidak dikunjungi fisik (Ghost Visit)',
-                'severity' => 'high',
-                'order' => 3,
-            ],
-            'impossible_travel' => [
-                'type' => 'impossible_travel',
-                'label' => 'Teleportasi / Kecepatan Tidak Wajar',
-                'description' => 'Kecepatan perpindahan antar toko tidak masuk akal (> 120 km/jam)',
-                'severity' => 'high',
-                'order' => 4,
-            ],
             'quick_visit' => [
                 'type' => 'quick_visit',
                 'label' => 'Kunjungan Kilat (< 2 Menit)',
                 'description' => 'Durasi kunjungan terlalu singkat di bawah SOP (< 2 menit)',
                 'severity' => 'medium',
-                'order' => 5,
+                'order' => 3,
             ],
             'out_of_radius' => [
                 'type' => 'out_of_radius',
                 'label' => 'Di Luar Radius Master Toko (> 50m)',
                 'description' => 'Jarak check-in lebih dari 50 meter dari titik master toko',
                 'severity' => 'medium',
-                'order' => 6,
+                'order' => 4,
             ],
             'no_gps' => [
                 'type' => 'no_gps',
                 'label' => 'GPS Kosong / Blank (0, 0)',
                 'description' => 'Kunjungan tidak memiliki data koordinat GPS yang valid',
                 'severity' => 'low',
-                'order' => 7,
+                'order' => 5,
             ],
         ];
     }
