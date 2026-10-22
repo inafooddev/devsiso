@@ -10,53 +10,150 @@ use Illuminate\Support\Facades\DB;
 class ValidasiGeotagService
 {
     /**
-     * Dapatkan opsi filter (Region, Area, Distributor) yang dibatasi territory user.
+     * Dapatkan daftar Region yang dapat diakses oleh user.
      */
-    public function getFilterOptions(?User $user): array
+    public function getAccessibleRegions(?User $user = null): array
     {
         $user = $user ?: auth()->user();
         if (!$user) {
-            return ['regions' => [], 'areas' => [], 'distributors' => []];
+            return [];
         }
 
         $query = DB::table('distributor_implementasi_eskalink as die')
             ->join('master_distributors as md', 'md.distributor_code', '=', 'die.distributor_code')
             ->leftJoin('team_elite_code_mappings as te', 'te.siso_code', '=', 'md.supervisor_code')
-            ->where('md.is_active', true);
+            ->where('md.is_active', true)
+            ->whereNotNull('die.eskalink_code')
+            ->where('die.eskalink_code', '!=', '')
+            ->whereNotNull('md.region_code')
+            ->where('md.region_code', '!=', 'HOINA');
 
         $accessLevel = method_exists($user, 'getAccessLevel') ? $user->getAccessLevel() : 'nasional';
 
-        if ($accessLevel === 'supervisor') {
+        if ($accessLevel === 'supervisor' && !empty($user->supervisor_code)) {
             $query->where('te.team_elite_code', $user->supervisor_code);
-        } elseif ($accessLevel === 'area') {
-            $query->whereIn('md.area_code', (array) ($user->area_code ?? []));
-        } elseif ($accessLevel === 'region') {
-            $regions = (array) ($user->region_code ?? []);
+        } elseif ($accessLevel === 'area' && !empty($user->area_code)) {
+            $query->whereIn('md.area_code', (array) $user->area_code);
+        } elseif ($accessLevel === 'region' && !empty($user->region_code)) {
+            $regions = (array) $user->region_code;
             if (!in_array('HOINA', $regions)) {
                 $query->whereIn('md.region_code', $regions);
             }
         }
 
-        $data = $query->select(
-            'md.region_code',
-            'md.region_name',
-            'md.area_code',
-            'md.area_name',
-            'die.eskalink_code',
-            'die.distributor_name'
-        )->distinct()->get();
+        return $query->select('md.region_code', 'md.region_name')
+            ->distinct()
+            ->orderBy('md.region_name')
+            ->pluck('md.region_name', 'md.region_code')
+            ->filter()
+            ->toArray();
+    }
 
-        $regions = $data->pluck('region_name', 'region_code')->filter()->unique()->sort();
-        $areas = $data->pluck('area_name', 'area_code')->filter()->unique()->sort();
-        $distributors = $data->mapWithKeys(function ($item) {
-            $label = $item->eskalink_code . ' - ' . ($item->distributor_name ?: 'Distributor');
-            return [$item->eskalink_code => $label];
-        })->sort();
+    /**
+     * Dapatkan daftar Area yang dapat diakses oleh user, difilter berdasarkan Region (bila ada).
+     */
+    public function getAccessibleAreas(?User $user = null, ?string $regionCode = null): array
+    {
+        $user = $user ?: auth()->user();
+        if (!$user) {
+            return [];
+        }
 
+        $query = DB::table('distributor_implementasi_eskalink as die')
+            ->join('master_distributors as md', 'md.distributor_code', '=', 'die.distributor_code')
+            ->leftJoin('team_elite_code_mappings as te', 'te.siso_code', '=', 'md.supervisor_code')
+            ->where('md.is_active', true)
+            ->whereNotNull('die.eskalink_code')
+            ->where('die.eskalink_code', '!=', '')
+            ->whereNotNull('md.area_code')
+            ->where('md.region_code', '!=', 'HOINA')
+            ->where('md.area_code', '!=', 'HOINA');
+
+        $accessLevel = method_exists($user, 'getAccessLevel') ? $user->getAccessLevel() : 'nasional';
+
+        if ($accessLevel === 'supervisor' && !empty($user->supervisor_code)) {
+            $query->where('te.team_elite_code', $user->supervisor_code);
+        } elseif ($accessLevel === 'area' && !empty($user->area_code)) {
+            $query->whereIn('md.area_code', (array) $user->area_code);
+        } elseif ($accessLevel === 'region' && !empty($user->region_code)) {
+            $regions = (array) $user->region_code;
+            if (!in_array('HOINA', $regions)) {
+                $query->whereIn('md.region_code', $regions);
+            }
+        }
+
+        if (!empty($regionCode)) {
+            $query->where('md.region_code', $regionCode);
+        }
+
+        return $query->select('md.area_code', 'md.area_name')
+            ->distinct()
+            ->orderBy('md.area_name')
+            ->pluck('md.area_name', 'md.area_code')
+            ->filter()
+            ->toArray();
+    }
+
+    /**
+     * Dapatkan daftar Distributor yang dapat diakses oleh user, difilter berdasarkan Region & Area (bila ada).
+     */
+    public function getAccessibleDistributors(?User $user = null, ?string $regionCode = null, ?string $areaCode = null): array
+    {
+        $user = $user ?: auth()->user();
+        if (!$user) {
+            return [];
+        }
+
+        $query = DB::table('distributor_implementasi_eskalink as die')
+            ->join('master_distributors as md', 'md.distributor_code', '=', 'die.distributor_code')
+            ->leftJoin('team_elite_code_mappings as te', 'te.siso_code', '=', 'md.supervisor_code')
+            ->where('md.is_active', true)
+            ->whereNotNull('die.eskalink_code')
+            ->where('die.eskalink_code', '!=', '')
+            ->where('md.region_code', '!=', 'HOINA')
+            ->where('die.eskalink_code', '!=', 'HOINA');
+
+        $accessLevel = method_exists($user, 'getAccessLevel') ? $user->getAccessLevel() : 'nasional';
+
+        if ($accessLevel === 'supervisor' && !empty($user->supervisor_code)) {
+            $query->where('te.team_elite_code', $user->supervisor_code);
+        } elseif ($accessLevel === 'area' && !empty($user->area_code)) {
+            $query->whereIn('md.area_code', (array) $user->area_code);
+        } elseif ($accessLevel === 'region' && !empty($user->region_code)) {
+            $regions = (array) $user->region_code;
+            if (!in_array('HOINA', $regions)) {
+                $query->whereIn('md.region_code', $regions);
+            }
+        }
+
+        if (!empty($regionCode)) {
+            $query->where('md.region_code', $regionCode);
+        }
+        if (!empty($areaCode)) {
+            $query->where('md.area_code', $areaCode);
+        }
+
+        return $query->select('die.eskalink_code', 'die.distributor_name')
+            ->distinct()
+            ->orderBy('die.eskalink_code')
+            ->get()
+            ->mapWithKeys(function ($item) {
+                $label = $item->eskalink_code . ' - ' . ($item->distributor_name ?: 'Distributor');
+                return [$item->eskalink_code => $label];
+            })
+            ->filter()
+            ->toArray();
+    }
+
+    /**
+     * Dapatkan opsi filter (Region, Area, Distributor) yang dibatasi territory user dan cascading filter.
+     */
+    public function getFilterOptions(?User $user, ?string $regionCode = null, ?string $areaCode = null): array
+    {
         return [
-            'regions' => $regions->toArray(),
-            'areas' => $areas->toArray(),
-            'distributors' => $distributors->toArray(),
+            'regions' => $this->getAccessibleRegions($user),
+            'areas' => $this->getAccessibleAreas($user, $regionCode),
+            'distributors' => $this->getAccessibleDistributors($user, $regionCode, $areaCode),
         ];
     }
 
@@ -68,7 +165,7 @@ class ValidasiGeotagService
         $user = $user ?: auth()->user();
         $accessLevel = $user ? (method_exists($user, 'getAccessLevel') ? $user->getAccessLevel() : 'nasional') : 'nasional';
 
-        $baseRuteWhere = ["md.is_active IS TRUE"];
+        $baseRuteWhere = ["md.is_active IS TRUE", "md.region_code != 'HOINA'"];
 
         // 1. Territory Scope User
         if ($accessLevel === 'supervisor' && !empty($user->supervisor_code)) {
@@ -171,7 +268,7 @@ class ValidasiGeotagService
             GROUP BY kodecabang, ROUND(la_clean, 6), ROUND(lg_clean, 6)
             HAVING COUNT(*) > 1
         ),
-        compiled_stores AS (
+        raw_compiled_stores AS (
             SELECT 
                 b.kodecabang,
                 b.custno,
@@ -258,6 +355,19 @@ class ValidasiGeotagService
             LEFT JOIN validasi_geotag vg 
                 ON vg.kodecabang = b.kodecabang 
                AND vg.custno = b.custno
+        ),
+        compiled_stores AS (
+            SELECT 
+                r.*,
+                -- Prioritas Tunggal Anomali (Hierarchy: at_distributor > missing_coordinate > duplicate > point_changed > normal)
+                CASE 
+                    WHEN r.is_at_distributor IS TRUE THEN 'at_distributor'
+                    WHEN r.is_missing_coordinate IS TRUE THEN 'missing_coordinate'
+                    WHEN r.duplicate_count > 1 THEN 'duplicate'
+                    WHEN r.is_point_changed IS TRUE THEN 'point_changed'
+                    ELSE 'normal'
+                END AS primary_anomaly
+            FROM raw_compiled_stores r
         )
         ";
 
@@ -286,14 +396,18 @@ class ValidasiGeotagService
         }
 
         if (!empty($filters['anomaly']) && $filters['anomaly'] !== 'all') {
-            if ($filters['anomaly'] === 'at_distributor') {
-                $where[] = "is_at_distributor IS TRUE";
+            if ($filters['anomaly'] === 'no_anomaly' || $filters['anomaly'] === 'normal') {
+                $where[] = "primary_anomaly = 'normal'";
+            } elseif ($filters['anomaly'] === 'has_anomaly') {
+                $where[] = "primary_anomaly != 'normal'";
+            } elseif ($filters['anomaly'] === 'at_distributor') {
+                $where[] = "primary_anomaly = 'at_distributor'";
             } elseif ($filters['anomaly'] === 'duplicate') {
-                $where[] = "duplicate_count > 1";
+                $where[] = "primary_anomaly = 'duplicate'";
             } elseif ($filters['anomaly'] === 'point_changed') {
-                $where[] = "is_point_changed IS TRUE";
+                $where[] = "primary_anomaly = 'point_changed'";
             } elseif ($filters['anomaly'] === 'missing_coordinate') {
-                $where[] = "is_missing_coordinate IS TRUE";
+                $where[] = "primary_anomaly = 'missing_coordinate'";
             }
         }
 
@@ -326,10 +440,10 @@ class ValidasiGeotagService
             WHERE {$outerWhere} 
             ORDER BY 
                 CASE 
-                    WHEN is_at_distributor IS TRUE THEN 1
-                    WHEN duplicate_count > 1 THEN 2
-                    WHEN is_point_changed IS TRUE THEN 3
-                    WHEN is_missing_coordinate IS TRUE THEN 4
+                    WHEN primary_anomaly = 'at_distributor' THEN 1
+                    WHEN primary_anomaly = 'duplicate' THEN 2
+                    WHEN primary_anomaly = 'point_changed' THEN 3
+                    WHEN primary_anomaly = 'missing_coordinate' THEN 4
                     WHEN validation_status IS NULL THEN 5
                     ELSE 6
                 END,
@@ -361,10 +475,11 @@ class ValidasiGeotagService
             COUNT(CASE WHEN validation_status = 'VALID' THEN 1 END) AS valid_stores,
             COUNT(CASE WHEN validation_status = 'TIDAK_VALID' THEN 1 END) AS invalid_stores,
             COUNT(CASE WHEN is_missing_coordinate IS FALSE THEN 1 END) AS has_coordinate,
-            COUNT(CASE WHEN is_missing_coordinate IS TRUE THEN 1 END) AS no_coordinate,
-            COUNT(CASE WHEN is_at_distributor IS TRUE THEN 1 END) AS at_distributor,
-            COUNT(CASE WHEN duplicate_count > 1 THEN 1 END) AS duplicate_stores,
-            COUNT(CASE WHEN is_point_changed IS TRUE THEN 1 END) AS drift_stores
+            COUNT(CASE WHEN primary_anomaly = 'missing_coordinate' THEN 1 END) AS no_coordinate,
+            COUNT(CASE WHEN primary_anomaly = 'at_distributor' THEN 1 END) AS at_distributor,
+            COUNT(CASE WHEN primary_anomaly = 'duplicate' THEN 1 END) AS duplicate_stores,
+            COUNT(CASE WHEN primary_anomaly = 'point_changed' THEN 1 END) AS drift_stores,
+            COUNT(CASE WHEN primary_anomaly = 'normal' THEN 1 END) AS normal_stores
         FROM compiled_stores;
         ";
 
@@ -385,7 +500,85 @@ class ValidasiGeotagService
             'at_distributor' => $result->at_distributor ?? 0,
             'duplicate_stores' => $result->duplicate_stores ?? 0,
             'drift_stores' => $result->drift_stores ?? 0,
+            'normal_stores' => $result->normal_stores ?? 0,
         ];
+    }
+
+    /**
+     * Dapatkan matriks ringkasan (Summary) berjenjang per Distributor, Area, atau Region.
+     */
+    public function getSummaryMatrix(?User $user, array $filters = [], string $groupBy = 'distributor'): array
+    {
+        $bindings = [];
+        $cteSql = $this->buildMasterQuerySql($user, $filters, $bindings);
+
+        if ($groupBy === 'region') {
+            $select = "
+                region_name,
+                NULL as area_name,
+                NULL as kodecabang,
+                NULL as distributor_name,
+            ";
+            $group = "region_name";
+            $order = "region_name ASC";
+        } elseif ($groupBy === 'area') {
+            $select = "
+                region_name,
+                area_name,
+                NULL as kodecabang,
+                NULL as distributor_name,
+            ";
+            $group = "region_name, area_name";
+            $order = "region_name ASC, area_name ASC";
+        } else {
+            // Default: per distributor
+            $select = "
+                region_name,
+                area_name,
+                kodecabang,
+                distributor_name,
+            ";
+            $group = "region_name, area_name, kodecabang, distributor_name";
+            $order = "region_name ASC, area_name ASC, kodecabang ASC";
+        }
+
+        $having = "";
+        if (!empty($filters['search'])) {
+            $bindings['search'] = '%' . trim($filters['search']) . '%';
+            if ($groupBy === 'region') {
+                $having = "HAVING region_name ILIKE :search";
+            } elseif ($groupBy === 'area') {
+                $having = "HAVING region_name ILIKE :search OR area_name ILIKE :search";
+            } else {
+                $having = "HAVING region_name ILIKE :search OR area_name ILIKE :search OR kodecabang ILIKE :search OR distributor_name ILIKE :search";
+            }
+        }
+
+        $sql = "
+            {$cteSql}
+            SELECT 
+                {$select}
+                COUNT(*) AS total_stores,
+                COUNT(CASE WHEN is_missing_coordinate IS FALSE THEN 1 END) AS has_coordinate,
+                COUNT(CASE WHEN primary_anomaly = 'missing_coordinate' THEN 1 END) AS no_coordinate,
+                COUNT(CASE WHEN primary_anomaly = 'at_distributor' THEN 1 END) AS at_distributor,
+                COUNT(CASE WHEN primary_anomaly = 'duplicate' THEN 1 END) AS duplicate_stores,
+                COUNT(CASE WHEN primary_anomaly = 'point_changed' THEN 1 END) AS drift_stores,
+                COUNT(CASE WHEN primary_anomaly = 'normal' THEN 1 END) AS normal_stores,
+                COUNT(CASE WHEN validation_status = 'VALID' THEN 1 END) AS valid_stores,
+                COUNT(CASE WHEN validation_status = 'TIDAK_VALID' THEN 1 END) AS invalid_stores,
+                COUNT(CASE WHEN validation_status IS NULL THEN 1 END) AS unvalidated_stores,
+                ROUND(
+                    (COUNT(CASE WHEN validation_status IS NOT NULL THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100), 
+                    1
+                ) AS validation_progress_pct
+            FROM compiled_stores
+            GROUP BY {$group}
+            {$having}
+            ORDER BY {$order};
+        ";
+
+        return DB::select($sql, $bindings);
     }
 
     /**
@@ -402,6 +595,26 @@ class ValidasiGeotagService
         $detailSql = "{$cteSql} SELECT * FROM compiled_stores WHERE custno = :target_custno AND kodecabang = :target_kodecabang LIMIT 1;";
 
         return DB::selectOne($detailSql, $bindings);
+    }
+
+    /**
+     * Dapatkan daftar semua toko yang memiliki koordinat kembar/duplikat di cabang yang sama.
+     */
+    public function getDuplicateStores(?User $user, string $kodecabang, float|string $la, float|string $lg): array
+    {
+        $filters = ['distributor' => trim($kodecabang)];
+        $bindings = [];
+        $cteSql = $this->buildMasterQuerySql($user, $filters, $bindings);
+
+        $bindings['target_la'] = (string) round((float) $la, 6);
+        $bindings['target_lg'] = (string) round((float) $lg, 6);
+        $sql = "{$cteSql} 
+            SELECT * FROM compiled_stores 
+            WHERE ROUND(la, 6) = ROUND(CAST(:target_la AS numeric), 6) 
+              AND ROUND(lg, 6) = ROUND(CAST(:target_lg AS numeric), 6) 
+            ORDER BY custno ASC";
+
+        return DB::select($sql, $bindings);
     }
 
     /**

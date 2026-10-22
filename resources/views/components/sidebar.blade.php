@@ -158,7 +158,7 @@
             };
 
             $isActiveMenu = function($menuItem) use (&$isActiveMenu) {
-                if ($menuItem->route && request()->routeIs($menuItem->route)) return true;
+                if ($menuItem->route && (request()->routeIs($menuItem->route) || request()->routeIs($menuItem->route . '.*'))) return true;
                 if ($menuItem->children) {
                     foreach ($menuItem->children as $child) {
                         if ($isActiveMenu($child)) return true;
@@ -239,7 +239,7 @@
                     <!-- Level 1: No Children -->
                     @php
                         $url0 = $menu->route ? (Str::startsWith($menu->route, 'http') ? $menu->route : route($menu->route)) : '#';
-                        $isActive0 = $menu->route && request()->routeIs($menu->route);
+                        $isActive0 = $menu->route && (request()->routeIs($menu->route) || request()->routeIs($menu->route . '.*'));
                     @endphp
                     <a href="{{ $url0 }}" {!! Str::startsWith($menu->route ?? '', 'http') ? 'target="_blank"' : '' !!}
                        :title="!sidebarOpen ? '{{ $menu->name }}' : ''"
@@ -280,7 +280,7 @@
                                 <li>
                                     @php
                                         $url1 = $child1->route ? (Str::startsWith($child1->route, 'http') ? $child1->route : route($child1->route)) : '#';
-                                        $isActive1 = $child1->route && request()->routeIs($child1->route);
+                                        $isActive1 = $child1->route && (request()->routeIs($child1->route) || request()->routeIs($child1->route . '.*'));
                                     @endphp
                                     <a href="{{ $url1 }}" {!! Str::startsWith($child1->route ?? '', 'http') ? 'target="_blank"' : '' !!} 
                                        :title="!sidebarOpen ? '{{ $child1->name }}' : ''"
@@ -317,7 +317,7 @@
                                                 <li>
                                                     @php
                                                         $url2 = $child2->route ? (Str::startsWith($child2->route, 'http') ? $child2->route : route($child2->route)) : '#';
-                                                        $isActive2 = $child2->route && request()->routeIs($child2->route);
+                                                        $isActive2 = $child2->route && (request()->routeIs($child2->route) || request()->routeIs($child2->route . '.*'));
                                                     @endphp
                                                     <a href="{{ $url2 }}" {!! Str::startsWith($child2->route ?? '', 'http') ? 'target="_blank"' : '' !!} 
                                                        :title="!sidebarOpen ? '{{ $child2->name }}' : ''"
@@ -353,7 +353,7 @@
                                                             <li>
                                                                 @php
                                                                     $url3 = $child3->route ? (Str::startsWith($child3->route, 'http') ? $child3->route : route($child3->route)) : '#';
-                                                                    $isActive3 = $child3->route && request()->routeIs($child3->route);
+                                                                    $isActive3 = $child3->route && (request()->routeIs($child3->route) || request()->routeIs($child3->route . '.*'));
                                                                 @endphp
                                                                 <a href="{{ $url3 }}" {!! Str::startsWith($child3->route ?? '', 'http') ? 'target="_blank"' : '' !!} 
                                                                    :title="!sidebarOpen ? '{{ $child3->name }}' : ''"

@@ -34,6 +34,7 @@ class CheckMenuAccess
         // Route aliases for sub-pages or tabs that share parent menu access
         $routeAliases = [
             'others.perbaikantikor.elite' => 'others.perbaikantikor',
+            'others.validasi-geotag.summary' => 'others.validasi-geotag',
         ];
 
         $checkRoute = $routeAliases[$currentRouteName] ?? $currentRouteName;
