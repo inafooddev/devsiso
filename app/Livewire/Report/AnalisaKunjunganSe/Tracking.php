@@ -419,7 +419,7 @@ class Tracking extends Component
     public function getCacheKey(): string
     {
         $userId = auth()->id() ?? 'guest';
-        return "se_tracking_v1_{$userId}_{$this->appliedYear}_{$this->appliedMonth}_{$this->appliedRegion}_{$this->appliedArea}_{$this->appliedDistributor}_{$this->appliedSalesman}";
+        return "se_tracking_v2_{$userId}_{$this->appliedYear}_{$this->appliedMonth}_{$this->appliedRegion}_{$this->appliedArea}_{$this->appliedDistributor}_{$this->appliedSalesman}";
     }
 
     /**
@@ -570,6 +570,27 @@ class Tracking extends Component
             return collect();
         }
 
+        // Ambil data alasan kunjungan (rpt_visit_an_r) untuk memvalidasi toko tutup (Closed-Store Filter)
+        $startDate = sprintf('%04d-%02d-01', $this->appliedYear, $this->appliedMonth);
+        $endDate = Carbon::create($this->appliedYear, $this->appliedMonth, 1)->endOfMonth()->format('Y-m-d');
+
+        $reasonsQuery = DB::table('rpt_visit_an_r')
+            ->where('RID', '!=', 'HOINA')
+            ->where('RID', $this->appliedRegion)
+            ->where('EID', $this->appliedArea)
+            ->whereBetween('TANGGAL', [$startDate, $endDate]);
+
+        if (!empty($this->appliedDistributor)) {
+            $reasonsQuery->where('BID', $this->appliedDistributor);
+        }
+        if (!empty($this->appliedSalesman)) {
+            $reasonsQuery->where('MUID', $this->appliedSalesman);
+        }
+
+        $reasonsMap = $reasonsQuery->select('HID', 'MUID', 'CUSTNO', 'TANGGAL', 'REASON_ID', 'REASON_DESC')
+            ->get()
+            ->groupBy(fn($r) => $r->HID . '_' . $r->MUID . '_' . $r->CUSTNO . '_' . $r->TANGGAL);
+
         // 3. Deteksi Anomali Koordinat Kembar (Smart Market Filter) per sales per tanggal
         $groupedByDay = $rawRows->groupBy(fn($r) => $r->tanggal . '_' . $r->salesman_code);
         $duplicateMap = [];
@@ -678,16 +699,39 @@ class Tracking extends Component
                 ];
             }
 
-            // Anomali 3: Durasi Kunjungan Sangat Singkat (< 2 menit)
+            // Anomali 3: Durasi Kunjungan Kilat (< 2 menit)
+            // Smart Closed-Store Filter:
+            // Jika toko fisik terbukti tutup (TUTUP / BELUM BUKA / AKSES TERTUTUP) dan non-transaksi (FLAG_EC = 'N'),
+            // maka kunjungan kilat (< 2 menit) otomatis DIKECUALIKAN dari anomali (sah secara operasional).
             if ($item->flag_visit === 'Y' && !empty($item->time_consume) && $item->time_consume < '00:02:00' && $item->time_consume !== '00:00:00') {
-                $consumeSec = Findings::parseSecondsFromTimeString($item->time_consume);
-                $itemAnomalies[] = [
-                    'type' => 'quick_visit',
-                    'label' => 'Kilat',
-                    'severity' => 'medium',
-                    'icon' => 'clock',
-                    'detail' => "Kunjungan hanya {$consumeSec} detik (< 2 menit)",
-                ];
+                $reasonKey = $item->id . '_' . $item->salesman_code . '_' . $item->custno . '_' . $item->tanggal;
+                $itemReasons = $reasonsMap->get($reasonKey);
+                $reasonDesc = $itemReasons ? $itemReasons->pluck('REASON_DESC')->join(' | ') : null;
+                $isClosedStore = $reasonDesc && preg_match('/(TUTUP|BELUM BUKA|TERTUTUP)/i', $reasonDesc);
+                $isEc = ($item->flag_ec === 'Y');
+
+                if (!$isEc && $isClosedStore) {
+                    // Lolos / Sah: Sales datang namun toko fisik tutup, wajar durasi singkat (< 2 menit).
+                } else {
+                    $consumeSec = Findings::parseSecondsFromTimeString($item->time_consume);
+                    if ($isEc) {
+                        $itemAnomalies[] = [
+                            'type' => 'quick_visit',
+                            'label' => 'Kilat Bertransaksi',
+                            'severity' => 'high',
+                            'icon' => 'clock',
+                            'detail' => "Order kilat {$consumeSec} detik (< 2 menit)",
+                        ];
+                    } else {
+                        $itemAnomalies[] = [
+                            'type' => 'quick_visit',
+                            'label' => 'Kilat',
+                            'severity' => 'medium',
+                            'icon' => 'clock',
+                            'detail' => "Kunjungan hanya {$consumeSec} detik (< 2 menit)",
+                        ];
+                    }
+                }
             }
 
             // Anomali 4: Di Luar Radius Master Toko (> 50m)
@@ -995,6 +1039,30 @@ class Tracking extends Component
             'weeksMap' => $weeksMap,
             'metrics' => $metrics,
             'stores' => $stores,
+            'appliedRegion' => $this->appliedRegion,
+            'appliedArea' => $this->appliedArea,
+            'appliedDistributor' => $this->appliedDistributor,
+            'appliedSalesman' => $this->appliedSalesman,
+            'appliedYear' => $this->appliedYear,
+            'appliedMonth' => $this->appliedMonth,
+            'selectedRegion' => $this->selectedRegion,
+            'selectedArea' => $this->selectedArea,
+            'selectedDistributor' => $this->selectedDistributor,
+            'selectedSalesman' => $this->selectedSalesman,
+            'selectedYear' => $this->selectedYear,
+            'selectedMonth' => $this->selectedMonth,
+            'regions' => $this->regions,
+            'areas' => $this->areas,
+            'distributors' => $this->distributors,
+            'salesmen' => $this->salesmen,
+            'yearOptions' => $this->yearOptions,
+            'monthOptions' => $this->monthOptions,
+            'accessLevel' => $this->accessLevel,
+            'statusFilter' => $this->statusFilter,
+            'showAllStores' => $this->showAllStores,
+            'search' => $this->search,
+            'perPage' => $this->perPage,
+            'canExport' => $this->canExport,
         ])->layout('layouts.app');
     }
 }

@@ -31,7 +31,11 @@ class Raport extends Component
     public $distributors = [];
     public $salesmen = [];
     public $yearOptions = [];
-    public $monthOptions = [];
+    public $monthOptions = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+    ];
 
     // Selected Filters
     public $selectedYear;
@@ -438,7 +442,7 @@ class Raport extends Component
 
         $userScope = auth()->id() ?? 'guest';
         $roleScope = $this->accessLevel ?? 'nasional';
-        $cacheKey = "raport_full_v3_{$userScope}_{$roleScope}_{$this->appliedRegion}_{$this->appliedArea}_" . 
+        $cacheKey = "raport_full_v5_{$userScope}_{$roleScope}_{$this->appliedRegion}_{$this->appliedArea}_" . 
             ($this->appliedDistributor ?: 'all') . "_" . 
             ($this->appliedSalesman ?: 'all') . "_{$this->appliedYear}_{$this->appliedMonth}";
 
@@ -541,6 +545,8 @@ class Raport extends Component
                 $kembarCount = 0;
                 $radiusCount = 0;
                 $kilatCount = 0;
+                $kilatEcCount = 0;
+                $kilatNonEcCount = 0;
                 $noGpsCount = 0;
 
                 foreach ($seFindings as $f) {
@@ -548,7 +554,14 @@ class Raport extends Component
                     if (in_array('at_distributor', $types)) $depoCount++;
                     if (in_array('duplicate_coord', $types)) $kembarCount++;
                     if (in_array('out_of_radius', $types)) $radiusCount++;
-                    if (in_array('quick_visit', $types)) $kilatCount++;
+                    if (in_array('quick_visit', $types)) {
+                        $kilatCount++;
+                        if (($f->flag_ec ?? '') === 'Y') {
+                            $kilatEcCount++;
+                        } else {
+                            $kilatNonEcCount++;
+                        }
+                    }
                     if (in_array('no_gps', $types)) $noGpsCount++;
                 }
 
@@ -560,6 +573,14 @@ class Raport extends Component
                     $scoreP2 = 0.0;
                     $scoreP3 = 0.0;
                     $scoreP4 = 0.0;
+                    $scoreAcPc = 0.0;
+                    $scoreHariAktif = 0.0;
+                    $scoreSr = 0.0;
+                    $scoreVal = 0.0;
+                    $valRatio = 0.0;
+                    $penaltyRate = 0.0;
+                    $scoreStoreRatio = 0.0;
+                    $scoreDuration = 0.0;
                     $totalScore = 0.0;
                     $grade = 'D';
                     $gradeLabel = 'Kurang (Tidak Ada Kunjungan)';
@@ -620,7 +641,8 @@ class Raport extends Component
                     $penaltyRate = (($depoCount / $acDiv) * 100 * 3.0) + 
                                    (($kembarCount / $acDiv) * 100 * 2.5) + 
                                    (($radiusCount / $acDiv) * 100 * 1.0) + 
-                                   (($kilatCount / $acDiv) * 100 * 0.5) +
+                                   (($kilatEcCount / $acDiv) * 100 * 2.0) + 
+                                   (($kilatNonEcCount / $acDiv) * 100 * 0.5) +
                                    (($noGpsCount / $acDiv) * 100 * 0.2);
                     $scoreP3 = round(max(0, 100 - $penaltyRate), 1);
 
@@ -743,6 +765,19 @@ class Raport extends Component
                     'score_pilar_2' => round($scoreP2, 1),
                     'score_pilar_3' => round($scoreP3, 1),
                     'score_pilar_4' => round($scoreP4, 1),
+
+                    // Sub-scores for formula transparency
+                    'score_ac_pc' => round($scoreAcPc, 1),
+                    'score_hari_aktif' => round($scoreHariAktif, 1),
+                    'score_strike_rate' => round($scoreSr, 1),
+                    'score_omset' => round($scoreVal, 1),
+                    'avg_area_value' => round($avgAreaValue ?? 0),
+                    'val_ratio' => round($valRatio ?? 0, 2),
+                    'penalty_rate' => round($penaltyRate, 1),
+                    'count_kilat_ec' => $kilatEcCount,
+                    'count_kilat_non_ec' => $kilatNonEcCount,
+                    'score_store_ratio' => round($scoreStoreRatio, 1),
+                    'score_duration' => round($scoreDuration, 1),
 
                     // Total & Grade
                     'skor_total' => $totalScore,

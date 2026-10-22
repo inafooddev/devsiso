@@ -563,7 +563,7 @@ class Findings extends Component
     public function getCacheKey(): string
     {
         $userId = auth()->id() ?? 'guest';
-        return "se_findings_v4_{$userId}_{$this->appliedRegion}_{$this->appliedArea}_{$this->appliedDistributor}_{$this->appliedSalesman}_{$this->appliedStartDate}_{$this->appliedEndDate}";
+        return "se_findings_v5_{$userId}_{$this->appliedRegion}_{$this->appliedArea}_{$this->appliedDistributor}_{$this->appliedSalesman}_{$this->appliedStartDate}_{$this->appliedEndDate}";
     }
 
     #[Computed]
@@ -669,6 +669,30 @@ class Findings extends Component
             ->orderBy('rvah.ID', 'asc')
             ->get();
 
+        // Ambil data alasan kunjungan (rpt_visit_an_r) untuk memvalidasi toko tutup (Closed-Store Filter)
+        $reasonsQuery = DB::table('rpt_visit_an_r')
+            ->where('RID', '!=', 'HOINA')
+            ->where('RID', $this->appliedRegion)
+            ->where('EID', $this->appliedArea);
+
+        if (!empty($this->appliedDistributor)) {
+            $reasonsQuery->where('BID', $this->appliedDistributor);
+        }
+        if (!empty($this->appliedSalesman)) {
+            $reasonsQuery->where('MUID', $this->appliedSalesman);
+        }
+        if ($this->appliedStartDate && $this->appliedEndDate) {
+            $reasonsQuery->whereBetween('TANGGAL', [$this->appliedStartDate, $this->appliedEndDate]);
+        } elseif ($this->appliedStartDate) {
+            $reasonsQuery->where('TANGGAL', '>=', $this->appliedStartDate);
+        } elseif ($this->appliedEndDate) {
+            $reasonsQuery->where('TANGGAL', '<=', $this->appliedEndDate);
+        }
+
+        $reasonsMap = $reasonsQuery->select('HID', 'MUID', 'CUSTNO', 'TANGGAL', 'REASON_ID', 'REASON_DESC')
+            ->get()
+            ->groupBy(fn($r) => $r->HID . '_' . $r->MUID . '_' . $r->CUSTNO . '_' . $r->TANGGAL);
+
         $findingsList = [];
         $grouped = $rawRows->groupBy(fn($r) => $r->tanggal . '_' . $r->salesman_code);
 
@@ -728,6 +752,12 @@ class Findings extends Component
 
             // Pindai anomali setiap baris
             foreach ($items as $item) {
+                // Lookup Alasan Kunjungan (rpt_visit_an_r)
+                $reasonKey = $item->id . '_' . $item->salesman_code . '_' . $item->custno . '_' . $item->tanggal;
+                $itemReasons = $reasonsMap->get($reasonKey);
+                $reasonDesc = $itemReasons ? $itemReasons->pluck('REASON_DESC')->join(' | ') : null;
+                $item->reason_desc = $reasonDesc;
+
                 $itemAnomalies = [];
                 $cleanVisit = self::cleanCoordinate($item->visit_lat, $item->visit_lon);
                 $cleanMaster = self::cleanCoordinate($item->master_lat, $item->master_lon);
@@ -779,16 +809,37 @@ class Findings extends Component
                     ];
                 }
 
-                // Anomali 3: Durasi Kunjungan Sangat Singkat (< 2 menit)
+                // Anomali 3: Durasi Kunjungan Kilat (< 2 menit)
+                // Smart Closed-Store Filter:
+                // Jika toko fisik terbukti tutup (TUTUP / BELUM BUKA / AKSES TERTUTUP) dan non-transaksi (FLAG_EC = 'N'),
+                // maka kunjungan kilat (< 2 menit) otomatis DIKECUALIKAN dari anomali (sah secara operasional).
                 if ($item->flag_visit === 'Y' && !empty($item->time_consume) && $item->time_consume < '00:02:00' && $item->time_consume !== '00:00:00') {
-                    $consumeSec = self::parseSecondsFromTimeString($item->time_consume);
-                    $itemAnomalies[] = [
-                        'type' => 'quick_visit',
-                        'label' => 'Durasi Kunjungan Kilat',
-                        'severity' => 'medium',
-                        'icon' => 'clock',
-                        'detail' => "Waktu kunjungan hanya {$consumeSec} detik (< 2 menit)",
-                    ];
+                    $isClosedStore = $reasonDesc && preg_match('/(TUTUP|BELUM BUKA|TERTUTUP)/i', $reasonDesc);
+                    $isEc = ($item->flag_ec === 'Y');
+
+                    if (!$isEc && $isClosedStore) {
+                        // Lolos / Sah: Sales datang namun toko fisik tutup, wajar durasi singkat (< 2 menit).
+                    } else {
+                        $consumeSec = self::parseSecondsFromTimeString($item->time_consume);
+                        if ($isEc) {
+                            $itemAnomalies[] = [
+                                'type' => 'quick_visit',
+                                'label' => 'Durasi Kilat Bertransaksi',
+                                'severity' => 'high',
+                                'icon' => 'clock',
+                                'detail' => "Order efektif (EC) selesai hanya dalam {$consumeSec} detik (< 2 menit) — Indikasi transaksi instan",
+                            ];
+                        } else {
+                            $reasonNote = $reasonDesc ? " • Alasan: {$reasonDesc}" : '';
+                            $itemAnomalies[] = [
+                                'type' => 'quick_visit',
+                                'label' => 'Durasi Kunjungan Kilat',
+                                'severity' => 'medium',
+                                'icon' => 'clock',
+                                'detail' => "Waktu kunjungan hanya {$consumeSec} detik (< 2 menit){$reasonNote}",
+                            ];
+                        }
+                    }
                 }
 
                 // Anomali 4: Di Luar Radius Master Toko (> 50m)
@@ -849,6 +900,7 @@ class Findings extends Component
                         'val_order' => (float)$item->val_order,
                         'qty_order' => (int)$item->qty_order,
                         'flag_ec' => $item->flag_ec,
+                        'reason_desc' => $reasonDesc,
                         'flag_visit' => $item->flag_visit,
                         'flag_pjp' => $item->flag_pjp,
                     ];
@@ -986,7 +1038,8 @@ class Findings extends Component
                     || str_contains(strtolower($item->custno ?? ''), $needle)
                     || str_contains(strtolower($item->salesman_name ?? ''), $needle)
                     || str_contains(strtolower($item->distributor_name ?? ''), $needle)
-                    || str_contains(strtolower($item->address ?? ''), $needle);
+                    || str_contains(strtolower($item->address ?? ''), $needle)
+                    || str_contains(strtolower($item->reason_desc ?? ''), $needle);
             });
         }
 

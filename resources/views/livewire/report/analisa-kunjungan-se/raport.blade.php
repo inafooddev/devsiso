@@ -5,6 +5,7 @@
              this.showKpi = !this.showKpi;
              localStorage.setItem('se_raport_show_kpi', this.showKpi);
          },
+         showAuditModal: false,
          printRaport() {
              window.print();
          }
@@ -55,6 +56,14 @@
                         Rata-rata: {{ $metrics['avg_score'] }} / 100
                     </span>
                 @endif
+
+                <button type="button" 
+                    @click="$dispatch('open-audit-modal', {tab: 'formula'}); showAuditModal = true" 
+                    class="btn btn-xs sm:btn-sm btn-ghost border border-base-300 rounded-xl gap-1.5 text-base-content/75 hover:text-emerald-600 hover:border-emerald-500 font-semibold shadow-2xs cursor-pointer select-none"
+                    title="Pelajari Mekanisme & Rumus Lengkap Penilaian Raport SE (4 Pilar & Cara Hitung Manual)">
+                    <x-heroicon-m-calculator class="w-4 h-4 text-emerald-600" />
+                    <span class="text-xs hidden md:inline">Rumus & Mekanisme Nilai</span>
+                </button>
 
                 <button type="button" 
                     @click="toggleKpi()" 
@@ -842,6 +851,115 @@
                         </div>
                     </div>
 
+                    {{-- Simulasi & Rincian Hitung Manual SE Ini --}}
+                    <div x-data="{ openCalc: false }" class="bg-base-200/50 rounded-xl border border-base-300 p-3.5 space-y-3 print:bg-white print:border-gray-300">
+                        <div @click="openCalc = !openCalc" class="flex items-center justify-between cursor-pointer select-none">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0">
+                                    <x-heroicon-s-calculator class="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <span class="font-bold text-xs text-base-content block">Bongkar Rumus &amp; Hitung Manual Nilai {{ $modalData->salesman_name }}</span>
+                                    <span class="text-[10px] text-base-content/60">Lihat kalkulasi matematis langkah demi langkah bagaimana skor akhir <strong>{{ $modalData->skor_total }}</strong> didapatkan</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1.5 text-xs text-primary font-bold print:hidden">
+                                <span x-text="openCalc ? 'Tutup Kalkulasi' : 'Lihat Hitungan'"></span>
+                                <x-heroicon-m-chevron-down class="w-4 h-4 transition-transform duration-200" ::class="openCalc ? 'rotate-180' : ''" />
+                            </div>
+                        </div>
+
+                        <div x-show="openCalc" x-cloak class="pt-3 border-t border-base-300 space-y-2.5 text-[11px] font-mono leading-relaxed print:block">
+                            {{-- Step 1: Pilar 1 --}}
+                            <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 space-y-1">
+                                <div class="flex justify-between items-center text-emerald-700 dark:text-emerald-400 font-bold">
+                                    <span>Langkah 1: Pilar 1 (Produktivitas, Bobot 30%)</span>
+                                    <span>Skor: {{ $modalData->score_pilar_1 }} / 100</span>
+                                </div>
+                                <div class="text-[10.5px] text-base-content/80 space-y-0.5">
+                                    <div>&bull; Kepatuhan Rute PJP: {{ $modalData->total_ac }} / {{ $modalData->total_pc }} &times; 100% = {{ $modalData->pct_ac_pc }}% &rarr; <strong>Skor: {{ $modalData->score_ac_pc ?? $modalData->score_pilar_1 }}</strong> (Porsi 80%)</div>
+                                    <div>&bull; Hari Aktif: {{ $modalData->hari_aktif }} / {{ $modalData->target_hari_kerja }} hari = {{ round(($modalData->hari_aktif / max(1, $modalData->target_hari_kerja)) * 100, 1) }}% &rarr; <strong>Skor: {{ $modalData->score_hari_aktif ?? 0 }}</strong> (Porsi 20%)</div>
+                                    <div class="text-primary font-bold pt-0.5">&rArr; Pilar 1 = ({{ $modalData->score_ac_pc ?? $modalData->score_pilar_1 }} &times; 0.8) + ({{ $modalData->score_hari_aktif ?? 0 }} &times; 0.2) = <strong>{{ $modalData->score_pilar_1 }}</strong></div>
+                                </div>
+                            </div>
+
+                            {{-- Step 2: Pilar 2 --}}
+                            <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 space-y-1">
+                                <div class="flex justify-between items-center text-blue-700 dark:text-blue-400 font-bold">
+                                    <span>Langkah 2: Pilar 2 (Efektivitas, Bobot 30%)</span>
+                                    <span>Skor: {{ $modalData->score_pilar_2 }} / 100</span>
+                                </div>
+                                <div class="text-[10.5px] text-base-content/80 space-y-0.5">
+                                    <div>&bull; Strike Rate: {{ $modalData->total_ec }} / {{ $modalData->total_ac }} = {{ $modalData->strike_rate }}% &rarr; <strong>Skor: {{ $modalData->score_strike_rate ?? $modalData->score_pilar_2 }}</strong> (Porsi 60%)</div>
+                                    <div>&bull; Omset: Rp {{ number_format($modalData->total_value) }} vs Rata-rata Area Rp {{ number_format($modalData->avg_area_value ?? 0) }} ({{ $modalData->val_ratio ?? 0 }}x) &rarr; <strong>Skor: {{ $modalData->score_omset ?? 0 }}</strong> (Porsi 40%)</div>
+                                    <div class="text-primary font-bold pt-0.5">&rArr; Pilar 2 = ({{ $modalData->score_strike_rate ?? $modalData->score_pilar_2 }} &times; 0.6) + ({{ $modalData->score_omset ?? 0 }} &times; 0.4) = <strong>{{ $modalData->score_pilar_2 }}</strong></div>
+                                </div>
+                            </div>
+
+                            {{-- Step 3: Pilar 3 --}}
+                            <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 space-y-1">
+                                <div class="flex justify-between items-center text-amber-700 dark:text-amber-400 font-bold">
+                                    <span>Langkah 3: Pilar 3 (Integritas Lapangan, Bobot 25%)</span>
+                                    <span>Skor: {{ $modalData->score_pilar_3 }} / 100</span>
+                                </div>
+                                <div class="text-[10.5px] text-base-content/80 space-y-0.5">
+                                    <div>&bull; Modal Awal: 100 Poin</div>
+                                    <div>&bull; Potongan Penalti Pelanggaran:</div>
+                                    <div class="pl-2 space-y-0.5 text-[10px] text-base-content/70">
+                                        @php $acDiv = max(1, $modalData->total_ac); @endphp
+                                        @if($modalData->count_depo > 0)
+                                            <div class="text-rose-600">- Depo: ({{ $modalData->count_depo }} / {{ $modalData->total_ac }}) &times; 100 &times; 3.0 = -{{ round(($modalData->count_depo / $acDiv) * 100 * 3.0, 1) }}%</div>
+                                        @endif
+                                        @if($modalData->count_kembar > 0)
+                                            <div class="text-rose-600">- Kembar: ({{ $modalData->count_kembar }} / {{ $modalData->total_ac }}) &times; 100 &times; 2.5 = -{{ round(($modalData->count_kembar / $acDiv) * 100 * 2.5, 1) }}%</div>
+                                        @endif
+                                        @if(($modalData->count_kilat_ec ?? 0) > 0)
+                                            <div class="text-rose-600">- Order Kilat: ({{ $modalData->count_kilat_ec }} / {{ $modalData->total_ac }}) &times; 100 &times; 2.0 = -{{ round(($modalData->count_kilat_ec / $acDiv) * 100 * 2.0, 1) }}%</div>
+                                        @endif
+                                        @if($modalData->count_radius > 0)
+                                            <div class="text-amber-600">- Luar Radius: ({{ $modalData->count_radius }} / {{ $modalData->total_ac }}) &times; 100 &times; 1.0 = -{{ round(($modalData->count_radius / $acDiv) * 100 * 1.0, 1) }}%</div>
+                                        @endif
+                                        @if(($modalData->count_kilat_non_ec ?? 0) > 0)
+                                            <div class="text-amber-600">- Kilat Non-EC: ({{ $modalData->count_kilat_non_ec }} / {{ $modalData->total_ac }}) &times; 100 &times; 0.5 = -{{ round(($modalData->count_kilat_non_ec / $acDiv) * 100 * 0.5, 1) }}%</div>
+                                        @endif
+                                        @if($modalData->count_no_gps > 0)
+                                            <div class="text-base-content/60">- GPS Blank: ({{ $modalData->count_no_gps }} / {{ $modalData->total_ac }}) &times; 100 &times; 0.2 = -{{ round(($modalData->count_no_gps / $acDiv) * 100 * 0.2, 1) }}%</div>
+                                        @endif
+                                        @if(($modalData->penalty_rate ?? 0) <= 0)
+                                            <div class="text-emerald-600 font-semibold">&bull; Tidak ada penalti pelanggaran (Nol Pelanggaran)</div>
+                                        @endif
+                                    </div>
+                                    <div class="text-primary font-bold pt-0.5">&rArr; Pilar 3 = 100 - {{ $modalData->penalty_rate ?? (100 - $modalData->score_pilar_3) }}% = <strong>{{ $modalData->score_pilar_3 }}</strong></div>
+                                </div>
+                            </div>
+
+                            {{-- Step 4: Pilar 4 --}}
+                            <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 space-y-1">
+                                <div class="flex justify-between items-center text-purple-700 dark:text-purple-400 font-bold">
+                                    <span>Langkah 4: Pilar 4 (Waktu Kerja, Bobot 15%)</span>
+                                    <span>Skor: {{ $modalData->score_pilar_4 }} / 100</span>
+                                </div>
+                                <div class="text-[10.5px] text-base-content/80 space-y-0.5">
+                                    <div>&bull; Porsi Jam Kerja di Toko: {{ $modalData->pct_store_time }}% &rarr; <strong>Skor: {{ $modalData->score_store_ratio ?? $modalData->score_pilar_4 }}</strong> (Porsi 60%)</div>
+                                    <div>&bull; Rata-rata Durasi Layanan: {{ $modalData->avg_minutes_per_store }} menit/toko &rarr; <strong>Skor: {{ $modalData->score_duration ?? 0 }}</strong> (Porsi 40%)</div>
+                                    <div class="text-primary font-bold pt-0.5">&rArr; Pilar 4 = ({{ $modalData->score_store_ratio ?? $modalData->score_pilar_4 }} &times; 0.6) + ({{ $modalData->score_duration ?? 0 }} &times; 0.4) = <strong>{{ $modalData->score_pilar_4 }}</strong></div>
+                                </div>
+                            </div>
+
+                            {{-- Step 5: Skor Total Akhir --}}
+                            <div class="bg-gradient-to-r from-primary/10 via-emerald-500/10 to-primary/10 p-3 rounded-lg border border-primary/20 space-y-1">
+                                <div class="font-bold text-xs text-primary">Langkah 5: Perhitungan Skor Akhir &amp; Penentuan Grade</div>
+                                <div class="text-[10.5px] text-base-content/80 font-mono">
+                                    Total = ({{ $modalData->score_pilar_1 }} &times; 0.30) + ({{ $modalData->score_pilar_2 }} &times; 0.30) + ({{ $modalData->score_pilar_3 }} &times; 0.25) + ({{ $modalData->score_pilar_4 }} &times; 0.15)<br>
+                                    Total = {{ round($modalData->score_pilar_1 * 0.30, 2) }} + {{ round($modalData->score_pilar_2 * 0.30, 2) }} + {{ round($modalData->score_pilar_3 * 0.25, 2) }} + {{ round($modalData->score_pilar_4 * 0.15, 2) }} = <span class="font-bold text-emerald-600 text-xs">{{ $modalData->skor_total }}</span>
+                                </div>
+                                <div class="text-xs font-bold mt-1">
+                                    &rArr; Hasil Akhir: <span class="badge badge-sm font-extrabold {{ $modalData->grade === 'A' ? 'badge-success text-white' : ($modalData->grade === 'B' ? 'badge-info text-white' : ($modalData->grade === 'C' ? 'badge-warning text-warning-content' : 'badge-error text-white')) }}">Grade {{ $modalData->grade }}</span> ({{ $modalData->grade_label }})
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     {{-- Analisa Kekuatan & Area Perbaikan Otomatis Sistem --}}
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {{-- Strengths --}}
@@ -966,4 +1084,7 @@
             }
         }
     </style>
+
+    {{-- Modal Edukasi Panduan, Rumus Nilai & Logika Temuan --}}
+    @include('livewire.report.analisa-kunjungan-se.audit-logic-modal')
 </div>

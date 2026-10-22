@@ -5,6 +5,7 @@
              this.showKpi = !this.showKpi;
              localStorage.setItem('se_tracking_show_kpi', this.showKpi);
          },
+         showAuditModal: false,
          detailModalOpen: false,
          activeStore: null,
          activeWeekNum: null,
@@ -69,6 +70,14 @@
                         {{ number_format($metrics->total_with_anomalies) }} Toko Bermasalah
                     </span>
                 @endif
+
+                <button type="button" 
+                    @click="$dispatch('open-audit-modal', {tab: 'anomalies'}); showAuditModal = true" 
+                    class="btn btn-xs sm:btn-sm btn-ghost border border-base-300 rounded-xl gap-1.5 text-base-content/75 hover:text-primary hover:border-primary font-semibold shadow-2xs cursor-pointer select-none"
+                    title="Pelajari Aturan & Logika Temuan Kunjungan (Titik Kembar, Depo, Geofence, Durasi)">
+                    <x-heroicon-m-information-circle class="w-4 h-4 text-info" />
+                    <span class="text-xs hidden md:inline">Logika Temuan</span>
+                </button>
 
                 <button type="button" 
                     @click="toggleKpi()" 
@@ -770,4 +779,7 @@
             </div>
         </div>
     </div>
+
+    {{-- Modal Edukasi Panduan & Logika Audit Lapangan --}}
+    @include('livewire.report.analisa-kunjungan-se.audit-logic-modal')
 </div>

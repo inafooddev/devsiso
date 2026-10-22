@@ -103,6 +103,7 @@ use App\Livewire\Others\PageTemplateStandard\Index as PageTemplateStandardIndex;
 use App\Livewire\Others\Qceskalink\Index as QceskalinkIndex;
 use App\Livewire\Others\Perbaikantikor\Index as AdminPerbaikantikorIndex;
 use App\Livewire\Others\PerbaikantikorElite\Index as AdminPerbaikantikorEliteIndex;
+use App\Livewire\Others\ValidasiGeotag\Index as ValidasiGeotagIndex;
 use App\Livewire\Others\AuditToko\Index as AdminAuditTokoIndex;
 use App\Livewire\Others\AuditToko\MasterCustomer as AdminAuditTokoMasterCustomer;
 use App\Livewire\Others\TargetPerSeUntukEska\Index as TargetPerSeUntukEskaIndex;
@@ -441,6 +442,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/others/page-template-standard', PageTemplateStandardIndex::class)->name('others.page-template-standard');
     Route::get('/others/perbaikantikor', AdminPerbaikantikorIndex::class)->name('others.perbaikantikor')->middleware('menu.access');
     Route::get('/others/perbaikantikor-elite', AdminPerbaikantikorEliteIndex::class)->name('others.perbaikantikor.elite')->middleware('menu.access');
+    Route::get('/others/validasi-geotag', ValidasiGeotagIndex::class)->name('others.validasi-geotag')->middleware('menu.access');
     Route::get('/others/audit-toko', AdminAuditTokoIndex::class)->name('others.audit-toko');
     Route::get('/others/audit-toko/master-customer', AdminAuditTokoMasterCustomer::class)->name('others.audit-toko.master');
     Route::get('/others/produk-lama', \App\Livewire\Others\ProdukLama\Index::class)->name('others.produk-lama');
