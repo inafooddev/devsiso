@@ -336,6 +336,13 @@ class Summary extends Component
         }
     }
 
+    public function updatedSelectedDistributor($value)
+    {
+        if ($value && $this->accessLevel === 'supervisor' && !empty($this->allowedDistributorCodes) && !in_array($value, $this->allowedDistributorCodes)) {
+            $this->selectedDistributor = '';
+        }
+    }
+
     public function applyFilter()
     {
         if ($this->startDate && $this->endDate) {
@@ -413,6 +420,11 @@ class Summary extends Component
 
         $this->loadRegions();
         $this->resetPage();
+    }
+
+    public function resetFilter(): void
+    {
+        $this->resetFilters();
     }
 
     public function sortByColumn(string $field)

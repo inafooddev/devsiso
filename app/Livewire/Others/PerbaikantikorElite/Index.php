@@ -73,10 +73,10 @@ class Index extends Component
     {
         return (clone $this->baseQuery())
             ->leftJoin('distributor_implementasi_eskalink as die', 'die.eskalink_code', '=', 'perbaikan_tikor_toko.distributor_code')
-            ->select('perbaikan_tikor_toko.distributor_code', 'die.distributor_name')
+            ->select('perbaikan_tikor_toko.distributor_code', \Illuminate\Support\Facades\DB::raw('COALESCE(die.distributor_name, perbaikan_tikor_toko.distributor_code) as distributor_name'))
             ->whereNotNull('perbaikan_tikor_toko.distributor_code')
             ->distinct()
-            ->orderBy('die.distributor_name')
+            ->orderBy('distributor_name')
             ->orderBy('perbaikan_tikor_toko.distributor_code')
             ->get();
     }
@@ -112,10 +112,10 @@ class Index extends Component
             ->leftJoin('fsalesman as fs', function ($join) {
                 $join->on('fs.SLSNO', '=', 'perbaikan_tikor_toko.sales_code');
             })
-            ->select('perbaikan_tikor_toko.sales_code', 'fs.SLSNAME as sales_name')
+            ->select('perbaikan_tikor_toko.sales_code', \Illuminate\Support\Facades\DB::raw('COALESCE(fs."SLSNAME", perbaikan_tikor_toko.sales_code) as sales_name'))
             ->whereNotNull('perbaikan_tikor_toko.sales_code')
             ->distinct()
-            ->orderBy('fs.SLSNAME')
+            ->orderBy('sales_name')
             ->orderBy('perbaikan_tikor_toko.sales_code')
             ->get();
     }
@@ -155,12 +155,87 @@ class Index extends Component
         $this->resetPage();
     }
 
+    public function applyFilter()
+    {
+        if ($this->dateStart && $this->dateEnd) {
+            $start = \Carbon\Carbon::parse($this->dateStart);
+            $end = \Carbon\Carbon::parse($this->dateEnd);
+
+            if ($start->gt($end)) {
+                $this->dispatch('show-toast', type: 'error', message: 'Tanggal mulai tidak boleh lebih besar dari tanggal akhir.');
+                return;
+            }
+        }
+
+        $this->resetPage();
+        $this->selectAll = false;
+        $this->selectedIds = [];
+    }
+
+    public function resetFilter()
+    {
+        $this->resetFilters();
+    }
+
     public function resetFilters()
     {
         $this->reset(['search', 'statusFilter', 'dateStart', 'dateEnd', 'distributorFilter', 'salesFilter']);
         $this->resetPage();
         $this->selectAll = false;
         $this->selectedIds = [];
+    }
+
+    public function setDatePreset(string $preset): void
+    {
+        $today = \Carbon\Carbon::today();
+
+        switch ($preset) {
+            case 'today':
+                $this->dateStart = $today->format('Y-m-d');
+                $this->dateEnd = $today->format('Y-m-d');
+                break;
+            case 'yesterday':
+                $yesterday = $today->copy()->subDay()->format('Y-m-d');
+                $this->dateStart = $yesterday;
+                $this->dateEnd = $yesterday;
+                break;
+            case 'last_7_days':
+                $this->dateStart = $today->copy()->subDays(6)->format('Y-m-d');
+                $this->dateEnd = $today->format('Y-m-d');
+                break;
+            case 'this_month':
+                $this->dateStart = $today->copy()->startOfMonth()->format('Y-m-d');
+                $this->dateEnd = $today->format('Y-m-d');
+                break;
+            case 'last_30_days':
+                $this->dateStart = $today->copy()->subDays(29)->format('Y-m-d');
+                $this->dateEnd = $today->format('Y-m-d');
+                break;
+            case 'last_month':
+                $lastMonth = $today->copy()->subMonthNoOverflow();
+                $this->dateStart = $lastMonth->copy()->startOfMonth()->format('Y-m-d');
+                $this->dateEnd = $lastMonth->copy()->endOfMonth()->format('Y-m-d');
+                break;
+        }
+        $this->resetPage();
+    }
+
+    public function previousMonth(): void
+    {
+        $currentStart = !empty($this->dateStart) ? \Carbon\Carbon::parse($this->dateStart) : \Carbon\Carbon::today();
+        $prevMonth = $currentStart->copy()->subMonthNoOverflow();
+        $this->dateStart = $prevMonth->copy()->startOfMonth()->format('Y-m-d');
+        $this->dateEnd = $prevMonth->copy()->endOfMonth()->format('Y-m-d');
+        $this->resetPage();
+    }
+
+    public function nextMonth(): void
+    {
+        $currentStart = !empty($this->dateStart) ? \Carbon\Carbon::parse($this->dateStart) : \Carbon\Carbon::today();
+        $nextMonth = $currentStart->copy()->addMonthNoOverflow();
+        $this->dateStart = $nextMonth->copy()->startOfMonth()->format('Y-m-d');
+        $this->dateEnd = $nextMonth->copy()->endOfMonth()->format('Y-m-d');
+        $this->resetPage();
     }
 
     public function updatingSelectAll($value)

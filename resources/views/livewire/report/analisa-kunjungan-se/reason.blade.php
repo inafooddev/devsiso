@@ -1,4 +1,70 @@
-<div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full">
+<div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full"
+     x-data="{
+         showKpi: localStorage.getItem('se_reason_show_kpi') !== null 
+             ? localStorage.getItem('se_reason_show_kpi') === 'true' 
+             : (window.innerWidth >= 1024),
+         autoHidden: (localStorage.getItem('se_reason_show_kpi') === null && window.innerWidth < 1024),
+         wasOneRow: (window.innerWidth >= 1024),
+         
+         isOneRow() {
+             if (this.$refs.kpiGrid && this.showKpi) {
+                 const cards = Array.from(this.$refs.kpiGrid.children);
+                 if (cards.length > 1) {
+                     return cards[0].offsetTop === cards[cards.length - 1].offsetTop;
+                 }
+             }
+             return window.matchMedia('(min-width: 1024px)').matches;
+         },
+         
+         toggleKpi() {
+             this.showKpi = !this.showKpi;
+             this.autoHidden = false;
+             localStorage.setItem('se_reason_show_kpi', this.showKpi);
+             this.$nextTick(() => {
+                 this.wasOneRow = this.isOneRow();
+             });
+         },
+         
+         checkKpiWrap() {
+             const nowOneRow = this.isOneRow();
+             
+             // Logika: Jika dari sebelumnya 1 baris berubah menjadi 2 baris (atau lebih) -> otomatis hide kpi card
+             if (this.wasOneRow && !nowOneRow) {
+                 if (this.showKpi) {
+                     this.showKpi = false;
+                     this.autoHidden = true;
+                     localStorage.setItem('se_reason_show_kpi', 'false');
+                 }
+             } 
+             // Jika kembali ke 1 baris dan sebelumnya disembunyikan otomatis oleh sistem -> tampilkan kembali
+             else if (!this.wasOneRow && nowOneRow && this.autoHidden) {
+                 this.showKpi = true;
+                 this.autoHidden = false;
+                 localStorage.setItem('se_reason_show_kpi', 'true');
+             }
+             
+             this.wasOneRow = nowOneRow;
+         },
+         
+         init() {
+             this.wasOneRow = this.isOneRow();
+             
+             const onResize = () => {
+                 this.checkKpiWrap();
+             };
+             
+             window.addEventListener('resize', onResize);
+             
+             if (window.ResizeObserver && this.$refs.kpiGrid) {
+                 const ro = new ResizeObserver(() => {
+                     if (this.showKpi) {
+                         onResize();
+                     }
+                 });
+                 ro.observe(this.$refs.kpiGrid);
+             }
+         }
+     }">
     <x-slot name="title">Summary Reason Kunjungan SE</x-slot>
 
     {{-- Standar Tab Menu --}}
@@ -33,13 +99,51 @@
         <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.raport', $tabParams)" :navigate="true">
             <x-heroicon-o-academic-cap class="w-4 h-4 inline-block mr-1 text-emerald-500" /> Raport SE
         </x-ui.tab-item>
+
+        <x-slot name="actions">
+            <div class="flex items-center gap-2">
+                @if($appliedRegion && !empty($kpis->total_cases))
+                    <span class="badge badge-primary text-primary-content font-bold text-xs gap-1 py-2.5 px-3 shadow-2xs">
+                        <x-heroicon-s-clipboard-document-list class="w-4 h-4" />
+                        {{ number_format($kpis->total_cases) }} Kasus
+                    </span>
+                @endif
+
+                <button type="button" 
+                    @click="toggleKpi()" 
+                    class="btn btn-xs sm:btn-sm rounded-xl gap-1.5 transition-all font-semibold border shadow-2xs cursor-pointer select-none"
+                    :class="showKpi ? 'btn-ghost text-base-content/70 hover:text-base-content border-base-300' : 'btn-primary text-white shadow-sm border-primary'"
+                    :title="showKpi ? 'Sembunyikan KPI Card agar ruang tabel lebih lega' : 'Tampilkan kembali KPI Card'">
+                    <template x-if="showKpi">
+                        <span class="flex items-center gap-1.5">
+                            <x-heroicon-m-eye-slash class="w-4 h-4 text-base-content/70" />
+                            <span class="text-xs hidden sm:inline">Sembunyikan KPI</span>
+                        </span>
+                    </template>
+                    <template x-if="!showKpi">
+                        <span class="flex items-center gap-1.5">
+                            <x-heroicon-m-chart-bar class="w-4 h-4 text-white" />
+                            <span class="text-xs">Tampilkan KPI</span>
+                        </span>
+                    </template>
+                </button>
+            </div>
+        </x-slot>
     </x-ui.tab-menu>
 
     {{-- KPI Cards Section (4 Cards) --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 md:gap-3.5 shrink-0 mb-3 md:mb-4">
+    <div x-show="showKpi"
+         x-transition:enter="transition ease-out duration-200" 
+         x-transition:enter-start="opacity-0 -translate-y-2" 
+         x-transition:enter-end="opacity-100 translate-y-0" 
+         x-transition:leave="transition ease-in duration-150" 
+         x-transition:leave-start="opacity-100 translate-y-0" 
+         x-transition:leave-end="opacity-0 -translate-y-2" 
+         x-ref="kpiGrid"
+         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 md:gap-3.5 shrink-0 mb-3 md:mb-4">
         {{-- Card 1: Total Kasus Reason --}}
         <div class="bg-base-100 p-3 sm:p-3.5 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between relative overflow-hidden group hover:border-primary/40 transition-colors">
-            <div class="flex items-center justify-between text-[0.6875rem] font-bold tracking-wider text-base-content/60 uppercase">
+            <div class="flex items-center justify-between text-[0.625rem] font-bold tracking-wider text-base-content/60 uppercase">
                 <span class="truncate">Total Kasus Alasan</span>
                 <div class="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                     <x-heroicon-s-clipboard-document-list class="w-3.5 h-3.5" />
@@ -49,16 +153,16 @@
                 <span class="text-xl sm:text-2xl font-black tracking-tight text-base-content font-mono">
                     {{ number_format($kpis->total_cases ?? 0) }}
                 </span>
-                <span class="text-[0.6875rem] font-semibold text-base-content/50 uppercase">Kasus</span>
+                <span class="text-[0.625rem] font-semibold text-base-content/50 uppercase">Kasus</span>
             </div>
-            <div class="mt-1 text-[0.6875rem] text-base-content/50 truncate">
+            <div class="mt-1 text-[0.625rem] text-base-content/50 truncate">
                 Tipe: <span class="font-bold text-primary">{{ $appliedReasonType === 'BUY' ? 'Tidak Beli' : ($appliedReasonType === 'VISIT' ? 'Tidak Dikunjungi' : 'Semua Tipe') }}</span>
             </div>
         </div>
 
         {{-- Card 2: Total SE Terdampak --}}
         <div class="bg-base-100 p-3 sm:p-3.5 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between relative overflow-hidden group hover:border-secondary/40 transition-colors">
-            <div class="flex items-center justify-between text-[0.6875rem] font-bold tracking-wider text-base-content/60 uppercase">
+            <div class="flex items-center justify-between text-[0.625rem] font-bold tracking-wider text-base-content/60 uppercase">
                 <span class="truncate">Total SE Terdampak</span>
                 <div class="w-6 h-6 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
                     <x-heroicon-s-user-group class="w-3.5 h-3.5" />
@@ -68,16 +172,16 @@
                 <span class="text-xl sm:text-2xl font-black tracking-tight text-base-content font-mono">
                     {{ number_format($kpis->total_se ?? 0) }}
                 </span>
-                <span class="text-[0.6875rem] font-semibold text-base-content/50 uppercase">Salesman</span>
+                <span class="text-[0.625rem] font-semibold text-base-content/50 uppercase">Salesman</span>
             </div>
-            <div class="mt-1 text-[0.6875rem] text-base-content/50 truncate">
+            <div class="mt-1 text-[0.625rem] text-base-content/50 truncate">
                 Memiliki catatan alasan di periode ini
             </div>
         </div>
 
         {{-- Card 3: Alasan Terbanyak (#1) --}}
         <div class="bg-base-100 p-3 sm:p-3.5 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between relative overflow-hidden group hover:border-warning/40 transition-colors">
-            <div class="flex items-center justify-between text-[0.6875rem] font-bold tracking-wider text-base-content/60 uppercase">
+            <div class="flex items-center justify-between text-[0.625rem] font-bold tracking-wider text-base-content/60 uppercase">
                 <span class="truncate">Alasan Terbanyak (#1)</span>
                 <div class="w-6 h-6 rounded-lg bg-warning/10 flex items-center justify-center text-warning shrink-0">
                     <x-heroicon-s-fire class="w-3.5 h-3.5" />
@@ -91,14 +195,14 @@
                     {{ number_format($kpis->top_reason_count ?? 0) }}x
                 </span>
             </div>
-            <div class="mt-1 text-[0.6875rem] text-base-content/50 truncate">
+            <div class="mt-1 text-[0.625rem] text-base-content/50 truncate">
                 Frekuensi kemunculan tertinggi
             </div>
         </div>
 
         {{-- Card 4: Rata-rata per SE --}}
         <div class="bg-base-100 p-3 sm:p-3.5 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between relative overflow-hidden group hover:border-info/40 transition-colors">
-            <div class="flex items-center justify-between text-[0.6875rem] font-bold tracking-wider text-base-content/60 uppercase">
+            <div class="flex items-center justify-between text-[0.625rem] font-bold tracking-wider text-base-content/60 uppercase">
                 <span class="truncate">Rata-rata Kasus per SE</span>
                 <div class="w-6 h-6 rounded-lg bg-info/10 flex items-center justify-center text-info shrink-0">
                     <x-heroicon-s-calculator class="w-3.5 h-3.5" />
@@ -108,9 +212,9 @@
                 <span class="text-xl sm:text-2xl font-black tracking-tight text-base-content font-mono">
                     {{ $kpis->avg_per_se ?? 0 }}
                 </span>
-                <span class="text-[0.6875rem] font-semibold text-base-content/50 uppercase">Kasus / SE</span>
+                <span class="text-[0.625rem] font-semibold text-base-content/50 uppercase">Kasus / SE</span>
             </div>
-            <div class="mt-1 text-[0.6875rem] text-base-content/50 truncate">
+            <div class="mt-1 text-[0.625rem] text-base-content/50 truncate">
                 Rata-rata kejadian per salesman
             </div>
         </div>
@@ -119,182 +223,98 @@
     {{-- Main Card (Tabel Summary Reason SE) --}}
     <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
         
-        {{-- Header Card & Actions Toolbar --}}
-        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-base-200/30">
-            <div class="shrink-0 w-full lg:w-auto">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <h2 class="text-base md:text-lg font-bold">Summary Reason Kunjungan SE</h2>
-                    
-                    {{-- Territory pills for locked/single access --}}
-                    @if($accessLevel !== 'nasional' && count($regions) <= 1 && !empty($selectedRegion))
-                        @php
-                            $currReg = collect($regions)->firstWhere('region_code', $selectedRegion);
-                        @endphp
-                        @if($currReg)
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary border border-primary/20" title="Wilayah Region Anda">
-                                <x-heroicon-m-map-pin class="w-3 h-3" />
-                                {{ $currReg->region_name }}
-                            </span>
-                        @endif
-                    @endif
-
-                    @if(in_array($accessLevel, ['area', 'supervisor']) && count($areas) <= 1 && !empty($selectedArea))
-                        @php
-                            $currArea = collect($areas)->firstWhere('area_code', $selectedArea);
-                        @endphp
-                        @if($currArea)
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold bg-secondary/10 text-secondary border border-secondary/20" title="Wilayah Area Anda">
-                                <x-heroicon-m-building-office class="w-3 h-3" />
-                                {{ $currArea->area_name }}
-                            </span>
-                        @endif
-                    @endif
-
-                    @if($appliedStartDate && $appliedEndDate)
-                        <span class="badge badge-neutral text-neutral-content font-mono text-xs font-semibold">
-                            {{ \Carbon\Carbon::parse($appliedStartDate)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($appliedEndDate)->format('d/m/Y') }}
-                        </span>
-                    @endif
-                </div>
-                <p class="text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Analisis Frekuensi Alasan Visit & Not-Buy per Sales Exclusive (SE)</p>
-            </div>
-            
-            {{-- Filter Bar & Action Buttons --}}
-            <div class="flex flex-wrap items-center justify-start lg:justify-end gap-2 w-full lg:w-auto">
-                {{-- Search Box SE / Distributor --}}
-                <div class="relative w-full sm:w-auto">
-                    <input type="text"
-                           wire:model.live.debounce.300ms="search"
-                           placeholder="Cari SE / Distributor..."
-                           class="input input-sm input-bordered rounded-xl bg-base-100 border-base-300 text-xs pl-8 pr-2 w-full sm:w-44 focus:outline-none focus:border-primary" />
-                    <x-heroicon-o-magnifying-glass class="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40" />
-                </div>
-
-                {{-- Filter Region --}}
+        {{-- Header Card & Actions Toolbar (Hanya Filter & Action Buttons agar hemat ruang layar) --}}
+        <x-ui.filter-toolbar>
+            {{-- 1. Kapsul Hierarki Wilayah (Region & Area Native + Distributor Micro-Searchable Popover) --}}
+            <x-ui.filter-breadcrumb>
+                {{-- Region Segment (jika multi-region/nasional) --}}
                 @if(count($regions) > 1 || $accessLevel === 'nasional')
-                    <select wire:model.live="selectedRegion" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[130px] text-xs">
-                        <option value="">Pilih Region</option>
-                        @foreach($regions as $r)
-                            <option value="{{ $r->region_code }}">{{ $r->region_name }}</option>
-                        @endforeach
-                    </select>
+                    <x-ui.filter-select 
+                        wire:model.live="selectedRegion" 
+                        :options="$regions" 
+                        valueField="region_code" 
+                        labelField="region_name" 
+                        placeholder="Pilih Region" 
+                        icon="globe" />
                 @endif
 
-                {{-- Filter Area --}}
+                {{-- Area Segment --}}
                 @if(count($areas) > 1 || !in_array($accessLevel, ['area', 'supervisor']))
-                    <select wire:model.live="selectedArea" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[130px] text-xs" @disabled(empty($selectedRegion))>
-                        <option value="">Semua Area</option>
-                        @foreach($areas as $a)
-                            <option value="{{ $a->area_code }}">{{ $a->area_name }}</option>
-                        @endforeach
-                    </select>
+                    <x-ui.filter-select 
+                        wire:model.live="selectedArea" 
+                        :options="$areas" 
+                        valueField="area_code" 
+                        labelField="area_name" 
+                        placeholder="Semua Area" 
+                        icon="map-pin" 
+                        :disabled="empty($selectedRegion)" />
                 @endif
 
-                {{-- Filter Distributor --}}
-                <div class="relative w-full sm:w-auto">
-                    <select wire:model.live="selectedDistributor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[150px] text-xs" @disabled(empty($selectedRegion)) wire:target="selectedArea, selectedRegion" wire:loading.class="opacity-60">
-                        <option value="">Semua Distributor</option>
-                        @foreach($distributors as $d)
-                            <option value="{{ $d->distributor_code }}">{{ $d->distributor_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                {{-- Distributor Segment (Micro-Searchable Popover) --}}
+                <x-ui.filter-searchable 
+                    wire:key="dist-capsule-{{ $selectedRegion }}-{{ $selectedArea }}-{{ $selectedDistributor }}"
+                    wire:model.live="selectedDistributor" 
+                    :options="$distributors" 
+                    valueField="distributor_code" 
+                    labelField="distributor_name" 
+                    placeholder="Semua Distributor" 
+                    :allowAll="true"
+                    searchPlaceholder="Cari nama distributor / kode..."
+                    icon="building" 
+                    :disabled="empty($selectedRegion)" />
+            </x-ui.filter-breadcrumb>
 
-                {{-- Smart Date Range Filter --}}
-                <div class="flex items-center gap-1 bg-base-100 px-1 py-0.5 rounded-xl border border-base-300 shadow-2xs w-full sm:w-auto">
-                    <button type="button" wire:click="previousMonth" class="btn btn-xs btn-ghost btn-square text-base-content/60 hover:text-base-content" title="Bulan Sebelumnya">
-                        <x-heroicon-m-chevron-left class="w-3.5 h-3.5" />
-                    </button>
+            {{-- 2. Kapsul Periode Pintar (Smart Date Range Filter) --}}
+            <x-ui.filter-date-range 
+                start="startDate" 
+                end="endDate" 
+                :maxDays="31" />
 
-                    <input type="date" 
-                        wire:model.live="startDate" 
-                        max="{{ $endDate ?: date('Y-m-d') }}"
-                        min="{{ $endDate ? \Carbon\Carbon::parse($endDate)->subDays(30)->format('Y-m-d') : '' }}"
-                        class="input input-xs bg-transparent border-none text-xs w-[105px] focus:outline-none p-0 text-center font-medium" 
-                        title="Tanggal Mulai" />
-
-                    <span class="text-xs font-semibold text-base-content/40">s/d</span>
-
-                    <input type="date" 
-                        wire:model.live="endDate" 
-                        min="{{ $startDate ?: '' }}"
-                        max="{{ $startDate ? \Carbon\Carbon::parse($startDate)->addDays(30)->format('Y-m-d') : date('Y-m-d') }}"
-                        class="input input-xs bg-transparent border-none text-xs w-[105px] focus:outline-none p-0 text-center font-medium" 
-                        title="Tanggal Akhir" />
-
-                    @php
-                        $diffDays = ($startDate && $endDate) ? (\Carbon\Carbon::parse($startDate)->diffInDays(\Carbon\Carbon::parse($endDate)) + 1) : 0;
-                    @endphp
-                    <div class="tooltip tooltip-bottom" data-tip="{{ $diffDays }} hari dipilih (Maks. 31 hari)">
-                        <span class="badge badge-xs {{ $diffDays >= 31 ? 'badge-warning text-slate-950' : 'badge-neutral text-neutral-content' }} font-mono font-bold px-1.5 cursor-default">
-                            {{ $diffDays }}h
-                        </span>
-                    </div>
-
-                    <button type="button" wire:click="nextMonth" class="btn btn-xs btn-ghost btn-square text-base-content/60 hover:text-base-content" title="Bulan Berikutnya">
-                        <x-heroicon-m-chevron-right class="w-3.5 h-3.5" />
-                    </button>
-
-                    {{-- Dropdown Pintasan Periode Cepat --}}
-                    <div class="dropdown dropdown-end">
-                        <button type="button" tabindex="0" class="btn btn-xs btn-ghost btn-square text-base-content/60 hover:text-primary" title="Pintasan Periode Cepat">
-                            <x-heroicon-m-calendar-days class="w-3.5 h-3.5" />
-                        </button>
-                        <ul tabindex="0" class="dropdown-content z-30 menu menu-xs p-1.5 shadow-xl bg-base-100 rounded-xl border border-base-300 w-36 text-xs">
-                            <li class="menu-title text-xs uppercase tracking-wider text-base-content/50 px-2 py-0.5">Pintasan Periode</li>
-                            <li><a wire:click="setDatePreset('today')" class="py-1">Hari Ini</a></li>
-                            <li><a wire:click="setDatePreset('yesterday')" class="py-1">Kemarin</a></li>
-                            <li><a wire:click="setDatePreset('last_7_days')" class="py-1">7 Hari Terakhir</a></li>
-                            <li><a wire:click="setDatePreset('this_month')" class="py-1 font-semibold text-primary">Bulan Ini (MTD)</a></li>
-                            <li><a wire:click="setDatePreset('last_30_days')" class="py-1">30 Hari Terakhir</a></li>
-                            <li><a wire:click="setDatePreset('last_month')" class="py-1">Bulan Lalu</a></li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="hidden xl:block w-px h-6 bg-base-300 mx-1"></div>
-
-                {{-- Action Buttons: Terapkan, Reset, Excel --}}
-                <div class="flex flex-wrap items-center gap-1.5 w-full sm:w-auto justify-end">
-                    @php
-                        $canApply = !empty($selectedRegion);
-                    @endphp
-                    @if(!$canApply)
-                        <div class="tooltip tooltip-bottom" data-tip="Pilih minimal Region terlebih dahulu">
-                            <x-ui.button variant="primary" size="sm" class="rounded-xl px-3 font-semibold shadow-sm" disabled icon="funnel">
-                                Terapkan
-                            </x-ui.button>
-                        </div>
-                    @else
-                        <x-ui.button variant="primary" size="sm" class="rounded-xl px-3 font-semibold shadow-sm" wire:click="applyFilter" spinner="applyFilter" icon="funnel">
-                            Terapkan
-                        </x-ui.button>
-                    @endif
-
-                    <x-ui.button variant="ghost" size="sm" class="rounded-xl px-2.5 text-base-content/70 hover:text-base-content" wire:click="resetFilters" spinner="resetFilters" icon="arrow-path">
-                        Reset
-                    </x-ui.button>
-
-                    @if($canExport)
-                        <x-ui.button variant="success" size="sm" class="rounded-xl text-white px-3 shadow-sm font-semibold" wire:click="exportExcel" spinner="exportExcel" icon="arrow-down-tray">
-                            Excel
-                        </x-ui.button>
-                    @endif
-                </div>
+            {{-- 3. Search Box SE / Distributor --}}
+            <div class="relative w-full sm:w-auto">
+                <input type="text"
+                       wire:model.live.debounce.300ms="search"
+                       placeholder="Cari SE / Distributor..."
+                       class="input input-xs h-7 rounded-lg bg-base-100 border border-base-300 text-xs pl-7 pr-2 w-full sm:w-44 focus:outline-none focus:border-primary shadow-2xs" />
+                <x-heroicon-m-magnifying-glass class="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none" />
             </div>
-        </div>
+
+            <x-slot name="actions">
+                @php $canApply = !empty($selectedRegion); @endphp
+                <x-ui.filter-actions 
+                    applyAction="applyFilter" 
+                    resetAction="resetFilters" 
+                    :canApply="$canApply" 
+                    disabledTip="Pilih minimal Region terlebih dahulu">
+                    
+                    @if($canExport)
+                        <button type="button" 
+                            wire:click="exportExcel" 
+                            wire:loading.attr="disabled"
+                            class="btn btn-sm btn-outline btn-success rounded-xl gap-1 text-xs font-semibold shadow-xs cursor-pointer"
+                            title="Download Summary Reason ke Excel (.xlsx)">
+                            <span wire:loading.remove wire:target="exportExcel" class="flex items-center gap-1.5">
+                                <x-heroicon-m-arrow-down-tray class="w-4 h-4" />
+                                <span>Excel</span>
+                            </span>
+                            <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
+                        </button>
+                    @endif
+                </x-ui.filter-actions>
+            </x-slot>
+        </x-ui.filter-toolbar>
 
         {{-- Reason Type Filter Pill Bar --}}
-        <div class="px-3 md:px-5 py-2.5 bg-base-200/50 border-b border-base-300 shrink-0 flex flex-wrap items-center justify-between gap-3">
+        <div class="px-3 md:px-5 py-2 bg-base-200/50 border-b border-base-300 shrink-0 flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2">
                 <span class="text-xs font-bold uppercase tracking-wider text-base-content/70 flex items-center gap-1">
-                    <x-heroicon-m-funnel class="w-3.5 h-3.5 text-primary" /> Filter Tipe Alasan:
+                    <x-heroicon-m-funnel class="w-3.5 h-3.5 text-primary" /> Tipe Alasan:
                 </span>
-                <div class="inline-flex rounded-xl p-1 bg-base-100 border border-base-300 shadow-2xs gap-1">
+                <div class="inline-flex rounded-xl p-0.5 bg-base-100 border border-base-300 shadow-2xs gap-0.5 text-xs">
                     {{-- Button 1: BUY = Not Buy (Tidak Beli) --}}
                     <button type="button"
                             wire:click="setReasonType('BUY')"
-                            class="px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 {{ $appliedReasonType === 'BUY' ? 'bg-amber-500 text-white shadow-xs' : 'text-base-content/70 hover:text-base-content hover:bg-base-200/60' }}">
+                            class="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer {{ $appliedReasonType === 'BUY' ? 'bg-amber-500 text-white shadow-xs font-bold' : 'text-base-content/70 hover:text-base-content hover:bg-base-200' }}">
                         <span>🛒</span>
                         <span>Tidak Beli (Not Buy)</span>
                         @if($appliedReasonType === 'BUY')
@@ -305,7 +325,7 @@
                     {{-- Button 2: VISIT = Not Visit (Tidak Dikunjungi) --}}
                     <button type="button"
                             wire:click="setReasonType('VISIT')"
-                            class="px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 {{ $appliedReasonType === 'VISIT' ? 'bg-rose-500 text-white shadow-xs' : 'text-base-content/70 hover:text-base-content hover:bg-base-200/60' }}">
+                            class="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer {{ $appliedReasonType === 'VISIT' ? 'bg-rose-500 text-white shadow-xs font-bold' : 'text-base-content/70 hover:text-base-content hover:bg-base-200' }}">
                         <span>🚫</span>
                         <span>Tidak Dikunjungi (Not Visit)</span>
                         @if($appliedReasonType === 'VISIT')
@@ -316,7 +336,7 @@
                     {{-- Button 3: ALL = Semua Tipe --}}
                     <button type="button"
                             wire:click="setReasonType('ALL')"
-                            class="px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 {{ $appliedReasonType === 'ALL' ? 'bg-primary text-primary-content shadow-xs' : 'text-base-content/70 hover:text-base-content hover:bg-base-200/60' }}">
+                            class="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer {{ $appliedReasonType === 'ALL' ? 'bg-primary text-white shadow-xs font-bold' : 'text-base-content/70 hover:text-base-content hover:bg-base-200' }}">
                         <span>📋</span>
                         <span>Semua Tipe</span>
                         @if($appliedReasonType === 'ALL')
@@ -326,7 +346,7 @@
                 </div>
             </div>
 
-            <div class="text-[0.6875rem] text-base-content/60 italic hidden sm:block">
+            <div class="text-[0.625rem] text-base-content/60 italic hidden sm:block">
                 * Kolom alasan tersusun otomatis berdasarkan frekuensi terbanyak di rentang tanggal & wilayah terpilih.
             </div>
         </div>
@@ -427,13 +447,13 @@
                                 {{-- Distributor / Area --}}
                                 <td class="text-left font-medium text-base-content">
                                     <div class="font-bold text-xs leading-tight text-base-content">{{ $row->distributor_name }}</div>
-                                    <div class="text-[0.6875rem] text-base-content/50 uppercase tracking-wider leading-tight mt-0.5">{{ $row->area_name }}</div>
+                                    <div class="text-[0.625rem] text-base-content/50 uppercase tracking-wider leading-tight mt-0.5">{{ $row->area_name }}</div>
                                 </td>
 
                                 {{-- Salesman --}}
                                 <td class="text-left">
                                     <div class="font-bold text-xs text-base-content leading-tight">{{ $row->salesman_name }}</div>
-                                    <div class="text-[0.6875rem] font-mono text-base-content/60 leading-tight mt-0.5">{{ $row->salesman_code }}</div>
+                                    <div class="text-[0.625rem] font-mono text-base-content/60 leading-tight mt-0.5">{{ $row->salesman_code }}</div>
                                 </td>
 
                                 {{-- Dynamic Reason Count Cells --}}
@@ -546,7 +566,7 @@
             {{-- Store Table --}}
             <div class="overflow-x-auto max-h-[60vh] border border-base-300 rounded-xl">
                 <table class="table table-xs table-zebra w-full whitespace-nowrap text-xs">
-                    <thead class="sticky top-0 bg-base-300 text-base-content z-10 font-bold uppercase text-[0.6875rem]">
+                    <thead class="sticky top-0 bg-base-300 text-base-content z-10 font-bold uppercase text-[0.625rem]">
                         <tr>
                             <th class="w-10 text-center">#</th>
                             <th class="w-24 text-left">Tanggal</th>
@@ -554,7 +574,7 @@
                             <th class="w-28 text-left">Kode Toko</th>
                             <th class="text-left min-w-[200px]">Nama Toko</th>
                             <th class="w-20 text-center">Rute PJP</th>
-                            <th class="w-24 text-center">Status</th>
+                            <th class="w-24 text-center">Kunjungan</th>
                             <th class="w-24 text-center">Tipe Alasan</th>
                             <th class="min-w-[220px] text-left">Alasan</th>
                             <th class="min-w-[200px] text-left">Catatan Salesman</th>
@@ -567,7 +587,7 @@
                                 <td class="font-mono text-base-content">
                                     {{ \Carbon\Carbon::parse($st->tanggal)->format('d/m/Y') }}
                                 </td>
-                                <td class="text-center font-mono text-base-content/70 text-[0.6875rem]">
+                                <td class="text-center font-mono text-base-content/70 text-[0.625rem]">
                                     @if(!empty($st->time_in) && !empty($st->time_out))
                                         {{ substr($st->time_in, 0, 5) }} - {{ substr($st->time_out, 0, 5) }}
                                     @elseif(!empty($st->time_in))
@@ -579,14 +599,14 @@
                                 <td class="font-mono font-bold text-base-content">{{ $st->custno }}</td>
                                 <td class="font-semibold text-base-content">{{ $st->custname }}</td>
                                 <td class="text-center">
-                                    @if(strtoupper($st->flag_pjp ?? '') === 'Y' || (int)($st->flag_pjp ?? 0) === 1)
+                                    @if(in_array(strtoupper($st->flag_pjp ?? ''), ['R', 'Y']) || (int)($st->flag_pjp ?? 0) === 1)
                                         <span class="badge badge-xs badge-info font-bold">PJP</span>
                                     @else
                                         <span class="badge badge-xs badge-ghost font-bold text-base-content/60">Extra</span>
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    @if((int)($st->flag_visit ?? 0) === 1)
+                                    @if(strtoupper($st->flag_visit ?? '') === 'Y' || (int)($st->flag_visit ?? 0) === 1)
                                         <span class="badge badge-xs badge-success text-white font-bold">Visited</span>
                                     @else
                                         <span class="badge badge-xs badge-error text-white font-bold">Unvisited</span>

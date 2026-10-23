@@ -1,12 +1,34 @@
-<div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full overflow-y-auto pr-1 pb-16 space-y-4"
+<div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full"
      x-data="{
          chartTrend: null,
          monthlyData: @js($trendData),
+         themeObserver: null,
 
          init() {
+             this.destroyCharts();
              this.$nextTick(() => {
                  this.renderCharts();
              });
+
+             // Observer untuk auto-render ulang grafik saat tema Dark/Light berubah di navbar
+             if (!this.themeObserver) {
+                 this.themeObserver = new MutationObserver(() => {
+                     this.destroyCharts();
+                     this.renderCharts();
+                 });
+                 this.themeObserver.observe(document.documentElement, {
+                     attributes: true,
+                     attributeFilter: ['data-theme']
+                 });
+             }
+         },
+
+         destroy() {
+             if (this.themeObserver) {
+                 this.themeObserver.disconnect();
+                 this.themeObserver = null;
+             }
+             this.destroyCharts();
          },
 
          onDataUpdated(e) {
@@ -61,8 +83,10 @@
              if (this.chartTrend) {
                  try {
                      this.chartTrend.updateOptions({
-                         xaxis: { categories: categories },
-                         yaxis: { max: yAxisMax }
+                         theme: { mode: isDark ? 'dark' : 'light' },
+                         xaxis: { categories: categories, labels: { style: { colors: textColor } } },
+                         yaxis: { max: yAxisMax, labels: { style: { colors: textColor } } },
+                         grid: { borderColor: gridColor }
                      }, false, false);
                      this.chartTrend.updateSeries(newSeries, true);
                      return;
@@ -161,41 +185,43 @@
             'region' => $appliedRegion ?: $selectedRegion,
             'area' => $appliedArea ?: $selectedArea,
             'distributor' => $appliedDistributor ?: $selectedDistributor,
-            'startDate' => $shared['startDate'] ?? null,
-            'endDate' => $shared['endDate'] ?? null,
+            'year' => $appliedYear ?: $selectedYear,
+            'call_type' => $appliedCallType !== 'ALL' ? $appliedCallType : null,
+            'startDate' => $shared['startDate'] ?? "{$appliedYear}-01-01",
+            'endDate' => $shared['endDate'] ?? "{$appliedYear}-12-31",
         ], fn($v) => !empty($v));
     @endphp
-    <div class="shrink-0">
-        <x-ui.tab-menu class="mb-1">
-            <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.index', $tabParams)" :navigate="true">
-                <x-heroicon-o-table-cells class="w-4 h-4 inline-block mr-1" /> Detail Data
-            </x-ui.tab-item>
-            <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.summary', $tabParams)" :navigate="true">
-                <x-heroicon-o-chart-bar class="w-4 h-4 inline-block mr-1" /> Summary Data
-            </x-ui.tab-item>
-            <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.reason', $tabParams)" :navigate="true">
-                <x-heroicon-o-clipboard-document-list class="w-4 h-4 inline-block mr-1" /> Summary Reason
-            </x-ui.tab-item>
-            <x-ui.tab-item :active="true" :href="route('report.analisa-kunjungan-se.trend', $tabParams)" :navigate="true">
-                <x-heroicon-o-arrow-trending-up class="w-4 h-4 inline-block mr-1" /> Trend Bulanan
-            </x-ui.tab-item>
-            <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.findings', $tabParams)" :navigate="true">
-                <x-heroicon-o-exclamation-triangle class="w-4 h-4 inline-block mr-1 text-warning" /> Temuan
-            </x-ui.tab-item>
-            <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.tracking', $tabParams)" :navigate="true">
-                <x-heroicon-o-clipboard-document-check class="w-4 h-4 inline-block mr-1 text-primary" /> Tracking Toko
-            </x-ui.tab-item>
-            <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.raport', $tabParams)" :navigate="true">
-                <x-heroicon-o-academic-cap class="w-4 h-4 inline-block mr-1 text-emerald-500" /> Raport SE
-            </x-ui.tab-item>
-        </x-ui.tab-menu>
-    </div>
+    <x-ui.tab-menu class="mb-3 md:mb-4 lg:mb-6">
+        <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.index', $tabParams)" :navigate="true">
+            <x-heroicon-o-table-cells class="w-4 h-4 inline-block mr-1" /> Detail Data
+        </x-ui.tab-item>
+        <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.summary', $tabParams)" :navigate="true">
+            <x-heroicon-o-chart-bar class="w-4 h-4 inline-block mr-1" /> Summary Data
+        </x-ui.tab-item>
+        <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.reason', $tabParams)" :navigate="true">
+            <x-heroicon-o-clipboard-document-list class="w-4 h-4 inline-block mr-1" /> Summary Reason
+        </x-ui.tab-item>
+        <x-ui.tab-item :active="true" :href="route('report.analisa-kunjungan-se.trend', $tabParams)" :navigate="true">
+            <x-heroicon-o-arrow-trending-up class="w-4 h-4 inline-block mr-1" /> Trend Bulanan
+        </x-ui.tab-item>
+        <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.findings', $tabParams)" :navigate="true">
+            <x-heroicon-o-exclamation-triangle class="w-4 h-4 inline-block mr-1 text-warning" /> Temuan
+        </x-ui.tab-item>
+        <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.tracking', $tabParams)" :navigate="true">
+            <x-heroicon-o-clipboard-document-check class="w-4 h-4 inline-block mr-1 text-primary" /> Tracking Toko
+        </x-ui.tab-item>
+        <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.raport', $tabParams)" :navigate="true">
+            <x-heroicon-o-academic-cap class="w-4 h-4 inline-block mr-1 text-emerald-500" /> Raport SE
+        </x-ui.tab-item>
+    </x-ui.tab-menu>
 
-    {{-- 5 KPI Ringkasan Tahunan --}}
+    {{-- Scrollable Page Body --}}
+    <div class="flex-1 min-h-0 min-w-0 overflow-y-auto pr-1 pb-16 space-y-4">
+        {{-- 5 KPI Ringkasan Tahunan (Font Standardized) --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-3 shrink-0">
         {{-- Card 1: Total Plan Call --}}
         <div class="bg-base-100 p-3 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between group hover:border-sky-500/40 transition-colors">
-            <div class="flex items-center justify-between text-[0.6875rem] font-bold tracking-wider text-base-content/60 uppercase">
+            <div class="flex items-center justify-between text-[0.625rem] font-bold tracking-wider text-base-content/60 uppercase">
                 <span>Total Plan Call (PC)</span>
                 <div class="w-6 h-6 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-600 shrink-0">
                     <x-heroicon-s-clipboard-document-list class="w-3.5 h-3.5" />
@@ -205,16 +231,16 @@
                 <span class="text-xl sm:text-2xl font-black font-mono text-base-content">
                     {{ number_format($totals->total_pc) }}
                 </span>
-                <span class="text-[0.6875rem] font-semibold text-base-content/50 uppercase">Rencana</span>
+                <span class="text-[0.625rem] font-semibold text-base-content/50 uppercase">Rencana</span>
             </div>
-            <div class="mt-1 text-[0.6875rem] text-base-content/50">
+            <div class="mt-1 text-[0.625rem] text-base-content/50">
                 Target kunjungan tahun {{ $appliedYear }}
             </div>
         </div>
 
         {{-- Card 2: Total Realisasi (AC) --}}
         <div class="bg-base-100 p-3 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between group hover:border-amber-500/40 transition-colors">
-            <div class="flex items-center justify-between text-[0.6875rem] font-bold tracking-wider text-base-content/60 uppercase">
+            <div class="flex items-center justify-between text-[0.625rem] font-bold tracking-wider text-base-content/60 uppercase">
                 <span>Realisasi Kunjung (AC)</span>
                 <div class="w-6 h-6 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0">
                     <x-heroicon-s-map-pin class="w-3.5 h-3.5" />
@@ -228,14 +254,14 @@
                     {{ $totals->ac_percent }}%
                 </span>
             </div>
-            <div class="mt-1 text-[0.6875rem] text-base-content/50">
+            <div class="mt-1 text-[0.625rem] text-base-content/50">
                 Drop Call: <span class="font-bold text-rose-500">{{ number_format($totals->total_drop) }}</span>
             </div>
         </div>
 
         {{-- Card 3: Total Efektif (EC) --}}
         <div class="bg-base-100 p-3 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between group hover:border-emerald-500/40 transition-colors">
-            <div class="flex items-center justify-between text-[0.6875rem] font-bold tracking-wider text-base-content/60 uppercase">
+            <div class="flex items-center justify-between text-[0.625rem] font-bold tracking-wider text-base-content/60 uppercase">
                 <span>Efektif Order (EC)</span>
                 <div class="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
                     <x-heroicon-s-shopping-bag class="w-3.5 h-3.5" />
@@ -249,14 +275,14 @@
                     {{ $totals->ec_percent }}%
                 </span>
             </div>
-            <div class="mt-1 text-[0.6875rem] text-base-content/50">
+            <div class="mt-1 text-[0.625rem] text-base-content/50">
                 Strike Rate dari kunjungan AC
             </div>
         </div>
 
         {{-- Card 4: Total Konversi --}}
         <div class="bg-base-100 p-3 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between group hover:border-purple-500/40 transition-colors">
-            <div class="flex items-center justify-between text-[0.6875rem] font-bold tracking-wider text-base-content/60 uppercase">
+            <div class="flex items-center justify-between text-[0.625rem] font-bold tracking-wider text-base-content/60 uppercase">
                 <span>Konversi Rencana (EC/PC)</span>
                 <div class="w-6 h-6 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-600 shrink-0">
                     <x-heroicon-s-chart-pie class="w-3.5 h-3.5" />
@@ -266,16 +292,16 @@
                 <span class="text-xl sm:text-2xl font-black font-mono text-purple-600 dark:text-purple-400">
                     {{ $totals->ec_pc_percent }}%
                 </span>
-                <span class="text-[0.6875rem] font-semibold text-base-content/50 uppercase">Rasio</span>
+                <span class="text-[0.625rem] font-semibold text-base-content/50 uppercase">Rasio</span>
             </div>
-            <div class="mt-1 text-[0.6875rem] text-base-content/50 truncate">
+            <div class="mt-1 text-[0.625rem] text-base-content/50 truncate">
                 Unproductive: <span class="font-bold text-slate-700 dark:text-slate-300">{{ number_format($totals->total_unproductive) }}</span>
             </div>
         </div>
 
         {{-- Card 5: Total Order Value --}}
         <div class="bg-base-100 p-3 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between group hover:border-teal-500/40 transition-colors">
-            <div class="flex items-center justify-between text-[0.6875rem] font-bold tracking-wider text-base-content/60 uppercase">
+            <div class="flex items-center justify-between text-[0.625rem] font-bold tracking-wider text-base-content/60 uppercase">
                 <span>Total Omset Order</span>
                 <div class="w-6 h-6 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-600 shrink-0">
                     <x-heroicon-s-banknotes class="w-3.5 h-3.5" />
@@ -292,96 +318,109 @@
                     @endif
                 </span>
             </div>
-            <div class="mt-1 text-[0.6875rem] text-base-content/50">
+            <div class="mt-1 text-[0.625rem] text-base-content/50">
                 AOV: <span class="font-bold">Rp {{ number_format($totals->aov, 0, ',', '.') }}</span>
             </div>
         </div>
     </div>
 
-    {{-- Filter Toolbar Card --}}
-    <div class="bg-base-100 rounded-xl shadow-xs border border-base-300 p-3 md:p-4 shrink-0">
-        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
-            <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-                {{-- Dropdown Pilihan Tahun (Full 1 Tahun) --}}
-                <div class="flex items-center gap-1.5">
-                    <span class="text-xs font-bold text-base-content/70">Tahun:</span>
-                    <select wire:model="selectedYear" class="select select-sm select-bordered rounded-xl bg-base-100 font-bold text-xs">
-                        @foreach($yearOptions as $yr)
-                            <option value="{{ $yr }}">{{ $yr }} (Full 1 Tahun)</option>
-                        @endforeach
-                    </select>
-                </div>
+    {{-- Header Card & Actions Toolbar (Standar Kapsul Baku Analisa Kunjungan SE) --}}
+    <x-ui.filter-toolbar class="rounded-xl shadow-xs border border-base-300">
+        {{-- 1. Kapsul Hierarki Wilayah (Region > Area > Distributor) --}}
+        <x-ui.filter-breadcrumb>
+            {{-- Region Segment --}}
+            @if(count($regions) > 1 || $accessLevel === 'nasional')
+                <x-ui.filter-select 
+                    wire:model.live="selectedRegion" 
+                    :options="$regions" 
+                    valueField="region_code" 
+                    labelField="region_name" 
+                    placeholder="Semua Region" 
+                    icon="globe" />
+            @endif
 
-                <div class="hidden sm:block w-px h-6 bg-base-300 mx-1"></div>
+            {{-- Area Segment --}}
+            @if(count($areas) > 1 || !in_array($accessLevel, ['area', 'supervisor']))
+                <x-ui.filter-select 
+                    wire:model.live="selectedArea" 
+                    :options="$areas" 
+                    valueField="area_code" 
+                    labelField="area_name" 
+                    placeholder="Semua Area" 
+                    icon="map-pin" 
+                    :disabled="empty($selectedRegion) && $accessLevel === 'nasional'" />
+            @endif
 
-                {{-- Toggle Pilihan Jenis Kunjungan (ALL, PJP, XC) --}}
-                <div class="flex items-center gap-1 bg-base-200/60 p-1 rounded-xl border border-base-300">
-                    <button type="button"
-                            wire:click="setCallType('ALL')"
-                            class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all {{ $appliedCallType === 'ALL' ? 'bg-primary text-primary-content shadow-xs' : 'text-base-content/70 hover:text-base-content hover:bg-base-100' }}">
-                        🌐 Semua Kunjungan
-                    </button>
-                    <button type="button"
-                            wire:click="setCallType('PJP')"
-                            class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all {{ $appliedCallType === 'PJP' ? 'bg-sky-600 text-white shadow-xs' : 'text-base-content/70 hover:text-base-content hover:bg-base-100' }}">
-                        📌 Rute PJP (Murni PC)
-                    </button>
-                    <button type="button"
-                            wire:click="setCallType('XC')"
-                            class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all {{ $appliedCallType === 'XC' ? 'bg-amber-600 text-white shadow-xs' : 'text-base-content/70 hover:text-base-content hover:bg-base-100' }}">
-                        ⚡ Extra Call (XC)
-                    </button>
-                </div>
-            </div>
+            {{-- Distributor Segment (Micro-Searchable Popover) --}}
+            <x-ui.filter-searchable 
+                wire:key="dist-capsule-{{ $selectedArea }}-{{ $selectedDistributor }}"
+                wire:model.live="selectedDistributor" 
+                :options="$distributors" 
+                valueField="distributor_code" 
+                labelField="distributor_name" 
+                placeholder="Semua Distributor" 
+                :allowAll="true"
+                searchPlaceholder="Cari nama distributor / kode..."
+                icon="building" 
+                :disabled="empty($selectedArea)" />
+        </x-ui.filter-breadcrumb>
 
-            {{-- Territory Filters & Actions --}}
-            <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-start lg:justify-end">
-                {{-- Filter Region --}}
-                @if(count($regions) > 1 || $accessLevel === 'nasional')
-                    <select wire:model.live="selectedRegion" class="select select-sm select-bordered rounded-xl bg-base-100 text-xs min-w-[130px]">
-                        <option value="">Semua Region (Nasional)</option>
-                        @foreach($regions as $r)
-                            <option value="{{ $r->region_code }}">{{ $r->region_name }}</option>
-                        @endforeach
-                    </select>
-                @endif
-
-                {{-- Filter Area --}}
-                @if(count($areas) > 1 || !in_array($accessLevel, ['area', 'supervisor']))
-                    <select wire:model.live="selectedArea" class="select select-sm select-bordered rounded-xl bg-base-100 text-xs min-w-[130px]" @disabled(empty($selectedRegion) && $accessLevel === 'nasional')>
-                        <option value="">Semua Area</option>
-                        @foreach($areas as $a)
-                            <option value="{{ $a->area_code }}">{{ $a->area_name }}</option>
-                        @endforeach
-                    </select>
-                @endif
-
-                {{-- Filter Distributor --}}
-                <select wire:model="selectedDistributor" class="select select-sm select-bordered rounded-xl bg-base-100 text-xs min-w-[140px]" @disabled(empty($selectedRegion) && $accessLevel === 'nasional')>
-                    <option value="">Semua Distributor</option>
-                    @foreach($distributors as $d)
-                        <option value="{{ $d->distributor_code }}">{{ $d->distributor_name }}</option>
+        {{-- 2. Kapsul Periode Tahun --}}
+        <div class="inline-flex items-center bg-base-100 rounded-xl border border-base-300 shadow-2xs divide-x divide-base-200/80 p-0.5 text-xs shrink-0">
+            <div class="relative flex items-center pl-2 pr-1.5 gap-1.5">
+                <x-heroicon-m-calendar-days class="w-3.5 h-3.5 text-primary/70 shrink-0" />
+                <select wire:model.live="selectedYear" 
+                    class="appearance-none bg-none bg-transparent border-none focus:outline-none text-xs font-mono font-bold pl-0 pr-4 py-1 cursor-pointer" 
+                    title="Pilih Tahun">
+                    @foreach($yearOptions as $yr)
+                        <option value="{{ $yr }}" class="text-base-content">{{ $yr }}</option>
                     @endforeach
                 </select>
-
-                <div class="flex items-center gap-1.5 ml-auto sm:ml-0">
-                    <x-ui.button variant="primary" size="sm" class="rounded-xl px-3 font-semibold shadow-sm" wire:click="applyFilter" spinner="applyFilter" icon="funnel">
-                        Terapkan
-                    </x-ui.button>
-
-                    <x-ui.button variant="ghost" size="sm" class="rounded-xl px-2.5 text-base-content/70 hover:text-base-content" wire:click="resetFilters" spinner="resetFilters" icon="arrow-path">
-                        Reset
-                    </x-ui.button>
-
-                    @if($canExport)
-                        <x-ui.button variant="success" size="sm" class="rounded-xl text-white px-3 shadow-sm font-semibold" wire:click="exportExcel" spinner="exportExcel" icon="arrow-down-tray">
-                            Excel
-                        </x-ui.button>
-                    @endif
-                </div>
+                <x-heroicon-m-chevron-down class="w-3 h-3 text-base-content/40 shrink-0 pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2" />
             </div>
         </div>
-    </div>
+
+        {{-- 3. Toggle Segmented Kunjungan (ALL, PJP, XC) --}}
+        <div class="inline-flex items-center bg-base-100 p-0.5 rounded-xl border border-base-300 shadow-2xs text-xs shrink-0">
+            <button type="button"
+                    wire:click="setCallType('ALL')"
+                    class="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer {{ $appliedCallType === 'ALL' ? 'bg-primary text-white shadow-xs font-bold' : 'text-base-content/70 hover:text-base-content hover:bg-base-200' }}">
+                Semua Call
+            </button>
+            <button type="button"
+                    wire:click="setCallType('PJP')"
+                    class="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer {{ $appliedCallType === 'PJP' ? 'bg-sky-600 text-white shadow-xs font-bold' : 'text-base-content/70 hover:text-base-content hover:bg-base-200' }}">
+                Rute PJP
+            </button>
+            <button type="button"
+                    wire:click="setCallType('XC')"
+                    class="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer {{ $appliedCallType === 'XC' ? 'bg-amber-600 text-white shadow-xs font-bold' : 'text-base-content/70 hover:text-base-content hover:bg-base-200' }}">
+                Extra Call (XC)
+            </button>
+        </div>
+
+        <x-slot name="actions">
+            <x-ui.filter-actions 
+                applyAction="applyFilter" 
+                resetAction="resetFilters" 
+                :canApply="true">
+                
+                @if($canExport)
+                    <button type="button" 
+                        wire:click="exportExcel" 
+                        wire:loading.attr="disabled"
+                        class="btn btn-sm btn-outline btn-success rounded-xl gap-1 text-xs font-semibold shadow-xs cursor-pointer"
+                        title="Download Trend Tahunan ke Excel (.xlsx)">
+                        <span wire:loading.remove wire:target="exportExcel" class="flex items-center gap-1.5">
+                            <x-heroicon-m-arrow-down-tray class="w-4 h-4" />
+                            <span>Excel</span>
+                        </span>
+                        <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
+                    </button>
+                @endif
+            </x-ui.filter-actions>
+        </x-slot>
+    </x-ui.filter-toolbar>
 
     {{-- Main Trend Chart Card (Full Width) --}}
     <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 p-4 shrink-0 relative overflow-hidden">
@@ -427,15 +466,15 @@
                 <h3 class="text-sm md:text-base font-bold text-base-content">
                     Tabel Matriks Performa Bulanan (Tahun {{ $appliedYear }})
                 </h3>
-                <p class="text-[0.6875rem] text-base-content/60 uppercase tracking-wider mt-0.5">
+                <p class="text-[0.625rem] text-base-content/60 uppercase tracking-wider mt-0.5">
                     Rekapitulasi 12 Bulan Plan Call, Realisasi Kunjung, dan Efektivitas Order
                 </p>
             </div>
         </div>
 
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto max-h-[520px] overflow-y-auto [scrollbar-width:thin]">
             <table class="table table-xs table-zebra w-full whitespace-nowrap text-xs">
-                <thead class="sticky top-0 bg-base-300 text-base-content z-10 text-xs uppercase tracking-wider font-bold">
+                <thead class="sticky top-0 bg-base-300 text-base-content z-20 text-xs uppercase tracking-wider font-bold shadow-xs">
                     <tr>
                         <th class="w-10 text-center">#</th>
                         <th class="text-left min-w-[110px]">Bulan</th>
@@ -544,4 +583,5 @@
             </table>
         </div>
     </div>
+</div>
 </div>

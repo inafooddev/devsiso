@@ -1,12 +1,88 @@
 <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-5 w-full h-full" 
     x-data="{
-        showKpi: true,
+        showKpi: localStorage.getItem('geotag_detail_show_kpi') !== null 
+            ? localStorage.getItem('geotag_detail_show_kpi') === 'true' 
+            : (window.innerWidth >= 1024),
+        autoHidden: (localStorage.getItem('geotag_detail_show_kpi') === null && window.innerWidth < 1024),
+        wasOneRow: (window.innerWidth >= 1024),
         showDetailModal: false,
         activeTab: 'streetview',
         storeData: null,
         streetViewUrl: '',
         satelliteUrl: '',
         externalMapUrl: '',
+
+        isOneRow() {
+            if (this.$refs.kpiGrid && this.showKpi) {
+                const cards = Array.from(this.$refs.kpiGrid.children);
+                if (cards.length > 1) {
+                    return cards[0].offsetTop === cards[cards.length - 1].offsetTop;
+                }
+            }
+            return (this.$el && this.$el.clientWidth ? this.$el.clientWidth >= 960 : window.matchMedia('(min-width: 1024px)').matches);
+        },
+
+        toggleKpi() {
+            this.showKpi = !this.showKpi;
+            this.autoHidden = false;
+            try {
+                localStorage.setItem('geotag_detail_show_kpi', this.showKpi);
+            } catch (e) {}
+            this.$nextTick(() => {
+                this.wasOneRow = this.isOneRow();
+            });
+        },
+
+        checkKpiWrap() {
+            const nowOneRow = this.isOneRow();
+
+            // Jika dari 1 baris berubah menjadi 2 baris (akibat zoom in / window menyempit) -> auto hide
+            if (this.wasOneRow && !nowOneRow) {
+                if (this.showKpi) {
+                    this.showKpi = false;
+                    this.autoHidden = true;
+                    try {
+                        localStorage.setItem('geotag_detail_show_kpi', 'false');
+                    } catch (e) {}
+                }
+            } 
+            // Jika kembali cukup untuk 1 baris (akibat zoom out) dan sebelumnya disembunyikan otomatis -> auto show
+            else if (!this.wasOneRow && nowOneRow && this.autoHidden) {
+                this.showKpi = true;
+                this.autoHidden = false;
+                try {
+                    localStorage.setItem('geotag_detail_show_kpi', 'true');
+                } catch (e) {}
+            }
+
+            this.wasOneRow = nowOneRow;
+        },
+
+        init() {
+            this.$nextTick(() => {
+                this.wasOneRow = this.isOneRow();
+                // Jika saat awal dimuat sudah terdeteksi 2 baris atau lebih, auto hide
+                if (!this.wasOneRow && this.showKpi) {
+                    this.showKpi = false;
+                    this.autoHidden = true;
+                }
+            });
+
+            const onResize = () => {
+                this.checkKpiWrap();
+            };
+
+            window.addEventListener('resize', onResize);
+
+            if (window.ResizeObserver && this.$refs.kpiGrid) {
+                const ro = new ResizeObserver(() => {
+                    if (this.showKpi) {
+                        onResize();
+                    }
+                });
+                ro.observe(this.$refs.kpiGrid);
+            }
+        },
 
         openModalWithStore(item) {
             if (!item) return;
@@ -77,7 +153,7 @@
         <x-slot:actions>
             <button 
                 type="button" 
-                @click="showKpi = !showKpi" 
+                @click="toggleKpi()" 
                 class="btn btn-xs btn-ghost gap-1.5 rounded-lg border border-base-300 text-xs font-semibold hover:bg-base-200 transition-all duration-200"
                 :class="{ 'bg-primary/10 text-primary border-primary/30 shadow-xs': showKpi, 'text-base-content/60': !showKpi }"
                 title="Sembunyikan / Tampilkan Ringkasan Metrik"
@@ -113,6 +189,7 @@
     {{-- 4 CONSOLIDATED SUMMARY CARDS (KPI METRICS) --}}
     @if($hasAppliedFilters)
     <div 
+        x-ref="kpiGrid"
         x-show="showKpi" 
         x-transition:enter="transition ease-out duration-250"
         x-transition:enter-start="opacity-0 -translate-y-2"
@@ -126,9 +203,9 @@
         <div class="bg-base-100 p-3.5 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between relative overflow-hidden group hover:border-primary/40 transition-all">
             <div class="flex items-start justify-between">
                 <div>
-                    <span class="text-[11px] font-bold text-base-content/60 uppercase tracking-wider">Populasi & Progres</span>
+                    <span class="text-xs font-bold text-base-content/60 uppercase tracking-wider">Populasi & Progres</span>
                     <div class="text-2xl font-black text-base-content mt-1">{{ number_format($kpi['total_stores']) }}</div>
-                    <div class="text-[11px] text-base-content/60 mt-0.5">Total Toko Aktif Rute</div>
+                    <div class="text-xs text-base-content/60 mt-0.5">Total Toko Aktif Rute</div>
                 </div>
                 <div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
                     <x-heroicon-s-building-storefront class="w-5 h-5" />
@@ -147,9 +224,9 @@
         <div class="bg-base-100 p-3.5 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between relative overflow-hidden group hover:border-success/40 transition-all">
             <div class="flex items-start justify-between">
                 <div>
-                    <span class="text-[11px] font-bold text-base-content/60 uppercase tracking-wider">Keputusan Validasi</span>
+                    <span class="text-xs font-bold text-base-content/60 uppercase tracking-wider">Keputusan Validasi</span>
                     <div class="text-2xl font-black text-success mt-1">{{ number_format($kpi['valid_stores']) }}</div>
-                    <div class="text-[11px] text-success/80 mt-0.5 font-medium">Toko Sah (VALID)</div>
+                    <div class="text-xs text-success/80 mt-0.5 font-medium">Toko Sah (VALID)</div>
                 </div>
                 <div class="w-9 h-9 rounded-xl bg-success/10 flex items-center justify-center text-success shrink-0">
                     <x-heroicon-s-check-circle class="w-5 h-5" />
@@ -168,9 +245,9 @@
         <div class="bg-base-100 p-3.5 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between relative overflow-hidden group hover:border-info/40 transition-all">
             <div class="flex items-start justify-between">
                 <div>
-                    <span class="text-[11px] font-bold text-base-content/60 uppercase tracking-wider">Kelengkapan Titik</span>
+                    <span class="text-xs font-bold text-base-content/60 uppercase tracking-wider">Kelengkapan Titik</span>
                     <div class="text-2xl font-black text-info mt-1">{{ number_format($kpi['has_coordinate']) }}</div>
-                    <div class="text-[11px] text-info/80 mt-0.5 font-medium">Toko Memiliki Koordinat</div>
+                    <div class="text-xs text-info/80 mt-0.5 font-medium">Toko Memiliki Koordinat</div>
                 </div>
                 <div class="w-9 h-9 rounded-xl bg-info/10 flex items-center justify-center text-info shrink-0">
                     <x-heroicon-s-map-pin class="w-5 h-5" />
@@ -189,14 +266,14 @@
         <div class="bg-base-100 p-3.5 rounded-xl shadow-xs border border-rose-300/60 bg-gradient-to-br from-base-100 to-rose-50/30 flex flex-col justify-between relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
-                    <span class="text-[11px] font-bold text-rose-600 uppercase tracking-wider flex items-center gap-1">
+                    <span class="text-xs font-bold text-rose-600 uppercase tracking-wider flex items-center gap-1">
                         <x-heroicon-s-exclamation-triangle class="w-3.5 h-3.5" />
                         Pusat Deteksi Anomali
                     </span>
                     <div class="text-2xl font-black text-rose-600 mt-1">
                         {{ number_format($kpi['at_distributor'] + $kpi['duplicate_stores'] + $kpi['drift_stores']) }}
                     </div>
-                    <div class="text-[11px] text-base-content/60 mt-0.5">Total Temuan Lapangan</div>
+                    <div class="text-xs text-base-content/60 mt-0.5">Total Temuan Lapangan</div>
                 </div>
                 <div class="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
                     <x-heroicon-s-shield-exclamation class="w-5 h-5" />
@@ -300,7 +377,7 @@
                 @if($hasAppliedFilters)
                     <span>Menampilkan <b>{{ number_format($stores->total()) }}</b> toko target</span>
                     @if($appliedRegion || $appliedArea || $appliedDistributor || $appliedSearch || $appliedAnomaly !== 'all' || $appliedValidation !== 'all')
-                        <span class="badge badge-primary/10 text-primary border border-primary/20 badge-sm text-[11px] gap-1 font-medium">
+                        <span class="badge badge-primary/10 text-primary border border-primary/20 badge-sm gap-1 font-medium">
                             Filter Aktif: 
                             @if($appliedRegion) {{ $regions[$appliedRegion] ?? $appliedRegion }} @endif
                             @if($appliedArea) &bull; {{ $areas[$appliedArea] ?? $appliedArea }} @endif
@@ -366,7 +443,7 @@
 
     @if(!$hasAppliedFilters)
         {{-- EMPTY STATE: FILTER BELUM DITERAPKAN --}}
-        <div class="flex-1 min-h-[380px] bg-base-100 rounded-xl shadow-xs border border-base-300 flex flex-col items-center justify-center p-8 text-center">
+        <div class="flex-1 min-h-96 bg-base-100 rounded-xl shadow-xs border border-base-300 flex flex-col items-center justify-center p-8 text-center">
             <div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-3 shadow-inner">
                 <x-heroicon-o-funnel class="w-8 h-8" />
             </div>
@@ -391,7 +468,7 @@
             <div class="flex-1 overflow-auto">
                 <table class="table table-xs table-pin-rows table-zebra w-full text-xs">
                     <thead>
-                        <tr class="bg-base-200 text-base-content/70 uppercase text-[11px] font-bold">
+                        <tr class="bg-base-200 text-base-content/70 uppercase text-xs font-bold">
                             <th class="w-12 text-center">No</th>
                             <th>Cabang / Distributor</th>
                             <th>Custno & Nama Toko</th>
@@ -406,35 +483,35 @@
                     <tbody>
                         @forelse($stores as $idx => $st)
                             <tr class="hover:bg-base-200/60 transition-colors">
-                                <td class="text-center font-mono text-[11px] text-base-content/60">
+                                <td class="text-center font-mono text-xs text-base-content/60">
                                     {{ $stores->firstItem() + $idx }}
                                 </td>
                                 <td>
                                     <div class="font-bold text-base-content">{{ $st->kodecabang }}</div>
-                                    <div class="text-[11px] text-base-content/60 truncate max-w-[180px]">{{ $st->distributor_name ?: '-' }}</div>
+                                    <div class="text-xs text-base-content/60 truncate max-w-xs">{{ $st->distributor_name ?: '-' }}</div>
                                 </td>
                                 <td>
                                     <div class="font-bold text-primary flex items-center gap-1">
                                         {{ $st->custname }}
                                         @if($st->typeout)
-                                            <span class="badge badge-ghost badge-xs text-[10px]">{{ $st->typeout }}</span>
+                                            <span class="badge badge-ghost badge-xs">{{ $st->typeout }}</span>
                                         @endif
                                     </div>
-                                    <div class="font-mono text-[11px] text-base-content/60">{{ $st->custno }}</div>
+                                    <div class="font-mono text-xs text-base-content/60">{{ $st->custno }}</div>
                                 </td>
                                 <td>
-                                    <div class="truncate max-w-[220px]" title="{{ $st->custadd1 }}">{{ $st->custadd1 }}</div>
-                                    <div class="text-[11px] text-base-content/50">{{ $st->ccity }}</div>
+                                    <div class="truncate max-w-xs" title="{{ $st->custadd1 }}">{{ $st->custadd1 }}</div>
+                                    <div class="text-xs text-base-content/50">{{ $st->ccity }}</div>
                                 </td>
                                 <td>
                                     @if(!empty($st->la) && !empty($st->lg) && $st->la != 0)
-                                        <div class="font-mono text-[11px] text-base-content font-semibold">{{ $st->la }}, {{ $st->lg }}</div>
+                                        <div class="font-mono text-xs text-base-content font-semibold">{{ $st->la }}, {{ $st->lg }}</div>
                                     @else
-                                        <span class="badge badge-error badge-outline badge-xs text-[10px]">Belum Ada Titik</span>
+                                        <span class="badge badge-error badge-outline badge-xs">Belum Ada Titik</span>
                                     @endif
 
                                     @if($st->validation_status === 'VALID' && $st->is_point_changed)
-                                        <div class="text-[10px] text-warning font-semibold flex items-center gap-0.5 mt-0.5">
+                                        <div class="text-xs text-warning font-semibold flex items-center gap-0.5 mt-0.5">
                                             <x-heroicon-s-arrow-path class="w-3 h-3" />
                                             Sah: {{ $st->validated_la }}, {{ $st->validated_lg }}
                                         </div>
@@ -443,11 +520,11 @@
                                 <td class="text-center">
                                     @if(!is_null($st->distance_to_dist_meters))
                                         @if($st->is_at_distributor)
-                                            <span class="badge badge-error badge-sm text-[11px] font-bold text-white shadow-xs">
+                                            <span class="badge badge-error badge-sm font-bold text-white shadow-xs">
                                                 {{ number_format($st->distance_to_dist_meters) }} m
                                             </span>
                                         @else
-                                            <span class="font-mono text-[11px] text-base-content/80">
+                                            <span class="font-mono text-xs text-base-content/80">
                                                 @if($st->distance_to_dist_meters >= 1000)
                                                     {{ round($st->distance_to_dist_meters / 1000, 1) }} km
                                                 @else
@@ -456,25 +533,25 @@
                                             </span>
                                         @endif
                                     @else
-                                        <span class="text-base-content/40 text-[11px]">-</span>
+                                        <span class="text-base-content/40 text-xs">-</span>
                                     @endif
                                 </td>
                                 <td>
                                     <div class="flex flex-col gap-1 items-start">
                                         @if(($st->primary_anomaly ?? null) === 'at_distributor' || $st->is_at_distributor)
-                                            <span class="badge badge-error badge-xs text-[10px] font-bold text-white gap-0.5" title="Koordinat berada di kantor/gudang distributor (&le;100m)">
+                                            <span class="badge badge-error badge-xs font-bold text-white gap-0.5" title="Koordinat berada di kantor/gudang distributor (&le;100m)">
                                                 <x-heroicon-s-exclamation-triangle class="w-3 h-3" />
                                                 Di Depo (&le;100m)
                                             </span>
                                         @elseif(($st->primary_anomaly ?? null) === 'missing_coordinate' || $st->is_missing_coordinate)
-                                            <span class="badge badge-ghost badge-xs text-[10px] text-base-content/60">
+                                            <span class="badge badge-ghost badge-xs text-base-content/60">
                                                 Tanpa Koordinat
                                             </span>
                                         @elseif(($st->primary_anomaly ?? null) === 'duplicate' || $st->duplicate_count > 1)
                                             <button 
                                                 type="button" 
                                                 wire:click="openDuplicateModal('{{ $st->kodecabang }}', {{ $st->la }}, {{ $st->lg }}, '{{ $st->custno }}', '{{ addslashes($st->custname) }}')"
-                                                class="badge badge-warning badge-xs text-[10px] font-bold gap-1 hover:scale-105 active:scale-95 transition-all shadow-xs cursor-pointer border border-amber-400 group text-amber-950" 
+                                                class="badge badge-warning badge-xs font-bold gap-1 hover:scale-105 active:scale-95 transition-all shadow-xs cursor-pointer border border-amber-400 group text-amber-950" 
                                                 title="Klik untuk melihat daftar {{ $st->duplicate_count }} toko yang memiliki koordinat kembar ini"
                                             >
                                                 <x-heroicon-s-user-group class="w-3 h-3 group-hover:scale-110" />
@@ -482,12 +559,12 @@
                                                 <x-heroicon-s-chevron-right class="w-2.5 h-2.5 opacity-70" />
                                             </button>
                                         @elseif(($st->primary_anomaly ?? null) === 'point_changed' || $st->is_point_changed)
-                                            <span class="badge badge-secondary badge-xs text-[10px] font-bold gap-0.5">
+                                            <span class="badge badge-secondary badge-xs font-bold gap-0.5">
                                                 <x-heroicon-s-arrow-path class="w-3 h-3" />
                                                 Titik Bergeser (Drift)
                                             </span>
                                         @else
-                                            <span class="text-success text-[11px] font-semibold flex items-center gap-0.5">
+                                            <span class="text-success text-xs font-semibold flex items-center gap-0.5">
                                                 <x-heroicon-s-check class="w-3.5 h-3.5" /> Normal
                                             </span>
                                         @endif
@@ -497,15 +574,15 @@
                                     @if($st->validation_status === 'VALID')
                                         <span class="badge badge-success badge-sm font-bold text-white">VALID</span>
                                         @if($st->validator_name)
-                                            <div class="text-[10px] text-base-content/50 mt-0.5">{{ $st->validator_name }}</div>
+                                            <div class="text-xs text-base-content/50 mt-0.5">{{ $st->validator_name }}</div>
                                         @endif
                                     @elseif($st->validation_status === 'TIDAK_VALID')
                                         <span class="badge badge-error badge-sm font-bold text-white">TIDAK VALID</span>
                                         @if($st->validator_name)
-                                            <div class="text-[10px] text-base-content/50 mt-0.5">{{ $st->validator_name }}</div>
+                                            <div class="text-xs text-base-content/50 mt-0.5">{{ $st->validator_name }}</div>
                                         @endif
                                     @else
-                                        <span class="badge badge-ghost badge-sm text-[11px] text-base-content/60">Belum Validasi</span>
+                                        <span class="badge badge-ghost badge-sm text-base-content/60">Belum Validasi</span>
                                     @endif
                                 </td>
                                 <td class="text-center">
@@ -618,7 +695,7 @@
                             :class="{ 'tab-active bg-base-100 text-primary shadow-xs': activeTab === 'streetview' }"
                         >
                             📷 Street View (360° Panorama)
-                            <span class="badge badge-xs badge-info text-white font-bold ml-1 text-[10px]">Interaktif</span>
+                            <span class="badge badge-xs badge-info text-white font-bold ml-1">Interaktif</span>
                         </button>
                         <button 
                             type="button" 
@@ -689,7 +766,7 @@
                 </div>
 
                 {{-- Footer Hint Visualizer (Matching Perbaikan Tikor) --}}
-                <div class="flex items-center justify-between text-[11px] text-base-content/60 px-1 shrink-0">
+                <div class="flex items-center justify-between text-xs text-base-content/60 px-1 shrink-0">
                     <span x-show="activeTab === 'streetview'">*Putar 360° & zoom langsung di dalam panel tanpa perlu buka maps</span>
                     <span x-show="activeTab === 'satellite'">*Citra satelit Google resolusi tinggi untuk memverifikasi atap dan fisik bangunan</span>
 
@@ -853,7 +930,7 @@
                         <div class="overflow-x-auto rounded-xl border border-base-300">
                             <table class="table table-xs table-zebra w-full text-xs">
                                 <thead>
-                                    <tr class="bg-base-200 text-base-content/70 uppercase text-[11px] font-bold">
+                                    <tr class="bg-base-200 text-base-content/70 uppercase text-xs font-bold">
                                         <th class="w-10 text-center">No</th>
                                         <th>Cust No & Nama Toko</th>
                                         <th>Alamat & Kota</th>
@@ -869,7 +946,7 @@
                                             $isSource = !empty($duplicateSourceCustno) && $duplicateSourceCustno === ($ds['custno'] ?? '');
                                         @endphp
                                         <tr class="hover:bg-base-200/60 {{ $isSource ? 'bg-amber-50/70 dark:bg-amber-950/30' : '' }}">
-                                            <td class="text-center font-mono text-[11px] text-base-content/60">
+                                            <td class="text-center font-mono text-xs text-base-content/60">
                                                 {{ $i + 1 }}
                                             </td>
                                             <td>
@@ -878,10 +955,10 @@
                                                         {{ $ds['custname'] ?? '-' }}
                                                     </span>
                                                     @if($isSource)
-                                                        <span class="badge badge-warning badge-xs text-[10px] font-bold">Toko Terpilih</span>
+                                                        <span class="badge badge-warning badge-xs font-bold">Toko Terpilih</span>
                                                     @endif
                                                 </div>
-                                                <div class="font-mono text-[11px] text-base-content/50">
+                                                <div class="font-mono text-xs text-base-content/50">
                                                     {{ $ds['custno'] ?? '-' }}
                                                 </div>
                                             </td>
@@ -889,20 +966,20 @@
                                                 <div class="max-w-xs truncate" title="{{ $ds['custadd1'] ?? '-' }}">
                                                     {{ $ds['custadd1'] ?? '-' }}
                                                 </div>
-                                                <div class="text-[11px] text-base-content/50">
+                                                <div class="text-xs text-base-content/50">
                                                     {{ $ds['ccity'] ?? '-' }}
                                                 </div>
                                             </td>
                                             <td class="text-center">
                                                 @if(!empty($ds['typeout']))
-                                                    <span class="badge badge-ghost badge-xs text-[10px] font-medium">
+                                                    <span class="badge badge-ghost badge-xs font-medium">
                                                         {{ $ds['typeout'] }}
                                                     </span>
                                                 @else
                                                     <span class="text-base-content/30">-</span>
                                                 @endif
                                             </td>
-                                            <td class="text-center font-mono text-[11px]">
+                                            <td class="text-center font-mono text-xs">
                                                 @if(isset($ds['distance_to_dist_meters']) && $ds['distance_to_dist_meters'] !== null)
                                                     @if($ds['is_at_distributor'] ?? false)
                                                         <span class="text-rose-600 font-bold" title="Berada di area kantor distributor (&le;100m)">
@@ -951,7 +1028,7 @@
 
                 {{-- Footer Modal Duplikat --}}
                 <div class="px-5 py-3 bg-base-200/80 border-t border-base-300 flex items-center justify-between text-xs">
-                    <span class="text-base-content/60 text-[11px]">
+                    <span class="text-base-content/60 text-xs">
                         *Klik tombol <b>Verifikasi</b> pada salah satu toko untuk membuka Street View dan melakukan validasi fisik.
                     </span>
                     <button 

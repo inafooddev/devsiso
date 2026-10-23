@@ -1,5 +1,83 @@
 <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-5 w-full h-full" 
-    x-data="{ showKpi: true }"
+    x-data="{
+        showKpi: localStorage.getItem('geotag_summary_show_kpi') !== null 
+            ? localStorage.getItem('geotag_summary_show_kpi') === 'true' 
+            : (window.innerWidth >= 1024),
+        autoHidden: (localStorage.getItem('geotag_summary_show_kpi') === null && window.innerWidth < 1024),
+        wasOneRow: (window.innerWidth >= 1024),
+
+        isOneRow() {
+            if (this.$refs.kpiGrid && this.showKpi) {
+                const cards = Array.from(this.$refs.kpiGrid.children);
+                if (cards.length > 1) {
+                    return cards[0].offsetTop === cards[cards.length - 1].offsetTop;
+                }
+            }
+            return (this.$el && this.$el.clientWidth ? this.$el.clientWidth >= 960 : window.matchMedia('(min-width: 1024px)').matches);
+        },
+
+        toggleKpi() {
+            this.showKpi = !this.showKpi;
+            this.autoHidden = false;
+            try {
+                localStorage.setItem('geotag_summary_show_kpi', this.showKpi);
+            } catch (e) {}
+            this.$nextTick(() => {
+                this.wasOneRow = this.isOneRow();
+            });
+        },
+
+        checkKpiWrap() {
+            const nowOneRow = this.isOneRow();
+
+            // Jika dari 1 baris berubah menjadi 2 baris (akibat zoom in / window menyempit) -> auto hide
+            if (this.wasOneRow && !nowOneRow) {
+                if (this.showKpi) {
+                    this.showKpi = false;
+                    this.autoHidden = true;
+                    try {
+                        localStorage.setItem('geotag_summary_show_kpi', 'false');
+                    } catch (e) {}
+                }
+            } 
+            // Jika kembali cukup untuk 1 baris (akibat zoom out) dan sebelumnya disembunyikan otomatis -> auto show
+            else if (!this.wasOneRow && nowOneRow && this.autoHidden) {
+                this.showKpi = true;
+                this.autoHidden = false;
+                try {
+                    localStorage.setItem('geotag_summary_show_kpi', 'true');
+                } catch (e) {}
+            }
+
+            this.wasOneRow = nowOneRow;
+        },
+
+        init() {
+            this.$nextTick(() => {
+                this.wasOneRow = this.isOneRow();
+                // Jika saat awal dimuat sudah terdeteksi 2 baris atau lebih, auto hide
+                if (!this.wasOneRow && this.showKpi) {
+                    this.showKpi = false;
+                    this.autoHidden = true;
+                }
+            });
+
+            const onResize = () => {
+                this.checkKpiWrap();
+            };
+
+            window.addEventListener('resize', onResize);
+
+            if (window.ResizeObserver && this.$refs.kpiGrid) {
+                const ro = new ResizeObserver(() => {
+                    if (this.showKpi) {
+                        onResize();
+                    }
+                });
+                ro.observe(this.$refs.kpiGrid);
+            }
+        }
+    }"
 >
     <x-slot name="title">Summary Validasi Geotag Titik Koordinat Toko</x-slot>
 
@@ -21,7 +99,7 @@
         <x-slot:actions>
             <button 
                 type="button" 
-                @click="showKpi = !showKpi" 
+                @click="toggleKpi()" 
                 class="btn btn-xs btn-ghost gap-1.5 rounded-lg border border-base-300 text-xs font-semibold hover:bg-base-200 transition-all duration-200"
                 :class="{ 'bg-primary/10 text-primary border-primary/30 shadow-xs': showKpi, 'text-base-content/60': !showKpi }"
                 title="Sembunyikan / Tampilkan Ringkasan Metrik"
@@ -72,7 +150,7 @@
 
         {{-- Grouping Buttons (Distributor, Area, Region) --}}
         <div class="flex items-center gap-1.5 self-start sm:self-auto bg-base-200/80 p-1 rounded-xl border border-base-300">
-            <span class="text-[11px] font-bold text-base-content/60 px-2 uppercase tracking-wider">Kelompokkan:</span>
+            <span class="text-xs font-bold text-base-content/60 px-2 uppercase tracking-wider">Kelompokkan:</span>
             <button 
                 type="button" 
                 wire:click="setGroupBy('distributor')" 
@@ -98,16 +176,26 @@
     </div>
 
     {{-- 4 CONSOLIDATED SUMMARY CARDS (KPI METRICS) --}}
-    <div x-show="showKpi" x-transition.duration.200ms class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
+    <div 
+        x-ref="kpiGrid"
+        x-show="showKpi" 
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 -translate-y-2"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 translate-y-0"
+        x-transition:leave-end="opacity-0 -translate-y-2"
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 shrink-0"
+    >
         {{-- Card 1: Total Populasi Toko Target --}}
         <div class="bg-base-100 p-3.5 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
-                    <span class="text-[11px] font-bold text-base-content/60 uppercase tracking-wider">Populasi Toko</span>
+                    <span class="text-xs font-bold text-base-content/60 uppercase tracking-wider">Populasi Toko</span>
                     <div class="text-2xl font-black text-base-content mt-1">
                         {{ number_format($kpi['total_stores']) }}
                     </div>
-                    <div class="text-[11px] text-base-content/60 mt-0.5">Toko Aktif Rute Terdaftar</div>
+                    <div class="text-xs text-base-content/60 mt-0.5">Toko Aktif Rute Terdaftar</div>
                 </div>
                 <div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
                     <x-heroicon-s-building-storefront class="w-5 h-5" />
@@ -125,11 +213,11 @@
         <div class="bg-base-100 p-3.5 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
-                    <span class="text-[11px] font-bold text-base-content/60 uppercase tracking-wider">Hasil Validasi</span>
+                    <span class="text-xs font-bold text-base-content/60 uppercase tracking-wider">Hasil Validasi</span>
                     <div class="text-2xl font-black text-success mt-1">
                         {{ number_format($kpi['valid_stores']) }}
                     </div>
-                    <div class="text-[11px] text-success/80 mt-0.5 font-medium">Toko Koordinat VALID</div>
+                    <div class="text-xs text-success/80 mt-0.5 font-medium">Toko Koordinat VALID</div>
                 </div>
                 <div class="w-9 h-9 rounded-xl bg-success/10 flex items-center justify-center text-success shrink-0">
                     <x-heroicon-s-check-badge class="w-5 h-5" />
@@ -145,11 +233,11 @@
         <div class="bg-base-100 p-3.5 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
-                    <span class="text-[11px] font-bold text-base-content/60 uppercase tracking-wider">Kelengkapan Geotag</span>
+                    <span class="text-xs font-bold text-base-content/60 uppercase tracking-wider">Kelengkapan Geotag</span>
                     <div class="text-2xl font-black text-info mt-1">
                         {{ number_format($kpi['has_coordinate']) }}
                     </div>
-                    <div class="text-[11px] text-info/80 mt-0.5 font-medium">Toko Memiliki Koordinat</div>
+                    <div class="text-xs text-info/80 mt-0.5 font-medium">Toko Memiliki Koordinat</div>
                 </div>
                 <div class="w-9 h-9 rounded-xl bg-info/10 flex items-center justify-center text-info shrink-0">
                     <x-heroicon-s-map-pin class="w-5 h-5" />
@@ -168,14 +256,14 @@
         <div class="bg-base-100 p-3.5 rounded-xl shadow-xs border border-rose-300/60 bg-gradient-to-br from-base-100 to-rose-50/30 flex flex-col justify-between relative overflow-hidden">
             <div class="flex items-start justify-between">
                 <div>
-                    <span class="text-[11px] font-bold text-rose-600 uppercase tracking-wider flex items-center gap-1">
+                    <span class="text-xs font-bold text-rose-600 uppercase tracking-wider flex items-center gap-1">
                         <x-heroicon-s-exclamation-triangle class="w-3.5 h-3.5" />
                         Pusat Deteksi Anomali
                     </span>
                     <div class="text-2xl font-black text-rose-600 mt-1">
                         {{ number_format($kpi['at_distributor'] + $kpi['duplicate_stores'] + $kpi['drift_stores']) }}
                     </div>
-                    <div class="text-[11px] text-base-content/60 mt-0.5">Total Temuan Lapangan</div>
+                    <div class="text-xs text-base-content/60 mt-0.5">Total Temuan Lapangan</div>
                 </div>
                 <div class="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
                     <x-heroicon-s-shield-exclamation class="w-5 h-5" />
@@ -276,7 +364,7 @@
                     @resize.window="if ($refs.row1) row1Height = $refs.row1.offsetHeight"
                 >
                     {{-- Row 1: Group Headers --}}
-                    <tr x-ref="row1" class="bg-base-200 text-base-content/80 text-[11px] font-bold uppercase tracking-wider">
+                    <tr x-ref="row1" class="bg-base-200 text-base-content/80 text-xs font-bold uppercase tracking-wider">
                         <th rowspan="2" class="sticky top-0 z-30 bg-base-200 w-10 text-center align-middle border-b border-r border-base-300 shadow-xs">No</th>
                         @if($groupBy === 'region')
                             <th rowspan="2" class="sticky top-0 z-30 bg-base-200 align-middle border-b border-r border-base-300">Region</th>
@@ -298,7 +386,7 @@
                         @endif
                     </tr>
                     {{-- Row 2: Sub-headers (Properly pinned beneath Row 1) --}}
-                    <tr class="bg-base-200 text-base-content/70 text-[10px] font-bold uppercase">
+                    <tr class="bg-base-200 text-base-content/70 text-xs font-bold uppercase">
                         <th class="sticky z-20 text-center bg-base-200 text-info/90 border-b border-r border-base-300" style="top: 31px;" :style="`top: ${row1Height}px;`">Ada Titik</th>
                         <th class="sticky z-20 text-center bg-base-200 text-base-content/60 border-b border-r border-base-300" style="top: 31px;" :style="`top: ${row1Height}px;`">Tanpa Titik</th>
                         <th class="sticky z-20 text-center bg-base-200 text-rose-600 border-b border-r border-base-300" style="top: 31px;" :style="`top: ${row1Height}px;`" title="Titik di Depo (<=100m)">Di Depo</th>
@@ -340,7 +428,7 @@
                             $pct = (float) $row->validation_progress_pct;
                         @endphp
                         <tr class="hover:bg-base-200/60 transition-colors">
-                            <td class="text-center font-mono text-[11px] text-base-content/60 border-r border-base-200">
+                            <td class="text-center font-mono text-xs text-base-content/60 border-r border-base-200">
                                 {{ $idx + 1 }}
                             </td>
 
@@ -360,7 +448,7 @@
                             @if($groupBy === 'distributor')
                                 <td class="border-r border-base-200">
                                     <div class="flex items-center gap-1.5">
-                                        <span class="badge badge-ghost font-mono text-[10px] font-bold">{{ $row->kodecabang }}</span>
+                                        <span class="badge badge-ghost font-mono badge-xs font-bold">{{ $row->kodecabang }}</span>
                                         <span class="font-bold text-base-content">{{ $row->distributor_name }}</span>
                                     </div>
                                 </td>
@@ -433,7 +521,7 @@
                                             style="width: {{ min(100, $pct) }}%"
                                         ></div>
                                     </div>
-                                    <span class="font-mono text-[11px] font-bold text-base-content/70 w-9 text-right">
+                                    <span class="font-mono text-xs font-bold text-base-content/70 w-9 text-right">
                                         {{ $pct }}%
                                     </span>
                                 </div>
@@ -533,7 +621,7 @@
             <div>
                 Menampilkan <b>{{ number_format(count($matrix)) }}</b> baris ringkasan ({{ $groupBy === 'distributor' ? 'Per Distributor' : ($groupBy === 'area' ? 'Per Area' : 'Per Region') }})
             </div>
-            <div class="text-[11px] text-base-content/50">
+            <div class="text-xs text-base-content/50">
                 *Klik tombol <b>Detail</b> pada baris distributor untuk langsung membuka dan memvalidasi toko-toko di cabang tersebut.
             </div>
         </div>

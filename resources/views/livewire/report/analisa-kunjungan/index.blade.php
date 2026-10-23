@@ -1,9 +1,104 @@
 <div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full"
      x-data="{
-         showKpi: localStorage.getItem('kunjungan_show_kpi') === 'true',
+         showKpi: true,
+         autoHidden: false,
+         manualExpanded: false,
+         isMultiline: false,
+
+         detectMultiline() {
+             // 1. Cek media query Tailwind: breakpoint xl adalah min-width 1280px.
+             // Di bawah 1280px, Tailwind pasti menerapkan lg:grid-cols-3 (2 baris) atau sm:grid-cols-2 (3 baris).
+             const isBelowXl = !window.matchMedia('(min-width: 1280px)').matches;
+             if (isBelowXl) return true;
+
+             // 2. Cek elemen fisik DOM jika kartu KPI sedang tampil:
+             const grid = document.getElementById('kpi-cards-grid');
+             if (grid && grid.children.length > 1) {
+                 const firstCard = grid.children[0];
+                 const lastCard = grid.children[grid.children.length - 1];
+                 if (lastCard.offsetTop > firstCard.offsetTop + 10) {
+                     return true;
+                 }
+             }
+
+             // 3. Cek lebar container pembungkus utama:
+             // 5 kartu KPI butuh minimum ~1260px container agar muat 1 baris tanpa berdesakan.
+             const containerW = this.$el.getBoundingClientRect().width;
+             if (containerW < 1260) {
+                 return true;
+             }
+
+             return false;
+         },
+
+         checkKpiWrap() {
+             const multiline = this.detectMultiline();
+             this.isMultiline = multiline;
+
+             if (multiline) {
+                 // Ketika kartu menjadi 2 baris atau lebih:
+                 // Jika user belum secara sengaja memaksa buka di zoom ini, otomatis sembunyikan!
+                 if (!this.manualExpanded) {
+                     if (this.showKpi) {
+                         this.showKpi = false;
+                         this.autoHidden = true;
+                     }
+                 }
+             } else {
+                 // Ketika kembali cukup 1 baris (zoom out / layar lebar):
+                 this.manualExpanded = false;
+                 // Jika sebelumnya disembunyikan otomatis oleh auto-hide, kembalikan ke tampil
+                 if (this.autoHidden) {
+                     this.showKpi = true;
+                     this.autoHidden = false;
+                 }
+             }
+         },
+
          toggleKpi() {
-             this.showKpi = !this.showKpi;
-             localStorage.setItem('kunjungan_show_kpi', this.showKpi);
+             if (!this.showKpi) {
+                 // User secara eksplisit mengklik untuk menampilkan KPI
+                 this.showKpi = true;
+                 this.autoHidden = false;
+                 if (this.isMultiline) {
+                     this.manualExpanded = true;
+                 }
+             } else {
+                 // User secara eksplisit menyembunyikan KPI
+                 this.showKpi = false;
+                 this.autoHidden = false;
+                 this.manualExpanded = false;
+             }
+         },
+
+         init() {
+             // Cek saat komponen dimuat
+             this.$nextTick(() => {
+                 this.checkKpiWrap();
+             });
+
+             // Listener resize biasa & zoom
+             window.addEventListener('resize', () => this.checkKpiWrap());
+
+             // Listener visualViewport (khusus menangkap browser zoom in/out di Chrome/Edge)
+             if (window.visualViewport) {
+                 window.visualViewport.addEventListener('resize', () => this.checkKpiWrap());
+             }
+
+             // Listener perubahan breakpoint media query 1280px
+             const mq = window.matchMedia('(min-width: 1280px)');
+             if (mq.addEventListener) {
+                 mq.addEventListener('change', () => this.checkKpiWrap());
+             } else if (mq.addListener) {
+                 mq.addListener(() => this.checkKpiWrap());
+             }
+
+             // ResizeObserver pada container
+             if (window.ResizeObserver) {
+                 new ResizeObserver(() => {
+                     this.checkKpiWrap();
+                 }).observe(this.$el);
+             }
          }
      }">
     <x-slot name="title">Analisa Kunjungan</x-slot>
@@ -35,39 +130,53 @@
         </button>
 
         <x-slot name="actions">
-            @if($activeTab === 'detail')
-                <button type="button" 
-                    @click="toggleKpi()" 
-                    class="btn btn-xs sm:btn-sm rounded-xl gap-1.5 transition-all font-semibold border shadow-2xs cursor-pointer select-none"
-                    :class="showKpi ? 'btn-ghost text-base-content/70 hover:text-base-content border-base-300' : 'btn-primary text-white shadow-sm border-primary'"
-                    :title="showKpi ? 'Sembunyikan KPI Card agar ruang tabel lebih lega' : 'Tampilkan kembali KPI Card'">
-                    <template x-if="showKpi">
-                        <span class="flex items-center gap-1.5">
-                            <x-heroicon-m-eye-slash class="w-4 h-4 text-base-content/70" />
-                            <span class="text-xs hidden sm:inline">Sembunyikan KPI</span>
-                        </span>
-                    </template>
-                    <template x-if="!showKpi">
-                        <span class="flex items-center gap-1.5">
-                            <x-heroicon-m-chart-bar class="w-4 h-4 text-white" />
-                            <span class="text-xs">Tampilkan KPI</span>
-                        </span>
-                    </template>
-                </button>
-            @endif
+            <div class="flex items-center gap-2">
+                @if($activeTab === 'detail' && $appliedSupervisor && !empty($dailyData['grandTotal']->total_call))
+                    <span class="badge badge-primary text-primary-content font-bold text-xs gap-1 py-2.5 px-3 shadow-2xs font-mono">
+                        <x-heroicon-s-clipboard-document-check class="w-4 h-4" />
+                        {{ number_format($dailyData['grandTotal']->total_call) }} Call
+                    </span>
+                @endif
+
+                @if($activeTab === 'detail')
+                    <button type="button" 
+                        @click="toggleKpi()" 
+                        class="btn btn-xs sm:btn-sm rounded-xl gap-1.5 transition-all font-semibold border shadow-2xs cursor-pointer select-none"
+                        :class="showKpi ? 'btn-ghost text-base-content/70 hover:text-base-content border-base-300' : 'btn-primary text-white shadow-sm border-primary'"
+                        :title="showKpi ? 'Sembunyikan KPI Card agar ruang tabel lebih lega' : (autoHidden ? 'KPI otomatis disembunyikan karena layar zoom/sempit (≥2 baris). Klik untuk menampilkan.' : 'Tampilkan kembali KPI Card')">
+                        <template x-if="showKpi">
+                            <span class="flex items-center gap-1.5">
+                                <x-heroicon-m-eye-slash class="w-4 h-4 text-base-content/70" />
+                                <span class="text-xs hidden sm:inline">Sembunyikan KPI</span>
+                            </span>
+                        </template>
+                        <template x-if="!showKpi">
+                            <span class="flex items-center gap-1.5">
+                                <x-heroicon-m-chart-bar class="w-4 h-4 text-white" />
+                                <span class="text-xs">Tampilkan KPI</span>
+                                <template x-if="autoHidden">
+                                    <span class="badge badge-warning text-slate-900 badge-xs font-bold px-1.5 py-0.5 text-xs hidden sm:inline" title="Otomatis disembunyikan agar layar tidak penuh">
+                                        Auto-hide
+                                    </span>
+                                </template>
+                            </span>
+                        </template>
+                    </button>
+                @endif
+            </div>
         </x-slot>
     </x-ui.tab-menu>
 
     @if($activeTab === 'detail')
         <div x-show="showKpi" 
+             x-cloak
              x-transition:enter="transition ease-out duration-200" 
              x-transition:enter-start="opacity-0 -translate-y-2" 
              x-transition:enter-end="opacity-100 translate-y-0" 
              x-transition:leave="transition ease-in duration-150" 
              x-transition:leave-start="opacity-100 translate-y-0" 
              x-transition:leave-end="opacity-0 -translate-y-2" 
-             class="shrink-0"
-             style="display: none;">
+             class="shrink-0">
             @include('livewire.report.analisa-kunjungan.kpi-cards')
         </div>
     @endif
@@ -100,313 +209,450 @@
         $canDelete = $user->hasMenuAccess('report.analisa-kunjungan.index', 'can_delete');
         $canExport = $user->hasMenuAccess('report.analisa-kunjungan.index', 'can_export');
     @endphp
-        {{-- Header Card & Actions --}}
-        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-base-200/30">
-            <div class="shrink-0 w-full xl:w-auto">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <h2 class="text-base md:text-lg font-bold">Analisa Kunjungan</h2>
-                    @if($activeTab === 'detail')
-                        <button type="button" 
-                            @click="toggleKpi()" 
-                            class="btn btn-xs rounded-lg gap-1 border transition-all font-semibold cursor-pointer shadow-2xs"
-                            :class="showKpi ? 'btn-ghost text-base-content/60 hover:text-base-content border-base-300' : 'btn-primary text-white border-primary'"
-                            :title="showKpi ? 'Sembunyikan KPI Card agar ruang tabel lebih lega' : 'Tampilkan kembali KPI Card'">
-                            <template x-if="showKpi">
-                                <span class="flex items-center gap-1">
-                                    <x-heroicon-m-chevron-up class="w-3.5 h-3.5" />
-                                    <span class="text-[11px] hidden sm:inline">Sembunyikan KPI</span>
-                                </span>
-                            </template>
-                            <template x-if="!showKpi">
-                                <span class="flex items-center gap-1">
-                                    <x-heroicon-m-chart-bar class="w-3.5 h-3.5" />
-                                    <span class="text-[11px]">Tampilkan KPI</span>
-                                </span>
-                            </template>
-                        </button>
-                    @endif
-                </div>
-                <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Filter data analisa kunjungan</p>
-            </div>
-            
-            @if($activeTab === 'detail')
-            <div class="flex flex-wrap items-center justify-start xl:justify-end gap-2 md:gap-3 w-full xl:w-auto">
-                {{-- Territory selects --}}
-                <div class="flex flex-wrap items-center gap-2">
-                    <select wire:model.live="selectedRegion" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[130px] text-xs">
-                        <option value="">Semua Region</option>
-                        @foreach($regions as $region)
-                            <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
-                        @endforeach
-                    </select>
+        @if($activeTab === 'detail')
+        {{-- Header Card & Actions Toolbar (Standar Kapsul Hybrid Breadcrumb Analisa Kunjungan) --}}
+        <x-ui.filter-toolbar>
+            {{-- 1. Kapsul Hierarki Wilayah (Region & Area Native + Supervisor Micro-Searchable Popover) --}}
+            <x-ui.filter-breadcrumb>
+                {{-- Region Segment (jika multi-region/nasional) --}}
+                @if(count($regions) > 1 || $accessLevel === 'nasional')
+                    <x-ui.filter-select 
+                        wire:model.live="selectedRegion" 
+                        :options="$regions" 
+                        valueField="region_code" 
+                        labelField="region_name" 
+                        placeholder="Pilih Region" 
+                        icon="globe" />
+                @endif
 
-                    <select wire:model.live="selectedArea" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[130px] text-xs" @disabled(!$selectedRegion)>
-                        <option value="">Semua Area</option>
-                        @foreach($areas as $area)
-                            <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
-                        @endforeach
-                    </select>
+                {{-- Area Segment --}}
+                @if(count($areas) > 1 || !in_array($accessLevel, ['area', 'supervisor']))
+                    <x-ui.filter-select 
+                        wire:model.live="selectedArea" 
+                        :options="$areas" 
+                        valueField="area_code" 
+                        labelField="area_name" 
+                        placeholder="Pilih Area" 
+                        icon="map-pin" 
+                        :disabled="empty($selectedRegion)" />
+                @endif
 
-                    <select wire:model.live="selectedSupervisor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[140px] text-xs" @disabled(!$selectedArea)>
-                        <option value="">Pilih Supervisor</option>
-                        @foreach($supervisors as $spv)
-                            <option value="{{ $spv->supervisor_code }}">{{ $spv->supervisor_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                {{-- Supervisor Segment (Micro-Searchable Popover) --}}
+                <x-ui.filter-searchable 
+                    wire:key="spv-capsule-{{ $selectedRegion }}-{{ $selectedArea }}-{{ $selectedSupervisor }}"
+                    wire:model.live="selectedSupervisor" 
+                    :options="$supervisors" 
+                    valueField="supervisor_code" 
+                    labelField="supervisor_name" 
+                    placeholder="Pilih Supervisor" 
+                    searchPlaceholder="Cari nama supervisor / kode..." 
+                    icon="user" 
+                    :disabled="empty($selectedArea) || count($supervisors) === 0" />
+            </x-ui.filter-breadcrumb>
 
-                {{-- Smart Date Range Filter (Maks. 31 Hari) --}}
-                <div class="flex items-center gap-1 bg-base-100 px-1 py-0.5 rounded-xl border border-base-300 shadow-2xs w-full sm:w-auto">
-                    <button type="button" wire:click="previousMonth" class="btn btn-xs btn-ghost btn-square text-base-content/60 hover:text-base-content" title="Bulan Sebelumnya">
-                        <x-heroicon-m-chevron-left class="w-3.5 h-3.5" />
-                    </button>
+            {{-- 2. Kapsul Periode Pintar (Smart Date Range Filter) --}}
+            <x-ui.filter-date-range 
+                start="startDate" 
+                end="endDate" 
+                :maxDays="31" />
 
-                    <input type="date" 
-                        wire:model.live="startDate" 
-                        max="{{ $endDate ?: date('Y-m-d') }}"
-                        min="{{ $endDate ? \Carbon\Carbon::parse($endDate)->subDays(30)->format('Y-m-d') : '' }}"
-                        class="input input-xs bg-transparent border-none text-xs w-[110px] focus:outline-none p-0 text-center font-medium" 
-                        title="Tanggal Mulai" />
-
-                    <span class="text-[10px] font-semibold text-base-content/40">s/d</span>
-
-                    <input type="date" 
-                        wire:model.live="endDate" 
-                        min="{{ $startDate ?: '' }}"
-                        max="{{ $startDate ? \Carbon\Carbon::parse($startDate)->addDays(30)->format('Y-m-d') : date('Y-m-d') }}"
-                        class="input input-xs bg-transparent border-none text-xs w-[110px] focus:outline-none p-0 text-center font-medium" 
-                        title="Tanggal Akhir (Maks. 31 hari dari tanggal mulai)" />
-
-                    @php
-                        $diffDays = ($startDate && $endDate) ? (\Carbon\Carbon::parse($startDate)->diffInDays(\Carbon\Carbon::parse($endDate)) + 1) : 0;
-                    @endphp
-                    <div class="tooltip tooltip-bottom" data-tip="{{ $diffDays }} hari dipilih (Maks. 31 hari)">
-                        <span class="badge badge-xs {{ $diffDays >= 31 ? 'badge-warning text-warning-content' : 'badge-neutral text-neutral-content' }} font-mono text-[9px] font-bold px-1.5 cursor-default">
-                            {{ $diffDays }}h
+            <x-slot name="actions">
+                @php
+                    $canApply = !empty($selectedRegion) && !empty($selectedArea) && !empty($selectedSupervisor);
+                    $isMapDisabled = empty($appliedSupervisor);
+                    $isExportDisabled = empty($appliedSupervisor);
+                    $hasPendingFilters = $selectedRegion !== $appliedRegion || 
+                                         $selectedArea !== $appliedArea || 
+                                         $selectedSupervisor !== $appliedSupervisor || 
+                                         $startDate !== $appliedStartDate || 
+                                         $endDate !== $appliedEndDate;
+                @endphp
+                <x-ui.filter-actions 
+                    applyAction="applyFilter" 
+                    resetAction="resetFilter" 
+                    :canApply="$canApply" 
+                    disabledTip="Pilih Region, Area, dan Supervisor terlebih dahulu">
+                    
+                    {{-- Tombol Buka Peta Sebaran Kunjungan --}}
+                    <button type="button" 
+                        class="btn btn-sm btn-outline btn-info rounded-xl gap-1 text-xs font-semibold shadow-xs cursor-pointer"
+                        wire:click="openAllMapsModal"
+                        wire:loading.attr="disabled"
+                        wire:target="openAllMapsModal"
+                        @disabled($isMapDisabled)
+                        title="{{ $isMapDisabled ? 'Terapkan filter terlebih dahulu' : 'Buka Peta Sebaran Kunjungan' }}">
+                        <span wire:loading.remove wire:target="openAllMapsModal" class="flex items-center gap-1">
+                            <x-heroicon-m-map class="w-4 h-4" />
+                            <span class="hidden sm:inline">Peta</span>
                         </span>
-                    </div>
-
-                    <button type="button" wire:click="nextMonth" class="btn btn-xs btn-ghost btn-square text-base-content/60 hover:text-base-content" title="Bulan Berikutnya">
-                        <x-heroicon-m-chevron-right class="w-3.5 h-3.5" />
+                        <span wire:loading wire:target="openAllMapsModal" class="flex items-center gap-1">
+                            <span class="loading loading-spinner loading-xs"></span>
+                            <span class="hidden sm:inline">Memuat...</span>
+                        </span>
                     </button>
 
-                    {{-- Dropdown Pintasan Periode Cepat --}}
-                    <div class="dropdown dropdown-end">
-                        <button type="button" tabindex="0" class="btn btn-xs btn-ghost btn-square text-base-content/60 hover:text-primary" title="Pintasan Periode Cepat">
-                            <x-heroicon-m-calendar-days class="w-3.5 h-3.5" />
-                        </button>
-                        <ul tabindex="0" class="dropdown-content z-30 menu menu-xs p-1.5 shadow-xl bg-base-100 rounded-xl border border-base-300 w-36 text-xs">
-                            <li class="menu-title text-[9px] uppercase tracking-wider text-base-content/50 px-2 py-0.5">Pintasan Periode</li>
-                            <li><a wire:click="setDatePreset('today')" class="py-1">Hari Ini</a></li>
-                            <li><a wire:click="setDatePreset('yesterday')" class="py-1">Kemarin</a></li>
-                            <li><a wire:click="setDatePreset('last_7_days')" class="py-1">7 Hari Terakhir</a></li>
-                            <li><a wire:click="setDatePreset('this_month')" class="py-1 font-semibold text-primary">Bulan Ini (MTD)</a></li>
-                            <li><a wire:click="setDatePreset('last_30_days')" class="py-1">30 Hari Terakhir</a></li>
-                            <li><a wire:click="setDatePreset('last_month')" class="py-1">Bulan Lalu</a></li>
-                        </ul>
-                    </div>
-                </div>
-
-                {{-- Action Buttons --}}
-                <div class="flex items-center gap-1.5">
-                    <script type="application/json" id="map-points-data-json">{!! json_encode($this->mapPointsData) !!}</script>
-
-                    @if(empty($selectedSupervisor))
-                        <div class="tooltip tooltip-bottom" data-tip="Pilih Supervisor terlebih dahulu">
-                            <x-ui.button class="rounded-xl px-3 font-semibold shadow-sm" variant="primary" icon="magnifying-glass" size="sm" disabled>Terapkan</x-ui.button>
-                        </div>
-                    @else
-                        <x-ui.button class="rounded-xl px-3 font-semibold shadow-sm" variant="primary" icon="magnifying-glass" size="sm" wire:click="applyFilter" spinner="applyFilter">Terapkan</x-ui.button>
-                    @endif
-
-                    <div class="tooltip tooltip-bottom" data-tip="Reset Filter">
-                        <x-ui.button class="rounded-xl" variant="neutral" icon="arrow-path" size="sm" wire:click="resetFilter" spinner="resetFilter"></x-ui.button>
-                    </div>
-
-                    @php
-                        $isMapDisabled = empty($appliedSupervisor) || empty($this->mapPointsData);
-                    @endphp
-                    <div class="tooltip tooltip-bottom" data-tip="{{ $isMapDisabled ? (empty($appliedSupervisor) ? 'Terapkan filter terlebih dahulu' : 'Tidak ada titik peta') : 'Buka Peta Sebaran Kunjungan' }}">
-                        <button type="button" 
-                            x-data 
-                            @click="$dispatch('open-all-maps-modal', JSON.parse(document.getElementById('map-points-data-json').textContent))" 
-                            class="btn btn-sm btn-info rounded-xl text-white gap-1 px-3" 
-                            @disabled($isMapDisabled)>
-                            <x-heroicon-o-map class="w-4 h-4" /> Maps
-                        </button>
-                    </div>
-
+                    {{-- Tombol Ekspor Excel --}}
                     @if($canExport)
-                        @php
-                            $isDetailExportDisabled = empty($appliedSupervisor);
-                            $hasPendingDetailFilters = $selectedRegion !== $appliedRegion || 
-                                                       $selectedArea !== $appliedArea || 
-                                                       $selectedSupervisor !== $appliedSupervisor || 
-                                                       $startDate !== $appliedStartDate || 
-                                                       $endDate !== $appliedEndDate;
-                        @endphp
-                        <div class="tooltip tooltip-left" data-tip="{{ $isDetailExportDisabled || $hasPendingDetailFilters ? 'Klik Terapkan terlebih dahulu' : 'Export ke Excel' }}">
-                            <x-ui.button variant="success" size="sm" class="rounded-xl text-white px-3 font-semibold shadow-sm" wire:click="export" spinner="export" icon="arrow-down-tray" :disabled="$isDetailExportDisabled || $hasPendingDetailFilters">
-                                Export
-                            </x-ui.button>
-                        </div>
+                        <button type="button" 
+                            wire:click="export" 
+                            wire:loading.attr="disabled"
+                            class="btn btn-sm btn-outline btn-success rounded-xl gap-1 text-xs font-semibold shadow-xs cursor-pointer {{ $isExportDisabled || $hasPendingFilters ? 'opacity-50 cursor-not-allowed' : '' }}"
+                            @disabled($isExportDisabled || $hasPendingFilters)
+                            title="{{ $isExportDisabled || $hasPendingFilters ? 'Terapkan filter terlebih dahulu' : 'Download Detail Kunjungan ke Excel (.xlsx)' }}">
+                            <span wire:loading.remove wire:target="export" class="flex items-center gap-1.5">
+                                <x-heroicon-m-arrow-down-tray class="w-4 h-4" />
+                                <span class="hidden sm:inline">Excel</span>
+                            </span>
+                            <span wire:loading wire:target="export" class="loading loading-spinner loading-xs"></span>
+                        </button>
                     @endif
-                </div>
-            </div>
-            @elseif($activeTab === 'summary')
-            <div class="flex flex-wrap items-center justify-start xl:justify-end gap-2 md:gap-3 w-full xl:w-auto">
-                <div class="flex items-center gap-2">
-                    <input type="date" wire:model="summaryStartDate" class="input input-sm input-bordered rounded-xl bg-base-100 w-[120px] sm:w-[130px]" />
-                    <span class="text-[10px] font-semibold text-base-content/60 uppercase tracking-wider">s/d</span>
-                    <input type="date" wire:model="summaryEndDate" class="input input-sm input-bordered rounded-xl bg-base-100 w-[120px] sm:w-[130px]" />
-                </div>
-                
-                <div class="flex items-center gap-2">
-                    <select wire:model="summaryRegion" class="select select-sm select-bordered rounded-xl bg-base-100 w-[140px]">
-                        <option value="">Semua Region</option>
-                        @foreach($regions as $region)
-                            <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
-                        @endforeach
-                    </select>
+                </x-ui.filter-actions>
+            </x-slot>
+        </x-ui.filter-toolbar>
+        @elseif($activeTab === 'summary')
+        {{-- Header Card & Actions Toolbar (Standar Kapsul Summary) --}}
+        <x-ui.filter-toolbar>
+            <x-ui.filter-breadcrumb>
+                {{-- Region Segment --}}
+                <x-ui.filter-select 
+                    wire:model.live="summaryRegion" 
+                    :options="$regions" 
+                    valueField="region_code" 
+                    labelField="region_name" 
+                    placeholder="Semua Region" 
+                    icon="globe" />
 
-                    <div class="dropdown">
-                        <div tabindex="0" role="button" class="btn btn-sm btn-outline border-base-300 hover:bg-base-200 hover:text-base-content rounded-xl bg-base-100 font-normal w-[140px] flex justify-between px-3">
-                            <span class="truncate">
+                {{-- Level Multi-Select Dropdown --}}
+                <div class="dropdown">
+                    <div tabindex="0" role="button" class="flex items-center justify-between gap-1.5 px-2 py-1 text-xs cursor-pointer font-medium hover:bg-base-200/50 rounded-lg min-w-[120px]">
+                        <div class="flex items-center gap-1 truncate text-base-content/75">
+                            <x-heroicon-m-adjustments-horizontal class="w-3.5 h-3.5 text-primary/70 shrink-0" />
+                            <span class="truncate font-medium {{ count($summaryLevels) > 0 ? 'text-primary font-bold' : '' }}">
                                 @if(count($summaryLevels) === 0)
                                     Semua Level
                                 @else
-                                    {{ count($summaryLevels) }} Dipilih
+                                    {{ count($summaryLevels) }} Level
                                 @endif
                             </span>
-                            <x-heroicon-o-chevron-down class="w-3.5 h-3.5 opacity-60 shrink-0" />
                         </div>
-                        <ul tabindex="0" class="dropdown-content z-[50] menu p-2 shadow-lg bg-base-100 rounded-xl w-48 mt-1 border border-base-300">
-                            <li>
-                                <label class="label cursor-pointer justify-start gap-3 px-2 py-1.5">
-                                    <input type="checkbox" wire:model="summaryLevels" value="region" class="checkbox checkbox-sm checkbox-primary rounded-md" />
-                                    <span class="label-text">Region</span>
+                        <x-heroicon-m-chevron-down class="w-3 h-3 opacity-40 shrink-0" />
+                    </div>
+                    <ul tabindex="0" class="dropdown-content z-[50] menu p-2 shadow-lg bg-base-100 rounded-xl w-44 mt-1 border border-base-300">
+                        <li class="menu-title text-xs uppercase font-bold text-base-content/50 px-2 py-1">Pilih Level</li>
+                        <li>
+                            <label class="label cursor-pointer justify-start gap-2.5 px-2 py-1">
+                                <input type="checkbox" wire:model="summaryLevels" value="region" class="checkbox checkbox-xs checkbox-primary rounded" />
+                                <span class="label-text text-xs">Region</span>
+                            </label>
+                        </li>
+                        <li>
+                            <label class="label cursor-pointer justify-start gap-2.5 px-2 py-1">
+                                <input type="checkbox" wire:model="summaryLevels" value="area" class="checkbox checkbox-xs checkbox-primary rounded" />
+                                <span class="label-text text-xs">Area</span>
+                            </label>
+                        </li>
+                        <li>
+                            <label class="label cursor-pointer justify-start gap-2.5 px-2 py-1">
+                                <input type="checkbox" wire:model="summaryLevels" value="supervisor" class="checkbox checkbox-xs checkbox-primary rounded" />
+                                <span class="label-text text-xs">Supervisor</span>
+                            </label>
+                        </li>
+                    </ul>
+                </div>
+            </x-ui.filter-breadcrumb>
+
+            {{-- Smart Date Range Filter --}}
+            <x-ui.filter-date-range 
+                start="summaryStartDate" 
+                end="summaryEndDate" 
+                :maxDays="31" 
+                :stepper="false" 
+                :presets="false" />
+
+            <x-slot name="actions">
+                @php
+                    $isSummaryExportDisabled = empty($appliedSummaryRegion) && empty($appliedSummaryStartDate) && empty($appliedSummaryEndDate) && empty($appliedSummaryLevels);
+                    $hasPendingSummaryFilters = $summaryRegion !== $appliedSummaryRegion || 
+                                                $summaryStartDate !== $appliedSummaryStartDate || 
+                                                $summaryEndDate !== $appliedSummaryEndDate ||
+                                                $summaryLevels !== $appliedSummaryLevels;
+                @endphp
+                <x-ui.filter-actions 
+                    applyAction="applyFilter" 
+                    resetAction="resetFilter" 
+                    :canApply="true">
+                    
+                    @if($canExport)
+                        <button type="button" 
+                            wire:click="exportSummary" 
+                            wire:loading.attr="disabled"
+                            class="btn btn-sm btn-outline btn-success rounded-xl gap-1 text-xs font-semibold shadow-xs cursor-pointer {{ $isSummaryExportDisabled || $hasPendingSummaryFilters ? 'opacity-50 cursor-not-allowed' : '' }}"
+                            @disabled($isSummaryExportDisabled || $hasPendingSummaryFilters)
+                            title="{{ $isSummaryExportDisabled || $hasPendingSummaryFilters ? 'Klik Terapkan terlebih dahulu' : 'Export Summary ke Excel' }}">
+                            <span wire:loading.remove wire:target="exportSummary" class="flex items-center gap-1.5">
+                                <x-heroicon-m-arrow-down-tray class="w-4 h-4" />
+                                <span class="hidden sm:inline">Excel</span>
+                            </span>
+                            <span wire:loading wire:target="exportSummary" class="loading loading-spinner loading-xs"></span>
+                        </button>
+                    @endif
+                </x-ui.filter-actions>
+            </x-slot>
+        </x-ui.filter-toolbar>
+        @endif
+
+        @if($activeTab === 'detail')
+        {{-- Secondary Filter & Search Toolbar (Modern Compact Popover Pattern) --}}
+        @php
+            $activeFilterCount = 0;
+            if ($filterVisit !== 'all') $activeFilterCount++;
+            if ($filterEc !== 'all') $activeFilterCount++;
+            if ($filterPjp !== 'all') $activeFilterCount++;
+            if ($filterDistance !== 'all') $activeFilterCount++;
+            if ($filterReason !== 'all') $activeFilterCount++;
+            if ($filterDepo !== 'all') $activeFilterCount++;
+        @endphp
+        <div class="px-3 md:px-4 lg:px-5 py-2.5 bg-base-100 border-b border-base-200 flex flex-wrap items-center justify-between gap-2.5 text-xs shrink-0">
+            {{-- Left Side: Search & Filter Popover --}}
+            <div class="flex flex-wrap items-center gap-2 grow sm:grow-0">
+                {{-- Search Box --}}
+                <div class="relative w-full sm:w-56 md:w-64">
+                    <x-heroicon-o-magnifying-glass class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none" />
+                    <input type="text" 
+                           wire:model.live.debounce.300ms="search" 
+                           placeholder="Cari toko, custno, pilar..." 
+                           class="input input-xs sm:input-sm input-bordered w-full pl-9 pr-8 rounded-xl bg-base-200/40 focus:bg-base-100 text-xs border-base-300" />
+                    @if(!empty($search))
+                        <button type="button" wire:click="$set('search', '')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-base-content/40 hover:text-base-content" title="Hapus pencarian">
+                            <x-heroicon-m-x-mark class="w-3.5 h-3.5" />
+                        </button>
+                    @endif
+                </div>
+
+                {{-- Filter Rincian Popover --}}
+                <div class="relative" x-data="{ openFilter: false }" @click.outside="openFilter = false">
+                    <button type="button" 
+                            @click="openFilter = !openFilter" 
+                            class="btn btn-xs sm:btn-sm rounded-xl gap-1.5 transition-all font-semibold border shadow-2xs select-none cursor-pointer"
+                            :class="openFilter ? 'btn-primary text-white border-primary shadow-sm' : '{{ $activeFilterCount > 0 ? 'btn-primary text-white border-primary shadow-sm' : 'btn-ghost text-base-content/75 hover:text-base-content border-base-300 bg-base-100' }}'">
+                        <x-heroicon-m-funnel class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                        <span>Filter Rincian</span>
+                        @if($activeFilterCount > 0)
+                            <span class="badge badge-xs font-bold rounded-full px-1.5 py-0.5 bg-white text-primary shrink-0">
+                                {{ $activeFilterCount }}
+                            </span>
+                        @endif
+                        <span :class="openFilter ? 'rotate-180' : ''" class="transition-transform duration-200 shrink-0 inline-flex items-center">
+                            <x-heroicon-m-chevron-down class="w-3 h-3 opacity-60" />
+                        </span>
+                    </button>
+
+                    {{-- Popover Card --}}
+                    <div x-show="openFilter" 
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 scale-95 -translate-y-1"
+                         x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                         x-transition:leave="transition ease-in duration-100"
+                         x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                         x-transition:leave-end="opacity-0 scale-95 -translate-y-1"
+                         class="absolute left-0 top-full mt-2 w-[320px] sm:w-[480px] bg-base-100 rounded-2xl shadow-2xl border border-base-300 p-4 z-50 divide-y divide-base-200"
+                         style="display: none;">
+                        
+                        {{-- Popover Header --}}
+                        <div class="flex items-center justify-between pb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="p-1.5 rounded-lg bg-primary/10 text-primary">
+                                    <x-heroicon-m-adjustments-horizontal class="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-xs text-base-content">Filter Rincian Kunjungan</h4>
+                                    <p class="text-xs text-base-content/60">Saring toko berdasarkan status & kepatuhan rute</p>
+                                </div>
+                            </div>
+                            @if($activeFilterCount > 0)
+                                <button type="button" 
+                                        wire:click="resetDetailFilters" 
+                                        class="text-xs font-semibold text-error hover:underline flex items-center gap-1 cursor-pointer">
+                                    <x-heroicon-m-arrow-path class="w-3 h-3" />
+                                    Reset Semua
+                                </button>
+                            @endif
+                        </div>
+
+                        {{-- Popover Body: Grid 2 Kolom --}}
+                        <div class="py-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                            {{-- 1. Status Visit --}}
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-base-content/75 flex items-center gap-1">
+                                    <span>Status Kunjungan</span>
                                 </label>
-                            </li>
-                            <li>
-                                <label class="label cursor-pointer justify-start gap-3 px-2 py-1.5">
-                                    <input type="checkbox" wire:model="summaryLevels" value="area" class="checkbox checkbox-sm checkbox-primary rounded-md" />
-                                    <span class="label-text">Area</span>
+                                <div class="grid grid-cols-3 gap-1 p-0.5 bg-base-200/70 rounded-lg">
+                                    <button type="button" wire:click="$set('filterVisit', 'all')" class="btn btn-xs rounded-md border-0 {{ $filterVisit === 'all' ? 'bg-base-100 shadow-2xs font-bold text-primary' : 'btn-ghost text-base-content/70 font-normal' }}">Semua</button>
+                                    <button type="button" wire:click="$set('filterVisit', 'Y')" class="btn btn-xs rounded-md border-0 {{ $filterVisit === 'Y' ? 'bg-base-100 shadow-2xs font-bold text-primary' : 'btn-ghost text-base-content/70 font-normal' }}">Visit (Y)</button>
+                                    <button type="button" wire:click="$set('filterVisit', 'N')" class="btn btn-xs rounded-md border-0 {{ $filterVisit === 'N' ? 'bg-base-100 shadow-2xs font-bold text-primary' : 'btn-ghost text-base-content/70 font-normal' }}">Belum (N)</button>
+                                </div>
+                            </div>
+
+                            {{-- 2. Status EC / Order --}}
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-base-content/75 flex items-center gap-1">
+                                    <span>Status Order (EC)</span>
                                 </label>
-                            </li>
-                            <li>
-                                <label class="label cursor-pointer justify-start gap-3 px-2 py-1.5">
-                                    <input type="checkbox" wire:model="summaryLevels" value="supervisor" class="checkbox checkbox-sm checkbox-primary rounded-md" />
-                                    <span class="label-text">Supervisor</span>
+                                <div class="grid grid-cols-3 gap-1 p-0.5 bg-base-200/70 rounded-lg">
+                                    <button type="button" wire:click="$set('filterEc', 'all')" class="btn btn-xs rounded-md border-0 {{ $filterEc === 'all' ? 'bg-base-100 shadow-2xs font-bold text-success' : 'btn-ghost text-base-content/70 font-normal' }}">Semua</button>
+                                    <button type="button" wire:click="$set('filterEc', 'Y')" class="btn btn-xs rounded-md border-0 {{ $filterEc === 'Y' ? 'bg-base-100 shadow-2xs font-bold text-success' : 'btn-ghost text-base-content/70 font-normal' }}">Order (Y)</button>
+                                    <button type="button" wire:click="$set('filterEc', 'N')" class="btn btn-xs rounded-md border-0 {{ $filterEc === 'N' ? 'bg-base-100 shadow-2xs font-bold text-success' : 'btn-ghost text-base-content/70 font-normal' }}">Non-EC (N)</button>
+                                </div>
+                            </div>
+
+                            {{-- 3. Tipe Rute (PJP) --}}
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-base-content/75 flex items-center gap-1">
+                                    <span>Tipe Rute</span>
                                 </label>
-                            </li>
-                        </ul>
+                                <div class="grid grid-cols-3 gap-1 p-0.5 bg-base-200/70 rounded-lg">
+                                    <button type="button" wire:click="$set('filterPjp', 'all')" class="btn btn-xs rounded-md border-0 {{ $filterPjp === 'all' ? 'bg-base-100 shadow-2xs font-bold text-info' : 'btn-ghost text-base-content/70 font-normal' }}">Semua</button>
+                                    <button type="button" wire:click="$set('filterPjp', 'Y')" class="btn btn-xs rounded-md border-0 {{ $filterPjp === 'Y' ? 'bg-base-100 shadow-2xs font-bold text-info' : 'btn-ghost text-base-content/70 font-normal' }}">PJP</button>
+                                    <button type="button" wire:click="$set('filterPjp', 'N')" class="btn btn-xs rounded-md border-0 {{ $filterPjp === 'N' ? 'bg-base-100 shadow-2xs font-bold text-info' : 'btn-ghost text-base-content/70 font-normal' }}">Extra Call</button>
+                                </div>
+                            </div>
+
+                            {{-- 4. Kepatuhan Radius --}}
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-base-content/75 flex items-center gap-1">
+                                    <span>Radius Kunjungan</span>
+                                </label>
+                                <div class="grid grid-cols-3 gap-1 p-0.5 bg-base-200/70 rounded-lg">
+                                    <button type="button" wire:click="$set('filterDistance', 'all')" class="btn btn-xs rounded-md border-0 {{ $filterDistance === 'all' ? 'bg-base-100 shadow-2xs font-bold text-primary' : 'btn-ghost text-base-content/70 font-normal' }}">Semua</button>
+                                    <button type="button" wire:click="$set('filterDistance', 'within')" class="btn btn-xs rounded-md border-0 {{ $filterDistance === 'within' ? 'bg-base-100 shadow-2xs font-bold text-success' : 'btn-ghost text-base-content/70 font-normal' }}">&le; 50m</button>
+                                    <button type="button" wire:click="$set('filterDistance', 'out')" class="btn btn-xs rounded-md border-0 {{ $filterDistance === 'out' ? 'bg-base-100 shadow-2xs font-bold text-warning' : 'btn-ghost text-base-content/70 font-normal' }}">> 50m</button>
+                                </div>
+                            </div>
+
+                            {{-- 5. Alasan / Reason --}}
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-base-content/75 flex items-center gap-1">
+                                    <span>Alasan (Reason)</span>
+                                </label>
+                                <div class="grid grid-cols-3 gap-1 p-0.5 bg-base-200/70 rounded-lg">
+                                    <button type="button" wire:click="$set('filterReason', 'all')" class="btn btn-xs rounded-md border-0 {{ $filterReason === 'all' ? 'bg-base-100 shadow-2xs font-bold text-secondary' : 'btn-ghost text-base-content/70 font-normal' }}">Semua</button>
+                                    <button type="button" wire:click="$set('filterReason', 'with')" class="btn btn-xs rounded-md border-0 {{ $filterReason === 'with' ? 'bg-base-100 shadow-2xs font-bold text-secondary' : 'btn-ghost text-base-content/70 font-normal' }}">Ada Reason</button>
+                                    <button type="button" wire:click="$set('filterReason', 'without')" class="btn btn-xs rounded-md border-0 {{ $filterReason === 'without' ? 'bg-base-100 shadow-2xs font-bold text-secondary' : 'btn-ghost text-base-content/70 font-normal' }}">Tanpa</button>
+                                </div>
+                            </div>
+
+                            {{-- 6. Lokasi Depo --}}
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-base-content/75 flex items-center gap-1">
+                                    <span>Lokasi Depo (&le; 100m)</span>
+                                </label>
+                                <div class="grid grid-cols-3 gap-1 p-0.5 bg-base-200/70 rounded-lg">
+                                    <button type="button" wire:click="$set('filterDepo', 'all')" class="btn btn-xs rounded-md border-0 {{ $filterDepo === 'all' ? 'bg-base-100 shadow-2xs font-bold text-primary' : 'btn-ghost text-base-content/70 font-normal' }}">Semua</button>
+                                    <button type="button" wire:click="$set('filterDepo', 'at_depo')" class="btn btn-xs rounded-md border-0 {{ $filterDepo === 'at_depo' ? 'bg-base-100 shadow-2xs font-bold text-error' : 'btn-ghost text-base-content/70 font-normal' }}">🏢 Di Depo</button>
+                                    <button type="button" wire:click="$set('filterDepo', 'not_depo')" class="btn btn-xs rounded-md border-0 {{ $filterDepo === 'not_depo' ? 'bg-base-100 shadow-2xs font-bold text-success' : 'btn-ghost text-base-content/70 font-normal' }}">🏬 Luar Depo</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Popover Footer --}}
+                        <div class="pt-3 flex items-center justify-between">
+                            <span class="text-xs text-base-content/60">
+                                @if($activeFilterCount > 0)
+                                    <strong class="text-primary font-bold">{{ $activeFilterCount }}</strong> filter aktif
+                                @else
+                                    Semua filter aktif secara default
+                                @endif
+                            </span>
+                            <button type="button" 
+                                    @click="openFilter = false" 
+                                    class="btn btn-xs btn-primary rounded-xl px-3 cursor-pointer">
+                                Selesai
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <x-ui.button class="rounded-xl" variant="primary" icon="magnifying-glass" size="sm" wire:click="applyFilter" spinner="applyFilter">Terapkan</x-ui.button>
-                    <div class="tooltip tooltip-bottom" data-tip="Reset Filter">
-                        <x-ui.button class="rounded-xl" variant="neutral" icon="arrow-path" size="sm" wire:click="resetFilter" spinner="resetFilter"></x-ui.button>
-                    </div>
-                    @if($canExport)
-                        @php
-                            $isSummaryExportDisabled = empty($appliedSummaryRegion) && empty($appliedSummaryStartDate) && empty($appliedSummaryEndDate) && empty($appliedSummaryLevels);
-                            $hasPendingSummaryFilters = $summaryRegion !== $appliedSummaryRegion || 
-                                                        $summaryStartDate !== $appliedSummaryStartDate || 
-                                                        $summaryEndDate !== $appliedSummaryEndDate ||
-                                                        $summaryLevels !== $appliedSummaryLevels;
-                        @endphp
-                        <div class="tooltip tooltip-left" data-tip="{{ $isSummaryExportDisabled || $hasPendingSummaryFilters ? 'Klik Terapkan terlebih dahulu' : 'Export Summary ke Excel' }}">
-                            <x-ui.button variant="success" size="sm" class="rounded-xl text-white" wire:click="exportSummary" spinner="exportSummary" icon="arrow-down-tray" :disabled="$isSummaryExportDisabled || $hasPendingSummaryFilters">
-                                Export
-                            </x-ui.button>
-                        </div>
+                {{-- Active Filter Pills / Chips --}}
+                <div class="hidden md:flex items-center flex-wrap gap-1.5">
+                    @if($filterVisit !== 'all')
+                        <span class="badge badge-sm badge-outline badge-primary gap-1 py-2 text-xs font-medium rounded-lg">
+                            Visit: {{ $filterVisit === 'Y' ? 'Ya' : 'Belum' }}
+                            <button type="button" wire:click="$set('filterVisit', 'all')" class="hover:text-error cursor-pointer" title="Hapus filter visit">
+                                <x-heroicon-m-x-mark class="w-3 h-3" />
+                            </button>
+                        </span>
+                    @endif
+
+                    @if($filterEc !== 'all')
+                        <span class="badge badge-sm badge-outline badge-success gap-1 py-2 text-xs font-medium rounded-lg">
+                            Order: {{ $filterEc === 'Y' ? 'EC' : 'Non-EC' }}
+                            <button type="button" wire:click="$set('filterEc', 'all')" class="hover:text-error cursor-pointer" title="Hapus filter order">
+                                <x-heroicon-m-x-mark class="w-3 h-3" />
+                            </button>
+                        </span>
+                    @endif
+
+                    @if($filterPjp !== 'all')
+                        <span class="badge badge-sm badge-outline badge-info gap-1 py-2 text-xs font-medium rounded-lg">
+                            Rute: {{ $filterPjp === 'Y' ? 'PJP' : 'Extra' }}
+                            <button type="button" wire:click="$set('filterPjp', 'all')" class="hover:text-error cursor-pointer" title="Hapus filter rute">
+                                <x-heroicon-m-x-mark class="w-3 h-3" />
+                            </button>
+                        </span>
+                    @endif
+
+                    @if($filterDistance !== 'all')
+                        <span class="badge badge-sm badge-outline {{ $filterDistance === 'within' ? 'badge-success' : 'badge-warning' }} gap-1 py-2 text-xs font-medium rounded-lg">
+                            Radius: {{ $filterDistance === 'within' ? '≤50m' : '>50m' }}
+                            <button type="button" wire:click="$set('filterDistance', 'all')" class="hover:text-error cursor-pointer" title="Hapus filter radius">
+                                <x-heroicon-m-x-mark class="w-3 h-3" />
+                            </button>
+                        </span>
+                    @endif
+
+                    @if($filterReason !== 'all')
+                        <span class="badge badge-sm badge-outline badge-secondary gap-1 py-2 text-xs font-medium rounded-lg">
+                            Reason: {{ $filterReason === 'with' ? 'Ada' : 'Tanpa' }}
+                            <button type="button" wire:click="$set('filterReason', 'all')" class="hover:text-error cursor-pointer" title="Hapus filter reason">
+                                <x-heroicon-m-x-mark class="w-3 h-3" />
+                            </button>
+                        </span>
+                    @endif
+
+                    @if($filterDepo !== 'all')
+                        <span class="badge badge-sm badge-outline {{ $filterDepo === 'at_depo' ? 'badge-error' : 'badge-neutral' }} gap-1 py-2 text-xs font-medium rounded-lg">
+                            Depo: {{ $filterDepo === 'at_depo' ? 'Di Depo' : 'Luar Depo' }}
+                            <button type="button" wire:click="$set('filterDepo', 'all')" class="hover:text-error cursor-pointer" title="Hapus filter depo">
+                                <x-heroicon-m-x-mark class="w-3 h-3" />
+                            </button>
+                        </span>
+                    @endif
+
+                    @if($activeFilterCount > 1)
+                        <button type="button" wire:click="resetDetailFilters" class="text-xs text-error hover:underline ml-1 cursor-pointer font-medium" title="Reset semua filter rincian">
+                            Reset Semua
+                        </button>
                     @endif
                 </div>
             </div>
-            @endif
-        </div>
 
-        @if($activeTab === 'detail')
-        {{-- Secondary Filter & Search Toolbar --}}
-        <div class="px-3 md:px-4 lg:px-5 py-2.5 bg-base-100 border-b border-base-200 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
-            {{-- Search Box --}}
-            <div class="relative w-full sm:w-64 md:w-72">
-                <x-heroicon-o-magnifying-glass class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none" />
-                <input type="text" 
-                       wire:model.live.debounce.300ms="search" 
-                       placeholder="Cari toko, custno, pilar..." 
-                       class="input input-xs sm:input-sm input-bordered w-full pl-9 pr-8 rounded-xl bg-base-200/50 focus:bg-base-100 text-xs" />
-                @if(!empty($search))
-                    <button type="button" wire:click="$set('search', '')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-base-content/40 hover:text-base-content" title="Hapus pencarian">
-                        <x-heroicon-m-x-mark class="w-3.5 h-3.5" />
+            {{-- Right Side: Expand / Collapse All Controls --}}
+            <div class="flex items-center gap-1.5 ml-auto">
+                <div class="join border border-base-300 rounded-xl overflow-hidden shadow-2xs bg-base-100">
+                    <button type="button" 
+                            @click="expandAll" 
+                            class="join-item btn btn-xs btn-ghost hover:bg-base-200/80 gap-1 font-semibold text-base-content/80 text-xs px-2.5 h-8 cursor-pointer" 
+                            title="Buka rincian semua hari">
+                        <x-heroicon-m-arrows-pointing-out class="w-3.5 h-3.5 text-primary" />
+                        <span class="hidden sm:inline">Buka Semua</span>
                     </button>
-                @endif
-            </div>
-
-            {{-- Filter Dropdowns & Controls --}}
-            <div class="flex flex-wrap items-center gap-2">
-                {{-- Filter Visit --}}
-                <select wire:model.live="filterVisit" class="select select-xs sm:select-sm select-bordered rounded-xl bg-base-100 text-xs border-base-300">
-                    <option value="all">Status Visit: Semua</option>
-                    <option value="Y">Visit Saja (Y)</option>
-                    <option value="N">Belum Visit (N)</option>
-                </select>
-
-                {{-- Filter EC --}}
-                <select wire:model.live="filterEc" class="select select-xs sm:select-sm select-bordered rounded-xl bg-base-100 text-xs border-base-300">
-                    <option value="all">Status Order: Semua</option>
-                    <option value="Y">Order / EC Saja (Y)</option>
-                    <option value="N">Non-EC (N)</option>
-                </select>
-
-                {{-- Filter PJP --}}
-                <select wire:model.live="filterPjp" class="select select-xs sm:select-sm select-bordered rounded-xl bg-base-100 text-xs border-base-300">
-                    <option value="all">Tipe Rute: Semua</option>
-                    <option value="Y">PJP (Jadwal)</option>
-                    <option value="N">Non-PJP (Extra Call)</option>
-                </select>
-
-                {{-- Filter Radius --}}
-                <select wire:model.live="filterDistance" class="select select-xs sm:select-sm select-bordered rounded-xl bg-base-100 text-xs border-base-300">
-                    <option value="all">Radius: Semua</option>
-                    <option value="within">&le; 50m (Dalam Radius)</option>
-                    <option value="out">> 50m (Luar Radius)</option>
-                </select>
-
-                {{-- Filter Reason --}}
-                <select wire:model.live="filterReason" class="select select-xs sm:select-sm select-bordered rounded-xl bg-base-100 text-xs border-base-300">
-                    <option value="all">Reason: Semua</option>
-                    <option value="with">Ada Reason</option>
-                    <option value="without">Tanpa Reason</option>
-                </select>
-
-                {{-- Filter Lokasi Depo --}}
-                <select wire:model.live="filterDepo" class="select select-xs sm:select-sm select-bordered rounded-xl bg-base-100 text-xs border-base-300">
-                    <option value="all">Lokasi Depo: Semua</option>
-                    <option value="at_depo">🏢 Di Depo (&le; 100m)</option>
-                    <option value="not_depo">🏬 Di Luar Depo (> 100m)</option>
-                </select>
-
-                {{-- Reset Detail Filters Button --}}
-                @if(!empty($search) || $filterVisit !== 'all' || $filterEc !== 'all' || $filterPjp !== 'all' || $filterDistance !== 'all' || $filterReason !== 'all' || $filterDepo !== 'all')
-                    <button type="button" wire:click="resetDetailFilters" class="btn btn-xs btn-ghost text-error hover:bg-error/10 gap-1 rounded-xl" title="Reset filter rincian">
-                        <x-heroicon-m-x-circle class="w-3.5 h-3.5" />
-                        <span>Reset Filter</span>
-                    </button>
-                @endif
-
-                <div class="hidden sm:block w-px h-5 bg-base-300 mx-0.5"></div>
-
-                {{-- Expand / Collapse All --}}
-                <div class="flex items-center gap-1">
-                    <button type="button" @click="expandAll" class="btn btn-xs btn-outline btn-primary rounded-xl gap-1 font-semibold" title="Buka rincian semua hari">
-                        <x-heroicon-m-arrows-pointing-out class="w-3.5 h-3.5" />
-                        <span class="hidden md:inline">Buka Semua</span>
-                    </button>
-                    <button type="button" @click="collapseAll" class="btn btn-xs btn-ghost rounded-xl gap-1 text-base-content/70 hover:text-base-content" title="Tutup rincian semua hari">
+                    <div class="w-px bg-base-300 h-5 self-center"></div>
+                    <button type="button" 
+                            @click="collapseAll" 
+                            class="join-item btn btn-xs btn-ghost hover:bg-base-200/80 gap-1 font-medium text-base-content/60 hover:text-base-content text-xs px-2.5 h-8 cursor-pointer" 
+                            title="Tutup rincian semua hari">
                         <x-heroicon-m-arrows-pointing-in class="w-3.5 h-3.5" />
-                        <span class="hidden md:inline">Tutup Semua</span>
+                        <span class="hidden sm:inline">Tutup Semua</span>
                     </button>
                 </div>
             </div>
@@ -459,10 +705,10 @@
                                 </span>
                                 <span class="text-xs text-base-content/70 font-mono">{{ $day->formatted_date }}</span>
                                 @if($day->is_saturday)
-                                    <span class="inline-flex items-center px-1 py-0.2 rounded text-[8px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 leading-tight">Sabtu</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 leading-none">Sabtu</span>
                                 @endif
                                 @if(($day->at_depo_count ?? 0) > 0)
-                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500/15 text-rose-600 border border-rose-500/30" title="{{ $day->at_depo_count }} kunjungan terdeteksi di kantor Depo / Distributor">
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-bold bg-rose-500/15 text-rose-600 border border-rose-500/30 leading-none" title="{{ $day->at_depo_count }} kunjungan terdeteksi di kantor Depo / Distributor">
                                         🏢 {{ $day->at_depo_count }} Depo
                                     </span>
                                 @endif
@@ -481,7 +727,7 @@
                         <td class="text-center whitespace-nowrap font-mono text-xs">
                             @if($day->first_time_in !== '-' || $day->last_time_out !== '-')
                                 <span class="font-semibold text-base-content">{{ $day->first_time_in }} - {{ $day->last_time_out }}</span>
-                                <span class="block text-[10px] text-base-content/50 font-normal">({{ $day->work_duration_str }})</span>
+                                <span class="block text-xs text-base-content/50 font-normal">({{ $day->work_duration_str }})</span>
                             @else
                                 <span class="text-base-content/40">-</span>
                             @endif
@@ -490,7 +736,7 @@
                         {{-- Plan Call --}}
                         <td class="text-center whitespace-nowrap">
                             <span class="font-mono font-bold text-xs">{{ $day->total_call }} Toko</span>
-                            <span class="text-[10px] text-base-content/50 block font-mono">{{ $day->pc }} PC • {{ $day->xc }} XC</span>
+                            <span class="text-xs text-base-content/50 block font-mono">{{ $day->pc }} PC • {{ $day->xc }} XC</span>
                         </td>
 
                         {{-- Actual Call --}}
@@ -500,7 +746,7 @@
                                 @php
                                     $vClass = $day->visit_percent >= 100 ? 'badge-success text-white' : 'badge-error text-white';
                                 @endphp
-                                <span class="badge badge-xs {{ $vClass }} font-bold font-mono px-1.5 text-[9px] leading-tight">
+                                <span class="badge badge-xs {{ $vClass }} font-bold font-mono px-1.5 text-xs leading-none">
                                     {{ $day->visit_percent }}%
                                 </span>
                             </div>
@@ -514,7 +760,7 @@
                                     $ecP = $day->ec_percent;
                                     $ecClass = $ecP >= 100 ? 'badge-success text-white' : ($ecP >= 80 ? 'badge-warning text-slate-900 font-bold' : 'badge-error text-white');
                                 @endphp
-                                <span class="badge badge-xs {{ $ecClass }} font-bold font-mono px-1.5 text-[9px] leading-tight">
+                                <span class="badge badge-xs {{ $ecClass }} font-bold font-mono px-1.5 text-xs leading-none">
                                     {{ $day->ec_percent }}%
                                 </span>
                             </div>
@@ -536,16 +782,16 @@
 
                         {{-- Waktu Toko vs Jalan --}}
                         <td class="text-center whitespace-nowrap">
-                            <div class="inline-flex flex-col items-center gap-1 font-mono text-[11px] w-full max-w-[145px]">
-                                <div class="inline-flex items-center justify-center gap-1 w-full text-[10px]">
-                                    <span class="badge badge-xs badge-ghost border-base-300 gap-0.5 text-[9px] px-1 py-0.5" title="Waktu di Toko: {{ $day->consume_percent }}%">
+                            <div class="inline-flex flex-col items-center gap-1 font-mono text-xs w-full max-w-[155px]">
+                                <div class="inline-flex items-center justify-center gap-1 w-full text-xs">
+                                    <span class="badge badge-xs badge-ghost border-base-300 gap-0.5 text-xs px-1.5 py-0.5" title="Waktu di Toko: {{ $day->consume_percent }}%">
                                         🏬 {{ $day->consume_str }}
                                     </span>
-                                    <span class="badge badge-xs badge-ghost border-base-300 gap-0.5 text-[9px] px-1 py-0.5" title="Waktu di Jalan: {{ $day->travel_percent }}%">
+                                    <span class="badge badge-xs badge-ghost border-base-300 gap-0.5 text-xs px-1.5 py-0.5" title="Waktu di Jalan: {{ $day->travel_percent }}%">
                                         🛵 {{ $day->travel_str }}
                                     </span>
                                 </div>
-                                <div class="w-full bg-amber-500/20 rounded-full h-1 flex overflow-hidden shadow-2xs" title="Proporsi Waktu: {{ $day->consume_percent }}% di Toko, {{ $day->travel_percent }}% di Jalan">
+                                <div class="w-full bg-amber-500/20 rounded-full h-1.5 flex overflow-hidden shadow-2xs" title="Proporsi Waktu: {{ $day->consume_percent }}% di Toko, {{ $day->travel_percent }}% di Jalan">
                                     <div class="bg-success h-full transition-all duration-300" style="width: {{ $day->consume_percent }}%"></div>
                                     <div class="bg-amber-500 h-full transition-all duration-300" style="width: {{ $day->travel_percent }}%"></div>
                                 </div>
@@ -555,11 +801,11 @@
                         {{-- Kepatuhan Radius --}}
                         <td class="text-center whitespace-nowrap">
                             @if($day->out_of_radius_count == 0)
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-success/10 text-success border border-success/30">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-success/10 text-success border border-success/30">
                                     ✓ Sesuai
                                 </span>
                             @else
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-error text-white shadow-2xs" title="{{ $day->out_of_radius_count }} toko check-in melebihi 50 meter dari master">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-error text-white shadow-2xs" title="{{ $day->out_of_radius_count }} toko check-in melebihi 50 meter dari master">
                                     ⚠️ {{ $day->out_of_radius_count }} Toko >50m
                                 </span>
                             @endif
@@ -575,7 +821,7 @@
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <span class="inline-block w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
                                         <span class="font-bold text-xs tracking-wide text-white">Detail Kunjungan: {{ $day->day_name }}, {{ $day->formatted_date }}</span>
-                                        <div class="flex items-center gap-1.5 flex-wrap text-[10px]">
+                                        <div class="flex items-center gap-1.5 flex-wrap text-xs">
                                             <span class="badge badge-sm badge-neutral font-mono font-bold bg-slate-800 text-slate-200 border border-slate-700">{{ count($day->items) }} Toko</span>
                                             <span class="badge badge-sm {{ $day->visit_percent >= 100 ? 'badge-success text-white' : 'badge-error text-white' }} font-bold font-mono">
                                                 {{ $day->total_visit }} Visit ({{ $day->visit_percent }}%)
@@ -617,8 +863,8 @@
 
                                 {{-- Sub-Table Body --}}
                                 <div class="overflow-x-auto max-h-[420px]">
-                                    <table class="table table-xs table-zebra w-full whitespace-nowrap text-[11px] leading-tight [&_th]:py-1.5 [&_th]:px-2 [&_td]:py-1 [&_td]:px-2">
-                                        <thead class="sticky top-0 z-20 shadow-sm border-b border-slate-700 uppercase font-bold tracking-wider text-[10px] text-white [&_th]:bg-slate-800 dark:[&_th]:bg-slate-900 [&_th]:text-slate-100 [&_th]:border-b [&_th]:border-slate-700">
+                                    <table class="table table-xs table-zebra w-full whitespace-nowrap text-xs leading-tight [&_th]:py-1.5 [&_th]:px-2 [&_td]:py-1 [&_td]:px-2">
+                                        <thead class="sticky top-0 z-20 shadow-sm border-b border-slate-700 uppercase font-bold tracking-wider text-xs text-white [&_th]:bg-slate-800 dark:[&_th]:bg-slate-900 [&_th]:text-slate-100 [&_th]:border-b [&_th]:border-slate-700">
                                             <tr>
                                                 <th class="w-8 text-center">#</th>
                                                 <th class="text-center">Jam Kerja</th>
@@ -727,21 +973,21 @@
                                                     @if(!$item->is_briefing_eva)
                                                         @if($item->is_at_depo)
                                                             <div class="mt-0.5">
-                                                                <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500/15 text-rose-600 border border-rose-500/30 whitespace-nowrap" 
+                                                                <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-bold bg-rose-500/15 text-rose-600 border border-rose-500/30 whitespace-nowrap leading-none" 
                                                                       title="Check-in di kantor depo {{ $item->depo_name }} ({{ $item->dist_to_depo }}m dari depo)">
                                                                     🏢 Depo ({{ $item->dist_to_depo }}m)
                                                                 </span>
                                                             </div>
                                                         @elseif(!empty($item->dist_to_depo) && $item->dist_to_depo <= 300)
                                                             <div class="mt-0.5">
-                                                                <span class="text-[9px] text-amber-600 font-mono block whitespace-nowrap" title="Dekat Depo {{ $item->depo_name }} ({{ $item->dist_to_depo }}m)">
+                                                                <span class="text-xs text-amber-600 font-mono block whitespace-nowrap leading-none" title="Dekat Depo {{ $item->depo_name }} ({{ $item->dist_to_depo }}m)">
                                                                     🏢 {{ $item->dist_to_depo }}m
                                                                 </span>
                                                             </div>
                                                         @endif
                                                     @else
                                                         <div class="mt-0.5">
-                                                            <span class="text-[9px] text-base-content/50 font-medium block whitespace-nowrap" title="Briefing/Evaluasi di Kantor Depo {{ $item->depo_name ?? '' }}">
+                                                            <span class="text-xs text-base-content/50 font-medium block whitespace-nowrap leading-none" title="Briefing/Evaluasi di Kantor Depo {{ $item->depo_name ?? '' }}">
                                                                 🏢 Distributor
                                                             </span>
                                                         </div>
@@ -809,24 +1055,24 @@
                         </td>
                         <td class="text-center font-mono text-xs">
                             <span>{{ $gt->total_call }} Toko</span><br>
-                            <span class="text-[10px] text-base-content/50">{{ $gt->pc }} PC • {{ $gt->xc }} XC</span>
+                            <span class="text-xs text-base-content/50">{{ $gt->pc }} PC • {{ $gt->xc }} XC</span>
                         </td>
                         <td class="text-center font-mono text-xs">
                             <div class="flex items-center justify-center gap-1">
                                 <span>{{ $gt->total_visit }}</span>
                                 @if(($gt->at_depo_count ?? 0) > 0)
-                                    <span class="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8px] font-bold bg-rose-500/15 text-rose-600 border border-rose-500/30" title="{{ $gt->at_depo_count }} kunjungan terdeteksi di kantor Depo">
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-bold bg-rose-500/15 text-rose-600 border border-rose-500/30 leading-none" title="{{ $gt->at_depo_count }} kunjungan terdeteksi di kantor Depo">
                                         🏢 {{ $gt->at_depo_count }} Depo
                                     </span>
                                 @endif
                             </div>
-                            <span class="badge badge-xs {{ $gt->visit_percent >= 100 ? 'badge-success text-white' : 'badge-error text-white' }} font-bold">
+                            <span class="badge badge-xs {{ $gt->visit_percent >= 100 ? 'badge-success text-white' : 'badge-error text-white' }} font-bold text-xs">
                                 {{ $gt->visit_percent }}%
                             </span>
                         </td>
                         <td class="text-center font-mono text-xs">
                             <span>{{ $gt->total_ec }}</span><br>
-                            <span class="badge badge-xs {{ $gt->ec_percent >= 100 ? 'badge-success text-white' : ($gt->ec_percent >= 80 ? 'badge-warning text-slate-900 font-bold' : 'badge-error text-white') }} font-bold">
+                            <span class="badge badge-xs {{ $gt->ec_percent >= 100 ? 'badge-success text-white' : ($gt->ec_percent >= 80 ? 'badge-warning text-slate-900 font-bold' : 'badge-error text-white') }} font-bold text-xs">
                                 {{ $gt->ec_percent }}%
                             </span>
                         </td>
@@ -837,16 +1083,16 @@
                             Rp {{ number_format($gt->total_val_order, 0, ',', '.') }}
                         </td>
                         <td class="text-center font-mono text-xs">
-                            <div class="inline-flex flex-col items-center gap-1 font-mono text-[11px] w-full max-w-[145px]">
-                                <div class="inline-flex items-center justify-center gap-1 w-full text-[10px]">
-                                    <span class="badge badge-xs badge-ghost border-base-300 text-[9px] px-1 py-0.5">
+                            <div class="inline-flex flex-col items-center gap-1 font-mono text-xs w-full max-w-[155px]">
+                                <div class="inline-flex items-center justify-center gap-1 w-full text-xs">
+                                    <span class="badge badge-xs badge-ghost border-base-300 text-xs px-1.5 py-0.5">
                                         🏬 {{ $gt->consume_str }}
                                     </span>
-                                    <span class="badge badge-xs badge-ghost border-base-300 text-[9px] px-1 py-0.5">
+                                    <span class="badge badge-xs badge-ghost border-base-300 text-xs px-1.5 py-0.5">
                                         🛵 {{ $gt->travel_str }}
                                     </span>
                                 </div>
-                                <div class="w-full bg-amber-500/20 rounded-full h-1 flex overflow-hidden shadow-2xs">
+                                <div class="w-full bg-amber-500/20 rounded-full h-1.5 flex overflow-hidden shadow-2xs">
                                     <div class="bg-success h-full" style="width: {{ $gt->consume_percent }}%"></div>
                                     <div class="bg-amber-500 h-full" style="width: {{ $gt->travel_percent }}%"></div>
                                 </div>
@@ -854,11 +1100,11 @@
                         </td>
                         <td class="text-center">
                             @if($gt->out_of_radius_count == 0)
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-success/10 text-success border border-success/30">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-success/10 text-success border border-success/30">
                                     ✓ 100% Sesuai
                                 </span>
                             @else
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-error text-white shadow-2xs">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-error text-white shadow-2xs">
                                     ⚠️ {{ $gt->out_of_radius_count }} Toko >50m
                                 </span>
                             @endif
@@ -900,8 +1146,8 @@
                 </div>
             </div>
 
-            <table class="table table-xs table-pin-rows w-full text-[11px] [&_th]:px-2 [&_td]:px-2 [&_th]:py-1.5 [&_td]:py-1.5">
-                <thead class="bg-base-200 text-base-content z-10 sticky top-0">
+            <table class="table table-xs table-pin-rows w-full text-xs [&_th]:px-2 [&_td]:px-2 [&_th]:py-1.5 [&_td]:py-1.5">
+                <thead class="bg-base-200 text-base-content z-10 sticky top-0 text-xs">
                     <tr>
                         <th class="align-middle text-center" rowspan="2">No</th>
                         <th class="align-middle" rowspan="2">Region</th>
@@ -911,7 +1157,7 @@
                         <th class="align-middle text-center border-b-0 border-r border-base-300" colspan="5">Kunjungan (Visit)</th>
                         <th class="align-middle text-center border-b-0 border-r border-base-300 bg-base-200/50" colspan="3">Order (Value)</th>
                         <th class="align-middle text-center border-b-0 border-r border-base-300" colspan="8">Pilar Actual</th>
-                        <th class="align-middle text-center border-b-0 border-base-300 bg-base-200/50" colspan="2">Out of Area <span class="text-[9px] font-normal opacity-75">(> 50m)</span></th>
+                        <th class="align-middle text-center border-b-0 border-base-300 bg-base-200/50" colspan="2">Out of Area <span class="text-xs font-normal opacity-75">(> 50m)</span></th>
                     </tr>
                     <tr>
                         <th class="align-middle text-center bg-base-200/90">PC</th>
@@ -934,7 +1180,7 @@
                         <th class="align-middle text-center bg-base-200/70">%</th>
                     </tr>
                 </thead>
-                <tbody class="text-[11px] relative">
+                <tbody class="text-xs relative">
                 @php
                     $sumData = $this->summaryData;
                     
@@ -991,7 +1237,7 @@
                         <td class="text-center border-r border-base-300 font-bold {{ $row['pareto_pct'] < 50 ? 'text-error' : ($row['pareto_pct'] < 80 ? 'text-warning' : 'text-success') }}">{{ number_format($row['pareto_pct'], 1, ',', '.') }}%</td>
                         <td class="text-center bg-base-200/20">
                             @if($row['out_of_area'] > 0)
-                                <span class="badge badge-error badge-sm text-[10px]">{{ number_format($row['out_of_area'], 0, ',', '.') }}</span>
+                                <span class="badge badge-error badge-sm text-xs">{{ number_format($row['out_of_area'], 0, ',', '.') }}</span>
                             @else
                                 <span class="text-base-content/40">-</span>
                             @endif
@@ -1003,33 +1249,33 @@
                         <td colspan="14" class="text-center py-10">
                             <x-heroicon-o-inbox class="w-10 h-10 mx-auto text-base-content/20 mb-3" />
                             <p class="text-base-content/50 font-medium">Tidak ada data untuk summary</p>
-                            <p class="text-[10px] text-base-content/40 mt-1">Silakan sesuaikan filter di atas</p>
+                            <p class="text-xs text-base-content/40 mt-1">Silakan sesuaikan filter di atas</p>
                         </td>
                     </tr>
                 @endforelse
                 </tbody>
                 @if(count($sumData) > 0)
-                <tfoot class="bg-base-200/80 text-base-content font-bold sticky bottom-0 z-10">
+                <tfoot class="bg-base-200/80 text-base-content font-bold sticky bottom-0 z-10 text-xs">
                     <tr>
-                        <td colspan="5" class="text-right uppercase tracking-wider text-[11px] border-r border-base-300">Total Kumulatif</td>
+                        <td colspan="5" class="text-right uppercase tracking-wider text-xs border-r border-base-300">Total Kumulatif</td>
                         <td class="text-center">{{ number_format($totPc, 0, ',', '.') }}</td>
                         <td class="text-center">{{ number_format($totAc, 0, ',', '.') }}</td>
-                        <td class="text-center text-primary text-[11px]">{{ $totPc > 0 ? number_format(($totAc / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
+                        <td class="text-center text-primary text-xs">{{ $totPc > 0 ? number_format(($totAc / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
                         <td class="text-center">{{ number_format($totEc, 0, ',', '.') }}</td>
-                        <td class="text-center text-primary text-[11px] border-r border-base-300">{{ $totPc > 0 ? number_format(($totEc / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
+                        <td class="text-center text-primary text-xs border-r border-base-300">{{ $totPc > 0 ? number_format(($totEc / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
                         <td class="text-right bg-base-200/50">Rp {{ number_format($totTarget, 0, ',', '.') }}</td>
-                        <td class="text-right text-primary text-[11px] bg-base-200/50">Rp {{ number_format($totOrder, 0, ',', '.') }}</td>
-                        <td class="text-center text-primary text-[11px] border-r border-base-300 bg-base-200/50">{{ $totTarget > 0 ? number_format(($totOrder / $totTarget) * 100, 1, ',', '.') : '0,0' }}%</td>
+                        <td class="text-right text-primary text-xs bg-base-200/50">Rp {{ number_format($totOrder, 0, ',', '.') }}</td>
+                        <td class="text-center text-primary text-xs border-r border-base-300 bg-base-200/50">{{ $totTarget > 0 ? number_format(($totOrder / $totTarget) * 100, 1, ',', '.') : '0,0' }}%</td>
                         <td class="text-center">{{ number_format($totRwo, 0, ',', '.') }}</td>
-                        <td class="text-center text-primary text-[11px]">{{ $totPc > 0 ? number_format(($totRwo / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
+                        <td class="text-center text-primary text-xs">{{ $totPc > 0 ? number_format(($totRwo / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
                         <td class="text-center">{{ number_format($totPnr, 0, ',', '.') }}</td>
-                        <td class="text-center text-primary text-[11px]">{{ $totPc > 0 ? number_format(($totPnr / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
+                        <td class="text-center text-primary text-xs">{{ $totPc > 0 ? number_format(($totPnr / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
                         <td class="text-center">{{ number_format($totNgvo, 0, ',', '.') }}</td>
-                        <td class="text-center text-primary text-[11px]">{{ $totPc > 0 ? number_format(($totNgvo / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
+                        <td class="text-center text-primary text-xs">{{ $totPc > 0 ? number_format(($totNgvo / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
                         <td class="text-center">{{ number_format($totRwo + $totPnr + $totNgvo, 0, ',', '.') }}</td>
-                        <td class="text-center text-primary text-[11px] border-r border-base-300">{{ $totPc > 0 ? number_format((($totRwo + $totPnr + $totNgvo) / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
+                        <td class="text-center text-primary text-xs border-r border-base-300">{{ $totPc > 0 ? number_format((($totRwo + $totPnr + $totNgvo) / $totPc) * 100, 1, ',', '.') : '0,0' }}%</td>
                         <td class="text-center text-error bg-base-200/50">{{ number_format($totOoa, 0, ',', '.') }}</td>
-                        <td class="text-center text-error text-[11px] bg-base-200/50">{{ $totAc > 0 ? number_format(($totOoa / $totAc) * 100, 1, ',', '.') : '0,0' }}%</td>
+                        <td class="text-center text-error text-xs bg-base-200/50">{{ $totAc > 0 ? number_format(($totOoa / $totAc) * 100, 1, ',', '.') : '0,0' }}%</td>
                     </tr>
                 </tfoot>
                 @endif
@@ -1233,7 +1479,7 @@
                         if (hasMaster) {
                             new maplibregl.Marker({ color: '#ef4444' })
                                 .setLngLat([mLon, mLat])
-                                .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<div class='text-black'><strong>Master Point Toko</strong><br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick="window.open('https://www.google.com/maps/search/?api=1&query=${mLat},${mLon}', '_blank')">📍 ${mLat}, ${mLon}</span></div>`))
+                                .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<div class='text-black'><strong>Master Point Toko</strong><br><span class='text-xs text-gray-500 font-mono cursor-pointer hover:text-primary' onclick="window.open('https://www.google.com/maps/search/?api=1&query=${mLat},${mLon}', '_blank')">📍 ${mLat}, ${mLon}</span></div>`))
                                 .addTo(this.mapInstance);
                             bounds.extend([mLon, mLat]);
                         }
@@ -1241,7 +1487,7 @@
                         if (hasVisit) {
                             new maplibregl.Marker({ color: '#3b82f6' })
                                 .setLngLat([vLon, vLat])
-                                .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<div class='text-black'><strong>Titik Kunjungan (Visit GPS)</strong><br><span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick="window.open('https://www.google.com/maps/search/?api=1&query=${vLat},${vLon}', '_blank')">📍 ${vLat}, ${vLon}</span></div>`))
+                                .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<div class='text-black'><strong>Titik Kunjungan (Visit GPS)</strong><br><span class='text-xs text-gray-500 font-mono cursor-pointer hover:text-primary' onclick="window.open('https://www.google.com/maps/search/?api=1&query=${vLat},${vLon}', '_blank')">📍 ${vLat}, ${vLon}</span></div>`))
                                 .addTo(this.mapInstance);
                             bounds.extend([vLon, vLat]);
                         }
@@ -1257,7 +1503,7 @@
                                     <div class='text-black'>
                                         <strong>🏢 ${data.depoName || 'Kantor Depo'}</strong><br>
                                         <span class='text-xs text-gray-700'>Jarak Kunjungan ke Depo: <strong>${data.distToDepo || '-'} m</strong></span><br>
-                                        <span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick="window.open('https://www.google.com/maps/search/?api=1&query=${dLat},${dLon}', '_blank')">📍 ${dLat}, ${dLon}</span>
+                                        <span class='text-xs text-gray-500 font-mono cursor-pointer hover:text-primary' onclick="window.open('https://www.google.com/maps/search/?api=1&query=${dLat},${dLon}', '_blank')">📍 ${dLat}, ${dLon}</span>
                                     </div>
                                 `))
                                 .addTo(this.mapInstance);
@@ -1390,13 +1636,13 @@
                                 if (pt.is_at_depo) {
                                     depoInfo = `<div class='text-rose-600 font-bold text-xs mt-1'>🏢 Terdeteksi di Depo: ${pt.depo_name || ''} (${pt.dist_to_depo || '-'}m)</div>`;
                                 } else if (pt.dist_to_depo && pt.dist_to_depo <= 300 && !pt.is_briefing_eva) {
-                                    depoInfo = `<div class='text-amber-600 text-[11px] mt-1'>🏢 Dekat Depo: ${pt.depo_name || ''} (${pt.dist_to_depo}m)</div>`;
+                                    depoInfo = `<div class='text-amber-600 text-xs mt-1'>🏢 Dekat Depo: ${pt.depo_name || ''} (${pt.dist_to_depo}m)</div>`;
                                 }
 
                                 return {
                                     'type': 'Feature',
                                     'properties': {
-                                        'description': `<div class='text-black'><strong>${pt.name}</strong><br>Tgl: ${pt.date}<br>SPV: ${pt.spv}<br>${depoInfo}<span class='text-[10px] text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open("https://www.google.com/maps/search/?api=1&query=${lat},${lon}", "_blank");' title='Buka di Google Maps'>📍 ${lat}, ${lon}</span></div>`
+                                        'description': `<div class='text-black'><strong>${pt.name}</strong><br>Tgl: ${pt.date}<br>SPV: ${pt.spv}<br>${depoInfo}<span class='text-xs text-gray-500 font-mono cursor-pointer hover:text-primary' onclick='window.open("https://www.google.com/maps/search/?api=1&query=${lat},${lon}", "_blank");' title='Buka di Google Maps'>📍 ${lat}, ${lon}</span></div>`
                                     },
                                     'geometry': {
                                         'type': 'Point',

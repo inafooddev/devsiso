@@ -1,4 +1,70 @@
-<div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full">
+<div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full"
+     x-data="{
+         showKpi: localStorage.getItem('se_summary_show_kpi') !== null 
+             ? localStorage.getItem('se_summary_show_kpi') === 'true' 
+             : (window.innerWidth >= 1280),
+         autoHidden: (localStorage.getItem('se_summary_show_kpi') === null && window.innerWidth < 1280),
+         wasOneRow: (window.innerWidth >= 1280),
+         
+         isOneRow() {
+             if (this.$refs.kpiGrid && this.showKpi) {
+                 const cards = Array.from(this.$refs.kpiGrid.children);
+                 if (cards.length > 1) {
+                     return cards[0].offsetTop === cards[cards.length - 1].offsetTop;
+                 }
+             }
+             return window.matchMedia('(min-width: 1280px)').matches;
+         },
+         
+         toggleKpi() {
+             this.showKpi = !this.showKpi;
+             this.autoHidden = false;
+             localStorage.setItem('se_summary_show_kpi', this.showKpi);
+             this.$nextTick(() => {
+                 this.wasOneRow = this.isOneRow();
+             });
+         },
+         
+         checkKpiWrap() {
+             const nowOneRow = this.isOneRow();
+             
+             // Logika: Jika dari sebelumnya 1 baris berubah menjadi 2 baris (atau lebih) -> otomatis hide kpi card
+             if (this.wasOneRow && !nowOneRow) {
+                 if (this.showKpi) {
+                     this.showKpi = false;
+                     this.autoHidden = true;
+                     localStorage.setItem('se_summary_show_kpi', 'false');
+                 }
+             } 
+             // Jika kembali ke 1 baris dan sebelumnya disembunyikan otomatis oleh sistem -> tampilkan kembali
+             else if (!this.wasOneRow && nowOneRow && this.autoHidden) {
+                 this.showKpi = true;
+                 this.autoHidden = false;
+                 localStorage.setItem('se_summary_show_kpi', 'true');
+             }
+             
+             this.wasOneRow = nowOneRow;
+         },
+         
+         init() {
+             this.wasOneRow = this.isOneRow();
+             
+             const onResize = () => {
+                 this.checkKpiWrap();
+             };
+             
+             window.addEventListener('resize', onResize);
+             
+             if (window.ResizeObserver && this.$refs.kpiGrid) {
+                 const ro = new ResizeObserver(() => {
+                     if (this.showKpi) {
+                         onResize();
+                     }
+                 });
+                 ro.observe(this.$refs.kpiGrid);
+             }
+         }
+     }">
     <x-slot name="title">Summary Kunjungan SE</x-slot>
 
     {{-- Standar Tab Menu dari resources/views/components/ui/tab-menu.blade.php --}}
@@ -33,178 +99,132 @@
         <x-ui.tab-item :active="false" :href="route('report.analisa-kunjungan-se.raport', $tabParams)" :navigate="true">
             <x-heroicon-o-academic-cap class="w-4 h-4 inline-block mr-1 text-emerald-500" /> Raport SE
         </x-ui.tab-item>
+
+        <x-slot name="actions">
+            <div class="flex items-center gap-2">
+                @if($appliedRegion && !empty($grandTotal->total_salesman))
+                    <span class="badge badge-primary text-primary-content font-bold text-xs gap-1 py-2.5 px-3 shadow-2xs font-mono">
+                        <x-heroicon-s-user-group class="w-4 h-4" />
+                        {{ number_format($grandTotal->total_salesman) }} SE
+                    </span>
+                @endif
+
+                <button type="button" 
+                    @click="toggleKpi()" 
+                    class="btn btn-xs sm:btn-sm rounded-xl gap-1.5 transition-all font-semibold border shadow-2xs cursor-pointer select-none"
+                    :class="showKpi ? 'btn-ghost text-base-content/70 hover:text-base-content border-base-300' : 'btn-primary text-white shadow-sm border-primary'"
+                    :title="showKpi ? 'Sembunyikan KPI Card agar ruang tabel lebih lega' : 'Tampilkan kembali KPI Card'">
+                    <template x-if="showKpi">
+                        <span class="flex items-center gap-1.5">
+                            <x-heroicon-m-eye-slash class="w-4 h-4 text-base-content/70" />
+                            <span class="text-xs hidden sm:inline">Sembunyikan KPI</span>
+                        </span>
+                    </template>
+                    <template x-if="!showKpi">
+                        <span class="flex items-center gap-1.5">
+                            <x-heroicon-m-chart-bar class="w-4 h-4 text-white" />
+                            <span class="text-xs">Tampilkan KPI</span>
+                        </span>
+                    </template>
+                </button>
+            </div>
+        </x-slot>
     </x-ui.tab-menu>
 
-    {{-- 5 KPI Cards Section (Sama persis dengan halaman Detail) --}}
-    @include('livewire.report.analisa-kunjungan-se.kpi-cards')
+    {{-- 5 KPI Cards Section (Show/Hide Controlled by Alpine showKpi) --}}
+    <div x-show="showKpi"
+         x-transition:enter="transition ease-out duration-200" 
+         x-transition:enter-start="opacity-0 -translate-y-2" 
+         x-transition:enter-end="opacity-100 translate-y-0" 
+         x-transition:leave="transition ease-in duration-150" 
+         x-transition:leave-start="opacity-100 translate-y-0" 
+         x-transition:leave-end="opacity-0 -translate-y-2">
+        @include('livewire.report.analisa-kunjungan-se.kpi-cards')
+    </div>
 
     {{-- Main Card (Tabel) yang mengambil sisa ruang flex --}}
     <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
         
-        {{-- Header Card & Actions Toolbar (Gaya Identik dengan Detail Data) --}}
-        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-base-200/30">
-            <div class="shrink-0 w-full lg:w-auto">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <h2 class="text-base md:text-lg font-bold">Summary Performa SE</h2>
-                    
-                    {{-- Territory pills for locked/single access --}}
-                    @if($accessLevel !== 'nasional' && count($regions) <= 1 && !empty($selectedRegion))
-                        @php
-                            $currReg = collect($regions)->firstWhere('region_code', $selectedRegion);
-                        @endphp
-                        @if($currReg)
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary border border-primary/20" title="Wilayah Region Anda">
-                                <x-heroicon-m-map-pin class="w-3 h-3" />
-                                {{ $currReg->region_name }}
-                            </span>
-                        @endif
-                    @endif
-
-                    @if(in_array($accessLevel, ['area', 'supervisor']) && count($areas) <= 1 && !empty($selectedArea))
-                        @php
-                            $currArea = collect($areas)->firstWhere('area_code', $selectedArea);
-                        @endphp
-                        @if($currArea)
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold bg-secondary/10 text-secondary border border-secondary/20" title="Wilayah Area Anda">
-                                <x-heroicon-m-building-office class="w-3 h-3" />
-                                {{ $currArea->area_name }}
-                            </span>
-                        @endif
-                    @endif
-
-                    @if($appliedStartDate && $appliedEndDate)
-                        <span class="badge badge-neutral text-neutral-content font-mono text-xs font-semibold">
-                            {{ \Carbon\Carbon::parse($appliedStartDate)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($appliedEndDate)->format('d/m/Y') }}
-                        </span>
-                    @endif
-                </div>
-                <p class="text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Ringkasan Performa & Efektivitas Sales Exclusive (SE)</p>
-            </div>
-            
-            {{-- Filter Bar & Action Buttons --}}
-            <div class="flex flex-wrap items-center justify-start lg:justify-end gap-2 w-full lg:w-auto">
-                {{-- Search Box SE / Distributor --}}
-                <div class="relative w-full sm:w-auto">
-                    <input type="text"
-                           wire:model.live.debounce.300ms="search"
-                           placeholder="Cari SE / Distributor..."
-                           class="input input-sm input-bordered rounded-xl bg-base-100 border-base-300 text-xs pl-8 pr-2 w-full sm:w-44 focus:outline-none focus:border-primary" />
-                    <x-heroicon-o-magnifying-glass class="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40" />
-                </div>
-
-                {{-- Filter Region --}}
+        {{-- Header Card & Actions Toolbar (Standar Kapsul Hybrid Breadcrumb Analisa Kunjungan SE) --}}
+        <x-ui.filter-toolbar>
+            {{-- 1. Kapsul Hierarki Wilayah (Region & Area Native + Distributor Micro-Searchable Popover) --}}
+            <x-ui.filter-breadcrumb>
+                {{-- Region Segment (jika multi-region/nasional) --}}
                 @if(count($regions) > 1 || $accessLevel === 'nasional')
-                    <select wire:model.live="selectedRegion" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[130px] text-xs">
-                        <option value="">Pilih Region</option>
-                        @foreach($regions as $r)
-                            <option value="{{ $r->region_code }}">{{ $r->region_name }}</option>
-                        @endforeach
-                    </select>
+                    <x-ui.filter-select 
+                        wire:model.live="selectedRegion" 
+                        :options="$regions" 
+                        valueField="region_code" 
+                        labelField="region_name" 
+                        placeholder="Pilih Region" 
+                        icon="globe" />
                 @endif
 
-                {{-- Filter Area (Bisa Semua Area) --}}
+                {{-- Area Segment --}}
                 @if(count($areas) > 1 || !in_array($accessLevel, ['area', 'supervisor']))
-                    <select wire:model.live="selectedArea" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[130px] text-xs" @disabled(empty($selectedRegion))>
-                        <option value="">Semua Area</option>
-                        @foreach($areas as $a)
-                            <option value="{{ $a->area_code }}">{{ $a->area_name }}</option>
-                        @endforeach
-                    </select>
+                    <x-ui.filter-select 
+                        wire:model.live="selectedArea" 
+                        :options="$areas" 
+                        valueField="area_code" 
+                        labelField="area_name" 
+                        placeholder="Semua Area" 
+                        icon="map-pin" 
+                        :disabled="empty($selectedRegion)" />
                 @endif
 
-                {{-- Filter Distributor (Bisa Semua Distributor) --}}
-                <div class="relative w-full sm:w-auto">
-                    <select wire:model.live="selectedDistributor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[150px] text-xs" @disabled(empty($selectedRegion)) wire:target="selectedArea, selectedRegion" wire:loading.class="opacity-60">
-                        <option value="">Semua Distributor</option>
-                        @foreach($distributors as $d)
-                            <option value="{{ $d->distributor_code }}">{{ $d->distributor_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                {{-- Distributor Segment (Micro-Searchable Popover) --}}
+                <x-ui.filter-searchable 
+                    wire:key="dist-capsule-{{ $selectedRegion }}-{{ $selectedArea }}-{{ $selectedDistributor }}"
+                    wire:model.live="selectedDistributor" 
+                    :options="$distributors" 
+                    valueField="distributor_code" 
+                    labelField="distributor_name" 
+                    placeholder="Semua Distributor" 
+                    :allowAll="true"
+                    searchPlaceholder="Cari nama distributor / kode..."
+                    icon="building" 
+                    :disabled="empty($selectedRegion)" />
+            </x-ui.filter-breadcrumb>
 
-                {{-- Smart Date Range Filter (Maks. 31 Hari / 1 Bulan) --}}
-                <div class="flex items-center gap-1 bg-base-100 px-1 py-0.5 rounded-xl border border-base-300 shadow-2xs w-full sm:w-auto">
-                    <button type="button" wire:click="previousMonth" class="btn btn-xs btn-ghost btn-square text-base-content/60 hover:text-base-content" title="Bulan Sebelumnya">
-                        <x-heroicon-m-chevron-left class="w-3.5 h-3.5" />
-                    </button>
+            {{-- 2. Kapsul Periode Pintar (Smart Date Range Filter) --}}
+            <x-ui.filter-date-range 
+                start="startDate" 
+                end="endDate" 
+                :maxDays="31" />
 
-                    <input type="date" 
-                        wire:model.live="startDate" 
-                        max="{{ $endDate ?: date('Y-m-d') }}"
-                        min="{{ $endDate ? \Carbon\Carbon::parse($endDate)->subDays(30)->format('Y-m-d') : '' }}"
-                        class="input input-xs bg-transparent border-none text-xs w-[105px] focus:outline-none p-0 text-center font-medium" 
-                        title="Tanggal Mulai" />
-
-                    <span class="text-xs font-semibold text-base-content/40">s/d</span>
-
-                    <input type="date" 
-                        wire:model.live="endDate" 
-                        min="{{ $startDate ?: '' }}"
-                        max="{{ $startDate ? \Carbon\Carbon::parse($startDate)->addDays(30)->format('Y-m-d') : date('Y-m-d') }}"
-                        class="input input-xs bg-transparent border-none text-xs w-[105px] focus:outline-none p-0 text-center font-medium" 
-                        title="Tanggal Akhir" />
-
-                    @php
-                        $diffDays = ($startDate && $endDate) ? (\Carbon\Carbon::parse($startDate)->diffInDays(\Carbon\Carbon::parse($endDate)) + 1) : 0;
-                    @endphp
-                    <div class="tooltip tooltip-bottom" data-tip="{{ $diffDays }} hari dipilih (Maks. 31 hari)">
-                        <span class="badge badge-xs {{ $diffDays >= 31 ? 'badge-warning text-warning-content' : 'badge-neutral text-neutral-content' }} font-mono font-bold px-1.5 cursor-default">
-                            {{ $diffDays }}h
-                        </span>
-                    </div>
-
-                    <button type="button" wire:click="nextMonth" class="btn btn-xs btn-ghost btn-square text-base-content/60 hover:text-base-content" title="Bulan Berikutnya">
-                        <x-heroicon-m-chevron-right class="w-3.5 h-3.5" />
-                    </button>
-
-                    {{-- Dropdown Pintasan Periode Cepat --}}
-                    <div class="dropdown dropdown-end">
-                        <button type="button" tabindex="0" class="btn btn-xs btn-ghost btn-square text-base-content/60 hover:text-primary" title="Pintasan Periode Cepat">
-                            <x-heroicon-m-calendar-days class="w-3.5 h-3.5" />
-                        </button>
-                        <ul tabindex="0" class="dropdown-content z-30 menu menu-xs p-1.5 shadow-xl bg-base-100 rounded-xl border border-base-300 w-36 text-xs">
-                            <li class="menu-title text-xs uppercase tracking-wider text-base-content/50 px-2 py-0.5">Pintasan Periode</li>
-                            <li><a wire:click="setDatePreset('today')" class="py-1">Hari Ini</a></li>
-                            <li><a wire:click="setDatePreset('yesterday')" class="py-1">Kemarin</a></li>
-                            <li><a wire:click="setDatePreset('last_7_days')" class="py-1">7 Hari Terakhir</a></li>
-                            <li><a wire:click="setDatePreset('this_month')" class="py-1 font-semibold text-primary">Bulan Ini (MTD)</a></li>
-                            <li><a wire:click="setDatePreset('last_30_days')" class="py-1">30 Hari Terakhir</a></li>
-                            <li><a wire:click="setDatePreset('last_month')" class="py-1">Bulan Lalu</a></li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="hidden xl:block w-px h-6 bg-base-300 mx-1"></div>
-
-                {{-- Action Buttons: Terapkan, Reset, Excel --}}
-                <div class="flex flex-wrap items-center gap-1.5 w-full sm:w-auto justify-end">
-                    @php
-                        $canApply = !empty($selectedRegion);
-                    @endphp
-                    @if(!$canApply)
-                        <div class="tooltip tooltip-bottom" data-tip="Pilih minimal Region terlebih dahulu">
-                            <x-ui.button variant="primary" size="sm" class="rounded-xl px-3 font-semibold shadow-sm" disabled icon="funnel">
-                                Terapkan
-                            </x-ui.button>
-                        </div>
-                    @else
-                        <x-ui.button variant="primary" size="sm" class="rounded-xl px-3 font-semibold shadow-sm" wire:click="applyFilter" spinner="applyFilter" icon="funnel">
-                            Terapkan
-                        </x-ui.button>
-                    @endif
-
-                    <x-ui.button variant="ghost" size="sm" class="rounded-xl px-2.5 text-base-content/70 hover:text-base-content" wire:click="resetFilters" spinner="resetFilters" icon="arrow-path">
-                        Reset
-                    </x-ui.button>
-
-                    @if($canExport)
-                        <x-ui.button variant="success" size="sm" class="rounded-xl text-white px-3 shadow-sm font-semibold" wire:click="exportExcel" spinner="exportExcel" icon="arrow-down-tray">
-                            Excel
-                        </x-ui.button>
-                    @endif
-                </div>
+            {{-- 3. Search Box SE / Distributor --}}
+            <div class="relative w-full sm:w-auto">
+                <input type="text"
+                       wire:model.live.debounce.300ms="search"
+                       placeholder="Cari SE / Distributor..."
+                       class="input input-xs h-7 rounded-lg bg-base-100 border border-base-300 text-xs pl-7 pr-2 w-full sm:w-44 focus:outline-none focus:border-primary shadow-2xs" />
+                <x-heroicon-m-magnifying-glass class="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none" />
             </div>
-        </div>
+
+            <x-slot name="actions">
+                @php $canApply = !empty($selectedRegion); @endphp
+                <x-ui.filter-actions 
+                    applyAction="applyFilter" 
+                    resetAction="resetFilters" 
+                    :canApply="$canApply" 
+                    disabledTip="Pilih minimal Region terlebih dahulu">
+                    
+                    @if($canExport)
+                        <button type="button" 
+                            wire:click="exportExcel" 
+                            wire:loading.attr="disabled"
+                            class="btn btn-sm btn-outline btn-success rounded-xl gap-1 text-xs font-semibold shadow-xs cursor-pointer"
+                            title="Download Summary Kunjungan SE ke Excel (.xlsx)">
+                            <span wire:loading.remove wire:target="exportExcel" class="flex items-center gap-1.5">
+                                <x-heroicon-m-arrow-down-tray class="w-4 h-4" />
+                                <span>Excel</span>
+                            </span>
+                            <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
+                        </button>
+                    @endif
+                </x-ui.filter-actions>
+            </x-slot>
+        </x-ui.filter-toolbar>
 
         {{-- Body Card (Tabel Summary Kunjungan SE) --}}
         <div class="flex-1 overflow-auto bg-base-100 w-full relative">
@@ -302,7 +322,7 @@
                         </tr>
 
                         {{-- Row 2: Sub-Header Kolom Spesifik (Scales with rem on Zoom) --}}
-                        <tr class="text-[0.6875rem] font-bold uppercase tracking-wider border-b-2 border-base-content/20">
+                        <tr class="text-[0.625rem] font-bold uppercase tracking-wider border-b-2 border-base-content/20">
                             {{-- Sub-Headers Group 1: Total Kunjungan --}}
                             <th class="w-14 text-right pr-2 bg-base-200 text-base-content/80 cursor-pointer hover:bg-base-300 hover:text-base-content transition-colors" wire:click="sortByColumn('total_pc')" title="Total Plan Call (Target PC + XC)">
                                 <div class="flex items-center justify-end gap-0.5"><span>PC</span>@if($sortField === 'total_pc')<span class="text-primary">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>@endif</div>

@@ -20,6 +20,7 @@ class Index extends Component
     protected string $menuRoute = 'report.analisa-kunjungan.index';
 
     public $activeTab = 'detail';
+    public $accessLevel = '';
 
     // Summary Filters
     public $summaryStartDate;
@@ -72,6 +73,7 @@ class Index extends Component
 
     public function mount()
     {
+        $this->accessLevel = auth()->user()->getAccessLevel();
         $this->setDatePreset('this_month');
         
         $this->appliedStartDate = $this->startDate;
@@ -239,7 +241,6 @@ class Index extends Component
         $this->filterPjp = 'all';
         $this->filterDistance = 'all';
         $this->filterReason = 'all';
-        $this->filterDepo = 'all';
         $this->filterDepo = 'all';
         $this->resetPage();
     }
@@ -1427,11 +1428,35 @@ class Index extends Component
         })->toArray();
     }
 
+    /**
+     * Trigger modal and send map points data on demand via Livewire event.
+     */
+    public function openAllMapsModal(): void
+    {
+        if (empty($this->appliedRegion) && empty($this->appliedArea) && empty($this->appliedSupervisor)) {
+            $this->dispatch('notify', msg: 'Harap terapkan filter terlebih dahulu untuk melihat peta sebaran.', type: 'warning');
+            return;
+        }
+
+        // Ambil data points harian yang telah diperkaya info depo, atau fallback ke mapPointsData
+        $points = collect($this->dailyData()['summaries'] ?? [])->pluck('map_points')->flatten(1)->toArray();
+        if (empty($points)) {
+            $points = $this->mapPointsData;
+        }
+
+        if (empty($points)) {
+            $this->dispatch('notify', msg: 'Tidak ada titik koordinat kunjungan yang ditemukan pada filter ini.', type: 'info');
+            return;
+        }
+
+        $this->dispatch('open-all-maps-modal', $points);
+    }
+
     public function render()
     {
         return view('livewire.report.analisa-kunjungan.index', [
-            'dailyData' => $this->dailyData,
-            'dataKunjungan' => $this->dataKunjungan,
+            'dailyData' => $this->dailyData(),
+            'dataKunjungan' => $this->dataKunjungan(),
         ])->layout('layouts.app');
     }
 }

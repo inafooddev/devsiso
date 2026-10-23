@@ -1,47 +1,18 @@
 <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full" 
-        x-data="{ showRejectModal: false, showMapModal: false, mapDist: 0, showReasonModal: false, reasonText: '', copyToast: { show: false, message: '' }, showSummaryModal: false, showExportModal: false, showKpi: false, showDetailModal: false, detailData: null, detailPhotoRotation: 0, detailPhotoZoom: 1, detailPhotoPanX: 0, detailPhotoPanY: 0, isPanning: false, panStartX: 0, panStartY: 0 }"
+        x-data="{ showRejectModal: false, showMapModal: false, mapDist: 0, mapLayerMode: 'carto', showReasonModal: false, reasonText: '', copyToast: { show: false, message: '' }, showSummaryModal: false, showExportModal: false, showKpi: false, showDetailModal: false, detailData: null, detailAnomalies: null, loadingAnomalies: false, detailPhotoRotation: 0, detailPhotoZoom: 1, detailPhotoPanX: 0, detailPhotoPanY: 0, isPanning: false, panStartX: 0, panStartY: 0 }"
         x-on:open-summary-modal.window="showSummaryModal = true"
         x-on:open-map-modal.window="
-        if (!window.L) {
-            window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'error', message: 'Pustaka Peta (Leaflet) sedang memuat. Coba lagi.' } }));
-            return;
-        }
-        showMapModal = true; 
-        mapDist = $event.detail.dist;
-        setTimeout(() => {
-            if (!window.leafletMap) {
-                window.leafletMap = L.map('leaflet-map-container').setView([$event.detail.lat2, $event.detail.lon2], 15);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(window.leafletMap);
-            }
-            window.leafletMap.invalidateSize();
-            
-            if (window.mapLayers) {
-                window.mapLayers.forEach(l => window.leafletMap.removeLayer(l));
-            }
-            window.mapLayers = [];
-            
-            let bounds = [];
-            
-            if ($event.detail.lat1 && $event.detail.lon1) {
-                let m1 = L.marker([$event.detail.lat1, $event.detail.lon1], { opacity: 0.6 }).addTo(window.leafletMap).bindPopup('<b>Titik Master (Lama)</b>');
-                window.mapLayers.push(m1);
-                bounds.push([$event.detail.lat1, $event.detail.lon1]);
-            }
-            
-            let m2 = L.marker([$event.detail.lat2, $event.detail.lon2]).addTo(window.leafletMap).bindPopup('<b>Titik Baru (Perbaikan)</b>');
-            window.mapLayers.push(m2);
-            bounds.push([$event.detail.lat2, $event.detail.lon2]);
-            
-            if ($event.detail.lat1 && $event.detail.lon1) {
-                let line = L.polyline([[$event.detail.lat1, $event.detail.lon1], [$event.detail.lat2, $event.detail.lon2]], {color: '#f43f5e', dashArray: '5, 5', weight: 2}).addTo(window.leafletMap);
-                window.mapLayers.push(line);
-            }
-            
-            if (bounds.length > 0) {
-                window.leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 18 });
-            }
-        }, 300);
-    "
+            showMapModal = true; 
+            mapDist = $event.detail.dist || '';
+            mapLayerMode = 'carto';
+            window.comparisonMapDetail = $event.detail;
+            setTimeout(() => {
+                if (window.renderComparisonMap) {
+                    window.renderComparisonMap($event.detail);
+                }
+            }, 120);
+        "
+>
 >
     <x-slot name="title">Perbaikan Tikor Toko</x-slot>
 
@@ -137,82 +108,111 @@
     {{-- Main Card (Tabel) --}}
     <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
         
-        {{-- Header Card & Actions --}}
-        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
-            <div class="shrink-0 w-full sm:w-auto">
-                <h2 class="text-lg md:text-xl font-black tracking-tight text-base-content">Data Perbaikan Koordinat Toko</h2>
-                <p class="text-xs text-base-content/50 font-bold uppercase tracking-widest mt-1">Daftar usulan perbaikan tikor dari Sales</p>
-            </div>
-            
-            <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
-                {{-- Search --}}
-                <div class="relative">
-                    <input wire:model.live.debounce.500ms="search" type="text" placeholder="Cari Toko/Sales..." class="input input-sm input-bordered rounded-xl bg-base-100 border-base-300 pl-8 w-full sm:w-auto" />
-                    <x-heroicon-o-magnifying-glass class="w-4 h-4 absolute left-2.5 top-2.5 text-base-content/50" />
-                </div>
+        {{-- Header Card & Actions Toolbar (Standar Filter UI Components) --}}
+        <x-ui.filter-toolbar>
+            {{-- 1. Kapsul Filter Hierarki (Distributor, SE, Status) --}}
+            <x-ui.filter-breadcrumb>
+                {{-- Distributor Segment (Micro-Searchable Popover) --}}
+                <x-ui.filter-searchable 
+                    wire:key="filter-dist-capsule"
+                    wire:model.live="distributorFilter" 
+                    :options="$this->distributorOptions" 
+                    valueField="distributor_code" 
+                    labelField="distributor_name" 
+                    placeholder="Semua Distributor" 
+                    searchPlaceholder="Cari nama / kode distributor..."
+                    icon="distributor" 
+                    allowAll="true"
+                    allLabel="Semua Distributor"
+                    width="w-36 sm:w-48"
+                    popoverWidth="w-72 sm:w-80" />
 
-                {{-- Filter Distributor (Searchable) --}}
-                <div class="w-full sm:w-64 z-30">
-                    <x-searchable-select 
-                        wire:key="filter-distributor-searchable"
-                        wire:model.live="distributorFilter"
-                        :options="$this->distributorSelectOptions"
-                        placeholder="Semua Distributor"
-                    />
-                </div>
+                {{-- Salesman / SE Segment (Micro-Searchable Popover) --}}
+                <x-ui.filter-searchable 
+                    wire:key="filter-sales-capsule-{{ $distributorFilter }}"
+                    wire:model.live="salesFilter" 
+                    :options="$this->salesOptions" 
+                    valueField="sales_code" 
+                    labelField="sales_name" 
+                    placeholder="Semua SE" 
+                    searchPlaceholder="Cari nama / kode SE..."
+                    icon="user" 
+                    allowAll="true"
+                    allLabel="Semua SE"
+                    width="w-32 sm:w-40"
+                    popoverWidth="w-64 sm:w-72"
+                    :disabled="count($this->salesOptions) === 0" />
 
-                {{-- Filter SE --}}
-                <select wire:model.live="salesFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto sm:max-w-[190px] text-xs">
-                    <option value="">Semua SE</option>
-                    @foreach($this->salesOptions as $sales)
-                        <option value="{{ $sales->sales_code }}">{{ $sales->sales_code }}{{ $sales->sales_name ? ' - ' . $sales->sales_name : '' }}</option>
-                    @endforeach
-                </select>
-                
-                {{-- Filter Date Range --}}
-                <div class="flex items-center gap-1">
-                    <input wire:model.live="dateStart" type="date" class="input input-sm input-bordered rounded-xl bg-base-100 border-base-300 w-[115px]" title="Mulai Tanggal" />
-                    <span class="text-xs font-bold text-base-content/40">-</span>
-                    <input wire:model.live="dateEnd" type="date" class="input input-sm input-bordered rounded-xl bg-base-100 border-base-300 w-[115px]" title="Sampai Tanggal" />
-                </div>
+                {{-- Status Segment --}}
+                <x-ui.filter-select 
+                    wire:model.live="statusFilter" 
+                    :options="['Pending' => 'Pending', 'Approved' => 'Approved', 'Rejected' => 'Rejected']" 
+                    placeholder="Semua Status" 
+                    icon="tag" 
+                    width="w-28 sm:w-32" />
+            </x-ui.filter-breadcrumb>
 
-                {{-- Filter Status --}}
-                <select wire:model.live="statusFilter" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0">
-                    <option value="">Semua Status</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Rejected">Rejected</option>
-                </select>
+            {{-- 2. Kapsul Periode Pintar (Smart Date Range Filter) --}}
+            <x-ui.filter-date-range 
+                start="dateStart" 
+                end="dateEnd" 
+                :maxDays="0" />
 
-                {{-- Reset Filter Button --}}
-                @if($search || $statusFilter || $dateStart || $dateEnd || $distributorFilter || $salesFilter)
-                    <button type="button" wire:click="resetFilters" class="btn btn-sm btn-ghost text-error hover:bg-error/10 rounded-xl gap-1 text-xs px-2" title="Reset Semua Filter">
-                        <x-heroicon-o-x-mark class="w-4 h-4" />
-                        <span class="hidden md:inline">Reset</span>
+            {{-- 3. Search Box Input --}}
+            <x-ui.search-input 
+                wire:model.live.debounce.400ms="search" 
+                placeholder="Cari Toko / Sales..." />
+
+            {{-- 4. Actions Slot (Reset, Export, Summary, Bulk Approve) --}}
+            <x-slot name="actions">
+                @php
+                    $hasActiveFilters = !empty($search) || !empty($statusFilter) || !empty($dateStart) || !empty($dateEnd) || !empty($distributorFilter) || !empty($salesFilter);
+                @endphp
+                <x-ui.filter-actions 
+                    :applyAction="false" 
+                    resetAction="resetFilters" 
+                    :showReset="$hasActiveFilters">
+                    
+                    {{-- Tombol Ekspor Excel --}}
+                    @if($this->canManage)
+                        <button type="button" 
+                            @click="showExportModal = true" 
+                            class="btn btn-sm btn-outline btn-success rounded-xl gap-1.5 text-xs font-semibold shadow-2xs cursor-pointer"
+                            title="Ekspor Data ke Excel (.xlsx)">
+                            <x-heroicon-m-arrow-down-tray class="w-4 h-4" />
+                            <span class="hidden sm:inline">Export</span>
+                        </button>
+                    @endif
+
+                    {{-- Tombol Summary --}}
+                    <button type="button" 
+                        wire:click="loadSummary" 
+                        wire:loading.attr="disabled"
+                        wire:target="loadSummary"
+                        class="btn btn-sm btn-outline btn-info rounded-xl gap-1.5 text-xs font-semibold shadow-2xs cursor-pointer"
+                        title="Buka Ringkasan (Summary)">
+                        <span wire:loading.remove wire:target="loadSummary" class="flex items-center gap-1.5">
+                            <x-heroicon-m-chart-bar class="w-4 h-4" />
+                            <span class="hidden sm:inline">Summary</span>
+                        </span>
+                        <span wire:loading wire:target="loadSummary" class="loading loading-spinner loading-xs"></span>
                     </button>
-                @endif
 
-                {{-- Actions Button (Optional Export dll) --}}
-                <div class="flex flex-wrap items-center gap-1 md:gap-2">
+                    {{-- Tombol Bulk Approve (jika diaktifkan) --}}
                     @if($enableBulkApprove && $this->canManage && $this->selectedPendingCount > 0)
-                        <button type="button" wire:click="bulkApprove" wire:confirm="Setujui {{ $this->selectedPendingCount }} usulan perbaikan terpilih?" class="btn btn-sm btn-success text-white shadow-sm" wire:loading.attr="disabled" wire:target="bulkApprove">
+                        <button type="button" 
+                            wire:click="bulkApprove" 
+                            wire:confirm="Setujui {{ $this->selectedPendingCount }} usulan perbaikan terpilih?" 
+                            class="btn btn-sm btn-success text-white rounded-xl shadow-xs gap-1 text-xs font-semibold cursor-pointer" 
+                            wire:loading.attr="disabled" 
+                            wire:target="bulkApprove">
                             <span wire:loading wire:target="bulkApprove" class="loading loading-spinner loading-xs mr-1"></span>
                             <x-heroicon-s-check-circle class="w-4 h-4" wire:loading.remove wire:target="bulkApprove" /> Terima Terpilih ({{ $this->selectedPendingCount }})
                         </button>
                     @endif
-                    @if($this->canManage)
-                    <button type="button" @click="showExportModal = true" class="btn btn-sm btn-success text-white shadow-sm shadow-success/20 rounded-xl gap-1 md:gap-2 whitespace-nowrap">
-                        <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
-                        <span>Export</span>
-                    </button>
-                    @endif
-                    <button type="button" wire:click="loadSummary" class="btn btn-sm btn-info text-white shadow-sm" wire:loading.attr="disabled" wire:target="loadSummary">
-                        <span wire:loading wire:target="loadSummary" class="loading loading-spinner loading-xs mr-1"></span>
-                        <x-heroicon-s-chart-bar class="w-4 h-4" wire:loading.remove wire:target="loadSummary" /> Summary
-                    </button>
-                </div>
-            </div>
-        </div>
+                </x-ui.filter-actions>
+            </x-slot>
+        </x-ui.filter-toolbar>
 
         {{-- Body Card (Tabel Scrollable area) --}}
         <div class="flex-1 overflow-auto bg-base-100 w-full relative">
@@ -263,16 +263,16 @@
                         <td class="font-mono">{{ $item->customer_code }}</td>
                         <td class="font-bold {{ in_array($item->distributor_code . '_' . $item->sales_code . '_' . $item->customer_code, $duplicates) ? 'text-rose-600' : '' }}">
                             <div class="flex items-center gap-1">
-                                <span class="truncate max-w-[150px]" title="{{ $item->exact_customer->custname ?? 'N/A' }}">
-                                    {{ $item->exact_customer->custname ?? 'N/A' }}
+                                <span class="truncate max-w-[150px]" title="{{ $item->exact_custname ?? 'N/A' }}">
+                                    {{ $item->exact_custname ?? 'N/A' }}
                                 </span>
                                 @if(in_array($item->distributor_code . '_' . $item->sales_code . '_' . $item->customer_code, $duplicates))
-                                    <span class="badge badge-[10px] badge-error text-[9px] text-white shrink-0 px-1 py-0 h-4" title="Toko ini diajukan lebih dari sekali">Berulang</span>
+                                    <span class="badge badge-xs badge-error text-white font-bold shrink-0 px-1.5" title="Toko ini diajukan lebih dari sekali">Berulang</span>
                                 @endif
                             </div>
                         </td>
-                        <td class="text-xs max-w-[200px] truncate" title="{{ $item->exact_customer->custadd1 ?? '-' }}">
-                            {{ $item->exact_customer->custadd1 ?? '-' }}
+                        <td class="text-xs max-w-[200px] truncate" title="{{ $item->exact_custadd1 ?? '-' }}">
+                            {{ $item->exact_custadd1 ?? '-' }}
                         </td>
                         <td class="font-mono">
                             <div class="flex items-center gap-2">
@@ -318,9 +318,11 @@
                         <td class="text-center">
                             @php
                                 $dist = null;
-                                if(isset($item->exact_customer->la) && isset($item->exact_customer->lg) && $item->latitude && $item->longitude) {
-                                    $lat1 = $item->exact_customer->la;
-                                    $lon1 = $item->exact_customer->lg;
+                                $itemExactLa = $item->exact_la;
+                                $itemExactLg = $item->exact_lg;
+                                if($itemExactLa !== null && $itemExactLg !== null && $item->latitude && $item->longitude) {
+                                    $lat1 = $itemExactLa;
+                                    $lon1 = $itemExactLg;
                                     $lat2 = $item->latitude;
                                     $lon2 = $item->longitude;
                                     
@@ -338,11 +340,11 @@
                             <div class="flex flex-col items-center justify-center gap-1 w-full min-w-[80px]">
                                 @if($dist !== null)
                                     @if($dist < 1)
-                                        <button type="button" @click="$dispatch('open-map-modal', { lat1: '{{ $item->exact_customer->la ?? '' }}', lon1: '{{ $item->exact_customer->lg ?? '' }}', lat2: '{{ $item->latitude }}', lon2: '{{ $item->longitude }}', dist: '{{ number_format($dist, 0, '', '') }}' })" class="btn btn-xs btn-warning w-full flex items-center justify-center whitespace-nowrap font-bold">
+                                        <button type="button" @click="$dispatch('open-map-modal', { lat1: '{{ $itemExactLa ?? '' }}', lon1: '{{ $itemExactLg ?? '' }}', lat2: '{{ $item->latitude }}', lon2: '{{ $item->longitude }}', dist: '{{ number_format($dist, 0, '', '') }}' })" class="btn btn-xs btn-warning w-full flex items-center justify-center whitespace-nowrap font-bold">
                                             0m
                                         </button>
                                     @else
-                                        <button type="button" @click="$dispatch('open-map-modal', { lat1: '{{ $item->exact_customer->la ?? '' }}', lon1: '{{ $item->exact_customer->lg ?? '' }}', lat2: '{{ $item->latitude }}', lon2: '{{ $item->longitude }}', dist: '{{ number_format($dist, 0, '', '') }}' })" class="btn btn-xs btn-outline btn-info w-full flex items-center justify-center whitespace-nowrap">
+                                        <button type="button" @click="$dispatch('open-map-modal', { lat1: '{{ $itemExactLa ?? '' }}', lon1: '{{ $itemExactLg ?? '' }}', lat2: '{{ $item->latitude }}', lon2: '{{ $item->longitude }}', dist: '{{ number_format($dist, 0, '', '') }}' })" class="btn btn-xs btn-outline btn-info w-full flex items-center justify-center whitespace-nowrap">
                                             {{ number_format($dist, 0, ',', '.') . 'm' }}
                                         </button>
                                     @endif
@@ -358,7 +360,7 @@
                                 <span class="badge badge-sm badge-outline badge-success">Approved</span>
                             @elseif($item->status == 'Rejected')
                                 <button type="button" 
-                                    @click="reasonText = $el.dataset.keterangan; showReasonModal = true;" 
+                                     @click="reasonText = $el.dataset.keterangan; showReasonModal = true;" 
                                     data-keterangan="{{ $item->keterangan ?? 'Tidak ada keterangan' }}"
                                     class="badge badge-sm badge-outline badge-error cursor-pointer hover:bg-error/10 transition-colors" 
                                     title="Klik untuk lihat alasan"
@@ -382,22 +384,22 @@
                                     <span>{{ $item->updated_at->format('d M Y H:i') }}</span>
                                 </div>
                             @else
-                                <span class="text-base-content/30 italic text-[10px]">-</span>
+                                <span class="text-base-content/30 italic text-xs">-</span>
                             @endif
                         </td>
                         @php
                             $detailItem = [
                                 'id' => $item->id,
                                 'customer_code' => $item->customer_code,
-                                'customer_name' => $item->exact_customer->custname ?? 'N/A',
-                                'customer_address' => $item->exact_customer->custadd1 ?? '-',
-                                'customer_city' => $item->exact_customer->ccity ?? '-',
+                                'customer_name' => $item->exact_custname ?? 'N/A',
+                                'customer_address' => $item->exact_custadd1 ?? '-',
+                                'customer_city' => $item->exact_ccity ?? '-',
                                 'distributor_code' => $item->distributor_code,
                                 'distributor_name' => $item->distributorImplementasiEskalink->distributor_name ?? $item->distributor_code,
                                 'sales_code' => $item->sales_code,
                                 'sales_name' => $item->sales_name ?? '-',
-                                'latitude_old' => $item->exact_customer->la ?? null,
-                                'longitude_old' => $item->exact_customer->lg ?? null,
+                                'latitude_old' => $itemExactLa ?? null,
+                                'longitude_old' => $itemExactLg ?? null,
                                 'latitude' => $item->latitude,
                                 'longitude' => $item->longitude,
                                 'accuracy' => $item->accuracy,
@@ -413,7 +415,23 @@
                             <div class="flex items-center justify-center">
                                 <button 
                                     type="button" 
-                                    @click="detailPhotoRotation = 0; detailPhotoZoom = 1; detailPhotoPanX = 0; detailPhotoPanY = 0; detailData = @js($detailItem); showDetailModal = true;" 
+                                    @click="
+                                        detailPhotoRotation = 0; 
+                                        detailPhotoZoom = 1; 
+                                        detailPhotoPanX = 0; 
+                                        detailPhotoPanY = 0; 
+                                        detailData = @js($detailItem); 
+                                        detailAnomalies = null; 
+                                        loadingAnomalies = true; 
+                                        showDetailModal = true;
+                                        $wire.checkAnomalies(detailData.id).then(res => {
+                                            detailAnomalies = res;
+                                            loadingAnomalies = false;
+                                        }).catch(err => {
+                                            console.error('Gagal memeriksa anomali:', err);
+                                            loadingAnomalies = false;
+                                        });
+                                    " 
                                     class="btn btn-xs btn-primary text-white rounded-lg gap-1 shadow-sm px-2.5 py-1 hover:brightness-110 transition-all font-semibold"
                                     title="Lihat Detail Toko, Foto & Street View"
                                 >
@@ -469,7 +487,7 @@
                                 <span class="badge badge-sm badge-error text-white font-bold">Rejected</span>
                             </template>
                         </div>
-                        <div class="flex items-center gap-2 text-[11px] md:text-xs text-base-content/60 font-medium truncate mt-0.5">
+                        <div class="flex items-center gap-2 text-xs text-base-content/60 font-medium truncate mt-0.5">
                             <span x-text="detailData?.distributor_name ? detailData.distributor_name + ' (' + detailData.distributor_code + ')' : detailData?.distributor_code"></span>
                             <span>•</span>
                             <span>Sales: <strong class="text-base-content/80" x-text="detailData?.sales_name"></strong> (<span class="font-mono" x-text="detailData?.sales_code || '-'"></span>)</span>
@@ -492,27 +510,27 @@
                         <div class="md:col-span-5 flex items-center gap-2 min-w-0">
                             <x-heroicon-o-map-pin class="w-4 h-4 text-error shrink-0" />
                             <div class="min-w-0">
-                                <span class="text-[9px] uppercase font-bold text-base-content/50 block leading-none">Alamat Toko</span>
+                                <span class="text-xs uppercase font-bold tracking-wider text-base-content/50 block leading-tight">Alamat Toko</span>
                                 <p class="font-semibold text-base-content text-xs truncate mt-0.5" :title="detailData?.customer_address" x-text="detailData?.customer_address || '-'"></p>
                             </div>
                         </div>
 
                         {{-- Titik Master Lama --}}
                         <div class="md:col-span-2 border-t md:border-t-0 md:border-l border-base-300 pt-1 md:pt-0 md:pl-3 min-w-0">
-                            <span class="text-[9px] uppercase font-bold text-base-content/50 block leading-none">Titik Lama (Master)</span>
+                            <span class="text-xs uppercase font-bold tracking-wider text-base-content/50 block leading-tight">Titik Lama (Master)</span>
                             <div class="font-mono text-xs font-medium text-base-content/70 truncate mt-0.5">
                                 <template x-if="detailData?.latitude_old && detailData?.longitude_old">
                                     <span x-text="detailData.latitude_old + ', ' + detailData.longitude_old" :title="detailData.latitude_old + ', ' + detailData.longitude_old"></span>
                                 </template>
                                 <template x-if="!detailData?.latitude_old || !detailData?.longitude_old">
-                                    <span class="text-base-content/40 italic font-sans text-[11px]">Belum ada</span>
+                                    <span class="text-base-content/40 italic font-sans text-xs">Belum ada</span>
                                 </template>
                             </div>
                         </div>
 
                         {{-- Titik Usulan Baru --}}
                         <div class="md:col-span-3 border-t md:border-t-0 md:border-l border-base-300 pt-1 md:pt-0 md:pl-3 min-w-0">
-                            <span class="text-[9px] uppercase font-bold text-primary block leading-none">Titik Baru (Usulan)</span>
+                            <span class="text-xs uppercase font-bold tracking-wider text-primary block leading-tight">Titik Baru (Usulan)</span>
                             <div class="font-mono text-xs font-bold text-primary truncate mt-0.5 flex items-center justify-between gap-1">
                                 <span x-text="detailData?.latitude + ', ' + detailData?.longitude" :title="detailData?.latitude + ', ' + detailData?.longitude"></span>
                                 <a :href="'https://www.google.com/maps?q=' + detailData?.latitude + ',' + detailData?.longitude" target="_blank" class="text-error hover:text-error/70 shrink-0" title="Buka di Google Maps">
@@ -524,15 +542,177 @@
                         {{-- Jarak & Akurasi --}}
                         <div class="md:col-span-2 border-t md:border-t-0 md:border-l border-base-300 pt-1 md:pt-0 md:pl-3 flex items-center justify-between md:justify-around gap-2">
                             <div>
-                                <span class="text-[9px] uppercase font-bold text-base-content/50 block leading-none">Geser</span>
+                                <span class="text-xs uppercase font-bold tracking-wider text-base-content/50 block leading-tight">Geser</span>
                                 <span class="font-extrabold text-info text-xs mt-0.5 block" x-text="detailData?.distance !== null ? detailData.distance + ' m' : '-'"></span>
                             </div>
                             <div class="text-right md:text-left">
-                                <span class="text-[9px] uppercase font-bold text-base-content/50 block leading-none">Akurasi HP</span>
+                                <span class="text-xs uppercase font-bold tracking-wider text-base-content/50 block leading-tight">Akurasi HP</span>
                                 <span class="font-extrabold text-xs mt-0.5 block" :class="detailData?.accuracy <= 15 ? 'text-success' : 'text-warning'" x-text="detailData?.accuracy ? detailData.accuracy + ' m' : '-'"></span>
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {{-- PANEL PENGECEKAN ANOMALI (RADIUS DISTRIBUTOR, MASTER DUPLIKAT, BORONGAN) --}}
+                <div class="rounded-xl border p-2.5 shrink-0 transition-all text-xs"
+                     :class="{
+                         'bg-base-200/50 border-base-300': loadingAnomalies,
+                         'bg-error/10 border-error/30 text-error-content': !loadingAnomalies && detailAnomalies?.has_any_anomaly,
+                         'bg-success/5 border-success/20 text-success-content': !loadingAnomalies && detailAnomalies && !detailAnomalies?.has_any_anomaly
+                     }">
+
+                    {{-- Header Anomaly Box --}}
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <template x-if="loadingAnomalies">
+                                <span class="loading loading-spinner loading-xs text-primary shrink-0"></span>
+                            </template>
+                            <template x-if="!loadingAnomalies && detailAnomalies?.has_any_anomaly">
+                                <span class="flex h-2.5 w-2.5 rounded-full bg-error shrink-0 animate-pulse"></span>
+                            </template>
+                            <template x-if="!loadingAnomalies && detailAnomalies && !detailAnomalies?.has_any_anomaly">
+                                <span class="flex h-2.5 w-2.5 rounded-full bg-success shrink-0"></span>
+                            </template>
+
+                            <span class="font-extrabold uppercase tracking-wider text-xs truncate"
+                                  :class="{
+                                      'text-base-content/70': loadingAnomalies,
+                                      'text-error': !loadingAnomalies && detailAnomalies?.has_any_anomaly,
+                                      'text-success': !loadingAnomalies && detailAnomalies && !detailAnomalies?.has_any_anomaly
+                                  }">
+                                <template x-if="loadingAnomalies"><span>Menganalisis Anomali Lokasi...</span></template>
+                                <template x-if="!loadingAnomalies && detailAnomalies?.has_any_anomaly"><span>Peringatan: Terdeteksi Anomali Pada Titik Ini!</span></template>
+                                <template x-if="!loadingAnomalies && detailAnomalies && !detailAnomalies?.has_any_anomaly"><span>Hasil Analisis: Tidak Ditemukan Anomali (Normal)</span></template>
+                            </span>
+                        </div>
+
+                        <template x-if="!loadingAnomalies && detailAnomalies">
+                            <span class="badge badge-xs font-bold shrink-0"
+                                  :class="detailAnomalies?.has_any_anomaly ? 'badge-error text-white' : 'badge-success text-white'">
+                                <span x-text="detailAnomalies?.has_any_anomaly ? 'Perlu Diwaspadai' : 'Lolos Validasi'"></span>
+                            </span>
+                        </template>
+                    </div>
+
+                    {{-- Loading Skeleton --}}
+                    <template x-if="loadingAnomalies">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <div class="h-16 bg-base-300/50 animate-pulse rounded-lg"></div>
+                            <div class="h-16 bg-base-300/50 animate-pulse rounded-lg"></div>
+                            <div class="h-16 bg-base-300/50 animate-pulse rounded-lg"></div>
+                        </div>
+                    </template>
+
+                    {{-- 3 Kartu Anomali --}}
+                    <template x-if="!loadingAnomalies && detailAnomalies">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            
+                            {{-- KARTU 1: Radius Distributor (<= 100m) --}}
+                            <div class="p-2.5 rounded-lg border flex flex-col justify-between"
+                                 :class="detailAnomalies.distributor.is_anomaly ? 'bg-error/15 border-error/40 text-error' : 'bg-base-100 border-base-300 text-base-content'">
+                                <div>
+                                    <div class="flex items-start justify-between gap-1.5 mb-1">
+                                        <span class="font-bold text-xs flex items-center gap-1.5 truncate">
+                                            <x-heroicon-s-building-office-2 class="w-4 h-4 shrink-0" x-bind:class="detailAnomalies.distributor.is_anomaly ? 'text-error' : 'text-base-content/60'" />
+                                            <span>Radius Distributor</span>
+                                        </span>
+                                        <span class="badge badge-xs font-bold shrink-0"
+                                              :class="detailAnomalies.distributor.is_anomaly ? 'badge-error text-white' : 'badge-ghost text-success'">
+                                            <span x-text="detailAnomalies.distributor.is_anomaly ? 'Anomali' : 'Aman'"></span>
+                                        </span>
+                                    </div>
+                                    <p class="text-xs leading-tight font-medium" :class="detailAnomalies.distributor.is_anomaly ? 'text-error font-semibold' : 'text-base-content/70'" x-text="detailAnomalies.distributor.message"></p>
+                                </div>
+                                <template x-if="detailAnomalies.distributor.distributor_name">
+                                    <span class="text-xs text-base-content/50 truncate block mt-1.5 pt-1 border-t border-base-200" :title="detailAnomalies.distributor.distributor_name" x-text="'Gudang/Kantor: ' + detailAnomalies.distributor.distributor_name"></span>
+                                </template>
+                            </div>
+
+                            {{-- KARTU 2: Cek Master Toko (customer_prc_eska) --}}
+                            <div class="p-2.5 rounded-lg border flex flex-col justify-between"
+                                 :class="detailAnomalies.master.is_anomaly ? 'bg-warning/15 border-warning/40 text-warning-content' : 'bg-base-100 border-base-300 text-base-content'"
+                                 x-data="{ showMasterList: false }">
+                                <div>
+                                    <div class="flex items-start justify-between gap-1.5 mb-1">
+                                        <span class="font-bold text-xs flex items-center gap-1.5 truncate">
+                                            <x-heroicon-s-circle-stack class="w-4 h-4 shrink-0" x-bind:class="detailAnomalies.master.is_anomaly ? 'text-warning' : 'text-base-content/60'" />
+                                            <span>Duplikasi Master</span>
+                                        </span>
+                                        <span class="badge badge-xs font-bold shrink-0"
+                                              :class="detailAnomalies.master.is_anomaly ? 'badge-warning text-warning-content' : 'badge-ghost text-success'">
+                                            <span x-text="detailAnomalies.master.is_anomaly ? 'Duplikat' : 'Unik'"></span>
+                                        </span>
+                                    </div>
+                                    <p class="text-xs leading-tight font-medium" :class="detailAnomalies.master.is_anomaly ? 'text-warning-content font-semibold' : 'text-base-content/70'" x-text="detailAnomalies.master.message"></p>
+                                </div>
+                                
+                                {{-- Toggle Toko Sama di Master --}}
+                                <template x-if="detailAnomalies.master.is_anomaly && (detailAnomalies.master.same_master_count > 0 || detailAnomalies.master.same_proposed_count > 0)">
+                                    <div class="mt-1.5 pt-1 border-t border-base-200">
+                                        <button type="button" @click="showMasterList = !showMasterList" class="text-xs text-primary font-bold hover:underline flex items-center gap-0.5">
+                                            <span x-text="showMasterList ? 'Tutup Daftar' : 'Lihat ' + (detailAnomalies.master.same_master_count || detailAnomalies.master.same_proposed_count) + ' Toko Sama'"></span>
+                                            <x-heroicon-s-chevron-down class="w-3 h-3 transition-transform" x-bind:class="showMasterList ? 'rotate-180' : ''" />
+                                        </button>
+                                        <div x-show="showMasterList" class="mt-1.5 max-h-28 overflow-y-auto space-y-1 bg-base-100 p-1.5 rounded border border-base-300 text-xs text-base-content shadow-inner">
+                                            <template x-for="st in (detailAnomalies.master.same_master_stores.length ? detailAnomalies.master.same_master_stores : detailAnomalies.master.same_proposed_stores)" :key="st.custno">
+                                                <div class="border-b border-base-200 last:border-0 pb-0.5">
+                                                    <div class="font-bold truncate" x-text="st.custname + ' (' + st.custno + ')'"></div>
+                                                    <div class="text-base-content/50 truncate text-xs" x-text="st.custadd1 || '-'"></div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+
+                            {{-- KARTU 3: Cek Borongan Satu Titik (perbaikan_tikor_toko) --}}
+                            <div class="p-2.5 rounded-lg border flex flex-col justify-between"
+                                 :class="detailAnomalies.borongan.is_anomaly ? 'bg-error/15 border-error/40 text-error' : 'bg-base-100 border-base-300 text-base-content'"
+                                 x-data="{ showBoronganList: false }">
+                                <div>
+                                    <div class="flex items-start justify-between gap-1.5 mb-1">
+                                        <span class="font-bold text-xs flex items-center gap-1.5 truncate">
+                                            <x-heroicon-s-user-group class="w-4 h-4 shrink-0" x-bind:class="detailAnomalies.borongan.is_anomaly ? 'text-error' : 'text-base-content/60'" />
+                                            <span>Pengajuan Borongan</span>
+                                        </span>
+                                        <span class="badge badge-xs font-bold shrink-0"
+                                              :class="detailAnomalies.borongan.is_anomaly ? 'badge-error text-white' : 'badge-ghost text-success'">
+                                            <span x-text="detailAnomalies.borongan.is_anomaly ? 'Borongan' : 'Mandiri'"></span>
+                                        </span>
+                                    </div>
+                                    <p class="text-xs leading-tight font-medium" :class="detailAnomalies.borongan.is_anomaly ? 'text-error font-semibold' : 'text-base-content/70'" x-text="detailAnomalies.borongan.message"></p>
+                                </div>
+
+                                {{-- Toggle List Toko Borongan --}}
+                                <template x-if="detailAnomalies.borongan.is_anomaly && detailAnomalies.borongan.borongan_count > 0">
+                                    <div class="mt-1.5 pt-1 border-t border-base-200">
+                                        <button type="button" @click="showBoronganList = !showBoronganList" class="text-xs text-error font-bold hover:underline flex items-center gap-0.5">
+                                            <span x-text="showBoronganList ? 'Tutup Daftar' : 'Lihat ' + detailAnomalies.borongan.borongan_count + ' Toko di Titik Ini'"></span>
+                                            <x-heroicon-s-chevron-down class="w-3 h-3 transition-transform" x-bind:class="showBoronganList ? 'rotate-180' : ''" />
+                                        </button>
+                                        <div x-show="showBoronganList" class="mt-1.5 max-h-28 overflow-y-auto space-y-1 bg-base-100 p-1.5 rounded border border-base-300 text-xs text-base-content shadow-inner">
+                                            <template x-for="bs in detailAnomalies.borongan.borongan_stores" :key="bs.id">
+                                                <div class="border-b border-base-200 last:border-0 pb-0.5 flex items-center justify-between gap-1">
+                                                    <div class="min-w-0">
+                                                        <div class="font-bold truncate" x-text="(bs.customer_name || bs.customer_code) + ' (' + bs.customer_code + ')'"></div>
+                                                        <div class="text-base-content/50 text-xs">Sales: <span x-text="bs.sales_code"></span> • Jarak: <span class="font-semibold text-error" x-text="bs.distance_to_current + 'm'"></span></div>
+                                                    </div>
+                                                    <span class="badge badge-xs shrink-0 font-bold"
+                                                          :class="{
+                                                              'badge-success text-white': bs.status === 'Approved',
+                                                              'badge-warning': bs.status === 'Pending',
+                                                              'badge-error text-white': bs.status === 'Rejected'
+                                                          }"
+                                                          x-text="bs.status"></span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+
+                        </div>
+                    </template>
                 </div>
 
                 {{-- Jika Status Rejected: Tampilkan Alasan Penolakan Singkat --}}
@@ -557,11 +737,11 @@
                                 </h4>
                                 {{-- Badge Zoom --}}
                                 <template x-if="detailPhotoZoom !== 1">
-                                    <span class="badge badge-xs badge-info/20 text-info font-bold text-[10px]" x-text="Math.round(detailPhotoZoom * 100) + '%'"></span>
+                                    <span class="badge badge-xs badge-info/20 text-info font-bold" x-text="Math.round(detailPhotoZoom * 100) + '%'"></span>
                                 </template>
                                 {{-- Badge Rotasi --}}
                                 <template x-if="detailPhotoRotation % 360 !== 0">
-                                    <span class="badge badge-xs badge-ghost text-[10px]" x-text="((detailPhotoRotation % 360 + 360) % 360) + '°'"></span>
+                                    <span class="badge badge-xs badge-ghost font-medium" x-text="((detailPhotoRotation % 360 + 360) % 360) + '°'"></span>
                                 </template>
                             </div>
                             <template x-if="detailData?.foto_url">
@@ -610,7 +790,7 @@
                                     <template x-if="detailPhotoRotation % 360 !== 0 || detailPhotoZoom !== 1 || detailPhotoPanX !== 0 || detailPhotoPanY !== 0">
                                         <button type="button" 
                                             @click="detailPhotoRotation = 0; detailPhotoZoom = 1; detailPhotoPanX = 0; detailPhotoPanY = 0;" 
-                                            class="btn btn-xs btn-ghost text-error text-[10px] px-1.5 h-6 min-h-0 font-bold ml-0.5" 
+                                            class="btn btn-xs btn-ghost text-error text-xs px-1.5 h-6 min-h-0 font-bold ml-0.5" 
                                             title="Kembalikan Posisi & Ukuran Normal"
                                         >
                                             Reset
@@ -645,7 +825,7 @@
                                 </div>
                             </template>
                             <template x-if="detailPhotoZoom > 1">
-                                <div class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-md pointer-events-none opacity-75">
+                                <div class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-md pointer-events-none opacity-80">
                                     Geser (drag) foto untuk melihat bagian lain
                                 </div>
                             </template>
@@ -666,7 +846,7 @@
                                     <x-heroicon-s-map-pin class="w-4 h-4 text-error" />
                                     <span>Street View Titik Usulan (360° Panorama)</span>
                                 </h4>
-                                <span class="badge badge-xs badge-info text-white font-bold text-[10px]">Interaktif</span>
+                                <span class="badge badge-xs badge-info text-white font-bold">Interaktif</span>
                             </div>
                             <template x-if="detailData?.latitude && detailData?.longitude">
                                 <a :href="'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + detailData.latitude + ',' + detailData.longitude" target="_blank" class="btn btn-xs btn-ghost text-error gap-1" title="Buka Street View di Tab Baru Google Maps">
@@ -694,7 +874,7 @@
                             </template>
                         </div>
                         
-                        <div class="flex items-center justify-between text-[11px] text-base-content/60 mt-1 px-1 shrink-0">
+                        <div class="flex items-center justify-between text-xs text-base-content/60 mt-1 px-1 shrink-0">
                             <span>*Putar 360° & zoom langsung di dalam panel tanpa perlu buka maps</span>
                             <a :href="'https://www.google.com/maps?q=' + detailData?.latitude + ',' + detailData?.longitude" target="_blank" class="text-primary hover:underline font-semibold flex items-center gap-1 shrink-0">
                                 Buka di Google Maps →
@@ -904,28 +1084,99 @@
         </div>
     </div>
 
-    {{-- MODAL MAP --}}
-    <div x-show="showMapModal" class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display: none;" x-transition>
-        <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col h-[80vh]" @click.outside="showMapModal = false">
-            <div class="p-4 border-b border-base-300 flex items-center justify-between bg-base-200/50">
-                <h3 class="font-bold text-lg flex items-center gap-2">
-                    <x-heroicon-s-map class="w-5 h-5 text-info" /> Peta Perbandingan
-                    <template x-if="mapDist">
-                        <span class="badge badge-error badge-outline badge-sm ml-2 font-bold" x-text="'Jarak: ' + mapDist + ' meter'"></span>
-                    </template>
-                </h3>
-                <button type="button" @click="showMapModal = false" class="btn btn-sm btn-circle btn-ghost">
-                    <x-heroicon-o-x-mark class="w-5 h-5" />
-                </button>
+    {{-- MODAL MAP PERBANDINGAN (MAPLIBRE GL DUAL BASEMAP) --}}
+    <div x-show="showMapModal" class="fixed inset-0 z-[99999] flex items-center justify-center p-3 md:p-6 bg-black/70 backdrop-blur-sm" style="display: none;" x-transition>
+        <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col h-[85vh] border border-base-300" @click.outside="showMapModal = false">
+            {{-- Header Modal --}}
+            <div class="px-4 py-3 md:px-5 md:py-3.5 border-b border-base-300 flex flex-wrap items-center justify-between gap-3 bg-base-200/60 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-info/10 text-info rounded-xl">
+                        <x-heroicon-s-map class="w-5 h-5" />
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-bold text-base text-base-content">Peta Perbandingan Titik</h3>
+                            <template x-if="mapDist">
+                                <span class="badge badge-error text-white font-bold text-xs shadow-sm" x-text="'Geser: ' + mapDist + ' meter'"></span>
+                            </template>
+                        </div>
+                        <p class="text-[11px] text-base-content/60">Perbandingan titik master (lama) vs usulan perbaikan sales</p>
+                    </div>
+                </div>
+
+                {{-- Layer Switcher: Carto Voyager vs Satelit --}}
+                <div class="flex items-center gap-2">
+                    <div class="join bg-base-100 p-0.5 border border-base-300 rounded-xl shadow-sm">
+                        <button type="button" 
+                            @click="mapLayerMode = 'carto'; window.switchComparisonMapLayer && window.switchComparisonMapLayer('carto')" 
+                            :class="mapLayerMode === 'carto' ? 'btn-active btn-primary text-white font-bold shadow-sm' : 'btn-ghost text-base-content/70 hover:text-base-content'" 
+                            class="btn btn-xs join-item gap-1.5 transition-all">
+                            <x-heroicon-s-map class="w-3.5 h-3.5" />
+                            <span>Jalan (Carto)</span>
+                        </button>
+                        <button type="button" 
+                            @click="mapLayerMode = 'satellite'; window.switchComparisonMapLayer && window.switchComparisonMapLayer('satellite')" 
+                            :class="mapLayerMode === 'satellite' ? 'btn-active btn-primary text-white font-bold shadow-sm' : 'btn-ghost text-base-content/70 hover:text-base-content'" 
+                            class="btn btn-xs join-item gap-1.5 transition-all">
+                            <x-heroicon-m-globe-asia-australia class="w-3.5 h-3.5" />
+                            <span>Satelit (Fisik)</span>
+                        </button>
+                    </div>
+
+                    <button type="button" @click="showMapModal = false" class="btn btn-sm btn-circle btn-ghost text-base-content/60 hover:text-base-content">
+                        <x-heroicon-o-x-mark class="w-5 h-5" />
+                    </button>
+                </div>
             </div>
-            <div class="p-0 relative bg-base-300 w-full" style="height: 60vh; min-height: 400px;">
-                <div id="leaflet-map-container" class="w-full h-full z-0"></div>
+
+            {{-- Map Container & Floating Quick Action Buttons --}}
+            <div class="p-0 relative bg-base-300 w-full flex-1 min-h-[420px] overflow-hidden">
+                <div id="maplibre-comparison-container" class="absolute inset-0 w-full h-full z-0"></div>
+
+                {{-- Floating Action Bar on top of map --}}
+                <div class="absolute bottom-4 left-4 z-10 flex flex-wrap items-center gap-1.5 bg-base-100/90 backdrop-blur-md p-1.5 rounded-xl border border-base-300 shadow-lg">
+                    <button type="button" onclick="window.focusComparisonBoth && window.focusComparisonBoth()" class="btn btn-xs btn-ghost gap-1 font-semibold text-xs text-base-content/80 hover:text-primary" title="Lihat Kedua Titik Bersama">
+                        <x-heroicon-m-arrows-pointing-out class="w-3.5 h-3.5" />
+                        <span>Lihat Keduanya</span>
+                    </button>
+                    <div class="divider divider-horizontal m-0 py-1"></div>
+                    <button type="button" onclick="window.focusComparisonNew && window.focusComparisonNew()" class="btn btn-xs btn-ghost gap-1.5 font-semibold text-xs text-emerald-600 hover:bg-emerald-50" title="Zoom ke Titik Usulan Baru">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span>
+                        <span>Fokus Usulan Baru</span>
+                    </button>
+                    <button type="button" onclick="window.focusComparisonOld && window.focusComparisonOld()" class="btn btn-xs btn-ghost gap-1.5 font-semibold text-xs text-amber-600 hover:bg-amber-50" title="Zoom ke Titik Master Lama">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm"></span>
+                        <span>Fokus Master Lama</span>
+                    </button>
+                </div>
             </div>
-            <div class="p-4 border-t border-base-300 bg-base-200/50 flex justify-end gap-2">
-                <button type="button" @click="setTimeout(() => { if(window.leafletMap) { window.leafletMap.invalidateSize(); let group = L.featureGroup(window.mapLayers); if(group.getBounds().isValid()) { window.leafletMap.fitBounds(group.getBounds(), { padding: [40, 40], maxZoom: 18 }); } } }, 100);" class="btn btn-outline btn-info">
-                    <x-heroicon-o-arrow-path class="w-4 h-4" /> Refresh Map
-                </button>
-                <button type="button" @click="showMapModal = false" class="btn btn-outline">Tutup</button>
+
+            {{-- Footer Modal: Legend & Close --}}
+            <div class="px-4 py-2.5 md:px-5 md:py-3 border-t border-base-300 bg-base-200/50 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <div class="flex items-center gap-4 text-xs">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500 shadow-sm"></span>
+                        <span class="font-medium text-base-content/80">Titik Usulan Baru (Sales)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-full bg-amber-500 shadow-sm"></span>
+                        <span class="font-medium text-base-content/80">Titik Master Lama (Distributor)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 text-rose-500 font-medium">
+                        <span class="w-4 border-t-2 border-dashed border-rose-500"></span>
+                        <span>Garis Geser</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="if(window.comparisonMapInstance) { window.comparisonMapInstance.resize(); window.focusComparisonBoth && window.focusComparisonBoth(); }" class="btn btn-sm btn-ghost gap-1.5 text-xs">
+                        <x-heroicon-o-arrow-path class="w-3.5 h-3.5" />
+                        <span>Reset View</span>
+                    </button>
+                    <button type="button" @click="showMapModal = false" class="btn btn-sm btn-primary rounded-xl px-4">
+                        Selesai
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -955,7 +1206,7 @@
                     </label>
                     <input wire:model="exportDateEnd" type="date" class="input input-bordered w-full bg-base-50 focus:border-success focus:ring-success" />
                 </div>
-                <div class="text-[11px] leading-tight text-base-content/60 italic p-3 bg-info/10 rounded-xl border border-info/20">
+                <div class="text-xs leading-relaxed text-base-content/60 italic p-3 bg-info/10 rounded-xl border border-info/20">
                     *Filter ini digunakan untuk mengekspor data yang statusnya <strong class="text-success">Approved</strong> pada rentang tanggal tersebut (berdasarkan update_at).
                 </div>
             </div>
@@ -1028,6 +1279,290 @@
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         });
+
+        // ==========================================
+        // MAPLIBRE GL COMPARISON MAP ENGINE
+        // ==========================================
+        window.comparisonMapInstance = null;
+        window.comparisonMapDetail = null;
+
+        function ensureMapLibre(callback) {
+            if (typeof maplibregl !== 'undefined') {
+                callback();
+                return;
+            }
+            if (!document.getElementById('maplibre-gl-css')) {
+                const css = document.createElement('link');
+                css.id = 'maplibre-gl-css';
+                css.rel = 'stylesheet';
+                css.href = 'https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css';
+                document.head.appendChild(css);
+            }
+            if (!document.getElementById('maplibre-gl-js')) {
+                const script = document.createElement('script');
+                script.id = 'maplibre-gl-js';
+                script.src = 'https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js';
+                script.onload = () => callback();
+                document.head.appendChild(script);
+            } else {
+                const check = setInterval(() => {
+                    if (typeof maplibregl !== 'undefined') {
+                        clearInterval(check);
+                        callback();
+                    }
+                }, 100);
+            }
+        }
+
+        window.renderComparisonMap = function(detail) {
+            window.comparisonMapDetail = detail;
+            ensureMapLibre(() => {
+                const lat1 = parseFloat(detail.lat1);
+                const lon1 = parseFloat(detail.lon1);
+                const lat2 = parseFloat(detail.lat2);
+                const lon2 = parseFloat(detail.lon2);
+                const hasOld = !isNaN(lat1) && !isNaN(lon1) && lat1 !== 0 && lon1 !== 0;
+                const hasNew = !isNaN(lat2) && !isNaN(lon2) && lat2 !== 0 && lon2 !== 0;
+
+                if (!hasNew && !hasOld) {
+                    window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'error', message: 'Koordinat tidak valid untuk ditampilkan di peta.' } }));
+                    return;
+                }
+
+                const container = document.getElementById('maplibre-comparison-container');
+                if (!container) return;
+
+                if (window.comparisonMapInstance) {
+                    try { window.comparisonMapInstance.remove(); } catch(e){}
+                    window.comparisonMapInstance = null;
+                }
+
+                const initialCenter = hasNew ? [lon2, lat2] : [lon1, lat1];
+
+                const map = new maplibregl.Map({
+                    container: 'maplibre-comparison-container',
+                    style: {
+                        version: 8,
+                        sources: {
+                            'carto-voyager': {
+                                type: 'raster',
+                                tiles: [
+                                    'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                    'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                    'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc',
+                                    'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_2llg_1_d426d0746a26eebc6607cafc'
+                                ],
+                                tileSize: 256,
+                                maxzoom: 19,
+                                attribution: '&copy; CARTO'
+                            },
+                            'esri-satellite': {
+                                type: 'raster',
+                                tiles: [
+                                    'https://mt0.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+                                    'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+                                    'https://mt2.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+                                    'https://mt3.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
+                                ],
+                                tileSize: 256,
+                                maxzoom: 20,
+                                attribution: '&copy; Google Hybrid'
+                            }
+                        },
+                        layers: [
+                            {
+                                id: 'base-carto',
+                                type: 'raster',
+                                source: 'carto-voyager',
+                                layout: { visibility: 'visible' }
+                            },
+                            {
+                                id: 'base-satellite',
+                                type: 'raster',
+                                source: 'esri-satellite',
+                                layout: { visibility: 'none' }
+                            }
+                        ]
+                    },
+                    center: initialCenter,
+                    zoom: 16
+                });
+
+                window.comparisonMapInstance = map;
+
+                map.addControl(new maplibregl.NavigationControl({
+                    showCompass: true,
+                    visualizePitch: true
+                }), 'top-right');
+
+                map.on('load', () => {
+                    map.resize();
+                    setTimeout(() => { try { map.resize(); } catch(e){} }, 250);
+                    setTimeout(() => { try { map.resize(); } catch(e){} }, 500);
+
+                    // 1. Titik Master Lama
+                    if (hasOld) {
+                        const elOld = document.createElement('div');
+                        elOld.className = 'flex flex-col items-center cursor-pointer select-none group';
+                        elOld.innerHTML = `
+                            <span class="bg-amber-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-full shadow-lg border border-white whitespace-nowrap mb-1">
+                                Titik Master (Lama)
+                            </span>
+                            <div class="relative w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xl border-2 border-white ring-2 ring-amber-500/30">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>
+                            </div>
+                        `;
+                        new maplibregl.Marker({ element: elOld, anchor: 'bottom' })
+                            .setLngLat([lon1, lat1])
+                            .setPopup(new maplibregl.Popup({ offset: 15 }).setHTML(`
+                                <div class="p-2 text-xs">
+                                    <div class="font-bold text-amber-600 mb-1">Titik Master (Lama)</div>
+                                    <div class="font-mono text-gray-700">${lat1.toFixed(6)}, ${lon1.toFixed(6)}</div>
+                                </div>
+                            `))
+                            .addTo(map);
+                    }
+
+                    // 2. Titik Usulan Baru
+                    if (hasNew) {
+                        const elNew = document.createElement('div');
+                        elNew.className = 'flex flex-col items-center cursor-pointer select-none group';
+                        elNew.innerHTML = `
+                            <span class="bg-emerald-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-full shadow-lg border border-white whitespace-nowrap mb-1">
+                                Titik Usulan (Baru)
+                            </span>
+                            <div class="relative flex items-center justify-center">
+                                <span class="absolute w-8 h-8 rounded-full bg-emerald-400 opacity-75 animate-ping"></span>
+                                <div class="relative w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xl border-2 border-white ring-2 ring-emerald-600/30">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>
+                                </div>
+                            </div>
+                        `;
+                        new maplibregl.Marker({ element: elNew, anchor: 'bottom' })
+                            .setLngLat([lon2, lat2])
+                            .setPopup(new maplibregl.Popup({ offset: 15 }).setHTML(`
+                                <div class="p-2 text-xs">
+                                    <div class="font-bold text-emerald-600 mb-1">Titik Usulan (Baru)</div>
+                                    <div class="font-mono text-gray-700">${lat2.toFixed(6)}, ${lon2.toFixed(6)}</div>
+                                </div>
+                            `))
+                            .addTo(map);
+                    }
+
+                    // 3. Garis dan Badge Jarak
+                    if (hasOld && hasNew) {
+                        map.addSource('comparison-line', {
+                            type: 'geojson',
+                            data: {
+                                type: 'Feature',
+                                geometry: {
+                                    type: 'LineString',
+                                    coordinates: [
+                                        [lon1, lat1],
+                                        [lon2, lat2]
+                                    ]
+                                }
+                            }
+                        });
+
+                        map.addLayer({
+                            id: 'comparison-line-layer',
+                            type: 'line',
+                            source: 'comparison-line',
+                            paint: {
+                                'line-color': '#f43f5e',
+                                'line-width': 3,
+                                'line-dasharray': [2, 2]
+                            }
+                        });
+
+                        if (detail.dist) {
+                            const midEl = document.createElement('div');
+                            midEl.className = 'bg-rose-600 text-white font-bold text-[11px] px-2.5 py-0.5 rounded-full shadow-xl border-2 border-white whitespace-nowrap select-none';
+                            midEl.innerText = `${detail.dist}m`;
+                            new maplibregl.Marker({ element: midEl, anchor: 'center' })
+                                .setLngLat([(lon1 + lon2) / 2, (lat1 + lat2) / 2])
+                                .addTo(map);
+                        }
+
+                        const bounds = new maplibregl.LngLatBounds();
+                        bounds.extend([lon1, lat1]);
+                        bounds.extend([lon2, lat2]);
+                        map.fitBounds(bounds, { padding: 90, maxZoom: 18, duration: 800 });
+                    } else if (hasNew) {
+                        map.flyTo({ center: [lon2, lat2], zoom: 17, duration: 800 });
+                    } else if (hasOld) {
+                        map.flyTo({ center: [lon1, lat1], zoom: 17, duration: 800 });
+                    }
+                });
+            });
+        };
+
+        window.switchComparisonMapLayer = function(mode) {
+            if (!window.comparisonMapInstance) return;
+            const map = window.comparisonMapInstance;
+            if (map.getLayer('base-carto') && map.getLayer('base-satellite')) {
+                map.setLayoutProperty('base-carto', 'visibility', mode === 'carto' ? 'visible' : 'none');
+                map.setLayoutProperty('base-satellite', 'visibility', mode === 'satellite' ? 'visible' : 'none');
+            }
+        };
+
+        window.focusComparisonBoth = function() {
+            if (!window.comparisonMapInstance || !window.comparisonMapDetail) return;
+            const d = window.comparisonMapDetail;
+            const lat1 = parseFloat(d.lat1);
+            const lon1 = parseFloat(d.lon1);
+            const lat2 = parseFloat(d.lat2);
+            const lon2 = parseFloat(d.lon2);
+            const hasOld = !isNaN(lat1) && !isNaN(lon1) && lat1 !== 0 && lon1 !== 0;
+            const hasNew = !isNaN(lat2) && !isNaN(lon2) && lat2 !== 0 && lon2 !== 0;
+
+            if (hasOld && hasNew) {
+                const bounds = new maplibregl.LngLatBounds();
+                bounds.extend([lon1, lat1]);
+                bounds.extend([lon2, lat2]);
+                window.comparisonMapInstance.fitBounds(bounds, { padding: 90, maxZoom: 18, pitch: 0, bearing: 0, duration: 800 });
+            } else if (hasNew) {
+                window.comparisonMapInstance.flyTo({ center: [lon2, lat2], zoom: 17, pitch: 0, bearing: 0, duration: 800 });
+            } else if (hasOld) {
+                window.comparisonMapInstance.flyTo({ center: [lon1, lat1], zoom: 17, pitch: 0, bearing: 0, duration: 800 });
+            }
+        };
+
+        window.focusComparisonNew = function() {
+            if (!window.comparisonMapInstance || !window.comparisonMapDetail) return;
+            const d = window.comparisonMapDetail;
+            const lat = parseFloat(d.lat2);
+            const lon = parseFloat(d.lon2);
+            if (!isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0) {
+                window.comparisonMapInstance.flyTo({ center: [lon, lat], zoom: 18, pitch: 35, duration: 800 });
+            }
+        };
+
+        window.focusComparisonOld = function() {
+            if (!window.comparisonMapInstance || !window.comparisonMapDetail) return;
+            const d = window.comparisonMapDetail;
+            const lat = parseFloat(d.lat1);
+            const lon = parseFloat(d.lon1);
+            if (!isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0) {
+                window.comparisonMapInstance.flyTo({ center: [lon, lat], zoom: 18, pitch: 35, duration: 800 });
+            }
+        };
     </script>
     </div>{{-- END wire:ignore --}}
 </div>
+
+@push('styles')
+<link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+<style>
+    .maplibregl-popup-content {
+        border-radius: 12px;
+        padding: 8px 12px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+</style>
+@endpush
+
+@push('scripts')
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+@endpush

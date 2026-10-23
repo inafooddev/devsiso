@@ -332,6 +332,13 @@ class Reason extends Component
         }
     }
 
+    public function updatedSelectedDistributor($value)
+    {
+        if ($value && $this->accessLevel === 'supervisor' && !empty($this->allowedDistributorCodes) && !in_array($value, $this->allowedDistributorCodes)) {
+            $this->selectedDistributor = '';
+        }
+    }
+
     public function setReasonType(string $type)
     {
         if (in_array($type, ['BUY', 'VISIT', 'ALL'])) {
@@ -366,6 +373,8 @@ class Reason extends Component
         $this->selectedRegion = count($this->regions) === 1 ? $this->regions[0]->region_code : '';
         $this->selectedArea = '';
         $this->selectedDistributor = '';
+        $this->areas = [];
+        $this->distributors = [];
         $this->search = '';
         $this->reasonType = 'BUY';
         $this->sortField = 'territory';
@@ -650,6 +659,12 @@ class Reason extends Component
             ->where('rvah.MUID', $salesmanCode)
             ->where('rvah.RID', $this->appliedRegion);
 
+        if (!empty($this->appliedArea)) {
+            $query->where('rvah.EID', $this->appliedArea);
+        }
+        if (!empty($this->appliedDistributor)) {
+            $query->where('rvah.BID', $this->appliedDistributor);
+        }
         if ($this->appliedStartDate && $this->appliedEndDate) {
             $query->whereBetween('rvah.TANGGAL', [$this->appliedStartDate, $this->appliedEndDate]);
         }

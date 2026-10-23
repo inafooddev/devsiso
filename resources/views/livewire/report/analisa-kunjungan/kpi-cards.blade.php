@@ -27,7 +27,7 @@
             $kpiNgvoPercent = $kpiNgvoTarget > 0 ? round(($kpiNgvoActual / $kpiNgvoTarget) * 100) : 0;
         @endphp
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-6 shrink-0 mb-3 md:mb-4 lg:mb-6">
+        <div id="kpi-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-6 shrink-0 mb-3 md:mb-4 lg:mb-6">
             {{-- KPI: Total Visit --}}
             <div class="bg-base-100 border border-base-200 rounded-xl p-3 relative overflow-hidden flex flex-col justify-between shadow-sm">
                 <x-heroicon-s-check-circle class="absolute -right-4 -top-2 w-20 h-20 text-purple-50 opacity-60 pointer-events-none" />
@@ -36,7 +36,7 @@
                         <div class="w-4 h-4 rounded bg-purple-100 text-purple-600 flex items-center justify-center">
                             <x-heroicon-s-check class="w-3 h-3" />
                         </div>
-                        <span class="text-[10px] font-bold text-base-content/60 tracking-widest uppercase">Total Visit</span>
+                        <span class="text-xs font-bold text-base-content/60 tracking-wider uppercase">Total Visit</span>
                     </div>
                     <div class="text-xl font-extrabold text-purple-600 relative z-10">
                         {{ number_format($kpiTotalVisitActual) }} <span class="text-xs text-base-content/40 font-semibold">/ {{ number_format($kpiTotalVisitTarget) }}</span>
@@ -46,9 +46,9 @@
                     <div class="w-full h-1 bg-base-200 rounded-full mb-1.5">
                         <div class="h-1 bg-purple-600 rounded-full" style="width: {{ $kpiTotalVisitPercent }}%"></div>
                     </div>
-                    <div class="flex justify-between items-center text-[10px] font-bold">
+                    <div class="flex justify-between items-center text-xs font-semibold">
                         <span class="text-base-content/60">GAP: <span class="text-error">{{ number_format($kpiTotalVisitGap) }}</span></span>
-                        <span class="text-purple-600">{{ $kpiTotalVisitPercent }}%</span>
+                        <span class="text-purple-600 font-bold">{{ $kpiTotalVisitPercent }}%</span>
                     </div>
                 </div>
             </div>
@@ -61,7 +61,7 @@
                         <div class="w-4 h-4 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center">
                             <x-heroicon-s-banknotes class="w-3 h-3" />
                         </div>
-                        <span class="text-[10px] font-bold text-base-content/60 tracking-widest uppercase">Total Order</span>
+                        <span class="text-xs font-bold text-base-content/60 tracking-wider uppercase">Total Order</span>
                     </div>
                     <div class="text-xl font-extrabold text-emerald-600 relative z-10">
                         {{ number_format($kpiTotalOrderActual) }} <span class="text-xs text-base-content/40 font-semibold">/ {{ number_format($kpiTotalOrderTarget) }}</span>
@@ -71,9 +71,9 @@
                     <div class="w-full h-1 bg-base-200 rounded-full mb-1.5">
                         <div class="h-1 bg-emerald-600 rounded-full" style="width: {{ $kpiTotalOrderPercent }}%"></div>
                     </div>
-                    <div class="flex justify-between items-center text-[10px] font-bold">
+                    <div class="flex justify-between items-center text-xs font-semibold">
                         <span class="text-base-content/60">GAP: <span class="text-error">{{ number_format($kpiTotalOrderGap) }}</span></span>
-                        <span class="text-emerald-600">{{ $kpiTotalOrderPercent }}%</span>
+                        <span class="text-emerald-600 font-bold">{{ $kpiTotalOrderPercent }}%</span>
                     </div>
                 </div>
             </div>
@@ -86,7 +86,7 @@
                         <div class="w-4 h-4 rounded bg-sky-100 text-sky-600 flex items-center justify-center">
                             <x-heroicon-s-shopping-bag class="w-3 h-3" />
                         </div>
-                        <span class="text-[10px] font-bold text-base-content/60 tracking-widest uppercase">Visit 1. RWO</span>
+                        <span class="text-xs font-bold text-base-content/60 tracking-wider uppercase">Visit 1. RWO</span>
                     </div>
                     <div class="text-xl font-extrabold text-sky-600 relative z-10">
                         {{ number_format($kpiRwoActual) }} <span class="text-xs text-base-content/40 font-semibold">/ {{ number_format($kpiRwoTarget) }}</span>
@@ -96,9 +96,9 @@
                     <div class="w-full h-1 bg-base-200 rounded-full mb-1.5">
                         <div class="h-1 bg-sky-600 rounded-full" style="width: {{ $kpiRwoPercent }}%"></div>
                     </div>
-                    <div class="flex justify-between items-center text-[10px] font-bold">
+                    <div class="flex justify-between items-center text-xs font-semibold">
                         <span class="text-base-content/60">GAP: <span class="text-error">{{ number_format($kpiRwoGap) }}</span></span>
-                        <span class="text-sky-600">{{ $kpiRwoPercent }}%</span>
+                        <span class="text-sky-600 font-bold">{{ $kpiRwoPercent }}%</span>
                     </div>
                 </div>
             </div>
@@ -111,7 +111,7 @@
                         <div class="w-4 h-4 rounded bg-slate-100 text-slate-600 flex items-center justify-center">
                             <x-heroicon-s-archive-box class="w-3 h-3" />
                         </div>
-                        <span class="text-[10px] font-bold text-base-content/60 tracking-widest uppercase">Visit 2. PNR</span>
+                        <span class="text-xs font-bold text-base-content/60 tracking-wider uppercase">Visit 2. PNR</span>
                     </div>
                     <div class="text-xl font-extrabold text-slate-600 relative z-10">
                         {{ number_format($kpiPnrActual) }} <span class="text-xs text-base-content/40 font-semibold">/ {{ number_format($kpiPnrTarget) }}</span>
@@ -121,9 +121,9 @@
                     <div class="w-full h-1 bg-base-200 rounded-full mb-1.5">
                         <div class="h-1 bg-slate-600 rounded-full" style="width: {{ $kpiPnrPercent }}%"></div>
                     </div>
-                    <div class="flex justify-between items-center text-[10px] font-bold">
+                    <div class="flex justify-between items-center text-xs font-semibold">
                         <span class="text-base-content/60">GAP: <span class="text-error">{{ number_format($kpiPnrGap) }}</span></span>
-                        <span class="text-slate-600">{{ $kpiPnrPercent }}%</span>
+                        <span class="text-slate-600 font-bold">{{ $kpiPnrPercent }}%</span>
                     </div>
                 </div>
             </div>
@@ -136,7 +136,7 @@
                         <div class="w-4 h-4 rounded bg-orange-100 text-orange-500 flex items-center justify-center">
                             <x-heroicon-s-star class="w-3 h-3" />
                         </div>
-                        <span class="text-[10px] font-bold text-base-content/60 tracking-widest uppercase">Visit 3. NGVO</span>
+                        <span class="text-xs font-bold text-base-content/60 tracking-wider uppercase">Visit 3. NGVO</span>
                     </div>
                     <div class="text-xl font-extrabold text-orange-500 relative z-10">
                         {{ number_format($kpiNgvoActual) }} <span class="text-xs text-base-content/40 font-semibold">/ {{ number_format($kpiNgvoTarget) }}</span>
@@ -146,9 +146,9 @@
                     <div class="w-full h-1 bg-base-200 rounded-full mb-1.5">
                         <div class="h-1 bg-orange-500 rounded-full" style="width: {{ $kpiNgvoPercent }}%"></div>
                     </div>
-                    <div class="flex justify-between items-center text-[10px] font-bold">
+                    <div class="flex justify-between items-center text-xs font-semibold">
                         <span class="text-base-content/60">GAP: <span class="text-error">{{ number_format($kpiNgvoGap) }}</span></span>
-                        <span class="text-orange-500">{{ $kpiNgvoPercent }}%</span>
+                        <span class="text-orange-500 font-bold">{{ $kpiNgvoPercent }}%</span>
                     </div>
                 </div>
             </div>

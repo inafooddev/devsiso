@@ -507,6 +507,16 @@ class Index extends Component
         $this->resetPage();
     }
 
+    public function resetFilters(): void
+    {
+        $this->resetFilter();
+    }
+
+    public function exportExcel(): mixed
+    {
+        return $this->export();
+    }
+
     public function setTab($tab)
     {
         if ($tab === 'summary') {

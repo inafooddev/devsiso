@@ -63,8 +63,7 @@ class Trend extends Component
         $this->resolveUserAccess();
 
         $currentYear = (int) date('Y');
-        $this->selectedYear = $this->selectedYear ? (int)$this->selectedYear : $currentYear;
-        $this->appliedYear = $this->selectedYear;
+        $this->selectedYear = $this->selectedYear ? (int)$this->selectedYear : null;
 
         // Build last 5 years options
         for ($y = $currentYear; $y >= $currentYear - 4; $y--) {
@@ -73,13 +72,23 @@ class Trend extends Component
 
         $this->loadRegions();
 
-        // Restore filter dari session jika URL kosong
-        if (empty($this->selectedRegion) && session()->has('analisa_kunjungan_se_shared_filter')) {
+        // Restore filter dari session jika ada
+        if (session()->has('analisa_kunjungan_se_shared_filter')) {
             $saved = session()->get('analisa_kunjungan_se_shared_filter');
-            $this->selectedRegion = $saved['region'] ?? '';
-            $this->selectedArea = $saved['area'] ?? '';
-            $this->selectedDistributor = $saved['distributor'] ?? '';
+            if (empty($this->selectedRegion)) {
+                $this->selectedRegion = $saved['region'] ?? '';
+                $this->selectedArea = $saved['area'] ?? '';
+                $this->selectedDistributor = $saved['distributor'] ?? '';
+            }
+            if (!$this->selectedYear && !empty($saved['startDate'])) {
+                try {
+                    $this->selectedYear = (int) Carbon::parse($saved['startDate'])->format('Y');
+                } catch (\Throwable $e) {}
+            }
         }
+
+        $this->selectedYear = $this->selectedYear ?: $currentYear;
+        $this->appliedYear = $this->selectedYear;
 
         if (!empty($this->selectedRegion)) {
             $this->updatedSelectedRegion($this->selectedRegion);
@@ -215,6 +224,13 @@ class Trend extends Component
         }
     }
 
+    public function updatedSelectedDistributor($value)
+    {
+        if ($value && $this->accessLevel === 'supervisor' && !empty($this->allowedDistributorCodes) && !in_array($value, $this->allowedDistributorCodes)) {
+            $this->selectedDistributor = '';
+        }
+    }
+
     public function setCallType(string $type)
     {
         if (in_array($type, ['ALL', 'PJP', 'XC'])) {
@@ -239,8 +255,8 @@ class Trend extends Component
             'area' => $this->appliedArea,
             'distributor' => $this->appliedDistributor,
             'salesman' => $existing['salesman'] ?? '',
-            'startDate' => $existing['startDate'] ?? "{$this->appliedYear}-01-01",
-            'endDate' => $existing['endDate'] ?? "{$this->appliedYear}-12-31",
+            'startDate' => "{$this->appliedYear}-01-01",
+            'endDate' => "{$this->appliedYear}-12-31",
         ]);
 
         $trend = $this->monthlyTrendData(true);
@@ -257,6 +273,8 @@ class Trend extends Component
         $this->selectedRegion = count($this->regions) === 1 ? $this->regions[0]->region_code : '';
         $this->selectedArea = '';
         $this->selectedDistributor = '';
+        $this->areas = [];
+        $this->distributors = [];
 
         if ($this->selectedRegion) {
             $this->updatedSelectedRegion($this->selectedRegion);
