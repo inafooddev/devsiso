@@ -89,7 +89,53 @@ class MapErrorBoundary extends React.Component {
     }
 }
 
-export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSalesCode, sessionSalesName }) {
+class PageErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+    }
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+    componentDidCatch(error, errorInfo) {
+        console.error('Page crash caught by PageErrorBoundary:', error, errorInfo);
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="w-full min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+                    <div className="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 mb-4 border border-rose-200 shadow-sm">
+                        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-base font-bold text-slate-800 mb-2">Terjadi Kendala pada Halaman</h2>
+                    <p className="text-xs text-slate-500 mb-6 max-w-xs leading-relaxed">
+                        Aplikasi mengalami kendala teknis saat memproses GPS atau data. Silakan muat ulang halaman.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                        className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-md hover:bg-indigo-700 active:scale-95 transition-all"
+                    >
+                        Muat Ulang Halaman
+                    </button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
+export default function Index(props) {
+    return (
+        <PageErrorBoundary>
+            <PerbaikanTikorContent {...props} />
+        </PageErrorBoundary>
+    );
+}
+
+function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSalesCode, sessionSalesName }) {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [loginSalesCode, setLoginSalesCode] = useState('');
@@ -315,28 +361,29 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
             { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 }
         );
 
+        let remainingSeconds = 30;
         intervalRef.current = setInterval(() => {
-            setTrackingTimer(prev => {
-                if (prev <= 1) {
-                    clearInterval(intervalRef.current);
-                    if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
-                    setIsGettingLocation(false);
-                    if (localBestAccuracy === Infinity) {
-                        setGpsError(true);
-                        showToast('Gagal mendapatkan sinyal GPS. Silakan coba lagi.', 'error');
-                        setData(d => ({ ...d, latitude: '', longitude: '', accuracy: '' }));
-                        setBestAccuracy(null);
-                    } else if (localBestAccuracy > 100) {
-                        showToast(`Akurasi ditolak (${Math.round(localBestAccuracy)}m). Minimal akurasi 100m. Silakan cari titik ulang!`, 'error');
-                        setData(d => ({ ...d, latitude: '', longitude: '', accuracy: '' }));
-                        setBestAccuracy(null);
-                    } else {
-                        showToast(`Waktu habis. Titik dikunci dengan akurasi: ${Math.round(localBestAccuracy)}m`, 'success');
-                    }
-                    return 0;
+            remainingSeconds -= 1;
+            setTrackingTimer(remainingSeconds);
+
+            if (remainingSeconds <= 0) {
+                if (intervalRef.current) clearInterval(intervalRef.current);
+                if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+                setIsGettingLocation(false);
+
+                if (localBestAccuracy === Infinity) {
+                    setGpsError(true);
+                    showToast('Gagal mendapatkan sinyal GPS. Silakan coba lagi.', 'error');
+                    setData(d => ({ ...d, latitude: '', longitude: '', accuracy: '' }));
+                    setBestAccuracy(null);
+                } else if (localBestAccuracy > 100) {
+                    showToast(`Akurasi ditolak (${Math.round(localBestAccuracy)}m). Minimal akurasi 100m. Silakan cari titik ulang!`, 'error');
+                    setData(d => ({ ...d, latitude: '', longitude: '', accuracy: '' }));
+                    setBestAccuracy(null);
+                } else {
+                    showToast(`Waktu habis. Titik dikunci dengan akurasi: ${Math.round(localBestAccuracy)}m`, 'success');
                 }
-                return prev - 1;
-            });
+            }
         }, 1000);
     };
 
