@@ -104,6 +104,33 @@ class Summary extends Component
         $this->loadFilterChain();
     }
 
+    /**
+     * Export rekapitulasi matriks summary sesuai grouping & filter ke file Excel (.xlsx)
+     */
+    public function export()
+    {
+        $user = auth()->user();
+
+        $filters = [
+            'search' => $this->search,
+            'region' => $this->regionFilter,
+            'area' => $this->areaFilter,
+        ];
+
+        $matrix = $this->service->getSummaryMatrix($user, $filters, $this->groupBy);
+
+        if (empty($matrix)) {
+            $this->dispatch('show-toast', type: 'warning', message: 'Tidak ada data ringkasan yang dapat diekspor.');
+            return;
+        }
+
+        $filename = 'validasi_geotag_summary_' . $this->groupBy . '_' . date('Ymd_His') . '.xlsx';
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\ValidasiGeotagSummaryExport($matrix, $this->groupBy),
+            $filename
+        );
+    }
+
     public function render()
     {
         $user = auth()->user();

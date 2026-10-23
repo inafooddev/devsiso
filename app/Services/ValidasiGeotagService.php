@@ -459,6 +459,34 @@ class ValidasiGeotagService
     }
 
     /**
+     * Dapatkan seluruh data toko untuk diekspor ke Excel sesuai filter dan territory scope.
+     */
+    public function getAllStoresForExport(?User $user, array $filters = []): array
+    {
+        $bindings = [];
+        $cteSql = $this->buildMasterQuerySql($user, $filters, $bindings);
+        $outerWhere = $this->buildOuterWhere($filters, $bindings);
+
+        $sql = "
+            {$cteSql} 
+            SELECT * FROM compiled_stores 
+            WHERE {$outerWhere} 
+            ORDER BY 
+                CASE 
+                    WHEN primary_anomaly = 'at_distributor' THEN 1
+                    WHEN primary_anomaly = 'duplicate' THEN 2
+                    WHEN primary_anomaly = 'point_changed' THEN 3
+                    WHEN primary_anomaly = 'missing_coordinate' THEN 4
+                    WHEN validation_status IS NULL THEN 5
+                    ELSE 6
+                END,
+                region_name ASC, area_name ASC, kodecabang ASC, custname ASC;
+        ";
+
+        return DB::select($sql, $bindings);
+    }
+
+    /**
      * Dapatkan metrik ringkasan (4 Consolidated Summary Cards).
      */
     public function getSummaryMetrics(?User $user, array $filters): array

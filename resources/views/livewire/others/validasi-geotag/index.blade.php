@@ -88,6 +88,25 @@
                     <x-heroicon-o-chevron-down class="w-3 h-3" />
                 </span>
             </button>
+
+            @if($canExport)
+                <button 
+                    type="button" 
+                    wire:click="export" 
+                    wire:loading.attr="disabled"
+                    class="btn btn-xs btn-success gap-1.5 rounded-lg text-white font-semibold shadow-xs hover:bg-emerald-600 transition-all duration-200"
+                    title="Export Data Toko Sesuai Filter ke Excel (.xlsx)"
+                >
+                    <span wire:loading.remove wire:target="export" class="flex items-center gap-1.5">
+                        <x-heroicon-s-arrow-down-tray class="w-3.5 h-3.5" />
+                        Export Excel
+                    </span>
+                    <span wire:loading wire:target="export" class="flex items-center gap-1.5">
+                        <span class="loading loading-spinner loading-xs"></span>
+                        Mengekspor...
+                    </span>
+                </button>
+            @endif
         </x-slot:actions>
     </x-ui.tab-menu>
 
@@ -327,6 +346,20 @@
                     <span wire:loading wire:target="applyFilters" class="loading loading-spinner loading-xs"></span>
                     Terapkan Filter
                 </button>
+
+                @if($canExport)
+                    <button 
+                        type="button" 
+                        wire:click="export" 
+                        wire:loading.attr="disabled"
+                        class="btn btn-xs sm:btn-sm btn-outline btn-success gap-1.5 font-bold shadow-xs px-3 hover:!text-white"
+                        title="Download Data Toko Sesuai Filter ke File Excel (.xlsx)"
+                    >
+                        <x-heroicon-s-arrow-down-tray class="w-3.5 h-3.5" wire:loading.remove wire:target="export" />
+                        <span wire:loading wire:target="export" class="loading loading-spinner loading-xs"></span>
+                        Export Excel
+                    </button>
+                @endif
             </div>
         </div>
     </div>

@@ -113,7 +113,7 @@
         
         {{-- Card 1: Total Toko Pernah Anomali --}}
         <div class="bg-base-100 p-3.5 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between group hover:border-amber-500/50 transition-colors">
-            <div class="flex items-center justify-between text-[0.6875rem] font-bold tracking-wider text-base-content/60 uppercase">
+            <div class="flex items-center justify-between text-[0.625rem] font-bold tracking-wider text-base-content/60 uppercase">
                 <span>Toko Ada Temuan Anomali</span>
                 <div class="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0">
                     <x-heroicon-s-building-storefront class="w-4 h-4" />
@@ -123,18 +123,18 @@
                 <span class="text-2xl font-black font-mono text-base-content">
                     {{ number_format($metrics->total_with_anomalies) }}
                 </span>
-                <span class="text-[11px] font-semibold text-base-content/50">
+                <span class="text-xs font-semibold text-base-content/50">
                     dari {{ number_format($metrics->total_stores) }} Toko Jadwal
                 </span>
             </div>
-            <div class="text-[10px] text-base-content/60 mt-1">
+            <div class="text-[0.625rem] text-base-content/60 mt-1">
                 Toko dengan &ge; 1 kali insiden pelanggaran SOP PJP
             </div>
         </div>
 
         {{-- Card 2: Kronis / Berulang (High Priority) --}}
         <div class="bg-base-100 p-3.5 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between group hover:border-rose-500/50 transition-colors">
-            <div class="flex items-center justify-between text-[0.6875rem] font-bold tracking-wider text-rose-600 uppercase">
+            <div class="flex items-center justify-between text-[0.625rem] font-bold tracking-wider text-rose-600 uppercase">
                 <span>🔴 Kronis / Berulang</span>
                 <div class="w-7 h-7 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-600 shrink-0">
                     <x-heroicon-s-exclamation-triangle class="w-4 h-4" />
@@ -146,14 +146,14 @@
                 </span>
                 <span class="badge badge-error badge-xs text-white font-bold">Butuh Tindakan</span>
             </div>
-            <div class="text-[10px] text-base-content/60 mt-1">
+            <div class="text-[0.625rem] text-base-content/60 mt-1">
                 Anomali berulang &ge; 2 minggu & kunjungan terakhir belum patuh
             </div>
         </div>
 
         {{-- Card 3: Anomali Baru (Early Warning) --}}
         <div class="bg-base-100 p-3.5 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between group hover:border-amber-500/50 transition-colors">
-            <div class="flex items-center justify-between text-[0.6875rem] font-bold tracking-wider text-amber-600 uppercase">
+            <div class="flex items-center justify-between text-[0.625rem] font-bold tracking-wider text-amber-600 uppercase">
                 <span>🟡 Anomali Baru</span>
                 <div class="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0">
                     <x-heroicon-s-exclamation-circle class="w-4 h-4" />
@@ -165,14 +165,14 @@
                 </span>
                 <span class="badge badge-warning badge-xs text-warning-content font-bold">Early Warning</span>
             </div>
-            <div class="text-[10px] text-base-content/60 mt-1">
+            <div class="text-[0.625rem] text-base-content/60 mt-1">
                 Baru pertama kali terjadi anomali di kunjungan minggu terakhir
             </div>
         </div>
 
         {{-- Card 4: Membaik / Solved (Improvement Target) --}}
         <div class="bg-base-100 p-3.5 rounded-xl shadow-xs border border-base-300 flex flex-col justify-between group hover:border-emerald-500/50 transition-colors">
-            <div class="flex items-center justify-between text-[0.6875rem] font-bold tracking-wider text-emerald-600 uppercase">
+            <div class="flex items-center justify-between text-[0.625rem] font-bold tracking-wider text-emerald-600 uppercase">
                 <span>🟢 Membaik (Solved)</span>
                 <div class="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
                     <x-heroicon-s-check-circle class="w-4 h-4" />
@@ -184,7 +184,7 @@
                 </span>
                 <span class="badge badge-success badge-xs text-white font-bold">Perbaikan Sukses</span>
             </div>
-            <div class="text-[10px] text-base-content/60 mt-1">
+            <div class="text-[0.625rem] text-base-content/60 mt-1">
                 Pernah anomali, namun di minggu terakhir telah normal patuh SOP
             </div>
         </div>
@@ -193,113 +193,354 @@
     {{-- Main Container Card --}}
     <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
         
-        {{-- Header Card & Actions Toolbar --}}
-        <div class="p-3 md:p-4 border-b border-base-300 shrink-0 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 bg-base-200/30">
-            <div class="shrink-0 w-full lg:w-auto">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <h2 class="text-base md:text-lg font-bold flex items-center gap-1.5">
-                        <span>Monitoring & Evaluasi Mingguan Temuan Toko SE</span>
-                    </h2>
-
-                    @if($appliedYear && $appliedMonth)
-                        <span class="badge badge-neutral text-neutral-content font-mono text-xs font-semibold">
-                            📅 {{ $monthOptions[$appliedMonth] ?? $appliedMonth }} {{ $appliedYear }}
-                        </span>
-                    @endif
-
-                    @if($appliedRegion && $appliedArea)
-                        <span class="badge badge-outline text-xs font-medium text-base-content/70">
-                            📍 {{ $appliedArea }}
-                        </span>
-                        @if(!empty($appliedDistributor))
-                            @php
-                                $dName = collect($distributors)->firstWhere('distributor_code', $appliedDistributor)?->distributor_name ?? $appliedDistributor;
-                            @endphp
-                            <span class="badge badge-outline text-xs font-medium text-base-content/70" title="{{ $dName }}">
-                                🏢 {{ \Illuminate\Support\Str::limit($dName, 22) }}
-                            </span>
-                        @else
-                            <span class="badge badge-outline text-xs font-medium text-primary">
-                                🏢 Semua Distributor
-                            </span>
-                        @endif
-                        @if(!empty($appliedSalesman))
-                            @php
-                                $sName = collect($salesmen)->firstWhere('salesman_code', $appliedSalesman)?->salesman_name ?? $appliedSalesman;
-                            @endphp
-                            <span class="badge badge-outline text-xs font-medium text-base-content/70" title="{{ $sName }}">
-                                👤 {{ \Illuminate\Support\Str::limit($sName, 18) }}
-                            </span>
-                        @endif
-
-                        <span class="badge badge-info badge-outline text-[11px] font-semibold" title="Berdasarkan pembagian resmi tabel master_calender (week_month)">
-                            Kalender: M1 &ndash; M{{ count($weeksMap) }}
-                        </span>
-                    @endif
-                </div>
-                <p class="text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">
-                    Evaluasi Progres Perbaikan Temuan Toko per Minggu &bull; Validasi Geofence 50m, Titik Depo & Koordinat Kembar
-                </p>
-            </div>
-            
-            {{-- Filter Bar (Urutan Standar: Region -> Area -> Distributor -> Salesman -> Periode Bulan/Tahun -> Aksi) --}}
-            <div class="flex flex-wrap items-center justify-start lg:justify-end gap-2 w-full lg:w-auto">
+        {{-- Header Card & Actions Toolbar (Hanya Filter & Action Buttons agar hemat ruang layar) --}}
+        <div class="p-2.5 sm:p-3 border-b border-base-300 shrink-0 bg-base-200/30">
+            <div class="flex flex-wrap items-center justify-between gap-2 w-full">
                 
-                {{-- Filter Region --}}
-                @if(count($regions) > 1 || $accessLevel === 'nasional')
-                    <select wire:model.live="selectedRegion" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[125px] text-xs">
-                        <option value="">Pilih Region</option>
-                        @foreach($regions as $r)
-                            <option value="{{ $r->region_code }}">{{ $r->region_name }}</option>
-                        @endforeach
-                    </select>
-                @endif
+                {{-- Filter Group: Modern Hierarchical Breadcrumb Capsule (Hybrid) --}}
+                <div class="flex flex-wrap items-center gap-2">
+                    
+                    {{-- 1. Kapsul Hierarki Wilayah (Region > Area > Distributor > Salesman) --}}
+                    <div class="inline-flex flex-wrap sm:flex-nowrap items-center bg-base-100 rounded-xl border border-base-300 shadow-2xs divide-y sm:divide-y-0 sm:divide-x divide-base-200/80 p-0.5 text-xs max-w-full">
+                        
+                        {{-- Region Segment (jika multi-region/nasional) --}}
+                        @if(count($regions) > 1 || $accessLevel === 'nasional')
+                            @php
+                                $rTitle = collect($regions)->firstWhere('region_code', $selectedRegion)?->region_name ?? 'Pilih Region';
+                                $rIsActive = !empty($selectedRegion);
+                            @endphp
+                            <div class="relative flex items-center pl-2 pr-1.5 w-32 sm:w-36 shrink-0 min-w-0" title="{{ $rTitle }}">
+                                <x-heroicon-m-globe-asia-australia class="w-3.5 h-3.5 text-primary/70 shrink-0 mr-1 pointer-events-none" />
+                                <select wire:model.live="selectedRegion" 
+                                    class="appearance-none bg-none bg-transparent border-none focus:outline-none text-xs {{ $rIsActive ? 'text-primary font-bold' : 'font-medium text-base-content/75' }} w-full min-w-0 truncate pl-0 pr-4 py-1 cursor-pointer">
+                                    <option value="" class="text-base-content">Pilih Region</option>
+                                    @foreach($regions as $r)
+                                        <option value="{{ $r->region_code }}" class="text-base-content">{{ $r->region_name }}</option>
+                                    @endforeach
+                                </select>
+                                <x-heroicon-m-chevron-down class="w-3 h-3 text-base-content/40 shrink-0 pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2" />
+                            </div>
+                        @endif
 
-                {{-- Filter Area --}}
-                @if(count($areas) > 1 || !in_array($accessLevel, ['area', 'supervisor']))
-                    <select wire:model.live="selectedArea" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[125px] text-xs" @disabled(empty($selectedRegion))>
-                        <option value="">Pilih Area</option>
-                        @foreach($areas as $a)
-                            <option value="{{ $a->area_code }}">{{ $a->area_name }}</option>
-                        @endforeach
-                    </select>
-                @endif
+                        {{-- Area Segment --}}
+                        @if(count($areas) > 1 || !in_array($accessLevel, ['area', 'supervisor']))
+                            @php
+                                $aTitle = collect($areas)->firstWhere('area_code', $selectedArea)?->area_name ?? 'Pilih Area';
+                                $aIsActive = !empty($selectedArea);
+                            @endphp
+                            <div class="relative flex items-center pl-2 pr-1.5 w-32 sm:w-36 shrink-0 min-w-0 {{ empty($selectedRegion) ? 'opacity-40' : '' }}" title="{{ $aTitle }}">
+                                <x-heroicon-m-map-pin class="w-3.5 h-3.5 text-rose-500/70 shrink-0 mr-1 pointer-events-none" />
+                                <select wire:model.live="selectedArea" 
+                                    class="appearance-none bg-none bg-transparent border-none focus:outline-none text-xs {{ $aIsActive ? 'text-primary font-bold' : 'font-medium text-base-content/75' }} w-full min-w-0 truncate pl-0 pr-4 py-1 cursor-pointer" 
+                                    @disabled(empty($selectedRegion))>
+                                    <option value="" class="text-base-content">Pilih Area</option>
+                                    @foreach($areas as $a)
+                                        <option value="{{ $a->area_code }}" class="text-base-content">{{ $a->area_name }}</option>
+                                    @endforeach
+                                </select>
+                                <x-heroicon-m-chevron-down class="w-3 h-3 text-base-content/40 shrink-0 pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2" />
+                            </div>
+                        @endif
 
-                {{-- Filter Distributor --}}
-                <select wire:model.live="selectedDistributor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[150px] text-xs" @disabled(empty($selectedArea))>
-                    <option value="">Semua Distributor</option>
-                    @foreach($distributors as $d)
-                        <option value="{{ $d->distributor_code }}">{{ $d->distributor_name }}</option>
-                    @endforeach
-                </select>
+                        {{-- Distributor Segment (Hybrid: Statis di Kapsul + Searchable Popover Modern) --}}
+                        @php
+                            $dObj = collect($distributors)->firstWhere('distributor_code', $selectedDistributor);
+                            $dTitle = $dObj?->distributor_name ?? 'Semua Distributor';
+                            $dIsActive = !empty($selectedDistributor);
+                            $dDisabled = empty($selectedArea);
+                            $distributorOptions = collect($distributors)->map(fn($d) => [
+                                'code' => (string)$d->distributor_code,
+                                'name' => (string)($d->distributor_name ?: $d->distributor_code)
+                            ])->values()->all();
+                        @endphp
+                        <div wire:key="dist-capsule-{{ $selectedArea }}-{{ $selectedDistributor }}"
+                            x-data="{
+                                open: false,
+                                search: '',
+                                selectedCode: @js($selectedDistributor),
+                                selectedLabel: @js($dTitle),
+                                items: @js($distributorOptions),
+                                get filtered() {
+                                    if (!this.search.trim()) return this.items;
+                                    const q = this.search.toLowerCase().trim();
+                                    return this.items.filter(i => 
+                                        i.name.toLowerCase().includes(q) || 
+                                        i.code.toLowerCase().includes(q)
+                                    );
+                                },
+                                select(code) {
+                                    this.open = false;
+                                    this.search = '';
+                                    $wire.set('selectedDistributor', code);
+                                }
+                            }"
+                            @click.outside="open = false"
+                            @keydown.escape.window="open = false"
+                            class="relative flex items-center w-36 sm:w-44 shrink-0 min-w-0 {{ $dDisabled ? 'opacity-40 pointer-events-none' : '' }}"
+                            title="{{ $dTitle }}">
 
-                {{-- Filter Salesman --}}
-                <select wire:model.live="selectedSalesman" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-auto min-w-[140px] text-xs" @disabled(empty($selectedArea))>
-                    <option value="">Semua Salesman</option>
-                    @foreach($salesmen as $s)
-                        <option value="{{ $s->salesman_code }}">{{ $s->salesman_name }}</option>
-                    @endforeach
-                </select>
+                            {{-- Trigger Button inside Capsule --}}
+                            <button type="button"
+                                @click="if (!{{ $dDisabled ? 'true' : 'false' }}) { open = !open; if(open) { $nextTick(() => $refs.distSearchInput?.focus()) } }"
+                                class="w-full flex items-center justify-between text-left py-1 pl-2 pr-1.5 focus:outline-none cursor-pointer group"
+                                {{ $dDisabled ? 'disabled' : '' }}>
+                                <div class="flex items-center min-w-0 flex-1 mr-1">
+                                    <x-heroicon-m-building-office-2 class="w-3.5 h-3.5 text-indigo-500/80 shrink-0 mr-1" />
+                                    <span class="truncate text-xs font-medium {{ $dIsActive ? 'text-primary font-bold' : 'text-base-content/75' }}"
+                                        x-text="selectedLabel"></span>
+                                </div>
+                                <div class="flex items-center gap-0.5 shrink-0">
+                                    @if($dIsActive)
+                                        <span @click.stop="select('')"
+                                            class="p-0.5 rounded-full hover:bg-base-200 text-base-content/40 hover:text-error transition-colors cursor-pointer"
+                                            title="Hapus pilihan distributor">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
+                                    @endif
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-base-content/40 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </button>
 
-                {{-- Filter Periode (Bulan & Tahun) --}}
-                <div class="flex items-center gap-1 bg-base-100 px-1.5 py-0.5 rounded-xl border border-base-300 shadow-2xs w-full sm:w-auto">
-                    <select wire:model.live="selectedMonth" class="select select-xs bg-transparent border-none text-xs focus:outline-none min-w-[95px] font-medium" title="Pilih Bulan Evaluasi">
-                        @foreach($monthOptions as $mVal => $mLabel)
-                            <option value="{{ $mVal }}">{{ $mLabel }}</option>
-                        @endforeach
-                    </select>
+                            {{-- Dropdown Popover Menu --}}
+                            <div x-show="open"
+                                x-transition:enter="transition ease-out duration-150"
+                                x-transition:enter-start="opacity-0 translate-y-1 scale-95"
+                                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                                x-transition:leave="transition ease-in duration-100"
+                                x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                                x-transition:leave-end="opacity-0 translate-y-1 scale-95"
+                                style="display: none;"
+                                class="absolute left-0 top-full mt-1.5 z-[70] w-72 sm:w-80 bg-base-100 rounded-xl shadow-2xl border border-base-300 p-2 flex flex-col text-xs focus:outline-none">
+                                
+                                {{-- Search Input Box --}}
+                                <div class="relative mb-2 shrink-0">
+                                    <x-heroicon-m-magnifying-glass class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none" />
+                                    <input type="text"
+                                        x-model="search"
+                                        x-ref="distSearchInput"
+                                        placeholder="Cari nama distributor / kode..."
+                                        class="input input-xs w-full pl-8 pr-6 rounded-lg bg-base-200/60 border border-transparent focus:border-primary focus:bg-base-100 text-xs font-normal" />
+                                    <button x-show="search"
+                                        @click="search = ''; $refs.distSearchInput?.focus()"
+                                        type="button"
+                                        class="absolute right-2 top-1/2 -translate-y-1/2 text-base-content/40 hover:text-base-content cursor-pointer">
+                                        <x-heroicon-m-x-mark class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
 
-                    <span class="text-xs font-semibold text-base-content/30">/</span>
+                                {{-- Options List --}}
+                                <div class="overflow-y-auto max-h-60 flex flex-col gap-0.5 pr-0.5 divide-y divide-base-200/40">
+                                    {{-- Default: Semua Distributor --}}
+                                    <button type="button"
+                                        @click="select('')"
+                                        class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors"
+                                        :class="!selectedCode ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/75'">
+                                        <div class="flex items-center gap-1.5">
+                                            <x-heroicon-m-building-office-2 class="w-3.5 h-3.5 text-indigo-500/80 shrink-0" />
+                                            <span>Semua Distributor</span>
+                                        </div>
+                                        <template x-if="!selectedCode">
+                                            <x-heroicon-m-check class="w-4 h-4 text-primary shrink-0" />
+                                        </template>
+                                    </button>
 
-                    <select wire:model.live="selectedYear" class="select select-xs bg-transparent border-none text-xs font-mono focus:outline-none min-w-[70px] font-medium" title="Pilih Tahun Evaluasi">
-                        @foreach($yearOptions as $yVal)
-                            <option value="{{ $yVal }}">{{ $yVal }}</option>
-                        @endforeach
-                    </select>
+                                    {{-- List of Distributors --}}
+                                    <template x-for="item in filtered" :key="item.code">
+                                        <button type="button"
+                                            @click="select(item.code)"
+                                            class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors pt-1.5"
+                                            :class="selectedCode === item.code ? 'bg-primary text-white font-semibold shadow-xs' : 'hover:bg-base-200 text-base-content'"
+                                            :title="item.name + ' (' + item.code + ')'">
+                                            <div class="flex flex-col min-w-0 pr-1">
+                                                <span class="truncate font-medium text-xs" :class="selectedCode === item.code ? 'text-white' : 'text-base-content'" x-text="item.name"></span>
+                                                <span class="text-[0.625rem] font-mono" :class="selectedCode === item.code ? 'text-white/80' : 'text-base-content/50'" x-text="item.code"></span>
+                                            </div>
+                                            <template x-if="selectedCode === item.code">
+                                                <x-heroicon-m-check class="w-4 h-4 text-white shrink-0 ml-1.5" />
+                                            </template>
+                                        </button>
+                                    </template>
+
+                                    <template x-if="filtered.length === 0">
+                                        <div class="px-3 py-4 text-xs text-base-content/50 italic text-center">
+                                            Tidak ditemukan distributor yang cocok
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Salesman Segment (Hybrid: Statis di Kapsul + Searchable Popover Modern) --}}
+                        @php
+                            $sObj = collect($salesmen)->firstWhere('salesman_code', $selectedSalesman);
+                            $sTitle = $sObj?->salesman_name ?? 'Semua Salesman';
+                            $sIsActive = !empty($selectedSalesman);
+                            $sDisabled = empty($selectedArea);
+                            $salesmenOptions = collect($salesmen)->map(fn($s) => [
+                                'code' => (string)$s->salesman_code,
+                                'name' => (string)($s->salesman_name ?: $s->salesman_code)
+                            ])->values()->all();
+                        @endphp
+                        <div wire:key="sales-capsule-{{ $selectedArea }}-{{ $selectedDistributor }}-{{ $selectedSalesman }}"
+                            x-data="{
+                                open: false,
+                                search: '',
+                                selectedCode: @js($selectedSalesman),
+                                selectedLabel: @js($sTitle),
+                                items: @js($salesmenOptions),
+                                get filtered() {
+                                    if (!this.search.trim()) return this.items;
+                                    const q = this.search.toLowerCase().trim();
+                                    return this.items.filter(i => 
+                                        i.name.toLowerCase().includes(q) || 
+                                        i.code.toLowerCase().includes(q)
+                                    );
+                                },
+                                select(code) {
+                                    this.open = false;
+                                    this.search = '';
+                                    $wire.set('selectedSalesman', code);
+                                }
+                            }"
+                            @click.outside="open = false"
+                            @keydown.escape.window="open = false"
+                            class="relative flex items-center w-32 sm:w-40 shrink-0 min-w-0 {{ $sDisabled ? 'opacity-40 pointer-events-none' : '' }}"
+                            title="{{ $sTitle }}">
+
+                            {{-- Trigger Button inside Capsule --}}
+                            <button type="button"
+                                @click="if (!{{ $sDisabled ? 'true' : 'false' }}) { open = !open; if(open) { $nextTick(() => $refs.salesSearchInput?.focus()) } }"
+                                class="w-full flex items-center justify-between text-left py-1 pl-2 pr-1.5 focus:outline-none cursor-pointer group"
+                                {{ $sDisabled ? 'disabled' : '' }}>
+                                <div class="flex items-center min-w-0 flex-1 mr-1">
+                                    <x-heroicon-m-user class="w-3.5 h-3.5 text-emerald-600/80 shrink-0 mr-1" />
+                                    <span class="truncate text-xs font-medium {{ $sIsActive ? 'text-primary font-bold' : 'text-base-content/75' }}"
+                                        x-text="selectedLabel"></span>
+                                </div>
+                                <div class="flex items-center gap-0.5 shrink-0">
+                                    @if($sIsActive)
+                                        <span @click.stop="select('')"
+                                            class="p-0.5 rounded-full hover:bg-base-200 text-base-content/40 hover:text-error transition-colors cursor-pointer"
+                                            title="Hapus pilihan salesman">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
+                                    @endif
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-base-content/40 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </button>
+
+                            {{-- Dropdown Popover Menu --}}
+                            <div x-show="open"
+                                x-transition:enter="transition ease-out duration-150"
+                                x-transition:enter-start="opacity-0 translate-y-1 scale-95"
+                                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                                x-transition:leave="transition ease-in duration-100"
+                                x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                                x-transition:leave-end="opacity-0 translate-y-1 scale-95"
+                                style="display: none;"
+                                class="absolute left-0 top-full mt-1.5 z-[70] w-72 sm:w-80 bg-base-100 rounded-xl shadow-2xl border border-base-300 p-2 flex flex-col text-xs focus:outline-none">
+                                
+                                {{-- Search Input Box --}}
+                                <div class="relative mb-2 shrink-0">
+                                    <x-heroicon-m-magnifying-glass class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none" />
+                                    <input type="text"
+                                        x-model="search"
+                                        x-ref="salesSearchInput"
+                                        placeholder="Cari nama salesman / kode SE..."
+                                        class="input input-xs w-full pl-8 pr-6 rounded-lg bg-base-200/60 border border-transparent focus:border-primary focus:bg-base-100 text-xs font-normal" />
+                                    <button x-show="search"
+                                        @click="search = ''; $refs.salesSearchInput?.focus()"
+                                        type="button"
+                                        class="absolute right-2 top-1/2 -translate-y-1/2 text-base-content/40 hover:text-base-content cursor-pointer">
+                                        <x-heroicon-m-x-mark class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+
+                                {{-- Options List --}}
+                                <div class="overflow-y-auto max-h-60 flex flex-col gap-0.5 pr-0.5 divide-y divide-base-200/40">
+                                    {{-- Default: Semua Salesman --}}
+                                    <button type="button"
+                                        @click="select('')"
+                                        class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors"
+                                        :class="!selectedCode ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/75'">
+                                        <div class="flex items-center gap-1.5">
+                                            <x-heroicon-m-user class="w-3.5 h-3.5 text-emerald-600/80 shrink-0" />
+                                            <span>Semua Salesman</span>
+                                        </div>
+                                        <template x-if="!selectedCode">
+                                            <x-heroicon-m-check class="w-4 h-4 text-primary shrink-0" />
+                                        </template>
+                                    </button>
+
+                                    {{-- List of Salesmen --}}
+                                    <template x-for="item in filtered" :key="item.code">
+                                        <button type="button"
+                                            @click="select(item.code)"
+                                            class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors pt-1.5"
+                                            :class="selectedCode === item.code ? 'bg-primary text-white font-semibold shadow-xs' : 'hover:bg-base-200 text-base-content'"
+                                            :title="item.name + ' (' + item.code + ')'">
+                                            <div class="flex flex-col min-w-0 pr-1">
+                                                <span class="truncate font-medium text-xs" :class="selectedCode === item.code ? 'text-white' : 'text-base-content'" x-text="item.name"></span>
+                                                <span class="text-[0.625rem] font-mono" :class="selectedCode === item.code ? 'text-white/80' : 'text-base-content/50'" x-text="item.code"></span>
+                                            </div>
+                                            <template x-if="selectedCode === item.code">
+                                                <x-heroicon-m-check class="w-4 h-4 text-white shrink-0 ml-1.5" />
+                                            </template>
+                                        </button>
+                                    </template>
+
+                                    <template x-if="filtered.length === 0">
+                                        <div class="px-3 py-4 text-xs text-base-content/50 italic text-center">
+                                            Tidak ditemukan salesman yang cocok
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- 2. Kapsul Periode (Bulan & Tahun) --}}
+                    <div class="inline-flex items-center bg-base-100 rounded-xl border border-base-300 shadow-2xs divide-x divide-base-200/80 p-0.5 text-xs shrink-0">
+                        <div class="flex items-center pl-2 pr-1.5 gap-1.5">
+                            <x-heroicon-m-calendar-days class="w-3.5 h-3.5 text-primary/70 shrink-0 mr-0.5" />
+                            
+                            <div class="relative flex items-center">
+                                <select wire:model.live="selectedMonth" 
+                                    class="appearance-none bg-none bg-transparent border-none focus:outline-none text-xs font-medium pl-0 pr-4 py-1 cursor-pointer" 
+                                    title="Pilih Bulan Evaluasi">
+                                    @foreach($monthOptions as $mVal => $mLabel)
+                                        <option value="{{ $mVal }}" class="text-base-content">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                                <x-heroicon-m-chevron-down class="w-3 h-3 text-base-content/40 shrink-0 pointer-events-none absolute right-0.5 top-1/2 -translate-y-1/2" />
+                            </div>
+
+                            <span class="text-xs font-semibold text-base-content/30 select-none">/</span>
+
+                            <div class="relative flex items-center">
+                                <select wire:model.live="selectedYear" 
+                                    class="appearance-none bg-none bg-transparent border-none focus:outline-none text-xs font-mono font-medium pl-0 pr-4 py-1 cursor-pointer" 
+                                    title="Pilih Tahun Evaluasi">
+                                    @foreach($yearOptions as $yVal)
+                                        <option value="{{ $yVal }}" class="text-base-content">{{ $yVal }}</option>
+                                    @endforeach
+                                </select>
+                                <x-heroicon-m-chevron-down class="w-3 h-3 text-base-content/40 shrink-0 pointer-events-none absolute right-0.5 top-1/2 -translate-y-1/2" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- Action Buttons: Terapkan, Reset, Excel --}}
-                <div class="flex items-center gap-1.5 shrink-0">
+                <div class="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
                     <button type="button" 
                         wire:click="applyFilter" 
                         wire:loading.attr="disabled"
@@ -340,7 +581,7 @@
             
             {{-- Status Filter Pills --}}
             <div class="flex flex-wrap items-center gap-1.5 overflow-x-auto py-0.5">
-                <span class="text-base-content/50 font-bold uppercase text-[10px] mr-1">Status Tren:</span>
+                <span class="text-base-content/50 font-bold uppercase text-[0.625rem] mr-1">Status Tren:</span>
 
                 <button type="button" 
                     wire:click="setStatusFilter('all')"
@@ -386,7 +627,7 @@
                            wire:click="toggleShowAllStores" 
                            @checked($showAllStores)
                            class="checkbox checkbox-xs checkbox-primary rounded" />
-                    <span class="label-text text-[11px] font-medium text-base-content/80 select-none">Tampilkan Semua Toko</span>
+                    <span class="label-text text-xs font-medium text-base-content/80 select-none">Tampilkan Semua Toko</span>
                 </label>
 
                 {{-- Search Box --}}
@@ -401,10 +642,10 @@
         </div>
 
         {{-- Matriks Table Container --}}
-        <div class="flex-1 min-h-0 overflow-auto bg-base-100 flex flex-col">
+        <div class="flex-1 min-h-0 min-w-0 overflow-auto bg-base-100 relative">
             @if(empty($appliedRegion) || empty($appliedArea))
                 {{-- State: Filter Belum Diterapkan --}}
-                <div class="h-full flex flex-col items-center justify-center p-8 text-center my-auto">
+                <div class="h-full min-h-[320px] flex flex-col items-center justify-center p-8 text-center my-auto">
                     <div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-3 shadow-inner">
                         <x-heroicon-o-funnel class="w-8 h-8" />
                     </div>
@@ -417,7 +658,7 @@
                 </div>
             @elseif($stores->isEmpty())
                 {{-- State: Data Kosong --}}
-                <div class="h-full flex flex-col items-center justify-center p-8 text-center my-auto">
+                <div class="h-full min-h-[320px] flex flex-col items-center justify-center p-8 text-center my-auto">
                     <div class="w-16 h-16 rounded-2xl bg-base-200 flex items-center justify-center text-base-content/40 mb-3">
                         <x-heroicon-o-check-badge class="w-8 h-8 text-success" />
                     </div>
@@ -433,8 +674,8 @@
                 </div>
             @else
                 {{-- Matriks Mingguan Table --}}
-                <table class="table table-xs table-pin-rows table-pin-cols w-full border-collapse">
-                    <thead class="text-xs uppercase font-bold tracking-wider text-base-content/70 bg-base-200 border-b border-base-300">
+                <table class="table table-xs table-pin-rows w-full">
+                    <thead class="text-xs uppercase font-bold tracking-wider text-base-content/80 bg-base-200 border-b border-base-300 shadow-2xs z-10">
                         <tr>
                             <th class="w-10 text-center bg-base-200">#</th>
                             <th class="w-48 bg-base-200">Salesman (SE)</th>
@@ -444,7 +685,7 @@
                             @foreach($weeksMap as $wNum => $wInfo)
                                 <th class="text-center min-w-[150px] bg-base-200 border-l border-base-300/60">
                                     <div class="font-bold text-base-content">{{ $wInfo['label'] }}</div>
-                                    <div class="text-[10px] font-mono font-normal text-base-content/60 lowercase tracking-normal">{{ $wInfo['range_label'] }}</div>
+                                    <div class="text-[0.625rem] font-mono font-normal text-base-content/60 lowercase tracking-normal">{{ $wInfo['range_label'] }}</div>
                                 </th>
                             @endforeach
 
@@ -456,41 +697,41 @@
                         @foreach($stores as $idx => $store)
                             <tr class="hover:bg-base-200/50 transition-colors {{ $store->trend_status === 'recurrent' ? 'bg-rose-500/5' : '' }}">
                                 {{-- Index No --}}
-                                <th class="text-center font-mono text-base-content/40 bg-base-100">
+                                <td class="text-center font-mono text-base-content/40">
                                     {{ ($stores->currentPage() - 1) * $stores->perPage() + $idx + 1 }}
-                                </th>
+                                </td>
 
                                 {{-- Salesman & Distributor --}}
-                                <td class="bg-base-100">
+                                <td>
                                     <div class="font-bold text-base-content truncate max-w-[180px]" title="{{ $store->salesman_name }}">
                                         {{ $store->salesman_name }}
                                     </div>
-                                    <div class="text-[10px] text-base-content/60 truncate max-w-[180px]" title="{{ $store->distributor_name }}">
+                                    <div class="text-[0.625rem] text-base-content/60 truncate max-w-[180px]" title="{{ $store->distributor_name }}">
                                         {{ $store->distributor_name }}
                                     </div>
                                 </td>
 
                                 {{-- Toko & GPS Master Info --}}
-                                <td class="bg-base-100">
+                                <td>
                                     <div class="font-semibold text-base-content truncate max-w-[240px]" title="{{ $store->custname }}">
                                         {{ $store->custname }}
                                     </div>
-                                    <div class="text-[10px] text-base-content/50 font-mono flex items-center gap-1.5 flex-wrap mt-0.5">
+                                    <div class="text-[0.625rem] text-base-content/50 font-mono flex items-center gap-1.5 flex-wrap mt-0.5">
                                         <span>{{ $store->custno }}</span>
                                         <span class="text-base-content/30">&bull;</span>
                                         
                                         @if($store->has_master_gps)
-                                            <span class="badge badge-xs badge-success badge-outline gap-0.5 text-[9px] font-semibold" title="Titik GPS Master terdaftar valid: ({{ number_format($store->master_lat, 5) }}, {{ number_format($store->master_lon, 5) }})">
+                                            <span class="badge badge-xs badge-success badge-outline gap-0.5 text-[0.625rem] font-semibold" title="Titik GPS Master terdaftar valid: ({{ number_format($store->master_lat, 5) }}, {{ number_format($store->master_lon, 5) }})">
                                                 <span>📍 Master Ada</span>
                                             </span>
                                         @else
-                                            <span class="badge badge-xs badge-error text-white gap-0.5 text-[9px] font-bold shadow-2xs" title="PERINGATAN: Koordinat Master Toko KOSONG (0, 0). Geofence mobile tidak dapat memblokir check-in toko ini!">
+                                            <span class="badge badge-xs badge-error text-white gap-0.5 text-[0.625rem] font-bold shadow-2xs" title="PERINGATAN: Koordinat Master Toko KOSONG (0, 0). Geofence mobile tidak dapat memblokir check-in toko ini!">
                                                 <span>🚨 Master Kosong (0,0)</span>
                                             </span>
                                         @endif
                                     </div>
                                     @if(!empty($store->address))
-                                        <div class="text-[10px] text-base-content/40 truncate max-w-[240px] mt-0.5" title="{{ $store->address }}">
+                                        <div class="text-[0.625rem] text-base-content/40 truncate max-w-[240px] mt-0.5" title="{{ $store->address }}">
                                             {{ $store->address }}
                                         </div>
                                     @endif
@@ -504,19 +745,19 @@
                                     <td class="text-center align-middle border-l border-base-200/70 p-2">
                                         @if(!$wData || $wData->status === 'skip')
                                             {{-- Tidak ada jadwal / tidak dikunjungi --}}
-                                            <div class="inline-flex items-center justify-center px-2 py-0.5 rounded text-[10px] font-mono text-base-content/30 bg-base-200/40" title="Tidak ada kunjungan pada minggu ini">
+                                            <div class="inline-flex items-center justify-center px-2 py-0.5 rounded text-[0.625rem] font-mono text-base-content/30 bg-base-200/40" title="Tidak ada kunjungan pada minggu ini">
                                                 <span>&minus; Tidak Ada</span>
                                             </div>
                                         @elseif($wData->status === 'normal')
                                             {{-- Normal & Patuh SOP --}}
                                             <div class="inline-flex flex-col items-center gap-0.5">
-                                                <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shadow-2xs" 
+                                                <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shadow-2xs" 
                                                      title="{{ $wData->detail }} • Kunjungan Sah">
                                                     <x-heroicon-s-check-circle class="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                                     <span>{{ $wData->label }}</span>
                                                 </div>
                                                 @if($wData->total_val_order > 0)
-                                                    <span class="text-[10px] font-mono text-emerald-600 font-semibold">
+                                                    <span class="text-[0.625rem] font-mono text-emerald-600 font-semibold">
                                                         Rp {{ number_format($wData->total_val_order, 0, ',', '.') }}
                                                     </span>
                                                 @endif
@@ -545,7 +786,7 @@
                                                 @endphp
                                                 <button type="button" 
                                                     @click="openDetail(@js($storeSummary), {{ $wNum }}, @js($wData))"
-                                                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer shadow-2xs group text-left {{ $btnClass }}" 
+                                                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer shadow-2xs group text-left {{ $btnClass }}" 
                                                     title="{{ $wData->detail }} (Klik untuk rincian temuan)">
                                                     
                                                     @if($wData->type === 'at_distributor')
@@ -563,14 +804,14 @@
                                                     <span class="truncate max-w-[110px]">{{ $wData->label }}</span>
 
                                                     @if(count($wData->anomalies) > 1)
-                                                        <span class="badge badge-xs {{ $wData->severity === 'high' ? 'badge-error' : 'badge-warning' }} text-white font-mono px-1 text-[9px]">
+                                                        <span class="badge badge-xs {{ $wData->severity === 'high' ? 'badge-error' : 'badge-warning' }} text-white font-mono px-1 text-[0.625rem]">
                                                             +{{ count($wData->anomalies) - 1 }}
                                                         </span>
                                                     @endif
                                                 </button>
 
                                                 @if($wData->total_val_order > 0)
-                                                    <span class="text-[10px] font-mono text-primary font-semibold">
+                                                    <span class="text-[0.625rem] font-mono text-primary font-semibold">
                                                         Rp {{ number_format($wData->total_val_order, 0, ',', '.') }}
                                                     </span>
                                                 @endif
@@ -676,12 +917,12 @@
                 {{-- Info Toko & Salesman Card --}}
                 <div class="bg-base-200/40 p-3 rounded-xl border border-base-300 grid grid-cols-2 gap-3">
                     <div>
-                        <span class="text-[10px] uppercase font-bold text-base-content/50 block">Salesman (SE)</span>
+                        <span class="text-[0.625rem] uppercase font-bold text-base-content/50 block">Salesman (SE)</span>
                         <span class="font-bold text-base-content text-sm" x-text="activeStore ? activeStore.salesman_name : '-'"></span>
-                        <div class="text-base-content/60 text-[11px]" x-text="activeStore ? activeStore.distributor_name : '-'"></div>
+                        <div class="text-base-content/60 text-xs" x-text="activeStore ? activeStore.distributor_name : '-'"></div>
                     </div>
                     <div>
-                        <span class="text-[10px] uppercase font-bold text-base-content/50 block">Status Master GPS Toko</span>
+                        <span class="text-[0.625rem] uppercase font-bold text-base-content/50 block">Status Master GPS Toko</span>
                         <template x-if="activeStore && activeStore.has_master_gps">
                             <div class="flex items-center gap-1 text-emerald-600 font-semibold mt-0.5">
                                 <x-heroicon-s-check-circle class="w-4 h-4 shrink-0" />
@@ -700,22 +941,22 @@
                 {{-- Ringkasan Kunjungan Terakhir di Minggu Ini --}}
                 <template x-if="activeWeekData && activeWeekData.latest_visit">
                     <div class="bg-base-100 p-3 rounded-xl border border-base-300 space-y-2">
-                        <div class="font-bold text-base-content uppercase tracking-wider text-[10px]">Data Check-in Kunjungan</div>
+                        <div class="font-bold text-base-content uppercase tracking-wider text-[0.625rem]">Data Check-in Kunjungan</div>
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
                             <div class="bg-base-200/50 p-2 rounded-lg">
-                                <span class="text-[10px] text-base-content/50 block">Tanggal</span>
+                                <span class="text-[0.625rem] text-base-content/50 block">Tanggal</span>
                                 <span class="font-mono font-bold" x-text="activeWeekData.latest_visit.tanggal"></span>
                             </div>
                             <div class="bg-base-200/50 p-2 rounded-lg">
-                                <span class="text-[10px] text-base-content/50 block">Jam Masuk - Keluar</span>
+                                <span class="text-[0.625rem] text-base-content/50 block">Jam Masuk - Keluar</span>
                                 <span class="font-mono font-bold" x-text="activeWeekData.latest_visit.time_in + ' - ' + activeWeekData.latest_visit.time_out"></span>
                             </div>
                             <div class="bg-base-200/50 p-2 rounded-lg">
-                                <span class="text-[10px] text-base-content/50 block">Durasi Toko</span>
+                                <span class="text-[0.625rem] text-base-content/50 block">Durasi Toko</span>
                                 <span class="font-mono font-bold text-primary" x-text="activeWeekData.latest_visit.time_consume || '-'"></span>
                             </div>
                             <div class="bg-base-200/50 p-2 rounded-lg">
-                                <span class="text-[10px] text-base-content/50 block">Nilai Order (Rp)</span>
+                                <span class="text-[0.625rem] text-base-content/50 block">Nilai Order (Rp)</span>
                                 <span class="font-mono font-bold text-emerald-600" x-text="'Rp ' + new Intl.NumberFormat('id-ID').format(activeWeekData.latest_visit.val_order || 0)"></span>
                             </div>
                         </div>
@@ -724,7 +965,7 @@
 
                 {{-- Daftar Pelanggaran / Anomali --}}
                 <div class="space-y-2">
-                    <div class="font-bold text-base-content uppercase tracking-wider text-[10px] flex items-center justify-between">
+                    <div class="font-bold text-base-content uppercase tracking-wider text-[0.625rem] flex items-center justify-between">
                         <span>Daftar Pelanggaran SOP Terdeteksi</span>
                         <span class="badge badge-xs badge-neutral" x-text="activeWeekData && activeWeekData.anomalies ? activeWeekData.anomalies.length + ' Indikasi' : '0'"></span>
                     </div>
@@ -765,7 +1006,7 @@
                         <x-heroicon-s-information-circle class="w-4 h-4 shrink-0" />
                         <span>Rekomendasi Tindak Lanjut untuk Supervisor (SPV):</span>
                     </div>
-                    <ul class="list-disc list-inside mt-1.5 space-y-1 text-[11px] text-base-content/80">
+                    <ul class="list-disc list-inside mt-1.5 space-y-1 text-xs text-base-content/80">
                         <li>Jika anomali <strong>Di Depo</strong> dengan <strong>Master Kosong</strong>, minta SE/Admin segera melakukan retagging titik koordinat toko fisik.</li>
                         <li>Jika anomali <strong>Koordinat Kembar</strong>, pastikan SE mendatangi langsung lokasi toko fisik dan tidak melakukan check-in borongan dari satu tempat.</li>
                         <li>Jika anomali <strong>Kunjungan Kilat (&lt; 2 menit)</strong>, evaluasi kepatuhan proses selling, pengecekan stok display, dan interaksi dengan pemilik toko.</li>

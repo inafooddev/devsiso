@@ -406,6 +406,36 @@ class Index extends Component
         $this->closeDetail();
     }
 
+    /**
+     * Export data toko tervalidasi & anomali sesuai filter ke file Excel (.xlsx)
+     */
+    public function export()
+    {
+        $user = auth()->user();
+
+        $filters = [
+            'search' => $this->hasAppliedFilters ? $this->appliedSearch : $this->search,
+            'region' => $this->hasAppliedFilters ? $this->appliedRegion : $this->regionFilter,
+            'area' => $this->hasAppliedFilters ? $this->appliedArea : $this->areaFilter,
+            'distributor' => $this->hasAppliedFilters ? $this->appliedDistributor : $this->distributorFilter,
+            'anomaly' => $this->hasAppliedFilters ? $this->appliedAnomaly : $this->anomalyFilter,
+            'validation_status' => $this->hasAppliedFilters ? $this->appliedValidation : $this->validationFilter,
+        ];
+
+        $stores = $this->service->getAllStoresForExport($user, $filters);
+
+        if (empty($stores)) {
+            $this->dispatch('show-toast', type: 'warning', message: 'Tidak ada data toko yang dapat diekspor sesuai filter saat ini.');
+            return;
+        }
+
+        $filename = 'validasi_geotag_detail_' . date('Ymd_His') . '.xlsx';
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\ValidasiGeotagDetailExport($stores),
+            $filename
+        );
+    }
+
     public function render()
     {
         $user = auth()->user();

@@ -29,18 +29,65 @@ const newIcon = L.divIcon({
 
 const deg2rad = (deg) => deg * (Math.PI / 180);
 
+const isValidCoordinate = (lat, lng) => {
+    if (lat === null || lat === undefined || lng === null || lng === undefined) return false;
+    const nLat = typeof lat === 'number' ? lat : parseFloat(lat);
+    const nLng = typeof lng === 'number' ? lng : parseFloat(lng);
+    if (isNaN(nLat) || isNaN(nLng)) return false;
+    // Nilai 0, 0 dianggap bukan koordinat toko valid (koordinat default kosong)
+    if (nLat === 0 && nLng === 0) return false;
+    // Batas valid bumi
+    if (nLat < -90 || nLat > 90 || nLng < -180 || nLng > 180) return false;
+    return true;
+};
+
 const getDistance = (lat1, lon1, lat2, lon2) => {
-    if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+    if (!isValidCoordinate(lat1, lon1) || !isValidCoordinate(lat2, lon2)) return null;
+    const nLat1 = parseFloat(lat1);
+    const nLon1 = parseFloat(lon1);
+    const nLat2 = parseFloat(lat2);
+    const nLon2 = parseFloat(lon2);
     const R = 6371;
-    const dLat = deg2rad(lat2 - lat1);
-    const dLon = deg2rad(lon2 - lon1);
+    const dLat = deg2rad(nLat2 - nLat1);
+    const dLon = deg2rad(nLon2 - nLon1);
     const a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.cos(deg2rad(nLat1)) * Math.cos(deg2rad(nLat2)) *
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 };
+
+class MapErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+    }
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+    componentDidCatch(error, errorInfo) {
+        console.warn('Map Error caught by boundary:', error, errorInfo);
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="bg-slate-100 rounded-2xl border border-slate-200 p-4 text-center my-2">
+                    <p className="text-[11px] font-bold text-slate-700 mb-1">Peta tidak dapat dimuat saat ini.</p>
+                    <p className="text-[10px] text-slate-400 mb-2">Koordinat GPS Anda tetap tercatat dan tersimpan dengan aman.</p>
+                    <button
+                        type="button"
+                        onClick={() => this.setState({ hasError: false })}
+                        className="px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-lg text-[10px] font-bold uppercase tracking-wider"
+                    >
+                        Coba Muat Ulang Peta
+                    </button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSalesCode, sessionSalesName }) {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -154,6 +201,7 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
     const mapContainerRef = useRef(null);
     const leafletMapRef = useRef(null);
     const markersRef = useRef({ actual: null, baru: null, line: null });
+    const invalidateTimerRef = useRef(null);
 
     useEffect(() => {
         if (data.foto instanceof File) {
@@ -173,7 +221,8 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
 
         const actLat = outlet.latitude;
         const actLng = outlet.longitude;
-        setActualLocation(actLat && actLng ? { lat: parseFloat(actLat), lng: parseFloat(actLng) } : null);
+        const hasValidAct = isValidCoordinate(actLat, actLng);
+        setActualLocation(hasValidAct ? { lat: parseFloat(actLat), lng: parseFloat(actLng) } : null);
         setBestAccuracy(null);
         setTrackingTimer(30);
 
@@ -220,7 +269,6 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
         setTrackingTimer(30);
         setBestAccuracy(null);
         setGpsError(false);
-        setPreviewUrl(null);
         setData(prev => ({ ...prev, latitude: '', longitude: '', accuracy: '' }));
 
         let localBestAccuracy = Infinity;
@@ -297,10 +345,15 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
         if (!detailOutlet) {
             if (intervalRef.current) clearInterval(intervalRef.current);
             if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+            if (invalidateTimerRef.current) clearTimeout(invalidateTimerRef.current);
             setIsGettingLocation(false);
 
             if (leafletMapRef.current) {
-                leafletMapRef.current.remove();
+                try {
+                    leafletMapRef.current.remove();
+                } catch (e) {
+                    console.warn('Map remove warning:', e);
+                }
                 leafletMapRef.current = null;
             }
             markersRef.current = { actual: null, baru: null, line: null };
@@ -311,57 +364,92 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
     useEffect(() => {
         if (!detailOutlet || !mapContainerRef.current) return;
 
-        if (!leafletMapRef.current) {
-            leafletMapRef.current = L.map(mapContainerRef.current, {
-                attributionControl: false,
-                zoomControl: true,
-            });
-            L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, {
-                maxZoom: 20
-            }).addTo(leafletMapRef.current);
-        }
-
-        const map = leafletMapRef.current;
-        const m = markersRef.current;
-
-        if (m.actual) { map.removeLayer(m.actual); m.actual = null; }
-        if (m.baru) { map.removeLayer(m.baru); m.baru = null; }
-        if (m.line) { map.removeLayer(m.line); m.line = null; }
-
-        const bounds = L.latLngBounds([]);
-
-        if (actualLocation) {
-            m.actual = L.marker([actualLocation.lat, actualLocation.lng], { icon: actualIcon })
-                        .bindPopup('<b class="text-xs">Titik Lama</b>')
-                        .addTo(map);
-            bounds.extend([actualLocation.lat, actualLocation.lng]);
-        }
-
-        if (data.latitude && data.longitude) {
-            const newLat = parseFloat(data.latitude);
-            const newLng = parseFloat(data.longitude);
-            m.baru = L.marker([newLat, newLng], { icon: newIcon })
-                      .bindPopup(`<b class="text-xs">Titik Baru</b><br/><span class="text-[10px]">Akurasi: ${bestAccuracy ? bestAccuracy.toFixed(1) + 'm' : '-'}</span>`)
-                      .addTo(map);
-            bounds.extend([newLat, newLng]);
-
-            if (actualLocation) {
-                m.line = L.polyline([[actualLocation.lat, actualLocation.lng], [newLat, newLng]], {
-                    color: '#f43f5e',
-                    dashArray: '5, 5',
-                    weight: 2
-                }).addTo(map);
+        try {
+            if (!leafletMapRef.current) {
+                if (mapContainerRef.current._leaflet_id) {
+                    delete mapContainerRef.current._leaflet_id;
+                }
+                leafletMapRef.current = L.map(mapContainerRef.current, {
+                    attributionControl: false,
+                    zoomControl: true,
+                });
+                L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, {
+                    maxZoom: 20
+                }).addTo(leafletMapRef.current);
             }
+
+            const map = leafletMapRef.current;
+            const m = markersRef.current;
+
+            if (m.actual) { map.removeLayer(m.actual); m.actual = null; }
+            if (m.baru) { map.removeLayer(m.baru); m.baru = null; }
+            if (m.line) { map.removeLayer(m.line); m.line = null; }
+
+            const validActual = actualLocation && isValidCoordinate(actualLocation.lat, actualLocation.lng);
+            const validNew = data.latitude && data.longitude && isValidCoordinate(data.latitude, data.longitude);
+
+            if (validActual) {
+                m.actual = L.marker([actualLocation.lat, actualLocation.lng], { icon: actualIcon })
+                            .bindPopup('<b class="text-xs">Titik Lama</b>')
+                            .addTo(map);
+            }
+
+            if (validNew) {
+                const newLat = parseFloat(data.latitude);
+                const newLng = parseFloat(data.longitude);
+                const accText = bestAccuracy && typeof bestAccuracy === 'number' ? `${bestAccuracy.toFixed(1)}m` : '-';
+                m.baru = L.marker([newLat, newLng], { icon: newIcon })
+                          .bindPopup(`<b class="text-xs">Titik Baru</b><br/><span class="text-[10px]">Akurasi: ${accText}</span>`)
+                          .addTo(map);
+
+                if (validActual) {
+                    m.line = L.polyline([[actualLocation.lat, actualLocation.lng], [newLat, newLng]], {
+                        color: '#f43f5e',
+                        dashArray: '5, 5',
+                        weight: 2
+                    }).addTo(map);
+                }
+            }
+
+            // Atur View / Bounds dengan aman tanpa memicu crash kalkulasi zoom
+            if (validActual && validNew) {
+                const bounds = L.latLngBounds([
+                    [actualLocation.lat, actualLocation.lng],
+                    [parseFloat(data.latitude), parseFloat(data.longitude)]
+                ]);
+                if (bounds.isValid()) {
+                    map.fitBounds(bounds, { padding: [35, 35], maxZoom: 18, animate: false });
+                }
+            } else if (validNew) {
+                // HANYA ada 1 titik baru: langsung setView ke titik baru (anti NaN/zoom crash)
+                map.setView([parseFloat(data.latitude), parseFloat(data.longitude)], 17, { animate: false });
+            } else if (validActual) {
+                // HANYA ada 1 titik lama: langsung setView ke titik lama
+                map.setView([actualLocation.lat, actualLocation.lng], 17, { animate: false });
+            } else {
+                // Default Indonesia
+                map.setView([-6.2088, 106.8456], 5, { animate: false });
+            }
+
+            if (invalidateTimerRef.current) clearTimeout(invalidateTimerRef.current);
+            invalidateTimerRef.current = setTimeout(() => {
+                try {
+                    if (leafletMapRef.current) {
+                        leafletMapRef.current.invalidateSize();
+                    }
+                } catch (e) {
+                    // Ignore
+                }
+            }, 300);
+        } catch (err) {
+            console.error('Leaflet Map Render Error:', err);
         }
 
-        if (bounds.isValid()) {
-            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 18 });
-        } else {
-            map.setView([-6.2088, 106.8456], 5);
-        }
-
-        // FIX #19: Increased to 500ms for slow devices, more reliable
-        setTimeout(() => { map.invalidateSize(); }, 500);
+        return () => {
+            if (invalidateTimerRef.current) {
+                clearTimeout(invalidateTimerRef.current);
+            }
+        };
     }, [detailOutlet, actualLocation, data.latitude, data.longitude, bestAccuracy]);
 
     const submitForm = (e) => {
@@ -795,38 +883,44 @@ export default function Index({ tokoList = [], riwayatPerbaikan = [], sessionSal
                         <div className="flex-1 overflow-y-auto p-5 scrollbar-hide">
                             <form onSubmit={submitForm} className="space-y-5">
                                 {/* Map View */}
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-end">
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Peta Lokasi</label>
-                                        {actualLocation && data.latitude && data.longitude && (
-                                            <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
-                                                Jarak: {(getDistance(actualLocation.lat, actualLocation.lng, parseFloat(data.latitude), parseFloat(data.longitude)) * 1000).toFixed(0)} meter
-                                            </span>
+                                <MapErrorBoundary>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-end">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Peta Lokasi</label>
+                                            {actualLocation && data.latitude && data.longitude && (() => {
+                                                const dist = getDistance(actualLocation.lat, actualLocation.lng, data.latitude, data.longitude);
+                                                if (dist === null || isNaN(dist) || !isFinite(dist)) return null;
+                                                return (
+                                                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                                                        Jarak: {(dist * 1000).toFixed(0)} meter
+                                                    </span>
+                                                );
+                                            })()}
+                                        </div>
+                                        <div
+                                            ref={mapContainerRef}
+                                            style={{ height: '200px', minHeight: '200px', width: '100%' }}
+                                            className="bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden relative z-0"
+                                        ></div>
+                                        {/* FIX #9: accuracy info only shown once, in one place */}
+                                        {isGettingLocation && (
+                                            <div className="flex justify-between items-center text-[10px] text-slate-500 px-1">
+                                                <span>
+                                                    {bestAccuracy && typeof bestAccuracy === 'number'
+                                                        ? <>Akurasi GPS terkini: <b className={bestAccuracy < 20 ? 'text-emerald-500' : 'text-rose-500'}>{bestAccuracy.toFixed(1)}m</b></>
+                                                        : 'Menunggu sinyal GPS...'
+                                                    }
+                                                </span>
+                                                <span className="text-indigo-500 font-bold animate-pulse">{trackingTimer}s</span>
+                                            </div>
+                                        )}
+                                        {!isGettingLocation && bestAccuracy && typeof bestAccuracy === 'number' && (
+                                            <div className="text-[10px] text-slate-500 px-1">
+                                                Akurasi GPS: <b className={bestAccuracy < 20 ? 'text-emerald-500' : 'text-rose-500'}>{bestAccuracy.toFixed(1)}m</b>
+                                            </div>
                                         )}
                                     </div>
-                                    <div
-                                        ref={mapContainerRef}
-                                        style={{ height: '200px', minHeight: '200px', width: '100%' }}
-                                        className="bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden relative z-0"
-                                    ></div>
-                                    {/* FIX #9: accuracy info only shown once, in one place */}
-                                    {isGettingLocation && (
-                                        <div className="flex justify-between items-center text-[10px] text-slate-500 px-1">
-                                            <span>
-                                                {bestAccuracy
-                                                    ? <>Akurasi GPS terkini: <b className={bestAccuracy < 20 ? 'text-emerald-500' : 'text-rose-500'}>{bestAccuracy.toFixed(1)}m</b></>
-                                                    : 'Menunggu sinyal GPS...'
-                                                }
-                                            </span>
-                                            <span className="text-indigo-500 font-bold animate-pulse">{trackingTimer}s</span>
-                                        </div>
-                                    )}
-                                    {!isGettingLocation && bestAccuracy && (
-                                        <div className="text-[10px] text-slate-500 px-1">
-                                            Akurasi GPS: <b className={bestAccuracy < 20 ? 'text-emerald-500' : 'text-rose-500'}>{bestAccuracy.toFixed(1)}m</b>
-                                        </div>
-                                    )}
-                                </div>
+                                </MapErrorBoundary>
 
                                 {/* GPS Actions */}
                                 <div className="space-y-2">

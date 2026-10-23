@@ -1,5 +1,6 @@
 {{-- MODAL PANDUAN, RUMUS NILAI & LOGIKA TEMUAN KUNJUNGAN SE --}}
-<div x-show="showAuditModal" 
+<div id="audit-logic-modal"
+     x-show="showAuditModal" 
      x-cloak
      x-data="{ activeAuditTab: 'formula' }"
      @open-audit-modal.window="showAuditModal = true; if ($event.detail && $event.detail.tab) activeAuditTab = $event.detail.tab"
@@ -9,7 +10,7 @@
      x-transition:leave="transition ease-in duration-150"
      x-transition:leave-start="opacity-100"
      x-transition:leave-end="opacity-0"
-     class="fixed inset-0 z-[100000] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4"
+     class="fixed inset-0 z-[100000] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 print:hidden no-print"
      @keydown.escape.window="showAuditModal = false"
      @click.self="showAuditModal = false">
 
@@ -23,13 +24,13 @@
                     <x-heroicon-s-academic-cap class="w-6 h-6" />
                 </div>
                 <div>
-                    <span class="badge badge-xs bg-info/30 text-info uppercase font-bold tracking-wider text-[10px] px-2 py-0.5">
+                    <span class="badge badge-xs bg-info/30 text-info uppercase font-bold tracking-wider text-[0.625rem] px-2 py-0.5">
                         Standar Operasional Prosedur (SOP) & Evaluasi Kinerja
                     </span>
                     <h3 class="text-base sm:text-lg font-black tracking-tight mt-0.5">
                         PANDUAN LENGKAP RUMUS RAPORT & LOGIKA TEMUAN
                     </h3>
-                    <p class="text-[11px] text-white/70">
+                    <p class="text-xs text-white/70">
                         Formula Matematis 4 Pilar Penilaian Kinerja, Cara Hitung Manual, dan Kriteria Deteksi Anomali Lapangan
                     </p>
                 </div>
@@ -84,22 +85,22 @@
                         Total Skor = (Pilar 1 &times; 30%) + (Pilar 2 &times; 30%) + (Pilar 3 &times; 25%) + (Pilar 4 &times; 15%)
                     </div>
 
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-center text-[11px]">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-center text-xs">
                         <div class="bg-base-100/80 p-2 rounded-lg border border-base-300">
                             <span class="text-emerald-700 dark:text-emerald-400 font-bold block">Pilar 1 (30%)</span>
-                            <span class="text-base-content/70 text-[10px]">Produktivitas Kunjungan</span>
+                            <span class="text-base-content/70 text-[0.625rem]">Produktivitas Kunjungan</span>
                         </div>
                         <div class="bg-base-100/80 p-2 rounded-lg border border-base-300">
                             <span class="text-blue-700 dark:text-blue-400 font-bold block">Pilar 2 (30%)</span>
-                            <span class="text-base-content/70 text-[10px]">Efektivitas Penjualan</span>
+                            <span class="text-base-content/70 text-[0.625rem]">Efektivitas Penjualan</span>
                         </div>
                         <div class="bg-base-100/80 p-2 rounded-lg border border-base-300">
                             <span class="text-amber-700 dark:text-amber-400 font-bold block">Pilar 3 (25%)</span>
-                            <span class="text-base-content/70 text-[10px]">Kepatuhan SOP & Integritas</span>
+                            <span class="text-base-content/70 text-[0.625rem]">Kepatuhan SOP & Integritas</span>
                         </div>
                         <div class="bg-base-100/80 p-2 rounded-lg border border-base-300">
                             <span class="text-purple-700 dark:text-purple-400 font-bold block">Pilar 4 (15%)</span>
-                            <span class="text-base-content/70 text-[10px]">Manajemen Waktu Kerja</span>
+                            <span class="text-base-content/70 text-[0.625rem]">Manajemen Waktu Kerja</span>
                         </div>
                     </div>
                 </div>
@@ -121,21 +122,21 @@
                             <span class="badge badge-sm bg-emerald-600 text-white font-bold">Bobot: 30%</span>
                         </div>
 
-                        <p class="text-[11px] text-base-content/80 leading-relaxed">
+                        <p class="text-xs text-base-content/80 leading-relaxed">
                             Mengukur seberapa patuh SE menjalankan jadwal rute rencana kunjungan (PJP) dan konsistensi hari aktif kerja selama satu bulan.
                         </p>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-[11px]">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
                             {{-- Sub 1.1 --}}
                             <div class="bg-base-100 p-3 rounded-xl border border-base-300 space-y-1.5">
                                 <div class="flex justify-between items-center">
                                     <span class="font-bold text-emerald-700 dark:text-emerald-400">1. Kepatuhan Rute PJP (%AC / PC)</span>
                                     <span class="badge badge-xs badge-neutral font-bold">Porsi 80%</span>
                                 </div>
-                                <div class="text-[10px] text-base-content/70 font-mono bg-base-200/60 p-1.5 rounded">
+                                <div class="text-[0.625rem] text-base-content/70 font-mono bg-base-200/60 p-1.5 rounded">
                                     Rasio = (Total AC / Total PC) &times; 100%
                                 </div>
-                                <ul class="text-[10.5px] space-y-0.5 text-base-content/80 list-disc list-inside">
+                                <ul class="text-xs space-y-0.5 text-base-content/80 list-disc list-inside">
                                     <li>&ge; 100% &rarr; <strong>100 Poin</strong></li>
                                     <li>90% &ndash; 99.9% &rarr; <strong>85 + ((Rasio - 90) &times; 1.5)</strong></li>
                                     <li>80% &ndash; 89.9% &rarr; <strong>70 + ((Rasio - 80) &times; 1.5)</strong></li>
@@ -149,16 +150,16 @@
                                     <span class="font-bold text-emerald-700 dark:text-emerald-400">2. Kedisiplinan Hari Aktif</span>
                                     <span class="badge badge-xs badge-neutral font-bold">Porsi 20%</span>
                                 </div>
-                                <div class="text-[10px] text-base-content/70 font-mono bg-base-200/60 p-1.5 rounded">
+                                <div class="text-[0.625rem] text-base-content/70 font-mono bg-base-200/60 p-1.5 rounded">
                                     Skor = (Hari Aktif / Target Hari Kerja) &times; 100%
                                 </div>
-                                <p class="text-[10.5px] text-base-content/70 leading-relaxed">
+                                <p class="text-xs text-base-content/70 leading-relaxed">
                                     Target hari kerja diambil dari hari kalender resmi (non-Minggu &amp; non-libur nasional). Maksimal 100 poin.
                                 </p>
                             </div>
                         </div>
 
-                        <div class="bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/30 text-[11px] font-mono font-bold text-emerald-900 dark:text-emerald-300 text-center">
+                        <div class="bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/30 text-xs font-mono font-bold text-emerald-900 dark:text-emerald-300 text-center">
                             Skor Pilar 1 = (Skor AC/PC &times; 0.8) + (Skor Hari Aktif &times; 0.2)
                         </div>
                     </div>
@@ -173,21 +174,21 @@
                             <span class="badge badge-sm bg-blue-600 text-white font-bold">Bobot: 30%</span>
                         </div>
 
-                        <p class="text-[11px] text-base-content/80 leading-relaxed">
+                        <p class="text-xs text-base-content/80 leading-relaxed">
                             Mengukur kemampuan sales mengubah kunjungan menjadi transaksi riil (*Effective Call*) dan kontribusi nilai penjualan (*value order*) dibandingkan rata-rata sales di area yang sama.
                         </p>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-[11px]">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
                             {{-- Sub 2.1 --}}
                             <div class="bg-base-100 p-3 rounded-xl border border-base-300 space-y-1.5">
                                 <div class="flex justify-between items-center">
                                     <span class="font-bold text-blue-700 dark:text-blue-400">1. Strike Rate (EC / AC)</span>
                                     <span class="badge badge-xs badge-neutral font-bold">Porsi 60%</span>
                                 </div>
-                                <div class="text-[10px] text-base-content/70 font-mono bg-base-200/60 p-1.5 rounded">
+                                <div class="text-[0.625rem] text-base-content/70 font-mono bg-base-200/60 p-1.5 rounded">
                                     SR = (Total EC / Total AC) &times; 100%
                                 </div>
-                                <ul class="text-[10.5px] space-y-0.5 text-base-content/80 list-disc list-inside">
+                                <ul class="text-xs space-y-0.5 text-base-content/80 list-disc list-inside">
                                     <li>&ge; 50% &rarr; <strong>100 Poin</strong></li>
                                     <li>40% &ndash; 49.9% &rarr; <strong>85 + ((SR - 40) &times; 1.5)</strong></li>
                                     <li>30% &ndash; 39.9% &rarr; <strong>70 + ((SR - 30) &times; 1.5)</strong></li>
@@ -202,10 +203,10 @@
                                     <span class="font-bold text-blue-700 dark:text-blue-400">2. Omset vs Benchmark Area</span>
                                     <span class="badge badge-xs badge-neutral font-bold">Porsi 40%</span>
                                 </div>
-                                <div class="text-[10px] text-base-content/70 font-mono bg-base-200/60 p-1.5 rounded">
+                                <div class="text-[0.625rem] text-base-content/70 font-mono bg-base-200/60 p-1.5 rounded">
                                     Rasio = Omset SE / Rata-rata Omset Area
                                 </div>
-                                <ul class="text-[10.5px] space-y-0.5 text-base-content/80 list-disc list-inside">
+                                <ul class="text-xs space-y-0.5 text-base-content/80 list-disc list-inside">
                                     <li>&ge; 1.3x (&ge;130% Rata-rata) &rarr; <strong>100 Poin</strong></li>
                                     <li>1.0x &ndash; 1.29x &rarr; <strong>85 + ((Rasio - 1.0) / 0.3 &times; 15)</strong></li>
                                     <li>0.7x &ndash; 0.99x &rarr; <strong>70 + ((Rasio - 0.7) / 0.3 &times; 15)</strong></li>
@@ -215,7 +216,7 @@
                             </div>
                         </div>
 
-                        <div class="bg-blue-500/10 p-2.5 rounded-lg border border-blue-500/30 text-[11px] font-mono font-bold text-blue-900 dark:text-blue-300 text-center">
+                        <div class="bg-blue-500/10 p-2.5 rounded-lg border border-blue-500/30 text-xs font-mono font-bold text-blue-900 dark:text-blue-300 text-center">
                             Skor Pilar 2 = (Skor Strike Rate &times; 0.6) + (Skor Omset &times; 0.4)
                         </div>
                     </div>
@@ -230,12 +231,12 @@
                             <span class="badge badge-sm bg-amber-600 text-white font-bold">Bobot: 25%</span>
                         </div>
 
-                        <p class="text-[11px] text-base-content/80 leading-relaxed">
+                        <p class="text-xs text-base-content/80 leading-relaxed">
                             Dimulai dari <strong>Modal Awal 100 Poin</strong>. Setiap pelanggaran/anomali kunjungan yang terdeteksi oleh sistem akan memotong poin secara proporsional terhadap frekuensi kunjungan SE tersebut.
                         </p>
 
                         <div class="overflow-x-auto border border-base-300 rounded-xl bg-base-100">
-                            <table class="table table-xs w-full text-[10.5px]">
+                            <table class="table table-xs w-full text-xs">
                                 <thead class="bg-base-200/70 text-base-content/70">
                                     <tr>
                                         <th>Jenis Pelanggaran / Anomali</th>
@@ -285,11 +286,11 @@
                             </table>
                         </div>
 
-                        <div class="bg-base-100 p-2.5 rounded-lg border border-emerald-500/30 text-[10.5px] text-emerald-800 dark:text-emerald-300">
+                        <div class="bg-base-100 p-2.5 rounded-lg border border-emerald-500/30 text-xs text-emerald-800 dark:text-emerald-300">
                             <strong>Pengecualian Khusus (Bebas Penalti):</strong> Kunjungan toko tutup sah (alasan resmi Toko Tutup / Belum Buka / Tutup Sementara / Permanen / Akses Tertutup &amp; EC = N) <u>100% bebas dari penalti durasi kilat</u>.
                         </div>
 
-                        <div class="bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/30 text-[11px] font-mono font-bold text-amber-900 dark:text-amber-300 text-center">
+                        <div class="bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/30 text-xs font-mono font-bold text-amber-900 dark:text-amber-300 text-center">
                             Skor Pilar 3 = Max(0, 100 - Total Penalti Rate)
                         </div>
                     </div>
@@ -304,21 +305,21 @@
                             <span class="badge badge-sm bg-purple-600 text-white font-bold">Bobot: 15%</span>
                         </div>
 
-                        <p class="text-[11px] text-base-content/80 leading-relaxed">
+                        <p class="text-xs text-base-content/80 leading-relaxed">
                             Mengukur efisiensi kerja lapangan: proporsi waktu produktif yang dihabiskan di dalam toko pelanggan dibandingkan perjalanan (*traveling*), serta kesesuaian rata-rata durasi singgah per toko.
                         </p>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-[11px]">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
                             {{-- Sub 4.1 --}}
                             <div class="bg-base-100 p-3 rounded-xl border border-base-300 space-y-1.5">
                                 <div class="flex justify-between items-center">
                                     <span class="font-bold text-purple-700 dark:text-purple-400">1. Rasio Waktu di Toko (Store Time)</span>
                                     <span class="badge badge-xs badge-neutral font-bold">Porsi 60%</span>
                                 </div>
-                                <div class="text-[10px] text-base-content/70 font-mono bg-base-200/60 p-1.5 rounded">
+                                <div class="text-[0.625rem] text-base-content/70 font-mono bg-base-200/60 p-1.5 rounded">
                                     Porsi = (Waktu Toko / Total Jam Kerja) &times; 100%
                                 </div>
-                                <ul class="text-[10.5px] space-y-0.5 text-base-content/80 list-disc list-inside">
+                                <ul class="text-xs space-y-0.5 text-base-content/80 list-disc list-inside">
                                     <li>&ge; 50% di toko &rarr; <strong>100 Poin</strong></li>
                                     <li>40% &ndash; 49.9% &rarr; <strong>80 + ((Porsi - 40) &times; 2.0)</strong></li>
                                     <li>30% &ndash; 39.9% &rarr; <strong>60 + ((Porsi - 30) &times; 2.0)</strong></li>
@@ -332,10 +333,10 @@
                                     <span class="font-bold text-purple-700 dark:text-purple-400">2. Rata-rata Durasi Layanan per Toko</span>
                                     <span class="badge badge-xs badge-neutral font-bold">Porsi 40%</span>
                                 </div>
-                                <div class="text-[10px] text-base-content/70 font-mono bg-base-200/60 p-1.5 rounded">
+                                <div class="text-[0.625rem] text-base-content/70 font-mono bg-base-200/60 p-1.5 rounded">
                                     Durasi = Total Menit di Toko / Total AC
                                 </div>
-                                <ul class="text-[10.5px] space-y-0.5 text-base-content/80 list-disc list-inside">
+                                <ul class="text-xs space-y-0.5 text-base-content/80 list-disc list-inside">
                                     <li>7 &ndash; 20 Menit (Ideal SOP) &rarr; <strong>100 Poin</strong></li>
                                     <li>5 &ndash; 6.9 Mnt atau 20.1 &ndash; 30 Mnt &rarr; <strong>85 Poin</strong></li>
                                     <li>3 &ndash; 4.9 Menit &rarr; <strong>70 Poin</strong></li>
@@ -344,7 +345,7 @@
                             </div>
                         </div>
 
-                        <div class="bg-purple-500/10 p-2.5 rounded-lg border border-purple-500/30 text-[11px] font-mono font-bold text-purple-900 dark:text-purple-300 text-center">
+                        <div class="bg-purple-500/10 p-2.5 rounded-lg border border-purple-500/30 text-xs font-mono font-bold text-purple-900 dark:text-purple-300 text-center">
                             Skor Pilar 4 = (Skor Porsi Toko &times; 0.6) + (Skor Durasi &times; 0.4)
                         </div>
                     </div>
@@ -361,22 +362,22 @@
                         <div class="bg-emerald-500/15 border border-emerald-500/40 p-3 rounded-xl text-emerald-800 dark:text-emerald-300">
                             <span class="text-xl font-black block">Grade A</span>
                             <span class="font-mono font-bold text-xs mt-0.5 block">&ge; 85.0 Poin</span>
-                            <span class="text-[10px] text-base-content/70 block mt-1">Sangat Baik (Role Model)</span>
+                            <span class="text-[0.625rem] text-base-content/70 block mt-1">Sangat Baik (Role Model)</span>
                         </div>
                         <div class="bg-blue-500/15 border border-blue-500/40 p-3 rounded-xl text-blue-800 dark:text-blue-300">
                             <span class="text-xl font-black block">Grade B</span>
                             <span class="font-mono font-bold text-xs mt-0.5 block">70.0 &ndash; 84.9 Poin</span>
-                            <span class="text-[10px] text-base-content/70 block mt-1">Baik (Memenuhi SOP)</span>
+                            <span class="text-[0.625rem] text-base-content/70 block mt-1">Baik (Memenuhi SOP)</span>
                         </div>
                         <div class="bg-amber-500/15 border border-amber-500/40 p-3 rounded-xl text-amber-800 dark:text-amber-300">
                             <span class="text-xl font-black block">Grade C</span>
                             <span class="font-mono font-bold text-xs mt-0.5 block">55.0 &ndash; 69.9 Poin</span>
-                            <span class="text-[10px] text-base-content/70 block mt-1">Cukup (Perlu Evaluasi)</span>
+                            <span class="text-[0.625rem] text-base-content/70 block mt-1">Cukup (Perlu Evaluasi)</span>
                         </div>
                         <div class="bg-rose-500/15 border border-rose-500/40 p-3 rounded-xl text-rose-800 dark:text-rose-300">
                             <span class="text-xl font-black block">Grade D</span>
                             <span class="font-mono font-bold text-xs mt-0.5 block">&lt; 55.0 Poin</span>
-                            <span class="text-[10px] text-base-content/70 block mt-1">Kurang (Pembinaan Khusus)</span>
+                            <span class="text-[0.625rem] text-base-content/70 block mt-1">Kurang (Pembinaan Khusus)</span>
                         </div>
                     </div>
                 </div>
@@ -389,11 +390,11 @@
                         </div>
                         <div>
                             <h5 class="font-bold text-sm text-base-content">Contoh Kasus Nyata Hitung Manual (Step-by-Step)</h5>
-                            <p class="text-[10.5px] text-base-content/60">Simulasi perhitungan manual kinerja Sales Executive "Ahmad" dalam 1 bulan:</p>
+                            <p class="text-xs text-base-content/60">Simulasi perhitungan manual kinerja Sales Executive "Ahmad" dalam 1 bulan:</p>
                         </div>
                     </div>
 
-                    <div class="bg-base-100 p-3 rounded-xl border border-base-300 space-y-2 text-[11px] font-mono leading-relaxed">
+                    <div class="bg-base-100 p-3 rounded-xl border border-base-300 space-y-2 text-xs font-mono leading-relaxed">
                         <div class="text-base-content/70 border-b border-base-200 pb-2">
                             <strong>Data Lapangan Ahmad:</strong><br>
                             &bull; PC = 500 toko | AC = 480 toko | EC = 192 toko<br>
@@ -403,7 +404,7 @@
                             &bull; Waktu: 54.2% Jam Kerja di Toko, Rata-rata 8.1 Menit / Toko
                         </div>
 
-                        <div class="space-y-1.5 text-[10.5px]">
+                        <div class="space-y-1.5 text-xs">
                             <div>
                                 <span class="text-emerald-700 dark:text-emerald-400 font-bold">1. PILAR 1:</span>
                                 AC/PC = 96.0% (&rarr; 85 + (6 &times; 1.5) = 94.0). Hari Aktif = 24/25 = 96.0.<br>
@@ -441,7 +442,7 @@
                 {{-- Intro Notice Box --}}
                 <div class="bg-info/10 border border-info/30 rounded-xl p-3 sm:p-4 flex items-start gap-3 text-info-content dark:text-info">
                     <x-heroicon-s-shield-check class="w-5 h-5 text-info shrink-0 mt-0.5" />
-                    <div class="text-[11px] leading-relaxed">
+                    <div class="text-xs leading-relaxed">
                         <strong class="font-bold text-xs block text-base-content">Prinsip Logika Temuan yang Adil &amp; Terukur</strong>
                         Sistem deteksi temuan kunjungan dirancang untuk memverifikasi <strong>integritas rute fisik</strong> dan <strong>kejujuran data lapangan</strong>. Sistem dilengkapi <strong>Smart Market Filter</strong> dan <strong>Smart Closed-Store Filter</strong> agar SE yang jujur <u>tidak terkena sanksi fiktif</u>.
                     </div>
@@ -457,7 +458,7 @@
                         <span class="badge badge-sm badge-error text-white font-bold">Severity: High (Penalti 2.5x)</span>
                     </div>
 
-                    <div class="text-[11px] text-base-content/80 leading-relaxed">
+                    <div class="text-xs text-base-content/80 leading-relaxed">
                         Terdeteksi ketika seorang Sales Executive melakukan <em>check-in</em> di <strong>dua atau lebih toko berbeda pada hari yang sama</strong>, namun titik koordinat GPS fisik ponselnya <strong>hampir menempel atau berjarak &le; 3 meter</strong>.
                     </div>
 
@@ -467,10 +468,10 @@
                             <x-heroicon-s-sparkles class="w-4 h-4 text-emerald-600" />
                             <span>Pengecualian Sah: Smart Market Filter (Area Pasar &amp; Kluster Ruko)</span>
                         </div>
-                        <p class="text-[11px] text-base-content/75 leading-relaxed">
+                        <p class="text-xs text-base-content/75 leading-relaxed">
                             Kunjungan dengan titik koordinat kembar (&le; 3m) <strong>OTOMATIS DINYATAKAN SAH / BUKAN TEMUAN ANOMALI</strong> jika memenuhi 2 syarat:
                         </p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[0.625rem]">
                             <div class="bg-base-200/80 p-2.5 rounded-lg border border-base-300">
                                 <span class="font-bold text-emerald-700 dark:text-emerald-400 block mb-0.5">Syarat 1: Master Toko Berdekatan</span>
                                 Titik master resmi kedua toko memang terdaftar berdekatan di area pasar yang sama (radius antar master &le; 100 meter).
@@ -483,9 +484,9 @@
                     </div>
 
                     {{-- Kriteria Kapan Jadi Temuan --}}
-                    <div class="bg-rose-500/10 rounded-xl p-3 border border-rose-500/30 text-[11px] space-y-1 text-rose-900 dark:text-rose-200">
+                    <div class="bg-rose-500/10 rounded-xl p-3 border border-rose-500/30 text-xs space-y-1 text-rose-900 dark:text-rose-200">
                         <span class="font-bold block text-rose-700 dark:text-rose-400 text-xs">Kapan Dinyatakan Temuan Koordinat Kembar?</span>
-                        <ul class="list-disc list-inside space-y-0.5 text-[10.5px]">
+                        <ul class="list-disc list-inside space-y-0.5 text-xs">
                             <li><strong>Jarak master toko aslinya berjauhan (&gt; 100 meter)</strong> &ndash; misal toko beda kelurahan/jalan tapi di-check-in di titik sama persis.</li>
                             <li><strong>Check-in instan / borongan (&lt; 2 menit)</strong> &ndash; check-in toko berikutnya hanya selisih beberapa detik tanpa interaksi riil.</li>
                             <li><strong>Master GPS toko kosong / belum dititikkan (0, 0)</strong> &ndash; rawan disalahgunakan untuk tembak kunjungan.</li>
@@ -503,10 +504,10 @@
                         <span class="badge badge-sm badge-error text-white font-bold">Severity: High (Penalti 3.0x)</span>
                     </div>
 
-                    <div class="text-[11px] text-base-content/80 leading-relaxed">
+                    <div class="text-xs text-base-content/80 leading-relaxed">
                         Terdeteksi ketika SE melakukan <em>check-in</em> toko pelanggan dalam <strong>radius &le; 100 meter dari titik koordinat kantor cabang/depo distributor</strong>.
                     </div>
-                    <div class="text-[10px] text-base-content/60 bg-base-100 p-2.5 rounded-lg border border-base-300">
+                    <div class="text-[0.625rem] text-base-content/60 bg-base-100 p-2.5 rounded-lg border border-base-300">
                         <strong>Aturan Lapangan:</strong> Sales Executive wajib melakukan kunjungan langsung ke toko fisik pelanggan di rute penugasan, bukan menembak kunjungan atau memesan dari dalam kantor gudang/depo distributor.
                     </div>
                 </div>
@@ -521,10 +522,10 @@
                         <span class="badge badge-sm badge-warning text-warning-content font-bold">Severity: Medium (Penalti 1.0x)</span>
                     </div>
 
-                    <div class="text-[11px] text-base-content/80 leading-relaxed">
+                    <div class="text-xs text-base-content/80 leading-relaxed">
                         Terdeteksi ketika jarak antara titik <em>check-in</em> fisik SE berjarak <strong>lebih dari 50 meter</strong> dari titik koordinat master toko yang terdaftar resmi di database sistem.
                     </div>
-                    <div class="text-[10px] text-base-content/60 bg-base-100 p-2.5 rounded-lg border border-base-300">
+                    <div class="text-[0.625rem] text-base-content/60 bg-base-100 p-2.5 rounded-lg border border-base-300">
                         <strong>Tindakan Perbaikan:</strong> Jika toko telah pindah alamat atau titik master GPS sebelumnya meleset, SE segera melapor ke Supervisor/Admin untuk dilakukan peremajaan (*updating*) koordinat master toko.
                     </div>
                 </div>
@@ -542,7 +543,7 @@
                         </div>
                     </div>
 
-                    <div class="text-[11px] text-base-content/80 leading-relaxed">
+                    <div class="text-xs text-base-content/80 leading-relaxed">
                         Terdeteksi ketika waktu singgah di toko (selisih antara `TIME_IN` dan `TIME_OUT`) <strong>kurang dari 2 menit (120 detik)</strong> untuk toko berstatus berhasil dikunjungi (`FLAG_VISIT = Y`).
                     </div>
 
@@ -552,10 +553,10 @@
                             <x-heroicon-s-sparkles class="w-4 h-4 text-emerald-600" />
                             <span>Pengecualian Sah: Smart Closed-Store Filter (Toko Fisik Tutup)</span>
                         </div>
-                        <p class="text-[11px] text-base-content/75 leading-relaxed">
+                        <p class="text-xs text-base-content/75 leading-relaxed">
                             Kunjungan kilat (&lt; 2 menit) <strong>OTOMATIS DINYATAKAN SAH (BUKAN ANOMALI)</strong> jika memenuhi 2 syarat:
                         </p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[0.625rem]">
                             <div class="bg-base-200/80 p-2.5 rounded-lg border border-base-300">
                                 <span class="font-bold text-emerald-700 dark:text-emerald-400 block mb-0.5">Syarat 1: Alasan Resmi Toko Tutup</span>
                                 Tercatat alasan sah di aplikasi (Toko Tutup, Toko Belum Buka, Tutup Sementara, Tutup Permanen, atau Akses Tertutup).
@@ -568,9 +569,9 @@
                     </div>
 
                     {{-- Kriteria Kapan Jadi Temuan --}}
-                    <div class="bg-rose-500/10 rounded-xl p-3 border border-rose-500/30 text-[11px] space-y-1 text-rose-900 dark:text-rose-200">
+                    <div class="bg-rose-500/10 rounded-xl p-3 border border-rose-500/30 text-xs space-y-1 text-rose-900 dark:text-rose-200">
                         <span class="font-bold block text-rose-700 dark:text-rose-400 text-xs">Kapan Dinyatakan Temuan Durasi Kilat?</span>
-                        <ul class="list-disc list-inside space-y-0.5 text-[10.5px]">
+                        <ul class="list-disc list-inside space-y-0.5 text-xs">
                             <li><strong>Order Kilat / Cetak Nota Instan (EC = Y)</strong> &ndash; Toko bertransaksi tapi durasi &lt; 2 menit (Sangat Kritis: indikasi transaksi tanpa cek fisik).</li>
                             <li><strong>Toko Buka Tanpa Alasan Tutup Sah (EC = N)</strong> &ndash; Toko buka namun kunjungan hanya beberapa detik tanpa cek stok rak display.</li>
                             <li><strong>Lapor Toko Tutup dari Luar Radius (&gt; 50m)</strong> &ndash; Check-in toko tutup dari jarak jauh tetap terkena anomali "Di Luar Radius".</li>
@@ -588,7 +589,7 @@
                         <span class="badge badge-sm badge-ghost font-bold">Severity: Low (Penalti 0.2x)</span>
                     </div>
 
-                    <div class="text-[11px] text-base-content/80 leading-relaxed">
+                    <div class="text-xs text-base-content/80 leading-relaxed">
                         Terjadi saat aplikasi kunjungan mencatat koordinat kosong (0, 0) yang umumnya disebabkan oleh izin lokasi smartphone dimatikan, GPS belum terkunci (*lock*), atau kendala teknis perangkat.
                     </div>
                 </div>
@@ -599,7 +600,7 @@
                         <x-heroicon-s-light-bulb class="w-4 h-4 text-emerald-600" />
                         <span>Tips Sukses Mencapai Grade A untuk Tim Sales</span>
                     </h5>
-                    <ul class="space-y-1.5 text-[11px] text-base-content/80 list-disc list-inside">
+                    <ul class="space-y-1.5 text-xs text-base-content/80 list-disc list-inside">
                         <li>Pastikan fitur <strong>GPS / Lokasi Berakurasi Tinggi</strong> selalu aktif sebelum melakukan *check-in*.</li>
                         <li>Lakukan *check-in* saat benar-benar berada di depan/dalam toko pelanggan (maksimal toleransi radius 50m).</li>
                         <li>Di area pasar, layani toko satu per satu secara berurutan dan luangkan waktu interaksi minimal &ge; 2 menit.</li>
@@ -611,7 +612,7 @@
 
         {{-- Footer Modal --}}
         <div class="p-3 sm:p-4 bg-base-200/60 border-t border-base-300 flex items-center justify-between gap-2 shrink-0">
-            <span class="text-[11px] text-base-content/60">
+            <span class="text-xs text-base-content/60">
                 Sistem Terpadu Validasi &amp; Penilaian Raport Lapangan PT. Fastrata Buana
             </span>
             <button type="button" 
