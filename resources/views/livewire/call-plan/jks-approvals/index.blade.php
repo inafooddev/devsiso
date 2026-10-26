@@ -19,7 +19,7 @@
             this.drawerData = payload;
             this.showDrawer = true;
         },
-        expandedGroups: [],
+        expandedGroups: {{ !empty($search) ? json_encode(array_keys($groupedApprovals)) : '[]' }},
         toggleGroup(key) {
             if (this.expandedGroups.includes(key)) {
                 this.expandedGroups = this.expandedGroups.filter(k => k !== key);
@@ -28,15 +28,16 @@
             }
         },
         expandAll(keys) {
-            this.expandedGroups = [...keys];
+            this.expandedGroups = Array.isArray(keys) ? [...keys] : [];
         },
         collapseAll() {
             this.expandedGroups = [];
         },
         isExpanded(key) {
-            return Boolean($wire.search) || this.expandedGroups.includes(key);
+            return this.expandedGroups.includes(key);
         }
     }"
+    @expand-all-groups.window="expandAll(Array.isArray($event.detail) ? ($event.detail[0]?.keys || $event.detail) : ($event.detail?.keys || []))"
     @toast.window="addToast(Array.isArray($event.detail) ? $event.detail[0] : $event.detail)"
     @open-reject-modal.window="showRejectModal = true"
     @close-reject-modal.window="showRejectModal = false"
@@ -249,7 +250,8 @@
                 <tbody class="text-sm transition-opacity duration-200 relative" wire:loading.class="opacity-50 grayscale pointer-events-none">
                     @forelse($groupedApprovals as $group)
                         {{-- PARENT ROW: Distributor + Salesman Summary --}}
-                        <tr class="transition-all duration-150 cursor-pointer border-b group"
+                        <tr wire:key="group-parent-{{ $group['key'] }}"
+                            class="transition-all duration-150 cursor-pointer border-b group"
                             :class="isExpanded('{{ $group['key'] }}') 
                                 ? 'bg-primary/10 border-l-4 border-l-primary border-b-transparent shadow-xs font-semibold' 
                                 : 'bg-base-100 hover:bg-base-200/60 border-l-4 border-l-transparent border-base-200'"
@@ -258,7 +260,8 @@
                             {{-- Chevron Toggle --}}
                             <td class="text-center w-12" @click.stop="toggleGroup('{{ $group['key'] }}')">
                                 <button type="button" class="btn btn-xs btn-circle btn-ghost text-base-content/60 group-hover:text-primary"
-                                        :class="isExpanded('{{ $group['key'] }}') ? 'text-primary bg-primary/15' : ''">
+                                        :class="isExpanded('{{ $group['key'] }}') ? 'text-primary bg-primary/15' : ''"
+                                        @click.stop="toggleGroup('{{ $group['key'] }}')">
                                     <x-heroicon-m-chevron-right class="w-4 h-4 transition-transform duration-200" 
                                                                 ::class="isExpanded('{{ $group['key'] }}') ? 'rotate-90 text-primary' : ''" />
                                 </button>
@@ -341,7 +344,7 @@
                                         <button type="button" 
                                                 class="btn btn-xs gap-1 font-semibold rounded-lg shadow-2xs hover:scale-105 transition-all"
                                                 :class="isExpanded('{{ $group['key'] }}') ? 'btn-primary text-white shadow-sm' : 'btn-outline btn-primary'"
-                                                @click="toggleGroup('{{ $group['key'] }}')">
+                                                @click.stop="toggleGroup('{{ $group['key'] }}')">
                                             <x-heroicon-m-chevron-down class="w-3.5 h-3.5 transition-transform duration-200" 
                                                                        ::class="isExpanded('{{ $group['key'] }}') ? 'rotate-180 text-white' : 'text-primary'" />
                                             <span x-text="isExpanded('{{ $group['key'] }}') ? 'Tutup' : 'Periksa ({{ $group['total_items'] }})'"></span>
@@ -354,7 +357,7 @@
                                         </span>
                                         <button type="button" 
                                                 class="btn btn-xs btn-ghost btn-circle text-base-content/60 hover:text-primary"
-                                                @click="toggleGroup('{{ $group['key'] }}')">
+                                                @click.stop="toggleGroup('{{ $group['key'] }}')">
                                             <x-heroicon-m-chevron-down class="w-3.5 h-3.5 transition-transform duration-200" 
                                                                        ::class="isExpanded('{{ $group['key'] }}') ? 'rotate-180 text-primary' : ''" />
                                         </button>
@@ -365,12 +368,14 @@
 
                         {{-- CHILD ROW: Sub-table for Expanded Outlets --}}
                         <tr x-show="isExpanded('{{ $group['key'] }}')" 
-                            x-transition:enter="transition ease-out duration-150"
-                            x-transition:enter-start="opacity-0 -translate-y-1"
-                            x-transition:enter-end="opacity-100 translate-y-0"
+                            wire:key="group-child-{{ $group['key'] }}"
                             class="bg-primary/[0.04] border-l-4 border-l-primary border-b-2 border-b-primary/30">
                             <td colspan="6" class="p-2 sm:p-3 sm:pl-5">
-                                <div class="rounded-xl border-2 border-primary/20 bg-base-100 shadow-md overflow-hidden">
+                                <div x-show="isExpanded('{{ $group['key'] }}')"
+                                     x-transition:enter="transition ease-out duration-150"
+                                     x-transition:enter-start="opacity-0 -translate-y-1"
+                                     x-transition:enter-end="opacity-100 translate-y-0"
+                                     class="rounded-xl border-2 border-primary/20 bg-base-100 shadow-md overflow-hidden">
                                     {{-- Sub-table Header bar (Tombol persetujuan baru aktif saat dicentang) --}}
                                     @php
                                         $groupSelected = array_values(array_intersect(array_map('strval', $group['approval_ids']), array_map('strval', $selected)));
@@ -446,7 +451,7 @@
                                             </thead>
                                             <tbody class="text-xs">
                                                 @foreach($group['items'] as $item)
-                                                    <tr class="hover:bg-base-200/70 transition-colors">
+                                                    <tr wire:key="approval-item-{{ $item['approval_id'] }}" class="hover:bg-base-200/70 transition-colors">
                                                         @if($filterStatus === 'PENDING')
                                                             <td class="text-center relative">
                                                                 @if($item['has_prc_issue'])

@@ -1433,6 +1433,10 @@ class Index extends Component
 
         $groupedApprovals = $this->buildGroupedApprovals($approvals->items(), $salesmanMap, $distributorMap, $prcIssues);
 
+        if (!empty(trim($this->search ?? ''))) {
+            $this->dispatch('expand-all-groups', keys: array_keys($groupedApprovals));
+        }
+
         return view('livewire.call-plan.jks-approvals.index', [
             'approvals' => $approvals,
             'groupedApprovals' => $groupedApprovals,
