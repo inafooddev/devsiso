@@ -48,6 +48,12 @@ class AppServiceProvider extends ServiceProvider
             return auth()->check() && auth()->user()->hasMenuAccess($routeName, 'can_add');
         });
 
+        // Security: Deteksi Percobaan Brute-Force Login
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Auth\Events\Failed::class,
+            \App\Listeners\LogFailedLoginAttempt::class
+        );
+
         \Illuminate\Support\Facades\Blade::if('canDelete', function ($routeName) {
             return auth()->check() && auth()->user()->hasMenuAccess($routeName, 'can_delete');
         });

@@ -59,6 +59,12 @@
                         Log Aktivitas
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('security-monitoring.index') }}" class="flex items-center gap-3">
+                        <x-heroicon-o-shield-check class="w-5 h-5 text-error" />
+                        Security & Firewall
+                    </a>
+                </li>
                 @endhasrole
                 <div class="divider my-1"></div>
                 <li>

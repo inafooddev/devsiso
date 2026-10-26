@@ -250,12 +250,12 @@ class JksSalesmanService
                 COUNT(DISTINCT js.customer_code) as all_ro,
                 COUNT(DISTINCT CASE WHEN ltpte.latitude IS NULL OR ltpte.longitude IS NULL THEN js.customer_code END) as non_gps,
                 COUNT(DISTINCT CASE WHEN 
-                    (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y' OR js.h7 = 'Y') 
+                    (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') 
                     AND 
                     (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y') 
                 THEN js.customer_code END) as total_toko,
                 COUNT(DISTINCT CASE WHEN NOT (
-                    (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y' OR js.h7 = 'Y') 
+                    (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') 
                     AND 
                     (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y')
                 ) THEN js.customer_code END) as non_rute,

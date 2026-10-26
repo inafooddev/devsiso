@@ -283,10 +283,10 @@ class Index extends Component
                 'md.distributor_code', 'md.distributor_name',
                 's.salesman_code', 's.salesman_name',
                 
-                // Total RO & JKS
+                // Total RO & JKS (Hari kerja: Senin s.d. Sabtu / h1..h6; Hari Minggu dihitung Non Rute)
                 DB::raw('COUNT(DISTINCT js.customer_code) as total_ro'),
-                DB::raw("COUNT(DISTINCT CASE WHEN (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y' OR js.h7 = 'Y') AND (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as total_jks"),
-                DB::raw("COUNT(DISTINCT CASE WHEN NOT ((js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y' OR js.h7 = 'Y') AND (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y')) THEN js.customer_code END) as non_rute"),
+                DB::raw("COUNT(DISTINCT CASE WHEN (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') AND (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as total_jks"),
+                DB::raw("COUNT(DISTINCT CASE WHEN NOT ((js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') AND (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y')) THEN js.customer_code END) as non_rute"),
                 DB::raw("COUNT(DISTINCT CASE WHEN (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as non_gps"),
                 
                 // Senin

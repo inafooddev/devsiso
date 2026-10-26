@@ -237,6 +237,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/access-groups', AccessGroupManagement::class)->name('access-groups.index')->middleware(['role:admin']);
     Route::get('/activity-logs', ActivityLogManagement::class)->name('activity-logs.index')->middleware(['role:admin']);
     Route::get('/api-management', \App\Livewire\Settings\ApiManagement::class)->name('api-management.index')->middleware(['role:admin']);
+    Route::get('/security-monitoring', \App\Livewire\Settings\SecurityMonitoring::class)->name('security-monitoring.index')->middleware(['role:admin']);
 
     // ==========================================
     // DASHBOARD & ANALYTICS
