@@ -25,7 +25,7 @@
                         </div>
                         <div>
                             <h3 class="text-xl font-bold text-base-content">Export Excel</h3>
-                            <p class="text-sm text-base-content/60 mt-1">Pilih foto yang ingin disertakan</p>
+                            <p class="text-sm text-base-content/60 mt-1">Pilih wilayah & lampiran foto</p>
                         </div>
                     </div>
                     <button @click="open = false" class="btn btn-circle btn-ghost btn-sm text-base-content/40 hover:text-base-content hover:bg-base-200 transition-colors">
@@ -34,26 +34,58 @@
                 </div>
 
                 <!-- Content -->
-                <div class="space-y-3 mb-8">
-                    <label class="flex items-center gap-3 p-3 rounded-xl border border-base-300 hover:bg-base-200/50 cursor-pointer transition-colors">
-                        <input type="checkbox" wire:model="export_foto_ktp" class="checkbox checkbox-primary checkbox-sm rounded-lg" />
-                        <span class="text-sm font-medium text-base-content">Sertakan Foto KTP</span>
-                    </label>
-                    <label class="flex items-center gap-3 p-3 rounded-xl border border-base-300 hover:bg-base-200/50 cursor-pointer transition-colors">
-                        <input type="checkbox" wire:model="export_foto_toko" class="checkbox checkbox-primary checkbox-sm rounded-lg" />
-                        <span class="text-sm font-medium text-base-content">Sertakan Foto Toko (GPS)</span>
-                    </label>
-                    <label class="flex items-center gap-3 p-3 rounded-xl border border-base-300 hover:bg-base-200/50 cursor-pointer transition-colors">
-                        <input type="checkbox" wire:model="export_foto_toko2" class="checkbox checkbox-primary checkbox-sm rounded-lg" />
-                        <span class="text-sm font-medium text-base-content">Sertakan Foto Toko (Tampak Depan)</span>
-                    </label>
-                    <label class="flex items-center gap-3 p-3 rounded-xl border border-base-300 hover:bg-base-200/50 cursor-pointer transition-colors">
-                        <input type="checkbox" wire:model="export_foto_toko3" class="checkbox checkbox-primary checkbox-sm rounded-lg" />
-                        <span class="text-sm font-medium text-base-content">Sertakan Foto Toko (Tampak Dalam)</span>
-                    </label>
-                    <p class="text-xs text-warning/80 italic mt-2">
+                <div class="space-y-4 mb-6">
+                    {{-- Filter Wilayah untuk Export --}}
+                    <div class="p-3.5 bg-base-200/60 rounded-2xl border border-base-300 space-y-3">
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/60 ml-0.5">Filter Region</label>
+                            <select wire:model.live="export_region_code"
+                                    class="select select-sm select-bordered w-full rounded-xl bg-base-100 border-base-300 text-xs font-semibold focus:ring-2 focus:ring-primary/50 transition-all">
+                                <option value="">Semua Region</option>
+                                @foreach($this->getFilterRegions() as $reg)
+                                    <option value="{{ $reg->region_code }}">{{ $reg->region_name }} ({{ $reg->region_code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/60 ml-0.5">Filter Area</label>
+                            <select wire:model.live="export_area_code"
+                                    class="select select-sm select-bordered w-full rounded-xl bg-base-100 border-base-300 text-xs font-semibold focus:ring-2 focus:ring-primary/50 transition-all">
+                                <option value="">Semua Area</option>
+                                @foreach($this->getExportFilterAreas() as $ar)
+                                    <option value="{{ $ar->area_code }}">{{ $ar->area_name }} ({{ $ar->area_code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Checklist Lampiran Foto --}}
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold uppercase tracking-wider text-base-content/60 ml-0.5">Lampiran Foto</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl border border-base-300 hover:bg-base-200/50 cursor-pointer transition-colors">
+                                <input type="checkbox" wire:model="export_foto_ktp" class="checkbox checkbox-primary checkbox-sm rounded-lg" />
+                                <span class="text-sm font-medium text-base-content">Sertakan Foto KTP</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl border border-base-300 hover:bg-base-200/50 cursor-pointer transition-colors">
+                                <input type="checkbox" wire:model="export_foto_toko" class="checkbox checkbox-primary checkbox-sm rounded-lg" />
+                                <span class="text-sm font-medium text-base-content">Sertakan Foto Toko (GPS)</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl border border-base-300 hover:bg-base-200/50 cursor-pointer transition-colors">
+                                <input type="checkbox" wire:model="export_foto_toko2" class="checkbox checkbox-primary checkbox-sm rounded-lg" />
+                                <span class="text-sm font-medium text-base-content">Sertakan Foto Toko (Tampak Depan)</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-2.5 rounded-xl border border-base-300 hover:bg-base-200/50 cursor-pointer transition-colors">
+                                <input type="checkbox" wire:model="export_foto_toko3" class="checkbox checkbox-primary checkbox-sm rounded-lg" />
+                                <span class="text-sm font-medium text-base-content">Sertakan Foto Toko (Tampak Dalam)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-warning/80 italic">
                         <x-heroicon-s-information-circle class="w-3.5 h-3.5 inline mr-1" />
-                        Semakin banyak foto yang dipilih, ukuran file export akan semakin besar.
+                        Disarankan memilih filter Area jika menyertakan foto agar proses export cepat dan lancar.
                     </p>
                 </div>
 

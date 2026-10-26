@@ -27,11 +27,6 @@ class IpWhitelist extends Model
      */
     public static function isIpWhitelisted(string $ip): bool
     {
-        // Local loopback selalu aman
-        if (in_array($ip, ['127.0.0.1', '::1', 'localhost'])) {
-            return true;
-        }
-
         $cacheKey = "security:whitelist_ip:{$ip}";
 
         return Cache::remember($cacheKey, 300, function () use ($ip) {

@@ -58,6 +58,11 @@ class BlockedIp extends Model
      */
     public static function blockIp(string $ip, ?string $reason = null, ?string $threatType = null, ?int $blockedBy = null, ?\DateTimeInterface $expiresAt = null, bool $isAutoBan = false): self
     {
+        // Anti-lockout: jangan pernah memblokir localhost agar pengembang lokal tidak terkunci
+        if (in_array($ip, ['127.0.0.1', '::1', 'localhost'])) {
+            return new self(['ip_address' => $ip]);
+        }
+
         $blocked = self::updateOrCreate(
             ['ip_address' => $ip],
             [

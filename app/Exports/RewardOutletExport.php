@@ -37,8 +37,24 @@ class RewardOutletExport extends StringValueBinder implements FromCollection, Wi
 
         // Apply region access based on login region role
         $user = auth()->user();
-        if ($user && !$user->hasRole('admin') && !empty($user->region_code)) {
-            $query->whereIn('region_code', $user->region_code);
+        if ($user && !$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $query->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('master_distributors as md')
+                        ->whereColumn('md.branch_name', 'reward_outlet.branch_name')
+                        ->where('md.supervisor_code', $user->supervisor_code);
+                });
+            } elseif (!empty($user->area_code) && count((array) $user->area_code) > 0) {
+                $query->whereExists(function ($sub) use ($user) {
+                    $sub->selectRaw('1')
+                        ->from('master_distributors as md')
+                        ->whereColumn('md.branch_name', 'reward_outlet.branch_name')
+                        ->whereIn('md.area_code', (array) $user->area_code);
+                });
+            } elseif (!empty($user->region_code) && count((array) $user->region_code) > 0) {
+                $query->whereIn('region_code', (array) $user->region_code);
+            }
         }
 
         // Apply filter type
@@ -159,8 +175,6 @@ class RewardOutletExport extends StringValueBinder implements FromCollection, Wi
 
         $headers = array_merge($headers, [
             'Keterangan',
-            'Status',
-            'Status Validasi',
         ]);
 
         return $headers;
@@ -208,8 +222,6 @@ class RewardOutletExport extends StringValueBinder implements FromCollection, Wi
 
         $row = array_merge($row, [
             $item->keterangan,
-            $item->status,
-            $item->is_valid ? 'Valid (Toko Ada)' : 'Tidak Valid (Toko Tidak Ada)',
         ]);
 
         return $row;
@@ -236,31 +248,36 @@ class RewardOutletExport extends StringValueBinder implements FromCollection, Wi
 
     private function createDrawing($name, $path, $coordinates, $row)
     {
-        if (file_exists($path)) {
-            $drawing = new Drawing();
-            $drawing->setName($name);
-            $drawing->setDescription($name);
-            $drawing->setPath($path);
-            $drawing->setCoordinates($coordinates . $row);
-            $drawing->setOffsetX(10);
-            $drawing->setOffsetY(10);
-            
-            // Proportional resize to fit within a 230x190px box
-            // Max Width = 230, Max Height = 190 (ratio = 1.21)
-            $imageSize = @getimagesize($path);
-            if ($imageSize) {
-                $w = $imageSize[0];
-                $h = $imageSize[1];
-                if ($h > 0 && ($w / $h) > 1.2105) {
-                    $drawing->setWidth(230);
+        if (file_exists($path) && @filesize($path) > 0) {
+            try {
+                $drawing = new Drawing();
+                $drawing->setName($name);
+                $drawing->setDescription($name);
+                $drawing->setPath($path);
+                $drawing->setCoordinates($coordinates . $row);
+                $drawing->setOffsetX(10);
+                $drawing->setOffsetY(10);
+                
+                // Proportional resize to fit within a 230x190px box
+                // Max Width = 230, Max Height = 190 (ratio = 1.21)
+                $imageSize = @getimagesize($path);
+                if ($imageSize) {
+                    $w = $imageSize[0];
+                    $h = $imageSize[1];
+                    if ($h > 0 && ($w / $h) > 1.2105) {
+                        $drawing->setWidth(230);
+                    } else {
+                        $drawing->setHeight(190);
+                    }
                 } else {
                     $drawing->setHeight(190);
                 }
-            } else {
-                $drawing->setHeight(190);
+                $drawing->setResizeProportional(true);
+                return $drawing;
+            } catch (\Throwable $e) {
+                \Log::warning("Gagal memuat drawing {$name} pada {$path}: " . $e->getMessage());
+                return null;
             }
-            $drawing->setResizeProportional(true);
-            return $drawing;
         }
         return null;
     }
@@ -362,15 +379,19 @@ class RewardOutletExport extends StringValueBinder implements FromCollection, Wi
                     }
                 }
                 
-                $totalCols = 15 + ($this->includeKtp ? 1 : 0) + 3 + ($this->includeToko ? 1 : 0) + ($this->includeToko2 ? 1 : 0) + ($this->includeToko3 ? 1 : 0) + 3;
+                $totalCols = 15 + ($this->includeKtp ? 1 : 0) + 3 + ($this->includeToko ? 1 : 0) + ($this->includeToko2 ? 1 : 0) + ($this->includeToko3 ? 1 : 0) + 1;
                 $lastLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($totalCols);
 
-                // Atur lebar kolom otomatis untuk kolom teks, dan lebar tetap 36 untuk kolom foto
+                // Atur lebar kolom: jika ada foto gunakan lebar tetap 20 untuk kolom teks agar tidak timeout saat kalkulasi autosize
                 foreach (range('A', $lastLetter) as $col) {
                     if (in_array($col, array_values($photoCols))) {
                         $sheet->getColumnDimension($col)->setWidth(36);
                     } else {
-                        $sheet->getColumnDimension($col)->setAutoSize(true);
+                        if ($hasAnyPhotos) {
+                            $sheet->getColumnDimension($col)->setWidth(20);
+                        } else {
+                            $sheet->getColumnDimension($col)->setAutoSize(true);
+                        }
                     }
                 }
                 

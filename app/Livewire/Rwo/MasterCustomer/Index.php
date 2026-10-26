@@ -63,6 +63,8 @@ class Index extends Component
     public $importFile;
 
     // Export Flags
+    public $export_region_code = '';
+    public $export_area_code = '';
     public $export_foto_ktp = false;
     public $export_foto_toko = false;
     public $export_foto_toko2 = false;
@@ -449,11 +451,42 @@ class Index extends Component
 
     public function openExportModal()
     {
+        $this->export_region_code = $this->filter_region_code;
+        $this->export_area_code = $this->filter_area_code;
         $this->export_foto_ktp = false;
         $this->export_foto_toko = false;
         $this->export_foto_toko2 = false;
         $this->export_foto_toko3 = false;
         $this->isExportModalOpen = true;
+    }
+
+    public function updatedExportRegionCode()
+    {
+        $this->export_area_code = '';
+    }
+
+    public function getExportFilterAreas()
+    {
+        $user = auth()->user();
+        $query = \App\Models\MasterArea::query();
+
+        if (!empty($this->export_region_code)) {
+            $query->where('region_code', $this->export_region_code);
+        } elseif (!$user->hasRole('admin')) {
+            if (!empty($user->supervisor_code)) {
+                $areaCodes = \App\Models\MasterDistributor::where('supervisor_code', $user->supervisor_code)
+                    ->whereNotNull('area_code')
+                    ->pluck('area_code')
+                    ->unique();
+                $query->whereIn('area_code', $areaCodes);
+            } elseif (!empty($user->area_code) && count((array) $user->area_code) > 0) {
+                $query->whereIn('area_code', (array) $user->area_code);
+            } elseif (!empty($user->region_code) && count((array) $user->region_code) > 0) {
+                $query->whereIn('region_code', (array) $user->region_code);
+            }
+        }
+
+        return $query->orderBy('area_name')->get();
     }
 
     public function closeExportModal()
@@ -465,10 +498,13 @@ class Index extends Component
     {
         $this->authorizeAction('can_export');
 
+        $regionCode = $this->export_region_code ?: $this->filter_region_code;
+        $areaCode = $this->export_area_code ?: $this->filter_area_code;
+
         $filters = [
             'search' => $this->search,
-            'filter_region_code' => $this->filter_region_code,
-            'filter_area_code' => $this->filter_area_code,
+            'filter_region_code' => $regionCode,
+            'filter_area_code' => $areaCode,
             'filter_branch_name' => $this->filter_branch_name,
             'filter_finance_status' => $this->filter_finance_status,
             'export_foto_ktp' => $this->export_foto_ktp,
@@ -480,8 +516,27 @@ class Index extends Component
         $this->isExportModalOpen = false;
         
         \App\Helpers\ActivityLogger::log('Export RWO', "Mengekspor data RWO.");
-        $filename = 'reward_outlet_export_' . now()->format('Ymd_His') . '.xlsx';
-        return Excel::download(new RewardOutletExport($filters), $filename);
+        try {
+            @ini_set('max_execution_time', 600);
+            @set_time_limit(600);
+            @ini_set('memory_limit', '1024M');
+
+            $prefix = 'reward_outlet_export_';
+            if (!empty($areaCode)) {
+                $prefix .= $areaCode . '_';
+            } elseif (!empty($regionCode)) {
+                $prefix .= $regionCode . '_';
+            }
+            $filename = $prefix . now()->format('Ymd_His') . '.xlsx';
+            return Excel::download(new RewardOutletExport($filters), $filename);
+        } catch (\Throwable $e) {
+            \Log::error('Export RWO Error: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $this->dispatch('notify', type: 'error', message: 'Gagal Export: ' . $e->getMessage());
+        }
     }
 
     public function openImportModal()
