@@ -44,9 +44,7 @@ class GlobalNotification extends Component
         $this->tikorCount = $tikorQuery->count();
 
         // 2. JKS Approvals Counts
-        $jksQuery = DB::table('jks_approvals')->where('status', 'PENDING');
-        // Currently JKS Approvals page fetches all pending without scoping, we follow the same behavior.
-        $this->jksCount = $jksQuery->count();
+        $this->jksCount = \App\Livewire\CallPlan\JksApprovals\Index::getPendingCount($user);
 
         // 3. Mapping Counts (Cached)
         $cacheKey = 'global_mapping_counts_' . $user->id;

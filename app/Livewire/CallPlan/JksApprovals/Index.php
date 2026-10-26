@@ -1112,10 +1112,15 @@ class Index extends Component
 
     protected function applyHierarchyAccess($query, $prefix = '')
     {
-        $user = auth()->user();
+        return static::applyHierarchyAccessQuery($query, $prefix, auth()->user());
+    }
+
+    public static function applyHierarchyAccessQuery($query, $prefix = '', $user = null)
+    {
+        $user = $user ?: auth()->user();
         if (!$user || $user->hasRole(['admin', 'spm'])) return $query;
         
-        $accessLevel = $user->getAccessLevel();
+        $accessLevel = method_exists($user, 'getAccessLevel') ? $user->getAccessLevel() : 'nasional';
         
         if (in_array($accessLevel, ['region', 'area'])) {
             $query->leftJoin('master_distributors as md', $prefix . 'distributor_code', '=', 'md.distributor_code');
@@ -1145,6 +1150,17 @@ class Index extends Component
         }
 
         return $query;
+    }
+
+    public static function getPendingCount($user = null): int
+    {
+        $user = $user ?: auth()->user();
+        if (!$user) return 0;
+
+        $query = DB::table('jks_approvals as ja')->where('ja.status', 'PENDING');
+        $query = static::applyHierarchyAccessQuery($query, 'ja.', $user);
+
+        return $query->count();
     }
 
     public function approveGroup(array $approvalIds)

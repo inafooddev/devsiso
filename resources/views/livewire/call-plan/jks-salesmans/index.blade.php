@@ -15,7 +15,7 @@
 
     <x-ui.tab-menu>
         @php
-            $pendingApprovalsCount = \Illuminate\Support\Facades\DB::table('jks_approvals')->where('status', 'PENDING')->count();
+            $pendingApprovalsCount = \App\Livewire\CallPlan\JksApprovals\Index::getPendingCount();
         @endphp
         <a href="#" class="tab">Dashboard</a>
         <a href="{{ route('call-plan.jks-summary') }}" class="tab">Summary</a>
