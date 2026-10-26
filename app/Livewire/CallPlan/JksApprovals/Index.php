@@ -7,15 +7,19 @@ use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\JksApprovalExport;
+use App\Exports\Concerns\JksApprovalParserTrait;
 
 class Index extends Component
 {
     use WithPagination;
+    use JksApprovalParserTrait;
 
     public $filterStatus = 'PENDING';
     public $search = '';
     public $filterType = '';
     public $filterDistributor = '';
+    public $startDate = null;
+    public $endDate = null;
     
     public $selected = [];
     public $selectAll = false;
@@ -51,6 +55,97 @@ class Index extends Component
     }
     
     public function updatingFilterStatus() {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatingStartDate() {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatingEndDate() {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function setDatePreset(string $preset): void
+    {
+        $this->resetPage();
+        $this->resetSelection();
+        $today = \Carbon\Carbon::today();
+
+        switch ($preset) {
+            case 'today':
+                $this->startDate = $today->format('Y-m-d');
+                $this->endDate = $today->format('Y-m-d');
+                break;
+            case 'yesterday':
+                $yesterday = $today->copy()->subDay()->format('Y-m-d');
+                $this->startDate = $yesterday;
+                $this->endDate = $yesterday;
+                break;
+            case 'this_week':
+                $this->startDate = $today->copy()->startOfWeek()->format('Y-m-d');
+                $this->endDate = $today->format('Y-m-d');
+                break;
+            case 'last_7_days':
+                $this->startDate = $today->copy()->subDays(6)->format('Y-m-d');
+                $this->endDate = $today->format('Y-m-d');
+                break;
+            case 'this_month':
+                $this->startDate = $today->copy()->startOfMonth()->format('Y-m-d');
+                $this->endDate = $today->format('Y-m-d');
+                break;
+            case 'last_30_days':
+                $this->startDate = $today->copy()->subDays(29)->format('Y-m-d');
+                $this->endDate = $today->format('Y-m-d');
+                break;
+            case 'last_month':
+                $lastMonth = $today->copy()->subMonthNoOverflow();
+                $this->startDate = $lastMonth->copy()->startOfMonth()->format('Y-m-d');
+                $this->endDate = $lastMonth->copy()->endOfMonth()->format('Y-m-d');
+                break;
+            case 'clear':
+            case 'all':
+                $this->startDate = null;
+                $this->endDate = null;
+                break;
+        }
+    }
+
+    public function previousMonth(): void
+    {
+        $this->resetPage();
+        $this->resetSelection();
+        $currentStart = !empty($this->startDate) ? \Carbon\Carbon::parse($this->startDate) : \Carbon\Carbon::today();
+        $prevMonth = $currentStart->copy()->subMonthNoOverflow();
+        $this->startDate = $prevMonth->copy()->startOfMonth()->format('Y-m-d');
+        $this->endDate = $prevMonth->copy()->endOfMonth()->format('Y-m-d');
+    }
+
+    public function nextMonth(): void
+    {
+        $this->resetPage();
+        $this->resetSelection();
+        $currentStart = !empty($this->startDate) ? \Carbon\Carbon::parse($this->startDate) : \Carbon\Carbon::today();
+        $nextMonth = $currentStart->copy()->addMonthNoOverflow();
+        $today = \Carbon\Carbon::today();
+
+        $this->startDate = $nextMonth->copy()->startOfMonth()->format('Y-m-d');
+        $end = $nextMonth->copy()->endOfMonth();
+        $this->endDate = $end->gt($today) ? $today->format('Y-m-d') : $end->format('Y-m-d');
+
+        if (\Carbon\Carbon::parse($this->startDate)->gt($today)) {
+            $this->startDate = $today->copy()->startOfMonth()->format('Y-m-d');
+            $this->endDate = $today->format('Y-m-d');
+        }
+    }
+
+    public function resetDateFilter(): void
+    {
+        $this->startDate = null;
+        $this->endDate = null;
         $this->resetPage();
         $this->resetSelection();
     }
@@ -161,11 +256,35 @@ class Index extends Component
         $query = $this->applyHierarchyAccess($query, 'ja.');
 
         if (!empty($this->search)) {
-            $query->where(function($q) {
-                $q->where('ja.reason', 'ilike', '%' . $this->search . '%')
-                  ->orWhere('u.name', 'ilike', '%' . $this->search . '%')
-                  ->orWhere('c.name', 'ilike', '%' . $this->search . '%')
-                  ->orWhere('ja.distributor_code', 'ilike', '%' . $this->search . '%');
+            $searchTerm = trim($this->search);
+
+            $matchingDistributors = DB::table('master_distributors')
+                ->where('distributor_name', 'ilike', '%' . $searchTerm . '%')
+                ->orWhere('branch_name', 'ilike', '%' . $searchTerm . '%')
+                ->pluck('distributor_code')
+                ->toArray();
+
+            $matchingSalesmans = DB::table('salesmans')
+                ->where('salesman_name', 'ilike', '%' . $searchTerm . '%')
+                ->pluck('salesman_code')
+                ->toArray();
+
+            $query->where(function($q) use ($searchTerm, $matchingDistributors, $matchingSalesmans) {
+                $q->where('ja.reason', 'ilike', '%' . $searchTerm . '%')
+                  ->orWhere('ja.payload', 'ilike', '%' . $searchTerm . '%')
+                  ->orWhere('u.name', 'ilike', '%' . $searchTerm . '%')
+                  ->orWhere('c.name', 'ilike', '%' . $searchTerm . '%')
+                  ->orWhere('ja.distributor_code', 'ilike', '%' . $searchTerm . '%');
+
+                if (!empty($matchingDistributors)) {
+                    $q->orWhereIn('ja.distributor_code', $matchingDistributors);
+                }
+
+                if (!empty($matchingSalesmans)) {
+                    foreach ($matchingSalesmans as $scode) {
+                        $q->orWhere('ja.payload', 'ilike', '%' . $scode . '%');
+                    }
+                }
             });
         }
 
@@ -175,6 +294,16 @@ class Index extends Component
 
         if (!empty($this->filterDistributor)) {
             $query->where('ja.distributor_code', $this->filterDistributor);
+        }
+
+        $dateColumn = ($this->filterStatus === 'PENDING') ? 'ja.created_at' : 'ja.updated_at';
+
+        if (!empty($this->startDate)) {
+            $query->where($dateColumn, '>=', $this->startDate . ' 00:00:00');
+        }
+
+        if (!empty($this->endDate)) {
+            $query->where($dateColumn, '<=', $this->endDate . ' 23:59:59');
         }
 
         return $query;
@@ -1018,6 +1147,255 @@ class Index extends Component
         return $query;
     }
 
+    public function approveGroup(array $approvalIds)
+    {
+        if (!auth()->check() || !auth()->user()->hasRole(['admin', 'user', 'spm'])) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Anda tidak memiliki akses untuk menyetujui pengajuan.']);
+            return;
+        }
+
+        $userDistributorCode = auth()->user()->distributor_code ?? null;
+        if ($userDistributorCode) {
+            $unauthorizedCount = DB::table('jks_approvals')
+                ->whereIn('id', $approvalIds)
+                ->where('distributor_code', '!=', $userDistributorCode)
+                ->count();
+            if ($unauthorizedCount > 0) {
+                $this->dispatch('toast', [
+                    'type' => 'error',
+                    'message' => 'Terdapat pengajuan yang bukan milik distributor Anda. Akses ditolak.'
+                ]);
+                return;
+            }
+        }
+
+        // Pre-validasi PRC untuk TAMBAH_JADWAL
+        $tambahJadwalApprovals = DB::table('jks_approvals')
+            ->whereIn('id', $approvalIds)
+            ->where('action_type', 'TAMBAH_JADWAL')
+            ->get();
+        $prcIssues = $this->calculatePrcIssues($tambahJadwalApprovals);
+        if (!empty($prcIssues)) {
+            $this->dispatch('toast', [
+                'type' => 'error',
+                'message' => 'Grup ini memiliki pengajuan TAMBAH JADWAL dengan masalah Kode PRC (kosong/duplikat). Buka rincian dan proses per toko.'
+            ]);
+            return;
+        }
+
+        $successCount = 0;
+        $failCount = 0;
+
+        foreach ($approvalIds as $id) {
+            $result = $this->executeApprovalLogic($id);
+            if (in_array($result, ['success', 'partial_success'])) {
+                $successCount++;
+            } else {
+                $failCount++;
+            }
+        }
+
+        $this->resetSelection();
+
+        if ($failCount > 0) {
+            if ($successCount > 0) {
+                $this->dispatch('toast', ['type' => 'warning', 'message' => "{$successCount} disetujui, {$failCount} gagal dieksekusi."]);
+            } else {
+                $this->dispatch('toast', ['type' => 'error', 'message' => "Gagal mengeksekusi {$failCount} pengajuan."]);
+            }
+        } else {
+            $this->dispatch('toast', ['type' => 'success', 'message' => "Seluruh {$successCount} pengajuan pada grup berhasil disetujui & dieksekusi!"]);
+        }
+    }
+
+    public function confirmRejectGroup(array $approvalIds, $salesmanName = '')
+    {
+        if (empty($approvalIds)) return;
+
+        $this->selected = array_map('strval', $approvalIds);
+        $this->actionIdToReject = null;
+        $this->isBulkReject = true;
+        $this->rejectReason = '';
+        $this->dispatch('open-reject-modal');
+    }
+
+    public function toggleSelectGroup(array $groupApprovalIds)
+    {
+        $strIds = array_map('strval', $groupApprovalIds);
+        $allIn = count(array_intersect($strIds, $this->selected)) === count($strIds);
+        if ($allIn) {
+            $this->selected = array_values(array_diff($this->selected, $strIds));
+        } else {
+            $this->selected = array_values(array_unique(array_merge($this->selected, $strIds)));
+        }
+    }
+
+    public function buildGroupedApprovals($approvals, array $salesmanMap, array $distributorMap, array $prcIssues = []): array
+    {
+        $jksIds = [];
+        foreach ($approvals as $r) {
+            $p = json_decode($r->payload, true) ?: [];
+            if (isset($p['id'])) $jksIds[] = $p['id'];
+            if (isset($p['ids']) && is_array($p['ids'])) {
+                foreach ($p['ids'] as $id) $jksIds[] = $id;
+            }
+        }
+
+        $jksMap = collect();
+        if (!empty($jksIds)) {
+            $jksMap = DB::table('jks_salesmans')
+                ->whereIn('id', array_unique($jksIds))
+                ->get(['id', 'customer_code', 'salesman_code', 'bulan', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'w1', 'w2', 'w3', 'w4'])
+                ->keyBy('id');
+        }
+
+        $grouped = [];
+
+        foreach ($approvals as $row) {
+            $payload = json_decode($row->payload, true) ?: [];
+            $salesman = $this->parseSalesman($row, $payload, $salesmanMap);
+            $distCode = $row->distributor_code ?: '-';
+            $distName = $distributorMap[$distCode] ?? $distCode;
+            $salesmanCode = $salesman['code'] ?: '-';
+            $salesmanName = $salesman['name'] ?: '-';
+
+            $groupKey = $distCode . '_' . $salesmanCode;
+
+            if (!isset($grouped[$groupKey])) {
+                $grouped[$groupKey] = [
+                    'key' => $groupKey,
+                    'distributor_code' => $distCode,
+                    'distributor_name' => $distName,
+                    'salesman_code' => $salesmanCode,
+                    'salesman_name' => $salesmanName,
+                    'total_items' => 0,
+                    'approval_ids' => [],
+                    'action_counts' => [],
+                    'latest_created_at' => $row->created_at,
+                    'oldest_created_at' => $row->created_at,
+                    'has_prc_issues' => false,
+                    'aging' => null,
+                    'items' => [],
+                ];
+            }
+
+            $grouped[$groupKey]['total_items']++;
+            $grouped[$groupKey]['approval_ids'][] = $row->id;
+
+            $actionKey = $row->action_type;
+            $grouped[$groupKey]['action_counts'][$actionKey] = ($grouped[$groupKey]['action_counts'][$actionKey] ?? 0) + 1;
+
+            if ($row->created_at > $grouped[$groupKey]['latest_created_at']) {
+                $grouped[$groupKey]['latest_created_at'] = $row->created_at;
+            }
+            if ($row->created_at < $grouped[$groupKey]['oldest_created_at']) {
+                $grouped[$groupKey]['oldest_created_at'] = $row->created_at;
+            }
+
+            $hasPrc = isset($prcIssues[$row->id]);
+            if ($hasPrc) {
+                $grouped[$groupKey]['has_prc_issues'] = true;
+            }
+
+            $tokoList = $this->parseTokoList($row, $payload, $jksMap);
+            $hariStr = $this->parseHari($payload, $row->reason);
+            $mingguStr = $this->parseMinggu($payload, $row->reason);
+            $cleanReason = $this->parseCleanReason($row, $payload);
+
+            // Ekstraksi Jadwal Lama untuk EDIT_INDIVIDU
+            $oldHari = '-';
+            $oldMinggu = '-';
+            if ($row->action_type === 'EDIT_INDIVIDU' && isset($payload['id']) && isset($jksMap[$payload['id']])) {
+                $oldSchedule = $this->parseScheduleFromRecord($jksMap[$payload['id']]);
+                $oldHari = $oldSchedule['hari'];
+                $oldMinggu = $oldSchedule['minggu'];
+            }
+
+            // Hitung Aging Item
+            $itemCreated = \Carbon\Carbon::parse($row->created_at);
+            $daysAgo = (int) $itemCreated->diffInDays(now());
+            $hoursAgo = (int) $itemCreated->diffInHours(now());
+            if ($daysAgo === 0) {
+                $itemAging = [
+                    'days' => 0,
+                    'label' => $hoursAgo === 0 ? 'Baru saja' : "{$hoursAgo} jam lalu",
+                    'badge_class' => 'badge-info',
+                    'text_class' => 'text-info',
+                ];
+            } elseif ($daysAgo <= 2) {
+                $itemAging = [
+                    'days' => $daysAgo,
+                    'label' => "{$daysAgo} hari lalu",
+                    'badge_class' => 'badge-warning',
+                    'text_class' => 'text-warning font-semibold',
+                ];
+            } else {
+                $itemAging = [
+                    'days' => $daysAgo,
+                    'label' => "Mengendap {$daysAgo} hari",
+                    'badge_class' => 'badge-error',
+                    'text_class' => 'text-error font-bold',
+                ];
+            }
+
+            $primaryTokoName = !empty($tokoList) ? ($tokoList[0]['name'] ?? '-') : '-';
+            $primaryTokoCode = !empty($tokoList) ? ($tokoList[0]['code'] ?? '-') : '-';
+
+            $grouped[$groupKey]['items'][] = [
+                'approval_id' => $row->id,
+                'action_type' => $row->action_type,
+                'delete_type' => $row->delete_type ?? 'SOFT',
+                'customer_code' => $primaryTokoCode,
+                'customer_name' => $primaryTokoName,
+                'all_tokos' => $tokoList,
+                'hari' => $hariStr,
+                'minggu' => $mingguStr,
+                'old_hari' => $oldHari,
+                'old_minggu' => $oldMinggu,
+                'reason' => $row->reason,
+                'clean_reason' => $cleanReason,
+                'maker_name' => $row->maker_name ?? '-',
+                'checker_name' => $row->checker_name ?? '-',
+                'created_at' => $row->created_at,
+                'updated_at' => $row->updated_at,
+                'aging' => $itemAging,
+                'reject_reason' => $row->reject_reason ?? null,
+                'has_prc_issue' => $hasPrc,
+                'payload' => $payload,
+                'raw_approval' => $row,
+            ];
+        }
+
+        // Kalkulasi Aging di Level Grup (berdasarkan tiket terlama yang mengendap)
+        foreach ($grouped as &$g) {
+            $oldestCreated = \Carbon\Carbon::parse($g['oldest_created_at']);
+            $gDays = (int) $oldestCreated->diffInDays(now());
+            $gHours = (int) $oldestCreated->diffInHours(now());
+            if ($gDays === 0) {
+                $g['aging'] = [
+                    'days' => 0,
+                    'label' => $gHours === 0 ? 'Hari ini' : "{$gHours} jam lalu",
+                    'badge_class' => 'badge-info',
+                ];
+            } elseif ($gDays <= 2) {
+                $g['aging'] = [
+                    'days' => $gDays,
+                    'label' => "{$gDays} hari lalu",
+                    'badge_class' => 'badge-warning',
+                ];
+            } else {
+                $g['aging'] = [
+                    'days' => $gDays,
+                    'label' => "Mengendap {$gDays} hari",
+                    'badge_class' => 'badge-error',
+                ];
+            }
+        }
+        unset($g);
+
+        return $grouped;
+    }
+
     public function render()
     {
         $approvals = $this->getApprovalsQuery()
@@ -1042,8 +1420,22 @@ class Index extends Component
             $prcIssues = $this->calculatePrcIssues($tambahJadwalApprovals);
         }
 
+        // Preload lookup maps for grouped approvals
+        $distributorCodes = collect($approvals->items())->pluck('distributor_code')->unique()->filter()->values()->toArray();
+        $distributorMap = DB::table('master_distributors')
+            ->whereIn('distributor_code', $distributorCodes)
+            ->pluck('distributor_name', 'distributor_code')
+            ->toArray();
+
+        $salesmanMap = DB::table('salesmans')
+            ->pluck('salesman_name', 'salesman_code')
+            ->toArray();
+
+        $groupedApprovals = $this->buildGroupedApprovals($approvals->items(), $salesmanMap, $distributorMap, $prcIssues);
+
         return view('livewire.call-plan.jks-approvals.index', [
             'approvals' => $approvals,
+            'groupedApprovals' => $groupedApprovals,
             'kpi' => $kpi,
             'actionTypes' => $actionTypes,
             'distributorOptions' => $distributorOptions,

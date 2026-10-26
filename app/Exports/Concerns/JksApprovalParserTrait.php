@@ -234,4 +234,47 @@ trait JksApprovalParserTrait
 
         return [];
     }
+
+    public function parseCleanReason($row, array $payload): string
+    {
+        if (!empty($payload['update']['reason'])) {
+            return trim($payload['update']['reason']);
+        }
+        if (!empty($payload['reason'])) {
+            return trim($payload['reason']);
+        }
+        if (!empty($row->reason)) {
+            if (preg_match('/Alasan:\s*(.+)$/i', $row->reason, $m)) {
+                return trim($m[1]);
+            }
+            return trim($row->reason);
+        }
+        return '-';
+    }
+
+    public function parseScheduleFromRecord($record): array
+    {
+        if (!$record) {
+            return ['hari' => '-', 'minggu' => '-'];
+        }
+
+        $days = [];
+        foreach ($this->hariMap as $k => $name) {
+            if (($record->$k ?? '') === 'Y') {
+                $days[] = $name;
+            }
+        }
+
+        $weeks = [];
+        foreach ($this->weekMap as $k => $name) {
+            if (($record->$k ?? '') === 'Y') {
+                $weeks[] = $name;
+            }
+        }
+
+        return [
+            'hari' => !empty($days) ? implode(', ', $days) : '-',
+            'minggu' => !empty($weeks) ? implode(', ', $weeks) : '-',
+        ];
+    }
 }
