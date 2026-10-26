@@ -1,6 +1,6 @@
 <div class="flex-1 overflow-auto bg-base-100 w-full relative">
     <table class="table table-sm table-zebra w-full whitespace-nowrap relative">
-        <thead class="sticky top-0 z-20 text-[11px] uppercase tracking-wider bg-base-300 text-base-content/80 shadow-sm border-b border-base-300 outline outline-1 outline-base-300">
+        <thead class="sticky top-0 z-20 text-xs uppercase tracking-wider bg-base-300 text-base-content/80 shadow-sm border-b border-base-300 outline outline-1 outline-base-300 font-semibold">
             <tr class="[&>th]:bg-base-300">
                 <th class="w-12 text-center" rowspan="2">No</th>
                 <th rowspan="2">Sales</th>
@@ -13,33 +13,33 @@
                 <th class="text-center w-20" rowspan="2">Aksi</th>
             </tr>
             <tr>
-                <th class="text-center text-[10px] px-1 border-r border-primary !bg-primary text-primary-content">Sen</th>
-                <th class="text-center text-[10px] px-1 border-r border-primary !bg-primary text-primary-content">Sel</th>
-                <th class="text-center text-[10px] px-1 border-r border-primary !bg-primary text-primary-content">Rab</th>
-                <th class="text-center text-[10px] px-1 border-r border-primary !bg-primary text-primary-content">Kam</th>
-                <th class="text-center text-[10px] px-1 border-r border-primary !bg-primary text-primary-content">Jum</th>
-                <th class="text-center text-[10px] px-1 border-r border-primary !bg-primary text-primary-content">Sab</th>
-                <th class="text-center text-[10px] px-1 !bg-primary text-primary-content">Min</th>
+                <th class="text-center text-xs font-semibold px-1 border-r border-primary !bg-primary text-primary-content">Sen</th>
+                <th class="text-center text-xs font-semibold px-1 border-r border-primary !bg-primary text-primary-content">Sel</th>
+                <th class="text-center text-xs font-semibold px-1 border-r border-primary !bg-primary text-primary-content">Rab</th>
+                <th class="text-center text-xs font-semibold px-1 border-r border-primary !bg-primary text-primary-content">Kam</th>
+                <th class="text-center text-xs font-semibold px-1 border-r border-primary !bg-primary text-primary-content">Jum</th>
+                <th class="text-center text-xs font-semibold px-1 border-r border-primary !bg-primary text-primary-content">Sab</th>
+                <th class="text-center text-xs font-semibold px-1 !bg-primary text-primary-content">Min</th>
                 
-                <th class="text-center text-[10px] px-1 border-r border-neutral border-l-2 !bg-neutral text-neutral-content">
+                <th class="text-center text-xs font-semibold px-1 border-r border-neutral border-l-2 !bg-neutral text-neutral-content">
                     <button wire:click="openCalendarModal(1)" class="flex items-center justify-center gap-1 w-full hover:text-primary-focus transition-colors cursor-pointer group">
                         <span>M1</span>
                         <x-heroicon-o-calendar-days class="w-3 h-3 text-neutral-content/70 group-hover:text-neutral-content transition-colors" />
                     </button>
                 </th>
-                <th class="text-center text-[10px] px-1 border-r border-neutral !bg-neutral text-neutral-content">
+                <th class="text-center text-xs font-semibold px-1 border-r border-neutral !bg-neutral text-neutral-content">
                     <button wire:click="openCalendarModal(2)" class="flex items-center justify-center gap-1 w-full hover:text-primary-focus transition-colors cursor-pointer group">
                         <span>M2</span>
                         <x-heroicon-o-calendar-days class="w-3 h-3 text-neutral-content/70 group-hover:text-neutral-content transition-colors" />
                     </button>
                 </th>
-                <th class="text-center text-[10px] px-1 border-r border-neutral !bg-neutral text-neutral-content">
+                <th class="text-center text-xs font-semibold px-1 border-r border-neutral !bg-neutral text-neutral-content">
                     <button wire:click="openCalendarModal(3)" class="flex items-center justify-center gap-1 w-full hover:text-primary-focus transition-colors cursor-pointer group">
                         <span>M3</span>
                         <x-heroicon-o-calendar-days class="w-3 h-3 text-neutral-content/70 group-hover:text-neutral-content transition-colors" />
                     </button>
                 </th>
-                <th class="text-center text-[10px] px-1 !bg-neutral text-neutral-content">
+                <th class="text-center text-xs font-semibold px-1 !bg-neutral text-neutral-content">
                     <button wire:click="openCalendarModal(4)" class="flex items-center justify-center gap-1 w-full hover:text-primary-focus transition-colors cursor-pointer group">
                         <span>M4</span>
                         <x-heroicon-o-calendar-days class="w-3 h-3 text-neutral-content/70 group-hover:text-neutral-content transition-colors" />
@@ -66,32 +66,32 @@
                     
                     <td>
                         <div class="font-bold truncate max-w-[140px]" title="{{ $row->salesman_name }}">{{ $row->salesman_name }}</div>
-                        <div class="text-[9px] text-base-content/50">{{ $row->salesman_code }}</div>
+                        <div class="text-xs font-mono text-base-content/60 leading-tight">{{ $row->salesman_code }}</div>
                     </td>
                     <td>
-                        <div class="font-bold">{{ $row->uniq_kode }}</div>
-                        <div class="text-[9px] text-base-content/50">{{ $row->customer_code }}</div>
+                        <div class="font-bold font-mono">{{ $row->uniq_kode }}</div>
+                        <div class="text-xs font-mono text-base-content/60 leading-tight">{{ $row->customer_code }}</div>
                     </td>
                     <td>
                         <div class="flex items-center">
-                            @if(in_array($row->customer_code, $collidingCustomerCodes))
+                            @if(in_array($row->uniq_kode, $collidingCustomerCodes))
                                 <div class="font-bold truncate max-w-[170px] text-error" title="{{ $row->customer_name ?? '-' }}">{{ $row->customer_name ?? '-' }}</div>
-                                <button type="button" wire:click="showCollisionDetails('{{ $row->customer_code }}', '{{ addslashes($row->customer_name ?? '') }}')" class="btn btn-xs btn-circle btn-error btn-outline border-none ml-1 shadow-sm" title="Toko ini bentrok dengan Salesman lain!">
+                                <button type="button" wire:click="showCollisionDetails('{{ $row->uniq_kode }}', '{{ addslashes($row->customer_name ?? '') }}')" class="btn btn-xs btn-circle btn-error btn-outline border-none ml-1 shadow-sm" title="Toko ini bentrok dengan Salesman lain!">
                                     <x-heroicon-s-exclamation-triangle class="w-4 h-4 animate-pulse" />
                                 </button>
                             @else
                                 <div class="font-bold truncate max-w-[200px]" title="{{ $row->customer_name ?? '-' }}">{{ $row->customer_name ?? '-' }}</div>
                             @endif
                         </div>
-                        <div class="text-[9px] text-base-content/50 truncate max-w-[200px]" title="{{ $row->customer_address }}">{{ $row->customer_address }}</div>
+                        <div class="text-xs text-base-content/60 truncate max-w-[200px] leading-tight" title="{{ $row->customer_address }}">{{ $row->customer_address }}</div>
                     </td>
                     <td>
                         <div class="font-semibold truncate max-w-[120px]" title="{{ $row->kecamatan ?? '-' }}">{{ $row->kecamatan ?? '-' }}</div>
-                        <div class="text-[9px] text-base-content/50 truncate max-w-[120px]" title="{{ $row->desa ?? '-' }}">{{ $row->desa ?? '-' }}</div>
+                        <div class="text-xs text-base-content/60 truncate max-w-[120px] leading-tight" title="{{ $row->desa ?? '-' }}">{{ $row->desa ?? '-' }}</div>
                     </td>
                     <td>
                         <div class="font-semibold truncate max-w-[100px]" title="{{ $row->pilar ?? '-' }}">{{ $row->pilar ?? '-' }}</div>
-                        <div class="text-[9px] text-base-content/50 max-w-[100px] font-medium" title="{{ $row->target ?? '-' }}">{{ is_numeric($row->target) ? number_format($row->target, 0, ',', '.') : ($row->target ?? '-') }}</div>
+                        <div class="text-xs text-base-content/60 max-w-[100px] font-medium leading-tight" title="{{ $row->target ?? '-' }}">{{ is_numeric($row->target) ? number_format($row->target, 0, ',', '.') : ($row->target ?? '-') }}</div>
                     </td>
                     {{-- Hari --}}
                     <td class="text-center px-1 border-l-2 border-base-300 bg-base-100/50">@if($row->h1 === 'Y') <x-heroicon-s-check-circle class="w-4 h-4 text-success mx-auto"/> @endif</td>
@@ -125,8 +125,14 @@
                     <tr>
                         <td colspan="19" class="text-center py-8">
                             <div class="text-base-content/50">
-                                <x-heroicon-o-inbox class="w-10 h-10 mx-auto mb-2 opacity-30"/>
-                                <p class="font-medium">Tidak ada data jadwal ditemukan pada distributor ini</p>
+                                @if($onlyDobelCover)
+                                    <x-heroicon-o-check-badge class="w-10 h-10 mx-auto mb-2 text-success opacity-80"/>
+                                    <p class="font-bold text-success">Aman! Tidak Ditemukan Toko Dobel Cover</p>
+                                    <p class="text-xs text-base-content/60 mt-1">Seluruh toko pada filter ini tidak ada yang bentrok jadwal antar-Salesman.</p>
+                                @else
+                                    <x-heroicon-o-inbox class="w-10 h-10 mx-auto mb-2 opacity-30"/>
+                                    <p class="font-medium">Tidak ada data jadwal ditemukan pada distributor ini</p>
+                                @endif
                             </div>
                         </td>
                     </tr>

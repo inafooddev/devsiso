@@ -1,5 +1,6 @@
-<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full"
+<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-2.5 md:gap-3 w-full h-full"
      x-data="{ 
+        showKpiSummary: false,
         toasts: [], 
         addToast(toast) {
             const id = Date.now();
@@ -48,13 +49,13 @@
         <x-ui.modal id="modal-calendar" title="Kalender Minggu M{{ $selectedWeekForCalendar }}" icon="calendar-days" size="sm" open="true" wire:close="closeCalendarModal" position="top">
             <div class="px-2 pb-2">
                 <div class="grid grid-cols-7 gap-1 text-center mb-2">
-                    <div class="text-[10px] font-bold text-base-content/50 uppercase text-error">Min</div>
-                    <div class="text-[10px] font-bold text-base-content/50 uppercase">Sen</div>
-                    <div class="text-[10px] font-bold text-base-content/50 uppercase">Sel</div>
-                    <div class="text-[10px] font-bold text-base-content/50 uppercase">Rab</div>
-                    <div class="text-[10px] font-bold text-base-content/50 uppercase">Kam</div>
-                    <div class="text-[10px] font-bold text-base-content/50 uppercase">Jum</div>
-                    <div class="text-[10px] font-bold text-base-content/50 uppercase">Sab</div>
+                    <div class="text-xs font-bold text-base-content/50 uppercase text-error">Min</div>
+                    <div class="text-xs font-bold text-base-content/50 uppercase">Sen</div>
+                    <div class="text-xs font-bold text-base-content/50 uppercase">Sel</div>
+                    <div class="text-xs font-bold text-base-content/50 uppercase">Rab</div>
+                    <div class="text-xs font-bold text-base-content/50 uppercase">Kam</div>
+                    <div class="text-xs font-bold text-base-content/50 uppercase">Jum</div>
+                    <div class="text-xs font-bold text-base-content/50 uppercase">Sab</div>
                 </div>
 
                 <div class="grid grid-cols-7 gap-1 text-center text-sm">
@@ -74,7 +75,7 @@
                                 $isHoliday = $day->libur_nasional || $day->day_number == 7;
                             @endphp
                             <div class="p-2 rounded-lg border {{ $isHighlighted ? 'bg-primary text-primary-content border-primary shadow-md shadow-primary/20 scale-105 z-10' : 'bg-base-100 border-base-200 text-base-content' }} {{ !$isHighlighted && $isHoliday ? '!text-error font-semibold bg-error/5' : '' }} flex flex-col items-center justify-center relative transition-all duration-300 min-h-[44px]">
-                                <span class="absolute top-0.5 left-1 text-[7px] font-bold {{ $isHighlighted ? 'text-primary-content/80' : 'text-base-content/40' }} tracking-tighter">M{{ $day->week_month }}</span>
+                                <span class="absolute top-0.5 left-1 text-xs scale-75 origin-top-left font-bold {{ $isHighlighted ? 'text-primary-content/80' : 'text-base-content/40' }} tracking-tighter">M{{ $day->week_month }}</span>
                                 <span class="{{ $isHighlighted ? 'font-black' : 'font-medium' }} mt-1">{{ \Carbon\Carbon::parse($day->date)->format('j') }}</span>
                             </div>
                         @endforeach
@@ -276,7 +277,7 @@
                         {{-- Form Row 2 --}}
                         <div class="flex items-center gap-4 bg-base-200/30 p-3 rounded-lg border border-base-200">
                             <div class="flex-1">
-                                <label class="text-[10px] text-base-content/50 font-bold uppercase block mb-1">Hari Asal</label>
+                                <label class="text-xs text-base-content/60 font-semibold uppercase block mb-1">Hari Asal</label>
                                 <select wire:model.live="swapHariAsal" class="select select-bordered select-sm w-full bg-base-100">
                                     <option value="">- Pilih Hari -</option>
                                     @foreach(['h1'=>'Senin', 'h2'=>'Selasa', 'h3'=>'Rabu', 'h4'=>'Kamis', 'h5'=>'Jumat', 'h6'=>'Sabtu', 'h7'=>'Minggu'] as $val => $label)
@@ -288,7 +289,7 @@
                                 <x-heroicon-o-arrow-right class="w-5 h-5" />
                             </div>
                             <div class="flex-1">
-                                <label class="text-[10px] text-base-content/50 font-bold uppercase block mb-1">Hari Tujuan</label>
+                                <label class="text-xs text-base-content/60 font-semibold uppercase block mb-1">Hari Tujuan</label>
                                 <select wire:model.live="swapHariTujuan" class="select select-bordered select-sm w-full bg-base-100">
                                     <option value="">- Pilih Hari -</option>
                                     @foreach(['h1'=>'Senin', 'h2'=>'Selasa', 'h3'=>'Rabu', 'h4'=>'Kamis', 'h5'=>'Jumat', 'h6'=>'Sabtu', 'h7'=>'Minggu'] as $val => $label)
@@ -312,7 +313,7 @@
                                     </div>
                                 @endforeach
                             </div>
-                            <div class="text-[10px] text-base-content/50 mt-1">*Jika mencentang sebagian, sistem akan otomatis melakukan Row Splitting secara aman.</div>
+                            <div class="text-xs text-base-content/50 mt-1">*Jika mencentang sebagian, sistem akan otomatis melakukan Row Splitting secara aman.</div>
                         </div>
 
                         {{-- Live Preview Section --}}
@@ -326,7 +327,7 @@
                                 @if($this->affectedStores->count() > 0)
                                     <div class="overflow-x-auto max-h-[250px] border border-base-200 rounded-lg shadow-inner bg-base-100">
                                         <table class="table table-xs table-pin-rows table-pin-cols">
-                                            <thead class="bg-base-200/80 text-base-content/70">
+                                             <thead class="bg-base-200/80 text-base-content/70">
                                                 <tr>
                                                     <th>No</th>
                                                     <th>Kode Toko</th>
@@ -342,15 +343,15 @@
                                                         <td class="truncate max-w-[150px]" title="{{ $s->customer_name }}">{{ $s->customer_name ?? '-' }}</td>
                                                         <td class="text-center">
                                                             @if($s->asal === 'Y' && $s->tujuan !== 'Y')
-                                                                <span class="badge badge-outline badge-info text-[9px] gap-1 px-1.5 py-2">
+                                                                <span class="badge badge-outline badge-info badge-xs gap-1 px-1.5 py-2">
                                                                     {{ str_replace('h', 'Hari ', $swapHariAsal) }} <x-heroicon-s-arrow-right class="w-3 h-3" /> {{ str_replace('h', 'Hari ', $swapHariTujuan) }}
                                                                 </span>
                                                             @elseif($s->tujuan === 'Y' && $s->asal !== 'Y')
-                                                                <span class="badge badge-outline badge-info text-[9px] gap-1 px-1.5 py-2">
+                                                                <span class="badge badge-outline badge-info badge-xs gap-1 px-1.5 py-2">
                                                                     {{ str_replace('h', 'Hari ', $swapHariTujuan) }} <x-heroicon-s-arrow-right class="w-3 h-3" /> {{ str_replace('h', 'Hari ', $swapHariAsal) }}
                                                                 </span>
                                                             @else
-                                                                <span class="badge badge-outline badge-ghost text-[9px]">Bertukar Penuh</span>
+                                                                <span class="badge badge-outline badge-ghost badge-xs">Bertukar Penuh</span>
                                                             @endif
                                                         </td>
                                                     </tr>
@@ -387,7 +388,7 @@
                         {{-- Form Row 2 --}}
                         <div class="flex items-center gap-4 bg-base-200/30 p-3 rounded-lg border border-base-200">
                             <div class="flex-1">
-                                <label class="text-[10px] text-base-content/50 font-bold uppercase block mb-1">Minggu Asal</label>
+                                <label class="text-xs text-base-content/60 font-semibold uppercase block mb-1">Minggu Asal</label>
                                 <select wire:model.live="swapMingguAsal" class="select select-bordered select-sm w-full bg-base-100">
                                     <option value="">- Pilih Minggu -</option>
                                     @foreach(['w1'=>'Minggu 1 (M1)', 'w2'=>'Minggu 2 (M2)', 'w3'=>'Minggu 3 (M3)', 'w4'=>'Minggu 4 (M4)'] as $val => $label)
@@ -399,7 +400,7 @@
                                 <x-heroicon-o-arrow-right class="w-5 h-5" />
                             </div>
                             <div class="flex-1">
-                                <label class="text-[10px] text-base-content/50 font-bold uppercase block mb-1">Minggu Tujuan</label>
+                                <label class="text-xs text-base-content/60 font-semibold uppercase block mb-1">Minggu Tujuan</label>
                                 <select wire:model.live="swapMingguTujuan" class="select select-bordered select-sm w-full bg-base-100">
                                     <option value="">- Pilih Minggu -</option>
                                     @foreach(['w1'=>'Minggu 1 (M1)', 'w2'=>'Minggu 2 (M2)', 'w3'=>'Minggu 3 (M3)', 'w4'=>'Minggu 4 (M4)'] as $val => $label)
@@ -459,7 +460,7 @@
                         {{-- Form Row --}}
                         <div class="flex items-center gap-4 bg-base-200/30 p-3 rounded-lg border border-base-200">
                             <div class="flex-1">
-                                <label class="text-[10px] text-base-content/50 font-bold uppercase block mb-1">Salesman Asal</label>
+                                <label class="text-xs text-base-content/60 font-semibold uppercase block mb-1">Salesman Asal</label>
                                 <select wire:model.live="swapSalesmanAsal" class="select select-bordered select-sm w-full bg-base-100">
                                     <option value="">- Pilih Salesman Asal -</option>
                                     @foreach($this->headerSalesmans as $salesman)
@@ -471,7 +472,7 @@
                                 <x-heroicon-s-arrows-right-left class="w-5 h-5" />
                             </div>
                             <div class="flex-1">
-                                <label class="text-[10px] text-base-content/50 font-bold uppercase block mb-1">Salesman Tujuan</label>
+                                <label class="text-xs text-base-content/60 font-semibold uppercase block mb-1">Salesman Tujuan</label>
                                 <select wire:model.live="swapSalesmanTujuan" class="select select-bordered select-sm w-full bg-base-100">
                                     <option value="">- Pilih Salesman Tujuan -</option>
                                     @foreach($this->headerSalesmans as $salesman)
@@ -494,7 +495,7 @@
                                                 {{ $this->affectedSalesmanSummary['asal']['name'] }}
                                             </h5>
                                             <div class="text-3xl font-black">{{ $this->affectedSalesmanSummary['asal']['count'] }}</div>
-                                            <p class="text-[10px] mt-1 text-base-content/40">Toko</p>
+                                            <p class="text-xs mt-1 text-base-content/50 font-medium">Toko</p>
                                         </div>
                                         <div class="flex-1 bg-base-100 border border-base-200 rounded-lg p-4 shadow-sm text-center">
                                             <p class="text-xs font-bold text-base-content/50 uppercase mb-1">Toko Milik</p>
@@ -502,7 +503,7 @@
                                                 {{ $this->affectedSalesmanSummary['tujuan']['name'] }}
                                             </h5>
                                             <div class="text-3xl font-black">{{ $this->affectedSalesmanSummary['tujuan']['count'] }}</div>
-                                            <p class="text-[10px] mt-1 text-base-content/40">Toko</p>
+                                            <p class="text-xs mt-1 text-base-content/50 font-medium">Toko</p>
                                         </div>
                                     </div>
                                     <div class="mt-4 flex items-start gap-2 text-info bg-info/10 p-2 rounded border border-info/20">
@@ -604,7 +605,7 @@
                     @if($this->bdPreviewStores->count() > 0)
                         <div class="overflow-x-auto max-h-[300px] border border-base-200 rounded-lg shadow-inner bg-base-100 relative">
                             <table class="table table-xs w-full whitespace-nowrap border-separate border-spacing-0">
-                                <thead class="bg-base-200/80 sticky top-0 z-40 border-b border-base-300 shadow-sm text-[10px] uppercase tracking-wider text-base-content/80">
+                                <thead class="bg-base-200/80 sticky top-0 z-40 border-b border-base-300 shadow-sm text-xs uppercase tracking-wider text-base-content/80 font-semibold">
                                     <tr>
                                         <th class="sticky left-0 z-50 bg-base-300 w-10 text-center border-b-2 border-r border-base-100">
                                             <input type="checkbox" wire:model.live="bdSelectAll" class="checkbox checkbox-error checkbox-xs" />
@@ -817,11 +818,11 @@
 
     {{-- Collision Detection Modal --}}
     @if($showCollisionModal)
-        <x-ui.modal id="collision_modal" title="Detail Bentrok Jadwal" size="xl" open="true" wire:close="closeCollisionModal" icon="exclamation-triangle" iconClass="text-error" position="top">
+        <x-ui.modal id="collision_modal" title="Detail Bentrok Jadwal (Dobel Cover)" size="5xl" open="true" wire:close="closeCollisionModal" icon="exclamation-triangle" iconClass="text-error" position="top">
             <div class="p-6">
-                <div class="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-error/10 border border-error/20 rounded-lg shadow-sm gap-4">
+                <div class="mb-4 flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-error/10 border border-error/20 rounded-lg shadow-sm gap-4">
                     <div>
-                        <h4 class="font-bold text-error text-lg mb-1">Toko: {{ $collisionCustomerName }}</h4>
+                        <h4 class="font-bold text-error text-lg mb-0.5">Toko: {{ $collisionCustomerName }}</h4>
                         <p class="text-sm text-base-content/70">Terdeteksi kunjungan tumpang tindih oleh beberapa Salesman di bulan yang sama.</p>
                     </div>
                     <div class="bg-base-100 p-2 rounded-md border border-base-200 hidden md:block">
@@ -830,60 +831,74 @@
                 </div>
 
                 <div class="overflow-x-auto rounded-lg border border-base-200 shadow-sm bg-base-100">
-                    <table class="table table-sm w-full">
-                        <thead class="bg-base-200/50 text-base-content/70 uppercase text-[10px] tracking-wider">
+                    <table class="table table-md w-full">
+                        <thead class="bg-base-200/50 text-base-content/70 uppercase text-xs tracking-wider font-semibold">
                             <tr>
                                 <th>Salesman</th>
                                 <th class="text-center">Hari Kunjungan</th>
                                 <th class="text-center">Minggu Kunjungan</th>
+                                <th class="text-center w-40 whitespace-nowrap">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($collisionDetails as $detail)
                                 <tr class="hover:bg-base-200/30">
                                     <td class="font-medium whitespace-nowrap">
-                                        <div class="flex items-center gap-2">
+                                        <div class="flex items-center gap-2.5">
                                             <div class="avatar placeholder">
-                                              <div class="bg-neutral text-neutral-content w-8 rounded-full">
-                                                <span class="text-xs">{{ substr($detail['salesman_name'] ?? 'X', 0, 1) }}</span>
+                                              <div class="bg-neutral text-neutral-content w-9 rounded-full">
+                                                <span class="text-xs font-bold">{{ substr($detail['salesman_name'] ?? 'X', 0, 1) }}</span>
                                               </div>
                                             </div>
                                             <div>
-                                                <div>{{ $detail['salesman_name'] ?? '-' }}</div>
-                                                <div class="text-[10px] text-base-content/50">{{ $detail['salesman_code'] }}</div>
+                                                <div class="font-bold text-sm">{{ $detail['salesman_name'] ?? '-' }}</div>
+                                                <div class="text-xs font-mono text-base-content/60">{{ $detail['salesman_code'] }}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
-                                        <div class="flex gap-1 justify-center">
+                                    <td class="text-center">
+                                        <div class="flex gap-1 justify-center flex-wrap">
                                             @foreach(['h1'=>'Sen','h2'=>'Sel','h3'=>'Rab','h4'=>'Kam','h5'=>'Jum','h6'=>'Sab','h7'=>'Min'] as $col => $lbl)
-                                                @if($detail[$col] === 'Y') 
-                                                    <span class="badge badge-sm badge-success badge-outline font-semibold">{{ $lbl }}</span> 
+                                                @if(($detail[$col] ?? '') === 'Y') 
+                                                    <span class="badge badge-sm badge-success font-semibold">{{ $lbl }}</span> 
                                                 @endif
                                             @endforeach
                                         </div>
                                     </td>
-                                    <td>
-                                        <div class="flex gap-1 justify-center">
+                                    <td class="text-center">
+                                        <div class="flex gap-1 justify-center flex-wrap">
                                             @foreach(['w1'=>'M1','w2'=>'M2','w3'=>'M3','w4'=>'M4'] as $col => $lbl)
-                                                @if($detail[$col] === 'Y') 
-                                                    <span class="badge badge-sm badge-primary badge-outline font-semibold">{{ $lbl }}</span> 
+                                                @if(($detail[$col] ?? '') === 'Y') 
+                                                    <span class="badge badge-sm badge-primary font-semibold">{{ $lbl }}</span> 
                                                 @endif
                                             @endforeach
+                                        </div>
+                                    </td>
+                                    <td class="text-center whitespace-nowrap">
+                                        <div class="flex items-center justify-center">
+                                            @canDelete('call-plan.jks-salesmans')
+                                                <button type="button" 
+                                                        wire:click="confirmDeleteFromCollision({{ $detail['id'] }})" 
+                                                        class="btn btn-xs btn-error btn-outline hover:text-white inline-flex items-center flex-nowrap whitespace-nowrap gap-1.5 px-3 h-7 min-h-[1.75rem] font-medium shadow-xs" 
+                                                        title="Hapus Jadwal Salesman Ini">
+                                                    <x-heroicon-s-trash class="w-3.5 h-3.5 shrink-0" />
+                                                    <span>Hapus Jadwal</span>
+                                                </button>
+                                            @endcanDelete
                                         </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="3" class="text-center py-4 text-base-content/50 text-sm">Data tidak ditemukan.</td>
+                                    <td colspan="4" class="text-center py-6 text-base-content/50 text-sm">Data tidak ditemukan.</td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
-                <div class="mt-4 text-xs text-base-content/50 bg-base-200 p-3 rounded-md flex items-start gap-2">
-                    <x-heroicon-o-information-circle class="w-4 h-4 shrink-0 mt-0.5" />
-                    <p>Satu toko idealnya hanya dipegang oleh satu salesman dalam bulan yang sama. Silakan gunakan fitur <strong>Hapus Massal</strong> atau <strong>Tukar Jadwal</strong> pada halaman utama untuk menyelesaikan bentrok ini.</p>
+                <div class="mt-4 text-xs text-base-content/70 bg-base-200/60 p-3 rounded-lg flex items-center gap-2 border border-base-300/50">
+                    <x-heroicon-o-information-circle class="w-4 h-4 text-info shrink-0" />
+                    <span>Klik tombol <strong>Hapus Jadwal</strong> pada salah satu salesman di atas untuk menghapus jadwalnya agar toko tidak lagi dobel cover.</span>
                 </div>
             </div>
 

@@ -95,13 +95,26 @@ class JksSalesmanService
             ->when(!empty($filters['bulan']), function ($q) use ($filters) {
                 return $q->where('js.bulan', 'like', $filters['bulan'] . '%');
             })
+            ->when(!empty($filters['dobel_cover']), function ($q) use ($filters) {
+                return $q->whereIn('js.customer_code', function ($sub) use ($filters) {
+                    $sub->select('customer_code')
+                        ->from('jks_salesmans')
+                        ->when(!empty($filters['bulan']), function ($sq) use ($filters) {
+                            return $sq->where('bulan', 'like', $filters['bulan'] . '%');
+                        })
+                        ->when(!empty($filters['distributor']), function ($sq) use ($filters) {
+                            return $sq->where('distributor_code', $filters['distributor']);
+                        })
+                        ->groupBy('customer_code')
+                        ->havingRaw('COUNT(DISTINCT salesman_code) > 1');
+                });
+            })
             ->where('s.is_active', true)
             ->when(empty($search) && !empty($filters['hari']), function ($q) use ($filters) {
                 $hari = $filters['hari'];
                 if ($hari === 'non_rute') {
-                    // Non Rute: h1-h6 semua bukan Y (termasuk yang hanya h7 atau kosong)
-                    // DAN tidak ada minggu yang terisi
-                    return $q->where(function ($queryBuilder) {
+                    // Non Rute: h1-h6 semua bukan Y, atau w1-w4 semua bukan Y, atau h7 adalah Y, atau dobel cover
+                    return $q->where(function ($queryBuilder) use ($filters) {
                         $queryBuilder->where(function ($sub) {
                             // Tidak ada hari Senin-Sabtu
                             $sub->where(fn($q) => $q->whereNull('js.h1')->orWhere('js.h1', '!=', 'Y'))
@@ -116,6 +129,18 @@ class JksSalesmanService
                                 ->where(fn($q) => $q->whereNull('js.w2')->orWhere('js.w2', '!=', 'Y'))
                                 ->where(fn($q) => $q->whereNull('js.w3')->orWhere('js.w3', '!=', 'Y'))
                                 ->where(fn($q) => $q->whereNull('js.w4')->orWhere('js.w4', '!=', 'Y'));
+                        })->orWhere('js.h7', 'Y')
+                        ->orWhereIn('js.customer_code', function ($sub) use ($filters) {
+                            $sub->select('customer_code')
+                                ->from('jks_salesmans')
+                                ->when(!empty($filters['bulan']), function ($sq) use ($filters) {
+                                    $sq->where('bulan', 'like', $filters['bulan'] . '%');
+                                })
+                                ->when(!empty($filters['distributor']), function ($sq) use ($filters) {
+                                    $sq->where('distributor_code', $filters['distributor']);
+                                })
+                                ->groupBy('customer_code')
+                                ->havingRaw('COUNT(DISTINCT salesman_code) > 1');
                         });
                     });
                 }
@@ -123,26 +148,37 @@ class JksSalesmanService
             })
             ->when(empty($search) && !empty($filters['minggu']), function ($q) use ($filters) {
                 $minggu = $filters['minggu'];
-                return $q->where(function ($sub) use ($minggu) {
+                return $q->where(function ($sub) use ($minggu, $filters) {
                     if ($minggu === 'ganjil') {
                         $sub->where('js.w1', 'Y')->orWhere('js.w3', 'Y');
                     } elseif ($minggu === 'genap') {
                         $sub->where('js.w2', 'Y')->orWhere('js.w4', 'Y');
                     } elseif ($minggu === 'non_rute') {
-                        // Semua hari kosong ATAU semua minggu kosong (artinya JKS tidak valid/dihapus/kosong)
+                        // Semua hari kosong ATAU semua minggu kosong ATAU h7 ATAU dobel cover
                         $sub->where(function ($q1) {
                             $q1->where(fn($q) => $q->whereNull('js.h1')->orWhere('js.h1', '!=', 'Y'))
                                ->where(fn($q) => $q->whereNull('js.h2')->orWhere('js.h2', '!=', 'Y'))
                                ->where(fn($q) => $q->whereNull('js.h3')->orWhere('js.h3', '!=', 'Y'))
                                ->where(fn($q) => $q->whereNull('js.h4')->orWhere('js.h4', '!=', 'Y'))
                                ->where(fn($q) => $q->whereNull('js.h5')->orWhere('js.h5', '!=', 'Y'))
-                               ->where(fn($q) => $q->whereNull('js.h6')->orWhere('js.h6', '!=', 'Y'))
-                               ->where(fn($q) => $q->whereNull('js.h7')->orWhere('js.h7', '!=', 'Y'));
+                               ->where(fn($q) => $q->whereNull('js.h6')->orWhere('js.h6', '!=', 'Y'));
                         })->orWhere(function ($q2) {
                             $q2->where(fn($q) => $q->whereNull('js.w1')->orWhere('js.w1', '!=', 'Y'))
                                ->where(fn($q) => $q->whereNull('js.w2')->orWhere('js.w2', '!=', 'Y'))
                                ->where(fn($q) => $q->whereNull('js.w3')->orWhere('js.w3', '!=', 'Y'))
                                ->where(fn($q) => $q->whereNull('js.w4')->orWhere('js.w4', '!=', 'Y'));
+                        })->orWhere('js.h7', 'Y')
+                        ->orWhereIn('js.customer_code', function ($sq) use ($filters) {
+                            $sq->select('customer_code')
+                                ->from('jks_salesmans')
+                                ->when(!empty($filters['bulan']), function ($subq) use ($filters) {
+                                    $subq->where('bulan', 'like', $filters['bulan'] . '%');
+                                })
+                                ->when(!empty($filters['distributor']), function ($subq) use ($filters) {
+                                    $subq->where('distributor_code', $filters['distributor']);
+                                })
+                                ->groupBy('customer_code')
+                                ->havingRaw('COUNT(DISTINCT salesman_code) > 1');
                         });
                     }
                 });
@@ -172,7 +208,17 @@ class JksSalesmanService
             return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
         }
 
-        return $this->getBaseQuery($search, $filters)
+        $query = $this->getBaseQuery($search, $filters);
+
+        if (!empty($filters['dobel_cover'])) {
+            return $query
+                ->orderByRaw('COALESCE(ltpte.customer_code_prc, js.customer_code) ASC')
+                ->orderBy('js.customer_code', 'asc')
+                ->orderBy('s.salesman_name', 'asc')
+                ->paginate($perPage);
+        }
+
+        return $query
             ->orderBy('s.salesman_name')
             ->orderByDesc('js.h1')
             ->orderByDesc('js.h2')
@@ -199,7 +245,16 @@ class JksSalesmanService
      */
     public function getExportQuery($search = '', $filters = [])
     {
-        return $this->getBaseQuery($search, $filters)
+        $query = $this->getBaseQuery($search, $filters);
+
+        if (!empty($filters['dobel_cover'])) {
+            return $query
+                ->orderByRaw('COALESCE(ltpte.customer_code_prc, js.customer_code) ASC')
+                ->orderBy('js.customer_code', 'asc')
+                ->orderBy('s.salesman_name', 'asc');
+        }
+
+        return $query
             ->orderBy('s.salesman_name')
             ->orderBy('ltpte.customer_name');
     }
@@ -219,12 +274,32 @@ class JksSalesmanService
 
         return DB::table('jks_salesmans as js')
             ->leftJoin('master_distributors as md', 'js.distributor_code', '=', 'md.distributor_code')
-            ->leftJoin('salesmans as s', 'js.salesman_code', '=', 's.salesman_code')
+            ->leftJoin('salesmans as s', function($join) {
+                $join->on('js.distributor_code', '=', 's.distributor_code')
+                     ->on('js.salesman_code', '=', 's.salesman_code');
+            })
             ->leftJoin('team_elite_code_mappings as tecm', 'md.supervisor_code', '=', 'tecm.siso_code')
             ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
                 $join->on('js.distributor_code', '=', 'ltpte.distributor_code')
                      ->on('js.customer_code', '=', 'ltpte.uniq_kd');
             })
+            ->leftJoinSub(
+                DB::table('jks_salesmans')
+                    ->select('customer_code', 'distributor_code')
+                    ->when($filters['bulan'] ?? null, function ($q, $bulan) {
+                        return $q->where('bulan', 'like', $bulan . '%');
+                    })
+                    ->when($filters['distributor'] ?? null, function ($q, $dist) {
+                        return $q->where('distributor_code', $dist);
+                    })
+                    ->groupBy('customer_code', 'distributor_code')
+                    ->havingRaw('COUNT(DISTINCT salesman_code) > 1'),
+                'dc',
+                function ($join) {
+                    $join->on('js.customer_code', '=', 'dc.customer_code')
+                         ->on('js.distributor_code', '=', 'dc.distributor_code');
+                }
+            )
             ->when($filters['region'] ?? null, function ($q, $region) {
                 return $q->where('md.region_code', $region);
             })
@@ -251,16 +326,22 @@ class JksSalesmanService
                 COUNT(DISTINCT CASE WHEN ltpte.latitude IS NULL OR ltpte.longitude IS NULL THEN js.customer_code END) as non_gps,
                 COUNT(DISTINCT CASE WHEN 
                     (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') 
+                    AND (js.h7 IS NULL OR js.h7 != 'Y')
                     AND 
                     (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y') 
+                    AND dc.customer_code IS NULL
                 THEN js.customer_code END) as total_toko,
-                COUNT(DISTINCT CASE WHEN NOT (
-                    (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') 
-                    AND 
-                    (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y')
-                ) THEN js.customer_code END) as non_rute,
-                COUNT(DISTINCT CASE WHEN js.w1 = 'Y' OR js.w3 = 'Y' THEN js.customer_code END) as total_ganjil,
-                COUNT(DISTINCT CASE WHEN js.w2 = 'Y' OR js.w4 = 'Y' THEN js.customer_code END) as total_genap,
+                COUNT(DISTINCT CASE WHEN 
+                    NOT (
+                        (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') 
+                        AND 
+                        (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y')
+                    ) 
+                    OR js.h7 = 'Y'
+                    OR dc.customer_code IS NOT NULL
+                THEN js.customer_code END) as non_rute,
+                COUNT(DISTINCT CASE WHEN (js.w1 = 'Y' OR js.w3 = 'Y') AND (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') AND (js.h7 IS NULL OR js.h7 != 'Y') AND dc.customer_code IS NULL THEN js.customer_code END) as total_ganjil,
+                COUNT(DISTINCT CASE WHEN (js.w2 = 'Y' OR js.w4 = 'Y') AND (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') AND (js.h7 IS NULL OR js.h7 != 'Y') AND dc.customer_code IS NULL THEN js.customer_code END) as total_genap,
                 
                 COUNT(DISTINCT CASE WHEN js.h1 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as h1_ganjil,
                 COUNT(DISTINCT CASE WHEN js.h1 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as h1_genap,

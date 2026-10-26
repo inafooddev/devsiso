@@ -35,8 +35,10 @@
 @php
     $sizeClass = match($size) {
         'sm'   => 'max-w-sm',
-        'lg'   => 'max-w-2xl',
-        'xl'   => 'max-w-4xl',
+        'lg'   => 'w-11/12 max-w-2xl',
+        'xl'   => 'w-11/12 max-w-4xl',
+        '5xl'  => 'w-11/12 max-w-5xl',
+        '6xl'  => 'w-11/12 max-w-6xl',
         '7xl'  => 'w-11/12 max-w-7xl',
         'full' => 'w-11/12 max-w-[95vw]',
         default => 'max-w-lg',
@@ -48,6 +50,7 @@
         '7xl'  => 'width: 65vw; max-width: 1280px;',
         '6xl'  => 'width: 60vw; max-width: 1152px;',
         '5xl'  => 'width: 90vw; max-width: 1024px;',
+        'xl'   => 'width: 90vw; max-width: 896px;',
         default => ''
     };
 

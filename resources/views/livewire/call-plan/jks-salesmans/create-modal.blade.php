@@ -84,10 +84,10 @@
                                             <button type="button" wire:click="selectToko('{{ $res->customer_code }}', '{{ addslashes($res->customer_name) }}')" class="w-full text-left px-4 py-2 hover:bg-primary hover:text-primary-content transition-colors">
                                                 <div class="flex justify-between items-center mb-0.5">
                                                     <span class="font-bold text-sm">{{ $res->customer_name }}</span>
-                                                    <span class="text-[10px] font-mono opacity-80 bg-base-200/30 px-1.5 py-0.5 rounded">{{ $res->customer_code }}</span>
+                                                    <span class="text-xs font-mono opacity-80 bg-base-200/30 px-1.5 py-0.5 rounded">{{ $res->customer_code }}</span>
                                                 </div>
-                                                <div class="text-[10px] opacity-80 truncate">{{ $res->customer_address }}</div>
-                                                <div class="text-[10px] opacity-70">
+                                                <div class="text-xs opacity-80 truncate">{{ $res->customer_address }}</div>
+                                                <div class="text-xs opacity-70">
                                                     <x-heroicon-s-map-pin class="w-3 h-3 inline-block -mt-0.5" /> 
                                                     {{ $res->desa ?? '-' }}, {{ $res->kecamatan ?? '-' }}
                                                 </div>
@@ -107,7 +107,7 @@
                             @forelse($selectedTokos as $toko)
                                 <div class="badge badge-primary gap-1 p-3 shadow-sm">
                                     <span class="font-semibold text-xs">{{ $toko['name'] }}</span>
-                                    <span class="text-[9px] opacity-70">({{ $toko['code'] }})</span>
+                                    <span class="text-xs font-mono opacity-70">({{ $toko['code'] }})</span>
                                     <button type="button" wire:click="removeToko('{{ $toko['code'] }}')" class="hover:text-error transition-colors ml-1">
                                         <x-heroicon-s-x-mark class="w-3 h-3" />
                                     </button>
@@ -148,7 +148,7 @@
 
                     {{-- Row 4: Reason --}}
                     <div>
-                        <label class="label text-xs font-bold uppercase text-base-content/70 pb-1">Alasan Pengajuan <span class="text-[10px] font-normal text-base-content/50 ml-1">(Opsional)</span></label>
+                        <label class="label text-xs font-bold uppercase text-base-content/70 pb-1">Alasan Pengajuan <span class="text-xs font-normal text-base-content/50 ml-1">(Opsional)</span></label>
                         <textarea wire:model="reason" class="textarea textarea-bordered w-full text-sm" rows="2" placeholder="Cth: Penambahan rute baru instruksi SPV..."></textarea>
                     </div>
                 @endif

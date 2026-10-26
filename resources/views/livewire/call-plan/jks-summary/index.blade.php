@@ -27,14 +27,14 @@
             <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-base-200/30">
                 <div class="shrink-0 w-full xl:w-auto">
                     <h2 class="text-base md:text-lg font-bold">Summary JKS</h2>
-                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Rekapitulasi call plan salesman</p>
+                    <p class="text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Rekapitulasi call plan salesman</p>
                 </div>
                 
                 {{-- Hierarchy Filters --}}
                 <div class="flex flex-wrap items-center justify-start xl:justify-end gap-2 md:gap-3 w-full xl:w-auto">
                     @php $accessLevel = auth()->user() ? auth()->user()->getAccessLevel() : 'nasional'; @endphp
                     
-                    <select wire:model.live="appliedBulan" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0">
+                    <select wire:model.live="appliedBulan" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-36 pr-8 text-xs font-medium">
                         <option value="">Bulan Ini</option>
                         @for($i = -2; $i <= 2; $i++)
                             @php 
@@ -45,25 +45,32 @@
                         @endfor
                     </select>
 
-                    <select wire:model.live="appliedRegion" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0" @if($accessLevel != 'nasional') disabled @endif>
+                    <select wire:model.live="appliedRegion" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-44 pr-8 text-xs font-medium" @if($accessLevel != 'nasional') disabled @endif>
                         @if(count($regionOptions) != 1) <option value="">Semua Region</option> @endif
                         @foreach($regionOptions as $region)
                             <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
                         @endforeach
                     </select>
 
-                    <select wire:model.live="appliedArea" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0" @if(empty($appliedRegion) || $accessLevel == 'supervisor') disabled @endif>
+                    <select wire:model.live="appliedArea" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-44 pr-8 text-xs font-medium" @if(empty($appliedRegion) || $accessLevel == 'supervisor') disabled @endif>
                         @if(count($areaOptions) != 1) <option value="">Semua Area</option> @endif
                         @foreach($areaOptions as $area)
                             <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
                         @endforeach
                     </select>
 
-                    <select wire:model.live="appliedSupervisor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0" @if(empty($appliedArea) || $accessLevel == 'supervisor') disabled @endif>
+                    <select wire:model.live="appliedSupervisor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-48 pr-8 text-xs font-medium" @if(empty($appliedArea) || $accessLevel == 'supervisor') disabled @endif>
                         @if(count($supervisorOptions) != 1) <option value="">Semua Supervisor</option> @endif
                         @foreach($supervisorOptions as $spv)
                             <option value="{{ $spv->supervisor_code }}">{{ $spv->description ?? $spv->supervisor_code }}</option>
                         @endforeach
+                    </select>
+
+                    {{-- Standpro Filter (Dropdown) --}}
+                    <select wire:model.live="appliedStandpro" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-56 pr-10 text-xs font-medium">
+                        <option value="">Semua Standpro</option>
+                        <option value="belum">Standpro: Belum (&lt; 300)</option>
+                        <option value="sudah">Standpro: Sudah (&ge; 300)</option>
                     </select>
 
 
@@ -130,16 +137,16 @@
                         
                         {{-- Baris 2: Child Headers --}}
                         <tr>
-                            <th class="text-right pr-3 bg-base-200 text-[10px] tracking-widest text-base-content/50 border-b border-r border-base-300">Penambahan</th>
-                            <th class="text-right pr-3 bg-base-200 text-[10px] tracking-widest text-base-content/50 border-b border-r border-base-300">Delete</th>
+                            <th class="text-right pr-3 bg-base-200 text-xs font-semibold tracking-wider text-base-content/60 border-b border-r border-base-300">Penambahan</th>
+                            <th class="text-right pr-3 bg-base-200 text-xs font-semibold tracking-wider text-base-content/60 border-b border-r border-base-300">Delete</th>
                             
                             @foreach($days as $key => $label)
                                 @php
                                     $colGroupBg = in_array($key, ['selasa', 'kamis', 'sabtu']) ? 'bg-base-200/50' : 'bg-base-200';
                                 @endphp
-                                <th class="text-right pr-3 {{ $colGroupBg }} text-[10px] text-base-content/50 tracking-widest border-b border-r border-base-300">Gjl</th>
-                                <th class="text-right pr-3 {{ $colGroupBg }} text-[10px] text-base-content/50 tracking-widest border-b border-r border-base-300">Gnp</th>
-                                <th class="text-right pr-3 {{ $colGroupBg }} text-[10px] text-base-content/50 tracking-widest border-b border-r border-base-300">Non Gps</th>
+                                <th class="text-right pr-3 {{ $colGroupBg }} text-xs font-semibold text-primary tracking-wider border-b border-r border-base-300">Gjl</th>
+                                <th class="text-right pr-3 {{ $colGroupBg }} text-xs font-semibold text-secondary tracking-wider border-b border-r border-base-300">Gnp</th>
+                                <th class="text-right pr-3 {{ $colGroupBg }} text-xs font-semibold text-error tracking-wider border-b border-r border-base-300">Non Gps</th>
                             @endforeach
                         </tr>
                     </thead>

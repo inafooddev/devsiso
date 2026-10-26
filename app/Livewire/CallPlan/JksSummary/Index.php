@@ -18,6 +18,18 @@ class Index extends Component
     #[Title('Summary JKS')]
     #[Layout('layouts.app')]
 
+    public $appliedStandpro = ''; // '' = semua, 'belum' = < 300, 'sudah' = >= 300
+
+    public function setStandpro($val)
+    {
+        $this->appliedStandpro = $val;
+        $this->resetPage();
+    }
+
+    public function updatedAppliedStandpro()
+    {
+        $this->resetPage();
+    }
     
     public function mount()
     {
@@ -28,6 +40,7 @@ class Index extends Component
             $this->appliedSupervisor = $state['appliedSupervisor'] ?? '';
             $this->appliedDistributor = $state['appliedDistributor'] ?? '';
             $this->appliedBulan = $state['appliedBulan'] ?? date('Y-m-01');
+            $this->appliedStandpro = $state['appliedStandpro'] ?? '';
             
             $this->selectedRegion = $state['selectedRegion'] ?? '';
             $this->selectedArea = $state['selectedArea'] ?? '';
@@ -103,6 +116,7 @@ class Index extends Component
             'appliedSupervisor' => $this->appliedSupervisor,
             'appliedDistributor' => $this->appliedDistributor,
             'appliedBulan' => $this->appliedBulan,
+            'appliedStandpro' => $this->appliedStandpro,
             'selectedRegion' => $this->selectedRegion,
             'selectedArea' => $this->selectedArea,
             'selectedSupervisor' => $this->selectedSupervisor,
@@ -116,10 +130,11 @@ class Index extends Component
     {
         $this->reset([
             'selectedRegion', 'selectedArea', 'selectedSupervisor', 'selectedBulan',
-            'appliedRegion', 'appliedArea', 'appliedSupervisor', 'appliedBulan'
+            'appliedRegion', 'appliedArea', 'appliedSupervisor', 'appliedBulan', 'appliedStandpro'
         ]);
         
         $this->appliedBulan = date('Y-m-01');
+        $this->appliedStandpro = '';
 
         if (session()->has('jks_summary_state')) {
             session()->forget('jks_summary_state');
@@ -271,6 +286,18 @@ class Index extends Component
                      ->on('s.distributor_code', '=', 'js.distributor_code')
                      ->where('js.bulan', 'like', $bulan . '%');
             })
+            ->leftJoinSub(
+                DB::table('jks_salesmans')
+                    ->select('customer_code', 'distributor_code')
+                    ->where('bulan', 'like', $bulan . '%')
+                    ->groupBy('customer_code', 'distributor_code')
+                    ->havingRaw('COUNT(DISTINCT salesman_code) > 1'),
+                'dc',
+                function ($join) {
+                    $join->on('js.customer_code', '=', 'dc.customer_code')
+                         ->on('js.distributor_code', '=', 'dc.distributor_code');
+                }
+            )
             ->leftJoin('list_toko_pareto_team_elite as lt', function($join) {
                 $join->on('lt.uniq_kd', '=', 'js.customer_code')
                      ->on('lt.distributor_code', '=', 'js.distributor_code');
@@ -283,10 +310,10 @@ class Index extends Component
                 'md.distributor_code', 'md.distributor_name',
                 's.salesman_code', 's.salesman_name',
                 
-                // Total RO & JKS (Hari kerja: Senin s.d. Sabtu / h1..h6; Hari Minggu dihitung Non Rute)
+                // Total RO & JKS (Hari kerja: Senin s.d. Sabtu / h1..h6; Hari Minggu dihitung Non Rute; Dobel Cover dihitung Non Rute)
                 DB::raw('COUNT(DISTINCT js.customer_code) as total_ro'),
-                DB::raw("COUNT(DISTINCT CASE WHEN (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') AND (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as total_jks"),
-                DB::raw("COUNT(DISTINCT CASE WHEN NOT ((js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') AND (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y')) THEN js.customer_code END) as non_rute"),
+                DB::raw("COUNT(DISTINCT CASE WHEN (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') AND (js.h7 IS NULL OR js.h7 != 'Y') AND (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y') AND dc.customer_code IS NULL THEN js.customer_code END) as total_jks"),
+                DB::raw("COUNT(DISTINCT CASE WHEN NOT ((js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') AND (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y')) OR js.h7 = 'Y' OR dc.customer_code IS NOT NULL THEN js.customer_code END) as non_rute"),
                 DB::raw("COUNT(DISTINCT CASE WHEN (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as non_gps"),
                 
                 // Senin
@@ -346,6 +373,13 @@ class Index extends Component
         if ($this->appliedRegion) $query->where('md.region_code', $this->appliedRegion);
         if ($this->appliedArea) $query->where('md.area_code', $this->appliedArea);
         if ($this->appliedSupervisor) $query->where('te.team_elite_code', $this->appliedSupervisor);
+
+        // Standpro Filter (Belum < 300, Sudah >= 300)
+        if ($this->appliedStandpro === 'belum') {
+            $query->havingRaw("COUNT(DISTINCT CASE WHEN (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') AND (js.h7 IS NULL OR js.h7 != 'Y') AND (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y') AND dc.customer_code IS NULL THEN js.customer_code END) < 300");
+        } elseif ($this->appliedStandpro === 'sudah') {
+            $query->havingRaw("COUNT(DISTINCT CASE WHEN (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') AND (js.h7 IS NULL OR js.h7 != 'Y') AND (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y') AND dc.customer_code IS NULL THEN js.customer_code END) >= 300");
+        }
 
         return $query;
     }

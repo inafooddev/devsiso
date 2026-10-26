@@ -151,9 +151,24 @@ class Index extends Component
     public $collisionCustomerName = '';
     public $collisionDetails = [];
     public $showCollisionModal = false;
+    public $onlyDobelCover = false;
+
+    public function toggleDobelCover()
+    {
+        $this->onlyDobelCover = !$this->onlyDobelCover;
+        if ($this->onlyDobelCover) {
+            $this->selectedHari = '';
+            $this->selectedMinggu = '';
+        } else {
+            $this->selectedHari = 'h1';
+            $this->selectedMinggu = 'ganjil';
+        }
+        $this->resetPage();
+    }
 
     public function toggleHari($hari)
     {
+        $this->onlyDobelCover = false;
         if ($this->selectedHari === $hari) {
             $this->selectedHari = '';
         } else {
@@ -174,6 +189,7 @@ class Index extends Component
 
     public function toggleMinggu($minggu)
     {
+        $this->onlyDobelCover = false;
         if ($this->selectedMinggu === $minggu) {
             $this->selectedMinggu = '';
         } else {
@@ -210,7 +226,7 @@ class Index extends Component
         $this->appliedBulan = date('Y-m-01');
         
         // Reset internal JksSalesmans state
-        $this->reset(['search', 'headerSalesman', 'selectedHari', 'selectedMinggu']);
+        $this->reset(['search', 'headerSalesman', 'selectedHari', 'selectedMinggu', 'onlyDobelCover']);
         
         $this->selectedHari = 'h1';
         $this->selectedMinggu = 'ganjil';
@@ -390,6 +406,7 @@ class Index extends Component
         return \Illuminate\Support\Facades\DB::table('salesmans')
             ->select('salesman_code', 'salesman_name')
             ->where('distributor_code', $this->appliedDistributor)
+            ->where('is_active', true)
             ->orderBy('salesman_name')
             ->get();
     }
@@ -1888,6 +1905,7 @@ class Index extends Component
         $filters['salesman'] = $this->headerSalesman;
         $filters['hari'] = $this->selectedHari;
         $filters['minggu'] = $this->selectedMinggu;
+        $filters['dobel_cover'] = $this->onlyDobelCover;
         
         $mingguDates = $service->getMingguDateRanges($filters['bulan'] ?? null);
         if (empty($filters['distributor'])) {
@@ -1905,7 +1923,7 @@ class Index extends Component
             // Find collisions for the current page
             $collidingCustomerCodes = [];
             if (!empty($filters['bulan']) && count($data->items()) > 0) {
-                $customerCodesOnPage = collect($data->items())->pluck('customer_code')->unique()->toArray();
+                $customerCodesOnPage = collect($data->items())->pluck('uniq_kode')->unique()->toArray();
                 
                 $collisions = \Illuminate\Support\Facades\DB::table('jks_salesmans')
                     ->select('customer_code')
@@ -1945,7 +1963,10 @@ class Index extends Component
         $schedules = \Illuminate\Support\Facades\DB::table('jks_salesmans')
             ->where('bulan', 'like', $filters['bulan'] . '%')
             ->where('customer_code', $customerCode)
-            ->leftJoin('salesmans', 'jks_salesmans.salesman_code', '=', 'salesmans.salesman_code')
+            ->leftJoin('salesmans', function ($join) {
+                $join->on('jks_salesmans.salesman_code', '=', 'salesmans.salesman_code')
+                     ->on('jks_salesmans.distributor_code', '=', 'salesmans.distributor_code');
+            })
             ->select('jks_salesmans.*', 'salesmans.salesman_name')
             ->get();
 
@@ -1957,6 +1978,12 @@ class Index extends Component
     {
         $this->showCollisionModal = false;
         $this->collisionDetails = [];
+    }
+
+    public function confirmDeleteFromCollision($id)
+    {
+        $this->showCollisionModal = false;
+        $this->confirmDelete($id);
     }
 
     // Export Eskalink Methods

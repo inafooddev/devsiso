@@ -1,12 +1,8 @@
 {{-- Header Card & Actions --}}
-<div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
-    <div class="shrink-0 w-full sm:w-auto">
-        <h2 class="text-base md:text-lg font-bold">Jadwal Kunjungan (JKS)</h2>
-        <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Manajemen Rute Kunjungan Salesman</p>
-    </div>
-    
-    <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
-        @if($appliedRegion || $appliedArea || $appliedSupervisor || $appliedDistributor)
+<div class="p-2.5 md:p-3 border-b border-base-300 shrink-0 flex flex-wrap items-center justify-between gap-2.5 bg-base-200/30">
+    @if($appliedRegion || $appliedArea || $appliedSupervisor || $appliedDistributor)
+        {{-- Sisi Kiri: Filter Cepat (Hari, Minggu, Salesman) --}}
+        <div class="flex flex-wrap items-center gap-2">
             {{-- Day Filter (Active Button) --}}
             <div class="join shadow-sm border border-base-300">
                 <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h1' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h1')">Sen</button>
@@ -15,7 +11,8 @@
                 <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h4' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h4')">Kam</button>
                 <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h5' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h5')">Jum</button>
                 <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'h6' ? 'btn-active btn-primary' : '' }}" wire:click="toggleHari('h6')">Sab</button>
-                <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'non_rute' ? 'btn-active btn-warning' : '' }}" wire:click="toggleHari('non_rute')">Non Rute</button>
+                <button type="button" class="btn btn-sm join-item {{ $selectedHari === 'non_rute' && !$onlyDobelCover ? 'btn-active btn-warning' : '' }}" wire:click="toggleHari('non_rute')">Non Rute</button>
+                <button type="button" class="btn btn-sm join-item {{ $onlyDobelCover ? 'btn-active btn-error text-white font-bold' : 'text-error hover:bg-error/10' }}" wire:click="toggleDobelCover" title="Filter Toko Dobel Cover (Bentrok Jadwal Antar-Salesman)">Dobel</button>
             </div>
 
             {{-- Week Filter (Active Button) --}}
@@ -23,6 +20,7 @@
                 <button type="button" class="btn btn-sm join-item {{ $selectedMinggu === 'ganjil' ? 'btn-active btn-secondary' : '' }}" wire:click="toggleMinggu('ganjil')">Ganjil</button>
                 <button type="button" class="btn btn-sm join-item {{ $selectedMinggu === 'genap' ? 'btn-active btn-secondary' : '' }}" wire:click="toggleMinggu('genap')">Genap</button>
             </div>
+
             {{-- Salesman Dropdown --}}
             <div class="w-full sm:w-56 z-30">
                 @php
@@ -38,8 +36,13 @@
                     placeholder="{{ $appliedDistributor ? '-- Pilih Salesman --' : '-- Pilih Distributor --' }}"
                 />
             </div>
-        @endif
-
+        </div>
+    @else
+        <div></div>
+    @endif
+    
+    {{-- Sisi Kanan: Search & Action Buttons --}}
+    <div class="flex flex-wrap items-center gap-2 justify-end ml-auto">
         {{-- Search --}}
         <div class="join">
             <input 
@@ -61,6 +64,7 @@
                 <div class="badge badge-xs badge-primary">!</div>
             @endif
         </button>
+
 
         {{-- Actions Button --}}
         @if($appliedRegion || $appliedArea || $appliedSupervisor || $appliedDistributor)

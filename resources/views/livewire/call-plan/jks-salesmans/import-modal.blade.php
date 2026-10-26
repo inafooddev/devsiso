@@ -17,7 +17,7 @@
                         Import Jadwal JKS Massal
                     </h3>
                     <p class="text-xs text-base-content/60 font-medium mt-1">Unggah file Excel hasil export (maksimal 20.000 baris).</p>
-                    <a href="{{ route('call-plan.jks-salesmans.export-template') }}" class="text-[10px] text-info hover:underline inline-flex items-center gap-1 mt-1 font-bold">
+                    <a href="{{ route('call-plan.jks-salesmans.export-template') }}" class="text-xs text-info hover:underline inline-flex items-center gap-1 mt-1 font-semibold">
                         <x-heroicon-s-arrow-down-tray class="w-3 h-3" />
                         Download Template Standar
                     </a>
@@ -138,12 +138,12 @@
                             <div class="flex-1 bg-success/10 border border-success/20 rounded-xl p-4 text-center">
                                 <p class="text-xs font-bold text-success/70 uppercase mb-1">Berhasil</p>
                                 <div class="text-3xl font-black text-success">{{ number_format($successCount) }}</div>
-                                <p class="text-[10px] mt-1 text-success/60">Baris tersimpan</p>
+                                <p class="text-xs mt-1 text-success/70 font-medium">Baris tersimpan</p>
                             </div>
                             <div class="flex-1 bg-error/10 border border-error/20 rounded-xl p-4 text-center relative overflow-hidden">
                                 <p class="text-xs font-bold text-error/70 uppercase mb-1">Gagal (Error)</p>
                                 <div class="text-3xl font-black text-error">{{ number_format($failedCount) }}</div>
-                                <p class="text-[10px] mt-1 text-error/60">Baris dilewati</p>
+                                <p class="text-xs mt-1 text-error/70 font-medium">Baris dilewati</p>
                             </div>
                         </div>
 

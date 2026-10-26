@@ -203,6 +203,8 @@ class CreateModal extends Component
         if (!empty($this->appliedDistributor)) {
             $salesmans = DB::table('salesmans')
                 ->where('distributor_code', $this->appliedDistributor)
+                ->where('is_active', true)
+
                 ->get();
         }
 
