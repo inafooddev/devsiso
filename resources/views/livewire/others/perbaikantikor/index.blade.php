@@ -13,7 +13,6 @@
             }, 120);
         "
 >
->
     <x-slot name="title">Perbaikan Tikor Toko</x-slot>
 
     {{-- Listen for Livewire events --}}
