@@ -24,14 +24,9 @@
         <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
             
             {{-- Header Card & Actions --}}
-            <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-base-200/30">
-                <div class="shrink-0 w-full xl:w-auto">
-                    <h2 class="text-base md:text-lg font-bold">Summary JKS</h2>
-                    <p class="text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Rekapitulasi call plan salesman</p>
-                </div>
-                
+            <div class="p-2.5 md:p-3 border-b border-base-300 shrink-0 flex flex-wrap items-center justify-between gap-2.5 bg-base-200/30">
                 {{-- Hierarchy Filters --}}
-                <div class="flex flex-wrap items-center justify-start xl:justify-end gap-2 md:gap-3 w-full xl:w-auto">
+                <div class="flex flex-wrap items-center gap-2 md:gap-3">
                     @php $accessLevel = auth()->user() ? auth()->user()->getAccessLevel() : 'nasional'; @endphp
                     
                     <select wire:model.live="appliedBulan" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-36 pr-8 text-xs font-medium">
@@ -72,19 +67,17 @@
                         <option value="belum">Standpro: Belum (&lt; 300)</option>
                         <option value="sudah">Standpro: Sudah (&ge; 300)</option>
                     </select>
+                </div>
 
-
-
-                    {{-- Actions (Export & Reset) --}}
-                    <div class="border-l border-base-300 pl-2 hidden sm:flex items-center gap-2">
-                        <button class="btn btn-sm btn-success text-white" wire:click="exportExcel" wire:loading.class="opacity-50 pointer-events-none" wire:target="exportExcel" title="Export to Excel">
-                            <x-heroicon-o-arrow-down-tray class="w-4 h-4" wire:loading.remove wire:target="exportExcel" />
-                            <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
-                        </button>
-                        <button class="btn btn-sm btn-ghost text-base-content/70" wire:click="resetFilters" title="Reset Filters & Cache">
-                            <x-heroicon-o-arrow-path class="w-4 h-4" />
-                        </button>
-                    </div>
+                {{-- Actions (Export & Reset) --}}
+                <div class="flex items-center gap-2 ml-auto">
+                    <button class="btn btn-sm btn-success text-white" wire:click="exportExcel" wire:loading.class="opacity-50 pointer-events-none" wire:target="exportExcel" title="Export to Excel">
+                        <x-heroicon-o-arrow-down-tray class="w-4 h-4" wire:loading.remove wire:target="exportExcel" />
+                        <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
+                    </button>
+                    <button class="btn btn-sm btn-ghost text-base-content/70" wire:click="resetFilters" title="Reset Filters & Cache">
+                        <x-heroicon-o-arrow-path class="w-4 h-4" />
+                    </button>
                 </div>
             </div>
 
