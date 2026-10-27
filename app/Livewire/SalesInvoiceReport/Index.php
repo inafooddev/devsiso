@@ -182,6 +182,7 @@ class Index extends Component
             $salesSummary = SalesInvoiceDistributor::query()
                 ->select('distributor_code',
                     DB::raw('MAX(invoice_date) as last_up'),
+                    DB::raw('MAX(created_at) as last_uploaded_at'),
                     DB::raw('COUNT(*) as baris'),
                     DB::raw('SUM(carton_qty) as ktn'),
                     DB::raw('SUM(pack_qty) as pak'),
@@ -225,6 +226,38 @@ class Index extends Component
             $summaryData = $query->orderBy('master_distributors.region_name')
                                  ->orderBy('master_distributors.area_name')
                                  ->get();
+
+            // Hitung status update berdasarkan siklus wajib Senin & Kamis
+            $now = now();
+            $dayOfWeek = $now->dayOfWeekIso; // 1 = Senin ... 7 = Minggu
+
+            if ($dayOfWeek >= 1 && $dayOfWeek <= 3) {
+                // Siklus Senin (Senin - Rabu): jendela upload sejak Minggu atau Senin dini hari
+                $startOfCycle = $now->copy()->startOfWeek()->subDay()->startOfDay();
+                // Minimal ada data setelah hari Rabu minggu lalu (yaitu Kamis, Jumat, Sabtu)
+                $minInvoiceDate = $now->copy()->startOfWeek()->subDays(4)->startOfDay();
+            } else {
+                // Siklus Kamis (Kamis - Minggu): jendela upload sejak Kamis 00:00
+                $startOfCycle = $now->copy()->startOfWeek()->addDays(3)->startOfDay();
+                // Minimal ada data minggu ini (Senin, Selasa, dst)
+                $minInvoiceDate = $now->copy()->startOfWeek()->startOfDay();
+            }
+
+            $isCurrentMonth = (!$this->monthFilter || $this->monthFilter == now()->month)
+                           && (!$this->yearFilter || $this->yearFilter == now()->year);
+
+            $summaryData->transform(function ($item) use ($startOfCycle, $minInvoiceDate, $isCurrentMonth) {
+                if (!$isCurrentMonth) {
+                    $item->is_updated = ($item->baris ?? 0) > 0;
+                } else {
+                    $baris = $item->baris ?? 0;
+                    $hasUpload = !empty($item->last_uploaded_at) && \Carbon\Carbon::parse($item->last_uploaded_at)->gte($startOfCycle);
+                    $hasInvoice = !empty($item->last_up) && \Carbon\Carbon::parse($item->last_up)->gte($minInvoiceDate);
+
+                    $item->is_updated = ($baris > 0) && ($hasUpload || $hasInvoice);
+                }
+                return $item;
+            });
 
             // Hitung total keseluruhan
             $grandTotals = [

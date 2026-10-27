@@ -142,8 +142,8 @@
 
                                 <thead class="sticky top-0 bg-base-200/90 backdrop-blur-sm z-10 border-b border-base-300">
                                     <tr>
-                                        @foreach(['Region','Area','Distributor','Config','Last Update','Row','CTN','Pak','Pcs','Qty','Gross','Disc4','Disc8','DPP','Tax','Nett'] as $col)
-                                        <th class="text-left font-semibold text-base-content/60 uppercase tracking-wider whitespace-nowrap {{ in_array($col, ['Row','CTN','Pak','Pcs','Qty','Gross','Disc4','Disc8','DPP','Tax','Nett']) ? 'text-right' : '' }} {{ $col === 'Config' ? 'text-center' : '' }}">{{ $col }}</th>
+                                        @foreach(['Region','Area','Distributor','Config','Status','Last Update','Row','CTN','Pak','Pcs','Qty','Gross','Disc4','Disc8','DPP','Tax','Nett'] as $col)
+                                        <th class="text-left font-semibold text-base-content/60 uppercase tracking-wider whitespace-nowrap {{ in_array($col, ['Row','CTN','Pak','Pcs','Qty','Gross','Disc4','Disc8','DPP','Tax','Nett']) ? 'text-right' : '' }} {{ in_array($col, ['Config', 'Status']) ? 'text-center' : '' }}">{{ $col }}</th>
                                         @endforeach
                                     </tr>
                                 </thead>
@@ -169,6 +169,19 @@
                                                     </span>
                                                 @endif
                                             </td>
+                                            <td class="whitespace-nowrap text-center">
+                                                @if ($data->is_updated)
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success/15 text-success border border-success/30">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-success"></span>
+                                                        Sudah
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-error/15 text-error border border-error/30">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                                                        Belum
+                                                    </span>
+                                                @endif
+                                            </td>
                                             <td class="whitespace-nowrap text-base-content/60">{{ $data->last_up ? \Carbon\Carbon::parse($data->last_up)->format('d M Y') : '-' }}</td>
                                             <td class="whitespace-nowrap text-right text-base-content/70">{{ number_format($data->baris ?? 0, 0) }}</td>
                                             <td class="whitespace-nowrap text-right text-base-content/70">{{ number_format($data->ktn ?? 0, 0, ',', '.') }}</td>
@@ -184,7 +197,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="16" class="px-6 py-12 text-center">
+                                            <td colspan="17" class="px-6 py-12 text-center">
                                                 <x-heroicon-o-inbox class="h-10 w-10 text-base-content/30 mx-auto mb-3" />
                                                 <h3 class="text-sm font-semibold text-base-content/70">Tidak Ada Data</h3>
                                                 <p class="mt-1 text-xs text-base-content/50">Tidak ada data yang cocok dengan kriteria filter Anda.</p>
@@ -196,7 +209,7 @@
                                 @if ($summaryData->isNotEmpty() && $grandTotals)
                                     <tfoot class="sticky bottom-0 bg-base-200/90 backdrop-blur-sm border-t border-base-300 z-10">
                                         <tr>
-                                            <td colspan="5" class="text-right text-xs font-bold text-base-content/70 uppercase tracking-wider whitespace-nowrap">TOTAL KESELURUHAN</td>
+                                            <td colspan="6" class="text-right text-xs font-bold text-base-content/70 uppercase tracking-wider whitespace-nowrap">TOTAL KESELURUHAN</td>
                                             <td class="text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_baris'] ?? 0, 0) }}</td>
                                             <td class="text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_ktn'] ?? 0, 0, ',', '.') }}</td>
                                             <td class="text-right text-xs font-bold text-base-content whitespace-nowrap">{{ number_format($grandTotals['total_pak'] ?? 0, 0, ',', '.') }}</td>
