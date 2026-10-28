@@ -418,6 +418,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/report/monitoring-top-item', MonitoringTopItemIndex::class)->name('report.monitoring-top-item.index');
 
     Route::get('/report/fundamental-sales', FundamentalSalesIndex::class)->name('report.fundamental-sales.index');
+    Route::get('/report/fundamental-sales/ranking', \App\Livewire\Report\FundamentalSales\Ranking::class)->name('report.fundamental-sales.ranking');
     Route::get('/report/fundamental-sales-hierarchy', \App\Livewire\Report\FundamentalSalesHierarchy\Index::class)->name('report.fundamental-sales-hierarchy.index');
     Route::get('/report/fundamental-sales/export/{supervisorCode}', [\App\Http\Controllers\Report\FundamentalSalesExportController::class, 'export'])->name('report.fundamental-sales.export');
     Route::get('/report/fundamental-sales-hierarchy/export/{type}', [\App\Http\Controllers\Report\FundamentalSalesHierarchyExportController::class, 'export'])->name('report.fundamental-sales-hierarchy.export');

@@ -1,5 +1,7 @@
 <div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full">
-        <x-slot name="title">Individual Performance Management</x-slot>
+    <x-slot name="title">Individual Performance Management</x-slot>
+
+    @include('livewire.report.fundamental-sales._tabs')
 
     @push('styles')
     <style>
@@ -130,10 +132,12 @@
                     'rwo' => ['label' => '7. Reward Outlet Capai Target (RWO)', 'bobot' => 15],
                 ];
 
-                function getColorClass($ach) {
-                    if ($ach < 80) return 'text-red-600 font-bold';
-                    if ($ach < 100) return 'text-yellow-600 font-bold';
-                    return 'text-green-600 font-bold';
+                if (!function_exists('getColorClass')) {
+                    function getColorClass($ach) {
+                        if ($ach < 80) return 'text-red-600 font-bold';
+                        if ($ach < 100) return 'text-yellow-600 font-bold';
+                        return 'text-green-600 font-bold';
+                    }
                 }
             @endphp
 

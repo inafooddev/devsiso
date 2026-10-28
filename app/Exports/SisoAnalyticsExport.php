@@ -15,13 +15,15 @@ class SisoAnalyticsExport implements FromCollection, WithHeadings, WithStyles, S
     protected $viewMode;
     protected $year;
     protected $month;
+    protected $regFest;
 
-    public function __construct($data, $viewMode, $year, $month)
+    public function __construct($data, $viewMode, $year, $month, $regFest = 'ALL')
     {
         $this->data = $data;
         $this->viewMode = $viewMode;
         $this->year = $year;
         $this->month = $month;
+        $this->regFest = $regFest;
     }
 
     public function collection()
@@ -33,6 +35,7 @@ class SisoAnalyticsExport implements FromCollection, WithHeadings, WithStyles, S
                     'product_name' => $row->product_name,
                     'brand_name' => $row->brand_name,
                     'sub_brand_name' => $row->sub_brand_name,
+                    'reg_fest' => $row->reg_fest ?? '-',
                     'qty_in_ktn' => $row->qty_in_ktn,
                     'qty_out_ktn' => $row->qty_out_ktn,
                     'gap_ktn' => $row->gap_qty ?? ($row->qty_in_ktn - $row->qty_out_ktn),
@@ -52,6 +55,7 @@ class SisoAnalyticsExport implements FromCollection, WithHeadings, WithStyles, S
                     'region_name' => $row->region_name,
                     'area_name' => $row->area_name,
                     'branch_name' => $row->branch_name,
+                    'reg_fest' => $this->regFest,
                     'qty_in_ktn' => $row->qty_in_ktn,
                     'qty_out_ktn' => $row->qty_out_ktn,
                     'gap_ktn' => $row->gap_qty ?? ($row->qty_in_ktn - $row->qty_out_ktn),
@@ -76,6 +80,7 @@ class SisoAnalyticsExport implements FromCollection, WithHeadings, WithStyles, S
                 'Nama Produk',
                 'Brand',
                 'Sub Brand',
+                'Tipe (Reg/Fest)',
                 'Qty In (Ktn)',
                 'Qty Out (Ktn)',
                 'Gap Qty (Ktn)',
@@ -93,13 +98,14 @@ class SisoAnalyticsExport implements FromCollection, WithHeadings, WithStyles, S
                 'Region',
                 'Area',
                 'Cabang',
+                'Tipe (Reg/Fest)',
                 'Qty In (Ktn)',
                 'Qty Out (Ktn)',
                 'Gap Qty (Ktn)',
                 'Value In (Rp)',
                 'Value Out (Rp)',
-                'Target Depo (Rp)',
-                '% Pencapaian Target',
+                'Target Depo (' . ($this->regFest === 'ALL' ? 'REG+FEST' : $this->regFest) . ') (Rp)',
+                '% Ach Target',
                 'Gap Value (Rp)',
                 'Rasio Out / In (%)',
                 'Status',
@@ -110,14 +116,11 @@ class SisoAnalyticsExport implements FromCollection, WithHeadings, WithStyles, S
 
     public function styles(Worksheet $sheet)
     {
+        $sheet->getStyle('A1:Q1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:Q1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFF1F5F9');
+        
         return [
-            1 => [
-                'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
-                'fill' => [
-                    'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['argb' => 'FF1E293B'] // Dark slate
-                ]
-            ],
+            1 => ['font' => ['bold' => true, 'size' => 11]],
         ];
     }
 }

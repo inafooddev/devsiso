@@ -1,66 +1,60 @@
-<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 w-full h-full">
-    <x-slot name="title">SISO Analytics - Grafik Komparasi Penjualan</x-slot>
+<div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full">
+    <x-slot name="title">SISO Analytics — Sell In vs Sell Out</x-slot>
 
     {{-- Loading Overlay --}}
-    <div wire:loading wire:target="selectedYear, selectedMonth, selectedRegion, selectedArea, selectedDistributor, selectedBrand, setViewMode, setUnitMode, sortBy, export" 
-         class="fixed inset-0 z-50 bg-base-300/40 flex items-center justify-center backdrop-blur-sm transition-opacity" style="z-index: 9999;">
-        <div class="bg-base-100 p-8 rounded-2xl shadow-xl flex flex-col items-center border border-base-200">
-            <span class="loading loading-spinner loading-lg text-primary mb-4"></span>
-            <h3 class="text-lg font-bold text-base-content">Memuat Grafik & Data SISO...</h3>
-            <p class="text-sm text-base-content/60 mt-1">Menyusun visualisasi tren Sell In vs Sell Out.</p>
+    <div wire:loading wire:target="selectedYear, selectedMonth, selectedRegFest, selectedStatus, selectedRegion, selectedArea, selectedDistributor, selectedBrand, setViewMode, setUnitMode, setRegFest, setStatus, resetFilters, sortBy, export" 
+         class="fixed inset-0 z-50 bg-base-300/30 flex items-center justify-center backdrop-blur-[2px] transition-opacity" style="z-index: 9999;">
+        <div class="bg-base-100 px-6 py-5 rounded-2xl shadow-2xl flex items-center gap-4 border border-base-200">
+            <span class="loading loading-spinner loading-md text-primary"></span>
+            <div>
+                <h3 class="text-sm font-bold text-base-content">Memperbarui Analisa SISO</h3>
+                <p class="text-xs text-base-content/60">Menyinkronkan grafik & metrik penjualan...</p>
+            </div>
         </div>
     </div>
 
-    {{-- Multi-Tabs Navigation (Tetap di Atas) --}}
-    <div class="shrink-0">
-        <x-ui.tab-menu>
-            <a href="{{ route('siso-analytics.index') }}" class="tab tab-active bg-primary text-primary-content font-bold">
-                <x-heroicon-s-chart-bar class="w-4 h-4 mr-2" />
-                1. Analisa Grafik Sell In vs Sell Out
-            </a>
-            <a href="#" class="tab opacity-50 cursor-not-allowed select-none">
-                <x-heroicon-s-clipboard-document-check class="w-4 h-4 mr-2" />
-                2. Rekonsiliasi Stok
-                <span class="badge badge-xs badge-ghost ml-2">Tahap 2</span>
-            </a>
-            <a href="#" class="tab opacity-50 cursor-not-allowed select-none">
-                <x-heroicon-s-bolt class="w-4 h-4 mr-2" />
-                3. Fast / Slow Moving
-                <span class="badge badge-xs badge-ghost ml-2">Tahap 3</span>
-            </a>
-            <a href="#" class="tab opacity-50 cursor-not-allowed select-none">
-                <x-heroicon-s-shopping-cart class="w-4 h-4 mr-2" />
-                4. Rekomendasi PO
-                <span class="badge badge-xs badge-ghost ml-2">Tahap 4</span>
-            </a>
-            <a href="#" class="tab opacity-50 cursor-not-allowed select-none">
-                <x-heroicon-s-arrow-up-tray class="w-4 h-4 mr-2" />
-                5. Upload Stok Opname
-                <span class="badge badge-xs badge-ghost ml-2">Tahap 5</span>
-            </a>
-        </x-ui.tab-menu>
-    </div>
+    {{-- Global Tab Navigation --}}
+    <x-ui.tab-menu class="mb-3 md:mb-4">
+        <a href="{{ route('siso-analytics.index') }}" class="tab tab-active bg-primary text-primary-content font-bold">
+            <x-heroicon-s-chart-bar class="w-4 h-4 mr-1.5" />
+            Sell In vs Out
+        </a>
+        <a href="#" class="tab opacity-50 cursor-not-allowed select-none">
+            <x-heroicon-s-clipboard-document-check class="w-4 h-4 mr-1.5" />
+            Rekon Stok
+            <span class="badge badge-xs badge-ghost ml-1.5">Tahap 2</span>
+        </a>
+        <a href="#" class="tab opacity-50 cursor-not-allowed select-none">
+            <x-heroicon-s-bolt class="w-4 h-4 mr-1.5" />
+            Fast / Slow
+            <span class="badge badge-xs badge-ghost ml-1.5">Tahap 3</span>
+        </a>
+        <a href="#" class="tab opacity-50 cursor-not-allowed select-none">
+            <x-heroicon-s-shopping-cart class="w-4 h-4 mr-1.5" />
+            Rekomendasi PO
+            <span class="badge badge-xs badge-ghost ml-1.5">Tahap 4</span>
+        </a>
+        <a href="#" class="tab opacity-50 cursor-not-allowed select-none">
+            <x-heroicon-s-arrow-up-tray class="w-4 h-4 mr-1.5" />
+            Stok Opname
+            <span class="badge badge-xs badge-ghost ml-1.5">Tahap 5</span>
+        </a>
+    </x-ui.tab-menu>
 
-    {{-- MAIN CARD WRAPPER DENGAN OVERFLOW SCROLL --}}
-    <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+    {{-- MAIN SCROLLABLE CONTAINER --}}
+    <div class="flex-1 overflow-y-auto overflow-x-hidden -mx-3 md:-mx-4 lg:-mx-6 -mb-3 md:-mb-4 lg:-mb-6 px-3 md:px-4 lg:px-6 pb-8 space-y-5 relative">
         
-        {{-- BODY SCROLL CONTAINER --}}
-        <div class="flex-1 overflow-y-auto overflow-x-hidden bg-base-200/40 w-full relative p-3 md:p-5 flex flex-col gap-4 md:gap-6">
-            
-            {{-- 4 Kartu Ringkasan Penjualan Komersial --}}
-            @include('livewire.siso-analytics.partials._kpi_cards')
+        {{-- 1. TOP CONTROL & FILTER BAR (STICKY) --}}
+        @include('livewire.siso-analytics.partials._filter')
 
-            {{-- Filter Bar (Periode & Wilayah) --}}
-            @include('livewire.siso-analytics.partials._filter')
+        {{-- 2. EXECUTIVE KPI SUMMARY CARDS --}}
+        @include('livewire.siso-analytics.partials._kpi_cards')
 
-            {{-- SUITE GRAFIK UTAMA APEXCHARTS --}}
-            @include('livewire.siso-analytics.partials._charts')
+        {{-- 3. ANALYTICAL CHARTS SUITE --}}
+        @include('livewire.siso-analytics.partials._charts')
 
-            {{-- Data Rincian Pendukung di Bawah Grafik --}}
-            @include('livewire.siso-analytics.partials._table')
-
-        </div>
+        {{-- 4. FINANCIAL-GRADE DATA TABLE --}}
+        @include('livewire.siso-analytics.partials._table')
 
     </div>
-
 </div>
