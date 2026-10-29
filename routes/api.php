@@ -16,6 +16,12 @@ Route::middleware(['auth:sanctum', 'ability:read:rpt_visit_an_h'])->group(functi
     Route::get('/rpt-visit', [\App\Http\Controllers\Api\RptVisitAnHController::class, 'index']);
 });
 
+// API GET v_frute_cek_mapping_cust
+Route::middleware(['auth:sanctum', 'ability:read:v_frute_cek_mapping_cust'])->group(function () {
+    Route::get('/v-frute-cek-mapping-cust', [\App\Http\Controllers\Api\VFruteCekMappingCustController::class, 'index']);
+    Route::get('/frute-mapping', [\App\Http\Controllers\Api\VFruteCekMappingCustController::class, 'index']);
+});
+
 
 
 // API Khusus GET Master Distributors
