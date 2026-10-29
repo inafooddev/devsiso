@@ -395,6 +395,7 @@ Route::middleware(['auth'])->group(function () {
     // SELLING IN & OUT
     // ==========================================
     Route::get('/siso-analytics', \App\Livewire\SisoAnalytics\Index::class)->name('siso-analytics.index');
+    Route::get('/siso-analytics/rekon-stok', \App\Livewire\SisoAnalytics\RekonStok::class)->name('siso-analytics.rekon-stok');
     Route::get('/selling-in', SellingInIndex::class)->name('selling-in.index');
     Route::get('/selling-in/import', SellingInImport::class)->name('selling-in.import');
     Route::get('/selling-in/import-raw', \App\Livewire\SellingIn\ImportRaw::class)->name('selling-in.import-raw');

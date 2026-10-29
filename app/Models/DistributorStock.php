@@ -25,7 +25,10 @@ class DistributorStock extends Model
         'stock_fisik_upload_ktn',
         'stock_fisik_upload_pcs',
         'selisih_ktn',
+        'doi_days',
         'status_anomali',
+        'sales_flow_status',
+        'action_recommendation',
         'total_value',
         'file_name',
         'uploaded_by',
@@ -42,6 +45,7 @@ class DistributorStock extends Model
         'stock_fisik_upload_ktn' => 'decimal:2',
         'stock_fisik_upload_pcs' => 'decimal:2',
         'selisih_ktn' => 'decimal:2',
+        'doi_days' => 'decimal:2',
         'total_value' => 'decimal:2',
     ];
 

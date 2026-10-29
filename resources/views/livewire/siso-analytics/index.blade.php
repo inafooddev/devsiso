@@ -14,32 +14,7 @@
     </div>
 
     {{-- Global Tab Navigation --}}
-    <x-ui.tab-menu class="mb-3 md:mb-4">
-        <a href="{{ route('siso-analytics.index') }}" class="tab tab-active bg-primary text-primary-content font-bold">
-            <x-heroicon-s-chart-bar class="w-4 h-4 mr-1.5" />
-            Sell In vs Out
-        </a>
-        <a href="#" class="tab opacity-50 cursor-not-allowed select-none">
-            <x-heroicon-s-clipboard-document-check class="w-4 h-4 mr-1.5" />
-            Rekon Stok
-            <span class="badge badge-xs badge-ghost ml-1.5">Tahap 2</span>
-        </a>
-        <a href="#" class="tab opacity-50 cursor-not-allowed select-none">
-            <x-heroicon-s-bolt class="w-4 h-4 mr-1.5" />
-            Fast / Slow
-            <span class="badge badge-xs badge-ghost ml-1.5">Tahap 3</span>
-        </a>
-        <a href="#" class="tab opacity-50 cursor-not-allowed select-none">
-            <x-heroicon-s-shopping-cart class="w-4 h-4 mr-1.5" />
-            Rekomendasi PO
-            <span class="badge badge-xs badge-ghost ml-1.5">Tahap 4</span>
-        </a>
-        <a href="#" class="tab opacity-50 cursor-not-allowed select-none">
-            <x-heroicon-s-arrow-up-tray class="w-4 h-4 mr-1.5" />
-            Stok Opname
-            <span class="badge badge-xs badge-ghost ml-1.5">Tahap 5</span>
-        </a>
-    </x-ui.tab-menu>
+    @include('livewire.siso-analytics.partials._tabs')
 
     {{-- MAIN SCROLLABLE CONTAINER --}}
     <div class="flex-1 overflow-y-auto overflow-x-hidden -mx-3 md:-mx-4 lg:-mx-6 -mb-3 md:-mb-4 lg:-mb-6 px-3 md:px-4 lg:px-6 pb-8 space-y-5 relative">
