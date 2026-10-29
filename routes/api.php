@@ -10,6 +10,12 @@ Route::get('/user', function (Request $request) {
 Route::get('/rwo/map-geojson', [\App\Http\Controllers\Api\RwoMapController::class, 'geojson'])
     ->middleware(['web', 'auth']);
 
+// API GET rpt_visit_an_h (dengan filter & optimasi by tanggal, dilindungi Bearer Token Sanctum)
+Route::middleware(['auth:sanctum', 'ability:read:rpt_visit_an_h'])->group(function () {
+    Route::get('/rpt-visit-an-h', [\App\Http\Controllers\Api\RptVisitAnHController::class, 'index']);
+    Route::get('/rpt-visit', [\App\Http\Controllers\Api\RptVisitAnHController::class, 'index']);
+});
+
 
 
 // API Khusus GET Master Distributors
