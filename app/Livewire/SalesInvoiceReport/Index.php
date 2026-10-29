@@ -20,12 +20,13 @@ class Index extends Component
     protected string $menuRoute = 'sales-invoice-report.index';
 
     // Properti untuk filter
-    public $regionFilter = [];
-    public $areaFilter = [];
+    public $regionFilter = '';
+    public $areaFilter = '';
     public $monthFilter;
     public $yearFilter;
     public $search = '';
-    public $statusFilter;
+    public $statusFilter = '1';
+    public $updateStatusFilter = '';
 
     // Properti untuk filter EKSPOR
     public $exportRegionFilter;
@@ -74,11 +75,12 @@ class Index extends Component
 
         $this->monthFilter = now()->month;
         $this->yearFilter = now()->year;
-        $this->statusFilter = 'Y';
+        $this->statusFilter = '1';
+        $this->updateStatusFilter = '';
+        $this->regionFilter = '';
+        $this->areaFilter = '';
 
-        // Sisanya ambil semuanya (Pilih semua region dan area yang tersedia)
-        $this->selectAllRegions();
-        $this->selectAllAreas();
+        $this->updatedRegionFilter();
 
         // Tampilkan data langsung saat pertama kali dimuat
         $this->hasAppliedFilters = true;
@@ -92,7 +94,8 @@ class Index extends Component
         $query = MasterArea::query();
 
         if (!empty($this->regionFilter)) {
-            $query->whereIn('region_code', $this->regionFilter);
+            $regions = is_array($this->regionFilter) ? $this->regionFilter : [$this->regionFilter];
+            $query->whereIn('region_code', $regions);
         } else {
             // Jika tidak ada region yang dipilih, tetap batasi berdasarkan hak akses user
             $this->applyRegionAccess($query);
@@ -102,7 +105,13 @@ class Index extends Component
 
         // Validasi agar area yang terpilih sebelumnya tetap valid dalam scope region baru
         $availableAreaCodes = $this->areas->pluck('area_code')->toArray();
-        $this->areaFilter = array_intersect($this->areaFilter, $availableAreaCodes);
+        if (is_array($this->areaFilter)) {
+            $this->areaFilter = array_intersect($this->areaFilter, $availableAreaCodes);
+        } else {
+            if (!empty($this->areaFilter) && !in_array($this->areaFilter, $availableAreaCodes)) {
+                $this->areaFilter = '';
+            }
+        }
     }
 
     /**
@@ -119,11 +128,15 @@ class Index extends Component
      */
     public function resetFilters()
     {
-        $this->reset(['regionFilter', 'areaFilter', 'monthFilter', 'yearFilter', 'search', 'statusFilter']);
+        $this->reset(['regionFilter', 'areaFilter', 'monthFilter', 'yearFilter', 'search', 'statusFilter', 'updateStatusFilter']);
         $this->monthFilter = now()->month;
         $this->yearFilter = now()->year;
-        $this->areas = collect();
-        $this->applyFilters();
+        $this->statusFilter = '1';
+        $this->regionFilter = '';
+        $this->areaFilter = '';
+        $this->updateStatusFilter = '';
+        $this->updatedRegionFilter();
+        $this->hasAppliedFilters = true;
     }
 
     public function selectAllRegions()
@@ -219,8 +232,14 @@ class Index extends Component
                       ->orWhere('master_distributors.area_name', 'ilike', "%{$this->search}%")
                       ->orWhere('master_distributors.distributor_name', 'ilike', "%{$this->search}%"));
             }
-            if (!empty($this->regionFilter)) $query->whereIn('master_distributors.region_code', $this->regionFilter);
-            if (!empty($this->areaFilter)) $query->whereIn('master_distributors.area_code', $this->areaFilter);
+            if (!empty($this->regionFilter)) {
+                $regions = is_array($this->regionFilter) ? $this->regionFilter : [$this->regionFilter];
+                $query->whereIn('master_distributors.region_code', $regions);
+            }
+            if (!empty($this->areaFilter)) {
+                $areas = is_array($this->areaFilter) ? $this->areaFilter : [$this->areaFilter];
+                $query->whereIn('master_distributors.area_code', $areas);
+            }
             if ($this->statusFilter !== '' && $this->statusFilter !== null) $query->where('master_distributors.is_active', $this->statusFilter);
             
             $summaryData = $query->orderBy('master_distributors.region_name')
@@ -246,18 +265,26 @@ class Index extends Component
             $isCurrentMonth = (!$this->monthFilter || $this->monthFilter == now()->month)
                            && (!$this->yearFilter || $this->yearFilter == now()->year);
 
-            $summaryData->transform(function ($item) use ($startOfCycle, $minInvoiceDate, $isCurrentMonth) {
+            $summaryData->transform(function ($item) use ($minInvoiceDate, $isCurrentMonth) {
                 if (!$isCurrentMonth) {
                     $item->is_updated = ($item->baris ?? 0) > 0;
                 } else {
                     $baris = $item->baris ?? 0;
-                    $hasUpload = !empty($item->last_uploaded_at) && \Carbon\Carbon::parse($item->last_uploaded_at)->gte($startOfCycle);
+                    // Syarat SUDAH: Harus memiliki data transaksi faktur yang aktual di siklus ini
+                    // (Jika admin mengunggah file tapi isinya faktur usang/lama seperti tgl 17, tetap terdeteksi BELUM)
                     $hasInvoice = !empty($item->last_up) && \Carbon\Carbon::parse($item->last_up)->gte($minInvoiceDate);
 
-                    $item->is_updated = ($baris > 0) && ($hasUpload || $hasInvoice);
+                    $item->is_updated = ($baris > 0) && $hasInvoice;
                 }
                 return $item;
             });
+
+            // Filter Status Update jika dipilih (Sudah / Belum)
+            if ($this->updateStatusFilter === 'sudah') {
+                $summaryData = $summaryData->where('is_updated', true);
+            } elseif ($this->updateStatusFilter === 'belum') {
+                $summaryData = $summaryData->where('is_updated', false);
+            }
 
             // Hitung total keseluruhan
             $grandTotals = [

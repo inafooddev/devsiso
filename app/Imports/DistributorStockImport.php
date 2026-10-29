@@ -39,12 +39,12 @@ class DistributorStockImport implements ToCollection, WithHeadingRow
 
                 // 1. Cek Kode Distributor
                 if (in_array($cleanKey, ['kodedistributor', 'distributorcode', 'kddist', 'kodedist', 'distributor', 'kodedistribus'])) {
-                    $distCode = trim((string)$val);
+                    $distCode = strtoupper(trim((string)$val));
                 }
 
                 // 2. Cek Kode Produk
                 if (in_array($cleanKey, ['kodeproduk', 'productid', 'kdprod', 'kditemprc', 'kodebarang', 'sku', 'itemcode', 'kditem'])) {
-                    $productId = trim((string)$val);
+                    $productId = strtoupper(trim((string)$val));
                 }
 
                 // 3. Cek Stok Karton

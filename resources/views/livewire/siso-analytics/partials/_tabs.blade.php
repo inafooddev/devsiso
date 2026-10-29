@@ -21,17 +21,12 @@
         <span>Stok</span>
     </x-ui.tab-item>
 
-    <span class="tab tab-xs px-4 inline-flex items-center gap-1.5 whitespace-nowrap text-base-content/40 cursor-not-allowed select-none" title="Segera hadir (Tahap 3)">
-        <x-heroicon-o-bolt class="w-3.5 h-3.5 shrink-0" />
-        <span>Fast / Slow</span>
-    </span>
-
-    <span class="tab tab-xs px-4 inline-flex items-center gap-1.5 whitespace-nowrap text-base-content/40 cursor-not-allowed select-none" title="Segera hadir (Tahap 4)">
+    <span class="tab tab-xs px-4 inline-flex items-center gap-1.5 whitespace-nowrap text-base-content/40 cursor-not-allowed select-none" title="Segera hadir">
         <x-heroicon-o-shopping-cart class="w-3.5 h-3.5 shrink-0" />
         <span>Rekomendasi PO</span>
     </span>
 
-    <span class="tab tab-xs px-4 inline-flex items-center gap-1.5 whitespace-nowrap text-base-content/40 cursor-not-allowed select-none" title="Segera hadir (Tahap 5)">
+    <span class="tab tab-xs px-4 inline-flex items-center gap-1.5 whitespace-nowrap text-base-content/40 cursor-not-allowed select-none" title="Segera hadir">
         <x-heroicon-o-arrow-up-tray class="w-3.5 h-3.5 shrink-0" />
         <span>Stok Opname</span>
     </span>

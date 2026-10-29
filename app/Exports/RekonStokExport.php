@@ -29,6 +29,13 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
     public function collection()
     {
         return $this->data->map(function ($row) {
+            $movementLabel = match ($row->movement_class ?? 'SLOW') {
+                'FAST'   => 'Fast Moving',
+                'MEDIUM' => 'Medium Moving',
+                'DEAD'   => 'Dead SKU',
+                default  => 'Slow Moving',
+            };
+
             $statusLabel = match ($row->sales_flow_status) {
                 'PHANTOM_SALES' => 'Penjualan Aneh',
                 'OVER_STOCK'    => 'Over Stock',
@@ -58,6 +65,7 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
                     'avg_3lm_sellout'         => (int)round($row->avg_3lm_sellout ?? 0),
                     'ratio_sisa_avg'          => $ratioText,
                     'doi_days'                => $doiText,
+                    'movement_class'          => $movementLabel,
                     'sales_flow_status'       => $statusLabel,
                 ];
             }
@@ -77,6 +85,7 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
                 'avg_3lm_sellout'         => (int)round($row->avg_3lm_sellout ?? 0),
                 'ratio_sisa_avg'          => $ratioText,
                 'doi_days'                => $doiText,
+                'movement_class'          => $movementLabel,
                 'sales_flow_status'       => $statusLabel,
             ];
         });
@@ -100,6 +109,7 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
                 'AVG Sell Out',
                 '% Stock',
                 'DOI (Hari)',
+                'Kecepatan',
                 'Diagnosa',
             ];
         }
@@ -119,6 +129,7 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
             'AVG Sell Out',
             '% Stock',
             'DOI (Hari)',
+            'Kecepatan',
             'Diagnosa',
         ];
     }
@@ -127,7 +138,7 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
     {
         $sheet->freezePane('A2');
 
-        $lastCol = 'O';
+        $lastCol = 'P';
         $numStartCol = 'F';
         $numEndCol = 'L';
 
@@ -150,7 +161,7 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
         $lastRow = $this->data->count() + 1;
         if ($lastRow > 1) {
             $sheet->getStyle("{$numStartCol}2:{$numEndCol}{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
-            $sheet->getStyle("M2:O{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("M2:P{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
             $sheet->getStyle("A1:{$lastCol}{$lastRow}")->getBorders()->getAllBorders()->applyFromArray([
                 'borderStyle' => Border::BORDER_THIN,
@@ -210,6 +221,25 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
                             ],
                         ]);
                     }
+                }
+
+                // Kolom O: Kecepatan Gerak
+                $mv = $row->movement_class ?? 'SLOW';
+                if ($mv === 'FAST') {
+                    $sheet->getStyle("O{$rowIndex}")->applyFromArray([
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'DCFCE7']],
+                        'font' => ['bold' => true, 'color' => ['rgb' => '15803D']],
+                    ]);
+                } elseif ($mv === 'SLOW') {
+                    $sheet->getStyle("O{$rowIndex}")->applyFromArray([
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FEF3C7']],
+                        'font' => ['bold' => true, 'color' => ['rgb' => '92400E']],
+                    ]);
+                } elseif ($mv === 'DEAD') {
+                    $sheet->getStyle("O{$rowIndex}")->applyFromArray([
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F1F5F9']],
+                        'font' => ['bold' => true, 'color' => ['rgb' => '475569']],
+                    ]);
                 }
 
                 $rowIndex++;

@@ -131,6 +131,7 @@
                             || (!$isAreaLocked && !empty($selectedArea))
                             || !empty($selectedDistributor)
                             || $selectedStatusFilter !== 'ALL'
+                            || $selectedMovementFilter !== 'ALL'
                             || !empty($search);
                     @endphp
 
@@ -250,7 +251,7 @@
 
             {{-- Header Tabel & Kontrol Terpadu (Shrink-0) --}}
             <div class="px-5 py-2.5 border-b border-base-200 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                     @if($selectedStatusFilter !== 'ALL')
                         <button type="button" 
                                 wire:click="setStatusFilter('ALL')" 
@@ -260,17 +261,46 @@
                             <x-heroicon-s-x-mark class="w-3.5 h-3.5" />
                         </button>
                     @endif
+
+                    @if($selectedMovementFilter !== 'ALL')
+                        @php
+                            $mvLabels = [
+                                'FAST' => '🚀 Fast Moving',
+                                'MEDIUM' => '⚖️ Medium Moving',
+                                'SLOW' => '🐢 Slow Moving',
+                                'DEAD' => '⛔ Dead SKU',
+                            ];
+                        @endphp
+                        <button type="button" 
+                                wire:click="setMovementFilter('ALL')" 
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 transition-colors text-xs font-semibold cursor-pointer"
+                                title="Klik untuk reset filter kecepatan">
+                            <span>Gerak: {{ $mvLabels[$selectedMovementFilter] ?? $selectedMovementFilter }}</span>
+                            <x-heroicon-s-x-mark class="w-3.5 h-3.5" />
+                        </button>
+                    @endif
                 </div>
 
                 <div class="flex items-center gap-2.5 flex-wrap w-full sm:w-auto justify-end">
                     {{-- Dropdown Filter Status Diagnosa --}}
                     <div class="flex items-center">
-                        <select wire:model.live="selectedStatusFilter" class="select select-sm h-8 min-h-0 text-xs rounded-xl bg-base-100 border-base-300 font-medium focus:border-primary focus:outline-hidden {{ $selectedStatusFilter !== 'ALL' ? 'border-primary text-primary font-semibold' : 'text-base-content/70' }}">
+                        <select wire:model.live="selectedStatusFilter" class="select select-sm h-8 min-h-0 text-xs rounded-xl bg-base-100 border-base-300 font-medium focus:border-primary focus:outline-hidden {{ $selectedStatusFilter !== 'ALL' ? 'border-primary text-primary font-semibold' : 'text-base-content/70' }}" title="Filter Berdasarkan Status Diagnosa">
                             <option value="ALL">Semua Diagnosa ({{ number_format($metrics['total_records']) }})</option>
                             <option value="PHANTOM_SALES">🔴 Penjualan Aneh ({{ number_format($metrics['count_phantom']) }})</option>
                             <option value="OVER_STOCK">🟡 Over Stock ({{ number_format($metrics['count_overstock']) }})</option>
                             <option value="UNDER_STOCK">🔵 Under Stock ({{ number_format($metrics['count_understock']) }})</option>
                             <option value="IDEAL">🟢 Ideal ({{ number_format($metrics['count_ideal']) }})</option>
+                        </select>
+                    </div>
+
+                    {{-- Dropdown Filter Kecepatan Gerak (Fast / Slow) --}}
+                    <div class="flex items-center">
+                        <select wire:model.live="selectedMovementFilter" class="select select-sm h-8 min-h-0 text-xs rounded-xl bg-base-100 border-base-300 font-medium focus:border-primary focus:outline-hidden {{ $selectedMovementFilter !== 'ALL' ? 'border-primary text-primary font-semibold' : 'text-base-content/70' }}" title="Filter Berdasarkan Kecepatan Gerak SKU">
+                            <option value="ALL">Semua Kecepatan</option>
+                            <option value="FAST">🚀 Fast Moving ({{ number_format($metrics['count_fast']) }})</option>
+                            <option value="MEDIUM">⚖️ Medium Moving ({{ number_format($metrics['count_medium']) }})</option>
+                            <option value="SLOW">🐢 Slow Moving ({{ number_format($metrics['count_slow']) }})</option>
+                            <option value="DEAD">⛔ Dead SKU ({{ number_format($metrics['count_dead']) }})</option>
                         </select>
                     </div>
 
@@ -361,6 +391,18 @@
                             <th wire:click="sortBy('doi_days')" class="py-3 text-center cursor-pointer hover:text-base-content bg-base-200" title="Days of Inventory (Hari): Sisa Stok ÷ (AVG Sell Out ÷ 30) — Kuning > 30 Hari, Merah > 50 Hari">
                                 DOI
                                 @if ($sortField === 'doi_days') <span class="text-primary">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span> @endif
+                            </th>
+                            <th wire:click="sortBy('movement_class')" class="py-3 text-center cursor-pointer hover:text-base-content bg-base-200" title="Kecepatan Gerak SKU: Fast, Medium, Slow, Dead">
+                                <div class="inline-flex items-center justify-center gap-1">
+                                    <span>Gerak</span>
+                                    @if ($sortField === 'movement_class') <span class="text-primary">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span> @endif
+                                    <button type="button"
+                                            @click.stop="showDiagnosticInfo = true"
+                                            class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all cursor-pointer"
+                                            title="Klik untuk melihat kriteria Fast, Medium, Slow & Dead Moving">
+                                        <x-heroicon-s-information-circle class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
                             </th>
                             <th class="py-3 pr-5 text-center bg-base-200">
                                 <div class="inline-flex items-center justify-center gap-1">
@@ -481,7 +523,37 @@
                                     @endif
                                 </td>
 
-                                {{-- 10. Diagnosa (Hanya Badge Status) --}}
+                                {{-- 10. Kecepatan Gerak SKU (Fast / Med / Slow / Dead) --}}
+                                <td class="py-3 text-center">
+                                    @php
+                                        [$mvClass, $mvLabel] = match($s->movement_class ?? 'SLOW') {
+                                            'FAST' => [
+                                                'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20',
+                                                '🚀 Fast'
+                                            ],
+                                            'MEDIUM' => [
+                                                'bg-sky-500/10 text-sky-600 border-sky-500/20 hover:bg-sky-500/20',
+                                                '⚖️ Med'
+                                            ],
+                                            'DEAD' => [
+                                                'bg-slate-500/10 text-slate-600 border-slate-500/20 hover:bg-slate-500/20',
+                                                '⛔ Dead'
+                                            ],
+                                            default => [
+                                                'bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20',
+                                                '🐢 Slow'
+                                            ],
+                                        };
+                                    @endphp
+                                    <button type="button"
+                                            wire:click="setMovementFilter('{{ $s->movement_class }}')"
+                                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border transition-all cursor-pointer {{ $mvClass }}"
+                                            title="Kecepatan: {{ $mvLabel }} (Klik untuk filter)">
+                                        {{ $mvLabel }}
+                                    </button>
+                                </td>
+
+                                {{-- 11. Diagnosa (Hanya Badge Status) --}}
                                 <td class="py-3 pr-5 text-center">
                                     @php
                                         [$badgeClass, $badgeLabel] = match($s->sales_flow_status) {
@@ -561,9 +633,9 @@
                 {{-- Body Modal --}}
                 <div class="p-6 space-y-4">
                     @if ($uploadErrorMessage)
-                        <div class="alert alert-error rounded-2xl text-xs py-2.5">
-                            <x-heroicon-s-x-circle class="w-5 h-5 shrink-0" />
-                            <span>{{ $uploadErrorMessage }}</span>
+                        <div class="alert alert-error rounded-2xl text-xs py-2.5 items-start">
+                            <x-heroicon-s-x-circle class="w-5 h-5 shrink-0 mt-0.5" />
+                            <div class="whitespace-pre-line leading-relaxed font-medium">{{ $uploadErrorMessage }}</div>
                         </div>
                     @endif
                     @if ($uploadSuccessMessage)
@@ -573,11 +645,9 @@
                                 <p class="font-bold">{{ $uploadSuccessMessage }}</p>
                                 @if ($uploadSummary)
                                     <div class="text-[11px] mt-1 space-y-0.5">
-                                        <p>• Total Baris Diproses: {{ number_format($uploadSummary['total_rows']) }}</p>
-                                        <p class="text-rose-700">• Penjualan Aneh (Phantom): {{ number_format($uploadSummary['phantom_sales']) }}</p>
-                                        <p class="text-amber-700">• Gudang Banjir (Over-Stock): {{ number_format($uploadSummary['channel_stuffing']) }}</p>
-                                        <p class="text-slate-700">• Dead SKU (0 Out): {{ number_format($uploadSummary['dead_sku']) }}</p>
-                                        <p class="text-sky-700">• Darurat Stok (Kritis): {{ number_format($uploadSummary['stockout_risk']) }}</p>
+                                        <p>• Total Baris Diproses: {{ number_format($uploadSummary['total_rows'] ?? 0) }}</p>
+                                        <p class="text-emerald-700">• Total Fisik Masuk: {{ number_format($uploadSummary['total_stock_ktn'] ?? 0) }} Karton</p>
+                                        <p class="text-primary">• Total Estimasi Nilai: Rp {{ number_format($uploadSummary['total_value_rp'] ?? 0, 0, ',', '.') }}</p>
                                     </div>
                                 @endif
                             </div>
@@ -764,6 +834,32 @@
                                     Kondisi stok dan aliran penjualan seimbang sempurna. Stok aman dari risiko kehabisan dan tidak menumpuk berlebih di gudang.
                                 </p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Bagian 3: Klasifikasi Kecepatan Gerak SKU --}}
+                <div class="space-y-2.5">
+                    <h4 class="font-bold text-xs uppercase tracking-wider text-base-content/80 flex items-center gap-1.5">
+                        <x-heroicon-s-bolt class="w-4 h-4 text-emerald-600" />
+                        3. Klasifikasi Kecepatan Gerak SKU (Fast, Medium, Slow, Dead)
+                    </h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div class="p-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+                            <span class="font-bold text-emerald-600">🚀 Fast Moving:</span>
+                            <span class="text-base-content/70">AVG 3LM &ge; 100 ktn ATAU DOI &le; 25 hari. Barang laris perputaran cepat.</span>
+                        </div>
+                        <div class="p-2.5 rounded-xl border border-sky-500/20 bg-sky-500/5">
+                            <span class="font-bold text-sky-600">⚖️ Medium Moving:</span>
+                            <span class="text-base-content/70">AVG 3LM 20 - 99 ktn ATAU DOI 26 - 45 hari. Perputaran teratur dan stabil.</span>
+                        </div>
+                        <div class="p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5">
+                            <span class="font-bold text-amber-600">🐢 Slow Moving:</span>
+                            <span class="text-base-content/70">AVG 3LM &lt; 20 ktn ATAU DOI &gt; 45 hari. Permintaan lambat diserap toko.</span>
+                        </div>
+                        <div class="p-2.5 rounded-xl border border-slate-500/20 bg-slate-500/5">
+                            <span class="font-bold text-slate-700">⛔ Dead SKU:</span>
+                            <span class="text-base-content/70">AVG 3LM = 0. Tidak ada penjualan riil ke toko dalam 3 bulan terakhir.</span>
                         </div>
                     </div>
                 </div>

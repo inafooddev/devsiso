@@ -152,6 +152,46 @@ class SalesDiagnosticService
         $distCodes = collect($rows)->pluck('distributor_code')->unique()->filter()->values()->all();
         $prodCodes = collect($rows)->pluck('product_id')->unique()->filter()->values()->all();
 
+        // 0. Validasi Master Distributor & Master Produk (Wajib Terdaftar)
+        $existingDistributors = DB::table('master_distributors')
+            ->whereIn('distributor_code', $distCodes)
+            ->pluck('distributor_name', 'distributor_code');
+
+        $missingDistributors = array_values(array_diff($distCodes, $existingDistributors->keys()->all()));
+
+        $existingProducts = DB::table('product_masters')
+            ->whereIn('product_id', $prodCodes)
+            ->pluck('product_name', 'product_id');
+
+        $missingProducts = array_values(array_diff($prodCodes, $existingProducts->keys()->all()));
+
+        if (!empty($missingDistributors) || !empty($missingProducts)) {
+            $errorLines = [];
+            if (!empty($missingDistributors)) {
+                $countD = count($missingDistributors);
+                $sampleD = implode(', ', array_slice($missingDistributors, 0, 5));
+                $moreD = $countD > 5 ? " dan " . ($countD - 5) . " lainnya" : "";
+                $errorLines[] = "• {$countD} Kode Distributor belum terdaftar di Master Distributor: [{$sampleD}{$moreD}].";
+            }
+
+            if (!empty($missingProducts)) {
+                $countP = count($missingProducts);
+                $sampleP = implode(', ', array_slice($missingProducts, 0, 5));
+                $moreP = $countP > 5 ? " dan " . ($countP - 5) . " lainnya" : "";
+                $errorLines[] = "• {$countP} Kode Produk (SKU) belum terdaftar di Master Produk: [{$sampleP}{$moreP}].";
+            }
+
+            $errorMessage = "Upload Dibatalkan!\n" . implode("\n", $errorLines) . "\nSilakan daftarkan terlebih dahulu master data di atas atau perbaiki kode di file Excel sebelum mengunggah.";
+
+            return [
+                'success'              => false,
+                'message'              => $errorMessage,
+                'missing_distributors' => $missingDistributors,
+                'missing_products'     => $missingProducts,
+                'total_rows'           => 0,
+            ];
+        }
+
         // 1. Ambil Stok Awal dari closing bulan lalu
         $prevStocks = DB::table('distributor_stocks')
             ->where('bulan', $prevBulan)
@@ -374,6 +414,15 @@ class SalesDiagnosticService
             ->merge(array_keys($sellIns->all()))
             ->merge(array_keys($sellOuts->all()))
             ->unique();
+
+        // Filter: Pastikan hanya distributor dan produk yang valid di master data
+        $validDistSet = DB::table('master_distributors')->pluck('distributor_code')->flip();
+        $validProdSet = DB::table('product_masters')->pluck('product_id')->flip();
+
+        $allKeys = $allKeys->filter(function ($key) use ($validDistSet, $validProdSet) {
+            $parts = explode('_', $key, 2);
+            return count($parts) === 2 && isset($validDistSet[$parts[0]]) && isset($validProdSet[$parts[1]]);
+        });
 
         if ($allKeys->isEmpty()) {
             return 0;

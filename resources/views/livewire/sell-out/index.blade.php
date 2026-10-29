@@ -7,122 +7,159 @@
 
         <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
             
-            {{-- Header Card & Actions --}}
-            <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
-                <div class="shrink-0 w-full sm:w-auto">
-                    <h2 class="text-base md:text-lg font-bold">Data Ringkasan Sell Out</h2>
-                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Ringkasan transaksi invoice sales distributor</p>
-                </div>
-                
-                <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
-                    <!-- Search Component -->
-                    <x-ui.search-input 
-                        wire:model.live.debounce.300ms="search" 
-                        placeholder="Cari Region, Area, Distributor..." 
+            {{-- Header Toolbar (Standar DevSISO UI Component Filter) --}}
+            <x-ui.filter-toolbar>
+                {{-- 1. Search Box Input --}}
+                <x-ui.search-input 
+                    wire:model.live.debounce.300ms="search" 
+                    placeholder="Cari Region, Area, Distributor..." 
+                    class="w-48 sm:w-56" 
+                />
+
+                {{-- 2. Kapsul Filter Hierarki & Status (Breadcrumb Capsule) --}}
+                <x-ui.filter-breadcrumb>
+                    {{-- Region Segment --}}
+                    <x-ui.filter-select 
+                        wire:model.live="regionFilter" 
+                        :options="$regions" 
+                        valueField="region_code" 
+                        labelField="region_name" 
+                        placeholder="Semua Region" 
+                        icon="globe" 
+                        width="w-32 sm:w-36" 
                     />
 
-                    <!-- Custom Month Picker Component -->
-                    <div x-data="{
-                            open: false,
-                            month: @entangle('monthFilter').live,
-                            year: @entangle('yearFilter').live,
-                            monthNames: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                            get monthName() {
-                                return this.month ? this.monthNames[this.month - 1] : '';
-                            },
-                            get displayText() {
-                                if (this.month && this.year) return this.monthName + ' ' + this.year;
-                                if (this.year) return 'Semua Bulan ' + this.year;
-                                if (this.month) return this.monthName + ' Semua Tahun';
-                                return 'Semua Waktu';
-                            },
-                            get safeYear() {
-                                return this.year || new Date().getFullYear();
-                            },
-                            decYear() {
-                                this.year = this.safeYear - 1;
-                            },
-                            incYear() {
-                                this.year = this.safeYear + 1;
-                            },
-                            setThisMonth() {
-                                let d = new Date();
-                                this.month = d.getMonth() + 1;
-                                this.year = d.getFullYear();
-                                this.open = false;
-                            },
-                            clear() {
-                                this.month = null;
-                                this.year = null;
-                                this.open = false;
-                            }
-                        }" 
-                        class="relative"
-                    >
-                        <!-- Trigger Button -->
-                        <button type="button" @click="open = !open" class="btn btn-sm bg-base-100 border-base-300 hover:bg-base-200 text-base-content/80 font-medium rounded-xl gap-2 min-w-[120px] justify-between shadow-sm">
-                            <span x-text="displayText" class="flex-1 text-left"></span>
-                            <x-heroicon-m-calendar class="w-4 h-4 opacity-50 shrink-0" />
-                        </button>
+                    {{-- Area Segment --}}
+                    <x-ui.filter-select 
+                        wire:model.live="areaFilter" 
+                        :options="$areas" 
+                        valueField="area_code" 
+                        labelField="area_name" 
+                        placeholder="Semua Area" 
+                        icon="map-pin" 
+                        width="w-32 sm:w-36" 
+                        :disabled="empty($regionFilter)" 
+                    />
 
-                        <!-- Popover -->
-                        <div x-show="open" @click.away="open = false" style="display: none;"
-                             class="absolute right-0 mt-2 w-64 bg-base-100 border border-base-300 shadow-xl rounded-2xl z-50 p-4"
-                             x-transition:enter="transition ease-out duration-100"
-                             x-transition:enter-start="transform opacity-0 scale-95"
-                             x-transition:enter-end="transform opacity-100 scale-100"
-                             x-transition:leave="transition ease-in duration-75"
-                             x-transition:leave-start="transform opacity-100 scale-100"
-                             x-transition:leave-end="transform opacity-0 scale-95">
-                             
-                             <!-- Header / Year Selector -->
-                             <div class="flex items-center justify-between mb-4 bg-base-200/50 rounded-lg p-1">
-                                 <button type="button" @click="decYear()" class="btn btn-ghost btn-xs btn-square">
-                                     <x-heroicon-m-chevron-left class="w-4 h-4" />
+                    {{-- Status Distributor Segment --}}
+                    <x-ui.filter-select 
+                        wire:model.live="statusFilter" 
+                        :options="['1' => 'Dist. Aktif', '0' => 'Dist. Tidak Aktif']" 
+                        placeholder="Semua Status Dist." 
+                        icon="tag" 
+                        width="w-32 sm:w-36" 
+                    />
+
+                    {{-- Status Update Segment (Sudah / Belum) --}}
+                    <x-ui.filter-select 
+                        wire:model.live="updateStatusFilter" 
+                        :options="['sudah' => '🟢 Sudah Update', 'belum' => '🔴 Belum Update']" 
+                        placeholder="Semua Status Update" 
+                        icon="tag" 
+                        width="w-36 sm:w-40" 
+                    />
+                </x-ui.filter-breadcrumb>
+
+                {{-- 3. Custom Month & Year Picker --}}
+                <div x-data="{
+                        open: false,
+                        month: @entangle('monthFilter').live,
+                        year: @entangle('yearFilter').live,
+                        monthNames: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                        get monthName() {
+                            return this.month ? this.monthNames[this.month - 1] : '';
+                        },
+                        get displayText() {
+                            if (this.month && this.year) return this.monthName + ' ' + this.year;
+                            if (this.year) return 'Semua Bulan ' + this.year;
+                            if (this.month) return this.monthName + ' Semua Tahun';
+                            return 'Semua Waktu';
+                        },
+                        get safeYear() {
+                            return this.year || new Date().getFullYear();
+                        },
+                        decYear() {
+                            this.year = this.safeYear - 1;
+                        },
+                        incYear() {
+                            this.year = this.safeYear + 1;
+                        },
+                        setThisMonth() {
+                            let d = new Date();
+                            this.month = d.getMonth() + 1;
+                            this.year = d.getFullYear();
+                            this.open = false;
+                        },
+                        clear() {
+                            this.month = null;
+                            this.year = null;
+                            this.open = false;
+                        }
+                    }" 
+                    class="relative"
+                >
+                    <button type="button" @click="open = !open" class="btn btn-sm bg-base-100 border-base-300 hover:bg-base-200 text-base-content/80 font-medium rounded-xl gap-2 min-w-[120px] justify-between shadow-2xs">
+                        <span x-text="displayText" class="flex-1 text-left truncate text-xs"></span>
+                        <x-heroicon-m-calendar class="w-4 h-4 opacity-50 shrink-0" />
+                    </button>
+
+                    <div x-show="open" @click.away="open = false" style="display: none;"
+                         class="absolute left-0 sm:left-auto sm:right-0 mt-2 w-64 bg-base-100 border border-base-300 shadow-xl rounded-2xl z-50 p-4"
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="transform opacity-0 scale-95"
+                         x-transition:enter-end="transform opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="transform opacity-100 scale-100"
+                         x-transition:leave-end="transform opacity-0 scale-95">
+                         
+                         <div class="flex items-center justify-between mb-4 bg-base-200/50 rounded-lg p-1">
+                             <button type="button" @click="decYear()" class="btn btn-ghost btn-xs btn-square">
+                                 <x-heroicon-m-chevron-left class="w-4 h-4" />
+                             </button>
+                             <span class="font-bold text-base-content text-sm" x-text="safeYear"></span>
+                             <button type="button" @click="incYear()" class="btn btn-ghost btn-xs btn-square">
+                                 <x-heroicon-m-chevron-right class="w-4 h-4" />
+                             </button>
+                         </div>
+
+                         <div class="grid grid-cols-4 gap-1.5 mb-4">
+                             <template x-for="(name, index) in monthNames">
+                                 <button type="button" 
+                                         @click="month = index + 1; open = false;"
+                                         class="px-1 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                                         :class="month === (index + 1) ? 'bg-primary text-primary-content shadow-md shadow-primary/20' : 'hover:bg-base-200 text-base-content/80'"
+                                         x-text="name">
                                  </button>
-                                 <span class="font-bold text-base-content text-sm" x-text="safeYear"></span>
-                                 <button type="button" @click="incYear()" class="btn btn-ghost btn-xs btn-square">
-                                     <x-heroicon-m-chevron-right class="w-4 h-4" />
-                                 </button>
-                             </div>
+                             </template>
+                         </div>
 
-                             <!-- Month Grid -->
-                             <div class="grid grid-cols-4 gap-1.5 mb-4">
-                                 <template x-for="(name, index) in monthNames">
-                                     <button type="button" 
-                                             @click="month = index + 1; open = false;"
-                                             class="px-1 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                                             :class="month === (index + 1) ? 'bg-primary text-primary-content shadow-md shadow-primary/20' : 'hover:bg-base-200 text-base-content/80'"
-                                             x-text="name">
-                                     </button>
-                                 </template>
-                             </div>
-
-                             <!-- Footer -->
-                             <div class="flex items-center justify-between pt-3 border-t border-base-200">
-                                 <button type="button" @click="clear()" class="text-xs font-semibold text-primary hover:text-primary/80">Clear</button>
-                                 <button type="button" @click="setThisMonth()" class="text-xs font-semibold text-primary hover:text-primary/80">This month</button>
-                             </div>
-                        </div>
-                    </div>
-                    
-                    <div class="flex flex-wrap items-center gap-1 md:gap-2">
-                        {{-- FILTER --}}
-                        <x-ui.action-button
-                            type="filter"
-                            wire:click="$set('isFilterModalOpen', true)"
-                        />
-
-                        {{-- EXPORT --}}
-                        @canExport('sales-invoice-report.index')
-                        <x-ui.action-button
-                            type="export"
-                            wire:click="$set('isExportModalOpen', true)"
-                        />
-                        @endcanExport
+                         <div class="flex items-center justify-between pt-3 border-t border-base-200">
+                             <button type="button" @click="clear()" class="text-xs font-semibold text-primary hover:text-primary/80">Clear</button>
+                             <button type="button" @click="setThisMonth()" class="text-xs font-semibold text-primary hover:text-primary/80">This month</button>
+                         </div>
                     </div>
                 </div>
-            </div>
+
+                {{-- 4. Actions Slot (Reset & Export) --}}
+                <x-slot:actions>
+                    @if (!empty($search) || $statusFilter !== '1' || !empty($updateStatusFilter) || !empty($regionFilter) || !empty($areaFilter))
+                        <button type="button" 
+                            wire:click="resetFilters" 
+                            class="btn btn-sm btn-ghost border border-base-300 rounded-xl text-base-content/70 hover:text-base-content text-xs cursor-pointer gap-1"
+                            title="Reset semua filter">
+                            <x-heroicon-m-arrow-path class="w-3.5 h-3.5" />
+                            <span class="hidden sm:inline">Reset</span>
+                        </button>
+                    @endif
+
+                    @canExport('sales-invoice-report.index')
+                    <x-ui.action-button
+                        type="export"
+                        wire:click="$set('isExportModalOpen', true)"
+                    />
+                    @endcanExport
+                </x-slot:actions>
+            </x-ui.filter-toolbar>
 
             <!-- Table Content -->
             <div class="flex-1 min-h-0 overflow-hidden relative flex flex-col">
@@ -231,125 +268,7 @@
         </div>
     </div>
 
-    <!-- Modal Filter -->
-    <div x-data="{ open: @entangle('isFilterModalOpen') }" x-show="open" x-cloak wire:ignore.self class="fixed z-50 inset-0 flex items-center justify-center">
-        <div x-show="open" x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-             x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-             class="fixed inset-0 bg-base-100/80 backdrop-blur-sm" @click="open = false"></div>
 
-        <div x-show="open"
-             x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
-             x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-             class="relative bg-base-200 rounded-2xl shadow-2xl ring-1 ring-base-300 w-full max-w-lg mx-4 overflow-visible">
-
-            <form wire:submit.prevent="applyFilters">
-                <div class="px-6 pt-6 pb-4">
-                    <div class="flex justify-between items-center mb-5">
-                        <h3 class="text-lg font-bold text-base-content">Filter Laporan</h3>
-                        <button @click="open = false" type="button" class="btn btn-ghost btn-sm btn-square rounded-xl">
-                            <x-heroicon-o-x-mark class="h-5 w-5" />
-                        </button>
-                    </div>
-
-                    <div class="space-y-4">
-                        <!-- Status -->
-                        <div>
-                            <label class="block text-sm font-medium text-base-content/70 mb-1.5">Status Distributor</label>
-                            <select wire:model.defer="statusFilter" class="select select-bordered select-sm w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-primary/50">
-                                <option value="">Semua Status</option>
-                                <option value="1">Aktif</option>
-                                <option value="0">Tidak Aktif</option>
-                            </select>
-                        </div>
-
-                        <!-- Region Multi-select -->
-                        <div x-data="{ openRegion: false }" class="relative">
-                            <label class="block text-sm font-medium text-base-content/70 mb-1.5">Region</label>
-                            <button type="button" @click="openRegion = !openRegion"
-                                class="select select-bordered select-sm w-full bg-base-100 border-base-300 rounded-xl text-left font-normal text-base-content flex items-center justify-between">
-                                <span>
-                                    @if(count($regionFilter) == count($regions)) Semua Region
-                                    @elseif(count($regionFilter) > 0) <span class="font-semibold text-primary">{{ count($regionFilter) }}</span> Region terpilih
-                                    @else Pilih Region @endif
-                                </span>
-                            </button>
-                            <div x-show="openRegion" @click.away="openRegion = false"
-                                class="absolute z-20 mt-1 w-full bg-base-100 shadow-xl rounded-xl border border-base-300 overflow-hidden">
-                                <div class="px-3 py-2 flex justify-between border-b border-base-300 bg-base-200">
-                                    <button type="button" wire:click="selectAllRegions" class="text-xs font-medium text-primary hover:text-primary/80">Pilih Semua</button>
-                                    <button type="button" wire:click="clearRegions" class="text-xs font-medium text-base-content/50 hover:text-base-content">Hapus</button>
-                                </div>
-                                <div class="max-h-40 overflow-y-auto p-2 space-y-1">
-                                    @foreach ($regions as $region)
-                                        <label class="flex items-center p-1.5 hover:bg-base-200 rounded-lg cursor-pointer transition-colors">
-                                            <input type="checkbox" wire:model.live="regionFilter" value="{{ $region->region_code }}" class="checkbox checkbox-primary checkbox-xs rounded">
-                                            <span class="ml-2.5 text-sm text-base-content/80">{{ $region->region_name }}</span>
-                                        </label>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Area Multi-select -->
-                        <div x-data="{ openArea: false }" class="relative">
-                            <label class="block text-sm font-medium text-base-content/70 mb-1.5">Area</label>
-                            <button type="button" @click="openArea = !openArea"
-                                class="select select-bordered select-sm w-full bg-base-100 border-base-300 rounded-xl text-left font-normal text-base-content flex items-center justify-between {{ empty($regionFilter) ? 'opacity-50 cursor-not-allowed' : '' }}"
-                                @if(empty($regionFilter)) disabled @endif>
-                                <span>
-                                    @if(count($areaFilter) == count($areas) && count($areas) > 0) Semua Area
-                                    @elseif(count($areaFilter) > 0) <span class="font-semibold text-primary">{{ count($areaFilter) }}</span> Area terpilih
-                                    @else Pilih Area @endif
-                                </span>
-                            </button>
-                            <div x-show="openArea" @click.away="openArea = false"
-                                class="absolute z-10 mt-1 w-full bg-base-100 shadow-xl rounded-xl border border-base-300 overflow-hidden">
-                                <div class="px-3 py-2 flex justify-between border-b border-base-300 bg-base-200">
-                                    <button type="button" wire:click="selectAllAreas" class="text-xs font-medium text-primary hover:text-primary/80">Pilih Semua</button>
-                                    <button type="button" wire:click="clearAreas" class="text-xs font-medium text-base-content/50 hover:text-base-content">Hapus</button>
-                                </div>
-                                <div class="max-h-40 overflow-y-auto p-2 space-y-1">
-                                    @forelse($areas as $area)
-                                        <label class="flex items-center p-1.5 hover:bg-base-200 rounded-lg cursor-pointer transition-colors">
-                                            <input type="checkbox" wire:model.live="areaFilter" value="{{ $area->area_code }}" class="checkbox checkbox-primary checkbox-xs rounded">
-                                            <span class="ml-2.5 text-sm text-base-content/80">{{ $area->area_name }}</span>
-                                        </label>
-                                    @empty
-                                        <p class="text-sm text-base-content/40 p-2 text-center">Pilih region terlebih dahulu</p>
-                                    @endforelse
-                                </div>
-                            </div>
-                        </div>
-
-
-                    </div>
-                </div>
-
-                <div class="px-6 py-4 border-t border-base-300 flex flex-wrap items-center sm:justify-end gap-3">
-                    <x-ui.action-button
-                        type="default"
-                        label="Batal"
-                        @click="open = false"
-                        class="btn-ghost sm:mr-auto shrink-0"
-                    />
-
-                    <x-ui.action-button
-                        type="default"
-                        label="Reset"
-                        wire:click="resetFilters"
-                        class="btn-ghost border border-base-300 hover:bg-base-200 shrink-0"
-                    />
-
-                    <x-ui.action-button
-                        type="save"
-                        label="Terapkan"
-                        icon=""
-                        class="shrink-0"
-                    />
-                </div>
-            </form>
-        </div>
-    </div>
 
     <!-- Modal Export -->
     <div x-data="{ open: @entangle('isExportModalOpen') }" x-show="open" x-cloak wire:ignore.self class="fixed z-50 inset-0 flex items-center justify-center">

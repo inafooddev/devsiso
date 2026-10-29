@@ -33,8 +33,9 @@ class RekonStok extends Component
     public string $selectedDistributor = '';
     public string $search = '';
 
-    // Filter Cepat Status Anomali
+    // Filter Cepat Status Anomali & Kecepatan
     public string $selectedStatusFilter = 'ALL';
+    public string $selectedMovementFilter = 'ALL';
 
     // Pagination & Sorting
     public int $perPage = 25;
@@ -57,14 +58,15 @@ class RekonStok extends Component
     public bool $isAreaLocked = false;
 
     protected $queryString = [
-        'selectedYear'         => ['except' => 0],
-        'selectedMonth'        => ['except' => 0],
-        'viewMode'             => ['except' => 'product'],
-        'selectedRegion'       => ['except' => ''],
-        'selectedArea'         => ['except' => ''],
-        'selectedDistributor'  => ['except' => ''],
-        'selectedStatusFilter' => ['except' => 'ALL'],
-        'search'               => ['except' => ''],
+        'selectedYear'           => ['except' => 0],
+        'selectedMonth'          => ['except' => 0],
+        'viewMode'               => ['except' => 'product'],
+        'selectedRegion'         => ['except' => ''],
+        'selectedArea'           => ['except' => ''],
+        'selectedDistributor'    => ['except' => ''],
+        'selectedStatusFilter'   => ['except' => 'ALL'],
+        'selectedMovementFilter' => ['except' => 'ALL'],
+        'search'                 => ['except' => ''],
     ];
 
     public function mount()
@@ -95,6 +97,7 @@ class RekonStok extends Component
 
     public function updatingSearch() { $this->resetPage(); }
     public function updatingSelectedStatusFilter() { $this->resetPage(); }
+    public function updatingSelectedMovementFilter() { $this->resetPage(); }
     public function updatingSelectedRegion() { $this->selectedArea = ''; $this->selectedDistributor = ''; $this->resetPage(); }
     public function updatingSelectedArea() { $this->selectedDistributor = ''; $this->resetPage(); }
     public function updatingSelectedDistributor() { $this->resetPage(); }
@@ -125,7 +128,13 @@ class RekonStok extends Component
 
     public function setStatusFilter(string $status)
     {
-        $this->selectedStatusFilter = $status;
+        $this->selectedStatusFilter = ($this->selectedStatusFilter === $status && $status !== 'ALL') ? 'ALL' : $status;
+        $this->resetPage();
+    }
+
+    public function setMovementFilter(string $filter)
+    {
+        $this->selectedMovementFilter = ($this->selectedMovementFilter === $filter && $filter !== 'ALL') ? 'ALL' : $filter;
         $this->resetPage();
     }
 
@@ -143,6 +152,7 @@ class RekonStok extends Component
     public function resetFilters()
     {
         $this->selectedStatusFilter = 'ALL';
+        $this->selectedMovementFilter = 'ALL';
         $this->search = '';
 
         if (!$this->isAreaLocked) {
@@ -377,19 +387,25 @@ class RekonStok extends Component
                 'g.*',
                 DB::raw('COALESCE(so3lm.avg_3lm_sellout, 0.0) as avg_3lm_sellout'),
                 DB::raw("CASE
-                    WHEN COALESCE(so3lm.avg_3lm_sellout, 0) > 0 THEN ROUND(((g.sisa_stok_berjalan / so3lm.avg_3lm_sellout) * 100)::numeric, 1)
+                    WHEN COALESCE(so3lm.avg_3lm_sellout, 0) > 0 THEN ROUND(((g.sisa_stok_berjalan / NULLIF(so3lm.avg_3lm_sellout, 0)) * 100)::numeric, 1)
                     WHEN g.sisa_stok_berjalan > 0 THEN 999999.0
                     ELSE 0.0
                 END as ratio_sisa_avg"),
                 DB::raw("CASE
-                    WHEN COALESCE(so3lm.avg_3lm_sellout, 0) > 0 THEN ROUND((g.sisa_stok_berjalan / (so3lm.avg_3lm_sellout / 30.0))::numeric, 1)
+                    WHEN COALESCE(so3lm.avg_3lm_sellout, 0) > 0 THEN ROUND((g.sisa_stok_berjalan / NULLIF(so3lm.avg_3lm_sellout / 30.0, 0))::numeric, 1)
                     WHEN g.sisa_stok_berjalan > 0 THEN 999999.0
                     ELSE 0.0
                 END as doi_days"),
                 DB::raw("CASE
+                    WHEN COALESCE(so3lm.avg_3lm_sellout, 0) <= 0 THEN 'DEAD'
+                    WHEN COALESCE(so3lm.avg_3lm_sellout, 0) >= 100 OR (COALESCE(so3lm.avg_3lm_sellout, 0) > 0 AND (g.sisa_stok_berjalan / NULLIF(so3lm.avg_3lm_sellout / 30.0, 0)) <= 25) THEN 'FAST'
+                    WHEN COALESCE(so3lm.avg_3lm_sellout, 0) >= 20 OR (COALESCE(so3lm.avg_3lm_sellout, 0) > 0 AND (g.sisa_stok_berjalan / NULLIF(so3lm.avg_3lm_sellout / 30.0, 0)) <= 45) THEN 'MEDIUM'
+                    ELSE 'SLOW'
+                END as movement_class"),
+                DB::raw("CASE
                     WHEN g.sisa_stok_berjalan < 0 THEN 'PHANTOM_SALES'
-                    WHEN g.sisa_stok_berjalan > 0 AND (COALESCE(so3lm.avg_3lm_sellout, 0) = 0 OR (g.sisa_stok_berjalan / (so3lm.avg_3lm_sellout / 30.0)) > 50) THEN 'OVER_STOCK'
-                    WHEN g.sisa_stok_berjalan >= 0 AND (g.sellout_ktn > 0 OR COALESCE(so3lm.avg_3lm_sellout, 0) > 0) AND (COALESCE(so3lm.avg_3lm_sellout, 0) = 0 OR ((g.sisa_stok_berjalan / so3lm.avg_3lm_sellout) * 100) < 80) THEN 'UNDER_STOCK'
+                    WHEN g.sisa_stok_berjalan > 0 AND (COALESCE(so3lm.avg_3lm_sellout, 0) = 0 OR (g.sisa_stok_berjalan / NULLIF(so3lm.avg_3lm_sellout / 30.0, 0)) > 50) THEN 'OVER_STOCK'
+                    WHEN g.sisa_stok_berjalan >= 0 AND (g.sellout_ktn > 0 OR COALESCE(so3lm.avg_3lm_sellout, 0) > 0) AND (COALESCE(so3lm.avg_3lm_sellout, 0) = 0 OR ((g.sisa_stok_berjalan / NULLIF(so3lm.avg_3lm_sellout, 0)) * 100) < 80) THEN 'UNDER_STOCK'
                     ELSE 'IDEAL'
                 END as sales_flow_status")
             );
@@ -410,6 +426,10 @@ class RekonStok extends Component
             } else {
                 $query->where('agg.sales_flow_status', $this->selectedStatusFilter);
             }
+        }
+
+        if ($this->selectedMovementFilter !== 'ALL') {
+            $query->where('agg.movement_class', $this->selectedMovementFilter);
         }
 
         if (!empty($this->search)) {
@@ -450,9 +470,13 @@ class RekonStok extends Component
             SUM(CASE WHEN agg.sales_flow_status = 'OVER_STOCK' THEN 1 ELSE 0 END) as count_overstock,
             SUM(CASE WHEN agg.sales_flow_status = 'UNDER_STOCK' THEN 1 ELSE 0 END) as count_understock,
             SUM(CASE WHEN agg.sales_flow_status = 'IDEAL' THEN 1 ELSE 0 END) as count_ideal,
-            SUM(agg.stok_closing_lalu) as total_stock_ktn,
-            SUM(CASE WHEN agg.sales_flow_status = 'OVER_STOCK' THEN agg.total_value ELSE 0 END) as value_stuck_overstock,
-            SUM(agg.total_value) as total_stock_value
+            SUM(COALESCE(agg.stok_closing_lalu, 0)) as total_stock_ktn,
+            SUM(CASE WHEN agg.sales_flow_status = 'OVER_STOCK' THEN COALESCE(agg.total_value, 0) ELSE 0 END) as value_stuck_overstock,
+            SUM(COALESCE(agg.total_value, 0)) as total_stock_value,
+            SUM(CASE WHEN agg.movement_class = 'FAST' THEN 1 ELSE 0 END) as count_fast,
+            SUM(CASE WHEN agg.movement_class = 'MEDIUM' THEN 1 ELSE 0 END) as count_medium,
+            SUM(CASE WHEN agg.movement_class = 'SLOW' THEN 1 ELSE 0 END) as count_slow,
+            SUM(CASE WHEN agg.movement_class = 'DEAD' THEN 1 ELSE 0 END) as count_dead
         ")->first();
 
         return [
@@ -465,6 +489,10 @@ class RekonStok extends Component
             'total_stock_ktn'      => (float)($metrics->total_stock_ktn ?? 0),
             'value_stuck_overstock'=> (float)($metrics->value_stuck_overstock ?? 0),
             'total_stock_value'    => (float)($metrics->total_stock_value ?? 0),
+            'count_fast'           => (int)($metrics->count_fast ?? 0),
+            'count_medium'         => (int)($metrics->count_medium ?? 0),
+            'count_slow'           => (int)($metrics->count_slow ?? 0),
+            'count_dead'           => (int)($metrics->count_dead ?? 0),
         ];
     }
 
@@ -497,6 +525,7 @@ class RekonStok extends Component
             'avg_3lm_sellout'         => 'agg.avg_3lm_sellout',
             'ratio_sisa_avg'          => 'agg.ratio_sisa_avg',
             'doi_days'                => 'agg.doi_days',
+            'movement_class'          => 'agg.movement_class',
             'sales_flow_status'       => 'agg.sales_flow_status',
         ];
 
@@ -565,8 +594,9 @@ class RekonStok extends Component
             'selectedRegion'       => $this->selectedRegion,
             'selectedArea'         => $this->selectedArea,
             'selectedDistributor'  => $this->selectedDistributor,
-            'selectedStatusFilter' => $this->selectedStatusFilter,
-            'search'               => $this->search,
+            'selectedStatusFilter'   => $this->selectedStatusFilter,
+            'selectedMovementFilter' => $this->selectedMovementFilter,
+            'search'                 => $this->search,
             'sortField'            => $this->sortField,
             'sortDirection'        => $this->sortDirection,
             'isRegionLocked'       => $this->isRegionLocked,
