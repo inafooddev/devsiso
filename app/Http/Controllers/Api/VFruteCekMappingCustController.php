@@ -53,6 +53,9 @@ class VFruteCekMappingCustController extends Controller
         }
 
         try {
+            ini_set('memory_limit', '512M');
+            set_time_limit(300);
+
             $query = DB::table('v_frute_cek_mapping_cust');
 
             // 2. Filter Dinamis
@@ -113,13 +116,34 @@ class VFruteCekMappingCustController extends Controller
             $sortDir = strtolower($request->input('sort_dir', 'asc')) === 'desc' ? 'desc' : 'asc';
             $query->orderBy($sortBy, $sortDir);
 
-            // 5. Pagination
-            $perPage = (int) $request->input('per_page', 100);
-            $results = $query->paginate($perPage);
+            // 5. Data Retrieval (Open tanpa batas halaman secara default, atau dengan pagination jika diminta)
+            $isPaginated = $request->filled('per_page') && is_numeric($request->input('per_page'));
+            
+            if ($isPaginated) {
+                $perPage = (int) $request->input('per_page');
+                $results = $query->paginate($perPage);
+                $data = $results->items();
+                $paginationMeta = [
+                    'total'        => $results->total(),
+                    'per_page'     => $results->perPage(),
+                    'current_page' => $results->currentPage(),
+                    'last_page'    => $results->lastPage(),
+                    'from'         => $results->firstItem(),
+                    'to'           => $results->lastItem(),
+                ];
+            } else {
+                // Default: OPEN seluruh data tanpa batas halaman
+                $data = $query->get();
+                $paginationMeta = [
+                    'total'        => count($data),
+                    'is_paginated' => false,
+                ];
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Data v_frute_cek_mapping_cust berhasil diambil.',
+                'total'   => $paginationMeta['total'],
                 'filters_applied' => [
                     'region'           => $request->input('region'),
                     'area'             => $request->input('area'),
@@ -129,15 +153,8 @@ class VFruteCekMappingCustController extends Controller
                     'cek_map'          => $request->input('cek_map'),
                     'search'           => $request->input('search'),
                 ],
-                'pagination' => [
-                    'total'        => $results->total(),
-                    'per_page'     => $results->perPage(),
-                    'current_page' => $results->currentPage(),
-                    'last_page'    => $results->lastPage(),
-                    'from'         => $results->firstItem(),
-                    'to'           => $results->lastItem(),
-                ],
-                'data' => $results->items(),
+                'pagination' => $paginationMeta,
+                'data' => $data,
             ]);
 
         } catch (\Throwable $e) {

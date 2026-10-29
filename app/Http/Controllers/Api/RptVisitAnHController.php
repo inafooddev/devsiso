@@ -66,6 +66,9 @@ class RptVisitAnHController extends Controller
         }
 
         try {
+            ini_set('memory_limit', '1024M');
+            set_time_limit(300);
+
             // 2. Proteksi & Penentuan Filter Tanggal (Wajib agar tidak full-scan 1.5M rows)
             $tanggal = $request->input('tanggal');
             $startDate = $request->input('start_date');
@@ -177,13 +180,34 @@ class RptVisitAnHController extends Controller
             $sortDir = strtolower($request->input('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
             $query->orderBy($sortBy, $sortDir);
 
-            // 7. Pagination
-            $perPage = (int) $request->input('per_page', 50);
-            $results = $query->paginate($perPage);
+            // 7. Data Retrieval (Open tanpa batas halaman secara default, atau dengan pagination jika diminta)
+            $isPaginated = $request->filled('per_page') && is_numeric($request->input('per_page'));
+
+            if ($isPaginated) {
+                $perPage = (int) $request->input('per_page');
+                $results = $query->paginate($perPage);
+                $data = $results->items();
+                $paginationMeta = [
+                    'total'        => $results->total(),
+                    'per_page'     => $results->perPage(),
+                    'current_page' => $results->currentPage(),
+                    'last_page'    => $results->lastPage(),
+                    'from'         => $results->firstItem(),
+                    'to'           => $results->lastItem(),
+                ];
+            } else {
+                // Default: OPEN seluruh data tanpa batas halaman
+                $data = $query->get();
+                $paginationMeta = [
+                    'total'        => count($data),
+                    'is_paginated' => false,
+                ];
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Data rpt_visit_an_h berhasil diambil.',
+                'total'   => $paginationMeta['total'],
                 'filters_applied' => [
                     'tanggal'    => $tanggal,
                     'start_date' => $queryStartDate,
@@ -199,15 +223,8 @@ class RptVisitAnHController extends Controller
                     'flag_buy'   => $request->input('flag_buy'),
                     'search'     => $request->input('search'),
                 ],
-                'pagination' => [
-                    'total'        => $results->total(),
-                    'per_page'     => $results->perPage(),
-                    'current_page' => $results->currentPage(),
-                    'last_page'    => $results->lastPage(),
-                    'from'         => $results->firstItem(),
-                    'to'           => $results->lastItem(),
-                ],
-                'data' => $results->items(),
+                'pagination' => $paginationMeta,
+                'data' => $data,
             ]);
 
         } catch (\Throwable $e) {
