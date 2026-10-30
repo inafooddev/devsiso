@@ -1016,7 +1016,7 @@ class Raport extends Component
 
     protected function computeSeYearlyHistory(string $salesmanCode, string $distributorCode, int $year)
     {
-        $cacheKey = "raport_se_hist_v1_{$salesmanCode}_{$distributorCode}_{$year}";
+        $cacheKey = "raport_se_hist_v3_{$salesmanCode}_{$distributorCode}_{$year}";
 
         return Cache::remember($cacheKey, 300, function () use ($salesmanCode, $distributorCode, $year) {
             $monthNames = [
@@ -1112,6 +1112,8 @@ class Raport extends Component
 
             // 5. Findings / Anomali (Pilar 3)
             $findingsObj = new \App\Livewire\Report\AnalisaKunjunganSe\Findings();
+            $findingsObj->appliedRegion = $seProfile->RID ?? $this->appliedRegion;
+            $findingsObj->appliedArea = $seProfile->EID ?? $this->appliedArea;
             $findingsObj->appliedDistributor = $distributorCode;
             $findingsObj->appliedSalesman = $salesmanCode;
             $findingsObj->appliedStartDate = "{$year}-01-01";
@@ -1213,17 +1215,31 @@ class Raport extends Component
                 $scoreP2 = round(($scoreSr * 0.40) + ($scoreVal * 0.60), 1);
 
                 // --- PILAR 3: KEPATUHAN SOP & INTEGRITAS (Bobot: 25%) ---
-                $depoCount = 0; $kembarCount = 0; $radiusCount = 0; $kilatCount = 0;
+                $depoCount = 0; $kembarCount = 0; $radiusCount = 0;
+                $kilatEcCount = 0; $kilatNonEcCount = 0; $noGpsCount = 0;
                 foreach ($seFindings as $f) {
                     $types = $f->anomaly_types ?? [];
                     if (in_array('at_distributor', $types)) $depoCount++;
                     if (in_array('duplicate_coord', $types)) $kembarCount++;
                     if (in_array('out_of_radius', $types)) $radiusCount++;
-                    if (in_array('quick_visit', $types)) $kilatCount++;
+                    if (in_array('quick_visit', $types)) {
+                        if (($f->flag_ec ?? '') === 'Y') {
+                            $kilatEcCount++;
+                        } else {
+                            $kilatNonEcCount++;
+                        }
+                    }
+                    if (in_array('no_gps', $types)) $noGpsCount++;
                 }
-                $penaltyPoints = min(100, ($depoCount * 3.0) + ($kembarCount * 2.5) + ($radiusCount * 1.0) + ($kilatCount * 1.0));
-                $cleanRate = max(0, 100 - $penaltyPoints);
-                $scoreP3 = round($cleanRate, 1);
+
+                $acDiv = max(1, $ac);
+                $penaltyRate = (($depoCount / $acDiv) * 100 * 3.0) + 
+                               (($kembarCount / $acDiv) * 100 * 2.5) + 
+                               (($radiusCount / $acDiv) * 100 * 1.0) + 
+                               (($kilatEcCount / $acDiv) * 100 * 2.0) + 
+                               (($kilatNonEcCount / $acDiv) * 100 * 0.5) +
+                               (($noGpsCount / $acDiv) * 100 * 0.2);
+                $scoreP3 = round(max(0, 100 - $penaltyRate), 1);
 
                 // --- PILAR 4: MANAJEMEN WAKTU & ALOKASI JAM KERJA (Bobot: 15%) ---
                 if ($workDaysCount > 0) {
@@ -1231,12 +1247,16 @@ class Raport extends Component
                 } else {
                     $scoreWorkDuration = 0;
                 }
-                $avgMinutesPerStore = ($ac > 0) ? round(($secConsume / $ac) / 60, 1) : 0;
-                if ($avgMinutesPerStore >= 7 && $avgMinutesPerStore <= 20) $scoreDuration = 100;
-                elseif ($avgMinutesPerStore > 20 && $avgMinutesPerStore <= 30) $scoreDuration = 80;
-                elseif ($avgMinutesPerStore >= 4 && $avgMinutesPerStore < 7) $scoreDuration = 70;
-                elseif ($avgMinutesPerStore > 30) $scoreDuration = 50;
-                else $scoreDuration = 30;
+                if ($ac > 0 && $secConsume > 0) {
+                    $avgMinutesPerStore = ($secConsume / 60 / $ac);
+                    if ($avgMinutesPerStore >= 7 && $avgMinutesPerStore <= 20) $scoreDuration = 100;
+                    elseif (($avgMinutesPerStore >= 5 && $avgMinutesPerStore < 7) || ($avgMinutesPerStore > 20 && $avgMinutesPerStore <= 30)) $scoreDuration = 85;
+                    elseif ($avgMinutesPerStore >= 3 && $avgMinutesPerStore < 5) $scoreDuration = 70;
+                    else $scoreDuration = 50;
+                } else {
+                    $avgMinutesPerStore = 0.0;
+                    $scoreDuration = 0.0;
+                }
 
                 $scoreP4 = round(($scoreWorkDuration * 0.60) + ($scoreDuration * 0.40), 1);
 
