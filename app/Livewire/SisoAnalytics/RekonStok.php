@@ -39,7 +39,7 @@ class RekonStok extends Component
 
     // Pagination & Sorting
     public int $perPage = 25;
-    public string $sortField = 'distributor_name';
+    public string $sortField = 'product_name';
     public string $sortDirection = 'asc';
 
     // State Upload Modal
@@ -51,6 +51,13 @@ class RekonStok extends Component
     public ?string $uploadErrorMessage = null;
     public ?array $uploadSummary = null;
     public bool $isProcessingUpload = false;
+
+    // State Modal Sebaran Depo
+    public bool $showDepoModal = false;
+    public ?string $selectedDepoProductId = null;
+    public ?string $selectedDepoProductName = null;
+    public array $depoBreakdownList = [];
+    public array $depoBreakdownSummary = [];
 
     // Akses Level User
     public string $userAccessLevel = 'nasional';
@@ -89,7 +96,7 @@ class RekonStok extends Component
 
         $this->uploadYear = $this->selectedYear;
         $this->uploadMonth = $this->selectedMonth;
-        $this->sortField = $this->viewMode === 'distributor' ? 'region_name' : 'distributor_name';
+        $this->sortField = $this->viewMode === 'distributor' ? 'region_name' : 'product_name';
         $this->sortDirection = 'asc';
 
         $this->ensureCurrentPeriodInitialized();
@@ -108,7 +115,7 @@ class RekonStok extends Component
     {
         if (in_array($mode, ['product', 'distributor'], true)) {
             $this->viewMode = $mode;
-            $this->sortField = $mode === 'distributor' ? 'region_name' : 'distributor_name';
+            $this->sortField = $mode === 'distributor' ? 'region_name' : 'product_name';
             $this->sortDirection = 'asc';
             $this->resetPage();
         }
@@ -144,7 +151,7 @@ class RekonStok extends Component
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
         } else {
             $this->sortField = $field;
-            $this->sortDirection = in_array($field, ['region_name', 'distributor_name', 'product_name', 'sisa_stok_berjalan', 'selisih_awal', 'doi_days'], true) ? 'asc' : 'desc';
+            $this->sortDirection = in_array($field, ['region_name', 'distributor_name', 'product_name', 'product_id', 'total_distributor', 'sisa_stok_berjalan', 'selisih_awal', 'doi_days'], true) ? 'asc' : 'desc';
         }
         $this->resetPage();
     }
@@ -180,6 +187,130 @@ class RekonStok extends Component
     {
         $this->showUploadModal = false;
         $this->stockFile = null;
+    }
+
+    public function openDepoModal(string $productId): void
+    {
+        $this->selectedDepoProductId = $productId;
+        $this->selectedDepoProductName = DB::table('product_masters')
+            ->where('product_id', $productId)
+            ->value('product_name') ?? $productId;
+
+        $this->loadDepoBreakdown();
+        $this->showDepoModal = true;
+    }
+
+    public function closeDepoModal(): void
+    {
+        $this->showDepoModal = false;
+        $this->selectedDepoProductId = null;
+        $this->selectedDepoProductName = null;
+        $this->depoBreakdownList = [];
+        $this->depoBreakdownSummary = [];
+    }
+
+    public function loadDepoBreakdown(): void
+    {
+        if (empty($this->selectedDepoProductId)) {
+            $this->depoBreakdownList = [];
+            $this->depoBreakdownSummary = [];
+            return;
+        }
+
+        $prevPeriod = Carbon::createFromDate($this->selectedYear, $this->selectedMonth, 1)->subMonth();
+        $prevBulan = $prevPeriod->month;
+        $prevTahun = $prevPeriod->year;
+
+        $start3LM = Carbon::createFromDate($this->selectedYear, $this->selectedMonth, 1)->subMonths(3)->startOfMonth()->toDateString();
+        $end3LM = Carbon::createFromDate($this->selectedYear, $this->selectedMonth, 1)->subMonth()->endOfMonth()->toDateString();
+
+        $so3lmSub = DB::table('t_sellingout as so')
+            ->whereBetween('so.INVOICE_DATE', [$start3LM, $end3LM])
+            ->where('so.KDITEMPRC', $this->selectedDepoProductId)
+            ->groupBy('so.KDDIST')
+            ->select(
+                'so.KDDIST as distributor_code',
+                DB::raw('ROUND((SUM("so"."TTL_QTY_KTN") / 3.0)::numeric, 1) as avg_3lm_sellout')
+            );
+
+        $query = DB::table('distributor_stocks as ds')
+            ->join('master_distributors as md', 'md.distributor_code', '=', 'ds.distributor_code')
+            ->leftJoin('distributor_stocks as prev_ds', function ($join) use ($prevBulan, $prevTahun) {
+                $join->on('prev_ds.distributor_code', '=', 'ds.distributor_code')
+                     ->on('prev_ds.product_id', '=', 'ds.product_id')
+                     ->where('prev_ds.bulan', '=', $prevBulan)
+                     ->where('prev_ds.tahun', '=', $prevTahun);
+            })
+            ->leftJoinSub($so3lmSub, 'so3lm', 'so3lm.distributor_code', '=', 'ds.distributor_code')
+            ->where('ds.tahun', $this->selectedYear)
+            ->where('ds.bulan', $this->selectedMonth)
+            ->where('ds.product_id', $this->selectedDepoProductId)
+            ->where('md.is_active', true);
+
+        $this->applyRegionAccess($query, 'md');
+
+        if (!empty($this->selectedRegion)) {
+            $query->where('md.region_name', $this->selectedRegion);
+        }
+        if (!empty($this->selectedArea)) {
+            $query->where('md.area_name', $this->selectedArea);
+        }
+        if (!empty($this->selectedDistributor)) {
+            $query->where('ds.distributor_code', $this->selectedDistributor);
+        }
+
+        $query->whereRaw('(ds.stock_awal_ktn <> 0 OR ds.sellin_ktn <> 0 OR ds.sellout_ktn <> 0 OR ds.stock_teoritis_ktn <> 0 OR COALESCE(so3lm.avg_3lm_sellout, 0) <> 0)')
+            ->select(
+                'ds.distributor_code',
+                'md.distributor_name',
+                'md.branch_name',
+                'md.region_name',
+                'md.area_name',
+                'ds.stock_awal_ktn',
+                'ds.sellin_ktn',
+                DB::raw('(ds.stock_awal_ktn + ds.sellin_ktn) as total_stok_ketersediaan'),
+                'ds.sellout_ktn',
+                'ds.stock_teoritis_ktn as sisa_stok_berjalan',
+                DB::raw('COALESCE(so3lm.avg_3lm_sellout, 0.0) as avg_3lm_sellout'),
+                DB::raw("CASE
+                    WHEN COALESCE(so3lm.avg_3lm_sellout, 0) > 0 THEN ROUND(((ds.stock_teoritis_ktn / NULLIF(so3lm.avg_3lm_sellout, 0)) * 100)::numeric, 1)
+                    WHEN ds.stock_teoritis_ktn > 0 THEN 999999.0
+                    ELSE 0.0
+                END as ratio_sisa_avg"),
+                DB::raw("CASE
+                    WHEN COALESCE(so3lm.avg_3lm_sellout, 0) > 0 THEN ROUND((ds.stock_teoritis_ktn / NULLIF(so3lm.avg_3lm_sellout / 30.0, 0))::numeric, 1)
+                    WHEN ds.stock_teoritis_ktn > 0 THEN 999999.0
+                    ELSE 0.0
+                END as doi_days"),
+                DB::raw("CASE
+                    WHEN COALESCE(so3lm.avg_3lm_sellout, 0) <= 0 THEN 'DEAD'
+                    WHEN COALESCE(so3lm.avg_3lm_sellout, 0) >= 100 OR (COALESCE(so3lm.avg_3lm_sellout, 0) > 0 AND (ds.stock_teoritis_ktn / NULLIF(so3lm.avg_3lm_sellout / 30.0, 0)) <= 25) THEN 'FAST'
+                    WHEN COALESCE(so3lm.avg_3lm_sellout, 0) >= 20 OR (COALESCE(so3lm.avg_3lm_sellout, 0) > 0 AND (ds.stock_teoritis_ktn / NULLIF(so3lm.avg_3lm_sellout / 30.0, 0)) <= 45) THEN 'MEDIUM'
+                    ELSE 'SLOW'
+                END as movement_class"),
+                DB::raw("CASE
+                    WHEN ds.stock_teoritis_ktn < 0 THEN 'PHANTOM_SALES'
+                    WHEN ds.stock_teoritis_ktn > 0 AND (COALESCE(so3lm.avg_3lm_sellout, 0) = 0 OR (ds.stock_teoritis_ktn / NULLIF(so3lm.avg_3lm_sellout / 30.0, 0)) > 50) THEN 'OVER_STOCK'
+                    WHEN ds.stock_teoritis_ktn >= 0 AND (ds.sellout_ktn > 0 OR COALESCE(so3lm.avg_3lm_sellout, 0) > 0) AND (COALESCE(so3lm.avg_3lm_sellout, 0) = 0 OR ((ds.stock_teoritis_ktn / NULLIF(so3lm.avg_3lm_sellout, 0)) * 100) < 80) THEN 'UNDER_STOCK'
+                    ELSE 'IDEAL'
+                END as sales_flow_status")
+            )
+            ->orderBy('ds.stock_teoritis_ktn', 'desc');
+
+        $rows = $query->get()->map(function ($item) {
+            return (array)$item;
+        })->toArray();
+
+        $this->depoBreakdownList = $rows;
+        $this->depoBreakdownSummary = [
+            'total_dist'      => count($rows),
+            'sum_stock_awal'  => (float)array_sum(array_column($rows, 'stock_awal_ktn')),
+            'sum_sellin'      => (float)array_sum(array_column($rows, 'sellin_ktn')),
+            'sum_total_stock' => (float)array_sum(array_column($rows, 'total_stok_ketersediaan')),
+            'sum_sellout'     => (float)array_sum(array_column($rows, 'sellout_ktn')),
+            'sum_sisa_stok'   => (float)array_sum(array_column($rows, 'sisa_stok_berjalan')),
+            'sum_avg_3lm'     => (float)array_sum(array_column($rows, 'avg_3lm_sellout')),
+        ];
     }
 
     public function processUpload()
@@ -314,6 +445,7 @@ class RekonStok extends Component
                 'md.area_name',
                 DB::raw("NULL::varchar as product_id"),
                 DB::raw("NULL::varchar as product_name"),
+                DB::raw("1 as total_distributor"),
                 DB::raw('SUM(COALESCE(prev_ds.stock_teoritis_ktn, 0)) as stok_awal_sistem'),
                 DB::raw('SUM(ds.stock_awal_ktn) as stok_closing_lalu'),
                 DB::raw('SUM(ds.stock_awal_ktn - COALESCE(prev_ds.stock_teoritis_ktn, 0)) as selisih_awal'),
@@ -325,21 +457,17 @@ class RekonStok extends Component
             );
         } else {
             $grouped = $base->groupBy(
-                'ds.distributor_code',
-                'md.distributor_name',
-                'md.branch_name',
-                'md.region_name',
-                'md.area_name',
                 'ds.product_id',
                 'pm.product_name'
             )->select(
-                'ds.distributor_code',
-                'md.distributor_name',
-                'md.branch_name',
-                'md.region_name',
-                'md.area_name',
+                DB::raw("NULL::varchar as distributor_code"),
+                DB::raw("NULL::varchar as distributor_name"),
+                DB::raw("NULL::varchar as branch_name"),
+                DB::raw("NULL::varchar as region_name"),
+                DB::raw("NULL::varchar as area_name"),
                 'ds.product_id',
                 'pm.product_name',
+                DB::raw('COUNT(DISTINCT ds.distributor_code) as total_distributor'),
                 DB::raw('SUM(COALESCE(prev_ds.stock_teoritis_ktn, 0)) as stok_awal_sistem'),
                 DB::raw('SUM(ds.stock_awal_ktn) as stok_closing_lalu'),
                 DB::raw('SUM(ds.stock_awal_ktn - COALESCE(prev_ds.stock_teoritis_ktn, 0)) as selisih_awal'),
@@ -368,18 +496,30 @@ class RekonStok extends Component
                 );
             $withDiag->leftJoinSub($so3lmSub, 'so3lm', 'so3lm.distributor_code', '=', 'g.distributor_code');
         } else {
-            $so3lmSub = DB::table('t_sellingout as so')
+            $soQuery = DB::table('t_sellingout as so')
+                ->join('master_distributors as md', 'md.distributor_code', '=', 'so.KDDIST')
                 ->whereBetween('so.INVOICE_DATE', [$start3LM, $end3LM])
-                ->groupBy('so.KDDIST', 'so.KDITEMPRC')
+                ->where('md.is_active', true);
+
+            $this->applyRegionAccess($soQuery, 'md');
+
+            if (!empty($this->selectedRegion)) {
+                $soQuery->where('md.region_name', $this->selectedRegion);
+            }
+            if (!empty($this->selectedArea)) {
+                $soQuery->where('md.area_name', $this->selectedArea);
+            }
+            if (!empty($this->selectedDistributor)) {
+                $soQuery->where('so.KDDIST', $this->selectedDistributor);
+            }
+
+            $so3lmSub = $soQuery->groupBy('so.KDITEMPRC')
                 ->select(
-                    'so.KDDIST as distributor_code',
                     'so.KDITEMPRC as product_id',
                     DB::raw('ROUND((SUM("so"."TTL_QTY_KTN") / 3.0)::numeric, 1) as avg_3lm_sellout')
                 );
-            $withDiag->leftJoinSub($so3lmSub, 'so3lm', function ($join) {
-                $join->on('so3lm.distributor_code', '=', 'g.distributor_code')
-                     ->on('so3lm.product_id', '=', 'g.product_id');
-            });
+
+            $withDiag->leftJoinSub($so3lmSub, 'so3lm', 'so3lm.product_id', '=', 'g.product_id');
         }
 
         $withDiag->whereRaw('(g.total_stok_ketersediaan <> 0 OR g.sellout_ktn <> 0)')
@@ -445,10 +585,7 @@ class RekonStok extends Component
             } else {
                 $query->where(function ($q) use ($s) {
                     $q->whereRaw('LOWER(agg.product_id) LIKE ?', [$s])
-                      ->orWhereRaw('LOWER(COALESCE(agg.product_name, \'\')) LIKE ?', [$s])
-                      ->orWhereRaw('LOWER(agg.distributor_code) LIKE ?', [$s])
-                      ->orWhereRaw('LOWER(COALESCE(agg.distributor_name, \'\')) LIKE ?', [$s])
-                      ->orWhereRaw('LOWER(COALESCE(agg.branch_name, \'\')) LIKE ?', [$s]);
+                      ->orWhereRaw('LOWER(COALESCE(agg.product_name, \'\')) LIKE ?', [$s]);
                 });
             }
         }
@@ -499,22 +636,27 @@ class RekonStok extends Component
     private function applySorting($query): void
     {
         if ($this->sortField === 'region_name') {
-            $query->orderBy('agg.region_name', $this->sortDirection)
-                  ->orderBy('agg.area_name', $this->sortDirection)
-                  ->orderBy('agg.distributor_name', $this->sortDirection);
-            return;
+            if ($this->viewMode === 'distributor') {
+                $query->orderBy('agg.region_name', $this->sortDirection)
+                      ->orderBy('agg.area_name', $this->sortDirection)
+                      ->orderBy('agg.distributor_name', $this->sortDirection);
+                return;
+            }
+            $this->sortField = 'product_name';
         }
 
         if ($this->sortField === 'distributor_name') {
-            $query->orderBy('agg.distributor_name', $this->sortDirection);
-            if ($this->viewMode === 'product') {
-                $query->orderBy('agg.product_name', 'asc');
+            if ($this->viewMode === 'distributor') {
+                $query->orderBy('agg.distributor_name', $this->sortDirection);
+                return;
             }
-            return;
+            $this->sortField = 'product_name';
         }
 
         $validSorts = [
+            'product_id'              => 'agg.product_id',
             'product_name'            => 'agg.product_name',
+            'total_distributor'       => 'agg.total_distributor',
             'stok_awal_sistem'        => 'agg.stok_awal_sistem',
             'stok_closing_lalu'       => 'agg.stok_closing_lalu',
             'selisih_awal'            => 'agg.selisih_awal',
@@ -529,7 +671,7 @@ class RekonStok extends Component
             'sales_flow_status'       => 'agg.sales_flow_status',
         ];
 
-        $orderCol = $validSorts[$this->sortField] ?? ($this->viewMode === 'distributor' ? 'agg.region_name' : 'agg.distributor_name');
+        $orderCol = $validSorts[$this->sortField] ?? ($this->viewMode === 'distributor' ? 'agg.region_name' : 'agg.product_name');
         $query->orderBy($orderCol, $this->sortDirection);
 
         if ($this->viewMode === 'distributor') {
@@ -537,8 +679,8 @@ class RekonStok extends Component
                   ->orderBy('agg.area_name', 'asc')
                   ->orderBy('agg.distributor_name', 'asc');
         } else {
-            $query->orderBy('agg.distributor_name', 'asc')
-                  ->orderBy('agg.product_name', 'asc');
+            $query->orderBy('agg.product_name', 'asc')
+                  ->orderBy('agg.product_id', 'asc');
         }
     }
 

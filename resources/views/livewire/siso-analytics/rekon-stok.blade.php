@@ -321,7 +321,7 @@
                     </div>
 
                     {{-- Search Box --}}
-                    <x-ui.search-input wire:model.live.debounce.300ms="search" placeholder="Cari {{ $viewMode === 'product' ? 'SKU / distributor...' : 'region / area / distributor...' }}" />
+                    <x-ui.search-input wire:model.live.debounce.300ms="search" placeholder="Cari {{ $viewMode === 'product' ? 'kode SKU / nama produk...' : 'region / area / distributor...' }}" />
 
                     {{-- Export Excel Button --}}
                     <button wire:click="export" class="btn btn-sm h-8 min-h-0 px-3 rounded-xl btn-outline border-base-300 hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-600 text-xs font-semibold gap-1.5">
@@ -337,13 +337,13 @@
                     <thead>
                         <tr class="bg-base-200 text-xs font-bold uppercase tracking-wider text-base-content/60 border-b border-base-200 select-none z-10">
                             @if($viewMode === 'product')
-                                <th wire:click="sortBy('distributor_name')" class="py-3 pl-5 cursor-pointer hover:text-base-content bg-base-200">
-                                    Distributor & Depo
-                                    @if ($sortField === 'distributor_name') <span class="text-primary">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span> @endif
-                                </th>
-                                <th wire:click="sortBy('product_name')" class="py-3 cursor-pointer hover:text-base-content bg-base-200">
+                                <th wire:click="sortBy('product_name')" class="py-3 pl-5 cursor-pointer hover:text-base-content bg-base-200">
                                     Produk / SKU
                                     @if ($sortField === 'product_name') <span class="text-primary">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span> @endif
+                                </th>
+                                <th wire:click="sortBy('total_distributor')" class="py-3 text-center cursor-pointer hover:text-base-content bg-base-200" title="Jumlah Distributor/Depo aktif di wilayah ini yang memiliki stok atau pergerakan produk ini">
+                                    Sebaran Depo
+                                    @if ($sortField === 'total_distributor') <span class="text-primary">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span> @endif
                                 </th>
                             @else
                                 <th wire:click="sortBy('region_name')" class="py-3 pl-5 cursor-pointer hover:text-base-content bg-base-200">
@@ -420,17 +420,21 @@
                     <tbody class="divide-y divide-base-200/70 text-xs">
                         @forelse ($stocks as $s)
                             <tr class="hover:bg-base-200/30 transition-colors">
-                                {{-- Kolom Identitas (Per Produk: Dist + Produk | Per Distributor: Region/Area + Dist) --}}
+                                {{-- Kolom Identitas (Per Produk: Produk & Sebaran Depo | Per Distributor: Region/Area + Dist) --}}
                                 @if($viewMode === 'product')
                                     <td class="py-3 pl-5">
-                                        <div class="font-semibold text-base-content text-xs">{{ $s->distributor_name ?? '-' }}</div>
-                                        <div class="text-xs text-base-content/50 mt-0.5">
-                                            <span class="font-mono tabular-nums">{{ $s->distributor_code }}</span> • Depo {{ $s->branch_name ?? '-' }}
-                                        </div>
-                                    </td>
-                                    <td class="py-3">
                                         <div class="font-semibold text-base-content text-xs">{{ $s->product_name ?? $s->product_id }}</div>
                                         <div class="text-xs text-base-content/50 font-mono tabular-nums mt-0.5">{{ $s->product_id }}</div>
+                                    </td>
+                                    <td class="py-3 text-center">
+                                        <button type="button"
+                                                wire:click="openDepoModal('{{ $s->product_id }}')"
+                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-white border border-primary/20 transition-all cursor-pointer shadow-2xs group"
+                                                title="Klik untuk melihat rincian sebaran distributor pemegang SKU ini">
+                                            <x-heroicon-s-building-storefront class="w-3.5 h-3.5 opacity-70 group-hover:opacity-100" />
+                                            <span>{{ $s->total_distributor }} Depo</span>
+                                            <x-heroicon-s-chevron-right class="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-transform" />
+                                        </button>
                                     </td>
                                 @else
                                     <td class="py-3 pl-5">
@@ -584,7 +588,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="12" class="text-center py-12 text-base-content/50">
+                                <td colspan="13" class="text-center py-12 text-base-content/50">
                                     <x-heroicon-o-inbox class="w-10 h-10 mx-auto mb-2 opacity-30" />
                                     <p class="font-semibold text-sm text-base-content/70">Tidak ada data stok & aliran yang cocok dengan filter</p>
                                     <p class="text-xs mt-0.5">Coba ubah filter wilayah, status diagnosa, atau klik tombol Upload Closing di atas.</p>
@@ -713,7 +717,214 @@
         </div>
     @endif
 
-    {{-- 5. MODAL PENJELASAN MEKANISME & RUMUS DIAGNOSA --}}
+    {{-- 5. MODAL DETAIL SEBARAN DEPO / DISTRIBUTOR --}}
+    @if ($showDepoModal)
+        <div class="fixed inset-0 z-50 bg-base-content/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5"
+             @keydown.escape.window="$wire.closeDepoModal()"
+             style="z-index: 9999;">
+            <div class="fixed inset-0" wire:click="closeDepoModal"></div>
+
+            <div class="relative bg-base-100 rounded-3xl shadow-2xl max-w-7xl xl:max-w-[92vw] 2xl:max-w-[1550px] w-full border border-base-200 overflow-hidden flex flex-col max-h-[90vh] transform transition-all animate-in fade-in zoom-in-95 duration-150">
+                
+                {{-- Header Modal --}}
+                <div class="px-6 py-4 border-b border-base-200 flex items-center justify-between bg-base-200/40 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                            <x-heroicon-s-building-storefront class="w-6 h-6" />
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="font-bold text-sm text-base-content">{{ $selectedDepoProductName }}</h3>
+                                <span class="font-mono text-xs px-2 py-0.5 rounded-md bg-base-200 text-base-content/70 font-semibold">{{ $selectedDepoProductId }}</span>
+                            </div>
+                            <div class="text-xs text-base-content/60 mt-0.5 flex items-center gap-2 flex-wrap">
+                                <span>Periode: <strong>{{ $currMonthName }} {{ $selectedYear }}</strong></span>
+                                <span>•</span>
+                                <span>Wilayah: <strong>{{ !empty($selectedRegion) ? $selectedRegion : 'Nasional' }}</strong></span>
+                                <span>•</span>
+                                <span class="text-primary font-semibold">{{ $depoBreakdownSummary['total_dist'] ?? 0 }} Depo / Distributor Terdata</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" wire:click="closeDepoModal" class="btn btn-ghost btn-circle btn-sm text-base-content/60 hover:text-base-content">✕</button>
+                </div>
+
+                {{-- Body Modal: Table Sebaran Distributor --}}
+                <div class="flex-1 overflow-auto min-h-0 w-full relative">
+                    <table class="table table-sm table-pin-rows w-full whitespace-nowrap text-xs">
+                        <thead>
+                            <tr class="bg-base-200 text-xs font-bold uppercase tracking-wider text-base-content/60 border-b border-base-200 select-none z-10">
+                                <th class="py-3 pl-5 bg-base-200">Distributor & Depo</th>
+                                <th class="py-3 bg-base-200">Wilayah</th>
+                                <th class="py-3 text-right bg-base-200" title="Stok Closing Bulan Lalu">Awal (Dist)</th>
+                                <th class="py-3 text-right bg-base-200" title="Kiriman Masuk Bulan Ini">Sell In</th>
+                                <th class="py-3 text-right bg-base-200" title="Total Ketersediaan Stok">Total Stok</th>
+                                <th class="py-3 text-right bg-base-200" title="Penjualan Riil ke Toko">Sell Out</th>
+                                <th class="py-3 text-right bg-primary/10 text-primary font-bold border-x border-primary/20" title="Sisa Stok Akhir Berjalan">Sisa Stok</th>
+                                <th class="py-3 text-right bg-base-200" title="Rata-rata Penjualan 3 Bulan Terakhir">AVG 3LM</th>
+                                <th class="py-3 text-center bg-base-200" title="Days of Inventory (Hari)">DOI</th>
+                                <th class="py-3 text-center bg-base-200" title="Kecepatan Gerak SKU">Gerak</th>
+                                <th class="py-3 pr-5 text-center bg-base-200" title="Diagnosa Aliran Barang">Diagnosa</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-base-200/70">
+                            @forelse ($depoBreakdownList as $d)
+                                <tr class="hover:bg-base-200/30 transition-colors">
+                                    {{-- 1. Distributor & Depo --}}
+                                    <td class="py-3 pl-5">
+                                        <div class="font-semibold text-base-content">{{ $d['distributor_name'] ?? '-' }}</div>
+                                        <div class="text-[11px] text-base-content/50 mt-0.5">
+                                            <span class="font-mono tabular-nums font-semibold">{{ $d['distributor_code'] ?? '-' }}</span> • Depo {{ $d['branch_name'] ?? '-' }}
+                                        </div>
+                                    </td>
+
+                                    {{-- 2. Wilayah --}}
+                                    <td class="py-3">
+                                        <div class="font-medium text-base-content/80">{{ $d['region_name'] ?? '-' }}</div>
+                                        <div class="text-[11px] text-base-content/50">{{ $d['area_name'] ?? '-' }}</div>
+                                    </td>
+
+                                    {{-- 3. Awal Dist --}}
+                                    <td class="py-3 text-right font-medium tabular-nums text-base-content/80">
+                                        {{ number_format(round($d['stock_awal_ktn'] ?? 0), 0, ',', '.') }}
+                                    </td>
+
+                                    {{-- 4. Sell In --}}
+                                    <td class="py-3 text-right font-medium tabular-nums text-base-content/80">
+                                        {{ number_format(round($d['sellin_ktn'] ?? 0), 0, ',', '.') }}
+                                    </td>
+
+                                    {{-- 5. Total Stok --}}
+                                    <td class="py-3 text-right font-bold tabular-nums text-base-content">
+                                        {{ number_format(round($d['total_stok_ketersediaan'] ?? 0), 0, ',', '.') }}
+                                    </td>
+
+                                    {{-- 6. Sell Out --}}
+                                    <td class="py-3 text-right font-semibold tabular-nums text-base-content">
+                                        {{ number_format(round($d['sellout_ktn'] ?? 0), 0, ',', '.') }}
+                                    </td>
+
+                                    {{-- 7. Sisa Stok --}}
+                                    <td class="py-3 text-right font-extrabold tabular-nums bg-primary/5 border-x border-primary/10">
+                                        @if (($d['sisa_stok_berjalan'] ?? 0) < 0)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20">
+                                                {{ number_format(round($d['sisa_stok_berjalan']), 0, ',', '.') }}
+                                            </span>
+                                        @else
+                                            <span class="text-base-content font-bold">{{ number_format(round($d['sisa_stok_berjalan'] ?? 0), 0, ',', '.') }}</span>
+                                        @endif
+                                    </td>
+
+                                    {{-- 8. AVG 3LM --}}
+                                    <td class="py-3 text-right font-medium tabular-nums text-base-content/70">
+                                        {{ number_format(round($d['avg_3lm_sellout'] ?? 0), 0, ',', '.') }}
+                                    </td>
+
+                                    {{-- 9. DOI --}}
+                                    <td class="py-3 text-center">
+                                        @php
+                                            $dDoi = $d['doi_days'] ?? 0;
+                                            $dAvg = $d['avg_3lm_sellout'] ?? 0;
+                                            $dSisa = $d['sisa_stok_berjalan'] ?? 0;
+                                            $isMacet = ($dDoi >= 999999 || ($dAvg <= 0 && $dSisa > 0));
+                                        @endphp
+                                        @if ($isMacet)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-500/10 text-slate-600 border border-slate-500/20">Macet</span>
+                                        @elseif ($dDoi < 0)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20">Minus</span>
+                                        @elseif ($dDoi > 50)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20">{{ round($dDoi) }} hr</span>
+                                        @elseif ($dDoi > 30)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20">{{ round($dDoi) }} hr</span>
+                                        @else
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">{{ round($dDoi) }} hr</span>
+                                        @endif
+                                    </td>
+
+                                    {{-- 10. Gerak --}}
+                                    <td class="py-3 text-center">
+                                        @php
+                                            [$mvClass, $mvLabel] = match($d['movement_class'] ?? 'SLOW') {
+                                                'FAST' => ['bg-emerald-500/10 text-emerald-600 border-emerald-500/20', '🚀 Fast'],
+                                                'MEDIUM' => ['bg-sky-500/10 text-sky-600 border-sky-500/20', '⚖️ Med'],
+                                                'DEAD' => ['bg-slate-500/10 text-slate-600 border-slate-500/20', '⛔ Dead'],
+                                                default => ['bg-amber-500/10 text-amber-600 border-amber-500/20', '🐢 Slow'],
+                                            };
+                                        @endphp
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border {{ $mvClass }}">
+                                            {{ $mvLabel }}
+                                        </span>
+                                    </td>
+
+                                    {{-- 11. Diagnosa --}}
+                                    <td class="py-3 pr-5 text-center">
+                                        @php
+                                            [$badgeClass, $badgeLabel] = match($d['sales_flow_status'] ?? 'IDEAL') {
+                                                'PHANTOM_SALES' => ['bg-rose-500/10 text-rose-600 border-rose-500/20', 'Penjualan Aneh'],
+                                                'OVER_STOCK' => ['bg-amber-500/10 text-amber-600 border-amber-500/20', 'Over Stock'],
+                                                'UNDER_STOCK' => ['bg-sky-500/10 text-sky-600 border-sky-500/20', 'Under Stock'],
+                                                default => ['bg-emerald-500/10 text-emerald-600 border-emerald-500/20', 'Ideal'],
+                                            };
+                                        @endphp
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border {{ $badgeClass }}">
+                                            {{ $badgeLabel }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="11" class="text-center py-10 text-base-content/50">
+                                        Tidak ada distributor yang memiliki stok/pergerakan untuk produk ini.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                        @if (!empty($depoBreakdownList))
+                            <tfoot class="bg-base-200/80 font-bold border-t border-base-300 select-none">
+                                <tr>
+                                    <td colspan="2" class="py-2.5 pl-5 text-left font-bold text-base-content">
+                                        Total Konsolidasi ({{ $depoBreakdownSummary['total_dist'] ?? 0 }} Depo)
+                                    </td>
+                                    <td class="py-2.5 text-right tabular-nums text-base-content">
+                                        {{ number_format(round($depoBreakdownSummary['sum_stock_awal'] ?? 0), 0, ',', '.') }}
+                                    </td>
+                                    <td class="py-2.5 text-right tabular-nums text-base-content">
+                                        {{ number_format(round($depoBreakdownSummary['sum_sellin'] ?? 0), 0, ',', '.') }}
+                                    </td>
+                                    <td class="py-2.5 text-right tabular-nums text-base-content">
+                                        {{ number_format(round($depoBreakdownSummary['sum_total_stock'] ?? 0), 0, ',', '.') }}
+                                    </td>
+                                    <td class="py-2.5 text-right tabular-nums text-base-content">
+                                        {{ number_format(round($depoBreakdownSummary['sum_sellout'] ?? 0), 0, ',', '.') }}
+                                    </td>
+                                    <td class="py-2.5 text-right tabular-nums bg-primary/10 text-primary border-x border-primary/20">
+                                        {{ number_format(round($depoBreakdownSummary['sum_sisa_stok'] ?? 0), 0, ',', '.') }}
+                                    </td>
+                                    <td class="py-2.5 text-right tabular-nums text-base-content">
+                                        {{ number_format(round($depoBreakdownSummary['sum_avg_3lm'] ?? 0), 0, ',', '.') }}
+                                    </td>
+                                    <td colspan="3"></td>
+                                </tr>
+                            </tfoot>
+                        @endif
+                    </table>
+                </div>
+
+                {{-- Footer Modal --}}
+                <div class="px-6 py-3.5 border-t border-base-200 flex items-center justify-between bg-base-200/30 shrink-0 text-xs">
+                    <span class="text-base-content/50">
+                        Data sebaran depo diperbarui otomatis sesuai filter wilayah dan periode aktif.
+                    </span>
+                    <button type="button" wire:click="closeDepoModal" class="btn btn-primary btn-sm rounded-xl px-5 shadow-xs">
+                        Tutup
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    @endif
+
+    {{-- 6. MODAL PENJELASAN MEKANISME & RUMUS DIAGNOSA --}}
     <div x-show="showDiagnosticInfo"
          x-cloak
          x-transition.opacity

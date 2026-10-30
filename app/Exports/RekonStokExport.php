@@ -71,11 +71,9 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
             }
 
             return [
-                'distributor_code'        => $row->distributor_code,
-                'distributor_name'        => $row->distributor_name ?? '-',
-                'branch_name'             => $row->branch_name ?? '-',
                 'product_id'              => $row->product_id,
                 'product_name'            => $row->product_name ?? '-',
+                'total_distributor'       => (int)($row->total_distributor ?? 0),
                 'stok_awal_sistem'        => (int)round($row->stok_awal_sistem ?? 0),
                 'stok_closing_lalu'       => (int)round($row->stok_closing_lalu ?? 0),
                 'sellin_ktn'              => (int)round($row->sellin_ktn),
@@ -115,11 +113,9 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
         }
 
         return [
-            'Kode Distributor',
-            'Nama Distributor',
-            'Cabang / Depo',
-            'Kode Produk',
+            'Kode SKU',
             'Nama Produk',
+            'Sebaran Depo (Dist)',
             'Stok Awal (Sistem)',
             'Awal (Dist)',
             'Sell In Bulan Ini',
@@ -138,9 +134,14 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
     {
         $sheet->freezePane('A2');
 
-        $lastCol = 'P';
-        $numStartCol = 'F';
-        $numEndCol = 'L';
+        $isProduct   = $this->viewMode === 'product';
+        $lastCol     = $isProduct ? 'N' : 'P';
+        $numStartCol = $isProduct ? 'D' : 'F';
+        $numEndCol   = $isProduct ? 'J' : 'L';
+        $sisaCol     = $isProduct ? 'I' : 'K';
+        $ratioCol    = $isProduct ? 'K' : 'M';
+        $doiCol      = $isProduct ? 'L' : 'N';
+        $mvCol       = $isProduct ? 'M' : 'O';
 
         $sheet->getStyle("A1:{$lastCol}1")->applyFromArray([
             'font' => [
@@ -161,15 +162,15 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
         $lastRow = $this->data->count() + 1;
         if ($lastRow > 1) {
             $sheet->getStyle("{$numStartCol}2:{$numEndCol}{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
-            $sheet->getStyle("M2:P{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("{$ratioCol}2:{$lastCol}{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
             $sheet->getStyle("A1:{$lastCol}{$lastRow}")->getBorders()->getAllBorders()->applyFromArray([
                 'borderStyle' => Border::BORDER_THIN,
                 'color'       => ['rgb' => 'E2E8F0'],
             ]);
 
-            // Highlight fokus view untuk kolom Sisa Stok (Kolom K)
-            $sheet->getStyle("K2:K{$lastRow}")->applyFromArray([
+            // Highlight fokus view untuk kolom Sisa Stok
+            $sheet->getStyle("{$sisaCol}2:{$sisaCol}{$lastRow}")->applyFromArray([
                 'fill' => [
                     'fillType'   => Fill::FILL_SOLID,
                     'startColor' => ['rgb' => 'EEF2FF'], // soft indigo focus
@@ -184,7 +185,7 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
             foreach ($this->data as $row) {
                 $isMacet = ($row->ratio_sisa_avg >= 999999 || ($row->avg_3lm_sellout <= 0 && $row->sisa_stok_berjalan > 0));
                 if (!$isMacet && $row->ratio_sisa_avg < 80) {
-                    $sheet->getStyle("M{$rowIndex}")->applyFromArray([
+                    $sheet->getStyle("{$ratioCol}{$rowIndex}")->applyFromArray([
                         'fill' => [
                             'fillType'   => Fill::FILL_SOLID,
                             'startColor' => ['rgb' => 'FFE4E6'], // light rose red
@@ -199,7 +200,7 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
                 $isMacetDoi = ($row->doi_days >= 999999 || ($row->avg_3lm_sellout <= 0 && $row->sisa_stok_berjalan > 0));
                 if (!$isMacetDoi) {
                     if ($row->doi_days > 50 || $row->doi_days < 0) {
-                        $sheet->getStyle("N{$rowIndex}")->applyFromArray([
+                        $sheet->getStyle("{$doiCol}{$rowIndex}")->applyFromArray([
                             'fill' => [
                                 'fillType'   => Fill::FILL_SOLID,
                                 'startColor' => ['rgb' => 'FFE4E6'], // light rose red
@@ -210,7 +211,7 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
                             ],
                         ]);
                     } elseif ($row->doi_days > 30) {
-                        $sheet->getStyle("N{$rowIndex}")->applyFromArray([
+                        $sheet->getStyle("{$doiCol}{$rowIndex}")->applyFromArray([
                             'fill' => [
                                 'fillType'   => Fill::FILL_SOLID,
                                 'startColor' => ['rgb' => 'FEF3C7'], // light amber/yellow
@@ -223,20 +224,20 @@ class RekonStokExport implements FromCollection, WithHeadings, WithStyles, Shoul
                     }
                 }
 
-                // Kolom O: Kecepatan Gerak
+                // Kolom Kecepatan Gerak
                 $mv = $row->movement_class ?? 'SLOW';
                 if ($mv === 'FAST') {
-                    $sheet->getStyle("O{$rowIndex}")->applyFromArray([
+                    $sheet->getStyle("{$mvCol}{$rowIndex}")->applyFromArray([
                         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'DCFCE7']],
                         'font' => ['bold' => true, 'color' => ['rgb' => '15803D']],
                     ]);
                 } elseif ($mv === 'SLOW') {
-                    $sheet->getStyle("O{$rowIndex}")->applyFromArray([
+                    $sheet->getStyle("{$mvCol}{$rowIndex}")->applyFromArray([
                         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FEF3C7']],
                         'font' => ['bold' => true, 'color' => ['rgb' => '92400E']],
                     ]);
                 } elseif ($mv === 'DEAD') {
-                    $sheet->getStyle("O{$rowIndex}")->applyFromArray([
+                    $sheet->getStyle("{$mvCol}{$rowIndex}")->applyFromArray([
                         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F1F5F9']],
                         'font' => ['bold' => true, 'color' => ['rgb' => '475569']],
                     ]);
