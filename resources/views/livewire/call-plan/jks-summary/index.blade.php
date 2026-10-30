@@ -29,7 +29,7 @@
                 <div class="flex flex-wrap items-center gap-2 md:gap-3">
                     @php $accessLevel = auth()->user() ? auth()->user()->getAccessLevel() : 'nasional'; @endphp
                     
-                    <select wire:model.live="appliedBulan" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-36 pr-8 text-xs font-medium">
+                    <select wire:model.live="appliedBulan" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-36 shrink-0 pr-8 text-xs font-medium">
                         <option value="">Bulan Ini</option>
                         @for($i = -2; $i <= 2; $i++)
                             @php 
@@ -40,21 +40,21 @@
                         @endfor
                     </select>
 
-                    <select wire:model.live="appliedRegion" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-44 pr-8 text-xs font-medium" @if($accessLevel != 'nasional') disabled @endif>
+                    <select wire:model.live="appliedRegion" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-44 shrink-0 pr-8 text-xs font-medium" @if($accessLevel != 'nasional') disabled @endif>
                         @if(count($regionOptions) != 1) <option value="">Semua Region</option> @endif
                         @foreach($regionOptions as $region)
                             <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
                         @endforeach
                     </select>
 
-                    <select wire:model.live="appliedArea" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-44 pr-8 text-xs font-medium" @if(empty($appliedRegion) || $accessLevel == 'supervisor') disabled @endif>
+                    <select wire:model.live="appliedArea" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-44 shrink-0 pr-8 text-xs font-medium" @if(empty($appliedRegion) || $accessLevel == 'supervisor') disabled @endif>
                         @if(count($areaOptions) != 1) <option value="">Semua Area</option> @endif
                         @foreach($areaOptions as $area)
                             <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
                         @endforeach
                     </select>
 
-                    <select wire:model.live="appliedSupervisor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-48 pr-8 text-xs font-medium" @if(empty($appliedArea) || $accessLevel == 'supervisor') disabled @endif>
+                    <select wire:model.live="appliedSupervisor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-52 shrink-0 pr-8 text-xs font-medium" @if(empty($appliedArea) || $accessLevel == 'supervisor') disabled @endif>
                         @if(count($supervisorOptions) != 1) <option value="">Semua Supervisor</option> @endif
                         @foreach($supervisorOptions as $spv)
                             <option value="{{ $spv->supervisor_code }}">{{ $spv->description ?? $spv->supervisor_code }}</option>
@@ -62,7 +62,7 @@
                     </select>
 
                     {{-- Standpro Filter (Dropdown) --}}
-                    <select wire:model.live="appliedStandpro" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-56 pr-10 text-xs font-medium">
+                    <select wire:model.live="appliedStandpro" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-60 shrink-0 pr-8 text-xs font-medium">
                         <option value="">Semua Standpro</option>
                         <option value="belum">Standpro: Belum (&lt; 300)</option>
                         <option value="sudah">Standpro: Sudah (&ge; 300)</option>

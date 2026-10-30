@@ -16,6 +16,8 @@ class Raport extends Component
 {
     use WithPagination;
 
+    public const TARGET_OMSET = 350000000; // Target Omset SE per Bulan (Rp 350.000.000)
+
     protected $paginationTheme = 'tailwind';
     protected $menuRoute = 'report.analisa-kunjungan-se.index';
 
@@ -524,11 +526,55 @@ class Raport extends Component
 
             $findingsGrouped = $findings->groupBy(fn($f) => ($f->distributor_code ?? '') . '_' . ($f->salesman_code ?? ''));
 
+            // 5. Daily Work Duration Query (Check-in Pertama s/d Check-out Terakhir Toko per Hari)
+            $dailyWorkQuery = DB::table('rpt_visit_an_h as rvah')
+                ->where('rvah.RID', $this->appliedRegion)
+                ->where('rvah.EID', $this->appliedArea)
+                ->whereBetween('rvah.TANGGAL', [$startDate, $endDate])
+                ->where('rvah.FLAG_VISIT', 'Y')
+                ->whereNotNull('rvah.TIME_IN')
+                ->whereNotNull('rvah.TIME_OUT');
+
+            if (!empty($this->appliedDistributor)) {
+                $dailyWorkQuery->where('rvah.BID', $this->appliedDistributor);
+            } elseif ($this->accessLevel === 'supervisor' && !empty($this->allowedDistributorCodes)) {
+                $dailyWorkQuery->whereIn('rvah.BID', $this->allowedDistributorCodes);
+            }
+
+            if (!empty($this->appliedSalesman)) {
+                $dailyWorkQuery->where('rvah.MUID', $this->appliedSalesman);
+            }
+
+            $dailyWorkSub = $dailyWorkQuery->select(
+                'rvah.MUID as salesman_code',
+                'rvah.BID as distributor_code',
+                DB::raw('rvah."TANGGAL"::date as tanggal'),
+                DB::raw('GREATEST(0, EXTRACT(EPOCH FROM (MAX(rvah."TIME_OUT"::timestamp) - MIN(rvah."TIME_IN"::timestamp)))) as day_work_seconds')
+            )
+            ->groupBy('rvah.MUID', 'rvah.BID', DB::raw('rvah."TANGGAL"::date'));
+
+            $workDurationGrouped = DB::query()
+                ->fromSub($dailyWorkSub, 'dws')
+                ->select(
+                    'salesman_code',
+                    'distributor_code',
+                    DB::raw('COUNT(*) as work_days_count'),
+                    DB::raw('SUM(day_work_seconds) as total_work_seconds'),
+                    DB::raw('AVG(day_work_seconds) as avg_work_seconds'),
+                    DB::raw('SUM(CASE WHEN day_work_seconds >= 25200 THEN 1 ELSE 0 END) as days_ge_7h'),
+                    DB::raw('SUM(CASE WHEN day_work_seconds >= 18000 AND day_work_seconds < 25200 THEN 1 ELSE 0 END) as days_5_to_7h'),
+                    DB::raw('SUM(CASE WHEN day_work_seconds < 18000 THEN 1 ELSE 0 END) as days_lt_5h')
+                )
+                ->groupBy('salesman_code', 'distributor_code')
+                ->get()
+                ->keyBy(fn($r) => ($r->distributor_code ?? '') . '_' . ($r->salesman_code ?? ''));
+
             $results = [];
 
             foreach ($rawSummary as $row) {
                 $seKey = ($row->distributor_code ?? '') . '_' . ($row->salesman_code ?? '');
                 $seFindings = $findingsGrouped->get($seKey, collect([]));
+                $seWork = $workDurationGrouped->get($seKey);
 
                 $pc = (int)$row->total_pc;
                 $ac = (int)$row->total_ac;
@@ -539,6 +585,13 @@ class Raport extends Component
                 $secConsume = (float)$row->seconds_consume;
                 $secTravel = (float)$row->seconds_travel;
                 $secTotal = $secConsume + $secTravel;
+
+                $workDaysCount = $seWork ? (int)$seWork->work_days_count : 0;
+                $totalWorkSec = $seWork ? (float)$seWork->total_work_seconds : 0.0;
+                $avgWorkHours = ($workDaysCount > 0) ? round(($totalWorkSec / $workDaysCount) / 3600, 1) : 0.0;
+                $daysGe7h = $seWork ? (int)$seWork->days_ge_7h : 0;
+                $days5To7h = $seWork ? (int)$seWork->days_5_to_7h : 0;
+                $daysLt5h = $seWork ? (int)$seWork->days_lt_5h : 0;
 
                 // Anomali breakdown
                 $depoCount = 0;
@@ -578,9 +631,17 @@ class Raport extends Component
                     $scoreSr = 0.0;
                     $scoreVal = 0.0;
                     $valRatio = 0.0;
+                    $pctOmset = 0.0;
+                    $targetOmset = self::TARGET_OMSET;
                     $penaltyRate = 0.0;
                     $scoreStoreRatio = 0.0;
+                    $scoreWorkDuration = 0.0;
                     $scoreDuration = 0.0;
+                    $avgWorkHours = 0.0;
+                    $daysGe7h = 0;
+                    $days5To7h = 0;
+                    $daysLt5h = 0;
+                    $workDaysCount = 0;
                     $totalScore = 0.0;
                     $grade = 'D';
                     $gradeLabel = 'Kurang (Tidak Ada Kunjungan)';
@@ -595,7 +656,7 @@ class Raport extends Component
                     $weaknesses = ['Realisasi kunjungan toko 0 (belum ada aktivitas di lapangan).'];
                     $spvRec = 'Investigasi status penugasan dan konfirmasi kendala operasional Sales Executive.';
                 } else {
-                    // --- PILAR 1: PRODUKTIVITAS KUNJUNGAN (Bobot: 30%) ---
+                    // --- PILAR 1: PRODUKTIVITAS KUNJUNGAN (Bobot: 20%) ---
                     $pctAcPc = ($pc > 0) ? ($ac / $pc) * 100 : 0;
                     if ($pctAcPc >= 100) $scoreAcPc = 100;
                     elseif ($pctAcPc >= 90) $scoreAcPc = 85 + (($pctAcPc - 90) * 1.5);
@@ -605,7 +666,8 @@ class Raport extends Component
                     $scoreHariAktif = min(100, ($hariAktif / max(1, $targetHariKerja)) * 100);
                     $scoreP1 = ($scoreAcPc * 0.8) + ($scoreHariAktif * 0.2);
 
-                    // --- PILAR 2: EFEKTIVITAS PENJUALAN (Bobot: 30%) ---
+                    // --- PILAR 2: EFEKTIVITAS PENJUALAN (Bobot: 40%) ---
+                    // Sub 2.1: Strike Rate (EC / AC) - Porsi 40%
                     $strikeRate = ($ac > 0) ? ($ec / $ac) * 100 : 0;
                     if ($strikeRate >= 50) $scoreSr = 100;
                     elseif ($strikeRate >= 40) $scoreSr = 85 + (($strikeRate - 40) * 1.5);
@@ -613,24 +675,27 @@ class Raport extends Component
                     elseif ($strikeRate >= 20) $scoreSr = 55 + (($strikeRate - 20) * 1.5);
                     else $scoreSr = max(20, $strikeRate * 2.75);
 
+                    // Sub 2.2: Nilai Omset vs Target Rp 350.000.000 - Porsi 60%
+                    $targetOmset = self::TARGET_OMSET; // Rp 350.000.000
+                    $pctOmset = ($targetOmset > 0) ? ($val / $targetOmset) * 100 : 0;
+                    $valRatio = ($targetOmset > 0) ? ($val / $targetOmset) : 0;
+
                     if ($val <= 0) {
                         $scoreVal = 0;
-                        $valRatio = 0;
-                    } elseif ($avgAreaValue !== null) {
-                        $valRatio = $val / $avgAreaValue;
-                        if ($valRatio >= 1.3) $scoreVal = 100;
-                        elseif ($valRatio >= 1.0) $scoreVal = 85 + (($valRatio - 1.0) / 0.3 * 15);
-                        elseif ($valRatio >= 0.7) $scoreVal = 70 + (($valRatio - 0.7) / 0.3 * 15);
-                        elseif ($valRatio >= 0.4) $scoreVal = 55 + (($valRatio - 0.4) / 0.3 * 15);
-                        else $scoreVal = max(30, $valRatio * 100);
+                    } elseif ($pctOmset >= 100) {
+                        $scoreVal = 100;
+                    } elseif ($pctOmset >= 90) {
+                        $scoreVal = 85 + (($pctOmset - 90) * 1.5);
+                    } elseif ($pctOmset >= 80) {
+                        $scoreVal = 70 + (($pctOmset - 80) * 1.5);
+                    } elseif ($pctOmset >= 60) {
+                        $scoreVal = 55 + (($pctOmset - 60) * 0.75);
                     } else {
-                        // Tidak ada pembanding penjualan di area (hanya SE ini yang bertransaksi)
-                        $scoreVal = 85;
-                        $valRatio = 1.0;
+                        $scoreVal = max(0, ($pctOmset / 60) * 55);
                     }
 
                     $dropSize = ($ec > 0) ? ($val / $ec) : 0;
-                    $scoreP2 = ($scoreSr * 0.6) + ($scoreVal * 0.4);
+                    $scoreP2 = ($scoreSr * 0.40) + ($scoreVal * 0.60);
 
                     // --- PILAR 3: KEPATUHAN SOP & INTEGRITAS (Bobot: 25%) ---
                     $distinctDirtyVisits = $seFindings->count();
@@ -647,29 +712,33 @@ class Raport extends Component
                     $scoreP3 = round(max(0, 100 - $penaltyRate), 1);
 
                     // --- PILAR 4: MANAJEMEN WAKTU KERJA (Bobot: 15%) ---
-                    if ($secTotal <= 0) {
-                        $pctStore = 0.0;
-                        $scoreStoreRatio = 0.0;
-                        $avgMinutesPerStore = 0.0;
-                        $scoreDuration = 0.0;
+                    // Sub 4.1: Durasi Kerja Lapangan (Awal Check-in s/d Terakhir Check-out Toko per Hari) - Porsi 60%
+                    // Aturan Harian: >= 7 jam: 100 pt | 5 s/d < 7 jam: 50 pt | < 5 jam: 0 pt. Skor = rata-rata poin harian.
+                    if ($workDaysCount > 0) {
+                        $totalDailyPoints = ($daysGe7h * 100) + ($days5To7h * 50);
+                        $scoreWorkDuration = round($totalDailyPoints / $workDaysCount, 1);
                     } else {
-                        $pctStore = ($secConsume / $secTotal) * 100;
-                        if ($pctStore >= 50) $scoreStoreRatio = 100;
-                        elseif ($pctStore >= 40) $scoreStoreRatio = 80 + (($pctStore - 40) * 2.0);
-                        elseif ($pctStore >= 30) $scoreStoreRatio = 60 + (($pctStore - 30) * 2.0);
-                        else $scoreStoreRatio = max(25, $pctStore * 2.0);
+                        $scoreWorkDuration = 0.0;
+                    }
+                    $scoreStoreRatio = $scoreWorkDuration; // alias for backward compatibility
 
+                    // Sub 4.2: Rata-rata Durasi Layanan per Kunjungan Toko - Porsi 40%
+                    if ($ac > 0 && $secConsume > 0) {
                         $avgMinutesPerStore = ($secConsume / 60 / $ac);
                         if ($avgMinutesPerStore >= 7 && $avgMinutesPerStore <= 20) $scoreDuration = 100;
                         elseif (($avgMinutesPerStore >= 5 && $avgMinutesPerStore < 7) || ($avgMinutesPerStore > 20 && $avgMinutesPerStore <= 30)) $scoreDuration = 85;
                         elseif ($avgMinutesPerStore >= 3 && $avgMinutesPerStore < 5) $scoreDuration = 70;
                         else $scoreDuration = 50;
+                    } else {
+                        $avgMinutesPerStore = 0.0;
+                        $scoreDuration = 0.0;
                     }
 
-                    $scoreP4 = ($scoreStoreRatio * 0.6) + ($scoreDuration * 0.4);
+                    $pctStore = ($secTotal > 0) ? ($secConsume / $secTotal) * 100 : 0.0;
+                    $scoreP4 = ($scoreWorkDuration * 0.6) + ($scoreDuration * 0.4);
 
                     // --- SKOR TOTAL (0 - 100) & GRADE ---
-                    $totalScore = ($scoreP1 * 0.30) + ($scoreP2 * 0.30) + ($scoreP3 * 0.25) + ($scoreP4 * 0.15);
+                    $totalScore = ($scoreP1 * 0.20) + ($scoreP2 * 0.40) + ($scoreP3 * 0.25) + ($scoreP4 * 0.15);
                     $totalScore = round($totalScore, 1);
 
                     if ($totalScore >= 85.0) {
@@ -695,9 +764,10 @@ class Raport extends Component
                     if ($scoreP1 >= 95) $strengths[] = 'Kepatuhan rute PJP sempurna (' . round($pctAcPc, 1) . '% tercapai).';
                     elseif ($scoreP1 >= 88) $strengths[] = 'Realisasi kunjungan sangat baik dan konsisten.';
                     if ($strikeRate >= 40) $strengths[] = 'Efektivitas penjualan tinggi (Strike Rate: ' . round($strikeRate, 1) . '%).';
-                    if (isset($valRatio) && $valRatio >= 1.0) $strengths[] = 'Total omset penjualan berada di atas rata-rata area.';
+                    if (isset($pctOmset) && $pctOmset >= 100) $strengths[] = 'Total omset penjualan melampaui target (Rp 350 Juta).';
+                    elseif (isset($pctOmset) && $pctOmset >= 80) $strengths[] = 'Pencapaian omset penjualan sangat baik (' . round($pctOmset, 1) . '% dari target Rp 350 Juta).';
                     if ($scoreP3 >= 70) $strengths[] = 'Integritas GPS kunjungan terpelihara dengan baik (' . $cleanRate . '% kunjungan bersih).';
-                    if ($scoreP4 >= 80) $strengths[] = 'Alokasi waktu kerja sangat efisien di toko pelanggan (' . round($pctStore, 1) . '% di toko).';
+                    if ($scoreP4 >= 80) $strengths[] = 'Durasi kerja lapangan sangat konsisten (rata-rata ' . $avgWorkHours . ' jam/hari, ' . $daysGe7h . ' hari ≥ 7 jam).';
                     if (empty($strengths)) $strengths[] = 'Menyelesaikan operasional bulanan sesuai jadwal penugasan.';
 
                     // Weaknesses / Areas for Improvement
@@ -707,6 +777,8 @@ class Raport extends Component
                     if ($radiusCount > 5) $weaknesses[] = "Terdapat {$radiusCount} kunjungan di luar radius master (> 50m).";
                     if ($kilatCount > 30) $weaknesses[] = "Banyak kunjungan kilat < 2 menit ({$kilatCount} kali), kualitas interaksi berpotensi rendah.";
                     if ($strikeRate < 30) $weaknesses[] = 'Strike rate order masih di bawah 30% (' . round($strikeRate, 1) . '%), perlu peningkatan teknik penawaran.';
+                    if ($pctOmset < 60) $weaknesses[] = 'Pencapaian omset masih di bawah 60% target (' . round($pctOmset, 1) . '% dari target Rp 350 Juta).';
+                    if ($scoreWorkDuration < 50 && $workDaysCount > 0) $weaknesses[] = "Durasi kerja lapangan masih rendah (rata-rata {$avgWorkHours} jam/hari, terdapat {$daysLt5h} hari < 5 jam).";
                     if ($pctAcPc < 85) $weaknesses[] = 'Pencapaian rute PJP masih rendah (' . round($pctAcPc, 1) . '%), banyak toko terlewat.';
                     if (empty($weaknesses)) $weaknesses[] = 'Tidak ditemukan kelemahan operasional yang signifikan.';
 
@@ -748,6 +820,11 @@ class Raport extends Component
                     'drop_size' => round($dropSize),
                     'hari_aktif' => $hariAktif,
                     'target_hari_kerja' => $targetHariKerja,
+                    'avg_work_hours' => $avgWorkHours,
+                    'days_ge_7h' => $daysGe7h,
+                    'days_5_to_7h' => $days5To7h,
+                    'days_lt_5h' => $daysLt5h,
+                    'work_days_count' => $workDaysCount,
                     'pct_store_time' => round($pctStore, 1),
                     'avg_minutes_per_store' => round($avgMinutesPerStore, 1),
 
@@ -771,12 +848,15 @@ class Raport extends Component
                     'score_hari_aktif' => round($scoreHariAktif, 1),
                     'score_strike_rate' => round($scoreSr, 1),
                     'score_omset' => round($scoreVal, 1),
+                    'target_omset' => $targetOmset,
+                    'pct_omset' => round($pctOmset, 1),
                     'avg_area_value' => round($avgAreaValue ?? 0),
                     'val_ratio' => round($valRatio ?? 0, 2),
                     'penalty_rate' => round($penaltyRate, 1),
                     'count_kilat_ec' => $kilatEcCount,
                     'count_kilat_non_ec' => $kilatNonEcCount,
-                    'score_store_ratio' => round($scoreStoreRatio, 1),
+                    'score_work_duration' => round($scoreWorkDuration, 1),
+                    'score_store_ratio' => round($scoreWorkDuration, 1),
                     'score_duration' => round($scoreDuration, 1),
 
                     // Total & Grade

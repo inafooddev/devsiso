@@ -82,16 +82,16 @@
                     </div>
 
                     <div class="bg-base-100 p-3 sm:p-4 rounded-xl border border-base-300 text-center font-mono font-bold text-xs sm:text-sm text-base-content shadow-inner overflow-x-auto">
-                        Total Skor = (Pilar 1 &times; 30%) + (Pilar 2 &times; 30%) + (Pilar 3 &times; 25%) + (Pilar 4 &times; 15%)
+                        Total Skor = (Pilar 1 &times; 20%) + (Pilar 2 &times; 40%) + (Pilar 3 &times; 25%) + (Pilar 4 &times; 15%)
                     </div>
 
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-center text-xs">
                         <div class="bg-base-100/80 p-2 rounded-lg border border-base-300">
-                            <span class="text-emerald-700 dark:text-emerald-400 font-bold block">Pilar 1 (30%)</span>
+                            <span class="text-emerald-700 dark:text-emerald-400 font-bold block">Pilar 1 (20%)</span>
                             <span class="text-base-content/70 text-[0.625rem]">Produktivitas Kunjungan</span>
                         </div>
                         <div class="bg-base-100/80 p-2 rounded-lg border border-base-300">
-                            <span class="text-blue-700 dark:text-blue-400 font-bold block">Pilar 2 (30%)</span>
+                            <span class="text-blue-700 dark:text-blue-400 font-bold block">Pilar 2 (40%)</span>
                             <span class="text-base-content/70 text-[0.625rem]">Efektivitas Penjualan</span>
                         </div>
                         <div class="bg-base-100/80 p-2 rounded-lg border border-base-300">
@@ -119,7 +119,7 @@
                                 <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
                                 <span class="font-bold text-sm text-base-content">Pilar 1: Produktivitas Kunjungan</span>
                             </div>
-                            <span class="badge badge-sm bg-emerald-600 text-white font-bold">Bobot: 30%</span>
+                            <span class="badge badge-sm bg-emerald-600 text-white font-bold">Bobot: 20%</span>
                         </div>
 
                         <p class="text-xs text-base-content/80 leading-relaxed">
@@ -171,11 +171,11 @@
                                 <span class="w-3 h-3 rounded-full bg-blue-500"></span>
                                 <span class="font-bold text-sm text-base-content">Pilar 2: Efektivitas Penjualan</span>
                             </div>
-                            <span class="badge badge-sm bg-blue-600 text-white font-bold">Bobot: 30%</span>
+                            <span class="badge badge-sm bg-blue-600 text-white font-bold">Bobot: 40%</span>
                         </div>
 
                         <p class="text-xs text-base-content/80 leading-relaxed">
-                            Mengukur kemampuan sales mengubah kunjungan menjadi transaksi riil (*Effective Call*) dan kontribusi nilai penjualan (*value order*) dibandingkan rata-rata sales di area yang sama.
+                            Mengukur kemampuan sales mengubah kunjungan menjadi transaksi riil (*Effective Call* / Strike Rate) dan kontribusi nilai penjualan (*value order*) terhadap target kerja <strong>Rp 350.000.000</strong>.
                         </p>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
@@ -183,7 +183,7 @@
                             <div class="bg-base-100 p-3 rounded-xl border border-base-300 space-y-1.5">
                                 <div class="flex justify-between items-center">
                                     <span class="font-bold text-blue-700 dark:text-blue-400">1. Strike Rate (EC / AC)</span>
-                                    <span class="badge badge-xs badge-neutral font-bold">Porsi 60%</span>
+                                    <span class="badge badge-xs badge-neutral font-bold">Porsi 40%</span>
                                 </div>
                                 <div class="text-[0.625rem] text-base-content/70 font-mono bg-base-200/60 p-1.5 rounded">
                                     SR = (Total EC / Total AC) &times; 100%
@@ -200,24 +200,24 @@
                             {{-- Sub 2.2 --}}
                             <div class="bg-base-100 p-3 rounded-xl border border-base-300 space-y-1.5">
                                 <div class="flex justify-between items-center">
-                                    <span class="font-bold text-blue-700 dark:text-blue-400">2. Omset vs Benchmark Area</span>
-                                    <span class="badge badge-xs badge-neutral font-bold">Porsi 40%</span>
+                                    <span class="font-bold text-blue-700 dark:text-blue-400">2. Omset vs Target Rp 350 Juta</span>
+                                    <span class="badge badge-xs badge-neutral font-bold">Porsi 60%</span>
                                 </div>
                                 <div class="text-[0.625rem] text-base-content/70 font-mono bg-base-200/60 p-1.5 rounded">
-                                    Rasio = Omset SE / Rata-rata Omset Area
+                                    Pencapaian = (Total Omset / Rp 350.000.000) &times; 100%
                                 </div>
                                 <ul class="text-xs space-y-0.5 text-base-content/80 list-disc list-inside">
-                                    <li>&ge; 1.3x (&ge;130% Rata-rata) &rarr; <strong>100 Poin</strong></li>
-                                    <li>1.0x &ndash; 1.29x &rarr; <strong>85 + ((Rasio - 1.0) / 0.3 &times; 15)</strong></li>
-                                    <li>0.7x &ndash; 0.99x &rarr; <strong>70 + ((Rasio - 0.7) / 0.3 &times; 15)</strong></li>
-                                    <li>0.4x &ndash; 0.69x &rarr; <strong>55 + ((Rasio - 0.4) / 0.3 &times; 15)</strong></li>
-                                    <li>&lt; 0.4x &rarr; <strong>Rasio &times; 100</strong> (Min: 30 Poin)</li>
+                                    <li>&ge; 100% (&ge; Rp 350 Juta) &rarr; <strong>100 Poin</strong></li>
+                                    <li>90% &ndash; 99.9% (&ge; Rp 315 Juta) &rarr; <strong>85 + ((Pencapaian - 90) &times; 1.5)</strong></li>
+                                    <li>80% &ndash; 89.9% (&ge; Rp 280 Juta) &rarr; <strong>70 + ((Pencapaian - 80) &times; 1.5)</strong></li>
+                                    <li>60% &ndash; 79.9% (&ge; Rp 210 Juta) &rarr; <strong>55 + ((Pencapaian - 60) &times; 0.75)</strong></li>
+                                    <li>&lt; 60% &rarr; <strong>(Pencapaian / 60) &times; 55</strong></li>
                                 </ul>
                             </div>
                         </div>
 
                         <div class="bg-blue-500/10 p-2.5 rounded-lg border border-blue-500/30 text-xs font-mono font-bold text-blue-900 dark:text-blue-300 text-center">
-                            Skor Pilar 2 = (Skor Strike Rate &times; 0.6) + (Skor Omset &times; 0.4)
+                            Skor Pilar 2 = (Skor Strike Rate &times; 0.4) + (Skor Omset &times; 0.6)
                         </div>
                     </div>
 
@@ -306,25 +306,27 @@
                         </div>
 
                         <p class="text-xs text-base-content/80 leading-relaxed">
-                            Mengukur efisiensi kerja lapangan: proporsi waktu produktif yang dihabiskan di dalam toko pelanggan dibandingkan perjalanan (*traveling*), serta kesesuaian rata-rata durasi singgah per toko.
+                            Mengukur kedisiplinan dan efisiensi waktu operasional: durasi jam kerja lapangan (dari check-in toko pertama hingga check-out toko terakhir) serta kesesuaian durasi layanan per toko.
                         </p>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
                             {{-- Sub 4.1 --}}
                             <div class="bg-base-100 p-3 rounded-xl border border-base-300 space-y-1.5">
                                 <div class="flex justify-between items-center">
-                                    <span class="font-bold text-purple-700 dark:text-purple-400">1. Rasio Waktu di Toko (Store Time)</span>
+                                    <span class="font-bold text-purple-700 dark:text-purple-400">1. Durasi Kerja Lapangan</span>
                                     <span class="badge badge-xs badge-neutral font-bold">Porsi 60%</span>
                                 </div>
                                 <div class="text-[0.625rem] text-base-content/70 font-mono bg-base-200/60 p-1.5 rounded">
-                                    Porsi = (Waktu Toko / Total Jam Kerja) &times; 100%
+                                    Durasi Harian = Check-out Terakhir - Check-in Pertama di Toko
                                 </div>
                                 <ul class="text-xs space-y-0.5 text-base-content/80 list-disc list-inside">
-                                    <li>&ge; 50% di toko &rarr; <strong>100 Poin</strong></li>
-                                    <li>40% &ndash; 49.9% &rarr; <strong>80 + ((Porsi - 40) &times; 2.0)</strong></li>
-                                    <li>30% &ndash; 39.9% &rarr; <strong>60 + ((Porsi - 30) &times; 2.0)</strong></li>
-                                    <li>&lt; 30% &rarr; <strong>Porsi &times; 2.0</strong> (Min: 25 Poin)</li>
+                                    <li>&ge; 7 Jam per Hari &rarr; <strong>100 Poin</strong></li>
+                                    <li>5 s/d &lt; 7 Jam per Hari &rarr; <strong>50 Poin</strong></li>
+                                    <li>&lt; 5 Jam per Hari &rarr; <strong>0 Poin</strong></li>
                                 </ul>
+                                <p class="text-[0.625rem] text-base-content/60 leading-tight pt-1">
+                                    *Skor bulanan adalah rata-rata poin harian dari seluruh hari kerja aktif.
+                                </p>
                             </div>
 
                             {{-- Sub 4.2 --}}
@@ -346,7 +348,7 @@
                         </div>
 
                         <div class="bg-purple-500/10 p-2.5 rounded-lg border border-purple-500/30 text-xs font-mono font-bold text-purple-900 dark:text-purple-300 text-center">
-                            Skor Pilar 4 = (Skor Porsi Toko &times; 0.6) + (Skor Durasi &times; 0.4)
+                            Skor Pilar 4 = (Skor Durasi Kerja &times; 0.6) + (Skor Durasi per Toko &times; 0.4)
                         </div>
                     </div>
                 </div>
@@ -399,9 +401,9 @@
                             <strong>Data Lapangan Ahmad:</strong><br>
                             &bull; PC = 500 toko | AC = 480 toko | EC = 192 toko<br>
                             &bull; Hari Aktif = 24 hari (Target Kalender = 25 hari)<br>
-                            &bull; Omset = Rp 145 Jt (Rata-rata Area = Rp 140 Jt &rarr; Rasio: 1.036x)<br>
+                            &bull; Omset = Rp 330 Jt (Target KPI = Rp 350 Jt &rarr; Pencapaian: 94.3%)<br>
                             &bull; Anomali: 0 Depo, 0 Kembar, 5 Luar Radius, 2 Order Kilat, 3 Kilat Non-EC, 0 GPS Blank<br>
-                            &bull; Waktu: 54.2% Jam Kerja di Toko, Rata-rata 8.1 Menit / Toko
+                            &bull; Waktu: Rata-rata 7.6 Jam/Hari (20 hari &ge;7j [100pt], 4 hari 5-7j [50pt]), Rata-rata 8.1 Menit / Toko
                         </div>
 
                         <div class="space-y-1.5 text-xs">
@@ -412,8 +414,8 @@
                             </div>
                             <div>
                                 <span class="text-blue-700 dark:text-blue-400 font-bold">2. PILAR 2:</span>
-                                Strike Rate = 192/480 = 40.0% (&rarr; 85.0). Omset = 1.036x (&rarr; 85 + (0.036/0.3 &times; 15) = 86.8).<br>
-                                &rArr; Skor P2 = (85.0 &times; 0.6) + (86.8 &times; 0.4) = 51.0 + 34.7 = <strong>85.7</strong>
+                                Strike Rate = 192/480 = 40.0% (&rarr; 85.0). Omset = 94.3% (&rarr; 85 + (4.3 &times; 1.5) = 91.5).<br>
+                                &rArr; Skor P2 = (85.0 &times; 0.4) + (91.5 &times; 0.6) = 34.0 + 54.9 = <strong>88.9</strong>
                             </div>
                             <div>
                                 <span class="text-amber-700 dark:text-amber-400 font-bold">3. PILAR 3:</span>
@@ -422,12 +424,12 @@
                             </div>
                             <div>
                                 <span class="text-purple-700 dark:text-purple-400 font-bold">4. PILAR 4:</span>
-                                Porsi Toko = 54.2% (&ge; 50% &rarr; 100.0). Durasi = 8.1 mnt (&rarr; 100.0).<br>
-                                &rArr; Skor P4 = (100 &times; 0.6) + (100 &times; 0.4) = <strong>100.0</strong>
+                                Durasi Kerja = (20 &times; 100 + 4 &times; 50) / 24 = 91.7. Durasi Toko = 8.1 mnt (&rarr; 100.0).<br>
+                                &rArr; Skor P4 = (91.7 &times; 0.6) + (100.0 &times; 0.4) = 55.02 + 40.0 = <strong>95.0</strong>
                             </div>
                             <div class="pt-2 border-t border-base-200 text-primary font-bold text-xs">
-                                &rArr; TOTAL SKOR = (94.4 &times; 0.30) + (85.7 &times; 0.30) + (97.8 &times; 0.25) + (100.0 &times; 0.15)<br>
-                                &rArr; TOTAL SKOR = 28.32 + 25.71 + 24.45 + 15.00 = <span class="text-emerald-600 text-sm">93.5 &rarr; Grade A (Sangat Baik)</span>
+                                &rArr; TOTAL SKOR = (94.4 &times; 0.20) + (88.9 &times; 0.40) + (97.8 &times; 0.25) + (95.0 &times; 0.15)<br>
+                                &rArr; TOTAL SKOR = 18.88 + 35.56 + 24.45 + 14.25 = <span class="text-emerald-600 text-sm">93.1 &rarr; Grade A (Sangat Baik)</span>
                             </div>
                         </div>
                     </div>

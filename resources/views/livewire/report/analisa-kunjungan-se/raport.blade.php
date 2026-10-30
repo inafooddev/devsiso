@@ -7,17 +7,11 @@
          },
          showAuditModal: false,
          printRaport() {
-             const doc = document.getElementById('raport-print-document') || document.getElementById('raport-modal-card');
-             const originalTitle = document.title;
-             if (doc && doc.dataset.title) {
-                 document.title = doc.dataset.title;
-             }
-             this.$nextTick(() => {
+             if (typeof window.printRaportDocument === 'function') {
+                 window.printRaportDocument();
+             } else {
                  window.print();
-                 setTimeout(() => {
-                     document.title = originalTitle;
-                 }, 1500);
-             });
+             }
          }
      }">
 
@@ -718,7 +712,7 @@
                             {{-- Pilar 1 --}}
                             <th class="text-center min-w-[110px] bg-emerald-500/5">
                                 <button type="button" wire:click="sortBy('score_pilar_1')" class="hover:text-primary inline-flex flex-col items-center">
-                                    <span>Pilar 1 (30%)</span>
+                                    <span>Pilar 1 (20%)</span>
                                     <span class="text-[0.625rem] font-normal lowercase">Produktivitas</span>
                                 </button>
                             </th>
@@ -726,7 +720,7 @@
                             {{-- Pilar 2 --}}
                             <th class="text-center min-w-[110px] bg-blue-500/5">
                                 <button type="button" wire:click="sortBy('score_pilar_2')" class="hover:text-primary inline-flex flex-col items-center">
-                                    <span>Pilar 2 (30%)</span>
+                                    <span>Pilar 2 (40%)</span>
                                     <span class="text-[0.625rem] font-normal lowercase">Penjualan</span>
                                 </button>
                             </th>
@@ -798,7 +792,7 @@
                                     </div>
                                 </td>
 
-                                {{-- Pilar 1: Produktivitas Kunjungan (30%) --}}
+                                {{-- Pilar 1: Produktivitas Kunjungan (20%) --}}
                                 <td class="text-center bg-emerald-500/5">
                                     <div class="font-black font-mono text-xs {{ $row->score_pilar_1 >= 85 ? 'text-emerald-600' : ($row->score_pilar_1 >= 70 ? 'text-blue-600' : 'text-amber-600') }}">
                                         {{ $row->score_pilar_1 }}
@@ -808,7 +802,7 @@
                                     </div>
                                 </td>
 
-                                {{-- Pilar 2: Efektivitas Penjualan (30%) --}}
+                                {{-- Pilar 2: Efektivitas Penjualan (40%) --}}
                                 <td class="text-center bg-blue-500/5">
                                     <div class="font-black font-mono text-xs {{ $row->score_pilar_2 >= 85 ? 'text-emerald-600' : ($row->score_pilar_2 >= 70 ? 'text-blue-600' : 'text-amber-600') }}">
                                         {{ $row->score_pilar_2 }}
@@ -839,7 +833,7 @@
                                         {{ $row->score_pilar_4 }}
                                     </div>
                                     <div class="text-[0.625rem] text-base-content/60 font-medium">
-                                        {{ $row->pct_store_time }}% Toko &bull; {{ $row->avg_minutes_per_store }}m
+                                        {{ $row->avg_work_hours ?? 0 }} Jam/Hari &bull; {{ $row->avg_minutes_per_store }}m
                                     </div>
                                 </td>
 
@@ -910,13 +904,13 @@
     {{-- MODAL LEMBAR RAPOR INDIVIDU SE --}}
     @if($showModal && $modalData)
         <div id="raport-modal-wrapper"
-             class="fixed inset-0 z-[100000] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fade-in print:p-0 print:m-0 print:bg-transparent print:static print:overflow-visible print:block"
+             class="fixed inset-0 z-[100000] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fade-in print:hidden"
              @keydown.escape.window="$wire.closeModal()"
              @click.self="$wire.closeModal()">
             
             <div id="raport-modal-card" 
                  data-title="Rapor_SE_{{ preg_replace('/[^a-zA-Z0-9_-]/', '_', $modalData->salesman_name) }}_{{ preg_replace('/[^a-zA-Z0-9_-]/', '_', $modalData->period_label) }}"
-                 class="bg-base-100 rounded-2xl shadow-2xl border border-base-300 w-full max-w-4xl overflow-hidden flex flex-col max-h-[92vh] print:max-h-none print:shadow-none print:border-none print:w-full print:rounded-none print:overflow-visible print:block print:bg-white print:text-slate-900">
+                 class="bg-base-100 rounded-2xl shadow-2xl border border-base-300 w-full max-w-4xl overflow-hidden flex flex-col max-h-[92vh] print:hidden">
                 
                 {{-- Modal Header / Cover --}}
                 <div id="raport-modal-header" class="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white p-5 sm:p-6 shrink-0 relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:rounded-xl print-avoid-break">
@@ -995,7 +989,7 @@
                                 <div>
                                     <div class="flex items-center justify-between">
                                         <span class="font-bold text-emerald-800 dark:text-emerald-300">Pilar 1: Produktivitas Kunjungan</span>
-                                        <span class="badge badge-sm bg-emerald-600 text-white font-bold print:bg-emerald-700">Bobot 30%</span>
+                                        <span class="badge badge-sm bg-emerald-600 text-white font-bold print:bg-emerald-700">Bobot 20%</span>
                                     </div>
                                     <div class="flex items-baseline gap-2 mt-2">
                                         <span class="text-2xl font-black font-mono text-emerald-600">{{ $modalData->score_pilar_1 }}</span>
@@ -1023,7 +1017,7 @@
                                 <div>
                                     <div class="flex items-center justify-between">
                                         <span class="font-bold text-blue-800 dark:text-blue-300">Pilar 2: Efektivitas Penjualan</span>
-                                        <span class="badge badge-sm bg-blue-600 text-white font-bold print:bg-blue-700">Bobot 30%</span>
+                                        <span class="badge badge-sm bg-blue-600 text-white font-bold print:bg-blue-700">Bobot 40%</span>
                                     </div>
                                     <div class="flex items-baseline gap-2 mt-2">
                                         <span class="text-2xl font-black font-mono text-blue-600">{{ $modalData->score_pilar_2 }}</span>
@@ -1037,11 +1031,15 @@
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-base-content/60">Strike Rate (EC/AC):</span>
-                                        <span class="font-bold text-blue-700 dark:text-blue-400">{{ $modalData->strike_rate }}%</span>
+                                        <span class="font-bold text-blue-700 dark:text-blue-400">{{ $modalData->strike_rate }}% (Porsi 40%)</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-base-content/60">Total Omset Penjualan:</span>
                                         <span class="font-bold text-base-content">Rp {{ number_format($modalData->total_value) }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-base-content/60">Target Omset (KPI):</span>
+                                        <span class="font-bold text-blue-700 dark:text-blue-400">Rp {{ number_format($modalData->target_omset ?? 350000000) }} ({{ $modalData->pct_omset ?? round(($modalData->total_value / 350000000) * 100, 1) }}%)</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-base-content/60">Average Basket / Drop Size:</span>
@@ -1104,8 +1102,12 @@
                                 </div>
                                 <div class="mt-3 pt-2.5 border-t border-purple-500/20 space-y-1 text-xs">
                                     <div class="flex justify-between">
-                                        <span class="text-base-content/60">Rasio Waktu di Toko:</span>
-                                        <span class="font-bold text-purple-700 dark:text-purple-400">{{ $modalData->pct_store_time }}% dari Total Jam Kerja</span>
+                                        <span class="text-base-content/60">Durasi Kerja Lapangan:</span>
+                                        <span class="font-bold text-purple-700 dark:text-purple-400">{{ $modalData->avg_work_hours ?? 0 }} Jam / Hari (Skor: {{ $modalData->score_work_duration ?? $modalData->score_store_ratio ?? 0 }})</span>
+                                    </div>
+                                    <div class="flex justify-between text-[0.625rem] text-base-content/60 pl-1">
+                                        <span>Distribusi Hari Kerja:</span>
+                                        <span>&ge;7j: {{ $modalData->days_ge_7h ?? 0 }}h &bull; 5-7j: {{ $modalData->days_5_to_7h ?? 0 }}h &bull; &lt;5j: {{ $modalData->days_lt_5h ?? 0 }}h</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-base-content/60">Rata-rata Durasi di Toko:</span>
@@ -1113,7 +1115,7 @@
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-base-content/60">Standar Alokasi:</span>
-                                        <span class="font-medium text-base-content/60">&ge; 50% di Toko &bull; 7-20 Menit/Toko</span>
+                                        <span class="font-medium text-base-content/60">&ge; 7 Jam/Hari &bull; 7-20 Menit/Toko</span>
                                     </div>
                                 </div>
                             </div>
@@ -1144,7 +1146,7 @@
                             {{-- Step 1: Pilar 1 --}}
                             <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 space-y-1">
                                 <div class="flex justify-between items-center text-emerald-700 dark:text-emerald-400 font-bold">
-                                    <span>Langkah 1: Pilar 1 (Produktivitas, Bobot 30%)</span>
+                                    <span>Langkah 1: Pilar 1 (Produktivitas, Bobot 20%)</span>
                                     <span>Skor: {{ $modalData->score_pilar_1 }} / 100</span>
                                 </div>
                                 <div class="text-xs text-base-content/80 space-y-0.5">
@@ -1157,13 +1159,13 @@
                             {{-- Step 2: Pilar 2 --}}
                             <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 space-y-1">
                                 <div class="flex justify-between items-center text-blue-700 dark:text-blue-400 font-bold">
-                                    <span>Langkah 2: Pilar 2 (Efektivitas, Bobot 30%)</span>
+                                    <span>Langkah 2: Pilar 2 (Efektivitas, Bobot 40%)</span>
                                     <span>Skor: {{ $modalData->score_pilar_2 }} / 100</span>
                                 </div>
                                 <div class="text-xs text-base-content/80 space-y-0.5">
-                                    <div>&bull; Strike Rate: {{ $modalData->total_ec }} / {{ $modalData->total_ac }} = {{ $modalData->strike_rate }}% &rarr; <strong>Skor: {{ $modalData->score_strike_rate ?? $modalData->score_pilar_2 }}</strong> (Porsi 60%)</div>
-                                    <div>&bull; Omset: Rp {{ number_format($modalData->total_value) }} vs Rata-rata Area Rp {{ number_format($modalData->avg_area_value ?? 0) }} ({{ $modalData->val_ratio ?? 0 }}x) &rarr; <strong>Skor: {{ $modalData->score_omset ?? 0 }}</strong> (Porsi 40%)</div>
-                                    <div class="text-primary font-bold pt-0.5">&rArr; Pilar 2 = ({{ $modalData->score_strike_rate ?? $modalData->score_pilar_2 }} &times; 0.6) + ({{ $modalData->score_omset ?? 0 }} &times; 0.4) = <strong>{{ $modalData->score_pilar_2 }}</strong></div>
+                                    <div>&bull; Strike Rate: {{ $modalData->total_ec }} / {{ $modalData->total_ac }} = {{ $modalData->strike_rate }}% &rarr; <strong>Skor: {{ $modalData->score_strike_rate ?? $modalData->score_pilar_2 }}</strong> (Porsi 40%)</div>
+                                    <div>&bull; Omset vs Target: Rp {{ number_format($modalData->total_value) }} vs Rp {{ number_format($modalData->target_omset ?? 350000000) }} ({{ $modalData->pct_omset ?? round(($modalData->total_value / 350000000) * 100, 1) }}%) &rarr; <strong>Skor: {{ $modalData->score_omset ?? 0 }}</strong> (Porsi 60%)</div>
+                                    <div class="text-primary font-bold pt-0.5">&rArr; Pilar 2 = ({{ $modalData->score_strike_rate ?? $modalData->score_pilar_2 }} &times; 0.4) + ({{ $modalData->score_omset ?? 0 }} &times; 0.6) = <strong>{{ $modalData->score_pilar_2 }}</strong></div>
                                 </div>
                             </div>
 
@@ -1211,9 +1213,9 @@
                                     <span>Skor: {{ $modalData->score_pilar_4 }} / 100</span>
                                 </div>
                                 <div class="text-xs text-base-content/80 space-y-0.5">
-                                    <div>&bull; Porsi Jam Kerja di Toko: {{ $modalData->pct_store_time }}% &rarr; <strong>Skor: {{ $modalData->score_store_ratio ?? $modalData->score_pilar_4 }}</strong> (Porsi 60%)</div>
+                                    <div>&bull; Durasi Kerja Lapangan: Rata-rata {{ $modalData->avg_work_hours ?? 0 }} Jam/Hari ({{ $modalData->days_ge_7h ?? 0 }} hari &ge;7j [100pt], {{ $modalData->days_5_to_7h ?? 0 }} hari 5-7j [50pt], {{ $modalData->days_lt_5h ?? 0 }} hari &lt;5j [0pt]) &rarr; <strong>Skor: {{ $modalData->score_work_duration ?? $modalData->score_store_ratio ?? $modalData->score_pilar_4 }}</strong> (Porsi 60%)</div>
                                     <div>&bull; Rata-rata Durasi Layanan: {{ $modalData->avg_minutes_per_store }} menit/toko &rarr; <strong>Skor: {{ $modalData->score_duration ?? 0 }}</strong> (Porsi 40%)</div>
-                                    <div class="text-primary font-bold pt-0.5">&rArr; Pilar 4 = ({{ $modalData->score_store_ratio ?? $modalData->score_pilar_4 }} &times; 0.6) + ({{ $modalData->score_duration ?? 0 }} &times; 0.4) = <strong>{{ $modalData->score_pilar_4 }}</strong></div>
+                                    <div class="text-primary font-bold pt-0.5">&rArr; Pilar 4 = ({{ $modalData->score_work_duration ?? $modalData->score_store_ratio ?? $modalData->score_pilar_4 }} &times; 0.6) + ({{ $modalData->score_duration ?? 0 }} &times; 0.4) = <strong>{{ $modalData->score_pilar_4 }}</strong></div>
                                 </div>
                             </div>
 
@@ -1221,8 +1223,8 @@
                             <div class="bg-gradient-to-r from-primary/10 via-emerald-500/10 to-primary/10 p-3 rounded-lg border border-primary/20 space-y-1">
                                 <div class="font-bold text-xs text-primary">Langkah 5: Perhitungan Skor Akhir &amp; Penentuan Grade</div>
                                 <div class="text-xs text-base-content/80 font-mono">
-                                    Total = ({{ $modalData->score_pilar_1 }} &times; 0.30) + ({{ $modalData->score_pilar_2 }} &times; 0.30) + ({{ $modalData->score_pilar_3 }} &times; 0.25) + ({{ $modalData->score_pilar_4 }} &times; 0.15)<br>
-                                    Total = {{ round($modalData->score_pilar_1 * 0.30, 2) }} + {{ round($modalData->score_pilar_2 * 0.30, 2) }} + {{ round($modalData->score_pilar_3 * 0.25, 2) }} + {{ round($modalData->score_pilar_4 * 0.15, 2) }} = <span class="font-bold text-emerald-600 text-xs">{{ $modalData->skor_total }}</span>
+                                    Total = ({{ $modalData->score_pilar_1 }} &times; 0.20) + ({{ $modalData->score_pilar_2 }} &times; 0.40) + ({{ $modalData->score_pilar_3 }} &times; 0.25) + ({{ $modalData->score_pilar_4 }} &times; 0.15)<br>
+                                    Total = {{ round($modalData->score_pilar_1 * 0.20, 2) }} + {{ round($modalData->score_pilar_2 * 0.40, 2) }} + {{ round($modalData->score_pilar_3 * 0.25, 2) }} + {{ round($modalData->score_pilar_4 * 0.15, 2) }} = <span class="font-bold text-emerald-600 text-xs">{{ $modalData->skor_total }}</span>
                                 </div>
                                 <div class="text-xs font-bold mt-1">
                                     &rArr; Hasil Akhir: <span class="badge badge-sm font-extrabold {{ $modalData->grade === 'A' ? 'badge-success text-white' : ($modalData->grade === 'B' ? 'badge-info text-white' : ($modalData->grade === 'C' ? 'badge-warning text-warning-content' : 'badge-error text-white')) }}">Grade {{ $modalData->grade }}</span> ({{ $modalData->grade_label }})
@@ -1299,9 +1301,10 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            {{-- DOKUMEN CETAK FORMAL KHUSUS (LEMBAR RAPOR RESMI A4) --}}
-            <div id="raport-print-document" 
+        {{-- DOKUMEN CETAK FORMAL KHUSUS (LEMBAR RAPOR RESMI A4) --}}
+        <div id="raport-print-document" 
                  data-title="Rapor_SE_{{ preg_replace('/[^a-zA-Z0-9_-]/', '_', $modalData->salesman_code ?? 'SE') }}_{{ preg_replace('/[^a-zA-Z0-9_-]/', '_', $modalData->salesman_name ?? 'Sales') }}_{{ preg_replace('/[^a-zA-Z0-9_-]/', '_', $modalData->period_label ?? '') }}"
                  class="hidden print:block raport-doc">
                 
@@ -1404,9 +1407,9 @@
                         <tr class="pillar-header-row">
                             <td class="text-center font-bold">1</td>
                             <td colspan="3">PILAR 1: PRODUKTIVITAS KUNJUNGAN LAPANGAN</td>
-                            <td class="text-center font-bold">30%</td>
+                            <td class="text-center font-bold">20%</td>
                             <td class="text-center font-bold font-mono">{{ number_format($modalData->score_pilar_1, 1) }}</td>
-                            <td class="text-right font-bold font-mono">{{ number_format($modalData->score_pilar_1 * 0.30, 2) }}</td>
+                            <td class="text-right font-bold font-mono">{{ number_format($modalData->score_pilar_1 * 0.20, 2) }}</td>
                         </tr>
                         <tr>
                             <td></td>
@@ -1431,25 +1434,25 @@
                         <tr class="pillar-header-row">
                             <td class="text-center font-bold">2</td>
                             <td colspan="3">PILAR 2: EFEKTIVITAS PENJUALAN &amp; DISTRIBUSI</td>
-                            <td class="text-center font-bold">30%</td>
+                            <td class="text-center font-bold">40%</td>
                             <td class="text-center font-bold font-mono">{{ number_format($modalData->score_pilar_2, 1) }}</td>
-                            <td class="text-right font-bold font-mono">{{ number_format($modalData->score_pilar_2 * 0.30, 2) }}</td>
+                            <td class="text-right font-bold font-mono">{{ number_format($modalData->score_pilar_2 * 0.40, 2) }}</td>
                         </tr>
                         <tr>
                             <td></td>
                             <td>&bull; Rasio Transaksi Sukses (Strike Rate EC/AC)</td>
                             <td>Standar: &ge; 50% Transaksi</td>
                             <td>EC: {{ number_format($modalData->total_ec) }} Toko ({{ $modalData->strike_rate }}%)</td>
-                            <td class="text-center" style="font-size: 6.8pt; color: #64748b;">60%</td>
+                            <td class="text-center" style="font-size: 6.8pt; color: #64748b;">40%</td>
                             <td class="text-center font-mono">{{ number_format($modalData->score_strike_rate ?? $modalData->score_pilar_2, 1) }}</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td></td>
-                            <td>&bull; Pencapaian Omset &amp; Rata-rata Order (Drop Size)</td>
-                            <td>Benchmark Area: Rp {{ number_format($modalData->avg_area_value ?? 0) }}</td>
-                            <td>Rp {{ number_format($modalData->total_value) }} (Drop: Rp {{ number_format($modalData->drop_size) }})</td>
-                            <td class="text-center" style="font-size: 6.8pt; color: #64748b;">40%</td>
+                            <td>&bull; Pencapaian Omset Penjualan vs Target</td>
+                            <td>Target: Rp {{ number_format($modalData->target_omset ?? 350000000) }}</td>
+                            <td>Rp {{ number_format($modalData->total_value) }} ({{ $modalData->pct_omset ?? round(($modalData->total_value / 350000000) * 100, 1) }}% Target)</td>
+                            <td class="text-center" style="font-size: 6.8pt; color: #64748b;">60%</td>
                             <td class="text-center font-mono">{{ number_format($modalData->score_omset ?? 0, 1) }}</td>
                             <td></td>
                         </tr>
@@ -1514,11 +1517,11 @@
                         </tr>
                         <tr>
                             <td></td>
-                            <td>&bull; Alokasi Proporsi Waktu di Toko Pelanggan</td>
-                            <td>Standar Efisiensi: &ge; 50% Jam Kerja</td>
-                            <td>{{ $modalData->pct_store_time }}% dari Total Jam Kerja</td>
+                            <td>&bull; Durasi Kerja Lapangan (Awal Cekin s/d Akhir Cekout)</td>
+                            <td>Standar: &ge; 7 Jam / Hari Kerja</td>
+                            <td>Rata-rata: {{ $modalData->avg_work_hours ?? 0 }} Jam/Hari (&ge;7j: {{ $modalData->days_ge_7h ?? 0 }}h, 5-7j: {{ $modalData->days_5_to_7h ?? 0 }}h, &lt;5j: {{ $modalData->days_lt_5h ?? 0 }}h)</td>
                             <td class="text-center" style="font-size: 6.8pt; color: #64748b;">60%</td>
-                            <td class="text-center font-mono">{{ number_format($modalData->score_store_ratio ?? $modalData->score_pilar_4, 1) }}</td>
+                            <td class="text-center font-mono">{{ number_format($modalData->score_work_duration ?? $modalData->score_store_ratio ?? $modalData->score_pilar_4, 1) }}</td>
                             <td></td>
                         </tr>
                         <tr>
@@ -1611,12 +1614,15 @@
                 </div>
 
             </div>
-        </div>
     @endif
 
     {{-- Print Media Styles khusus untuk Lembar Rapor Formal SE --}}
-    <style>
+    <style id="raport-print-style">
         @media print {
+            :root {
+                color-scheme: light !important;
+            }
+
             @page {
                 size: A4 portrait;
                 margin: 6mm 8mm 6mm 8mm;
@@ -1629,12 +1635,18 @@
                 max-height: none !important;
                 overflow: visible !important;
                 background: #ffffff !important;
+                background-color: #ffffff !important;
                 color: #111827 !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+            }
+
+            *, *::before, *::after {
+                -webkit-backdrop-filter: none !important;
+                backdrop-filter: none !important;
             }
 
             /* 2. Unconstrain App Layout & Scroll Ancestors */
@@ -1654,51 +1666,44 @@
                 border: none !important;
                 box-shadow: none !important;
                 background: transparent !important;
+                background-color: transparent !important;
             }
 
-            /* 3. Hide ALL screen elements (Drawer, navbars, tabs, main screen, AND the on-screen web modal) */
-            .drawer-side,
+            /* 3. Hide ALL screen elements cleanly with separate standard rules */
+            #raport-modal-wrapper {
+                display: none !important;
+                visibility: hidden !important;
+            }
+
+            #raport-modal-card {
+                display: none !important;
+                visibility: hidden !important;
+            }
+
+            #raport-screen-content {
+                display: none !important;
+                visibility: hidden !important;
+            }
+
+            #audit-logic-modal {
+                display: none !important;
+                visibility: hidden !important;
+            }
+
             #sidebar-drawer,
+            .drawer-side,
             .drawer-overlay,
             nav,
             header,
-            .navbar,
-            x-navbar,
-            .tab-menu,
             aside,
             footer,
-            #raport-screen-content,
-            #raport-modal-card,
-            #audit-logic-modal,
             #teleport-modals,
-            .global-loading-indicator,
-            [wire\:loading],
-            div[x-show="showAuditModal"],
-            .print\:hidden,
             .no-print {
                 display: none !important;
                 visibility: hidden !important;
             }
 
-            /* 4. Modal Backdrop Overlay becomes static transparent container */
-            #raport-modal-wrapper {
-                position: static !important;
-                display: block !important;
-                width: 100% !important;
-                height: auto !important;
-                min-height: 0 !important;
-                max-height: none !important;
-                overflow: visible !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                background: transparent !important;
-                backdrop-filter: none !important;
-                -webkit-backdrop-filter: none !important;
-                border: none !important;
-                box-shadow: none !important;
-            }
-
-            /* 5. Show ONLY the dedicated formal report document */
+            /* 4. Show ONLY the dedicated formal report document */
             #raport-print-document {
                 display: block !important;
                 visibility: visible !important;
@@ -1706,8 +1711,12 @@
                 max-width: 194mm !important;
                 margin: 0 auto !important;
                 background: #ffffff !important;
+                background-color: #ffffff !important;
                 color: #111827 !important;
                 font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+                box-shadow: none !important;
+                border: none !important;
+                opacity: 1 !important;
             }
         }
 
@@ -1981,4 +1990,94 @@
 
     {{-- Modal Edukasi Panduan, Rumus Nilai & Logika Temuan --}}
     @include('livewire.report.analisa-kunjungan-se.audit-logic-modal')
+
+    {{-- Script Cetak Lembar Rapor SE via Iframe Terisolasi --}}
+    <script>
+        window.printRaportDocument = function() {
+            const printDoc = document.getElementById('raport-print-document');
+            if (!printDoc) {
+                window.print();
+                return;
+            }
+
+            const docTitle = printDoc.dataset.title || 'Rapor_Kunjungan_SE';
+
+            let oldFrame = document.getElementById('raport-isolated-print-frame');
+            if (oldFrame) {
+                oldFrame.remove();
+            }
+
+            const printFrame = document.createElement('iframe');
+            printFrame.id = 'raport-isolated-print-frame';
+            printFrame.style.position = 'fixed';
+            printFrame.style.right = '0';
+            printFrame.style.bottom = '0';
+            printFrame.style.width = '0';
+            printFrame.style.height = '0';
+            printFrame.style.border = '0';
+            printFrame.style.visibility = 'hidden';
+            document.body.appendChild(printFrame);
+
+            const styleEl = document.getElementById('raport-print-style');
+            const styleContent = styleEl ? styleEl.innerHTML : '';
+
+            const frameDoc = printFrame.contentWindow.document;
+            frameDoc.open();
+            frameDoc.write(`<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="color-scheme" content="light">
+    <title>${docTitle}</title>
+    <style>
+        :root { color-scheme: light !important; }
+        @page {
+            size: A4 portrait;
+            margin: 6mm 8mm 6mm 8mm;
+        }
+        *, *::before, *::after {
+            box-sizing: border-box;
+            -webkit-backdrop-filter: none !important;
+            backdrop-filter: none !important;
+        }
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            color: #111827 !important;
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        #raport-print-document {
+            display: block !important;
+            visibility: visible !important;
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            opacity: 1 !important;
+        }
+        ${styleContent}
+    </style>
+</head>
+<body style="background: #ffffff !important; background-color: #ffffff !important;">
+    ${printDoc.outerHTML}
+</body>
+</html>`);
+            frameDoc.close();
+
+            setTimeout(() => {
+                const innerDocEl = frameDoc.getElementById('raport-print-document');
+                if (innerDocEl) {
+                    innerDocEl.classList.remove('hidden');
+                    innerDocEl.style.display = 'block';
+                }
+                printFrame.contentWindow.focus();
+                printFrame.contentWindow.print();
+                setTimeout(() => {
+                    printFrame.remove();
+                }, 3000);
+            }, 250);
+        };
+    </script>
 </div>
