@@ -751,7 +751,7 @@
                                 </button>
                             </th>
                             <th class="text-center w-20">Grade</th>
-                            <th class="text-center w-28">Aksi</th>
+                            <th class="text-center min-w-[150px]">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-base-200">
@@ -871,14 +871,25 @@
                                     @endif
                                 </td>
 
-                                {{-- Action Button: Lihat Rapor --}}
-                                <td class="text-center">
-                                    <button type="button" 
-                                        wire:click="openRaport('{{ $row->salesman_code }}', '{{ $row->distributor_code }}')" 
-                                        class="btn btn-xs btn-primary rounded-lg font-semibold gap-1 text-xs shadow-xs cursor-pointer">
-                                        <x-heroicon-m-document-text class="w-3.5 h-3.5" />
-                                        <span>Rapor</span>
-                                    </button>
+                                {{-- Action Buttons: Lihat Rapor & History --}}
+                                <td class="text-center whitespace-nowrap">
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <button type="button" 
+                                            wire:click="openRaport('{{ $row->salesman_code }}', '{{ $row->distributor_code }}')" 
+                                            class="btn btn-xs btn-primary rounded-lg font-semibold gap-1 text-xs shadow-xs cursor-pointer"
+                                            title="Lihat Lembar Rapor Bulan Ini">
+                                            <x-heroicon-m-document-text class="w-3.5 h-3.5" />
+                                            <span>Rapor</span>
+                                        </button>
+
+                                        <button type="button" 
+                                            wire:click="openHistoryModal('{{ $row->salesman_code }}', '{{ $row->distributor_code }}')" 
+                                            class="btn btn-xs btn-outline btn-info rounded-lg font-semibold gap-1 text-xs shadow-xs cursor-pointer hover:text-white"
+                                            title="Histori Rapor 1 Tahun (12 Bulan)">
+                                            <x-heroicon-m-calendar-days class="w-3.5 h-3.5" />
+                                            <span>History</span>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -1685,7 +1696,8 @@
                 visibility: hidden !important;
             }
 
-            #audit-logic-modal {
+            #audit-logic-modal,
+            #raport-history-modal {
                 display: none !important;
                 visibility: hidden !important;
             }
@@ -1990,6 +2002,9 @@
 
     {{-- Modal Edukasi Panduan, Rumus Nilai & Logika Temuan --}}
     @include('livewire.report.analisa-kunjungan-se.audit-logic-modal')
+
+    {{-- Modal Histori Rekam Jejak 1 Tahun SE --}}
+    @include('livewire.report.analisa-kunjungan-se.history-modal')
 
     {{-- Script Cetak Lembar Rapor SE via Iframe Terisolasi --}}
     <script>

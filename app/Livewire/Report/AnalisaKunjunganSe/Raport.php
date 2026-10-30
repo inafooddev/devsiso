@@ -66,6 +66,13 @@ class Raport extends Component
     public $showModal = false;
     public $modalData = null;
 
+    // History Modal State (Histori 12 Bulan / 1 Tahun)
+    public $showHistoryModal = false;
+    public $historySalesmanCode = null;
+    public $historyDistributorCode = null;
+    public $historyYear = null;
+    public $historyData = null;
+
     public function mount()
     {
         $this->authorizeAction('can_view');
@@ -961,6 +968,364 @@ class Raport extends Component
     {
         $this->showModal = false;
         $this->modalData = null;
+    }
+
+    public function openHistoryModal(string $salesmanCode, string $distributorCode, ?int $year = null)
+    {
+        $this->historySalesmanCode = $salesmanCode;
+        $this->historyDistributorCode = $distributorCode;
+        $this->historyYear = $year ?: (int)($this->appliedYear ?: date('Y'));
+
+        $this->historyData = $this->computeSeYearlyHistory(
+            $this->historySalesmanCode,
+            $this->historyDistributorCode,
+            $this->historyYear
+        );
+
+        $this->showHistoryModal = true;
+    }
+
+    public function closeHistoryModal()
+    {
+        $this->showHistoryModal = false;
+        $this->historyData = null;
+    }
+
+    public function changeHistoryYear(int $year)
+    {
+        $this->historyYear = $year;
+        if ($this->historySalesmanCode && $this->historyDistributorCode) {
+            $this->historyData = $this->computeSeYearlyHistory(
+                $this->historySalesmanCode,
+                $this->historyDistributorCode,
+                $this->historyYear
+            );
+        }
+    }
+
+    public function openRaportFromHistory(string $salesmanCode, string $distributorCode, int $month, int $year)
+    {
+        $this->selectedMonth = $month;
+        $this->appliedMonth = $month;
+        $this->selectedYear = $year;
+        $this->appliedYear = $year;
+
+        $this->closeHistoryModal();
+        $this->openRaport($salesmanCode, $distributorCode);
+    }
+
+    protected function computeSeYearlyHistory(string $salesmanCode, string $distributorCode, int $year)
+    {
+        $cacheKey = "raport_se_hist_v1_{$salesmanCode}_{$distributorCode}_{$year}";
+
+        return Cache::remember($cacheKey, 300, function () use ($salesmanCode, $distributorCode, $year) {
+            $monthNames = [
+                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+            ];
+
+            $now = Carbon::now();
+            $currentYear = (int)$now->year;
+            $currentMonth = (int)$now->month;
+
+            // 1. Target Kalender per bulan
+            $calendarTargets = DB::table('master_calender')
+                ->whereBetween('date', ["{$year}-01-01", "{$year}-12-31"])
+                ->where('day_number', '!=', 7)
+                ->where(function ($q) {
+                    $q->whereNull('libur_nasional')->orWhere('libur_nasional', 0);
+                })
+                ->select(
+                    DB::raw('EXTRACT(MONTH FROM date)::int as bulan'),
+                    DB::raw('COUNT(*) as target_hari')
+                )
+                ->groupBy(DB::raw('EXTRACT(MONTH FROM date)::int'))
+                ->pluck('target_hari', 'bulan');
+
+            // 2. Info Profil SE
+            $seProfile = DB::table('rpt_visit_an_h')
+                ->where('MUID', $salesmanCode)
+                ->where('BID', $distributorCode)
+                ->whereBetween('TANGGAL', ["{$year}-01-01", "{$year}-12-31"])
+                ->orderBy('TANGGAL', 'desc')
+                ->orderBy('ID', 'desc')
+                ->first(['MUID', 'MUNAME', 'BID', 'BNAME', 'EID', 'ENAME', 'RID', 'RNAME']);
+
+            if (!$seProfile) {
+                $seProfile = DB::table('rpt_visit_an_h')
+                    ->where('MUID', $salesmanCode)
+                    ->where('BID', $distributorCode)
+                    ->orderBy('TANGGAL', 'desc')
+                    ->first(['MUID', 'MUNAME', 'BID', 'BNAME', 'EID', 'ENAME', 'RID', 'RNAME']);
+            }
+
+            // 3. Raw Kunjungan per bulan
+            $monthlyRaw = DB::table('rpt_visit_an_h as rvah')
+                ->where('rvah.MUID', $salesmanCode)
+                ->where('rvah.BID', $distributorCode)
+                ->whereBetween('rvah.TANGGAL', ["{$year}-01-01", "{$year}-12-31"])
+                ->select(
+                    DB::raw('EXTRACT(MONTH FROM rvah."TANGGAL"::date)::int as bulan'),
+                    DB::raw('COUNT(CASE WHEN rvah."FLAG_PJP" = \'R\' THEN 1 END) as total_pc'),
+                    DB::raw('COUNT(CASE WHEN rvah."FLAG_PJP" = \'R\' AND rvah."FLAG_VISIT" = \'Y\' THEN 1 END) as total_ac'),
+                    DB::raw('COUNT(CASE WHEN rvah."FLAG_PJP" = \'R\' AND rvah."FLAG_VISIT" = \'Y\' AND rvah."FLAG_EC" = \'Y\' THEN 1 END) as total_ec'),
+                    DB::raw('COALESCE(SUM(CASE WHEN rvah."ORDER_VAL" > 0 AND rvah."ORDER_VAL" < 5000000000 THEN rvah."ORDER_VAL" ELSE 0 END), 0) as total_value'),
+                    DB::raw('COALESCE(SUM(rvah."ORDER_QTY"), 0) as total_qty'),
+                    DB::raw('COUNT(DISTINCT CASE WHEN rvah."FLAG_VISIT" = \'Y\' THEN rvah."TANGGAL"::date END) as hari_aktif'),
+                    DB::raw('COALESCE(SUM(EXTRACT(EPOCH FROM rvah."TIME_CONSUME"::time)), 0) as seconds_consume'),
+                    DB::raw('COALESCE(SUM(EXTRACT(EPOCH FROM rvah."TIME_TRAVEL"::time)), 0) as seconds_travel')
+                )
+                ->groupBy(DB::raw('EXTRACT(MONTH FROM rvah."TANGGAL"::date)::int'))
+                ->get()
+                ->keyBy('bulan');
+
+            // 4. Daily work duration (Pilar 4)
+            $dailyWorkSub = DB::table('rpt_visit_an_h as rvah')
+                ->where('rvah.MUID', $salesmanCode)
+                ->where('rvah.BID', $distributorCode)
+                ->whereBetween('rvah.TANGGAL', ["{$year}-01-01", "{$year}-12-31"])
+                ->where('rvah.FLAG_VISIT', 'Y')
+                ->whereNotNull('rvah.TIME_IN')
+                ->whereNotNull('rvah.TIME_OUT')
+                ->select(
+                    DB::raw('EXTRACT(MONTH FROM rvah."TANGGAL"::date)::int as bulan'),
+                    DB::raw('rvah."TANGGAL"::date as tanggal'),
+                    DB::raw('GREATEST(0, EXTRACT(EPOCH FROM (MAX(rvah."TIME_OUT"::timestamp) - MIN(rvah."TIME_IN"::timestamp)))) as day_work_seconds')
+                )
+                ->groupBy(DB::raw('EXTRACT(MONTH FROM rvah."TANGGAL"::date)::int'), DB::raw('rvah."TANGGAL"::date'));
+
+            $monthlyWork = DB::query()
+                ->fromSub($dailyWorkSub, 'dws')
+                ->select(
+                    'bulan',
+                    DB::raw('COUNT(*) as work_days_count'),
+                    DB::raw('SUM(day_work_seconds) as total_work_seconds'),
+                    DB::raw('AVG(day_work_seconds) as avg_work_seconds'),
+                    DB::raw('SUM(CASE WHEN day_work_seconds >= 25200 THEN 1 ELSE 0 END) as days_ge_7h'),
+                    DB::raw('SUM(CASE WHEN day_work_seconds >= 18000 AND day_work_seconds < 25200 THEN 1 ELSE 0 END) as days_5_to_7h'),
+                    DB::raw('SUM(CASE WHEN day_work_seconds < 18000 THEN 1 ELSE 0 END) as days_lt_5h')
+                )
+                ->groupBy('bulan')
+                ->get()
+                ->keyBy('bulan');
+
+            // 5. Findings / Anomali (Pilar 3)
+            $findingsObj = new \App\Livewire\Report\AnalisaKunjunganSe\Findings();
+            $findingsObj->appliedDistributor = $distributorCode;
+            $findingsObj->appliedSalesman = $salesmanCode;
+            $findingsObj->appliedStartDate = "{$year}-01-01";
+            $findingsObj->appliedEndDate = "{$year}-12-31";
+            $findingsObj->accessLevel = 'nasional';
+            $findings = $findingsObj->allFindings();
+
+            $findingsByMonth = $findings->groupBy(function ($f) {
+                $tgl = $f->tanggal ?? $f->visit_date ?? null;
+                return $tgl ? (int) Carbon::parse($tgl)->month : 0;
+            });
+
+            $monthsData = [];
+            $activeMonthsCount = 0;
+            $totalScoreSum = 0;
+            $totalYearlyOmset = 0;
+            $totalYearlyPc = 0;
+            $totalYearlyAc = 0;
+            $totalYearlyEc = 0;
+            $peakMonth = null;
+            $lowestMonth = null;
+
+            for ($m = 1; $m <= 12; $m++) {
+                $mName = $monthNames[$m];
+                $isFuture = ($year > $currentYear) || ($year === $currentYear && $m > $currentMonth);
+                $targetHariKerja = $calendarTargets->get($m, 25);
+                $row = $monthlyRaw->get($m);
+
+                if (!$row || ($row->total_pc == 0 && $row->total_ac == 0)) {
+                    $monthsData[$m] = (object)[
+                        'month' => $m,
+                        'month_name' => $mName,
+                        'is_future' => $isFuture,
+                        'has_activity' => false,
+                        'status_label' => $isFuture ? 'Belum Berjalan' : 'Tidak Ada Aktivitas',
+                        'total_pc' => 0,
+                        'total_ac' => 0,
+                        'pct_ac_pc' => 0,
+                        'hari_aktif' => 0,
+                        'target_hari_kerja' => $targetHariKerja,
+                        'total_ec' => 0,
+                        'strike_rate' => 0,
+                        'total_value' => 0,
+                        'pct_omset' => 0,
+                        'score_pilar_1' => 0,
+                        'score_pilar_2' => 0,
+                        'score_pilar_3' => 0,
+                        'score_pilar_4' => 0,
+                        'skor_total' => 0,
+                        'grade' => $isFuture ? '-' : 'D',
+                        'grade_color' => $isFuture ? 'slate' : 'rose',
+                    ];
+                    continue;
+                }
+
+                $pc = (int)$row->total_pc;
+                $ac = (int)$row->total_ac;
+                $ec = (int)$row->total_ec;
+                $val = (float)$row->total_value;
+                $hariAktif = (int)$row->hari_aktif;
+                $secConsume = (float)$row->seconds_consume;
+
+                $seFindings = $findingsByMonth->get($m, collect([]));
+                $seWork = $monthlyWork->get($m);
+
+                $workDaysCount = $seWork ? (int)$seWork->work_days_count : 0;
+                $totalWorkSec = $seWork ? (float)$seWork->total_work_seconds : 0.0;
+                $daysGe7h = $seWork ? (int)$seWork->days_ge_7h : 0;
+                $days5To7h = $seWork ? (int)$seWork->days_5_to_7h : 0;
+                $daysLt5h = $seWork ? (int)$seWork->days_lt_5h : 0;
+
+                // --- PILAR 1: PRODUKTIVITAS KUNJUNGAN (Bobot: 20%) ---
+                $pctAcPc = ($pc > 0) ? round(($ac / $pc) * 100, 1) : 0;
+                if ($pctAcPc >= 100) $scoreAcPc = 100;
+                elseif ($pctAcPc >= 90) $scoreAcPc = 85 + (($pctAcPc - 90) * 1.5);
+                elseif ($pctAcPc >= 80) $scoreAcPc = 70 + (($pctAcPc - 80) * 1.5);
+                else $scoreAcPc = min(70, ($pctAcPc / 80) * 70);
+
+                $scoreHariAktif = min(100, ($hariAktif / max(1, $targetHariKerja)) * 100);
+                $scoreP1 = round(($scoreAcPc * 0.8) + ($scoreHariAktif * 0.2), 1);
+
+                // --- PILAR 2: EFEKTIVITAS PENJUALAN (Bobot: 40%) ---
+                $strikeRate = ($ac > 0) ? round(($ec / $ac) * 100, 1) : 0;
+                if ($strikeRate >= 50) $scoreSr = 100;
+                elseif ($strikeRate >= 40) $scoreSr = 85 + (($strikeRate - 40) * 1.5);
+                elseif ($strikeRate >= 30) $scoreSr = 70 + (($strikeRate - 30) * 1.5);
+                elseif ($strikeRate >= 20) $scoreSr = 55 + (($strikeRate - 20) * 1.5);
+                else $scoreSr = max(20, $strikeRate * 2.75);
+
+                $targetOmset = self::TARGET_OMSET; // Rp 350.000.000
+                $pctOmset = round(($val / $targetOmset) * 100, 1);
+                if ($val <= 0) $scoreVal = 0;
+                elseif ($pctOmset >= 100) $scoreVal = 100;
+                elseif ($pctOmset >= 90) $scoreVal = 85 + (($pctOmset - 90) * 1.5);
+                elseif ($pctOmset >= 80) $scoreVal = 70 + (($pctOmset - 80) * 1.5);
+                elseif ($pctOmset >= 60) $scoreVal = 55 + (($pctOmset - 60) * 0.75);
+                else $scoreVal = max(0, ($pctOmset / 60) * 55);
+
+                $scoreP2 = round(($scoreSr * 0.40) + ($scoreVal * 0.60), 1);
+
+                // --- PILAR 3: KEPATUHAN SOP & INTEGRITAS (Bobot: 25%) ---
+                $depoCount = 0; $kembarCount = 0; $radiusCount = 0; $kilatCount = 0;
+                foreach ($seFindings as $f) {
+                    $types = $f->anomaly_types ?? [];
+                    if (in_array('at_distributor', $types)) $depoCount++;
+                    if (in_array('duplicate_coord', $types)) $kembarCount++;
+                    if (in_array('out_of_radius', $types)) $radiusCount++;
+                    if (in_array('quick_visit', $types)) $kilatCount++;
+                }
+                $penaltyPoints = min(100, ($depoCount * 3.0) + ($kembarCount * 2.5) + ($radiusCount * 1.0) + ($kilatCount * 1.0));
+                $cleanRate = max(0, 100 - $penaltyPoints);
+                $scoreP3 = round($cleanRate, 1);
+
+                // --- PILAR 4: MANAJEMEN WAKTU & ALOKASI JAM KERJA (Bobot: 15%) ---
+                if ($workDaysCount > 0) {
+                    $scoreWorkDuration = round((($daysGe7h * 100) + ($days5To7h * 50) + ($daysLt5h * 0)) / $workDaysCount, 1);
+                } else {
+                    $scoreWorkDuration = 0;
+                }
+                $avgMinutesPerStore = ($ac > 0) ? round(($secConsume / $ac) / 60, 1) : 0;
+                if ($avgMinutesPerStore >= 7 && $avgMinutesPerStore <= 20) $scoreDuration = 100;
+                elseif ($avgMinutesPerStore > 20 && $avgMinutesPerStore <= 30) $scoreDuration = 80;
+                elseif ($avgMinutesPerStore >= 4 && $avgMinutesPerStore < 7) $scoreDuration = 70;
+                elseif ($avgMinutesPerStore > 30) $scoreDuration = 50;
+                else $scoreDuration = 30;
+
+                $scoreP4 = round(($scoreWorkDuration * 0.60) + ($scoreDuration * 0.40), 1);
+
+                // --- TOTAL SKOR AKHIR ---
+                $skorTotal = round(($scoreP1 * 0.20) + ($scoreP2 * 0.40) + ($scoreP3 * 0.25) + ($scoreP4 * 0.15), 1);
+
+                if ($skorTotal >= 85) { $grade = 'A'; $gradeColor = 'emerald'; }
+                elseif ($skorTotal >= 70) { $grade = 'B'; $gradeColor = 'blue'; }
+                elseif ($skorTotal >= 55) { $grade = 'C'; $gradeColor = 'amber'; }
+                else { $grade = 'D'; $gradeColor = 'rose'; }
+
+                $monthsData[$m] = (object)[
+                    'month' => $m,
+                    'month_name' => $mName,
+                    'is_future' => false,
+                    'has_activity' => true,
+                    'status_label' => 'Selesai',
+                    'total_pc' => $pc,
+                    'total_ac' => $ac,
+                    'pct_ac_pc' => $pctAcPc,
+                    'hari_aktif' => $hariAktif,
+                    'target_hari_kerja' => $targetHariKerja,
+                    'total_ec' => $ec,
+                    'strike_rate' => $strikeRate,
+                    'total_value' => $val,
+                    'pct_omset' => $pctOmset,
+                    'score_pilar_1' => $scoreP1,
+                    'score_pilar_2' => $scoreP2,
+                    'score_pilar_3' => $scoreP3,
+                    'score_pilar_4' => $scoreP4,
+                    'skor_total' => $skorTotal,
+                    'grade' => $grade,
+                    'grade_color' => $gradeColor,
+                ];
+
+                $activeMonthsCount++;
+                $totalScoreSum += $skorTotal;
+                $totalYearlyOmset += $val;
+                $totalYearlyPc += $pc;
+                $totalYearlyAc += $ac;
+                $totalYearlyEc += $ec;
+
+                if ($peakMonth === null || $skorTotal > $peakMonth->skor_total) {
+                    $peakMonth = (object)['month' => $m, 'month_name' => $mName, 'skor_total' => $skorTotal, 'grade' => $grade];
+                }
+                if ($lowestMonth === null || $skorTotal < $lowestMonth->skor_total) {
+                    $lowestMonth = (object)['month' => $m, 'month_name' => $mName, 'skor_total' => $skorTotal, 'grade' => $grade];
+                }
+            }
+
+            $avgScoreYearly = ($activeMonthsCount > 0) ? round($totalScoreSum / $activeMonthsCount, 1) : 0;
+            if ($avgScoreYearly >= 85) { $avgGrade = 'A'; $avgColor = 'emerald'; $avgLabel = 'Sangat Baik (Role Model)'; }
+            elseif ($avgScoreYearly >= 70) { $avgGrade = 'B'; $avgColor = 'blue'; $avgLabel = 'Baik (Memenuhi Standar)'; }
+            elseif ($avgScoreYearly >= 55) { $avgGrade = 'C'; $avgColor = 'amber'; $avgLabel = 'Cukup (Perlu Pembinaan)'; }
+            else { $avgGrade = 'D'; $avgColor = 'rose'; $avgLabel = 'Kurang (Bawah Standar)'; }
+
+            $overallPctAcPc = ($totalYearlyPc > 0) ? round(($totalYearlyAc / $totalYearlyPc) * 100, 1) : 0;
+            $overallStrikeRate = ($totalYearlyAc > 0) ? round(($totalYearlyEc / $totalYearlyAc) * 100, 1) : 0;
+            $avgMonthlyOmset = ($activeMonthsCount > 0) ? round($totalYearlyOmset / $activeMonthsCount) : 0;
+            $avgPctOmset = round(($avgMonthlyOmset / self::TARGET_OMSET) * 100, 1);
+
+            return (object)[
+                'salesman_code' => $salesmanCode,
+                'salesman_name' => $seProfile->MUNAME ?? $salesmanCode,
+                'distributor_code' => $distributorCode,
+                'distributor_name' => $seProfile->BNAME ?? $distributorCode,
+                'area_name' => $seProfile->ENAME ?? '',
+                'area_code' => $seProfile->EID ?? '',
+                'region_name' => $seProfile->RNAME ?? '',
+                'region_code' => $seProfile->RID ?? '',
+                'year' => $year,
+                'avg_score' => $avgScoreYearly,
+                'avg_grade' => $avgGrade,
+                'avg_grade_color' => $avgColor,
+                'avg_grade_label' => $avgLabel,
+                'active_months_count' => $activeMonthsCount,
+                'peak_month' => $peakMonth,
+                'lowest_month' => $lowestMonth,
+                'total_pc' => $totalYearlyPc,
+                'total_ac' => $totalYearlyAc,
+                'overall_pct_ac_pc' => $overallPctAcPc,
+                'total_ec' => $totalYearlyEc,
+                'overall_strike_rate' => $overallStrikeRate,
+                'total_omset' => $totalYearlyOmset,
+                'avg_monthly_omset' => $avgMonthlyOmset,
+                'avg_pct_omset' => $avgPctOmset,
+                'months' => $monthsData,
+            ];
+        });
     }
 
     public function exportExcel()
