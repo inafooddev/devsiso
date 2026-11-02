@@ -38,6 +38,7 @@ use App\Livewire\Mapping\Salesman\Index as SalesmanMappingIndex;
 use App\Livewire\UnMapping\UnmappedProduct\Index as UnmappedProductIndex;
 use App\Livewire\UnMapping\UnmappedSalesman\Index as UnmappedSalesmanIndex;
 use App\Livewire\MasterData\MasterAreas\Index as MasterAreaIndex;
+use App\Livewire\MasterData\MasterCalenders\Index as MasterCalenderIndex;
 use App\Livewire\MasterData\MasterBranches\Index as MasterBranchIndex;
 use App\Livewire\MasterData\MappingDistributorImplementasiEskalink\Index as MappingDistributorImplementasiEskalinkIndex;
 use App\Livewire\MasterData\MasterDistributors\Index as MasterDistributorsIndex;
@@ -279,6 +280,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/master-supervisors', MasterSupervisorIndex::class)->name('master-supervisors.index');
     Route::get('/master-branches', MasterBranchIndex::class)->name('master-branches.index');
     Route::get('/master-distributors', MasterDistributorsIndex::class)->name('master-distributors.index');
+    Route::get('/master-calenders', MasterCalenderIndex::class)->name('master-calenders.index');
     Route::get('/mapping-distributor-implementasi-eskalink', MappingDistributorImplementasiEskalinkIndex::class)->name('mapping-distributor-implementasi-eskalink.index');
     Route::get('/monitoringbankgaransi', \App\Livewire\Others\MonitoringBankGaransi\Index::class)->name('monitoringbankgaransi.index');
 
