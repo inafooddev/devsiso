@@ -137,6 +137,8 @@ use App\Livewire\Jobs\UpdateSalesmans;
 use App\Livewire\Jobs\UpdateAoPercabang;
 use App\Livewire\Jobs\SoFullJoin;
 use App\Livewire\Jobs\JoinSoEskaNonEksa\Index as JoinSoEskaNonEksa;
+use App\Livewire\Jobs\SellinPerCabangPerQty;
+use App\Livewire\Jobs\SisoPerCabangPerQty;
 use App\Livewire\Report\ReaktivasiToko\Index as ReportReaktivasiTokoIndex;
 /*
 |--------------------------------------------------------------------------
@@ -497,5 +499,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/jobs/update-salesmans', UpdateSalesmans::class)->name('jobs.update-salesmans');
     Route::get('/jobs/update-ao-percabang', UpdateAoPercabang::class)->name('jobs.update-ao-percabang');
     Route::get('/jobs/so-full-join', SoFullJoin::class)->name('jobs.so-full-join');
+    Route::get('/jobs/sellin-per-cabang-per-qty', SellinPerCabangPerQty::class)->name('jobs.sellin-per-cabang-per-qty');
+    Route::get('/jobs/siso-per-cabang-per-qty', SisoPerCabangPerQty::class)->name('jobs.siso-per-cabang-per-qty');
 
 });
