@@ -33,6 +33,7 @@ class SalesInvoiceImport extends Component
     public array $queueBatches = [];
     public bool $isQueueRunning = false;
     public ?int $activeQueueBatchId = null;
+    public ?int $activeHealQueueBatchId = null;
 
     public $bulkDistributorCode = '';
     public $selectedDistributorCode = '';
@@ -284,44 +285,46 @@ class SalesInvoiceImport extends Component
     }
 
     /**
-     * Menjalankan pra-pemeriksaan dokumen (Sheet, Baris Header, Periode, Kolom Inti, dan Satuan)
+     * Memeriksa apakah berkas dalam antrian membutuhkan intervensi Self-Healing (Header hilang / Satuan baru)
+     * Mengembalikan true jika butuh intervensi (antrian dijeda sejenak untuk memunculkan modal ke pengguna).
      */
-    protected function runPreImportChecks()
+    protected function inspectQueueItemForHealing(int $batchId): bool
     {
+        if (!isset($this->queueBatches[$batchId])) {
+            return false;
+        }
+
+        $item = $this->queueBatches[$batchId];
+        $distCode = $item['distributor_code'];
+        $tempPath = $item['temp_path'];
+
+        $configModel = ConfigSalesInvoiceDistributor::where('distributor_code', $distCode)->first();
+        if (!$configModel) {
+            return false; // Biarkan executeQueueBatch yang mencatat log konfigurasi tidak ditemukan
+        }
+
+        $config = is_array($configModel->config) ? $configModel->config : json_decode($configModel->config, true);
+        if (empty($config)) {
+            return false;
+        }
+
+        $fullPath = Storage::disk('local')->exists($tempPath) 
+            ? Storage::disk('local')->path($tempPath) 
+            : Storage::path($tempPath);
+
+        if (!file_exists($fullPath)) {
+            return false;
+        }
+
         try {
-            $fullPath = Storage::path($this->storedTempFilePath);
-            $distributorCode = $this->selectedDistributorCode;
-
-            $configModel = ConfigSalesInvoiceDistributor::where('distributor_code', $distributorCode)->first();
-            if (!$configModel) {
-                throw new \Exception("Konfigurasi tidak ditemukan untuk kode distributor '{$distributorCode}'.");
-            }
-
-            $config = is_array($configModel->config) ? $configModel->config : json_decode($configModel->config, true);
-
             $spreadsheet = IOFactory::load($fullPath);
             $sheet = SalesInvoiceSpreadsheetScanner::findBestWorksheet($spreadsheet, $config);
             $headerRowIndex = SalesInvoiceSpreadsheetScanner::findHeaderRowIndex($sheet, $config);
 
-            // 1. [SMART PERIOD GUARD] Validasi kesesuaian periode file vs pilihan UI
-            $periodCheck = SalesInvoicePeriodGuard::checkConsistency(
-                $sheet,
-                $config,
-                (int)$this->targetMonth,
-                (int)$this->targetYear
-            );
-
-            if (!$periodCheck['is_valid']) {
-                $this->addError('excel_file', $periodCheck['error_message']);
-                $this->cancelQuickModal();
-                return;
-            }
-
-            // 2. [CORE HEADERS RESOLUTION] Periksa apakah kolom wajib inti tersedia
             $highestCol = $sheet->getHighestDataColumn();
             $headerCells = $sheet->rangeToArray("A{$headerRowIndex}:{$highestCol}{$headerRowIndex}")[0] ?? [];
 
-            $this->availableFileHeaders = array_values(array_unique(array_filter(array_map('trim', $headerCells))));
+            $availableHeaders = array_values(array_unique(array_filter(array_map('trim', $headerCells))));
             $fileHeaderMap = [];
             foreach ($headerCells as $idx0 => $val) {
                 $norm = SalesInvoiceSpreadsheetScanner::normalize((string)$val);
@@ -338,7 +341,7 @@ class SalesInvoiceImport extends Component
                 'net_amount'    => 'Nilai Netto / Total Bersih',
             ];
 
-            $this->unresolvedHeaders = [];
+            $unresolved = [];
             foreach ($coreFields as $colKey => $colLabel) {
                 $expected = trim((string)($config[$colKey]['header_inv_dist'] ?? ''));
                 $normExpected = SalesInvoiceSpreadsheetScanner::normalize($expected);
@@ -359,10 +362,9 @@ class SalesInvoiceImport extends Component
                 }
 
                 if (!$found) {
-                    // Cari tebakan terbaik dari header file untuk auto-suggest
                     $bestSuggestion = '';
                     $highestSimilarity = 0;
-                    foreach ($this->availableFileHeaders as $opt) {
+                    foreach ($availableHeaders as $opt) {
                         similar_text(strtolower($opt), strtolower($expected), $percent);
                         if ($percent > $highestSimilarity && $percent > 35) {
                             $highestSimilarity = $percent;
@@ -370,7 +372,7 @@ class SalesInvoiceImport extends Component
                         }
                     }
 
-                    $this->unresolvedHeaders[$colKey] = [
+                    $unresolved[$colKey] = [
                         'label'           => $colLabel,
                         'config_value'    => $expected,
                         'selected_header' => $bestSuggestion,
@@ -378,25 +380,64 @@ class SalesInvoiceImport extends Component
                 }
             }
 
-            // Jika ada kolom wajib yang tidak ditemukan, munculkan Modal Pemetaan Cepat
-            if (!empty($this->unresolvedHeaders)) {
+            // 1. Jika ada kolom wajib yang tidak dikenali, aktifkan modal Quick Header Mapping!
+            if (!empty($unresolved)) {
+                $this->activeHealQueueBatchId = $batchId;
+                $this->selectedDistributorCode = $distCode;
+                $this->storedTempFilePath = $tempPath;
+                $this->storedOriginalFilename = $item['file_name'];
+                $this->availableFileHeaders = $availableHeaders;
+                $this->unresolvedHeaders = $unresolved;
                 $this->showQuickHeaderModal = true;
-                return;
+
+                $batch = ImportBatch::find($batchId);
+                if ($batch) {
+                    $batch->addLog('warning', "SELF-HEALING: Terdeteksi ketidakcocokan kolom pada distributor {$distCode}. Menunggu penyesuaian pemetaan dari pengguna...");
+                }
+                $this->syncLog();
+
+                $spreadsheet->disconnectWorksheets();
+                unset($spreadsheet, $sheet);
+                gc_collect_cycles();
+                return true; // Jeda antrian!
             }
 
-            // 3. [UNIT MAPPING CHECK] Periksa apakah ada satuan baru yang belum dipetakan
-            $this->checkUnitMapping($sheet, $config, $headerCells, $distributorCode);
+            // 2. Jika kolom aman, cek apakah ada satuan baru yang belum terdaftar di UnitMapping
+            $unmappedUnits = $this->detectUnmappedUnitsInSheet($sheet, $config, $headerCells, $distCode);
+            if (!empty($unmappedUnits)) {
+                $this->activeHealQueueBatchId = $batchId;
+                $this->selectedDistributorCode = $distCode;
+                $this->storedTempFilePath = $tempPath;
+                $this->storedOriginalFilename = $item['file_name'];
+                $this->pendingUnmappedUnits = $unmappedUnits;
+                $this->showQuickUnitModal = true;
 
-        } catch (\Exception $e) {
-            $this->addError('excel_file', 'Gagal memvalidasi berkas: ' . $e->getMessage());
-            $this->cancelQuickModal();
+                $batch = ImportBatch::find($batchId);
+                if ($batch) {
+                    $batch->addLog('warning', "SELF-HEALING: Terdeteksi satuan baru pada distributor {$distCode}. Menunggu pemetaan satuan standar dari pengguna...");
+                }
+                $this->syncLog();
+
+                $spreadsheet->disconnectWorksheets();
+                unset($spreadsheet, $sheet);
+                gc_collect_cycles();
+                return true; // Jeda antrian!
+            }
+
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet, $sheet);
+            gc_collect_cycles();
+        } catch (\Throwable $e) {
+            return false;
         }
+
+        return false;
     }
 
     /**
-     * Pemeriksaan satuan pada file Excel
+     * Memindai sheet untuk menemukan satuan yang belum terpetakan di database
      */
-    protected function checkUnitMapping($sheet, array $config, array $headerCells, string $distributorCode)
+    protected function detectUnmappedUnitsInSheet($sheet, array $config, array $headerCells, string $distributorCode): array
     {
         $unitHeader = trim((string)($config['unit']['header_inv_dist'] ?? ''));
         $unitIndex = isset($config['unit']) && $config['unit']['index'] > 0 ? (int)$config['unit']['index'] : null;
@@ -412,7 +453,7 @@ class SalesInvoiceImport extends Component
         }
 
         if ($unitIndex !== null) {
-            $highestRow = min((int)$sheet->getHighestDataRow(), 1000);
+            $highestRow = min((int)$sheet->getHighestDataRow(), 500);
             $rawUnits = [];
             for ($rowNum = 2; $rowNum <= $highestRow; $rowNum++) {
                 $c = $sheet->getCell([$unitIndex, $rowNum]);
@@ -437,24 +478,22 @@ class SalesInvoiceImport extends Component
 
                 $unmapped = array_diff($uniqueRawUnits, $mappedUnits);
                 if (!empty($unmapped)) {
-                    $this->pendingUnmappedUnits = [];
+                    $result = [];
                     foreach ($unmapped as $u) {
-                        $this->pendingUnmappedUnits[$u] = [
+                        $result[$u] = [
                             'mapped_unit' => 'CTN', // Default pilihan satuan standar
                         ];
                     }
-                    $this->showQuickUnitModal = true;
-                    return;
+                    return $result;
                 }
             }
         }
 
-        // Jika seluruh pengecekan lolos, kirim ke antrian import
-        $this->dispatchImportJob();
+        return [];
     }
 
     /**
-     * Menerapkan hasil pencocokan dari Modal Pemetaan Header Cepat
+     * Menerapkan hasil pencocokan dari Modal Pemetaan Header Cepat dan melanjutkan antrian
      */
     public function applyQuickHeaderMapping()
     {
@@ -486,24 +525,45 @@ class SalesInvoiceImport extends Component
 
         $this->showQuickHeaderModal = false;
 
-        // Lanjutkan pemeriksaan unit sebelum dispatch
-        try {
-            $fullPath = Storage::path($this->storedTempFilePath);
-            $spreadsheet = IOFactory::load($fullPath);
-            $sheet = SalesInvoiceSpreadsheetScanner::findBestWorksheet($spreadsheet, $config);
-            $headerRowIndex = SalesInvoiceSpreadsheetScanner::findHeaderRowIndex($sheet, $config);
-            $highestCol = $sheet->getHighestDataColumn();
-            $headerCells = $sheet->rangeToArray("A{$headerRowIndex}:{$highestCol}{$headerRowIndex}")[0] ?? [];
+        // Cek apakah berkas yang sama juga memiliki satuan baru yang perlu dipetakan
+        $activeBatchId = $this->activeHealQueueBatchId;
+        $tempPath = $this->storedTempFilePath;
+        $fullPath = $tempPath && Storage::disk('local')->exists($tempPath) 
+            ? Storage::disk('local')->path($tempPath) 
+            : ($tempPath ? Storage::path($tempPath) : null);
 
-            $this->checkUnitMapping($sheet, $config, $headerCells, $distributorCode);
-        } catch (\Exception $e) {
-            $this->addError('excel_file', 'Gagal memproses file: ' . $e->getMessage());
-            $this->cancelQuickModal();
+        if ($fullPath && file_exists($fullPath)) {
+            try {
+                $spreadsheet = IOFactory::load($fullPath);
+                $sheet = SalesInvoiceSpreadsheetScanner::findBestWorksheet($spreadsheet, $config);
+                $headerRowIndex = SalesInvoiceSpreadsheetScanner::findHeaderRowIndex($sheet, $config);
+                $highestCol = $sheet->getHighestDataColumn();
+                $headerCells = $sheet->rangeToArray("A{$headerRowIndex}:{$highestCol}{$headerRowIndex}")[0] ?? [];
+
+                $unmapped = $this->detectUnmappedUnitsInSheet($sheet, $config, $headerCells, $distributorCode);
+                $spreadsheet->disconnectWorksheets();
+                unset($spreadsheet, $sheet);
+                gc_collect_cycles();
+
+                if (!empty($unmapped)) {
+                    $this->pendingUnmappedUnits = $unmapped;
+                    $this->showQuickUnitModal = true;
+                    return; // Tunggu pemetaan satuan
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        // Jika tidak ada masalah satuan, eksekusi batch ini dan lanjutkan antrian berikutnya
+        if ($activeBatchId) {
+            $this->activeHealQueueBatchId = null;
+            $this->executeQueueBatch($activeBatchId);
+            $this->isQueueRunning = true;
+            $this->processNextQueueItem();
         }
     }
 
     /**
-     * Menerapkan hasil pemetaan dari Modal Satuan Cepat
+     * Menerapkan hasil pemetaan dari Modal Satuan Cepat dan melanjutkan antrian
      */
     public function applyQuickUnitMapping()
     {
@@ -523,58 +583,38 @@ class SalesInvoiceImport extends Component
         UnitHelper::clearCache($distributorCode);
         $this->showQuickUnitModal = false;
 
-        $this->dispatchImportJob();
+        $activeBatchId = $this->activeHealQueueBatchId;
+        if ($activeBatchId) {
+            $this->activeHealQueueBatchId = null;
+            $this->executeQueueBatch($activeBatchId);
+            $this->isQueueRunning = true;
+            $this->processNextQueueItem();
+        }
     }
 
     /**
-     * Memulai Job Antrian Import di Latar Belakang
-     */
-    protected function dispatchImportJob()
-    {
-        $filePath = $this->storedTempFilePath;
-        $originalFilename = $this->storedOriginalFilename;
-        $distributorCode = $this->selectedDistributorCode;
-
-        $monthName = Carbon::create($this->targetYear, $this->targetMonth, 1)->translatedFormat('F');
-        $distributor = MasterDistributor::find($distributorCode);
-        $distName = $distributor ? $distributor->distributor_name : $distributorCode;
-
-        $batch = ImportBatch::create([
-            'file_name' => "{$distributorCode} - {$originalFilename}",
-            'status'    => 'pending',
-            'log_lines' => [
-                ['type' => 'info', 'message' => "Distributor: {$distName} ({$distributorCode})"],
-                ['type' => 'info', 'message' => "Periode Target: {$monthName} {$this->targetYear}"],
-                ['type' => 'info', 'message' => 'Menambahkan proses ke dalam antrian...'],
-            ]
-        ]);
-
-        $this->batchId = $batch->id;
-        $this->syncLog();
-
-        \App\Helpers\ActivityLogger::log('Import Sales Invoice', "Memulai proses import file: {$originalFilename} untuk distributor {$distributorCode} periode {$monthName} {$this->targetYear}");
-
-        ProcessSalesInvoiceImport::dispatch(
-            $filePath,
-            $this->batchId,
-            $distributorCode,
-            $this->targetMonth,
-            $this->targetYear
-        );
-
-        $this->reset(['storedTempFilePath', 'storedOriginalFilename', 'showQuickHeaderModal', 'showQuickUnitModal', 'unresolvedHeaders', 'pendingUnmappedUnits']);
-    }
-
-    /**
-     * Membatalkan proses modal dan membersihkan file sementara
+     * Membatalkan proses modal dan melanjutkan antrian berkas berikutnya
      */
     public function cancelQuickModal()
     {
-        if ($this->storedTempFilePath && Storage::exists($this->storedTempFilePath)) {
-            Storage::delete($this->storedTempFilePath);
+        $activeBatchId = $this->activeHealQueueBatchId;
+
+        if ($activeBatchId && isset($this->queueBatches[$activeBatchId])) {
+            $this->queueBatches[$activeBatchId]['status'] = 'failed';
+            $batch = ImportBatch::find($activeBatchId);
+            if ($batch) {
+                $batch->addLog('error', "PROSES DIBATALKAN: Pengguna membatalkan penyesuaian kolom / satuan untuk berkas ini.");
+                $batch->updateStatus('failed');
+            }
+            // Hapus berkas temporary
+            $tempPath = $this->queueBatches[$activeBatchId]['temp_path'] ?? null;
+            if ($tempPath && Storage::disk('local')->exists($tempPath)) {
+                Storage::disk('local')->delete($tempPath);
+            }
         }
 
         $this->reset([
+            'activeHealQueueBatchId',
             'storedTempFilePath',
             'storedOriginalFilename',
             'showQuickHeaderModal',
@@ -583,6 +623,52 @@ class SalesInvoiceImport extends Component
             'pendingUnmappedUnits',
             'excel_file'
         ]);
+
+        // Lanjutkan antrian berkas berikutnya jika masih ada
+        $this->isQueueRunning = true;
+        $this->processNextQueueItem();
+    }
+
+    /**
+     * Mengeksekusi proses impor untuk satu batch antrian
+     */
+    protected function executeQueueBatch(int $batchId)
+    {
+        if (!isset($this->queueBatches[$batchId])) {
+            return;
+        }
+
+        $item = $this->queueBatches[$batchId];
+        $this->activeQueueBatchId = $batchId;
+        $this->batchId = $batchId;
+        $this->queueBatches[$batchId]['status'] = 'processing';
+        $this->syncLog();
+
+        try {
+            set_time_limit(0);
+
+            // Eksekusi proses import untuk batch ini
+            ProcessSalesInvoiceImport::dispatchSync(
+                $item['temp_path'],
+                $batchId,
+                $item['distributor_code'],
+                $this->targetMonth,
+                $this->targetYear
+            );
+
+            // Periksa status aktual dari database (karena job menangani exception secara internal)
+            $freshBatch = ImportBatch::find($batchId);
+            $this->queueBatches[$batchId]['status'] = ($freshBatch && $freshBatch->status === 'failed') ? 'failed' : 'completed';
+        } catch (\Throwable $e) {
+            $this->queueBatches[$batchId]['status'] = 'failed';
+            $batch = ImportBatch::find($batchId);
+            if ($batch) {
+                $batch->addLog('error', "PROSES GAGAL: " . $e->getMessage());
+                $batch->updateStatus('failed');
+            }
+        }
+
+        $this->syncLog();
     }
 
     /**
@@ -706,38 +792,15 @@ class SalesInvoiceImport extends Component
             return;
         }
 
-        $this->activeQueueBatchId = $pendingBatchId;
-        $this->batchId = $pendingBatchId;
-        $this->queueBatches[$pendingBatchId]['status'] = 'processing';
-        $this->syncLog();
-
-        $item = $this->queueBatches[$pendingBatchId];
-
-        try {
-            set_time_limit(0);
-
-            // Eksekusi proses import untuk batch ini
-            ProcessSalesInvoiceImport::dispatchSync(
-                $item['temp_path'],
-                $pendingBatchId,
-                $item['distributor_code'],
-                $this->targetMonth,
-                $this->targetYear
-            );
-
-            // Periksa status aktual dari database (karena job menangani exception secara internal)
-            $freshBatch = ImportBatch::find($pendingBatchId);
-            $this->queueBatches[$pendingBatchId]['status'] = ($freshBatch && $freshBatch->status === 'failed') ? 'failed' : 'completed';
-        } catch (\Throwable $e) {
-            $this->queueBatches[$pendingBatchId]['status'] = 'failed';
-            $batch = ImportBatch::find($pendingBatchId);
-            if ($batch) {
-                $batch->addLog('error', "PROSES GAGAL: " . $e->getMessage());
-                $batch->updateStatus('failed');
-            }
+        // Cek apakah item ini butuh intervensi Self-Healing (Kolom tidak cocok / Satuan baru)
+        if ($this->inspectQueueItemForHealing($pendingBatchId)) {
+            // Antrian dijeda sementara, modal self-healing terbuka di layar pengguna
+            $this->isQueueRunning = false;
+            return;
         }
 
-        $this->syncLog();
+        // Eksekusi proses import untuk batch ini
+        $this->executeQueueBatch($pendingBatchId);
 
         // Cek apakah masih ada item pending tersisa
         $hasMore = false;

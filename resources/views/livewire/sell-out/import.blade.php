@@ -616,7 +616,7 @@
                 <!-- Action Buttons -->
                 <div class="flex justify-end gap-2 pt-2 border-t border-base-200">
                     <button type="button" wire:click="cancelQuickModal" class="btn btn-ghost btn-sm text-xs font-semibold">
-                        Batal
+                        Batal / Lewati Berkas Ini
                     </button>
                     <button type="button" wire:click="applyQuickHeaderMapping" 
                             wire:loading.attr="disabled"
@@ -688,7 +688,7 @@
                 <!-- Action Buttons -->
                 <div class="flex justify-end gap-2 pt-2 border-t border-base-200">
                     <button type="button" wire:click="cancelQuickModal" class="btn btn-ghost btn-sm text-xs font-semibold">
-                        Batal
+                        Batal / Lewati Berkas Ini
                     </button>
                     <button type="button" wire:click="applyQuickUnitMapping" 
                             wire:loading.attr="disabled"
