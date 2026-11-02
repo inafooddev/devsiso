@@ -8,13 +8,14 @@ trait WithAccessFilter
 {
     /**
      * Apply row-level security (RLS) based on the logged-in user's access level.
-     * Procedure: User -> Master Distributors -> Data Tables (by cabang)
+     * Procedure: User -> Master Distributors -> Data Tables (by cabang / branch_name)
      *
      * @param \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder $query
-     * @param string $prefix Prefix for the cabang column (e.g. 'vspc.' or '')
+     * @param string $prefix Prefix for the cabang column (e.g. 'vspc.' or 'md.')
+     * @param string $column Column name to filter on (default: 'cabang', or 'branch_name' for master_distributors)
      * @return \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder
      */
-    protected function applyAccessFilter($query, $prefix = '')
+    protected function applyAccessFilter($query, $prefix = '', $column = 'cabang')
     {
         $user = auth()->user();
         
@@ -45,9 +46,9 @@ trait WithAccessFilter
         // 3. Filter tabel data utama hanya untuk cabang-cabang tersebut
         if (empty($allowedCabangs)) {
             // Jika tidak punya akses ke cabang manapun, berikan kondisi false
-            $query->where($prefix . 'cabang', 'INVALID_ACCESS_NO_CABANG');
+            $query->where($prefix . $column, 'INVALID_ACCESS_NO_CABANG');
         } else {
-            $query->whereIn($prefix . 'cabang', $allowedCabangs);
+            $query->whereIn($prefix . $column, $allowedCabangs);
         }
 
         return $query;

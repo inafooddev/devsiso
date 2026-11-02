@@ -25,6 +25,7 @@ use App\Livewire\Dashboard\SellIn\Supervisor;
 use App\Livewire\Dashboard\NewSellIn;
 use App\Livewire\Dashboard\V2\SellIn\Index as DashboardV2SellIn;
 use App\Livewire\Dashboard\V2\SellOut\Index as DashboardV2SellOut;
+use App\Livewire\Dashboard\V2\Qty\Index as DashboardV2Qty;
 use App\Livewire\Dashboard\DistributorMap;
 use App\Livewire\Dashboard\MetabaseDashboard;
 use App\Livewire\Others\Qceskalink\SalesComparison;
@@ -259,6 +260,7 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('dashboard/v2')->name('dashboard.v2.')->group(function () {
         Route::get('/sellin', DashboardV2SellIn::class)->name('sellin');
         Route::get('/sellout', DashboardV2SellOut::class)->name('sellout');
+        Route::get('/qty', DashboardV2Qty::class)->name('qty');
     });
 
     Route::get('/dashboard/newsellin', NewSellIn::class)->name('dashboard.newsellin');

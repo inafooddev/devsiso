@@ -18,6 +18,9 @@
     <x-ui.tab-item href="{{ route('dashboard.v2.sellout') }}" :active="false" :navigate="false" icon="o-shopping-cart">
         Sell Out
     </x-ui.tab-item>
+    <x-ui.tab-item href="{{ route('dashboard.v2.qty') }}" :active="false" :navigate="false" icon="o-cube">
+        In & Out (Qty)
+    </x-ui.tab-item>
 </x-ui.tab-menu>
 
 <!-- Scrollable Content Area -->
