@@ -23,12 +23,13 @@ class SalesInvoicePeriodGuard
         array $config,
         int $targetMonth,
         int $targetYear,
-        int $maxSampleRows = 100
+        int $maxSampleRows = 100,
+        int $headerRowIndex = 1
     ): array {
         $targetPeriodName = self::formatPeriodName($targetYear, $targetMonth);
 
         // 1. Tentukan index kolom untuk tanggal faktur (1-based)
-        $dateColIndex = self::resolveDateColumnIndex($sheet, $config);
+        $dateColIndex = self::resolveDateColumnIndex($sheet, $config, $headerRowIndex);
 
         if ($dateColIndex === null) {
             // Jika kolom tanggal tidak terdeteksi pada baris 1, lewati guard agar validasi header yang menangani
@@ -44,13 +45,14 @@ class SalesInvoicePeriodGuard
             ];
         }
 
-        // 2. Ambil sampel baris data (dari baris 2 sampai maks $maxSampleRows)
-        $highestRow = min((int)$sheet->getHighestDataRow(), $maxSampleRows + 1);
+        // 2. Ambil sampel baris data (dari baris setelah header sampai maks $maxSampleRows)
+        $startRow = $headerRowIndex + 1;
+        $highestRow = min((int)$sheet->getHighestDataRow(), $startRow + $maxSampleRows);
         $frequencies = [];
         $totalSampled = 0;
         $targetMatches = 0;
 
-        for ($row = 2; $row <= $highestRow; $row++) {
+        for ($row = $startRow; $row <= $highestRow; $row++) {
             $cell = $sheet->getCell([$dateColIndex, $row]);
             $cellValue = $cell->isFormula() 
                 ? (function() use ($cell) {
@@ -132,7 +134,7 @@ class SalesInvoicePeriodGuard
     /**
      * Menemukan posisi index kolom tanggal pada baris 1
      */
-    protected static function resolveDateColumnIndex(Worksheet $sheet, array $config): ?int
+    protected static function resolveDateColumnIndex(Worksheet $sheet, array $config, int $headerRowIndex = 1): ?int
     {
         $expectedHeader = trim((string)($config['invoice_date']['header_inv_dist'] ?? ''));
         $configIndex = isset($config['invoice_date']['index']) && $config['invoice_date']['index'] > 0 
@@ -140,7 +142,7 @@ class SalesInvoicePeriodGuard
             : null;
 
         $highestCol = $sheet->getHighestDataColumn();
-        $headerCells = $sheet->rangeToArray("A1:{$highestCol}1")[0] ?? [];
+        $headerCells = $sheet->rangeToArray("A{$headerRowIndex}:{$highestCol}{$headerRowIndex}")[0] ?? [];
 
         // Prioritas 1: Cocokkan nama header yang dikonfigurasi
         if ($expectedHeader !== '') {

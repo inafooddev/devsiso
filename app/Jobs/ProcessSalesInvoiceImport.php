@@ -88,7 +88,9 @@ class ProcessSalesInvoiceImport implements ShouldQueue
                     $sheet,
                     $config,
                     $this->targetMonth,
-                    $this->targetYear
+                    $this->targetYear,
+                    100,
+                    $headerRowIndex
                 );
 
                 if (!$periodCheck['is_valid']) {
@@ -96,6 +98,14 @@ class ProcessSalesInvoiceImport implements ShouldQueue
                 }
 
                 $batch->addLog('info', "Kesesuaian periode terverifikasi: {$periodCheck['target_period_name']} ({$periodCheck['match_percentage']}% data transaksi cocok).");
+            }
+
+            // Bebaskan memori scanner PhpSpreadsheet sebelum Maatwebsite Excel membaca file
+            if (isset($spreadsheet)) {
+                $spreadsheet->disconnectWorksheets();
+                unset($spreadsheet);
+                unset($sheet);
+                gc_collect_cycles();
             }
 
             // DB Transaction dengan Bulk Insert
@@ -159,7 +169,11 @@ class ProcessSalesInvoiceImport implements ShouldQueue
             $batch->addLog('error', "PROSES GAGAL: " . $e->getMessage());
             $batch->updateStatus('failed');
         } finally {
-            Storage::delete($this->filePath);
+            if (Storage::disk('local')->exists($this->filePath)) {
+                Storage::disk('local')->delete($this->filePath);
+            } elseif (Storage::exists($this->filePath)) {
+                Storage::delete($this->filePath);
+            }
         }
     }
 }

@@ -18,6 +18,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Services\SalesInvoicePeriodGuard;
 use App\Services\SalesInvoiceSpreadsheetScanner;
 use App\Helpers\UnitHelper;
+use Livewire\Attributes\Computed;
 
 class SalesInvoiceImport extends Component
 {
@@ -25,7 +26,15 @@ class SalesInvoiceImport extends Component
 
     protected string $menuRoute = 'sales-invoice-report.index';
 
+    // Berkas Excel & Multi-Upload Staging
     public $excel_file;
+    public $excel_files = [];
+    public array $stagedFiles = [];
+    public array $queueBatches = [];
+    public bool $isQueueRunning = false;
+    public ?int $activeQueueBatchId = null;
+
+    public $bulkDistributorCode = '';
     public $selectedDistributorCode = '';
     public $isDistributorAutoDetected = false;
     public $distributorSearch = '';
@@ -66,34 +75,172 @@ class SalesInvoiceImport extends Component
         $latestBatch = ImportBatch::latest()->first();
         if ($latestBatch && in_array($latestBatch->status, ['pending', 'processing'])) {
             $this->batchId = $latestBatch->id;
+            $this->activeQueueBatchId = $latestBatch->id;
             $this->syncLog();
         }
     }
 
     /**
-     * Hook ketika file dipilih oleh user
+     * Hook ketika satu atau banyak file dipilih oleh user (Multi-Upload)
+     */
+    public function updatedExcelFiles()
+    {
+        $this->validate([
+            'excel_files.*' => 'required|file|mimes:xls,xlsx|max:20480', // Maks 20MB per file
+        ], [
+            'excel_files.*.mimes' => 'Setiap berkas harus berupa file Excel (.xlsx atau .xls).',
+            'excel_files.*.max'   => 'Ukuran setiap file maksimal 20 MB.',
+        ]);
+
+        foreach ($this->excel_files as $file) {
+            $originalFilename = $file->getClientOriginalName();
+            $detectedCode = '';
+            $hasConfig = false;
+
+            // Otomatis deteksi kode cabang dari nama file (contoh: DICJR001_sales.xlsx atau DICJR001-sales.xlsx)
+            if (preg_match('/^([A-Za-z0-9]+)[_\-\s]/', $originalFilename, $matches)) {
+                $code = strtoupper($matches[1]);
+                $hasConfig = ConfigSalesInvoiceDistributor::where('distributor_code', $code)->exists();
+                if ($hasConfig) {
+                    $detectedCode = $code;
+                }
+            }
+
+            // Fallback ke distributor terpilih di dropdown jika nama file tidak berpola kode distributor
+            if (!$detectedCode && $this->selectedDistributorCode) {
+                $detectedCode = $this->selectedDistributorCode;
+                $hasConfig = ConfigSalesInvoiceDistributor::where('distributor_code', $detectedCode)->exists();
+            }
+
+            $distributor = $detectedCode ? MasterDistributor::find($detectedCode) : null;
+            $distName = $distributor ? $distributor->distributor_name : ($detectedCode ?: 'Pilih Distributor');
+
+            $fileId = Str::random(10);
+            $tempPath = $file->storeAs('temp-imports', "staged_{$fileId}_{$originalFilename}", 'local');
+            $filesize = $file->getSize();
+            $sizeFormatted = $filesize > 1048576 
+                ? number_format($filesize / 1048576, 2) . ' MB' 
+                : number_format($filesize / 1024, 1) . ' KB';
+
+            $this->stagedFiles[$fileId] = [
+                'id'                => $fileId,
+                'temp_path'         => $tempPath,
+                'original_name'     => $originalFilename,
+                'size_formatted'    => $sizeFormatted,
+                'distributor_code'  => $detectedCode,
+                'distributor_name'  => $distName,
+                'has_config'        => $hasConfig,
+                'is_auto_detected'  => !empty($detectedCode),
+            ];
+
+            // Jika hanya 1 file dan kodenya terdeteksi, sinkronkan juga ke selectedDistributorCode
+            if (count($this->stagedFiles) === 1 && !empty($detectedCode)) {
+                $this->selectedDistributorCode = $detectedCode;
+                $this->isDistributorAutoDetected = true;
+            }
+        }
+
+        $this->reset(['excel_files', 'excel_file']);
+    }
+
+    /**
+     * Hook jika berkas diunggah via single excel_file (Backward compatibility)
      */
     public function updatedExcelFile()
     {
-        $this->validate([
-            'excel_file' => 'required|file|mimes:xls,xlsx|max:20480', // Maks 20MB
-        ], [
-            'excel_file.mimes' => 'Berkas harus berupa file Excel (.xlsx atau .xls).',
-            'excel_file.max'   => 'Ukuran file maksimal 20 MB.',
-        ]);
+        if ($this->excel_file) {
+            $this->excel_files = [$this->excel_file];
+            $this->updatedExcelFiles();
+        }
+    }
 
-        $originalFilename = $this->excel_file->getClientOriginalName();
+    /**
+     * Menghapus salah satu file dari antrian stagedFiles
+     */
+    public function removeStagedFile($fileId)
+    {
+        if (isset($this->stagedFiles[$fileId])) {
+            $path = $this->stagedFiles[$fileId]['temp_path'] ?? null;
+            if ($path && Storage::disk('local')->exists($path)) {
+                Storage::disk('local')->delete($path);
+            }
+            unset($this->stagedFiles[$fileId]);
+        }
 
-        // Otomatis deteksi kode cabang dari nama file jika ada (misal DIBDG001_sales.xlsx atau DIBDG001-sales.xlsx)
-        if (preg_match('/^([A-Za-z0-9]+)[_\-\s]/', $originalFilename, $matches)) {
-            $code = strtoupper($matches[1]);
-            $hasConfig = ConfigSalesInvoiceDistributor::where('distributor_code', $code)->exists();
-            if ($hasConfig) {
-                $this->selectedDistributorCode = $code;
-                $this->isDistributorAutoDetected = true;
-                $this->distributorSearch = '';
+        if (empty($this->stagedFiles)) {
+            $this->clearDistributor();
+        }
+    }
+
+    /**
+     * Menghapus seluruh file dari antrian stagedFiles
+     */
+    public function clearAllStagedFiles()
+    {
+        foreach ($this->stagedFiles as $item) {
+            $path = $item['temp_path'] ?? null;
+            if ($path && Storage::disk('local')->exists($path)) {
+                Storage::disk('local')->delete($path);
             }
         }
+        $this->stagedFiles = [];
+        $this->reset(['excel_file', 'excel_files']);
+        $this->clearDistributor();
+    }
+
+    /**
+     * Mengatur distributor untuk berkas tertentu di antrian
+     */
+    public function setFileDistributor($fileId, $distributorCode)
+    {
+        if (isset($this->stagedFiles[$fileId])) {
+            $code = strtoupper(trim($distributorCode));
+            $hasConfig = ConfigSalesInvoiceDistributor::where('distributor_code', $code)->exists();
+            $distributor = MasterDistributor::find($code);
+            $distName = $distributor ? $distributor->distributor_name : $code;
+
+            $this->stagedFiles[$fileId]['distributor_code'] = $code;
+            $this->stagedFiles[$fileId]['distributor_name'] = $distName;
+            $this->stagedFiles[$fileId]['has_config'] = $hasConfig;
+            $this->stagedFiles[$fileId]['is_auto_detected'] = false;
+            $this->stagedFiles[$fileId]['is_editing'] = false;
+        }
+    }
+
+    /**
+     * Membuka / menutup mode ganti distributor pada kartu berkas
+     */
+    public function toggleEditDistributor($fileId)
+    {
+        if (isset($this->stagedFiles[$fileId])) {
+            $current = $this->stagedFiles[$fileId]['is_editing'] ?? false;
+            $this->stagedFiles[$fileId]['is_editing'] = !$current;
+        }
+    }
+
+    /**
+     * Menerapkan 1 distributor sekaligus ke seluruh berkas yang belum memiliki distributor
+     */
+    public function applyBulkDistributor()
+    {
+        if (empty($this->bulkDistributorCode)) return;
+
+        $code = strtoupper(trim($this->bulkDistributorCode));
+        $hasConfig = ConfigSalesInvoiceDistributor::where('distributor_code', $code)->exists();
+        $distributor = MasterDistributor::find($code);
+        $distName = $distributor ? $distributor->distributor_name : $code;
+
+        foreach ($this->stagedFiles as $fileId => $file) {
+            if (empty($file['distributor_code'])) {
+                $this->stagedFiles[$fileId]['distributor_code'] = $code;
+                $this->stagedFiles[$fileId]['distributor_name'] = $distName;
+                $this->stagedFiles[$fileId]['has_config'] = $hasConfig;
+                $this->stagedFiles[$fileId]['is_auto_detected'] = false;
+                $this->stagedFiles[$fileId]['is_editing'] = false;
+            }
+        }
+
+        $this->bulkDistributorCode = '';
     }
 
     /**
@@ -104,6 +251,13 @@ class SalesInvoiceImport extends Component
         $this->selectedDistributorCode = $code;
         $this->isDistributorAutoDetected = false;
         $this->distributorSearch = '';
+
+        // Terapkan ke berkas dalam stagedFiles yang belum memiliki kode distributor
+        foreach ($this->stagedFiles as $fileId => $file) {
+            if (empty($file['distributor_code'])) {
+                $this->setFileDistributor($fileId, $code);
+            }
+        }
     }
 
     /**
@@ -117,31 +271,16 @@ class SalesInvoiceImport extends Component
     }
 
     /**
-     * Memulai proses import dengan Self-Healing Pre-Check
+     * Memulai proses import (baik single file maupun multi-queue)
      */
     public function import()
     {
-        $this->validate([
-            'excel_file'              => 'required|file|mimes:xls,xlsx|max:20480',
-            'selectedDistributorCode' => 'required|string|exists:config_sales_invoice_distributor,distributor_code',
-            'targetMonth'             => 'required|integer|between:1,12',
-            'targetYear'              => 'required|integer|between:2020,2035',
-        ], [
-            'selectedDistributorCode.required' => 'Silakan pilih distributor terlebih dahulu sebelum memulai proses impor.',
-            'targetMonth.required'             => 'Pilih bulan target transaksi.',
-            'targetYear.required'              => 'Pilih tahun target transaksi.',
-        ]);
+        if (empty($this->stagedFiles) && $this->excel_file) {
+            $this->excel_files = [$this->excel_file];
+            $this->updatedExcelFiles();
+        }
 
-        $this->reset(['batchId', 'batchStatus', 'logLines', 'totalRows', 'processedRows', 'showQuickHeaderModal', 'showQuickUnitModal', 'unresolvedHeaders', 'pendingUnmappedUnits']);
-
-        // Simpan file ke temporary storage
-        $this->storedOriginalFilename = $this->excel_file->getClientOriginalName();
-        $this->storedTempFilePath = $this->excel_file->storeAs(
-            'livewire-tmp',
-            Str::random(40) . '.' . $this->excel_file->getClientOriginalExtension()
-        );
-
-        $this->runPreImportChecks();
+        $this->startQueueImport();
     }
 
     /**
@@ -463,23 +602,200 @@ class SalesInvoiceImport extends Component
     }
 
     /**
-     * Menghapus file yang telah dipilih dan mereset deteksi otomatis distributor jika ada
+     * Memulai proses impor untuk seluruh antrian berkas yang dipilih (Multi-Upload)
      */
-    public function clearSelectedFile()
+    public function startQueueImport()
     {
-        $this->reset('excel_file');
-        if ($this->isDistributorAutoDetected) {
-            $this->selectedDistributorCode = '';
-            $this->isDistributorAutoDetected = false;
+        $this->validate([
+            'targetMonth' => 'required|integer|between:1,12',
+            'targetYear'  => 'required|integer|between:2020,2035',
+        ], [
+            'targetMonth.required' => 'Pilih bulan target transaksi.',
+            'targetYear.required'  => 'Pilih tahun target transaksi.',
+        ]);
+
+        if (empty($this->stagedFiles)) {
+            session()->flash('error', 'Pilih minimal satu berkas Excel untuk diimpor.');
+            return;
+        }
+
+        // Validasi: pastikan setiap berkas memiliki distributor dan konfigurasi
+        foreach ($this->stagedFiles as $staged) {
+            if (empty($staged['distributor_code'])) {
+                session()->flash('error', "Berkas '{$staged['original_name']}' belum memiliki distributor target terpilih.");
+                return;
+            }
+            if (empty($staged['has_config'])) {
+                session()->flash('error', "Distributor '{$staged['distributor_code']}' pada berkas '{$staged['original_name']}' belum memiliki konfigurasi kolom.");
+                return;
+            }
+        }
+
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        $monthName = $monthNames[$this->targetMonth] ?? (string)$this->targetMonth;
+
+        $this->queueBatches = [];
+
+        foreach ($this->stagedFiles as $staged) {
+            $distCode = $staged['distributor_code'];
+            $distName = $staged['distributor_name'];
+            $origName = $staged['original_name'];
+            $tempPath = $staged['temp_path'];
+
+            $batch = ImportBatch::create([
+                'file_name' => "{$distCode} - {$origName}",
+                'status'    => 'pending',
+                'log_lines' => [
+                    ['type' => 'info', 'message' => "Distributor: {$distName} ({$distCode})"],
+                    ['type' => 'info', 'message' => "Periode Target: {$monthName} {$this->targetYear}"],
+                    ['type' => 'info', 'message' => "Berkas masuk ke dalam antrian multi-import..."],
+                ]
+            ]);
+
+            $this->queueBatches[$batch->id] = [
+                'batch_id'         => $batch->id,
+                'distributor_code' => $distCode,
+                'distributor_name' => $distName,
+                'file_name'        => $origName,
+                'temp_path'        => $tempPath,
+                'status'           => 'pending',
+            ];
+
+            \App\Helpers\ActivityLogger::log('Import Sales Invoice', "Menambahkan ke antrian import: {$origName} ({$distCode}) periode {$monthName} {$this->targetYear}");
+        }
+
+        // Kosongkan staged files karena seluruhnya sudah masuk ke queueBatches
+        $this->stagedFiles = [];
+        $this->isQueueRunning = true;
+
+        // Ambil batch pertama dan mulai proses
+        $firstBatchId = array_key_first($this->queueBatches);
+        if ($firstBatchId) {
+            $this->activeQueueBatchId = $firstBatchId;
+            $this->batchId = $firstBatchId;
+            $this->syncLog();
+            $this->processNextQueueItem();
         }
     }
 
     /**
-     * Membuka log dari riwayat batch sebelumnya
+     * Memproses item berikutnya dalam antrian multi-import
+     */
+    public function processNextQueueItem()
+    {
+        if (!$this->isQueueRunning || empty($this->queueBatches)) {
+            $this->isQueueRunning = false;
+            return;
+        }
+
+        // Cari item pertama yang berstatus pending
+        $pendingBatchId = null;
+        foreach ($this->queueBatches as $bId => $item) {
+            if ($item['status'] === 'pending') {
+                $pendingBatchId = $bId;
+                break;
+            }
+        }
+
+        if (!$pendingBatchId) {
+            $this->isQueueRunning = false;
+            return;
+        }
+
+        $this->activeQueueBatchId = $pendingBatchId;
+        $this->batchId = $pendingBatchId;
+        $this->queueBatches[$pendingBatchId]['status'] = 'processing';
+        $this->syncLog();
+
+        $item = $this->queueBatches[$pendingBatchId];
+
+        try {
+            set_time_limit(0);
+
+            // Eksekusi proses import untuk batch ini
+            ProcessSalesInvoiceImport::dispatchSync(
+                $item['temp_path'],
+                $pendingBatchId,
+                $item['distributor_code'],
+                $this->targetMonth,
+                $this->targetYear
+            );
+
+            // Periksa status aktual dari database (karena job menangani exception secara internal)
+            $freshBatch = ImportBatch::find($pendingBatchId);
+            $this->queueBatches[$pendingBatchId]['status'] = ($freshBatch && $freshBatch->status === 'failed') ? 'failed' : 'completed';
+        } catch (\Throwable $e) {
+            $this->queueBatches[$pendingBatchId]['status'] = 'failed';
+            $batch = ImportBatch::find($pendingBatchId);
+            if ($batch) {
+                $batch->addLog('error', "PROSES GAGAL: " . $e->getMessage());
+                $batch->updateStatus('failed');
+            }
+        }
+
+        $this->syncLog();
+
+        // Cek apakah masih ada item pending tersisa
+        $hasMore = false;
+        foreach ($this->queueBatches as $b) {
+            if ($b['status'] === 'pending') {
+                $hasMore = true;
+                break;
+            }
+        }
+
+        if (!$hasMore) {
+            $this->isQueueRunning = false;
+        }
+    }
+
+    /**
+     * Cek apakah masih ada antrian yang belum selesai
+     */
+    #[Computed]
+    public function hasPendingQueueItems(): bool
+    {
+        foreach ($this->queueBatches as $b) {
+            if ($b['status'] === 'pending') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function getHasPendingQueueItemsProperty(): bool
+    {
+        return $this->hasPendingQueueItems();
+    }
+
+    /**
+     * Menutup / menyembunyikan tracker antrian setelah selesai
+     */
+    public function dismissQueueTracker()
+    {
+        $this->queueBatches = [];
+        $this->isQueueRunning = false;
+    }
+
+    /**
+     * Menghapus seluruh file yang telah dipilih dan mereset antrian
+     */
+    public function clearSelectedFile()
+    {
+        $this->clearAllStagedFiles();
+    }
+
+    /**
+     * Membuka log dari riwayat batch sebelumnya atau item antrian
      */
     public function viewBatchLog($batchId)
     {
         $this->batchId = $batchId;
+        $this->activeQueueBatchId = $batchId;
         $this->syncLog();
     }
 
@@ -629,12 +945,30 @@ class SalesInvoiceImport extends Component
         return $batches;
     }
 
+    /**
+     * Seluruh distributor yang sudah memiliki konfigurasi kolom (tanpa limit, untuk dropdown berkas)
+     */
+    public function getConfiguredDistributorsProperty()
+    {
+        $user = auth()->user();
+        $query = MasterDistributor::join('config_sales_invoice_distributor', 'master_distributors.distributor_code', '=', 'config_sales_invoice_distributor.distributor_code')
+            ->select('master_distributors.distributor_code', 'master_distributors.distributor_name');
+
+        if ($user && method_exists($user, 'hasRole') && !$user->hasRole('admin') && !empty($user->region_code)) {
+            $query->whereIn('master_distributors.region_code', $user->region_code);
+        }
+
+        return $query->orderBy('master_distributors.distributor_name')->get();
+    }
+
     public function render()
     {
         return view('livewire.sell-out.import', [
             'distributors'           => $this->distributors,
+            'configuredDistributors' => $this->configuredDistributors,
             'recentBatches'          => $this->recentBatches,
             'batchesWithSkippedRows' => $this->batchesWithSkippedRows,
+            'hasPendingQueueItems'   => $this->hasPendingQueueItems,
         ])->layout('layouts.app');
     }
 }

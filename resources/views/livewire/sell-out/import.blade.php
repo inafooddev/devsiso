@@ -1,4 +1,5 @@
-<div class="flex-1 flex flex-col w-full h-full min-h-0">
+<div class="flex-1 flex flex-col w-full h-full min-h-0"
+     @if($isQueueRunning && $hasPendingQueueItems) wire:poll.1500ms="processNextQueueItem" @endif>
     <x-slot name="title">Import Sales Invoice Distributor</x-slot>
 
     <div class="flex-1 min-h-0 min-w-0 flex flex-col gap-3 md:gap-4 lg:gap-6 w-full h-full">
@@ -10,7 +11,7 @@
                 <!-- Left Column: Upload Form & Configuration -->
                 <div class="lg:col-span-1 flex flex-col space-y-4">
                     <x-card title="Import Sales Invoice" icon="document-arrow-up" class="h-full flex flex-col">
-                        <form wire:submit.prevent="import" class="space-y-4 flex-1 flex flex-col">
+                        <form wire:submit.prevent="startQueueImport" class="space-y-4 flex-1 flex flex-col">
 
                             <div x-data="{ 
                                     isUploading: false, 
@@ -31,201 +32,14 @@
                                  x-on:livewire-upload-progress="progress = $event.detail.progress"
                                  class="flex-1 flex flex-col space-y-4">
 
-                                <!-- 1. File Upload Dropzone (Modern & Drag-and-Drop) -->
-                                <div>
-                                    <label class="block text-xs md:text-sm font-semibold text-base-content/80 mb-1.5 flex items-center justify-between">
-                                        <span>1. File Excel (.xlsx / .xls) <span class="text-error">*</span></span>
-                                        @if($excel_file)
-                                            <span class="text-[11px] text-success font-medium flex items-center gap-1">
-                                                <x-heroicon-s-check-circle class="w-3.5 h-3.5" /> Berkas Terpilih
-                                            </span>
-                                        @endif
-                                    </label>
-
-                                    <!-- Hidden Native File Input -->
-                                    <input type="file" 
-                                           id="excel_file" 
-                                           x-ref="fileInput" 
-                                           wire:model="excel_file"
-                                           accept=".xlsx,.xls"
-                                           class="hidden" />
-
-                                    @if($excel_file)
-                                        <!-- File Selected Card Preview -->
-                                        @php
-                                            $filename = $excel_file->getClientOriginalName();
-                                            $filesize = $excel_file->getSize();
-                                            $sizeFormatted = $filesize > 1048576 
-                                                ? number_format($filesize / 1048576, 2) . ' MB' 
-                                                : number_format($filesize / 1024, 1) . ' KB';
-                                        @endphp
-                                        <div class="relative group p-3.5 rounded-xl border-2 border-primary/40 bg-primary/5 hover:border-primary transition-all duration-200">
-                                            <div class="flex items-center gap-3">
-                                                <!-- Excel Document Icon -->
-                                                <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-xs">
-                                                    <x-heroicon-o-document-text class="w-6 h-6" />
-                                                </div>
-
-                                                <!-- File Information -->
-                                                <div class="flex-1 min-w-0">
-                                                    <div class="text-xs md:text-sm font-bold text-base-content truncate" title="{{ $filename }}">
-                                                        {{ $filename }}
-                                                    </div>
-                                                    <div class="flex items-center gap-2 mt-0.5">
-                                                        <span class="text-[11px] font-mono text-base-content/60">{{ $sizeFormatted }}</span>
-                                                        <span class="text-base-content/30">•</span>
-                                                        <span class="badge badge-success badge-xs font-semibold text-white">Siap Diproses</span>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Action Buttons: Change / Clear -->
-                                                <div class="flex items-center gap-1">
-                                                    <button type="button" 
-                                                            @click="$refs.fileInput.click()"
-                                                            class="btn btn-ghost btn-xs text-primary font-medium hover:bg-primary/10"
-                                                            title="Ganti berkas dengan file lain">
-                                                        Ganti
-                                                    </button>
-                                                    <button type="button" 
-                                                            wire:click="clearSelectedFile"
-                                                            class="btn btn-ghost btn-xs btn-circle text-error hover:bg-error/10"
-                                                            title="Hapus file terpilih">
-                                                        <x-heroicon-s-x-mark class="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <!-- Interactive Drag & Drop Area -->
-                                        <div @dragover.prevent="isDragging = true"
-                                             @dragleave.prevent="isDragging = false"
-                                             @drop.prevent="handleDrop($event)"
-                                             @click="$refs.fileInput.click()"
-                                             :class="{
-                                                 'border-primary bg-primary/10 ring-4 ring-primary/20 scale-[1.01]': isDragging,
-                                                 'border-base-300 hover:border-primary/50 hover:bg-base-200/50 bg-base-100': !isDragging
-                                             }"
-                                             class="cursor-pointer border-2 border-dashed rounded-xl p-5 md:p-6 text-center transition-all duration-200 flex flex-col items-center justify-center gap-2.5 group select-none">
-                                            
-                                            <!-- Cloud / Upload Icon -->
-                                            <div :class="isDragging ? 'scale-110 text-primary' : 'text-base-content/40 group-hover:text-primary group-hover:scale-105'"
-                                                 class="w-12 h-12 rounded-2xl bg-base-200/80 flex items-center justify-center transition-all duration-200 shadow-xs">
-                                                <x-heroicon-o-arrow-up-tray class="w-6 h-6 transition-transform" />
-                                            </div>
-
-                                            <div class="space-y-1">
-                                                <p class="text-xs md:text-sm font-bold text-base-content">
-                                                    <span class="text-primary group-hover:underline">Klik untuk telusuri</span> atau seret file ke sini
-                                                </p>
-                                                <p class="text-[11px] text-base-content/50">
-                                                    Dapat langsung diseret dari WhatsApp Desktop atau Windows Explorer
-                                                </p>
-                                            </div>
-
-                                            <div class="flex items-center gap-2 pt-1 text-[10px] text-base-content/60 font-mono">
-                                                <span class="bg-base-200 px-2 py-0.5 rounded">.XLSX</span>
-                                                <span class="bg-base-200 px-2 py-0.5 rounded">.XLS</span>
-                                                <span>Maks. 20 MB</span>
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    <!-- Upload Progress Bar -->
-                                    <div x-show="isUploading" x-cloak class="mt-2.5 space-y-1">
-                                        <div class="flex justify-between text-xs text-base-content/60 font-medium">
-                                            <span class="flex items-center gap-1.5">
-                                                <span class="loading loading-spinner loading-xs text-primary"></span>
-                                                Mengunggah file ke server...
-                                            </span>
-                                            <span class="font-mono text-primary font-bold" x-text="progress + '%'"></span>
-                                        </div>
-                                        <progress class="progress progress-primary w-full h-2" :value="progress" max="100"></progress>
-                                    </div>
-
-                                    <p class="mt-2 text-[11px] text-base-content/50 leading-relaxed">
-                                        💡 <span class="font-semibold text-base-content/70">Tips:</span> Jika nama file diawali kode cabang (contoh: <code>DIBDG001_sales.xlsx</code>), distributor otomatis terpilih.
-                                    </p>
-
-                                    @error('excel_file')
-                                        <div class="mt-2.5 alert alert-error p-3 text-xs rounded-xl shadow-sm flex items-start gap-2 text-error-content bg-error">
-                                            <x-heroicon-o-exclamation-triangle class="w-4 h-4 shrink-0 mt-0.5 text-white" />
-                                            <span class="font-semibold text-white leading-relaxed">{{ $message }}</span>
-                                        </div>
-                                    @enderror
-                                </div>
-
-                                <!-- 2. Pemilihan Distributor (Wajib) -->
+                                <!-- 1. Periode Target Transaksi -->
                                 <div class="bg-base-200/50 p-3 rounded-xl border border-base-300">
                                     <label class="block text-xs font-bold text-base-content mb-1.5 flex items-center justify-between">
-                                        <span class="flex items-center gap-1">
-                                            <x-heroicon-o-building-storefront class="w-3.5 h-3.5 text-primary" />
-                                            2. Distributor Target <span class="text-error">*</span>
+                                        <span class="flex items-center gap-1.5">
+                                            <x-heroicon-o-calendar-days class="w-4 h-4 text-primary" />
+                                            1. Periode Transaksi Penjualan <span class="text-error">*</span>
                                         </span>
-                                        @if($isDistributorAutoDetected)
-                                            <span class="badge badge-success badge-xs font-semibold text-white gap-1" title="Kode terdeteksi otomatis dari nama file">
-                                                <x-heroicon-o-check class="w-2.5 h-2.5" /> Otomatis Terdeteksi
-                                            </span>
-                                        @endif
-                                    </label>
-
-                                    @if($selectedDistributorCode)
-                                        @php
-                                            $selectedDist = $distributors->firstWhere('distributor_code', $selectedDistributorCode);
-                                            $selectedName = $selectedDist ? $selectedDist->distributor_name : $selectedDistributorCode;
-                                        @endphp
-                                        <div class="flex items-center justify-between p-2.5 bg-base-100 border border-primary/30 rounded-lg shadow-sm">
-                                            <div class="truncate pr-2">
-                                                <div class="text-xs font-bold text-base-content truncate">{{ $selectedName }}</div>
-                                                <div class="text-[10px] font-mono text-primary font-semibold">{{ $selectedDistributorCode }}</div>
-                                            </div>
-                                            <button type="button" 
-                                                    wire:click="clearDistributor"
-                                                    class="btn btn-ghost btn-xs btn-circle text-error hover:bg-error/10"
-                                                    title="Ganti distributor">
-                                                <x-heroicon-s-x-mark class="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    @else
-                                        <div x-data="{ open: false }" @click.away="open = false" class="relative">
-                                            <input type="text"
-                                                   wire:model.live.debounce.250ms="distributorSearch"
-                                                   @focus="open = true"
-                                                   placeholder="Ketik untuk mencari distributor..."
-                                                   class="input input-sm w-full bg-base-100 border border-base-300 text-xs text-base-content rounded-lg placeholder:text-base-content/40" />
-                                            
-                                            <div x-show="open" 
-                                                 x-transition
-                                                 class="absolute z-30 w-full mt-1.5 bg-base-100 border border-base-300 rounded-xl shadow-2xl max-h-48 overflow-y-auto custom-scrollbar">
-                                                @if($distributors->isNotEmpty())
-                                                    <div class="py-1 divide-y divide-base-200">
-                                                        @foreach($distributors as $dist)
-                                                            <div wire:click="selectDistributor('{{ $dist->distributor_code }}')"
-                                                                 @click="open = false"
-                                                                 class="cursor-pointer px-3 py-2 text-xs text-base-content/80 hover:text-primary hover:bg-primary/10 transition-colors flex justify-between items-center">
-                                                                <span class="font-medium truncate">{{ $dist->distributor_name }}</span>
-                                                                <span class="font-mono text-[10px] bg-base-200 px-1.5 py-0.5 rounded ml-1">{{ $dist->distributor_code }}</span>
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                @else
-                                                    <div class="p-3 text-xs text-base-content/50 text-center">Tidak ditemukan distributor.</div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                        <p class="text-[10px] text-base-content/50 mt-1">
-                                            Wajib dipilih sebagai acuan konfigurasi kolom dan identitas cabang.
-                                        </p>
-                                    @endif
-                                    @error('selectedDistributorCode')
-                                        <p class="mt-1 text-xs text-error font-medium">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <!-- 3. Periode Target Transaksi -->
-                                <div class="bg-base-200/50 p-3 rounded-xl border border-base-300">
-                                    <label class="block text-xs font-bold text-base-content mb-1.5 flex items-center gap-1">
-                                        <x-heroicon-o-calendar-days class="w-3.5 h-3.5 text-primary" />
-                                        3. Periode Transaksi Penjualan <span class="text-error">*</span>
+                                        <span class="text-[10px] text-base-content/50">Acuan untuk seluruh berkas</span>
                                     </label>
                                     <div class="grid grid-cols-2 gap-2">
                                         <div>
@@ -255,42 +69,251 @@
                                         </div>
                                     </div>
                                     <p class="text-[10px] text-base-content/50 mt-1.5">
-                                        Mencegah tanggal acak/berantakan. Data lama cabang pada periode ini akan diperbarui.
+                                        Mencegah tanggal acak. Data lama cabang pada periode ini akan diperbarui secara bersih.
                                     </p>
                                 </div>
 
-                                <!-- 4. Action Button (Disabled jika belum siap) -->
+                                <!-- 2. Berkas Excel (Multi-Upload Support) -->
+                                <div>
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <label class="block text-xs md:text-sm font-semibold text-base-content/80">
+                                            <span>2. Berkas Excel (.xlsx / .xls) <span class="text-error">*</span></span>
+                                        </label>
+                                        @if(!empty($stagedFiles))
+                                            <span class="badge badge-primary badge-xs font-mono font-bold">
+                                                {{ count($stagedFiles) }} Berkas Terpilih
+                                            </span>
+                                        @endif
+                                    </div>
+
+                                    <!-- Hidden Native Multiple File Input -->
+                                    <input type="file" 
+                                           id="excel_files" 
+                                           x-ref="fileInput" 
+                                           wire:model="excel_files"
+                                           accept=".xlsx,.xls"
+                                           multiple
+                                           class="hidden" />
+
+                                    @if(!empty($stagedFiles))
+                                        <!-- Staged Files Queue Cards -->
+                                        <div class="space-y-2.5 bg-base-200/50 p-3 rounded-xl border border-base-300">
+                                            <div class="flex items-center justify-between text-xs pb-1 border-b border-base-300">
+                                                <span class="font-bold text-base-content flex items-center gap-1.5">
+                                                    <x-heroicon-o-queue-list class="w-4 h-4 text-primary" />
+                                                    Daftar Berkas Terpilih
+                                                </span>
+                                                <button type="button" 
+                                                        wire:click="clearAllStagedFiles"
+                                                        class="text-[11px] text-error hover:underline font-semibold"
+                                                        title="Hapus semua berkas dari antrian">
+                                                    Hapus Semua
+                                                </button>
+                                            </div>
+
+                                            @php
+                                                $unassignedCount = collect($stagedFiles)->where('distributor_code', '')->count();
+                                            @endphp
+
+                                            @if($unassignedCount > 0)
+                                                <!-- Bulk Assign Toolbar -->
+                                                <div class="p-2 bg-warning/10 border border-warning/30 rounded-lg flex items-center justify-between gap-1.5 flex-wrap">
+                                                    <div class="text-[11px] text-warning-content font-medium flex items-center gap-1">
+                                                        <x-heroicon-o-sparkles class="w-3.5 h-3.5 text-warning shrink-0" />
+                                                        <span>Terapkan 1 cabang ke <strong>{{ $unassignedCount }} berkas</strong> tanpa kode:</span>
+                                                    </div>
+                                                    <div class="flex items-center gap-1 w-full sm:w-auto">
+                                                        <select wire:model="bulkDistributorCode" class="select select-bordered select-xs text-[11px] bg-base-100 flex-1 sm:w-44">
+                                                            <option value="">-- Pilih Cabang --</option>
+                                                            @foreach($configuredDistributors as $cDist)
+                                                                <option value="{{ $cDist->distributor_code }}">{{ $cDist->distributor_name }} ({{ $cDist->distributor_code }})</option>
+                                                            @endforeach
+                                                        </select>
+                                                        <button type="button" wire:click="applyBulkDistributor" class="btn btn-warning btn-xs text-warning-content font-bold shrink-0">
+                                                            Terapkan
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            @endif
+
+                                            <div class="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
+                                                @foreach($stagedFiles as $fId => $staged)
+                                                    @php
+                                                        $isEditing = !empty($staged['is_editing']);
+                                                        $hasDist = !empty($staged['distributor_code']);
+                                                        $hasCfg = !empty($staged['has_config']);
+                                                        $isReady = $hasDist && $hasCfg;
+                                                    @endphp
+                                                    <div class="p-2.5 bg-base-100 rounded-lg border {{ !$isReady ? 'border-warning/60 bg-warning/5' : 'border-base-300' }} shadow-xs flex flex-col gap-1.5 transition-all">
+                                                        <div class="flex items-center justify-between gap-2">
+                                                            <div class="flex items-center gap-2 min-w-0">
+                                                                <x-heroicon-o-document-text class="w-4 h-4 text-emerald-600 shrink-0" />
+                                                                <span class="text-xs font-bold text-base-content truncate" title="{{ $staged['original_name'] }}">
+                                                                    {{ $staged['original_name'] }}
+                                                                </span>
+                                                            </div>
+                                                            <div class="flex items-center gap-1 shrink-0">
+                                                                <span class="text-[10px] text-base-content/50 font-mono">{{ $staged['size_formatted'] }}</span>
+                                                                <button type="button" 
+                                                                        wire:click="removeStagedFile('{{ $fId }}')"
+                                                                        class="btn btn-ghost btn-xs btn-circle text-base-content/40 hover:text-error"
+                                                                        title="Hapus berkas ini">
+                                                                    <x-heroicon-s-x-mark class="w-3.5 h-3.5" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Distributor row per file -->
+                                                        <div class="pt-1 border-t border-base-200 text-xs">
+                                                            @if($isReady && !$isEditing)
+                                                                <div class="flex items-center justify-between gap-1.5">
+                                                                    <div class="flex items-center gap-1.5 min-w-0">
+                                                                        <span class="badge badge-success badge-xs text-white font-mono font-bold shrink-0">
+                                                                            {{ $staged['distributor_code'] }}
+                                                                        </span>
+                                                                        <span class="text-[11px] font-bold text-base-content truncate" title="{{ $staged['distributor_name'] }}">
+                                                                            {{ $staged['distributor_name'] }}
+                                                                        </span>
+                                                                        @if(!empty($staged['is_auto_detected']))
+                                                                            <span class="badge badge-ghost badge-xs text-success font-semibold shrink-0" title="Terdeteksi otomatis dari nama file">
+                                                                                Otomatis ✓
+                                                                            </span>
+                                                                        @endif
+                                                                    </div>
+                                                                    <button type="button" 
+                                                                            wire:click="toggleEditDistributor('{{ $fId }}')"
+                                                                            class="text-[10px] text-primary hover:underline font-semibold shrink-0">
+                                                                        Ganti
+                                                                    </button>
+                                                                </div>
+                                                            @else
+                                                                <div class="flex items-center gap-1.5">
+                                                                    <select wire:change="setFileDistributor('{{ $fId }}', $event.target.value)" 
+                                                                            class="select select-bordered select-xs text-[11px] bg-base-100 {{ !$hasDist ? 'border-warning text-warning-content font-bold' : '' }} flex-1">
+                                                                        <option value="">-- Pilih Cabang Distributor --</option>
+                                                                        @foreach($configuredDistributors as $cDist)
+                                                                            <option value="{{ $cDist->distributor_code }}" @if($staged['distributor_code'] === $cDist->distributor_code) selected @endif>
+                                                                                {{ $cDist->distributor_name }} ({{ $cDist->distributor_code }})
+                                                                            </option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                    @if($isEditing)
+                                                                        <button type="button" 
+                                                                                wire:click="toggleEditDistributor('{{ $fId }}')"
+                                                                                class="btn btn-ghost btn-xs text-base-content/50">
+                                                                            Batal
+                                                                        </button>
+                                                                    @endif
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+
+                                            <!-- Tambah Berkas Button -->
+                                            <button type="button" 
+                                                    @click="$refs.fileInput.click()"
+                                                    class="btn btn-outline btn-primary btn-xs w-full normal-case gap-1.5">
+                                                <x-heroicon-o-plus class="w-3.5 h-3.5" />
+                                                Tambah Berkas Lain
+                                            </button>
+                                        </div>
+                                    @else
+                                        <!-- Interactive Drag & Drop Area -->
+                                        <div @dragover.prevent="isDragging = true"
+                                             @dragleave.prevent="isDragging = false"
+                                             @drop.prevent="handleDrop($event)"
+                                             @click="$refs.fileInput.click()"
+                                             :class="{
+                                                 'border-primary bg-primary/10 ring-4 ring-primary/20 scale-[1.01]': isDragging,
+                                                 'border-base-300 hover:border-primary/50 hover:bg-base-200/50 bg-base-100': !isDragging
+                                             }"
+                                             class="cursor-pointer border-2 border-dashed rounded-xl p-5 md:p-6 text-center transition-all duration-200 flex flex-col items-center justify-center gap-2.5 group select-none">
+                                            
+                                            <!-- Cloud / Upload Icon -->
+                                            <div :class="isDragging ? 'scale-110 text-primary' : 'text-base-content/40 group-hover:text-primary group-hover:scale-105'"
+                                                 class="w-12 h-12 rounded-2xl bg-base-200/80 flex items-center justify-center transition-all duration-200 shadow-xs">
+                                                <x-heroicon-o-arrow-up-tray class="w-6 h-6 transition-transform" />
+                                            </div>
+
+                                            <div class="space-y-1">
+                                                <p class="text-xs md:text-sm font-bold text-base-content">
+                                                    <span class="text-primary group-hover:underline">Klik untuk telusuri</span> atau seret file ke sini
+                                                </p>
+                                                <p class="text-[11px] text-base-content/50">
+                                                    Bisa pilih / seret banyak file sekaligus dari WhatsApp atau Explorer
+                                                </p>
+                                            </div>
+
+                                            <div class="flex items-center gap-2 pt-1 text-[10px] text-base-content/60 font-mono">
+                                                <span class="bg-base-200 px-2 py-0.5 rounded">.XLSX</span>
+                                                <span class="bg-base-200 px-2 py-0.5 rounded">.XLS</span>
+                                                <span class="bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold">Multi-Upload</span>
+                                                <span>Maks. 20 MB/file</span>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    <!-- Upload Progress Bar -->
+                                    <div x-show="isUploading" x-cloak class="mt-2.5 space-y-1">
+                                        <div class="flex justify-between text-xs text-base-content/60 font-medium">
+                                            <span class="flex items-center gap-1.5">
+                                                <span class="loading loading-spinner loading-xs text-primary"></span>
+                                                Mengunggah berkas ke server...
+                                            </span>
+                                            <span class="font-mono text-primary font-bold" x-text="progress + '%'"></span>
+                                        </div>
+                                        <progress class="progress progress-primary w-full h-2" :value="progress" max="100"></progress>
+                                    </div>
+
+                                    <p class="mt-2 text-[11px] text-base-content/50 leading-relaxed">
+                                        💡 <span class="font-semibold text-base-content/70">Tips:</span> Nama file dengan awalan kode cabang (contoh: <code>DICJR001_sales.xls</code>) otomatis terpetakan ke distributor terkait.
+                                    </p>
+
+                                    @error('excel_files')
+                                        <div class="mt-2.5 alert alert-error p-3 text-xs rounded-xl shadow-sm flex items-start gap-2 text-error-content bg-error">
+                                            <x-heroicon-o-exclamation-triangle class="w-4 h-4 shrink-0 mt-0.5 text-white" />
+                                            <span class="font-semibold text-white leading-relaxed">{{ $message }}</span>
+                                        </div>
+                                    @enderror
+                                    @error('queue')
+                                        <div class="mt-2.5 alert alert-error p-3 text-xs rounded-xl shadow-sm flex items-start gap-2 text-error-content bg-error">
+                                            <x-heroicon-o-exclamation-triangle class="w-4 h-4 shrink-0 mt-0.5 text-white" />
+                                            <span class="font-semibold text-white leading-relaxed">{{ $message }}</span>
+                                        </div>
+                                    @enderror
+                                </div>
+
+                                <!-- 3. Action Button: Mulai Import Antrian -->
                                 @php
-                                    $isReadyToImport = !empty($excel_file) && !empty($selectedDistributorCode);
+                                    $stagedCount = count($stagedFiles);
+                                    $allReady = $stagedCount > 0 && collect($stagedFiles)->every(fn($f) => !empty($f['distributor_code']) && !empty($f['has_config']));
                                 @endphp
                                 <div class="pt-2">
                                     <button type="submit"
-                                            @if(!$isReadyToImport) disabled @endif
+                                            @if(!$allReady || $isQueueRunning) disabled @endif
                                             wire:loading.attr="disabled"
-                                            wire:target="import"
-                                            class="btn btn-primary w-full shadow-lg shadow-primary/20 normal-case gap-2 {{ !$isReadyToImport ? 'opacity-50 cursor-not-allowed' : '' }}">
-                                        <span wire:loading.remove wire:target="import" class="flex items-center gap-2">
+                                            wire:target="startQueueImport"
+                                            class="btn btn-primary w-full shadow-lg shadow-primary/20 normal-case gap-2 {{ (!$allReady || $isQueueRunning) ? 'opacity-50 cursor-not-allowed' : '' }}">
+                                        @if($isQueueRunning)
+                                            <x-heroicon-o-arrow-path class="w-4 h-4" />
+                                            <span>Sedang Memproses Antrian...</span>
+                                        @else
                                             <x-heroicon-o-arrow-up-tray class="w-4 h-4" />
-                                            Mulai Proses Import
-                                        </span>
-                                        <span wire:loading wire:target="import" class="flex items-center gap-2">
-                                            <span class="loading loading-spinner loading-sm"></span>
-                                            Memvalidasi & Memproses...
-                                        </span>
+                                            <span>Mulai Import Antrian {{ $stagedCount > 0 ? "({$stagedCount} Berkas)" : '' }}</span>
+                                        @endif
                                     </button>
 
-                                    @if(!$isReadyToImport)
+                                    @if(!$allReady && $stagedCount > 0)
                                         <p class="text-[11px] text-warning text-center mt-1.5 flex items-center justify-center gap-1">
-                                            <x-heroicon-o-exclamation-triangle class="w-3.5 h-3.5" />
-                                            <span>
-                                                @if(empty($excel_file) && empty($selectedDistributorCode))
-                                                    Pilih file Excel dan distributor terlebih dahulu.
-                                                @elseif(empty($excel_file))
-                                                    Pilih file Excel terlebih dahulu.
-                                                @elseif(empty($selectedDistributorCode))
-                                                    Pilih distributor target terlebih dahulu.
-                                                @endif
-                                            </span>
+                                            <x-heroicon-o-exclamation-triangle class="w-3.5 h-3.5 shrink-0" />
+                                            <span>Pastikan setiap berkas memiliki distributor target yang terkonfigurasi.</span>
+                                        </p>
+                                    @elseif($stagedCount === 0 && !$isQueueRunning)
+                                        <p class="text-[11px] text-base-content/50 text-center mt-1.5 flex items-center justify-center gap-1">
+                                            <x-heroicon-o-information-circle class="w-3.5 h-3.5 shrink-0" />
+                                            <span>Pilih atau seret berkas Excel untuk memulai.</span>
                                         </p>
                                     @endif
                                 </div>
@@ -301,7 +324,7 @@
                         @if($totalRows > 0)
                         <div class="pt-4 border-t border-base-300 mt-4">
                             <div class="flex justify-between items-end mb-2 text-xs font-bold uppercase tracking-wider">
-                                <span class="text-base-content/60">Progres: <span class="text-base-content">{{ $processedRows }} / {{ $totalRows }}</span></span>
+                                <span class="text-base-content/60">Progres Berkas Aktif: <span class="text-base-content">{{ $processedRows }} / {{ $totalRows }}</span></span>
                                 <span class="text-primary bg-primary/10 px-2 py-0.5 rounded-md font-mono">{{ $batchStatus }}</span>
                             </div>
                             <progress class="progress progress-primary w-full h-2.5" value="{{ $processedRows }}" max="{{ $totalRows }}"></progress>
@@ -312,6 +335,67 @@
 
                 <!-- Right Column: Log Terminal & History Table -->
                 <div class="lg:col-span-2 flex flex-col space-y-4">
+
+                    <!-- Active Queue Tracker Card (Multi-Import Queue) -->
+                    @if(!empty($queueBatches))
+                        @php
+                            $completedCount = collect($queueBatches)->whereIn('status', ['completed', 'failed'])->count();
+                            $totalQueue = count($queueBatches);
+                        @endphp
+                        <div class="bg-base-100 rounded-xl border border-primary/30 p-3.5 shadow-sm space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="relative flex h-3 w-3">
+                                        <span class="relative inline-flex rounded-full h-3 w-3 {{ $isQueueRunning ? 'bg-primary' : 'bg-success' }}"></span>
+                                    </span>
+                                    <h4 class="text-xs md:text-sm font-bold text-base-content">
+                                        {{ $isQueueRunning ? 'Antrian Multi-Import Sedang Berjalan' : 'Seluruh Antrian Selesai Diproses' }}
+                                    </h4>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-mono font-bold text-primary">{{ $completedCount }} / {{ $totalQueue }} Selesai</span>
+                                    @if(!$isQueueRunning)
+                                        <button type="button" wire:click="dismissQueueTracker" class="btn btn-ghost btn-xs btn-circle text-base-content/40 hover:text-base-content" title="Tutup tracker antrian">
+                                            <x-heroicon-s-x-mark class="w-4 h-4" />
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <progress class="progress progress-primary w-full h-2" value="{{ $completedCount }}" max="{{ $totalQueue }}"></progress>
+
+                            <!-- Clickable Distributor Pills in Queue -->
+                            <div class="flex flex-wrap gap-1.5 pt-0.5">
+                                @foreach($queueBatches as $qId => $qItem)
+                                    @php
+                                        $isActive = $batchId == $qId;
+                                        $pillClass = match($qItem['status']) {
+                                            'processing' => 'border-primary bg-primary/10 text-primary font-bold shadow-xs',
+                                            'completed'  => 'border-success/40 bg-success/10 text-success font-semibold',
+                                            'failed'     => 'border-error/40 bg-error/10 text-error font-semibold',
+                                            default      => 'border-base-300 bg-base-200/80 text-base-content/60 font-medium',
+                                        };
+                                    @endphp
+                                    <button type="button" 
+                                            wire:click="viewBatchLog({{ $qId }})"
+                                            class="btn btn-xs rounded-lg border {{ $pillClass }} {{ $isActive ? 'ring-2 ring-primary ring-offset-1' : '' }} normal-case gap-1.5 text-xs"
+                                            title="Klik untuk melihat log: {{ $qItem['distributor_name'] }}">
+                                        @if($qItem['status'] === 'processing')
+                                            <x-heroicon-o-arrow-path class="w-3.5 h-3.5 text-primary" />
+                                        @elseif($qItem['status'] === 'completed')
+                                            <x-heroicon-s-check-circle class="w-3.5 h-3.5 text-success" />
+                                        @elseif($qItem['status'] === 'failed')
+                                            <x-heroicon-s-x-circle class="w-3.5 h-3.5 text-error" />
+                                        @else
+                                            <x-heroicon-o-clock class="w-3.5 h-3.5 text-base-content/40" />
+                                        @endif
+                                        <span class="font-mono">{{ $qItem['distributor_code'] }}</span>
+                                        <span class="truncate max-w-[110px] hidden sm:inline">{{ $qItem['distributor_name'] }}</span>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                     
                     <!-- Terminal Section -->
                     <div class="bg-base-100 rounded-xl border border-base-300 p-4 shadow-sm">
@@ -319,14 +403,14 @@
                         <div class="flex items-center justify-between mb-3 px-1">
                             <div>
                                 <h3 class="text-sm md:text-base font-bold text-base-content">Log Proses Real-Time</h3>
-                                <p class="text-xs text-base-content/50 mt-0.5">Pantauan status validasi dan hasil import berkas secara langsung.</p>
+                                <p class="text-xs text-base-content/50 mt-0.5">Pantauan status validasi dan hasil import berkas secara langsung per distributor.</p>
                             </div>
 
                             <div class="flex items-center gap-2">
                                 @if($batchId && !empty($batchesWithSkippedRows[$batchId]))
                                     <button type="button" 
                                             wire:click="downloadSkippedRows({{ $batchId }})"
-                                            class="btn btn-warning btn-xs text-white font-semibold gap-1.5 shadow-xs animate-in fade-in"
+                                            class="btn btn-warning btn-xs text-white font-semibold gap-1.5 shadow-xs"
                                             title="Unduh daftar baris yang dilewati dalam format Excel (.xlsx)">
                                         <x-heroicon-o-arrow-down-tray class="w-3.5 h-3.5" />
                                         <span>Unduh Baris Dilewati (.xlsx)</span>
@@ -336,7 +420,6 @@
                                 <!-- Status Indicator -->
                                 <div x-data="{ status: @entangle('batchStatus') }" class="flex items-center gap-2 bg-base-200 rounded-xl px-3 py-1.5 border border-base-300">
                                     <span class="relative flex h-2.5 w-2.5">
-                                        <span x-show="status === 'processing'" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
                                         <span class="relative inline-flex rounded-full h-2.5 w-2.5"
                                               :class="{
                                                 'bg-base-content/20': !status || status === 'pending',
@@ -352,7 +435,7 @@
 
                         <!-- Terminal Mockup -->
                         <div class="mockup-code bg-neutral text-neutral-content w-full h-[320px] flex flex-col shadow-inner border border-neutral-focus"
-                             wire:poll.2s="syncLog">
+                             @if($batchStatus === 'processing') wire:poll.2s="syncLog" @endif>
                             <div class="px-5 pb-4 pt-2 flex-1 overflow-y-auto custom-scrollbar font-mono text-xs leading-relaxed"
                                  x-ref="logContainer"
                                  x-init="$watch('$wire.logLines', () => { $nextTick(() => $refs.logContainer.scrollTop = $refs.logContainer.scrollHeight) })">
@@ -537,6 +620,7 @@
                     </button>
                     <button type="button" wire:click="applyQuickHeaderMapping" 
                             wire:loading.attr="disabled"
+                            wire:target="applyQuickHeaderMapping"
                             class="btn btn-primary btn-sm text-xs font-bold gap-1 text-white shadow-sm shadow-primary/20">
                         <span wire:loading.remove wire:target="applyQuickHeaderMapping">Terapkan & Lanjutkan Impor</span>
                         <span wire:loading wire:target="applyQuickHeaderMapping" class="flex items-center gap-1">
@@ -608,6 +692,7 @@
                     </button>
                     <button type="button" wire:click="applyQuickUnitMapping" 
                             wire:loading.attr="disabled"
+                            wire:target="applyQuickUnitMapping"
                             class="btn btn-info btn-sm text-xs font-bold gap-1 text-white shadow-sm shadow-info/20">
                         <span wire:loading.remove wire:target="applyQuickUnitMapping">Simpan & Lanjutkan Impor</span>
                         <span wire:loading wire:target="applyQuickUnitMapping" class="flex items-center gap-1">

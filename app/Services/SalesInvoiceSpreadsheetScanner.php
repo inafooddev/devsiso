@@ -154,6 +154,13 @@ class SalesInvoiceSpreadsheetScanner
                 if (in_array($normInv, ['total', 'grand total', 'sub total', 'subtotal', 'jumlah', 'ringkasan'])) {
                     return "Terdeteksi teks ringkasan pada kolom faktur ('{$invVal}')";
                 }
+
+                // Deteksi pengulangan header halaman (misal pada file hasil ekspor cetak multi-halaman)
+                if (preg_match('/^(no\.?\s*faktur|no\.?\s*inv|invoice\s*no|nomor\s*faktur|faktur)/i', $normInv)
+                    || preg_match('/^(kode\s*barang|kode\s*produk|item\s*code|product\s*code)/i', strtolower($prodVal))) {
+                    return "Terdeteksi pengulangan header halaman ('{$invVal}')";
+                }
+
                 return null; // TRANSAKSI VALID!
             }
         }
