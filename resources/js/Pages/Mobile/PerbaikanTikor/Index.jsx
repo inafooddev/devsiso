@@ -2,30 +2,11 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import {
     MagnifyingGlassIcon, XMarkIcon, MapPinIcon, ShieldCheckIcon,
-    InformationCircleIcon, MapIcon, CameraIcon,
-    BuildingStorefrontIcon as BuildingStorefrontOutline, ClipboardDocumentListIcon
+    InformationCircleIcon, MapIcon, CameraIcon, ArrowPathIcon,
+    ArrowTopRightOnSquareIcon, BuildingStorefrontIcon as BuildingStorefrontOutline,
+    ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline';
-import { ShieldExclamationIcon, BuildingStorefrontIcon } from '@heroicons/react/24/solid';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-
-const CARTO_API_KEY = 'cb1_2llg_1_d426d0746a26eebc6607cafc';
-
-const actualIcon = L.divIcon({
-    html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8 text-slate-500 drop-shadow-md"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>`,
-    className: 'bg-transparent border-0',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
-});
-
-const newIcon = L.divIcon({
-    html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8 text-rose-500 drop-shadow-md"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>`,
-    className: 'bg-transparent border-0',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
-});
+import { ShieldExclamationIcon, BuildingStorefrontIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 
 const deg2rad = (deg) => deg * (Math.PI / 180);
 
@@ -34,9 +15,7 @@ const isValidCoordinate = (lat, lng) => {
     const nLat = typeof lat === 'number' ? lat : parseFloat(lat);
     const nLng = typeof lng === 'number' ? lng : parseFloat(lng);
     if (isNaN(nLat) || isNaN(nLng)) return false;
-    // Nilai 0, 0 dianggap bukan koordinat toko valid (koordinat default kosong)
     if (nLat === 0 && nLng === 0) return false;
-    // Batas valid bumi
     if (nLat < -90 || nLat > 90 || nLng < -180 || nLng > 180) return false;
     return true;
 };
@@ -58,68 +37,121 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
     return R * c;
 };
 
-class MapErrorBoundary extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = { hasError: false };
-    }
-    static getDerivedStateFromError() {
-        return { hasError: true };
-    }
-    componentDidCatch(error, errorInfo) {
-        console.warn('Map Error caught by boundary:', error, errorInfo);
-    }
-    render() {
-        if (this.state.hasError) {
-            return (
-                <div className="bg-slate-100 rounded-2xl border border-slate-200 p-4 text-center my-2">
-                    <p className="text-[11px] font-bold text-slate-700 mb-1">Peta tidak dapat dimuat saat ini.</p>
-                    <p className="text-[10px] text-slate-400 mb-2">Koordinat GPS Anda tetap tercatat dan tersimpan dengan aman.</p>
-                    <button
-                        type="button"
-                        onClick={() => this.setState({ hasError: false })}
-                        className="px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-lg text-[10px] font-bold uppercase tracking-wider"
-                    >
-                        Coba Muat Ulang Peta
-                    </button>
-                </div>
-            );
+// Kompresi foto otomatis di browser (Client-Side Canvas)
+// Mengecilkan foto mentah 5-10MB menjadi ~200-400KB tanpa menghilangkan ketajaman toko
+const compressImage = (file, maxWidth = 1280, quality = 0.75) => {
+    return new Promise((resolve) => {
+        if (!file || !file.type || !file.type.startsWith('image/')) {
+            resolve(file);
+            return;
         }
-        return this.props.children;
-    }
-}
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        resolve(file);
+                        return;
+                    }
+                    const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                        type: 'image/jpeg',
+                        lastModified: Date.now(),
+                    });
+                    resolve(compressedFile);
+                }, 'image/jpeg', quality);
+            };
+            img.onerror = () => resolve(file);
+        };
+        reader.onerror = () => resolve(file);
+    });
+};
 
 class PageErrorBoundary extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { hasError: false };
+        this.state = { hasError: false, error: null, errorInfo: null, copied: false };
     }
-    static getDerivedStateFromError() {
-        return { hasError: true };
+    static getDerivedStateFromError(error) {
+        return { hasError: true, error };
     }
     componentDidCatch(error, errorInfo) {
         console.error('Page crash caught by PageErrorBoundary:', error, errorInfo);
+        this.setState({ errorInfo });
     }
+    copyError = () => {
+        const text = `ERROR PERBAIKAN TIKOR:\n${this.state.error?.toString()}\n\nStack:\n${this.state.error?.stack || ''}\n\nComponent Stack:\n${this.state.errorInfo?.componentStack || ''}`;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(() => {
+                this.setState({ copied: true });
+                setTimeout(() => this.setState({ copied: false }), 3000);
+            });
+        }
+    };
     render() {
         if (this.state.hasError) {
+            const errorMsg = this.state.error?.message || this.state.error?.toString() || 'Unknown Error';
+            const errorStack = this.state.error?.stack || this.state.errorInfo?.componentStack || '';
+
             return (
-                <div className="w-full min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-                    <div className="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 mb-4 border border-rose-200 shadow-sm">
+                <div className="w-full min-h-screen bg-slate-50 flex flex-col items-center justify-center p-5 text-center">
+                    <div className="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 mb-3 border border-rose-200 shadow-sm">
                         <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                     </div>
-                    <h2 className="text-base font-bold text-slate-800 mb-2">Terjadi Kendala pada Halaman</h2>
-                    <p className="text-xs text-slate-500 mb-6 max-w-xs leading-relaxed">
-                        Aplikasi mengalami kendala teknis saat memproses GPS atau data. Silakan muat ulang halaman.
+                    <h2 className="text-base font-black text-slate-800 mb-1">Terjadi Kendala pada Halaman</h2>
+                    <p className="text-xs text-slate-500 mb-4 max-w-xs leading-relaxed">
+                        Aplikasi mendeteksi kendala teknis. Rincian error ditampilkan di bawah untuk mempermudah perbaikan.
                     </p>
-                    <button
-                        type="button"
-                        onClick={() => window.location.reload()}
-                        className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-md hover:bg-indigo-700 active:scale-95 transition-all"
-                    >
-                        Muat Ulang Halaman
-                    </button>
+
+                    {/* KOTAK RINCIAN ERROR TERBUKA LANGSUNG */}
+                    <div className="w-full max-w-sm bg-rose-50 border border-rose-200 rounded-2xl p-3.5 text-left mb-4 shadow-sm">
+                        <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-black uppercase text-rose-700 tracking-wider">Rincian Error:</span>
+                            <button
+                                type="button"
+                                onClick={this.copyError}
+                                className="text-[10px] bg-white border border-rose-300 text-rose-700 font-bold px-2 py-0.5 rounded-md hover:bg-rose-100 transition-colors flex items-center gap-1"
+                            >
+                                {this.state.copied ? '✓ Tersalin' : 'Salin Pesan'}
+                            </button>
+                        </div>
+                        <div className="text-xs font-mono font-bold text-rose-900 bg-white/80 p-2.5 rounded-xl border border-rose-200/80 break-words">
+                            {errorMsg}
+                        </div>
+                        {errorStack && (
+                            <details className="mt-2 text-[9px] text-slate-500">
+                                <summary className="cursor-pointer hover:underline text-rose-600 font-bold">Lihat Stack Trace Lengkap</summary>
+                                <pre className="mt-1.5 p-2 bg-slate-900 text-slate-100 rounded-lg overflow-x-auto whitespace-pre-wrap font-mono text-[8px] max-h-40">
+                                    {errorStack}
+                                </pre>
+                            </details>
+                        )}
+                    </div>
+
+                    <div className="flex flex-col gap-2 w-full max-w-sm">
+                        <button
+                            type="button"
+                            onClick={() => window.location.reload()}
+                            className="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-md hover:bg-indigo-700 active:scale-95 transition-all"
+                        >
+                            Muat Ulang Halaman
+                        </button>
+                    </div>
                 </div>
             );
         }
@@ -146,14 +178,12 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
     const [toast, setToast] = useState(null);
     const toastTimerRef = useRef(null);
 
-    // FIX #10: Toast timer cleared before each new toast to prevent stale timer conflicts
     const showToast = (message, type = 'success') => {
         if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
         setToast({ message, type });
         toastTimerRef.current = setTimeout(() => setToast(null), type === 'error' ? 5000 : 3000);
     };
 
-    // FIX #24: Login button has loading guard to prevent double-submit
     const handleLogin = (e) => {
         e.preventDefault();
         if (!loginSalesCode || isLoginLoading) return;
@@ -173,7 +203,6 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
 
     const handleLogout = () => setShowLogoutModal(true);
 
-    // FIX #8: Logout button has loading guard to prevent double-submit
     const confirmLogout = () => {
         if (isLoggingOut) return;
         setIsLoggingOut(true);
@@ -188,8 +217,7 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
     // --- Filtering and Display Logic ---
     const [activeTab, setActiveTab] = useState('toko');
     const [search, setSearch] = useState('');
-    const [selectedStatusFilter, setSelectedStatusFilter] = useState(''); // FIX #20: moved above early return
-
+    const [selectedStatusFilter, setSelectedStatusFilter] = useState('');
     const [detailOutlet, setDetailOutlet] = useState(null);
     const [displayLimit, setDisplayLimit] = useState(30);
 
@@ -208,12 +236,11 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
         setDisplayLimit(30);
     };
 
-    // FIX #2, #3: Reset status filter and display limit when switching tabs
     const handleTabSwitch = (tab) => {
         setActiveTab(tab);
         setSelectedStatusFilter('');
         setDisplayLimit(30);
-        window.scrollTo({ top: 0, behavior: 'smooth' }); // FIX #23
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     // --- Detail/Form Logic ---
@@ -231,23 +258,16 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
     });
 
     const [previewUrl, setPreviewUrl] = useState(null);
-    const [isGettingLocation, setIsGettingLocation] = useState(false);
+    const [isCapturing, setIsCapturing] = useState(false);
+    const [captureStatus, setCaptureStatus] = useState(null); // 'locating' | 'compressing' | 'success' | 'error'
+    const [captureError, setCaptureError] = useState('');
+    const [captureTimestamp, setCaptureTimestamp] = useState(null);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
-    // FIX #4: showNoPhotoWarning is now properly set to true on failed submit
     const [showNoPhotoWarning, setShowNoPhotoWarning] = useState(false);
     const isSubmittingRef = useRef(false);
 
-    // Map & Tracking State
+    // Titik lama toko
     const [actualLocation, setActualLocation] = useState(null);
-    const [trackingTimer, setTrackingTimer] = useState(5);
-    const [bestAccuracy, setBestAccuracy] = useState(null);
-    const watchIdRef = useRef(null);
-    const intervalRef = useRef(null);
-    const [gpsError, setGpsError] = useState(false);
-    const mapContainerRef = useRef(null);
-    const leafletMapRef = useRef(null);
-    const markersRef = useRef({ actual: null, baru: null, line: null });
-    const invalidateTimerRef = useRef(null);
 
     useEffect(() => {
         if (data.foto instanceof File) {
@@ -262,6 +282,10 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
     const openDetail = (outlet) => {
         setDetailOutlet(outlet);
         setShowNoPhotoWarning(false);
+        setCaptureStatus(null);
+        setCaptureError('');
+        setCaptureTimestamp(null);
+        setIsCapturing(false);
 
         if (fileInputRef.current) fileInputRef.current.value = '';
 
@@ -269,8 +293,6 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
         const actLng = outlet.longitude;
         const hasValidAct = isValidCoordinate(actLat, actLng);
         setActualLocation(hasValidAct ? { lat: parseFloat(actLat), lng: parseFloat(actLng) } : null);
-        setBestAccuracy(null);
-        setTrackingTimer(30);
 
         setData({
             region_code: outlet.region_code || '',
@@ -278,244 +300,125 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
             distributor_code: outlet.distributor_code || '',
             sales_code: outlet.sales_code || sessionSalesCode || '',
             customer_code: outlet.customer_code || '',
-            latitude: '',  // FIX #28: start fresh — don't pre-fill old audit coords
+            latitude: '',
             longitude: '',
             accuracy: '',
             foto: null,
         });
     };
 
-    const handleFileChange = (e) => {
-        const file = e.target.files[0];
-        if (!file) {
-            setData('foto', null);
-            return;
+    // Memicu pembukaan kamera belakang HP langsung
+    const triggerCamera = () => {
+        if (isCapturing || processing) return;
+        setShowNoPhotoWarning(false);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+            fileInputRef.current.click();
         }
-        if (file.size > 10485760) {
-            showToast('Ukuran foto terlalu besar (Maks. 10MB)', 'error');
+    };
+
+    // ALUR BUNDLED ANTI-FRAUD:
+    // Begitu foto selesai diambil, GPS seketika membaca titik koordinat di tempat.
+    // Foto & GPS terkunci dalam satu aksi tunggal.
+    const handlePhotoCaptured = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsCapturing(true);
+        setCaptureStatus('locating');
+        setCaptureError('');
+
+        if (!navigator.geolocation) {
+            setIsCapturing(false);
+            setCaptureStatus('error');
+            setCaptureError('Browser HP Anda tidak mendukung fitur GPS.');
+            showToast('Browser HP Anda tidak mendukung fitur GPS.', 'error');
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }
-        setShowNoPhotoWarning(false); // clear warning when photo is selected
-        setData('foto', file);
-    };
 
-    // FIX #1 & #7: Clear previous GPS resources before starting new ones
-    const fetchCurrentLocation = () => {
-        if (!navigator.geolocation) {
-            showToast('Browser Anda tidak mendukung GPS.', 'error');
-            return;
-        }
-
-        // Always clear any existing tracking before starting fresh
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
-
-        setIsGettingLocation(true);
-        setTrackingTimer(30);
-        setBestAccuracy(null);
-        setGpsError(false);
-        setData(prev => ({ ...prev, latitude: '', longitude: '', accuracy: '' }));
-
-        let localBestAccuracy = Infinity;
-
-        watchIdRef.current = navigator.geolocation.watchPosition(
-            (position) => {
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
                 const acc = position.coords.accuracy;
-                if (acc < localBestAccuracy) {
-                    localBestAccuracy = acc;
-                    setBestAccuracy(acc);
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+
+                // Batas akurasi maksimal 100m
+                if (acc > 100) {
+                    setIsCapturing(false);
+                    setCaptureStatus('error');
+                    const errText = `Akurasi sinyal GPS terlalu lemah (${Math.round(acc)}m). Batas maksimal 100m. Harap berada di area terbuka di depan toko lalu ulangi.`;
+                    setCaptureError(errText);
+                    showToast(errText, 'error');
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                    return;
+                }
+
+                // Proses kompresi foto di memori HP (sangat cepat & hemat memori)
+                setCaptureStatus('compressing');
+                try {
+                    const compressedFile = await compressImage(file, 1280, 0.75);
+                    const now = Date.now();
+                    setCaptureTimestamp(now);
+
                     setData(prev => ({
                         ...prev,
-                        latitude: position.coords.latitude.toString(),
-                        longitude: position.coords.longitude.toString(),
-                        accuracy: acc.toString()
+                        latitude: lat.toString(),
+                        longitude: lng.toString(),
+                        accuracy: Math.round(acc).toString(),
+                        foto: compressedFile,
                     }));
 
-                    // Auto-lock instan jika akurasi sudah sangat baik (<= 15m)
-                    if (acc <= 15) {
-                        clearInterval(intervalRef.current);
-                        if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
-                        setIsGettingLocation(false);
-                        setTrackingTimer(0);
-                        showToast(`Titik dikunci instan! Akurasi mantap: ${Math.round(acc)}m`, 'success');
-                    }
+                    setIsCapturing(false);
+                    setCaptureStatus('success');
+                    showToast(`Foto & Titik GPS berhasil dikunci! (Akurasi: ${Math.round(acc)}m)`, 'success');
+                } catch (err) {
+                    setIsCapturing(false);
+                    setCaptureStatus('error');
+                    setCaptureError('Gagal memproses gambar foto toko. Silakan coba lagi.');
+                    showToast('Gagal memproses gambar foto toko.', 'error');
+                    if (fileInputRef.current) fileInputRef.current.value = '';
                 }
             },
             (error) => {
-                setIsGettingLocation(false);
-                setGpsError(true);
-                clearInterval(intervalRef.current);
-                if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
-                
-                if (error.code === 1) { // PERMISSION_DENIED
-                    showToast('WAJIB: Akses Lokasi ditolak! Izinkan lokasi di pengaturan HP/Browser Anda.', 'error');
-                } else if (error.code === 2) { // POSITION_UNAVAILABLE
-                    showToast('WAJIB: GPS mati! Harap nyalakan fitur Lokasi (GPS) di HP Anda.', 'error');
-                } else if (error.code === 3) { // TIMEOUT
-                    showToast('Sinyal GPS lemah. Harap pindah ke area terbuka.', 'error');
-                } else {
-                    showToast('Gagal mengambil lokasi. Pastikan GPS menyala dan diizinkan.', 'error');
+                setIsCapturing(false);
+                setCaptureStatus('error');
+                let errMsg = 'Gagal mengunci titik GPS saat foto diambil.';
+                if (error.code === 1) {
+                    errMsg = 'Akses Lokasi ditolak! Pastikan izin lokasi (GPS) aktif di browser Anda.';
+                } else if (error.code === 2) {
+                    errMsg = 'GPS HP tidak aktif! Harap nyalakan fitur Lokasi (GPS) di HP Anda.';
+                } else if (error.code === 3) {
+                    errMsg = 'Sinyal GPS timeout. Pastikan Anda berada di luar ruangan / area terbuka.';
                 }
+                setCaptureError(errMsg);
+                showToast(errMsg, 'error');
+                if (fileInputRef.current) fileInputRef.current.value = '';
             },
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 }
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
-
-        let remainingSeconds = 30;
-        intervalRef.current = setInterval(() => {
-            remainingSeconds -= 1;
-            setTrackingTimer(remainingSeconds);
-
-            if (remainingSeconds <= 0) {
-                if (intervalRef.current) clearInterval(intervalRef.current);
-                if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
-                setIsGettingLocation(false);
-
-                if (localBestAccuracy === Infinity) {
-                    setGpsError(true);
-                    showToast('Gagal mendapatkan sinyal GPS. Silakan coba lagi.', 'error');
-                    setData(d => ({ ...d, latitude: '', longitude: '', accuracy: '' }));
-                    setBestAccuracy(null);
-                } else if (localBestAccuracy > 100) {
-                    showToast(`Akurasi ditolak (${Math.round(localBestAccuracy)}m). Minimal akurasi 100m. Silakan cari titik ulang!`, 'error');
-                    setData(d => ({ ...d, latitude: '', longitude: '', accuracy: '' }));
-                    setBestAccuracy(null);
-                } else {
-                    showToast(`Waktu habis. Titik dikunci dengan akurasi: ${Math.round(localBestAccuracy)}m`, 'success');
-                }
-            }
-        }, 1000);
     };
-
-    // Cleanup GPS & Map on modal close
-    useEffect(() => {
-        if (!detailOutlet) {
-            if (intervalRef.current) clearInterval(intervalRef.current);
-            if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
-            if (invalidateTimerRef.current) clearTimeout(invalidateTimerRef.current);
-            setIsGettingLocation(false);
-
-            if (leafletMapRef.current) {
-                try {
-                    leafletMapRef.current.remove();
-                } catch (e) {
-                    console.warn('Map remove warning:', e);
-                }
-                leafletMapRef.current = null;
-            }
-            markersRef.current = { actual: null, baru: null, line: null };
-        }
-    }, [detailOutlet]);
-
-    // Map Rendering Logic
-    useEffect(() => {
-        if (!detailOutlet || !mapContainerRef.current) return;
-
-        try {
-            if (!leafletMapRef.current) {
-                if (mapContainerRef.current._leaflet_id) {
-                    delete mapContainerRef.current._leaflet_id;
-                }
-                leafletMapRef.current = L.map(mapContainerRef.current, {
-                    attributionControl: false,
-                    zoomControl: true,
-                });
-                L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, {
-                    maxZoom: 20
-                }).addTo(leafletMapRef.current);
-            }
-
-            const map = leafletMapRef.current;
-            const m = markersRef.current;
-
-            if (m.actual) { map.removeLayer(m.actual); m.actual = null; }
-            if (m.baru) { map.removeLayer(m.baru); m.baru = null; }
-            if (m.line) { map.removeLayer(m.line); m.line = null; }
-
-            const validActual = actualLocation && isValidCoordinate(actualLocation.lat, actualLocation.lng);
-            const validNew = data.latitude && data.longitude && isValidCoordinate(data.latitude, data.longitude);
-
-            if (validActual) {
-                m.actual = L.marker([actualLocation.lat, actualLocation.lng], { icon: actualIcon })
-                            .bindPopup('<b class="text-xs">Titik Lama</b>')
-                            .addTo(map);
-            }
-
-            if (validNew) {
-                const newLat = parseFloat(data.latitude);
-                const newLng = parseFloat(data.longitude);
-                const accText = bestAccuracy && typeof bestAccuracy === 'number' ? `${bestAccuracy.toFixed(1)}m` : '-';
-                m.baru = L.marker([newLat, newLng], { icon: newIcon })
-                          .bindPopup(`<b class="text-xs">Titik Baru</b><br/><span class="text-[10px]">Akurasi: ${accText}</span>`)
-                          .addTo(map);
-
-                if (validActual) {
-                    m.line = L.polyline([[actualLocation.lat, actualLocation.lng], [newLat, newLng]], {
-                        color: '#f43f5e',
-                        dashArray: '5, 5',
-                        weight: 2
-                    }).addTo(map);
-                }
-            }
-
-            // Atur View / Bounds dengan aman tanpa memicu crash kalkulasi zoom
-            if (validActual && validNew) {
-                const bounds = L.latLngBounds([
-                    [actualLocation.lat, actualLocation.lng],
-                    [parseFloat(data.latitude), parseFloat(data.longitude)]
-                ]);
-                if (bounds.isValid()) {
-                    map.fitBounds(bounds, { padding: [35, 35], maxZoom: 18, animate: false });
-                }
-            } else if (validNew) {
-                // HANYA ada 1 titik baru: langsung setView ke titik baru (anti NaN/zoom crash)
-                map.setView([parseFloat(data.latitude), parseFloat(data.longitude)], 17, { animate: false });
-            } else if (validActual) {
-                // HANYA ada 1 titik lama: langsung setView ke titik lama
-                map.setView([actualLocation.lat, actualLocation.lng], 17, { animate: false });
-            } else {
-                // Default Indonesia
-                map.setView([-6.2088, 106.8456], 5, { animate: false });
-            }
-
-            if (invalidateTimerRef.current) clearTimeout(invalidateTimerRef.current);
-            invalidateTimerRef.current = setTimeout(() => {
-                try {
-                    if (leafletMapRef.current) {
-                        leafletMapRef.current.invalidateSize();
-                    }
-                } catch (e) {
-                    // Ignore
-                }
-            }, 300);
-        } catch (err) {
-            console.error('Leaflet Map Render Error:', err);
-        }
-
-        return () => {
-            if (invalidateTimerRef.current) {
-                clearTimeout(invalidateTimerRef.current);
-            }
-        };
-    }, [detailOutlet, actualLocation, data.latitude, data.longitude, bestAccuracy]);
 
     const submitForm = (e) => {
         e.preventDefault();
-        if (isSubmittingRef.current || processing) return;
+        if (isSubmittingRef.current || processing || isCapturing) return;
 
-        // FIX #4: properly activate visual warning AND show toast
-        if (!data.foto) {
+        if (!data.foto || !data.latitude || !data.longitude) {
             setShowNoPhotoWarning(true);
-            showToast('Foto wajib dilampirkan sebagai bukti perbaikan.', 'error');
+            showToast('Foto toko dan titik GPS wajib diambil bersamaan di depan toko.', 'error');
+            return;
+        }
+
+        // Validasi TTL (Anti-Cheat): Maksimal 5 menit sejak foto & koordinat diambil
+        if (captureTimestamp && (Date.now() - captureTimestamp > 5 * 60 * 1000)) {
+            showToast('Waktu perbaikan kedaluwarsa (> 5 menit). Silakan ambil foto & titik ulang di depan toko.', 'error');
             return;
         }
 
         // Cek jika status toko sudah Approved
         if (detailOutlet?.status_perbaikan?.toLowerCase() === 'approved') {
-            const confirmRetry = window.confirm('Toko sudah perbaikan, apakah yakin ingin melakukan perbaikan ulang?');
-            if (!confirmRetry) {
-                return;
-            }
+            const confirmRetry = window.confirm('Toko ini sudah pernah diperbaiki dan approved. Yakin ingin mengajukan perbaikan ulang?');
+            if (!confirmRetry) return;
         }
 
         isSubmittingRef.current = true;
@@ -531,24 +434,26 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
             },
             onError: (errors) => {
                 isSubmittingRef.current = false;
-                const errorMsg = errors && Object.values(errors).length > 0 
-                    ? Object.values(errors)[0] 
-                    : 'Gagal menyimpan. Pastikan data terisi benar.';
+                let errorMsg = 'Gagal menyimpan.';
+                if (errors && typeof errors === 'object') {
+                    errorMsg = Object.values(errors).flat().join(' | ') || 'Gagal menyimpan. Pastikan data terisi benar.';
+                } else if (typeof errors === 'string') {
+                    errorMsg = errors;
+                }
                 showToast(errorMsg, 'error');
+                setCaptureError(errorMsg);
             }
         });
     };
 
-    // FIX #5: "Batal" closes modal with unsaved photo confirmation
     const handleCloseDetail = () => {
         if (data.foto) {
-            if (!confirm('Foto yang sudah diambil akan hilang. Yakin ingin membatalkan?')) return;
+            if (!confirm('Foto dan titik yang sudah dikunci akan hilang. Yakin ingin membatalkan?')) return;
         }
         setDetailOutlet(null);
     };
 
-    // --- displayedOutlets memo (FIX #20 resolved: selectedStatusFilter now declared before early return) ---
-    // ─── displayedOutlets memo ────────────────────────────────────────────────────────────
+    // Filter daftar toko
     const displayedOutlets = useMemo(() => {
         let result = activeTab === 'toko' ? (tokoList || []) : (riwayatPerbaikan || []);
 
@@ -576,8 +481,6 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
         return result;
     }, [tokoList, riwayatPerbaikan, activeTab, search, selectedStatusFilter]);
 
-    // ─── EFFECTS ─────────────────────────────────────────────────────────────────
-    
     // Initial GPS Check before Login
     useEffect(() => {
         if (!sessionSalesCode) {
@@ -603,9 +506,9 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
             (error) => {
                 setCheckingGps(false);
                 setIsGpsReady(false);
-                if (error.code === 1) { // PERMISSION_DENIED
+                if (error.code === 1) {
                     setGpsBlockReason('Akses Lokasi Ditolak. Harap izinkan akses lokasi di pengaturan browser Anda.');
-                } else if (error.code === 2) { // POSITION_UNAVAILABLE
+                } else if (error.code === 2) {
                     setGpsBlockReason('GPS mati. Harap nyalakan fitur Lokasi/GPS di HP Anda.');
                 } else {
                     setGpsBlockReason('Gagal mendapatkan sinyal GPS. Pastikan berada di area terbuka.');
@@ -693,7 +596,7 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
         <div className="w-full min-h-screen bg-slate-50 text-slate-800 flex flex-col relative pb-10">
             <Head title="Perbaikan Tikor Toko" />
 
-            {/* Toast System — click to dismiss */}
+            {/* Toast System */}
             {toast && (
                 <div
                     onClick={() => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); setToast(null); }}
@@ -767,7 +670,7 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
                     </div>
                 )}
 
-                {/* Tabs / Segmented Control */}
+                {/* Tabs */}
                 <div className="px-4 pb-3">
                     <div className="bg-slate-100 p-1 rounded-xl flex items-center w-full border border-slate-200/60">
                         <button
@@ -787,7 +690,7 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
                     </div>
                 </div>
 
-                {/* Status Filter — only shown on Perbaikan tab */}
+                {/* Status Filter */}
                 {activeTab === 'laporan' && (
                     <div className="px-4 pb-3">
                         <select
@@ -878,7 +781,7 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
                                         </button>
                                     ) : (
                                         <button onClick={() => openDetail(outlet)} className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 text-[10px] font-bold uppercase tracking-wide hover:bg-indigo-100">
-                                            <InformationCircleIcon className="w-3.5 h-3.5" />
+                                            <CameraIcon className="w-3.5 h-3.5" />
                                             Perbaiki Tikor
                                         </button>
                                     )}
@@ -911,127 +814,203 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
                 )}
             </main>
 
-            {/* Detail Form Modal */}
+            {/* Detail Form Modal (LIGHTWEIGHT & ANTI-FRAUD) */}
             {detailOutlet && (
                 <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm sm:p-4 animate-fade-in">
-                    <div className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl relative animate-slide-up sm:animate-zoom-in border border-slate-100">
+                    <div className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl max-h-[92vh] overflow-hidden flex flex-col shadow-2xl relative animate-slide-up sm:animate-zoom-in border border-slate-100">
                         <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
                         <div className="px-5 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 relative z-10">
                             <div>
-                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Perbaikan Koordinat</h3>
+                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Perbaikan Titik Toko</h3>
                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{detailOutlet.customer_name}</p>
                             </div>
-                            {/* FIX #5: X button uses handleCloseDetail for unsaved photo guard */}
                             <button onClick={handleCloseDetail} className="w-8 h-8 rounded-full bg-slate-200/50 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
                                 <XMarkIcon className="w-5 h-5" />
                             </button>
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-5 scrollbar-hide">
-                            <form onSubmit={submitForm} className="space-y-5">
-                                {/* Map View */}
-                                <MapErrorBoundary>
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-end">
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Peta Lokasi</label>
-                                            {actualLocation && data.latitude && data.longitude && (() => {
-                                                const dist = getDistance(actualLocation.lat, actualLocation.lng, data.latitude, data.longitude);
-                                                if (dist === null || isNaN(dist) || !isFinite(dist)) return null;
-                                                return (
-                                                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
-                                                        Jarak: {(dist * 1000).toFixed(0)} meter
-                                                    </span>
-                                                );
-                                            })()}
+                            <form onSubmit={submitForm} className="space-y-4">
+                                
+                                {/* Ringkasan Info Toko */}
+                                <div className="bg-slate-50 border border-slate-200/70 rounded-2xl p-3.5 space-y-1.5 text-xs text-slate-600">
+                                    <div className="flex justify-between items-start">
+                                        <span className="font-bold text-slate-800 text-[11px]">{detailOutlet.customer_code}</span>
+                                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                                            Cabang: {detailOutlet.area_code || '-'}
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-600 leading-snug">{detailOutlet.address || 'Alamat tidak tersedia'}</p>
+                                    
+                                    {/* Titik Lama jika ada */}
+                                    {actualLocation && (
+                                        <div className="pt-2 mt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px]">
+                                            <span className="text-slate-500">Titik Lama: <b className="font-mono text-slate-700">{actualLocation.lat.toFixed(6)}, {actualLocation.lng.toFixed(6)}</b></span>
+                                            <a
+                                                href={`https://www.google.com/maps/search/?api=1&query=${actualLocation.lat},${actualLocation.lng}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="inline-flex items-center gap-1 text-indigo-600 font-bold hover:underline"
+                                            >
+                                                Peta Lama <ArrowTopRightOnSquareIcon className="w-3 h-3" />
+                                            </a>
                                         </div>
-                                        <div
-                                            ref={mapContainerRef}
-                                            style={{ height: '200px', minHeight: '200px', width: '100%' }}
-                                            className="bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden relative z-0"
-                                        ></div>
-                                        {/* FIX #9: accuracy info only shown once, in one place */}
-                                        {isGettingLocation && (
-                                            <div className="flex justify-between items-center text-[10px] text-slate-500 px-1">
-                                                <span>
-                                                    {bestAccuracy && typeof bestAccuracy === 'number'
-                                                        ? <>Akurasi GPS terkini: <b className={bestAccuracy < 20 ? 'text-emerald-500' : 'text-rose-500'}>{bestAccuracy.toFixed(1)}m</b></>
-                                                        : 'Menunggu sinyal GPS...'
-                                                    }
-                                                </span>
-                                                <span className="text-indigo-500 font-bold animate-pulse">{trackingTimer}s</span>
-                                            </div>
-                                        )}
-                                        {!isGettingLocation && bestAccuracy && typeof bestAccuracy === 'number' && (
-                                            <div className="text-[10px] text-slate-500 px-1">
-                                                Akurasi GPS: <b className={bestAccuracy < 20 ? 'text-emerald-500' : 'text-rose-500'}>{bestAccuracy.toFixed(1)}m</b>
-                                            </div>
-                                        )}
-                                    </div>
-                                </MapErrorBoundary>
-
-                                {/* GPS Actions */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Koordinat Perbaikan <span className="text-rose-500">*</span></label>
-                                    <div className="flex gap-2">
-                                        <input type="text" readOnly value={data.latitude || ''} className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 outline-none" placeholder="Menunggu Latitude..." />
-                                        <input type="text" readOnly value={data.longitude || ''} className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 outline-none" placeholder="Menunggu Longitude..." />
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={fetchCurrentLocation}
-                                        disabled={isGettingLocation || processing}
-                                        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 font-bold text-xs uppercase tracking-wider transition-colors active:scale-[0.98] disabled:opacity-50 ${
-                                            gpsError 
-                                                ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100' 
-                                                : 'border-indigo-100 bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
-                                        }`}
-                                    >
-                                        {isGettingLocation ? (
-                                            <><div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"></div> Mengunci ({trackingTimer}s)...</>
-                                        ) : (
-                                            <><MapPinIcon className="w-4 h-4" /> {gpsError ? 'Nyalakan GPS & Coba Lagi' : (data.latitude ? 'Deteksi Ulang Lokasi' : 'Deteksi Lokasi Saat Ini')}</>
-                                        )}
-                                    </button>
+                                    )}
                                 </div>
 
-                                {/* Photo Block */}
+                                {/* Hidden input camera */}
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    ref={fileInputRef}
+                                    onChange={handlePhotoCaptured}
+                                    className="hidden"
+                                />
+
+                                {/* KARTU STATUS FOTO & GPS TUNGGAL (ANTI-FRAUD) */}
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Foto Toko <span className="text-rose-500">*</span></label>
-                                    <div
-                                        className={`border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center gap-2 text-center relative overflow-hidden transition-colors ${previewUrl ? 'border-indigo-500 bg-indigo-50/30' : (showNoPhotoWarning ? 'border-rose-300 bg-rose-50' : 'border-slate-200 bg-slate-50 hover:bg-slate-100')}`}
-                                    >
-                                        {/* Wajib foto langsung dari kamera belakang, tidak bisa dari galeri */}
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            capture="environment"
-                                            ref={fileInputRef}
-                                            onChange={handleFileChange}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                        />
-                                        {previewUrl ? (
-                                            <img src={previewUrl} alt="Preview" className="h-32 object-contain rounded-lg" />
-                                        ) : (
-                                            <>
-                                                <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                                                    <CameraIcon className="w-6 h-6" />
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1 flex items-center justify-between">
+                                        <span>Bukti Foto & Titik GPS <span className="text-rose-500">*</span></span>
+                                        <span className="text-[9px] text-slate-400 font-normal">Wajib di depan toko</span>
+                                    </label>
+
+                                    {/* 1. STATE BELUM MENGAMBIL FOTO & TITIK */}
+                                    {!data.foto && !isCapturing && (
+                                        <div className="border-2 border-dashed border-slate-200 bg-slate-50 rounded-2xl p-5 flex flex-col items-center justify-center gap-3 text-center transition-all">
+                                            <div className="w-14 h-14 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm">
+                                                <CameraIcon className="w-7 h-7" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xs font-black text-slate-800">Ambil Foto & Kunci Titik Toko</h4>
+                                                <p className="text-[10px] text-slate-500 mt-1 max-w-[260px] leading-relaxed">
+                                                    Berdirilah tepat di depan toko. Kamera akan terbuka dan titik GPS terkunci otomatis saat foto diambil.
+                                                </p>
+                                            </div>
+
+                                            {captureError && (
+                                                <div className="w-full bg-rose-50 border border-rose-200 rounded-xl p-2.5 text-rose-600 text-[10px] font-bold leading-tight">
+                                                    {captureError}
                                                 </div>
-                                                <div>
-                                                    <p className="text-xs font-bold text-slate-700">Ambil Foto Toko</p>
-                                                    <p className="text-[10px] text-slate-400 mt-0.5">Foto langsung di tempat · Maks. 10MB</p>
+                                            )}
+
+                                            <button
+                                                type="button"
+                                                onClick={triggerCamera}
+                                                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-indigo-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <CameraIcon className="w-4 h-4" />
+                                                Buka Kamera & Kunci Titik
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* 2. STATE SEDANG MENGUNCI GPS / PROSES FOTO */}
+                                    {isCapturing && (
+                                        <div className="border-2 border-indigo-200 bg-indigo-50/40 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center animate-pulse">
+                                            <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                                            <div>
+                                                <h4 className="text-xs font-black text-indigo-900">
+                                                    {captureStatus === 'locating' ? 'Mengunci Koordinat GPS di Lokasi...' : 'Memproses & Mengompresi Foto...'}
+                                                </h4>
+                                                <p className="text-[10px] text-indigo-600 mt-1">Harap tetap berada di posisi toko, jangan menutup aplikasi.</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 3. STATE SUKSES: FOTO + GPS TERKUNCI SATU PAKET */}
+                                    {data.foto && !isCapturing && (
+                                        <div className="space-y-3 animate-fade-in">
+                                            {/* Preview Foto */}
+                                            <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 shadow-sm max-h-56 flex items-center justify-center">
+                                                {previewUrl && (
+                                                    <img src={previewUrl} alt="Foto Toko" className="w-full h-56 object-cover" />
+                                                )}
+                                                <div className="absolute top-2 right-2 bg-emerald-500/95 backdrop-blur-sm text-white px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                                                    <CheckCircleIcon className="w-3.5 h-3.5" />
+                                                    Foto Valid
                                                 </div>
-                                            </>
-                                        )}
-                                    </div>
-                                    {/* FIX #4: Warning shown properly when showNoPhotoWarning = true */}
+                                            </div>
+
+                                            {/* Kartu Status Koordinat GPS Ringan (Tanpa Peta Berat) */}
+                                            <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3.5 space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-1.5 text-emerald-800 font-black text-xs">
+                                                        <MapPinIcon className="w-4 h-4 text-emerald-600" />
+                                                        Titik Baru Terkunci
+                                                    </div>
+                                                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-600 text-white">
+                                                        Akurasi: {data.accuracy}m
+                                                    </span>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-700 bg-white/80 p-2 rounded-xl border border-emerald-100">
+                                                    <div>
+                                                        <span className="text-slate-400 block text-[9px] font-sans">Latitude</span>
+                                                        <b>{parseFloat(data.latitude).toFixed(6)}</b>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-slate-400 block text-[9px] font-sans">Longitude</span>
+                                                        <b>{parseFloat(data.longitude).toFixed(6)}</b>
+                                                    </div>
+                                                </div>
+
+                                                {/* Informasi Jarak jika toko memiliki titik lama */}
+                                                {actualLocation && (() => {
+                                                    const dist = getDistance(actualLocation.lat, actualLocation.lng, data.latitude, data.longitude);
+                                                    if (dist === null) return null;
+                                                    const meters = Math.round(dist * 1000);
+                                                    return (
+                                                        <div className="flex items-center justify-between text-[10px] pt-1 border-t border-emerald-200/60 text-slate-600">
+                                                            <span>Jarak dari titik lama:</span>
+                                                            <b className={meters > 100 ? 'text-amber-600' : 'text-emerald-700'}>{meters} meter</b>
+                                                        </div>
+                                                    );
+                                                })()}
+
+                                                {/* Link Cek di Google Maps Luar (0% Beban di browser HP) */}
+                                                <div className="pt-1 flex items-center justify-between text-[10px]">
+                                                    <a
+                                                        href={`https://www.google.com/maps/search/?api=1&query=${data.latitude},${data.longitude}`}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="inline-flex items-center gap-1 text-emerald-700 font-bold hover:underline"
+                                                    >
+                                                        Cek Lokasi di Google Maps <ArrowTopRightOnSquareIcon className="w-3 h-3" />
+                                                    </a>
+                                                    <span className="text-[9px] text-slate-400">
+                                                        {captureTimestamp ? new Date(captureTimestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : ''}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Tombol Foto Ulang jika SE ingin mengulang */}
+                                            <button
+                                                type="button"
+                                                onClick={triggerCamera}
+                                                className="w-full py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+                                            >
+                                                <ArrowPathIcon className="w-3.5 h-3.5" />
+                                                Foto Ulang & Kunci Ulang Titik
+                                            </button>
+                                        </div>
+                                    )}
+
                                     {showNoPhotoWarning && !data.foto && (
-                                        <p className="text-[10px] font-bold text-rose-500 ml-1">Foto toko wajib dilampirkan sebelum submit (Maks 10MB).</p>
+                                        <p className="text-[10px] font-bold text-rose-500 ml-1">
+                                            Foto toko dan titik GPS wajib diambil sebelum simpan perbaikan.
+                                        </p>
+                                    )}
+
+                                    {captureError && data.foto && (
+                                        <div className="bg-rose-50 border border-rose-200 rounded-xl p-2.5 text-rose-700 text-[10px] font-bold leading-tight">
+                                            {captureError}
+                                        </div>
                                     )}
                                 </div>
 
                                 {/* Submit Actions */}
                                 <div className="pt-4 flex gap-3 border-t border-slate-100">
-                                    {/* FIX #5: Batal uses handleCloseDetail for unsaved photo guard */}
                                     <button
                                         type="button"
                                         onClick={handleCloseDetail}
@@ -1041,7 +1020,7 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={processing || isGettingLocation || !data.latitude || !data.longitude}
+                                        disabled={processing || isCapturing || !data.foto || !data.latitude || !data.longitude}
                                         className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 font-bold text-sm rounded-xl transition-colors active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
                                     >
                                         {processing ? (
@@ -1076,7 +1055,6 @@ function PerbaikanTikorContent({ tokoList = [], riwayatPerbaikan = [], sessionSa
                             >
                                 Batal
                             </button>
-                            {/* FIX #8: Logout button protected with isLoggingOut state */}
                             <button
                                 onClick={confirmLogout}
                                 disabled={isLoggingOut}

@@ -332,6 +332,8 @@
                                                     <span class="font-bold text-base-content">{{ $alias }}</span>
                                                     @if($isRequired)
                                                         <span class="badge badge-error badge-xs text-white font-bold" title="Wajib diisi">* Wajib</span>
+                                                    @elseif($field === 'distributor_code')
+                                                        <span class="badge badge-ghost badge-xs text-primary font-semibold" title="Opsional: Jika kolom tidak ada di file Excel, kode cabang otomatis diambil saat import">Otomatis dari Import</span>
                                                     @elseif($isQtyField)
                                                         <span class="badge badge-warning badge-xs font-semibold" title="Minimal salah satu Qty harus diisi">Qty</span>
                                                     @endif

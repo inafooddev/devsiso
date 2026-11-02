@@ -66,10 +66,11 @@ trait HasSalesConfigMapping
     ];
 
     /**
-     * Daftar 10 field wajib
+     * Daftar 9 field wajib yang harus dipetakan dari file Excel
+     * (distributor_code bersifat opsional karena otomatis disuntikkan dari pilihan distributor saat import)
      */
     public array $requiredMappingFields = [
-        'distributor_code', 'invoice_no', 'invoice_date', 'salesman_code', 'salesman_name',
+        'invoice_no', 'invoice_date', 'salesman_code', 'salesman_name',
         'customer_code', 'customer_name', 'product_code', 'product_name', 'net_amount'
     ];
 

@@ -15,20 +15,30 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use App\Services\SalesInvoicePeriodGuard;
+use App\Services\SalesInvoiceSpreadsheetScanner;
 
 class ProcessSalesInvoiceImport implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $filePath;
-    protected $batchId;
-    protected $distributorCode; 
+    public $timeout = 1200; // 20 menit untuk file berukuran sangat besar
 
-    public function __construct(string $filePath, int $batchId, string $distributorCode) 
+    protected string $filePath;
+    protected int $batchId;
+    protected string $distributorCode;
+    protected ?int $targetMonth;
+    protected ?int $targetYear;
+
+    public function __construct(string $filePath, int $batchId, string $distributorCode, ?int $targetMonth = null, ?int $targetYear = null) 
     {
         $this->filePath = $filePath;
         $this->batchId = $batchId;
-        $this->distributorCode = $distributorCode;
+        $this->distributorCode = strtoupper(trim($distributorCode));
+        $this->targetMonth = $targetMonth;
+        $this->targetYear = $targetYear;
     }
 
     public function handle()
@@ -41,28 +51,68 @@ class ProcessSalesInvoiceImport implements ShouldQueue
         try {
             $fullPath = Storage::path($this->filePath);
 
-            $batch->addLog('info', 'Mulai membaca file...');
-            $allRows = Excel::toArray(new \stdClass(), $fullPath);
-            $totalRows = isset($allRows[0]) ? count($allRows[0]) - 1 : 0;
-            
-            if ($totalRows <= 0) throw new \Exception('File Excel tidak berisi baris data.');
-            
-            $batch->update(['total_rows' => $totalRows]);
-            $batch->addLog('info', "File valid, ditemukan {$totalRows} baris data untuk diproses.");
+            $batch->addLog('info', 'Mulai memvalidasi berkas...');
 
             // Mencari konfigurasi berdasarkan distributor_code
             $configModel = ConfigSalesInvoiceDistributor::where('distributor_code', $this->distributorCode)->first();
-            if (!$configModel) throw new \Exception("Konfigurasi tidak ditemukan untuk kode distributor '{$this->distributorCode}'.");
+            if (!$configModel) {
+                throw new \Exception("Konfigurasi tidak ditemukan untuk kode distributor '{$this->distributorCode}'.");
+            }
             
             $batch->addLog('info', "Konfigurasi untuk '{$this->distributorCode}' berhasil dimuat.");
-            $config = json_decode($configModel->config, true);
+            $config = is_array($configModel->config) ? $configModel->config : json_decode($configModel->config, true);
 
-            // DB Transaction
+            // [SMART SPREADSHEET SCANNER] Buka file dan tentukan sheet terbaik & letak baris header
+            $spreadsheet = IOFactory::load($fullPath);
+            $sheet = SalesInvoiceSpreadsheetScanner::findBestWorksheet($spreadsheet, $config);
+            $sheetTitle = $sheet->getTitle();
+            
+            $headerRowIndex = SalesInvoiceSpreadsheetScanner::findHeaderRowIndex($sheet, $config);
+            if ($headerRowIndex > 1) {
+                $batch->addLog('info', "Mendeteksi judul/kop file: baris header data transaksi berada di baris ke-{$headerRowIndex} (Sheet: '{$sheetTitle}').");
+            }
+
+            $highestRow = (int)$sheet->getHighestDataRow();
+            $totalRows = max(0, $highestRow - $headerRowIndex); // Kurangi baris header dan kop atas
+
+            if ($totalRows <= 0) {
+                throw new \Exception('File Excel tidak berisi baris data.');
+            }
+
+            $batch->update(['total_rows' => $totalRows]);
+            $batch->addLog('info', "Berkas valid, ditemukan {$totalRows} baris data untuk diproses.");
+
+            if ($this->targetMonth && $this->targetYear) {
+                // [SMART PERIOD GUARD] Validasi kesesuaian periode sebelum transaksi database
+                $periodCheck = SalesInvoicePeriodGuard::checkConsistency(
+                    $sheet,
+                    $config,
+                    $this->targetMonth,
+                    $this->targetYear
+                );
+
+                if (!$periodCheck['is_valid']) {
+                    throw new \Exception($periodCheck['error_message']);
+                }
+
+                $batch->addLog('info', "Kesesuaian periode terverifikasi: {$periodCheck['target_period_name']} ({$periodCheck['match_percentage']}% data transaksi cocok).");
+            }
+
+            // DB Transaction dengan Bulk Insert
             DB::beginTransaction();
             try {
-                // Teruskan objek $batch dan distributorCode ke importer
-                $importer = new SalesInvoiceImport($config, $this->distributorCode, $batch);
+                $importer = new SalesInvoiceImport(
+                    $config, 
+                    $this->distributorCode, 
+                    $batch, 
+                    $this->targetMonth, 
+                    $this->targetYear,
+                    $headerRowIndex
+                );
+                
                 Excel::import($importer, $fullPath);
+                $importer->flushBuffer(); // Simpan sisa baris terakhir di buffer
+
                 DB::commit();
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -70,18 +120,32 @@ class ProcessSalesInvoiceImport implements ShouldQueue
             }
 
             $finalCount = $batch->fresh()->processed_rows;
-            $batch->addLog('success', "PROSES SELESAI: Berhasil memproses {$finalCount} dari {$totalRows} baris data.");
-            $batch->updateStatus('completed');
 
-            // Refresh notification cache for all relevant users (or at least admins/managers)
-            // For simplicity, we can just let it expire in 60s, or clear it if we know which users are affected.
-            // Since we don't easily know which users, we could just let the 60s TTL handle it, 
-            // but for a better UX, we can try to clear it if possible.
-            // Actually, the 60s TTL is small enough, but let's at least clear for current user if it's not a queued job.
-            // Wait, this IS a queued job, so Auth::user() might be null or different.
-            // Instead, we can use a more global way or just rely on the TTL.
-            // However, the user who started the batch is probably interested.
-            // We can store user_id in ImportBatch if not already there.
+            // Jika ada baris yang dilewati (footer/summary/kosong), informasikan dengan warna kuning (warning)
+            if ($importer->skippedCount > 0) {
+                // Simpan data baris yang dilewati ke penyimpanan lokal untuk diunduh user dalam format Excel (.xlsx)
+                if (!empty($importer->skippedRowsData)) {
+                    $dir = 'skipped-imports';
+                    if (!Storage::disk('local')->exists($dir)) {
+                        Storage::disk('local')->makeDirectory($dir);
+                    }
+                    Storage::disk('local')->put("{$dir}/batch_{$this->batchId}.json", json_encode($importer->skippedRowsData, JSON_PRETTY_PRINT));
+                }
+
+                $batch->addLog('warning', "CATATAN: Ditemukan {$importer->skippedCount} baris yang dilewati (skip):");
+                foreach ($importer->skippedRowsSummary as $skipDetail) {
+                    $batch->addLog('warning', "  ↳ {$skipDetail}");
+                }
+                if ($importer->skippedCount > count($importer->skippedRowsSummary)) {
+                    $rem = $importer->skippedCount - count($importer->skippedRowsSummary);
+                    $batch->addLog('warning', "  ↳ ... dan {$rem} baris lainnya.");
+                }
+                $batch->addLog('warning', "PROSES SELESAI DENGAN CATATAN: Berhasil mengimpor {$finalCount} dari {$totalRows} baris ({$importer->skippedCount} baris dilewati).");
+            } else {
+                $batch->addLog('success', "PROSES SELESAI: Berhasil mengimpor seluruh {$finalCount} dari {$totalRows} baris data.");
+            }
+
+            $batch->updateStatus('completed');
 
         } catch (ValidationException $e) {
             $errors = $e->validator->errors()->all();
