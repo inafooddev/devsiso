@@ -44,7 +44,7 @@ class RekomPo extends Component
     public ?string $selectedDistributorCode = null;
     public array $selectedDistributorData = [];
     public array $poDetailList = [];
-    public string $poDetailFilter = 'BUTUH_PO';         // 'BUTUH_PO' (stok < 120%), 'ALL' (semua SKU)
+    public string $poDetailFilter = 'BUTUH_PO';         // 'BUTUH_PO' (stok <= 80%), 'ALL' (semua SKU)
     public array $poDetailSummary = [];
 
     protected $queryString = [
@@ -198,7 +198,7 @@ class RekomPo extends Component
                 'ds.stock_teoritis_ktn as sisa_stok_berjalan',
                 DB::raw('COALESCE(so3lm.avg_3lm_sellout, 0.0) as avg_3lm_sellout'),
                 DB::raw("CASE
-                    WHEN COALESCE(pm.is_active, false) = true AND COALESCE(so3lm.avg_3lm_sellout, 0) > 0 AND ds.stock_teoritis_ktn < (1.2 * so3lm.avg_3lm_sellout)
+                    WHEN COALESCE(pm.is_active, false) = true AND COALESCE(so3lm.avg_3lm_sellout, 0) > 0 AND ds.stock_teoritis_ktn <= (0.8 * so3lm.avg_3lm_sellout)
                     THEN GREATEST(0, CEIL((1.2 * so3lm.avg_3lm_sellout) - ds.stock_teoritis_ktn))
                     ELSE 0
                 END as rekom_po_ktn")
@@ -447,13 +447,13 @@ class RekomPo extends Component
                 END as doi_days"),
                 DB::raw('ROUND((1.2 * COALESCE(so3lm.avg_3lm_sellout, 0.0))::numeric, 1) as target_stok_120'),
                 DB::raw("CASE
-                    WHEN COALESCE(pm.is_active, false) = true AND COALESCE(so3lm.avg_3lm_sellout, 0) > 0 AND ds.stock_teoritis_ktn < (1.2 * so3lm.avg_3lm_sellout)
+                    WHEN COALESCE(pm.is_active, false) = true AND COALESCE(so3lm.avg_3lm_sellout, 0) > 0 AND ds.stock_teoritis_ktn <= (0.8 * so3lm.avg_3lm_sellout)
                     THEN GREATEST(0, CEIL((1.2 * so3lm.avg_3lm_sellout) - ds.stock_teoritis_ktn))
                     ELSE 0
                 END as rekom_po_ktn")
             )
             ->orderBy(DB::raw("CASE
-                WHEN COALESCE(pm.is_active, false) = true AND COALESCE(so3lm.avg_3lm_sellout, 0) > 0 AND ds.stock_teoritis_ktn < (1.2 * so3lm.avg_3lm_sellout)
+                WHEN COALESCE(pm.is_active, false) = true AND COALESCE(so3lm.avg_3lm_sellout, 0) > 0 AND ds.stock_teoritis_ktn <= (0.8 * so3lm.avg_3lm_sellout)
                 THEN GREATEST(0, CEIL((1.2 * so3lm.avg_3lm_sellout) - ds.stock_teoritis_ktn))
                 ELSE 0
             END"), 'desc')

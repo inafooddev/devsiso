@@ -153,7 +153,7 @@
                     Rp {{ number_format($metrics['sum_rekom_po_value']) }}
                 </div>
                 <div class="text-[11px] text-base-content/60 mt-1">
-                    Acuan batas maksimal stok 120%
+                    Kriteria order: sisa stok &le; 80% (mengisi hingga batas 120%)
                 </div>
             </div>
             <div class="w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
@@ -277,11 +277,11 @@
                             Status Stok
                             @if ($sortField === 'stock_status') <span class="text-primary">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span> @endif
                         </th>
-                        <th wire:click="sortBy('count_sku_butuh_po')" class="py-3 text-center cursor-pointer hover:text-base-content bg-base-200" title="Jumlah SKU yang stoknya di bawah 120% kebutuhan">
+                        <th wire:click="sortBy('count_sku_butuh_po')" class="py-3 text-center cursor-pointer hover:text-base-content bg-base-200" title="Jumlah SKU aktif yang stoknya &le; 80% kebutuhan bulanan (Stok Kurang)">
                             SKU Butuh PO
                             @if ($sortField === 'count_sku_butuh_po') <span class="text-primary">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span> @endif
                         </th>
-                        <th wire:click="sortBy('total_rekom_po_ktn')" class="py-3 text-right cursor-pointer hover:text-primary bg-primary/10 text-primary font-bold border-x border-primary/20" title="Total Kuantitas Rekomendasi PO (Karton) untuk mencapai batas 120%">
+                        <th wire:click="sortBy('total_rekom_po_ktn')" class="py-3 text-right cursor-pointer hover:text-primary bg-primary/10 text-primary font-bold border-x border-primary/20" title="Total Kuantitas Rekomendasi PO (Karton) untuk produk &le; 80% hingga batas aman 120%">
                             Rekom PO (Ktn)
                             @if ($sortField === 'total_rekom_po_ktn') <span class="text-primary">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span> @endif
                         </th>
@@ -483,7 +483,7 @@
                                 <span>•</span>
                                 <span>Periode: <strong>{{ $currMonthName }} {{ $selectedYear }}</strong></span>
                                 <span>•</span>
-                                <span class="text-primary font-semibold">Batas Stok Maksimal 120% (1.2 &times; AVG 3LM)</span>
+                                <span class="text-primary font-semibold">Kriteria Order: Sisa Stok &le; 80% (Mengisi hingga Batas Maksimal 120%)</span>
                             </div>
                         </div>
                     </div>
@@ -503,7 +503,7 @@
                         <button type="button" 
                                 wire:click="setPoDetailFilter('BUTUH_PO')" 
                                 class="px-3 py-1 rounded-lg transition-all font-semibold cursor-pointer {{ $poDetailFilter === 'BUTUH_PO' ? 'bg-base-100 text-primary shadow-xs' : 'text-base-content/60 hover:text-base-content' }}">
-                            🎯 Hanya Butuh PO (&lt; 120%) ({{ $poDetailSummary['sku_butuh_po'] ?? 0 }})
+                            🎯 Hanya Butuh PO (&le; 80%) ({{ $poDetailSummary['sku_butuh_po'] ?? 0 }})
                         </button>
                         <button type="button" 
                                 wire:click="setPoDetailFilter('ALL')" 
@@ -551,7 +551,7 @@
                                 <th class="py-3 text-right bg-base-200" title="Persentase Stok terhadap Kebutuhan Bulanan">% Stok</th>
                                 <th class="py-3 text-center bg-base-200" title="Ketahanan Stok Berjalan (Hari)">DOI</th>
                                 <th class="py-3 text-right bg-base-200" title="Batas Maksimal Stok Aman 120% (1.2 x AVG 3LM)">Target 120%</th>
-                                <th class="py-3 text-right bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-extrabold border-x border-emerald-500/20" title="Kuantitas Rekomendasi Order untuk Mengisi Stok hingga 120%">Rekom PO (Ktn)</th>
+                                <th class="py-3 text-right bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-extrabold border-x border-emerald-500/20" title="Kuantitas Rekomendasi Order untuk Mengisi Stok hingga Batas 120% bagi Produk dengan Sisa Stok &le; 80%">Rekom PO (Ktn)</th>
                                 <th class="py-3 text-right bg-base-200" title="Harga Satuan per Karton (Master Produk)">Harga Satuan</th>
                                 <th class="py-3 text-right bg-base-200" title="Estimasi Nilai Total Rupiah Pesanan">Estimasi Nilai (Rp)</th>
                                 <th class="py-3 pr-5 text-center bg-base-200">Urgensi Order</th>
@@ -677,7 +677,7 @@
                             @empty
                                 <tr>
                                     <td colspan="14" class="text-center py-10 text-base-content/50">
-                                        Tidak ada produk yang memerlukan order (seluruh stok SKU berada di atas 120%).
+                                        Tidak ada produk yang memerlukan order (seluruh stok SKU berada di atas 80%).
                                     </td>
                                 </tr>
                             @endforelse
@@ -724,7 +724,7 @@
                 {{-- Footer Modal --}}
                 <div class="px-6 py-3.5 border-t border-base-200 flex items-center justify-between bg-base-200/30 shrink-0 text-xs">
                     <span class="text-base-content/50">
-                        * Rekomendasi order hanya dihitung untuk produk aktif guna mengisi sisa stok distributor hingga level aman 120% (1.2 &times; AVG 3LM). Estimasi nilai PO dihitung dari Kuantitas PO &times; Harga Master Produk (Price Zone 1).
+                        * Rekomendasi order hanya dihitung untuk produk aktif dengan sisa stok &le; 80% guna mengisi sisa stok distributor hingga level aman 120% (1.2 &times; AVG 3LM). Estimasi nilai PO dihitung dari Kuantitas PO &times; Harga Master Produk (Price Zone 1).
                     </span>
                     <button type="button" wire:click="closePoModal" class="btn btn-primary btn-sm rounded-xl px-5 shadow-xs">
                         Tutup
