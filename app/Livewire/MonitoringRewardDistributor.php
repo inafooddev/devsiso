@@ -16,6 +16,10 @@ class MonitoringRewardDistributor extends Component
     public $detailDistributorName = null;
     public $isDetailModalOpen = false;
     public $monthlyDetails = [];
+    public $activeDetailTab = 'p1'; // 'p1' | 'p2' | 'all'
+    public $detailP1Months = [];
+    public $detailP2Months = [];
+    public $detailIsParticipating = true;
     public $search = '';
     public $filterRegion = '';
     public $filterArea = '';
@@ -47,6 +51,18 @@ class MonitoringRewardDistributor extends Component
         $this->detailDistributorName = $distributorName;
         $year = 2026; // Match render() year
 
+        $setting = \App\Models\RewardDistributorSetting::where('distributor_code', $distributorCode)->first();
+        $this->detailIsParticipating = $setting ? (bool)$setting->is_participating : true;
+        $this->detailP1Months = $setting && $setting->p1_months ? (array)$setting->p1_months : [1,2,3,4,5,6];
+        $this->detailP2Months = $setting && $setting->p2_months ? (array)$setting->p2_months : [1,2,3,4,5,6,7,8,9,10,11,12];
+
+        // Jika P1 tidak ada bulan yang diikutkan tapi P2 ada, otomatis aktifkan tab Periode 2
+        if (empty($this->detailP1Months) && !empty($this->detailP2Months)) {
+            $this->activeDetailTab = 'p2';
+        } else {
+            $this->activeDetailTab = 'p1';
+        }
+
         $this->monthlyDetails = $this->fetchMonthlyData($distributorCode, $year);
         $this->isDetailModalOpen = true;
     }
@@ -57,6 +73,10 @@ class MonitoringRewardDistributor extends Component
         $this->monthlyDetails = [];
         $this->detailDistributorCode = null;
         $this->detailDistributorName = null;
+        $this->activeDetailTab = 'p1';
+        $this->detailP1Months = [];
+        $this->detailP2Months = [];
+        $this->detailIsParticipating = true;
     }
 
     private function fetchMonthlyData($distributorCode, $year)
@@ -151,7 +171,7 @@ class MonitoringRewardDistributor extends Component
 
     public function saveSettings()
     {
-        if (!auth()->user()->hasMenuAccess(request()->route()->getName(), 'can_edit')) {
+        if (!auth()->user()->hasMenuAccess('monitoring-reward-distributor', 'can_edit')) {
             abort(403);
         }
 
@@ -483,6 +503,10 @@ class MonitoringRewardDistributor extends Component
 
     public function processImport()
     {
+        if (!auth()->user()->hasMenuAccess('monitoring-reward-distributor', 'can_import')) {
+            abort(403);
+        }
+
         $this->validate([
             'importMonth' => 'required|date_format:Y-m',
             'importFile' => 'required|file|mimes:xlsx,xls,csv|max:10240', // Maks 10MB
@@ -509,6 +533,10 @@ class MonitoringRewardDistributor extends Component
 
     public function export()
     {
+        if (!auth()->user()->hasMenuAccess('monitoring-reward-distributor', 'can_export')) {
+            abort(403);
+        }
+
         $year = 2026;
         $user = auth()->user();
         $userId = $user ? $user->id : 'guest';

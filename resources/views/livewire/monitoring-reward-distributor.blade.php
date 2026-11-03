@@ -383,72 +383,257 @@
     @if($isDetailModalOpen)
     <div class="fixed inset-0 z-[100] flex items-center justify-center">
         <div class="fixed inset-0 bg-base-100/50 backdrop-blur-sm" wire:click="closeDetailModal"></div>
-        <div class="bg-base-100 rounded-xl shadow-2xl border border-base-300 w-full max-w-4xl z-10 overflow-hidden flex flex-col mx-4 h-[85vh]">
-            <div class="p-4 md:p-6 border-b border-base-200 bg-base-200/50 flex justify-between items-center shrink-0">
+        <div class="bg-base-100 rounded-xl shadow-2xl border border-base-300 w-full max-w-4xl z-10 overflow-hidden flex flex-col mx-4 h-[88vh]">
+            {{-- Modal Header --}}
+            <div class="p-4 md:p-5 border-b border-base-200 bg-base-200/50 flex justify-between items-center shrink-0">
                 <div>
-                    <h3 class="font-bold text-lg md:text-xl">Detail Pencapaian Bulanan</h3>
-                    <p class="text-xs text-base-content/60 mt-1">Distributor: <span class="font-bold text-primary">{{ $detailDistributorName }}</span></p>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-lg md:text-xl">Detail Pencapaian Bulanan</h3>
+                        @if(!$detailIsParticipating)
+                            <span class="badge badge-warning badge-sm font-semibold">Tidak Ikut Program</span>
+                        @endif
+                    </div>
+                    <p class="text-xs text-base-content/60 mt-1">
+                        Distributor: <span class="font-bold text-primary">{{ $detailDistributorName }}</span> 
+                        <span class="font-mono text-base-content/40">({{ $detailDistributorCode }})</span>
+                    </p>
                 </div>
-                <button wire:click="closeDetailModal" class="btn btn-sm btn-ghost btn-circle"><x-heroicon-s-x-mark class="w-5 h-5"/></button>
+                <button wire:click="closeDetailModal" class="btn btn-sm btn-ghost btn-circle">
+                    <x-heroicon-s-x-mark class="w-5 h-5"/>
+                </button>
+            </div>
+
+            @php
+                $monthShortNames = [
+                    1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'Mei', 6 => 'Jun',
+                    7 => 'Jul', 8 => 'Agu', 9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des'
+                ];
+
+                $activeMonths = match($activeDetailTab) {
+                    'p1' => $detailP1Months,
+                    'p2' => $detailP2Months,
+                    default => range(1, 12),
+                };
+
+                $filteredRows = collect($monthlyDetails)->filter(function($row) use ($activeMonths, $activeDetailTab) {
+                    if ($activeDetailTab === 'all') return true;
+                    return in_array($row['month_num'], $activeMonths);
+                });
+
+                $totTarget = $filteredRows->sum('target');
+                $totSellIn = $filteredRows->sum('sell_in');
+                $totSellOut = $filteredRows->sum('sell_out');
+                $totPctIn = $totTarget > 0 ? ($totSellIn / $totTarget) * 100 : 0;
+                $totPctOut = $totTarget > 0 ? ($totSellOut / $totTarget) * 100 : 0;
+                $stockRows = $filteredRows->where('stock_avg', '>', 0);
+                $avgStock = $stockRows->count() > 0 ? $stockRows->avg('stock_avg') : 0;
+                $totArLate = $filteredRows->sum('ar_late_count');
+
+                $isTargetOk = $totTarget > 0 && ($totSellIn >= $totTarget) && ($totSellOut >= $totTarget);
+                $isStockOk = $avgStock >= 80;
+                $isArOk = $totArLate <= 2;
+            @endphp
+
+            {{-- Tab Periode Navigation --}}
+            <div class="px-4 md:px-6 pt-3 pb-2 bg-base-200/30 border-b border-base-200 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                <div role="tablist" class="tabs tabs-boxed bg-base-200 p-1 rounded-xl inline-flex">
+                    <button type="button" role="tab" 
+                        wire:click="$set('activeDetailTab', 'p1')" 
+                        class="tab tab-sm font-semibold transition-all {{ $activeDetailTab === 'p1' ? 'tab-active !bg-primary !text-primary-content shadow-sm rounded-lg' : 'text-base-content/70 hover:text-base-content' }}">
+                        Periode 1
+                        @if(count($detailP1Months) > 0)
+                            <span class="badge badge-xs ml-1.5 {{ $activeDetailTab === 'p1' ? 'bg-primary-content/20 text-primary-content border-0' : 'badge-ghost' }}">{{ count($detailP1Months) }} Bln</span>
+                        @else
+                            <span class="badge badge-xs badge-warning ml-1.5 border-0">Nonaktif</span>
+                        @endif
+                    </button>
+                    <button type="button" role="tab" 
+                        wire:click="$set('activeDetailTab', 'p2')" 
+                        class="tab tab-sm font-semibold transition-all {{ $activeDetailTab === 'p2' ? 'tab-active !bg-primary !text-primary-content shadow-sm rounded-lg' : 'text-base-content/70 hover:text-base-content' }}">
+                        Periode 2
+                        @if(count($detailP2Months) > 0)
+                            <span class="badge badge-xs ml-1.5 {{ $activeDetailTab === 'p2' ? 'bg-primary-content/20 text-primary-content border-0' : 'badge-ghost' }}">{{ count($detailP2Months) }} Bln</span>
+                        @else
+                            <span class="badge badge-xs badge-warning ml-1.5 border-0">Nonaktif</span>
+                        @endif
+                    </button>
+                    <button type="button" role="tab" 
+                        wire:click="$set('activeDetailTab', 'all')" 
+                        class="tab tab-sm font-semibold transition-all {{ $activeDetailTab === 'all' ? 'tab-active !bg-primary !text-primary-content shadow-sm rounded-lg' : 'text-base-content/70 hover:text-base-content' }}">
+                        Semua Bulan
+                    </button>
+                </div>
+
+                {{-- Keterangan Bulan yang Diikuti --}}
+                <div class="text-xs text-base-content/60">
+                    @if($activeDetailTab === 'p1')
+                        <span>Bulan P1: <strong class="text-base-content">{{ count($detailP1Months) > 0 ? implode(', ', array_map(fn($m) => $monthShortNames[$m] ?? $m, $detailP1Months)) : 'Tidak ikut Periode 1' }}</strong></span>
+                    @elseif($activeDetailTab === 'p2')
+                        <span>Bulan P2: <strong class="text-base-content">{{ count($detailP2Months) > 0 ? implode(', ', array_map(fn($m) => $monthShortNames[$m] ?? $m, $detailP2Months)) : 'Tidak ikut Periode 2' }}</strong></span>
+                    @else
+                        <span>Menampilkan seluruh 12 bulan (Jan - Des)</span>
+                    @endif
+                </div>
             </div>
             
+            {{-- Table Content --}}
             <div class="flex-1 overflow-auto bg-base-100 relative p-4">
-                <table class="table table-sm w-full whitespace-nowrap">
-                    <thead class="text-xs uppercase tracking-wider text-base-content/80 shadow-sm sticky top-0 bg-base-200 z-20">
-                        <tr>
-                            <th class="py-3 px-4 rounded-tl-lg">Bulan</th>
-                            <th class="py-3 px-4 text-right">Target</th>
-                            <th class="py-3 px-4 text-right">Sell In</th>
-                            <th class="py-3 px-4 text-right">Sell Out</th>
-                            <th class="py-3 px-4 text-center rounded-tr-lg">AR & STK</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-sm">
-                        @forelse($monthlyDetails as $mRow)
-                            @php
-                                $pctIn = $mRow['target'] > 0 ? ($mRow['sell_in'] / $mRow['target']) * 100 : 0;
-                                $pctOut = $mRow['target'] > 0 ? ($mRow['sell_out'] / $mRow['target']) * 100 : 0;
-                            @endphp
-                            <tr class="hover:bg-base-200/50 transition-colors border-b border-base-200">
-                                <td class="py-3 px-4 font-bold">{{ $mRow['month_name'] }}</td>
+                @if($activeDetailTab !== 'all' && empty($activeMonths))
+                    <div class="p-12 text-center flex flex-col items-center justify-center">
+                        <div class="w-16 h-16 rounded-full bg-warning/10 text-warning flex items-center justify-center mb-3">
+                            <x-heroicon-o-information-circle class="w-8 h-8" />
+                        </div>
+                        <h4 class="font-bold text-base text-base-content">Distributor Tidak Mengikuti {{ $activeDetailTab === 'p1' ? 'Periode 1' : 'Periode 2' }}</h4>
+                        <p class="text-xs md:text-sm text-base-content/60 max-w-md mt-1">
+                            Berdasarkan konfigurasi pengaturan, distributor ini tidak didaftarkan untuk program reward pada 
+                            <strong>{{ $activeDetailTab === 'p1' ? 'Periode 1' : 'Periode 2' }}</strong>.
+                        </p>
+                        <button type="button" wire:click="$set('activeDetailTab', '{{ $activeDetailTab === 'p1' ? 'p2' : 'p1' }}')" class="btn btn-sm btn-outline btn-primary mt-4">
+                            Lihat {{ $activeDetailTab === 'p1' ? 'Periode 2' : 'Periode 1' }}
+                        </button>
+                    </div>
+                @else
+                    <table class="table table-sm w-full whitespace-nowrap">
+                        <thead class="text-xs uppercase tracking-wider text-base-content/80 shadow-sm sticky top-0 bg-base-200 z-20">
+                            <tr>
+                                <th class="py-3 px-4 rounded-tl-lg">Bulan</th>
+                                <th class="py-3 px-4 text-right">Target</th>
+                                <th class="py-3 px-4 text-right">Sell In</th>
+                                <th class="py-3 px-4 text-right">Sell Out</th>
+                                <th class="py-3 px-4 text-center rounded-tr-lg">AR & STK</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            @forelse($filteredRows as $mRow)
+                                @php
+                                    $pctIn = $mRow['target'] > 0 ? ($mRow['sell_in'] / $mRow['target']) * 100 : 0;
+                                    $pctOut = $mRow['target'] > 0 ? ($mRow['sell_out'] / $mRow['target']) * 100 : 0;
+                                @endphp
+                                <tr class="hover:bg-base-200/50 transition-colors border-b border-base-200">
+                                    <td class="py-3 px-4 font-bold flex items-center gap-2">
+                                        <span>{{ $mRow['month_name'] }}</span>
+                                        @if($activeDetailTab === 'all')
+                                            @if(in_array($mRow['month_num'], $detailP1Months))
+                                                <span class="badge badge-xs badge-info font-bold">P1</span>
+                                            @endif
+                                            @if(in_array($mRow['month_num'], $detailP2Months))
+                                                <span class="badge badge-xs badge-success font-bold">P2</span>
+                                            @endif
+                                        @endif
+                                    </td>
+                                    
+                                    <td class="py-3 px-4 text-right font-mono text-base-content/70">
+                                        {{ number_format($mRow['target']) }}
+                                    </td>
+                                    
+                                    <td class="py-3 px-4 text-right">
+                                        <div class="font-mono font-bold">{{ number_format($mRow['sell_in']) }}</div>
+                                        @if($mRow['target'] > 0)
+                                            <div class="text-[10px] font-bold {{ $pctIn >= 100 ? 'text-success' : ($pctIn >= 80 ? 'text-warning' : 'text-error') }} mt-0.5">
+                                                {{ number_format($pctIn, 1) }}%
+                                            </div>
+                                        @endif
+                                    </td>
+                                    
+                                    <td class="py-3 px-4 text-right">
+                                        <div class="font-mono font-bold">{{ number_format($mRow['sell_out']) }}</div>
+                                        @if($mRow['target'] > 0)
+                                            <div class="text-[10px] font-bold {{ $pctOut >= 100 ? 'text-success' : ($pctOut >= 80 ? 'text-warning' : 'text-error') }} mt-0.5">
+                                                {{ number_format($pctOut, 1) }}%
+                                            </div>
+                                        @endif
+                                    </td>
+                                    
+                                    <td class="py-3 px-4 text-center">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <div class="badge badge-sm border-0 font-semibold {{ $mRow['ar_value'] <= 7 ? 'bg-success/10 text-success' : 'bg-error/10 text-error' }}" title="Keterlambatan AR">
+                                                AR: {{ $mRow['ar_value'] }} hr
+                                            </div>
+                                            <div class="badge badge-sm border-0 font-semibold {{ $mRow['is_stock_achieved'] ? 'bg-success/10 text-success' : 'bg-error/10 text-error' }}" title="Service Level Stok">
+                                                STK: {{ number_format($mRow['stock_avg'], 1) }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="text-center py-8 text-base-content/50">Tidak ada data bulanan.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+
+                        {{-- Footer Subtotal Akumulasi --}}
+                        @if($filteredRows->isNotEmpty())
+                        <tfoot class="bg-base-200/90 font-bold border-t-2 border-base-300 text-sm sticky bottom-0 z-10 backdrop-blur-sm">
+                            <tr class="border-b-0">
+                                <td class="py-3 px-4">
+                                    <div class="text-[11px] uppercase tracking-wider text-base-content/60 font-semibold">TOTAL AKUMULASI</div>
+                                    <div class="text-xs md:text-sm font-black text-primary">
+                                        {{ $activeDetailTab === 'p1' ? 'PERIODE 1' : ($activeDetailTab === 'p2' ? 'PERIODE 2' : 'SEMUA BULAN') }}
+                                        <span class="text-xs font-normal text-base-content/60">({{ $filteredRows->count() }} Bulan)</span>
+                                    </div>
+                                </td>
                                 
-                                <td class="py-3 px-4 text-right font-mono text-base-content/70">{{ number_format($mRow['target']) }}</td>
+                                <td class="py-3 px-4 text-right font-mono text-base-content/90 font-bold">
+                                    {{ number_format($totTarget) }}
+                                </td>
                                 
                                 <td class="py-3 px-4 text-right">
-                                    <div class="font-mono font-bold">{{ number_format($mRow['sell_in']) }}</div>
-                                    @if($mRow['target'] > 0)
-                                        <div class="text-[10px] font-bold {{ $pctIn >= 100 ? 'text-success' : ($pctIn >= 80 ? 'text-warning' : 'text-error') }} mt-0.5">{{ number_format($pctIn, 1) }}%</div>
+                                    <div class="font-mono text-sm md:text-base font-black">{{ number_format($totSellIn) }}</div>
+                                    @if($totTarget > 0)
+                                        <div class="text-[11px] font-black {{ $totPctIn >= 100 ? 'text-success' : ($totPctIn >= 80 ? 'text-warning' : 'text-error') }}">
+                                            {{ number_format($totPctIn, 1) }}%
+                                        </div>
                                     @endif
                                 </td>
                                 
                                 <td class="py-3 px-4 text-right">
-                                    <div class="font-mono font-bold">{{ number_format($mRow['sell_out']) }}</div>
-                                    @if($mRow['target'] > 0)
-                                        <div class="text-[10px] font-bold {{ $pctOut >= 100 ? 'text-success' : ($pctOut >= 80 ? 'text-warning' : 'text-error') }} mt-0.5">{{ number_format($pctOut, 1) }}%</div>
+                                    <div class="font-mono text-sm md:text-base font-black">{{ number_format($totSellOut) }}</div>
+                                    @if($totTarget > 0)
+                                        <div class="text-[11px] font-black {{ $totPctOut >= 100 ? 'text-success' : ($totPctOut >= 80 ? 'text-warning' : 'text-error') }}">
+                                            {{ number_format($totPctOut, 1) }}%
+                                        </div>
                                     @endif
                                 </td>
                                 
                                 <td class="py-3 px-4 text-center">
                                     <div class="flex items-center justify-center gap-2">
-                                        <div class="badge badge-sm border-0 font-semibold {{ $mRow['ar_value'] <= 7 ? 'bg-success/10 text-success' : 'bg-error/10 text-error' }}">
-                                            AR: {{ $mRow['ar_value'] }}
+                                        <div class="badge badge-sm border-0 font-bold {{ $isArOk ? 'bg-success/15 text-success' : 'bg-error/15 text-error' }}" title="Jumlah Bulan Telat AR > 7 hari (Maksimal 2x)">
+                                            Telat AR: {{ $totArLate }}x
                                         </div>
-                                        <div class="badge badge-sm border-0 font-semibold {{ $mRow['is_stock_achieved'] ? 'bg-success/10 text-success' : 'bg-error/10 text-error' }}">
-                                            STK: {{ number_format($mRow['stock_avg'], 1) }}%
+                                        <div class="badge badge-sm border-0 font-bold {{ $isStockOk ? 'bg-success/15 text-success' : 'bg-error/15 text-error' }}" title="Rata-rata Stok Periode (Minimal 80%)">
+                                            Rata STK: {{ number_format($avgStock, 1) }}%
                                         </div>
+                                    </div>
+                                    <div class="text-[10px] font-bold mt-1">
+                                        @if($isTargetOk && $isStockOk && $isArOk)
+                                            <span class="text-success inline-flex items-center gap-1">
+                                                <x-heroicon-s-check-circle class="w-3.5 h-3.5" /> Target & Syarat Tercapai
+                                            </span>
+                                        @elseif($isTargetOk && (!$isStockOk || !$isArOk))
+                                            <span class="text-warning inline-flex items-center gap-1" title="Target tercapai namun kena penalti 25% karena stok/AR">
+                                                <x-heroicon-s-exclamation-triangle class="w-3.5 h-3.5" /> Penalti Stok / AR (25%)
+                                            </span>
+                                        @else
+                                            <span class="text-error inline-flex items-center gap-1">
+                                                <x-heroicon-s-x-circle class="w-3.5 h-3.5" /> Target Tidak Tercapai
+                                            </span>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="text-center py-8 text-base-content/50">Belum ada data bulanan.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </tfoot>
+                        @endif
+                    </table>
+                @endif
             </div>
-            <div class="p-4 border-t border-base-200 bg-base-200/50 flex justify-end shrink-0">
-                <button wire:click="closeDetailModal" class="btn btn-outline">Tutup</button>
+
+            {{-- Modal Footer --}}
+            <div class="p-4 border-t border-base-200 bg-base-200/50 flex justify-between items-center shrink-0">
+                <div class="text-xs text-base-content/60 hidden sm:block">
+                    * Syarat Reward: Target Sell In &ge; 100%, Sell Out &ge; 100%, Stok &ge; 80%, dan Telat AR &le; 2x.
+                </div>
+                <button wire:click="closeDetailModal" class="btn btn-outline btn-sm md:btn-md">Tutup</button>
             </div>
         </div>
     </div>
