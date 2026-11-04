@@ -11,6 +11,10 @@
         <x-heroicon-s-exclamation-triangle class="w-3.5 h-3.5" /> Cek Anomali
     </x-ui.tab-item>
 
+    <x-ui.tab-item href="{{ route('dashboard.reference-number') }}" :active="request()->routeIs('dashboard.reference-number')" :navigate="false" class="gap-1.5">
+        <x-heroicon-s-identification class="w-3.5 h-3.5" /> Referensi Number
+    </x-ui.tab-item>
+
     <x-ui.tab-item href="{{ route('dashboard.extractor-process') }}" :active="request()->routeIs('dashboard.extractor-process')" :navigate="false" class="gap-1.5">
         <x-heroicon-s-cpu-chip class="w-3.5 h-3.5" /> Proses Ekstraksi
     </x-ui.tab-item>

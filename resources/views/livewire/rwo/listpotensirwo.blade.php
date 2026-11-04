@@ -841,10 +841,10 @@
                     {{-- Sticky Footer Modal --}}
                     <div class="px-5 py-3.5 bg-base-200/60 border-t border-base-300 flex items-center justify-between gap-2 shrink-0">
                         <div>
-                            @if($canEdit && !$isBB)
+                            @if($canApproveSkb && !$isBB)
                                 <button type="button"
                                         class="btn btn-sm btn-success btn-outline gap-1.5"
-                                        wire:click="$set('isDetailModalOpen', false); openApprovalModal('{{ $detailData['customer_code'] }}', '{{ $detailData['kuartal'] }}', '{{ $detailData['distributor_code'] }}', '{{ addslashes($detailData['customer_name']) }}')">
+                                        wire:click="$set('isDetailModalOpen', false); openApprovalModal('{{ $detailData['customer_code'] }}', '{{ $detailData['kuartal'] }}', '{{ $detailData['distributor_code'] }}', '{{ addslashes($detailData['customer_name']) }}', '{{ $detailData['tahun'] ?? '' }}')">
                                     <x-heroicon-s-check-circle class="w-4 h-4" /> Approval SKB
                                 </button>
                             @endif
@@ -943,19 +943,19 @@
                                         wire:click="showDetail('{{ $item->customer_code }}', '{{ $item->kuartal }}')"
                                     />
                                 </div>
-                                @if($canEdit)
-                                    @if(($item->jenis_reward ?? '') !== 'BB')
-                                    <div class="tooltip tooltip-left" data-tip="Approval SKB" wire:loading.class="opacity-50 pointer-events-none" wire:target="openApprovalModal('{{ $item->customer_code }}', '{{ $item->kuartal }}', '{{ $item->distributor_code }}', '{{ addslashes($item->customer_name) }}')">
+                                @if($canApproveSkb && ($item->jenis_reward ?? '') !== 'BB')
+                                    <div class="tooltip tooltip-left" data-tip="Approval SKB" wire:loading.class="opacity-50 pointer-events-none" wire:target="openApprovalModal('{{ $item->customer_code }}', '{{ $item->kuartal }}', '{{ $item->distributor_code }}', '{{ addslashes($item->customer_name) }}', '{{ $item->tahun ?? '' }}')">
                                         <x-ui.action-button 
                                             type="default" 
                                             icon="check" 
                                             label="" 
                                             class="btn-ghost text-success hover:bg-success/10 btn-square" 
                                             title="Approval SKB" 
-                                            wire:click="openApprovalModal('{{ $item->customer_code }}', '{{ $item->kuartal }}', '{{ $item->distributor_code }}', '{{ addslashes($item->customer_name) }}')"
+                                            wire:click="openApprovalModal('{{ $item->customer_code }}', '{{ $item->kuartal }}', '{{ $item->distributor_code }}', '{{ addslashes($item->customer_name) }}', '{{ $item->tahun ?? '' }}')"
                                         />
                                     </div>
-                                    @endif
+                                @endif
+                                @if($canEdit)
                                     <div class="tooltip tooltip-left" data-tip="Edit Data" wire:loading.class="opacity-50 pointer-events-none" wire:target="editData('{{ $item->customer_code }}', '{{ $item->kuartal }}')">
                                         <x-ui.action-button 
                                             type="edit" 
@@ -997,7 +997,7 @@
             <div class="modal-box w-11/12 max-w-2xl relative">
                 <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4" wire:click="$set('isApprovalModalOpen', false)">✕</button>
                 <h3 class="font-bold text-lg mb-4 pr-8">Input Data & Approval SKB</h3>
-                <p class="text-sm text-base-content/70 mb-4 border-b pb-2">Toko: <span class="font-bold text-base-content">{{ $approvalCustomerName }}</span> ({{ $approvalCustomerCode }}) - Kuartal {{ $approvalKuartal }}</p>
+                <p class="text-sm text-base-content/70 mb-4 border-b pb-2">Toko: <span class="font-bold text-base-content">{{ $approvalCustomerName }}</span> ({{ $approvalCustomerCode }}) - Kuartal {{ $approvalKuartal }} {{ $approvalTahun ? 'Tahun ' . $approvalTahun : '' }}</p>
                 
                 @if($approvalError)
                     <div class="alert alert-error mb-4 shadow-sm text-sm p-3">

@@ -25,6 +25,20 @@
     </script>
     <style>
         [x-cloak] { display: none !important; }
+        .modal, dialog.modal, [role="dialog"],
+        .fixed.inset-0:not(.navbar):not(header):not(aside) {
+            z-index: 99999 !important;
+        }
+        .fixed.inset-0 > .fixed.inset-0,
+        .modal-backdrop {
+            z-index: 1 !important;
+        }
+        .modal-box,
+        .fixed.inset-0 > div:not(.fixed),
+        .fixed.inset-0 > div[class*="relative"] {
+            position: relative;
+            z-index: 10 !important;
+        }
     </style>
     @livewireStyles
     @stack('styles')

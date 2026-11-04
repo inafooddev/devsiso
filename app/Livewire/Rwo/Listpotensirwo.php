@@ -23,6 +23,7 @@ class Listpotensirwo extends Component
     public $canDelete = true;
     public $canImport = true;
     public $canExport = true;
+    public $canApproveSkb = false;
 
     public $search = '';
 
@@ -70,6 +71,7 @@ class Listpotensirwo extends Component
     public $isApprovalModalOpen = false;
     public $approvalCustomerCode = '';
     public $approvalKuartal = '';
+    public $approvalTahun = '';
     public $approvalDistributorCode = '';
     public $approvalCustomerName = '';
     public $approvalStatus = ''; // 'approve' or 'reject'
@@ -97,6 +99,9 @@ class Listpotensirwo extends Component
             $this->canDelete = $user->hasMenuAccess($this->menuRoute, 'can_delete');
             $this->canImport = $user->hasMenuAccess($this->menuRoute, 'can_import');
             $this->canExport = $user->hasMenuAccess($this->menuRoute, 'can_export');
+
+            // Khusus Approval SKB dibuka untuk role inatm atau admin atau user yang memiliki hak can_edit
+            $this->canApproveSkb = $user->hasRole('admin') || $user->hasRole('inatm') || $this->canEdit;
         }
 
         $this->kuartals = DB::table('master_calender')->select('quarter')->whereNotNull('quarter')->distinct()->orderBy('quarter')->get();
@@ -639,15 +644,28 @@ class Listpotensirwo extends Component
         }
     }
 
-    public function openApprovalModal($customerCode, $kuartal, $distributorCode, $customerName)
+    public function openApprovalModal($customerCode, $kuartal, $distributorCode, $customerName, $tahun = null)
     {
-        // Require can_edit permission for approval? Let's use canEdit for now, or assume if they see it they can.
-        // Actually, we'll guard in submitApproval.
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('admin') && !$user->hasRole('inatm') && !$this->canEdit)) {
+            $this->dispatch('notify', type: 'error', message: 'Anda tidak memiliki hak akses untuk Approval SKB.');
+            return;
+        }
+
         $this->resetValidation();
         $this->approvalCustomerCode = $customerCode;
         $this->approvalKuartal = $kuartal;
         $this->approvalDistributorCode = $distributorCode;
         $this->approvalCustomerName = $customerName;
+
+        // Ambil tahun dari parameter atau query ke list_potensi_rwo, fallback ke tahun berjalan
+        if (empty($tahun)) {
+            $tahun = DB::table('list_potensi_rwo')
+                ->where('customer_code', $customerCode)
+                ->where('kuartal', $kuartal)
+                ->value('tahun');
+        }
+        $this->approvalTahun = $tahun ?: (int) date('Y');
         
         // Fetch existing SKB data if exists
         $existing = \App\Models\SuratKesepakatanBersamaRwo::where('customer_code', $customerCode)
@@ -672,7 +690,10 @@ class Listpotensirwo extends Component
 
     public function submitApproval()
     {
-        $this->authorizeAction('can_edit');
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('admin') && !$user->hasRole('inatm') && !$this->canEdit)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk Approval SKB.');
+        }
         
         $this->validate([
             'approvalStatus' => 'required|in:approve,reject',
@@ -688,11 +709,20 @@ class Listpotensirwo extends Component
         $this->approvalError = '';
 
         try {
-            $skb = \App\Models\SuratKesepakatanBersamaRwo::firstOrNew([
-                'customer_code' => $this->approvalCustomerCode,
-                'distributor_code' => $this->approvalDistributorCode,
-                'kuartal' => $this->approvalKuartal === '' ? null : $this->approvalKuartal,
-            ]);
+            $skb = \App\Models\SuratKesepakatanBersamaRwo::where('customer_code', $this->approvalCustomerCode)
+                ->where('distributor_code', $this->approvalDistributorCode)
+                ->where('kuartal', $this->approvalKuartal === '' ? null : $this->approvalKuartal)
+                ->first();
+
+            if (!$skb) {
+                $skb = new \App\Models\SuratKesepakatanBersamaRwo();
+                $skb->customer_code = $this->approvalCustomerCode;
+                $skb->distributor_code = $this->approvalDistributorCode;
+                $skb->kuartal = $this->approvalKuartal === '' ? null : $this->approvalKuartal;
+            }
+
+            // Pastikan kolom tahun di database selalu terupdate
+            $skb->tahun = $this->approvalTahun ?: (int) date('Y');
 
             $skb->is_approved = ($this->approvalStatus === 'approve');
             
@@ -745,6 +775,7 @@ class Listpotensirwo extends Component
 
         $query = $baseQuery->select([
             'l.kuartal',
+            'l.tahun',
             'md.region_code',
             'md.region_name',
             'md.area_code',

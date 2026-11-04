@@ -267,6 +267,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/newsellin', NewSellIn::class)->name('dashboard.newsellin');
     Route::get('/others/qceskalink/sales-comparison', SalesComparison::class)->name('dashboard.sales-comparison');
     Route::get('/others/qceskalink/anomaly-check', \App\Livewire\Others\Qceskalink\AnomalyCheck::class)->name('dashboard.anomaly-check');
+    Route::get('/others/qceskalink/reference-number', \App\Livewire\Others\Qceskalink\ReferenceNumber::class)->name('dashboard.reference-number');
     Route::get('/others/qceskalink/extractor-config', ExtractorConfig::class)->name('dashboard.extractor-config');
     Route::get('/others/qceskalink/extractor-process', ExtractorProcess::class)->name('dashboard.extractor-process');
     Route::get('/others/qceskalink/ocr-scanner', \App\Livewire\Others\Qceskalink\OcrScanner::class)->name('dashboard.ocr-scanner');
@@ -438,6 +439,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/import-sales-invoices', SalesInvoiceImport::class)->name('sales-invoices.import');
     Route::get('/monitoring-reward-distributor', \App\Livewire\MonitoringRewardDistributor::class)->name('monitoring-reward-distributor');
     Route::get('/semarak-rejeki/monitoring-spv', \App\Livewire\SemarakRejeki\MonitoringSpv::class)->name('semarak-rejeki.monitoring-spv');
+    Route::get('/semarak-rejeki/monitoring-asm-rsm', \App\Livewire\SemarakRejeki\MonitoringAsmRsm::class)->name('semarak-rejeki.monitoring-asm-rsm');
     
     Route::prefix('sales-configs')->name('sales-configs.')->group(function () {
         Route::get('/', SalesConfigIndex::class)->name('index');

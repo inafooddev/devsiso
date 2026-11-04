@@ -33,8 +33,58 @@
          [x-cloak] { display: none !important; }
          /* Fix konflik CSS transition antara Tailwind/DaisyUI dan Leaflet saat zoom/pan/cluster */
          .leaflet-container * { transition: none; }
-         /* Pastikan seluruh modal berada di depan sticky navbar (z-[9999]) */
-         .modal, dialog.modal { z-index: 99999 !important; }
+         
+         /* ==========================================================================
+            GLOBAL MODAL & OVERLAY Z-INDEX LAYER HIERARCHY
+            Fix: Mencegah modal dan backdrop tertimpa sticky navbar (z-[9999]).
+            Hierarki:
+            - Content & Sticky Tables: z-0 s.d z-20
+            - Sticky Navbar & Dropdowns: z-[9999]
+            - Custom Modal Backdrops: z-index: 1 (dalam container modal)
+            - Seluruh Modals, Dialogs & Fixed Overlays: z-index: 99999 !important
+            - Modal Box Card: relative z-10 (di atas backdrop)
+            - Global Loading Overlay: z-[999999]
+            ========================================================================== */
+
+         /* 1. DaisyUI & Native HTML5 Dialog Modals */
+         .modal,
+         dialog.modal,
+         [role="dialog"] {
+             z-index: 99999 !important;
+         }
+
+         /* 2. Seluruh Custom Livewire & Alpine Modals / Fixed Overlays */
+         /* Menargetkan semua fixed inset-0 yang berfungsi sebagai modal / overlay,
+            kecualikan navbar, header, aside, drawer-side, dan drawer-overlay */
+         .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) {
+             z-index: 99999 !important;
+         }
+
+         /* 3. Inner Backdrop di dalam Modal Container */
+         /* Backdrop di dalam modal container harus berada di layer bawah modal-box */
+         .fixed.inset-0 > .fixed.inset-0,
+         .fixed.inset-0 > div[class*="backdrop"],
+         .fixed.inset-0 > div[class*="bg-black"],
+         .fixed.inset-0 > div[class*="bg-base"],
+         .fixed.inset-0 > div[class*="bg-gray"],
+         .fixed.inset-0 > div[class*="bg-slate"],
+         .modal-backdrop {
+             z-index: 1 !important;
+         }
+
+         /* 4. Modal Content Box selalu di atas backdrop */
+         .modal-box,
+         .fixed.inset-0 > div:not(.fixed),
+         .fixed.inset-0 > div[class*="relative"] {
+             position: relative;
+             z-index: 10 !important;
+         }
+
+         /* 5. Pastikan Global Loading Spinner selalu di layer paling teratas */
+         .z-\[999999\],
+         [class*="z-[999999]"] {
+             z-index: 999999 !important;
+         }
     </style>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])

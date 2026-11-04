@@ -120,3 +120,45 @@ aside {
 .animate-slide-down { 
     animation: slide-down 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
 }
+
+/* ==========================================================================
+   GLOBAL MODAL & OVERLAY Z-INDEX LAYER HIERARCHY
+   Fix: Mencegah modal dan backdrop tertimpa sticky navbar (z-[9999]).
+   ========================================================================== */
+
+/* 1. DaisyUI & Native HTML5 Dialog Modals */
+.modal,
+dialog.modal,
+[role="dialog"] {
+    z-index: 99999 !important;
+}
+
+/* 2. Seluruh Custom Livewire & Alpine Modals / Fixed Overlays */
+.fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) {
+    z-index: 99999 !important;
+}
+
+/* 3. Inner Backdrop di dalam Modal Container */
+.fixed.inset-0 > .fixed.inset-0,
+.fixed.inset-0 > div[class*="backdrop"],
+.fixed.inset-0 > div[class*="bg-black"],
+.fixed.inset-0 > div[class*="bg-base"],
+.fixed.inset-0 > div[class*="bg-gray"],
+.fixed.inset-0 > div[class*="bg-slate"],
+.modal-backdrop {
+    z-index: 1 !important;
+}
+
+/* 4. Modal Content Box selalu di atas backdrop */
+.modal-box,
+.fixed.inset-0 > div:not(.fixed),
+.fixed.inset-0 > div[class*="relative"] {
+    position: relative;
+    z-index: 10 !important;
+}
+
+/* 5. Pastikan Global Loading Spinner selalu di layer paling teratas */
+.z-\[999999\],
+[class*="z-[999999]"] {
+    z-index: 999999 !important;
+}
