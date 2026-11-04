@@ -484,12 +484,15 @@
         <div x-show="open"
              x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
              x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-             class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
+             class="fixed inset-0 bg-black/50 backdrop-blur-sm z-0"
+             style="z-index: 1 !important;"
+             @click="open = false"></div>
 
         <div x-show="open"
              x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
              x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-             class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-lg ring-1 ring-base-content/5 text-base-content">
+             class="relative z-10 bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-lg ring-1 ring-base-content/5 text-base-content"
+             style="z-index: 50 !important;">
 
             <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30 rounded-t-3xl">
                 <div class="flex items-center gap-3">

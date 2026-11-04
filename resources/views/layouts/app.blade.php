@@ -35,56 +35,58 @@
          .leaflet-container * { transition: none; }
          
          /* ==========================================================================
-            GLOBAL MODAL & OVERLAY Z-INDEX LAYER HIERARCHY
-            Fix: Mencegah modal dan backdrop tertimpa sticky navbar (z-[9999]).
-            Hierarki:
-            - Content & Sticky Tables: z-0 s.d z-20
-            - Sticky Navbar & Dropdowns: z-[9999]
-            - Custom Modal Backdrops: z-index: 1 (dalam container modal)
-            - Seluruh Modals, Dialogs & Fixed Overlays: z-index: 99999 !important
-            - Modal Box Card: relative z-10 (di atas backdrop)
-            - Global Loading Overlay: z-[999999]
-            ========================================================================== */
+           GLOBAL MODAL & OVERLAY Z-INDEX LAYER HIERARCHY
+           Fix: Mencegah modal tertimpa sticky navbar (z-[9999]) DAN mencegah inner
+           backdrop menutupi modal box / card.
+           Hierarki:
+           - Content & Sticky Tables: z-0 s.d z-20
+           - Sticky Navbar & Dropdowns: z-[9999]
+           - Modal Container (Wrapper): z-index: 99999 !important (di atas navbar)
+           - Inner Backdrop: z-index: 1 !important (di layer terbawah modal)
+           - Modal Box / Card: position: relative; z-index: 50 !important (di atas backdrop)
+           - Global Loading Overlay: z-[999999] !important (layer paling teratas)
+           ========================================================================== */
 
-         /* 1. DaisyUI & Native HTML5 Dialog Modals */
-         .modal,
-         dialog.modal,
-         [role="dialog"] {
-             z-index: 99999 !important;
-         }
+        /* 1. Modal Containers (Outer Wrapper) */
+        .modal,
+        dialog.modal,
+        [role="dialog"],
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) {
+            z-index: 99999 !important;
+        }
 
-         /* 2. Seluruh Custom Livewire & Alpine Modals / Fixed Overlays */
-         /* Menargetkan semua fixed inset-0 yang berfungsi sebagai modal / overlay,
-            kecualikan navbar, header, aside, drawer-side, dan drawer-overlay */
-         .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) {
-             z-index: 99999 !important;
-         }
+        /* 2. Inner Backdrop di dalam Modal Container */
+        /* Selektor ini mewarisi specificity parent container + child agar menang atas Rule 1 */
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) .fixed.inset-0,
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) > .fixed.inset-0,
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) .absolute.inset-0,
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) [class*="backdrop"],
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) [class*="bg-black"],
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) [class*="bg-base"],
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) [class*="bg-gray"],
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) [class*="bg-slate"],
+        .modal .modal-backdrop,
+        .modal-backdrop {
+            z-index: 1 !important;
+        }
 
-         /* 3. Inner Backdrop di dalam Modal Container */
-         /* Backdrop di dalam modal container harus berada di layer bawah modal-box */
-         .fixed.inset-0 > .fixed.inset-0,
-         .fixed.inset-0 > div[class*="backdrop"],
-         .fixed.inset-0 > div[class*="bg-black"],
-         .fixed.inset-0 > div[class*="bg-base"],
-         .fixed.inset-0 > div[class*="bg-gray"],
-         .fixed.inset-0 > div[class*="bg-slate"],
-         .modal-backdrop {
-             z-index: 1 !important;
-         }
+        /* 3. Modal Content Box / Card (selalu di atas backdrop) */
+        .modal-box,
+        .modal .modal-box,
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) .modal-box,
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) > div:not(.fixed),
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) div[class*="relative"]:not([class*="backdrop"]):not([class*="fixed"]),
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) [class*="rounded-3xl"]:not([class*="fixed"]):not([class*="backdrop"]),
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) [class*="rounded-2xl"]:not([class*="fixed"]):not([class*="backdrop"]) {
+            position: relative;
+            z-index: 50 !important;
+        }
 
-         /* 4. Modal Content Box selalu di atas backdrop */
-         .modal-box,
-         .fixed.inset-0 > div:not(.fixed),
-         .fixed.inset-0 > div[class*="relative"] {
-             position: relative;
-             z-index: 10 !important;
-         }
-
-         /* 5. Pastikan Global Loading Spinner selalu di layer paling teratas */
-         .z-\[999999\],
-         [class*="z-[999999]"] {
-             z-index: 999999 !important;
-         }
+        /* 4. Pastikan Global Loading Spinner selalu di layer paling teratas */
+        .z-\[999999\],
+        [class*="z-[999999]"] {
+            z-index: 999999 !important;
+        }
     </style>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])

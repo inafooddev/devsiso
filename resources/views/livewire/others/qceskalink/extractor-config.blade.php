@@ -169,9 +169,9 @@
          x-show="open" x-cloak
          style="z-index: 99999;"
          class="fixed inset-0 z-[99999] flex items-center justify-center p-4">
-        <div x-show="open" class="fixed inset-0 bg-base-100/80 backdrop-blur-sm"></div>
+        <div x-show="open" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-0" style="z-index: 1 !important;" @click="open = false"></div>
         
-        <div x-show="open" class="relative bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div x-show="open" class="relative z-10 bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-4xl max-h-[90vh] flex flex-col" style="z-index: 50 !important;">
             <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30 shrink-0">
                 <h3 class="font-bold text-lg flex items-center gap-2">
                     <x-heroicon-s-cog-6-tooth class="w-5 h-5 text-primary" />

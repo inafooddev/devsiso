@@ -347,12 +347,12 @@
             <div x-show="open"
                  x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
                  x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                 class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
+                 class="fixed inset-0 bg-black/50 backdrop-blur-sm z-0" style="z-index: 1 !important;" @click="open = false"></div>
 
             <div x-show="open"
                  x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
                  x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-                 class="relative text-left bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-lg ring-1 ring-base-content/5 text-base-content my-8">
+                 class="relative z-10 text-left bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-lg ring-1 ring-base-content/5 text-base-content my-8" style="z-index: 50 !important;">
 
                 <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30 rounded-t-3xl">
                     <div class="flex items-center gap-3">
@@ -416,12 +416,12 @@
             <div x-show="open"
                  x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
                  x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                 class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="open = false"></div>
+                 class="fixed inset-0 bg-black/50 backdrop-blur-sm z-0" style="z-index: 1 !important;" @click="open = false"></div>
 
             <div x-show="open"
                  x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
                  x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-                 class="relative text-left bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-5xl ring-1 ring-base-content/5 text-base-content my-8">
+                 class="relative z-10 text-left bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-5xl ring-1 ring-base-content/5 text-base-content my-8" style="z-index: 50 !important;">
 
                 <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30 rounded-t-3xl">
                     <div class="flex items-center gap-3">
@@ -606,12 +606,12 @@
             <div x-show="previewModalOpen"
                  x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
                  x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                 class="fixed inset-0 bg-base-100/80 backdrop-blur-sm" @click="previewModalOpen = false; setTimeout(() => previewUrl = '', 300)"></div>
+                 class="fixed inset-0 bg-black/60 backdrop-blur-sm z-0" style="z-index: 1 !important;" @click="previewModalOpen = false; setTimeout(() => previewUrl = '', 300)"></div>
 
             <div x-show="previewModalOpen"
                  x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
                  x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-                 class="relative flex flex-col bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-[95vw] max-w-7xl h-[95vh] ring-1 ring-base-content/5 text-base-content my-4 overflow-hidden">
+                 class="relative z-10 flex flex-col bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-[95vw] max-w-7xl h-[95vh] ring-1 ring-base-content/5 text-base-content my-4 overflow-hidden" style="z-index: 50 !important;">
 
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-6 py-4 border-b border-base-300 bg-base-200/30 shrink-0">
                     <div class="flex items-center gap-3 w-full sm:w-auto">
