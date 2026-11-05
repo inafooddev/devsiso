@@ -10,6 +10,7 @@
                 <th rowspan="2">Pilar</th>
                 <th class="text-center border-b border-primary !bg-primary text-primary-content" colspan="7">Hari</th>
                 <th class="text-center border-b border-neutral !bg-neutral text-neutral-content" colspan="4">Minggu</th>
+                <th class="text-center border-b border-info !bg-info text-info-content" colspan="3">Realisasi Visit</th>
                 <th class="text-center w-20" rowspan="2">Aksi</th>
             </tr>
             <tr>
@@ -45,12 +46,16 @@
                         <x-heroicon-o-calendar-days class="w-3 h-3 text-neutral-content/70 group-hover:text-neutral-content transition-colors" />
                     </button>
                 </th>
+
+                <th class="text-center text-xs font-semibold px-2 border-r border-info border-l-2 !bg-info text-info-content">Visit</th>
+                <th class="text-center text-xs font-semibold px-2 border-r border-info !bg-info text-info-content">Order</th>
+                <th class="text-center text-xs font-semibold px-1 !bg-info text-info-content w-10">Detail</th>
             </tr>
         </thead>
         <tbody class="text-xs relative transition-opacity duration-300" wire:loading.class="opacity-30 pointer-events-none">
             @if(empty($appliedDistributor))
                 <tr>
-                    <td colspan="19" class="text-center py-12">
+                    <td colspan="22" class="text-center py-12">
                         <div class="flex flex-col items-center justify-center text-base-content/50">
                             <x-heroicon-o-funnel class="w-12 h-12 mb-3 opacity-30 text-primary" />
                             <p class="text-base font-semibold">Silakan Pilih Distributor Terlebih Dahulu</p>
@@ -106,6 +111,45 @@
                     <td class="text-center px-1 bg-base-200/50">@if($row->w2 === 'Y') <x-heroicon-s-check-circle class="w-4 h-4 text-primary mx-auto"/> @endif</td>
                     <td class="text-center px-1 bg-base-200/50">@if($row->w3 === 'Y') <x-heroicon-s-check-circle class="w-4 h-4 text-primary mx-auto"/> @endif</td>
                     <td class="text-center px-1 bg-base-200/50">@if($row->w4 === 'Y') <x-heroicon-s-check-circle class="w-4 h-4 text-primary mx-auto"/> @endif</td>
+
+                    {{-- Realisasi Visit --}}
+                    @php
+                        $vs = $visitSummary[$row->uniq_kode] ?? null;
+                    @endphp
+                    {{-- Realisasi: Visit --}}
+                    <td class="text-center px-2 bg-info/5 border-l-2 border-base-300">
+                        @if($vs && $vs['total_visit'] > 0)
+                            <span class="badge badge-sm badge-info font-bold text-white shadow-2xs">{{ $vs['total_visit'] }}x</span>
+                        @elseif($vs)
+                            <span class="badge badge-sm badge-ghost text-base-content/40 font-mono">0x</span>
+                        @else
+                            <span class="text-base-content/30 font-mono">-</span>
+                        @endif
+                    </td>
+
+                    {{-- Realisasi: Order (Value Order Saja) --}}
+                    <td class="text-right px-2 bg-info/5 font-mono">
+                        @if($vs && $vs['total_order_val'] > 0)
+                            <span class="font-bold text-emerald-600">Rp {{ number_format($vs['total_order_val'], 0, ',', '.') }}</span>
+                        @elseif($vs && $vs['total_visit'] > 0)
+                            <span class="text-base-content/40 text-xs">Rp 0</span>
+                        @elseif($vs)
+                            <span class="text-base-content/30 text-xs">-</span>
+                        @else
+                            <span class="text-base-content/30 text-xs">-</span>
+                        @endif
+                    </td>
+
+                    {{-- Realisasi: Icon Detail Modal --}}
+                    <td class="text-center px-1 bg-info/5">
+                        <button type="button" 
+                                wire:click="openVisitDetailModal('{{ $row->uniq_kode }}', '{{ $row->customer_code }}', '{{ addslashes($row->customer_name ?? '') }}')"
+                                class="btn btn-xs btn-circle btn-ghost text-info hover:bg-info/20" 
+                                title="Lihat Detail Riwayat Kunjungan & Alasan">
+                            <x-heroicon-m-eye class="w-4 h-4" />
+                        </button>
+                    </td>
+
                     <td class="text-center">
                         @if($this->canManipulate)
                             <div class="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -129,7 +173,7 @@
                 </tr>
                 @empty
                     <tr>
-                        <td colspan="19" class="text-center py-8">
+                        <td colspan="22" class="text-center py-8">
                             <div class="text-base-content/50">
                                 @if($onlyDobelCover)
                                     <x-heroicon-o-check-badge class="w-10 h-10 mx-auto mb-2 text-success opacity-80"/>

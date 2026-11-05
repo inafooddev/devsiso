@@ -957,6 +957,8 @@
 
     @include('livewire.call-plan.jks-salesmans.partials._modal-export-eskalink')
 
+    @include('livewire.call-plan.jks-salesmans.partials._modal-visit-detail')
+
     {{-- Toasts Container --}}
     <div class="toast toast-top toast-right z-[9999]">
         <template x-for="toast in toasts" :key="toast.id">

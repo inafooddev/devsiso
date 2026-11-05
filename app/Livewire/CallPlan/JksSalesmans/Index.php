@@ -28,6 +28,12 @@ class Index extends Component
     public $selectedHari = 'h1';
     public $selectedMinggu = 'ganjil';
 
+    // Visit Realisasi & Detail Modal State
+    public $showVisitDetailModal = false;
+    public $visitModalHeader = null;
+    public $visitModalSummary = null;
+    public $visitModalHistory = [];
+
     public $canAdd = false;
     public $canEdit = false;
     public $canDelete = false;
@@ -2174,6 +2180,7 @@ class Index extends Component
         $filters['dobel_cover'] = $this->onlyDobelCover;
         
         $mingguDates = $service->getMingguDateRanges($filters['bulan'] ?? null);
+        $visitSummary = [];
         if (empty($filters['distributor'])) {
             $data = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 100, $this->getPage());
             $kpiSummary = null;
@@ -2202,14 +2209,285 @@ class Index extends Component
                     
                 $collidingCustomerCodes = $collisions;
             }
+
+            // Ambil data agregasi visit bulanan untuk toko pada halaman aktif
+            if (!empty($filters['bulan']) && count($data->items()) > 0) {
+                $visitSummary = $this->fetchVisitSummaryForPage($filters['distributor'], $filters['bulan'], $data->items());
+            }
         }
 
         return view('livewire.call-plan.jks-salesmans.index', [
             'jksData' => $data,
             'kpiSummary' => $kpiSummary,
             'mingguDates' => $mingguDates,
-            'collidingCustomerCodes' => $collidingCustomerCodes
+            'collidingCustomerCodes' => $collidingCustomerCodes,
+            'visitSummary' => $visitSummary,
         ]);
+    }
+
+    /**
+     * Ambil data ringkasan realisasi visit bulanan dari rpt_visit_an_h & rpt_visit_an_r
+     * khusus untuk toko-toko yang sedang tampil di halaman pagination aktif.
+     */
+    protected function fetchVisitSummaryForPage(string $distributorCode, string $bulan, array $pageItems): array
+    {
+        if (empty($distributorCode) || empty($bulan) || empty($pageItems)) {
+            return [];
+        }
+
+        $eskalinkCode = \Illuminate\Support\Facades\DB::table('distributor_implementasi_eskalink')
+            ->where('distributor_code', $distributorCode)
+            ->value('eskalink_code') ?? $distributorCode;
+
+        // Petakan customer_code target
+        $custMapping = []; // [custno_rpt => [uniq_kode1, ...]]
+        foreach ($pageItems as $item) {
+            $targetCode = !empty($item->customer_code) ? $item->customer_code : $item->uniq_kode;
+            $custMapping[$targetCode][] = $item->uniq_kode;
+        }
+
+        $targetCustnos = array_keys($custMapping);
+        if (empty($targetCustnos)) {
+            return [];
+        }
+
+        $bulanPrefix = substr($bulan, 0, 7) . '%';
+
+        // 1. Agregasi data dari rpt_visit_an_h (Khusus kunjungan rute: FLAG_PJP = 'R')
+        $aggregates = \Illuminate\Support\Facades\DB::table('rpt_visit_an_h')
+            ->where('BID', $eskalinkCode)
+            ->where('TANGGAL', 'like', $bulanPrefix)
+            ->whereIn('CUSTNO', $targetCustnos)
+            ->select(
+                'CUSTNO',
+                \Illuminate\Support\Facades\DB::raw('COUNT(CASE WHEN "FLAG_VISIT" = \'Y\' AND "FLAG_PJP" = \'R\' THEN 1 END) as total_visit'),
+                \Illuminate\Support\Facades\DB::raw('COUNT(CASE WHEN "FLAG_EC" = \'Y\' AND "FLAG_PJP" = \'R\' THEN 1 END) as total_ec'),
+                \Illuminate\Support\Facades\DB::raw('COALESCE(SUM(CASE WHEN "FLAG_PJP" = \'R\' THEN "ORDER_VAL" ELSE 0 END), 0) as total_order_val'),
+                \Illuminate\Support\Facades\DB::raw('COALESCE(SUM(CASE WHEN "FLAG_PJP" = \'R\' THEN "ORDER_QTY" ELSE 0 END), 0) as total_order_qty'),
+                \Illuminate\Support\Facades\DB::raw('MAX(CASE WHEN "FLAG_PJP" = \'R\' THEN "TANGGAL" END) as latest_visit_date')
+            )
+            ->groupBy('CUSTNO')
+            ->get()
+            ->keyBy('CUSTNO');
+
+        // 2. Cari alasan dari rpt_visit_an_r untuk kunjungan terakhir toko
+        $lookupPairs = [];
+        foreach ($aggregates as $custno => $agg) {
+            if (!empty($agg->latest_visit_date)) {
+                $lookupPairs[] = ['custno' => $custno, 'date' => (string)$agg->latest_visit_date];
+            }
+        }
+
+        $latestReasons = [];
+        if (!empty($lookupPairs)) {
+            $reasonsQuery = \Illuminate\Support\Facades\DB::table('rpt_visit_an_r')
+                ->where('BID', $eskalinkCode)
+                ->where(function($q) use ($lookupPairs) {
+                    foreach ($lookupPairs as $pair) {
+                        $q->orWhere(function($sub) use ($pair) {
+                            $sub->where('CUSTNO', $pair['custno'])
+                                ->where('TANGGAL', $pair['date']);
+                        });
+                    }
+                })
+                ->select('CUSTNO', 'TANGGAL', 'REASON_TYPE', 'REASON_ID', 'REASON_DESC', 'REASON_NOTE')
+                ->get();
+
+            foreach ($reasonsQuery as $rq) {
+                $latestReasons[$rq->CUSTNO] = [
+                    'type' => $rq->REASON_TYPE,
+                    'code' => $rq->REASON_ID,
+                    'desc' => $rq->REASON_DESC,
+                    'note' => $rq->REASON_NOTE,
+                ];
+            }
+        }
+
+        // 3. Susun hasil akhir ber-index uniq_kode
+        $result = [];
+        foreach ($custMapping as $custno => $uniqCodes) {
+            $agg = $aggregates[$custno] ?? null;
+            $reason = $latestReasons[$custno] ?? null;
+
+            $summaryItem = [
+                'target_custno' => $custno,
+                'total_visit' => $agg ? (int)$agg->total_visit : 0,
+                'total_ec' => $agg ? (int)$agg->total_ec : 0,
+                'total_order_val' => $agg ? (float)$agg->total_order_val : 0,
+                'total_order_qty' => $agg ? (int)$agg->total_order_qty : 0,
+                'latest_visit_date' => $agg ? $agg->latest_visit_date : null,
+                'latest_reason' => $reason,
+                'has_history' => $agg !== null,
+            ];
+
+            foreach ($uniqCodes as $uCode) {
+                $result[$uCode] = $summaryItem;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Buka modal rincian riwayat kunjungan & alasan untuk toko yang dipilih.
+     */
+    public function openVisitDetailModal($uniqKode, $customerCode = null, $customerName = null)
+    {
+        $filters = $this->getAppliedFilters();
+        if (empty($filters['distributor']) || empty($filters['bulan'])) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Pilih distributor dan bulan terlebih dahulu.']);
+            return;
+        }
+
+        $this->abortIfUnauthorizedDistributor($filters['distributor']);
+
+        $eskalinkCode = \Illuminate\Support\Facades\DB::table('distributor_implementasi_eskalink')
+            ->where('distributor_code', $filters['distributor'])
+            ->value('eskalink_code') ?? $filters['distributor'];
+
+        $targetCustNo = !empty($customerCode) ? $customerCode : $uniqKode;
+        $bulanPrefix = substr($filters['bulan'], 0, 7) . '%';
+
+        // Ambil info toko dari JKS & Pareto
+        $storeInfo = \Illuminate\Support\Facades\DB::table('jks_salesmans as js')
+            ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
+                $join->on('js.distributor_code', '=', 'ltpte.distributor_code')
+                     ->on('js.customer_code', '=', 'ltpte.uniq_kd');
+            })
+            ->leftJoin('salesmans as s', function($join) {
+                $join->on('js.distributor_code', '=', 's.distributor_code')
+                     ->on('js.salesman_code', '=', 's.salesman_code');
+            })
+            ->where('js.distributor_code', $filters['distributor'])
+            ->where('js.customer_code', $uniqKode)
+            ->where('js.bulan', 'like', $bulanPrefix)
+            ->select(
+                'js.*',
+                'ltpte.customer_code_prc',
+                'ltpte.customer_name',
+                'ltpte.customer_address',
+                'ltpte.kecamatan',
+                'ltpte.desa',
+                'ltpte.pilar',
+                'ltpte.target',
+                's.salesman_name'
+            )
+            ->first();
+
+        $this->visitModalHeader = [
+            'uniq_kode' => $uniqKode,
+            'customer_code' => $customerCode ?: ($storeInfo->customer_code_prc ?? '-'),
+            'customer_name' => $customerName ?: ($storeInfo->customer_name ?? $uniqKode),
+            'alamat' => $storeInfo->customer_address ?? '-',
+            'kecamatan' => $storeInfo->kecamatan ?? '-',
+            'desa' => $storeInfo->desa ?? '-',
+            'salesman_name' => $storeInfo->salesman_name ?? ($storeInfo->salesman_code ?? '-'),
+            'salesman_code' => $storeInfo->salesman_code ?? '-',
+            'pilar' => $storeInfo->pilar ?? '-',
+            'target' => $storeInfo->target ?? 0,
+            'bulan' => $filters['bulan'],
+        ];
+
+        // Query riwayat kunjungan lengkap dari rpt_visit_an_h leftJoin rpt_visit_an_r
+        $history = \Illuminate\Support\Facades\DB::table('rpt_visit_an_h as h')
+            ->leftJoin('rpt_visit_an_r as r', function($join) {
+                $join->on('h.ID', '=', 'r.HID')
+                     ->on('h.BID', '=', 'r.BID')
+                     ->on('h.CUSTNO', '=', 'r.CUSTNO')
+                     ->on('h.TANGGAL', '=', \Illuminate\Support\Facades\DB::raw('r."TANGGAL"::text'));
+            })
+            ->where('h.BID', $eskalinkCode)
+            ->where('h.CUSTNO', $targetCustNo)
+            ->where('h.TANGGAL', 'like', $bulanPrefix)
+            ->select(
+                'h.ID',
+                'h.TANGGAL',
+                'h.MUID',
+                'h.MUNAME',
+                'h.FLAG_PJP',
+                'h.FLAG_VISIT',
+                'h.FLAG_EC',
+                'h.ORDER_VAL',
+                'h.ORDER_QTY',
+                'h.TOTAL_ITEM',
+                'h.TIME_IN',
+                'h.TIME_OUT',
+                'h.TIME_CONSUME',
+                'h.NOTES',
+                'r.REASON_TYPE',
+                'r.REASON_ID',
+                'r.REASON_DESC',
+                'r.REASON_NOTE'
+            )
+            ->orderByDesc('h.TANGGAL')
+            ->orderByDesc('h.TIME_IN')
+            ->get();
+
+        $this->visitModalHistory = $history->toArray();
+
+        // Hitung total ringkasan (Pisahkan Rute PJP vs Non-Rute)
+        $totalVisitRute = 0;
+        $totalVisitNonRute = 0;
+        $totalEcRute = 0;
+        $totalEcNonRute = 0;
+        $totalOrderValRute = 0;
+        $totalOrderValAll = 0;
+        $totalOrderQtyRute = 0;
+        $totalOrderQtyAll = 0;
+
+        foreach ($this->visitModalHistory as $h) {
+            $isRute = ($h->FLAG_PJP === 'R');
+            if ($h->FLAG_VISIT === 'Y') {
+                if ($isRute) {
+                    $totalVisitRute++;
+                } else {
+                    $totalVisitNonRute++;
+                }
+            }
+            if ($h->FLAG_EC === 'Y') {
+                if ($isRute) {
+                    $totalEcRute++;
+                } else {
+                    $totalEcNonRute++;
+                }
+            }
+            $val = (float) ($h->ORDER_VAL ?? 0);
+            $qty = (int) ($h->ORDER_QTY ?? 0);
+
+            if ($isRute) {
+                $totalOrderValRute += $val;
+                $totalOrderQtyRute += $qty;
+            }
+            $totalOrderValAll += $val;
+            $totalOrderQtyAll += $qty;
+        }
+
+        $this->visitModalSummary = [
+            'total_visit_route' => $totalVisitRute,
+            'total_visit_non_route' => $totalVisitNonRute,
+            'total_visit' => $totalVisitRute,
+            'total_visit_all' => $totalVisitRute + $totalVisitNonRute,
+            'total_ec' => $totalEcRute,
+            'total_ec_all' => $totalEcRute + $totalEcNonRute,
+            'total_order_val' => $totalOrderValRute,
+            'total_order_val_all' => $totalOrderValAll,
+            'total_order_qty' => $totalOrderQtyRute,
+            'total_order_qty_all' => $totalOrderQtyAll,
+            'strike_rate' => $totalVisitRute > 0 ? round(($totalEcRute / $totalVisitRute) * 100, 1) : 0,
+        ];
+
+        $this->showVisitDetailModal = true;
+    }
+
+    /**
+     * Tutup modal rincian riwayat kunjungan.
+     */
+    public function closeVisitDetailModal()
+    {
+        $this->showVisitDetailModal = false;
+        $this->visitModalHeader = null;
+        $this->visitModalSummary = null;
+        $this->visitModalHistory = [];
     }
 
     // ---------------------------------------------------------
