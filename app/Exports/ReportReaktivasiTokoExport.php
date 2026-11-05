@@ -56,6 +56,20 @@ class ReportReaktivasiTokoExport implements FromQuery, WithHeadings, WithMapping
                 DB::raw("SUM(CASE WHEN bulan >= '$monthStart' AND bulan <= '$monthEnd' THEN neto ELSE 0 END) as pencapaian_bulan_ini")
             );
 
+        $activeDistributors = DB::table('ao_list_toko')
+            ->where('bulan', '>=', $monthStart)
+            ->where('bulan', '<=', $monthEnd)
+            ->where('neto', '>', 0)
+            ->distinct()
+            ->pluck('kd_dist')
+            ->toArray();
+
+        if (empty($activeDistributors)) {
+            $query->whereRaw('1 = 0');
+        } else {
+            $query->whereIn('kd_dist', $activeDistributors);
+        }
+
         for ($i = 1; $i <= 12; $i++) {
             $m = str_pad($i, 2, '0', STR_PAD_LEFT);
             $start = "{$tahun}-{$m}-01";

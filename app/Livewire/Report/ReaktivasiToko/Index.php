@@ -114,12 +114,23 @@ class Index extends Component
         return $query;
     }
 
+    protected function getActiveDistributors(string $monthStart, string $monthEnd): array
+    {
+        return DB::table('ao_list_toko')
+            ->where('bulan', '>=', $monthStart)
+            ->where('bulan', '<=', $monthEnd)
+            ->where('neto', '>', 0)
+            ->distinct()
+            ->pluck('kd_dist')
+            ->toArray();
+    }
+
     #[Computed]
     public function hierarchy()
     {
         $userId = auth()->id();
-        return \Illuminate\Support\Facades\Cache::remember('reaktivasi_toko_hierarchy_' . $userId, 3600, function () {
-            $query = ReportReaktivasiToko::select('region', 'area', 'supervisor', 'distributor')
+        return \Illuminate\Support\Facades\Cache::remember('reaktivasi_toko_hierarchy_v2_' . $userId, 3600, function () {
+            $query = ReportReaktivasiToko::select('region', 'area', 'supervisor', 'distributor', 'kd_dist')
                 ->whereNotNull('region')
                 ->distinct();
             return $this->applyRbac($query)->get();
@@ -129,7 +140,19 @@ class Index extends Component
     #[Computed]
     public function filterOptions()
     {
-        $data = $this->hierarchy;
+        $selectedDate = Carbon::createFromDate($this->filterTahun ?: date('Y'), $this->filterBulan ?: date('m'), 1);
+        $monthStart = $selectedDate->copy()->startOfMonth()->format('Y-m-d');
+        $monthEnd = $selectedDate->copy()->endOfMonth()->format('Y-m-d');
+        $activeDistributors = $this->getActiveDistributors($monthStart, $monthEnd);
+
+        $data = $this->hierarchy();
+        if (!empty($activeDistributors)) {
+            $data = $data->whereIn('kd_dist', $activeDistributors);
+        } else {
+            $data = collect();
+        }
+
+        $regions = $data->pluck('region')->filter()->unique()->sort();
 
         if (!empty($this->filterRegion)) {
             $data = $data->where('region', $this->filterRegion);
@@ -150,7 +173,7 @@ class Index extends Component
         $distributors = $data->pluck('distributor')->filter()->unique()->sort();
 
         return [
-            'regions' => $this->hierarchy->pluck('region')->filter()->unique()->sort(),
+            'regions' => $regions,
             'areas' => $areas,
             'supervisors' => $supervisors,
             'distributors' => $distributors,
@@ -167,12 +190,20 @@ class Index extends Component
         $avgMonthStart = $selectedDate->copy()->subMonths(6)->format('Y-m-01');
         $avgMonthEnd = $selectedDate->copy()->subMonth()->endOfMonth()->format('Y-m-d');
 
+        $activeDistributors = $this->getActiveDistributors($monthStart, $monthEnd);
+
         $query = ReportReaktivasiToko::query()
             ->select(
                 'uniq_kd', 'custno',
                 DB::raw("SUM(CASE WHEN bulan >= '$avgMonthStart' AND bulan <= '$avgMonthEnd' THEN neto ELSE 0 END) / 6 as avg_6_months"),
                 DB::raw("SUM(CASE WHEN bulan >= '$monthStart' AND bulan <= '$monthEnd' THEN neto ELSE 0 END) as pencapaian_bulan_ini")
             );
+
+        if (empty($activeDistributors)) {
+            $query->whereRaw('1 = 0');
+        } else {
+            $query->whereIn('kd_dist', $activeDistributors);
+        }
 
         $query = $this->applyRbac($query);
         $query->groupBy('uniq_kd', 'custno');
@@ -287,6 +318,8 @@ class Index extends Component
         $yearStart = "{$this->filterTahun}-01-01";
         $yearEnd = "{$this->filterTahun}-12-31";
 
+        $activeDistributors = $this->getActiveDistributors($monthStart, $monthEnd);
+
         $query = ReportReaktivasiToko::query()
             ->select(
                 'uniq_kd', 'custno',
@@ -301,6 +334,12 @@ class Index extends Component
                 DB::raw("SUM(CASE WHEN bulan >= '$avgMonthStart' AND bulan <= '$avgMonthEnd' THEN neto ELSE 0 END) / 6 as avg_6_months"),
                 DB::raw("SUM(CASE WHEN bulan >= '$monthStart' AND bulan <= '$monthEnd' THEN neto ELSE 0 END) as pencapaian_bulan_ini")
             );
+
+        if (empty($activeDistributors)) {
+            $query->whereRaw('1 = 0');
+        } else {
+            $query->whereIn('kd_dist', $activeDistributors);
+        }
 
         $query = $this->applyRbac($query);
 

@@ -34,6 +34,9 @@ class Index extends Component
     public $sortColumn = 'md.region_name';
     public $sortDirection = 'asc';
 
+    // Hierarchy cache untuk filter wilayah super cepat
+    public array $filterHierarchy = [];
+
     // State Modal Filter
     public $isFilterModalOpen = false;
 
@@ -162,45 +165,81 @@ class Index extends Component
 
     public function mount()
     {
+        $this->loadFilterHierarchy();
+
         $user = auth()->user();
         if (!$user->hasRole('admin')) {
-            // Auto-set Region
-            $regionQuery = DB::table('master_distributors')->select('region_code')->whereNotNull('region_code')->distinct();
-            $regionQuery = $this->applyHierarchyAccess($regionQuery, 'distributor_code');
-            $regions = $regionQuery->get();
+            // Auto-set Region jika user hanya punya 1 region
+            $regions = collect($this->filterHierarchy)->pluck('region_code')->filter()->unique();
             if ($regions->count() === 1) {
-                $this->filterRegion = $regions->first()->region_code;
+                $this->filterRegion = $regions->first();
                 
-                // Auto-set Area
-                $areaQuery = DB::table('master_distributors')->select('area_code')->whereNotNull('area_code')->where('region_code', $this->filterRegion)->distinct();
-                $areaQuery = $this->applyHierarchyAccess($areaQuery, 'distributor_code');
-                $areas = $areaQuery->get();
+                // Auto-set Area jika hanya punya 1 area
+                $areas = collect($this->filterHierarchy)->where('region_code', $this->filterRegion)->pluck('area_code')->filter()->unique();
                 if ($areas->count() === 1) {
-                    $this->filterArea = $areas->first()->area_code;
+                    $this->filterArea = $areas->first();
                     
-                    // Auto-set Supervisor
-                    $spvQuery = DB::table('master_distributors as md')
-                        ->join('team_elite_code_mappings as t', 't.siso_code', '=', 'md.supervisor_code')
-                        ->select('t.team_elite_code as supervisor_code')
-                        ->where('md.area_code', $this->filterArea)
-                        ->distinct();
-                    $spvQuery = $this->applyHierarchyAccess($spvQuery, 'md.distributor_code');
-                    $spvs = $spvQuery->get();
+                    // Auto-set Supervisor jika hanya punya 1 spv
+                    $spvs = collect($this->filterHierarchy)->where('area_code', $this->filterArea)->pluck('supervisor_code')->filter()->unique();
                     if ($spvs->count() === 1) {
-                        $this->filterSupervisor = $spvs->first()->supervisor_code;
+                        $this->filterSupervisor = $spvs->first();
                     }
                 }
             }
         }
     }
 
+    /**
+     * Memuat daftar hierarki wilayah distributor sekali saja untuk cache in-memory.
+     */
+    public function loadFilterHierarchy(): void
+    {
+        $distQuery = DB::table('master_distributors as md')
+            ->leftJoin('team_elite_code_mappings as t', 't.siso_code', '=', 'md.supervisor_code')
+            ->leftJoin('fsalesman as f', 'f.SLSNO', '=', 't.team_elite_code')
+            ->select([
+                'md.region_code',
+                'md.region_name',
+                'md.area_code',
+                'md.area_name',
+                't.team_elite_code as supervisor_code',
+                'f.SLSNAME as supervisor_name',
+                'md.distributor_code',
+                'md.distributor_name',
+            ])
+            ->whereNotNull('md.region_code')
+            ->distinct();
+
+        $distQuery = $this->applyHierarchyAccess($distQuery, 'md.distributor_code');
+        $this->filterHierarchy = $distQuery->orderBy('md.region_name')
+            ->orderBy('md.area_name')
+            ->orderBy('f.SLSNAME')
+            ->orderBy('md.distributor_name')
+            ->get()
+            ->map(fn($item) => (array)$item)
+            ->toArray();
+    }
+
     public function updatingSearch() { $this->resetPage(); }
-    public function updatingFilterRegion() { $this->reset(['filterArea', 'filterSupervisor', 'filterDistributor']); $this->resetPage(); }
-    public function updatingFilterArea() { $this->reset(['filterSupervisor', 'filterDistributor']); $this->resetPage(); }
-    public function updatingFilterSupervisor() { $this->reset('filterDistributor'); $this->resetPage(); }
+    public function updatingFilterRegion() { $this->reset(['filterArea', 'filterSupervisor']); $this->resetPage(); }
+    public function updatingFilterArea() { $this->reset('filterSupervisor'); $this->resetPage(); }
+    public function updatingFilterSupervisor() { $this->resetPage(); }
     public function updatingFilterDistributor() { $this->resetPage(); }
     public function updatingFilterPareto() { $this->resetPage(); }
     public function updatingFilterPilar() { $this->resetPage(); }
+
+    /**
+     * Menerapkan filter wilayah secara langsung dari modal dalam 1 request tunggal.
+     */
+    public function applyTerritoryFilter($region = '', $area = '', $supervisor = '', $distributor = '')
+    {
+        $this->filterRegion = $region ?: '';
+        $this->filterArea = $area ?: '';
+        $this->filterSupervisor = $supervisor ?: '';
+        $this->filterDistributor = $distributor ?: '';
+        $this->isFilterModalOpen = false;
+        $this->resetPage();
+    }
 
     public function sortBy($column)
     {
@@ -219,23 +258,6 @@ class Index extends Component
             ->leftJoin('master_distributors as md', 'md.distributor_code', '=', 'l.distributor_code')
             ->leftJoin('team_elite_code_mappings as t', 't.siso_code', '=', 'md.supervisor_code')
             ->leftJoin('fsalesman as f', 'f.SLSNO', '=', 't.team_elite_code')
-            ->leftJoin(DB::raw('(
-                select distributor_code, custno
-                from (
-                    select 
-                        distributor_code,
-                        custno,
-                        row_number() over (
-                            partition by distributor_code, custno
-                            order by custno
-                        ) as rn
-                    from jks_team_elite
-                ) x
-                where rn = 1
-            ) as j'), function($join) {
-                $join->on('l.distributor_code', '=', 'j.distributor_code')
-                     ->on('l.customer_code_prc', '=', 'j.custno');
-            })
             ->select(
                 'md.region_code',
                 'md.region_name',
@@ -264,7 +286,7 @@ class Index extends Component
                 'l.channel_outlet',
                 'l.classification_outlet',
                 'l.segment_outlet',
-                DB::raw("case when j.custno is null then 'N' else 'Y' end as on_plan"),
+                DB::raw("case when exists (select 1 from jks_team_elite as j where j.distributor_code = l.distributor_code and j.custno = l.customer_code_prc) then 'Y' else 'N' end as on_plan"),
                 DB::raw("case when l.pilar in ('1. RWO','2. PNR','3. NGVO') then 'PARETO' else 'NON PARETO' end as pareto")
             );
 
@@ -321,7 +343,7 @@ class Index extends Component
         if ($this->sortColumn) {
             // Handle virtual columns / raw queries sorting appropriately if needed
             if ($this->sortColumn === 'on_plan') {
-                $query->orderBy(DB::raw("case when j.custno is null then 'N' else 'Y' end"), $this->sortDirection);
+                $query->orderBy(DB::raw("case when exists (select 1 from jks_team_elite as j where j.distributor_code = l.distributor_code and j.custno = l.customer_code_prc) then 'Y' else 'N' end"), $this->sortDirection);
             } elseif ($this->sortColumn === 'pareto') {
                 $query->orderBy(DB::raw("case when l.pilar in ('1. RWO','2. PNR','3. NGVO') then 'PARETO' else 'NON PARETO' end"), $this->sortDirection);
             } else {
@@ -347,89 +369,78 @@ class Index extends Component
 
     public function render()
     {
-        // Region options
-        $regionQuery = DB::table('master_distributors')->select('region_code', 'region_name')->whereNotNull('region_code')->distinct();
-        $regionQuery = $this->applyHierarchyAccess($regionQuery, 'distributor_code');
-        $regions = $regionQuery->orderBy('region_name')->get();
+        // 1. Derivasi data filter dari in-memory $filterHierarchy (0 ms, tanpa query database lagi)
+        $hierarchyCol = collect($this->filterHierarchy);
+        $regions = $hierarchyCol->unique('region_code')->filter(fn($i) => !empty($i['region_code']))->map(fn($i) => (object)[
+            'region_code' => $i['region_code'],
+            'region_name' => $i['region_name']
+        ])->values();
         
-        // Area options
         $areas = [];
         if ($this->filterRegion) {
-            $areaQuery = DB::table('master_distributors')->select('area_code', 'area_name')->where('region_code', $this->filterRegion)->whereNotNull('area_code')->distinct();
-            $areaQuery = $this->applyHierarchyAccess($areaQuery, 'distributor_code');
-            $areas = $areaQuery->orderBy('area_name')->get();
+            $areas = $hierarchyCol->where('region_code', $this->filterRegion)->unique('area_code')->filter(fn($i) => !empty($i['area_code']))->map(fn($i) => (object)[
+                'area_code' => $i['area_code'],
+                'area_name' => $i['area_name']
+            ])->values();
         }
-
-        // Supervisor options
+        
         $supervisors = [];
         if ($this->filterArea) {
-            $spvQuery = DB::table('master_distributors as md')
-                ->join('team_elite_code_mappings as t', 't.siso_code', '=', 'md.supervisor_code')
-                ->join('fsalesman as f', 'f.SLSNO', '=', 't.team_elite_code')
-                ->select('t.team_elite_code as supervisor_code', 'f.SLSNAME as supervisor_name')
-                ->where('md.area_code', $this->filterArea)
-                ->distinct();
-            $spvQuery = $this->applyHierarchyAccess($spvQuery, 'md.distributor_code');
-            $supervisors = $spvQuery->orderBy('supervisor_name')->get();
-        }
-
-        // Distributor options
-        $distributors = [];
-        if ($this->filterSupervisor) {
-            $distQuery = DB::table('master_distributors as md')
-                ->join('team_elite_code_mappings as t', 't.siso_code', '=', 'md.supervisor_code')
-                ->select('md.distributor_code', 'md.distributor_name')
-                ->where('t.team_elite_code', $this->filterSupervisor)
-                ->distinct();
-            $distQuery = $this->applyHierarchyAccess($distQuery, 'md.distributor_code');
-            $distributors = $distQuery->orderBy('distributor_name')->get();
-        } elseif ($this->filterArea) {
-            $distQuery = DB::table('master_distributors as md')
-                ->select('md.distributor_code', 'md.distributor_name')
-                ->where('md.area_code', $this->filterArea)
-                ->distinct();
-            $distQuery = $this->applyHierarchyAccess($distQuery, 'md.distributor_code');
-            $distributors = $distQuery->orderBy('distributor_name')->get();
-        } elseif ($this->filterRegion) {
-            $distQuery = DB::table('master_distributors as md')
-                ->select('md.distributor_code', 'md.distributor_name')
-                ->where('md.region_code', $this->filterRegion)
-                ->distinct();
-            $distQuery = $this->applyHierarchyAccess($distQuery, 'md.distributor_code');
-            $distributors = $distQuery->orderBy('distributor_name')->get();
-        }
-
-        $data = $this->getBaseQuery()->paginate(100);
-
-        // --- KPI Cards Calculation ---
-        $kpiQuery = $this->getBaseQuery(true, true);
-        $kpiQuery->orders = null; // Reset ordering for subquery execution
-        
-        $kpi = DB::table(DB::raw("({$kpiQuery->toSql()}) as sub"))
-            ->mergeBindings($kpiQuery)
-            ->selectRaw("
-                COUNT(customer_code) as total_customer,
-                SUM(CASE WHEN pareto = 'PARETO' THEN 1 ELSE 0 END) as total_pareto,
-                SUM(CASE WHEN pilar = '1. RWO' THEN 1 ELSE 0 END) as total_rwo,
-                SUM(CASE WHEN pilar = '2. PNR' THEN 1 ELSE 0 END) as total_pnr,
-                SUM(CASE WHEN pilar = '3. NGVO' THEN 1 ELSE 0 END) as total_ngvo,
-                SUM(CASE WHEN pilar = '4. GRO' THEN 1 ELSE 0 END) as total_gro
-            ")->first();
-
-        // --- Query Distributor Aktif untuk Form Tambah Toko ---
-        $distributorsQuery = DB::table('master_distributors')
-            ->select('distributor_code', 'distributor_name')
-            ->where('is_active', true);
-        $distributorsQuery = $this->applyHierarchyAccess($distributorsQuery, 'distributor_code');
-        
-        if (!empty($this->searchDistributor)) {
-            $distributorsQuery->where(function($q) {
-                $q->where('distributor_code', 'ilike', "%{$this->searchDistributor}%")
-                  ->orWhere('distributor_name', 'ilike', "%{$this->searchDistributor}%");
-            });
+            $supervisors = $hierarchyCol->where('area_code', $this->filterArea)->unique('supervisor_code')->filter(fn($i) => !empty($i['supervisor_code']))->map(fn($i) => (object)[
+                'supervisor_code' => $i['supervisor_code'],
+                'supervisor_name' => $i['supervisor_name']
+            ])->values();
         }
         
-        $createDistributors = $distributorsQuery->orderBy('distributor_name')->get();
+        // Distributor: Bebas dicari kapan saja (tidak di-chain dengan wilayah di atasnya)
+        $distributors = $hierarchyCol->unique('distributor_code')
+            ->filter(fn($i) => !empty($i['distributor_code']))
+            ->map(fn($i) => (object)[
+                'distributor_code' => $i['distributor_code'],
+                'distributor_name' => $i['distributor_name']
+            ])
+            ->sortBy('distributor_name')
+            ->values();
+
+        // 2. Query Data Tabel Utama (Teroptimasi menggunakan EXISTS, ~21ms)
+        $baseQuery = $this->getBaseQuery();
+        $data = (clone $baseQuery)->paginate(100);
+
+        // 3. Kalkulasi KPI Teroptimasi (Tanpa derived table subquery, ~27ms)
+        $kpiQuery = (clone $baseQuery);
+        $kpiQuery->orders = null;
+        $kpiQuery->columns = null;
+        
+        $kpi = $kpiQuery->selectRaw("
+            COUNT(l.id) as total_customer,
+            SUM(CASE WHEN l.pilar in ('1. RWO','2. PNR','3. NGVO') THEN 1 ELSE 0 END) as total_pareto,
+            SUM(CASE WHEN l.pilar = '1. RWO' THEN 1 ELSE 0 END) as total_rwo,
+            SUM(CASE WHEN l.pilar = '2. PNR' THEN 1 ELSE 0 END) as total_pnr,
+            SUM(CASE WHEN l.pilar = '3. NGVO' THEN 1 ELSE 0 END) as total_ngvo,
+            SUM(CASE WHEN l.pilar = '4. GRO' THEN 1 ELSE 0 END) as total_gro
+        ")->first();
+
+        // 4. Lazy-load distributor aktif HANYA jika modal create/edit sedang terbuka
+        $createDistributors = collect();
+        if ($this->isCreateModalOpen || $this->isEditModalOpen) {
+            $distributorsQuery = DB::table('master_distributors')
+                ->select('distributor_code', 'distributor_name')
+                ->where('is_active', true);
+            $distributorsQuery = $this->applyHierarchyAccess($distributorsQuery, 'distributor_code');
+            
+            if (!empty($this->searchDistributor)) {
+                $distributorsQuery->where(function($q) {
+                    $q->where('distributor_code', 'ilike', "%{$this->searchDistributor}%")
+                      ->orWhere('distributor_name', 'ilike', "%{$this->searchDistributor}%");
+                });
+            }
+            $createDistributors = $distributorsQuery->orderBy('distributor_name')->get();
+        }
+
+        $selectedRegionName = $regions->firstWhere('region_code', $this->filterRegion)->region_name ?? $this->filterRegion;
+        $selectedAreaName = !empty($this->filterArea) ? ($areas->firstWhere('area_code', $this->filterArea)->area_name ?? $this->filterArea) : null;
+        $selectedSupervisorName = !empty($this->filterSupervisor) ? ($supervisors->firstWhere('supervisor_code', $this->filterSupervisor)->supervisor_name ?? $this->filterSupervisor) : null;
+        $selectedDistributorName = !empty($this->filterDistributor) ? ($distributors->firstWhere('distributor_code', $this->filterDistributor)->distributor_name ?? $this->filterDistributor) : null;
 
         return view('livewire.call-plan.jks-team-elite.master-customer.index', [
             'data' => $data,
@@ -439,6 +450,10 @@ class Index extends Component
             'distributors' => $distributors,
             'createDistributors' => $createDistributors,
             'kpi' => $kpi,
+            'selectedRegionName' => $selectedRegionName,
+            'selectedAreaName' => $selectedAreaName,
+            'selectedSupervisorName' => $selectedSupervisorName,
+            'selectedDistributorName' => $selectedDistributorName,
         ])->layout('layouts.app');
     }
 
@@ -547,7 +562,14 @@ class Index extends Component
     public function openExportModal()
     {
         $this->authorizeAction('can_export');
-        $this->exportTotalRows = $this->getBaseQuery()->count();
+        
+        // Cek apakah region sudah dipilih (maksimal 1 region)
+        if (!empty($this->filterRegion)) {
+            $this->exportTotalRows = $this->getBaseQuery()->count();
+        } else {
+            $this->exportTotalRows = 0;
+        }
+        
         $this->isExportModalOpen = true;
     }
 
@@ -559,9 +581,18 @@ class Index extends Component
     public function export()
     {
         $this->authorizeAction('can_export');
+
+        // Validasi pembatasan maksimal 1 region
+        if (empty($this->filterRegion)) {
+            $this->dispatch('showAlert', [
+                'type' => 'warning',
+                'message' => 'Export data dibatasi maksimal level 1 Region. Silakan pilih Region terlebih dahulu pada filter.'
+            ]);
+            return;
+        }
         
-        \App\Helpers\ActivityLogger::log('Export Master Customer JKS', "Mengekspor data Master Customer JKS Team Elite sejumlah {$this->exportTotalRows} baris.");
-        $filename = 'Master_Customer_JKS_Team_Elite_' . date('Ymd_His') . '.xlsx';
+        \App\Helpers\ActivityLogger::log('Export Master Customer JKS', "Mengekspor data Master Customer JKS Team Elite Region {$this->filterRegion} sejumlah {$this->exportTotalRows} baris.");
+        $filename = 'Master_Customer_JKS_Team_Elite_' . $this->filterRegion . '_' . date('Ymd_His') . '.xlsx';
         
         // Tutup modal export
         $this->closeExportModal();

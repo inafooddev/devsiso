@@ -109,33 +109,88 @@
     {{-- Main Card (Tabel) yang mengambil sisa ruang flex --}}
     <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
         
-        {{-- Header Card & Actions --}}
-        <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-200/30">
-            <div class="shrink-0 w-full sm:w-auto">
-                <h2 class="text-base md:text-lg font-bold">Data Master Customer</h2>
-                <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Daftar customer yang tersedia</p>
-            </div>
-            
-            {{-- Menggunakan flex-wrap agar barisan aksi jatuh secara responsif --}}
-            <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 md:gap-3 w-full sm:w-auto">
-                {{-- Search --}}
-                <div class="relative w-full sm:w-64">
-                    <x-heroicon-s-magnifying-glass class="w-4 h-4 absolute left-3 top-2.5 text-base-content/50" />
-                    <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari Kode/Nama/Alamat/Pilar..." 
-                           class="input input-sm input-bordered w-full pl-9 focus:input-primary">
-                </div>
-                
-                {{-- Filter --}}
-                <x-ui.action-button type="filter" wire:click="openFilterModal" class="relative shrink-0">
-                    @if($filterRegion || $filterArea || $filterSupervisor || $filterDistributor || $filterPareto || $filterPilar)
-                        <div class="badge badge-primary badge-xs absolute -top-1 -right-1"></div>
-                    @endif
-                </x-ui.action-button>
+        {{-- Header Card & Actions Toolbar (Standar Filter UI Component) --}}
+        <x-ui.filter-toolbar>
+            {{-- 1. Kapsul Filter Hierarki Wilayah & Pilar --}}
+            <x-ui.filter-breadcrumb>
+                {{-- Region --}}
+                <x-ui.filter-select 
+                    wire:model.live="filterRegion" 
+                    :options="$regions" 
+                    valueField="region_code" 
+                    labelField="region_name" 
+                    placeholder="Semua Region" 
+                    icon="globe" 
+                    width="w-28 sm:w-36"
+                    :disabled="count($regions) <= 1" />
 
-                {{-- Aksi --}}
-                <div class="flex items-center justify-between sm:justify-end gap-1 md:gap-2 shrink-0">
-                    <div class="w-[1px] h-6 bg-base-300 hidden sm:block mx-1"></div>
+                {{-- Area --}}
+                <x-ui.filter-select 
+                    wire:model.live="filterArea" 
+                    :options="$areas" 
+                    valueField="area_code" 
+                    labelField="area_name" 
+                    placeholder="Semua Area" 
+                    icon="map-pin" 
+                    width="w-28 sm:w-36"
+                    :disabled="empty($filterRegion) || count($areas) <= 1" />
 
+                {{-- Supervisor (Searchable Popover) --}}
+                <x-ui.filter-searchable 
+                    wire:key="spv-filter-capsule-{{ $filterRegion }}-{{ $filterArea }}"
+                    wire:model.live="filterSupervisor" 
+                    :options="$supervisors" 
+                    valueField="supervisor_code" 
+                    labelField="supervisor_name" 
+                    placeholder="Semua SPV" 
+                    searchPlaceholder="Cari nama SPV..." 
+                    icon="user" 
+                    width="w-32 sm:w-40"
+                    popoverWidth="w-64 sm:w-72"
+                    allowAll="true"
+                    allLabel="Semua SPV"
+                    :disabled="empty($filterArea) || count($supervisors) <= 1" />
+
+                {{-- Distributor (Searchable Popover - Bebas dicari langsung tanpa chain) --}}
+                <x-ui.filter-searchable 
+                    wire:key="dist-filter-capsule"
+                    wire:model.live="filterDistributor" 
+                    :options="$distributors" 
+                    valueField="distributor_code" 
+                    labelField="distributor_name" 
+                    placeholder="Semua Distributor" 
+                    searchPlaceholder="Cari nama / kode distributor..." 
+                    icon="distributor" 
+                    width="w-36 sm:w-48"
+                    popoverWidth="w-72 sm:w-80"
+                    allowAll="true"
+                    allLabel="Semua Distributor"
+                    :disabled="count($distributors) <= 1" />
+
+                {{-- Pilar --}}
+                <x-ui.filter-select 
+                    wire:model.live="filterPilar" 
+                    :options="['1. RWO' => '1. RWO', '2. PNR' => '2. PNR', '3. NGVO' => '3. NGVO', '4. GRO' => '4. GRO']" 
+                    placeholder="Semua Pilar" 
+                    icon="tag" 
+                    width="w-28 sm:w-32" />
+            </x-ui.filter-breadcrumb>
+
+            {{-- 2. Search Box Input --}}
+            <x-ui.search-input 
+                wire:model.live.debounce.300ms="search" 
+                placeholder="Cari Kode/Nama/Alamat/Pilar..." />
+
+            {{-- 3. Actions Slot (Reset, Tambah, Import, Export, Sync) --}}
+            <x-slot name="actions">
+                @php
+                    $hasActiveFilters = !empty($search) || !empty($filterRegion) || !empty($filterArea) || !empty($filterSupervisor) || !empty($filterDistributor) || !empty($filterPilar) || !empty($filterPareto);
+                @endphp
+                <x-ui.filter-actions 
+                    :applyAction="false" 
+                    resetAction="resetFilter" 
+                    :showReset="$hasActiveFilters">
+                    
                     @canImport('call-plan.jks-team-elite.master-customer')
                     <x-ui.action-button type="import" wire:click="openImportModal" />
                     @endcanImport
@@ -143,8 +198,6 @@
                     @canAdd('call-plan.jks-team-elite.master-customer')
                     <x-ui.action-button type="add" wire:click="openCreateModal" />
                     @endcanAdd
-
-                    <div class="w-[1px] h-6 bg-base-300 hidden sm:block mx-1"></div>
 
                     @canExport('call-plan.jks-team-elite.master-customer')
                     <x-ui.action-button type="export" wire:click="openExportModal" wire:loading.attr="disabled" wire:target="openExportModal">
@@ -155,14 +208,14 @@
                     @endcanExport
 
                     @canImport('call-plan.jks-team-elite.master-customer')
-                    <button type="button" wire:click="openSyncModal" class="btn btn-sm btn-outline btn-info gap-2 hidden sm:inline-flex rounded-lg border-info/30 hover:border-info">
+                    <button type="button" wire:click="openSyncModal" class="btn btn-sm btn-outline btn-info gap-1.5 hidden sm:inline-flex rounded-xl border-info/30 hover:border-info text-xs">
                         <x-heroicon-s-map class="w-4 h-4" />
-                        Sync Wilayah
+                        <span class="hidden md:inline">Sync Wilayah</span>
                     </button>
                     @endcanImport
-                </div>
-            </div>
-        </div>
+                </x-ui.filter-actions>
+            </x-slot>
+        </x-ui.filter-toolbar>
 
         {{-- Body Card (Tabel Scrollable area) --}}
         <div class="flex-1 overflow-auto bg-base-100 w-full relative">
@@ -343,7 +396,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="14" class="text-center py-8 text-base-content/50">Tidak ada data ditemukan.</td>
+                        <td colspan="18" class="text-center py-8 text-base-content/50">Tidak ada data ditemukan.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -357,56 +410,6 @@
             </div>
         @endif
     </div>
-
-    <!-- MODAL FILTER -->
-    <x-ui.modal wire:key="modal-filter-key" id="modal-filter" title="Filter Data" icon="funnel" :open="$isFilterModalOpen" wire:close="closeFilterModal">
-        <div class="space-y-4">
-            <div class="form-control w-full">
-                <label class="label"><span class="label-text font-semibold">Region</span></label>
-                <select wire:model.live="filterRegion" class="select select-sm select-bordered w-full" @if(count($regions) <= 1) disabled @endif>
-                    @if(count($regions) > 1) <option value="">-- Semua Region --</option> @endif
-                    @foreach($regions as $r) 
-                        <option value="{{ $r->region_code }}">{{ $r->region_name }}</option> 
-                    @endforeach
-                </select>
-            </div>
-            
-            <div class="form-control w-full">
-                <label class="label"><span class="label-text font-semibold">Area</span></label>
-                <select wire:model.live="filterArea" class="select select-sm select-bordered w-full" @if(!$filterRegion || count($areas) <= 1) disabled @endif>
-                    @if(count($areas) > 1 || count($areas) == 0) <option value="">-- Semua Area --</option> @endif
-                    @foreach($areas as $a) 
-                        <option value="{{ $a->area_code }}">{{ $a->area_name }}</option> 
-                    @endforeach
-                </select>
-            </div>
-            
-            <div class="form-control w-full">
-                <label class="label"><span class="label-text font-semibold">Supervisor</span></label>
-                <select wire:model.live="filterSupervisor" class="select select-sm select-bordered w-full" @if(!$filterArea || count($supervisors) <= 1) disabled @endif>
-                    @if(count($supervisors) > 1 || count($supervisors) == 0) <option value="">-- Semua Supervisor --</option> @endif
-                    @foreach($supervisors as $s) 
-                        <option value="{{ $s->supervisor_code }}">{{ $s->supervisor_name }}</option> 
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="form-control w-full">
-                <label class="label"><span class="label-text font-semibold">Distributor</span></label>
-                <select wire:model.live="filterDistributor" class="select select-sm select-bordered w-full" @if(!$filterRegion || count($distributors) <= 1) disabled @endif>
-                    @if(count($distributors) > 1 || count($distributors) == 0) <option value="">-- Semua Distributor --</option> @endif
-                    @foreach($distributors as $d) 
-                        <option value="{{ $d->distributor_code }}">{{ $d->distributor_name }}</option> 
-                    @endforeach
-                </select>
-            </div>
-
-        </div>
-        <x-slot:footer>
-            <x-ui.button variant="error" outline wire:click="resetFilter">Reset</x-ui.button>
-            <x-ui.button variant="primary" wire:click="applyFilter">Terapkan</x-ui.button>
-        </x-slot:footer>
-    </x-ui.modal>
 
     <!-- MODAL TAMBAH CUSTOMER BARU -->
     <x-ui.modal wire:key="modal-create-key" id="modal-create" title="Tambah Customer Baru" icon="plus-circle" size="lg" :open="$isCreateModalOpen" wire:close="$set('isCreateModalOpen', false)">
@@ -765,71 +768,122 @@
     <!-- MODAL EXPORT CUSTOMER -->
     <x-ui.modal wire:key="modal-export-key" id="modal-export" title="Konfirmasi Export Data" icon="arrow-up-tray" :open="$isExportModalOpen" wire:close="closeExportModal">
         
-        <div class="alert alert-warning shadow-sm text-sm p-3 border border-warning/20 flex flex-col items-start gap-2 mb-4">
-            <div class="flex items-start gap-2">
-                <x-heroicon-o-exclamation-triangle class="w-5 h-5 shrink-0" />
-                <span>
-                    Anda akan mengekspor <b>{{ number_format($this->getBaseQuery()->count(), 0, ',', '.') }} baris data</b> ke dalam format Excel. 
-                    Semakin banyak data, waktu unduh mungkin akan sedikit lebih lama.
-                </span>
-            </div>
-        </div>
+        @if(empty($filterRegion))
+            {{-- KONDISI 1: Belum ada Region yang dipilih (Melebihi batas maksimal 1 Region) --}}
+            <div class="space-y-4">
+                <div class="alert alert-warning shadow-sm text-sm p-4 border border-warning/30 flex flex-col items-start gap-3">
+                    <div class="flex items-start gap-3">
+                        <x-heroicon-o-exclamation-triangle class="w-6 h-6 text-warning shrink-0 mt-0.5" />
+                        <div class="space-y-1">
+                            <h4 class="font-bold text-base text-base-content">Pilih Region Terlebih Dahulu</h4>
+                            <p class="text-base-content/80 text-xs leading-relaxed">
+                                Unduh data dibatasi <b>maksimal level 1 Region</b> per file (tidak dapat mengunduh 2 region atau semua wilayah sekaligus) untuk menjaga performa dan kestabilan server.
+                            </p>
+                        </div>
+                    </div>
+                </div>
 
-        <div class="form-control w-full mb-3">
-            <label class="label"><span class="label-text font-semibold">Filter Wilayah (Opsional)</span></label>
-            <div class="grid grid-cols-2 gap-2">
-                <select wire:model.live="filterRegion" class="select select-bordered select-sm w-full focus:select-primary">
-                    <option value="">Semua Region</option>
-                    @foreach($regions as $r) <option value="{{ $r->region_code }}">{{ $r->region_name }}</option> @endforeach
-                </select>
-                <select wire:model.live="filterArea" class="select select-bordered select-sm w-full focus:select-primary">
-                    <option value="">Semua Area</option>
-                    @foreach($areas as $a) <option value="{{ $a->area_code }}">{{ $a->area_name }}</option> @endforeach
-                </select>
+                <div class="bg-base-200/60 rounded-xl p-3.5 border border-base-200 text-xs space-y-2">
+                    <div class="font-semibold text-base-content flex items-center gap-1.5">
+                        <x-heroicon-o-arrow-path class="w-4 h-4 text-primary" />
+                        Panduan Melakukan Export:
+                    </div>
+                    <ol class="list-decimal list-inside space-y-1.5 text-base-content/70 ml-1">
+                        <li>Tutup dialog ini dengan menekan tombol <b>Tutup</b>.</li>
+                        <li>Pilih salah satu <b>Region</b> pada toolbar filter di atas tabel.</li>
+                        <li>(Opsional) Anda dapat memfilter Area, SPV, Distributor, atau Pilar jika ingin data lebih spesifik.</li>
+                        <li>Klik kembali tombol <b>Export</b>.</li>
+                    </ol>
+                </div>
             </div>
-        </div>
-        
-        <div class="form-control w-full mb-3">
-            <label class="label"><span class="label-text font-semibold">Filter Pengguna (Opsional)</span></label>
-            <div class="grid grid-cols-2 gap-2">
-                <select wire:model.live="filterSupervisor" class="select select-bordered select-sm w-full focus:select-primary">
-                    <option value="">Semua SPV/DSR</option>
-                    @foreach($supervisors as $s) <option value="{{ $s->supervisor_code }}">{{ $s->supervisor_name ?? $s->supervisor_code }}</option> @endforeach
-                </select>
-                <select wire:model.live="filterDistributor" class="select select-bordered select-sm w-full focus:select-primary">
-                    <option value="">Semua Distributor</option>
-                    @foreach($distributors as $d) <option value="{{ $d->distributor_code }}">{{ $d->distributor_name }}</option> @endforeach
-                </select>
-            </div>
-        </div>
 
-        <div class="form-control w-full mb-3">
-            <label class="label"><span class="label-text font-semibold">Kategori Toko (Opsional)</span></label>
-            <div class="grid grid-cols-2 gap-2">
-                <select wire:model.live="filterPareto" class="select select-bordered select-sm w-full focus:select-primary">
-                    <option value="">Semua Pareto</option>
-                    <option value="PARETO">PARETO</option>
-                    <option value="NON PARETO">NON PARETO</option>
-                </select>
-                <select wire:model.live="filterPilar" class="select select-bordered select-sm w-full focus:select-primary">
-                    <option value="">Semua Pilar</option>
-                    <option value="1. RWO">1. RWO</option>
-                    <option value="2. PNR">2. PNR</option>
-                    <option value="3. NGVO">3. NGVO</option>
-                    <option value="4. GRO">4. GRO</option>
-                </select>
-            </div>
-        </div>
+            <x-slot:footer>
+                <x-ui.button type="button" variant="neutral" outline wire:click="closeExportModal">Tutup</x-ui.button>
+                <button type="button" class="btn btn-disabled btn-sm opacity-50 cursor-not-allowed">
+                    <x-heroicon-o-lock-closed class="w-4 h-4" />
+                    Pilih Region Dahulu
+                </button>
+            </x-slot:footer>
+        @else
+            {{-- KONDISI 2: Region sudah dipilih (Maksimal 1 Region terpenuhi) --}}
+            <div class="space-y-4">
+                <div class="alert alert-info shadow-sm text-xs p-3 border border-info/20 flex items-start gap-2.5">
+                    <x-heroicon-o-information-circle class="w-5 h-5 text-info shrink-0" />
+                    <span class="text-base-content/80 leading-relaxed">
+                        Data yang akan diekspor mengikuti filter yang sedang aktif pada tabel (maksimal level 1 Region).
+                    </span>
+                </div>
 
-        <x-slot:footer>
-            <x-ui.button type="button" variant="neutral" outline wire:click="closeExportModal">Batal</x-ui.button>
-            <x-ui.button type="button" variant="primary" icon="arrow-down-tray" wire:click="export" wire:loading.attr="disabled" wire:target="export">
-                <span wire:loading.remove wire:target="export">Mulai Export ({{ number_format($this->getBaseQuery()->count(), 0, ',', '.') }})</span>
-                <span wire:loading wire:target="export" class="flex items-center gap-1">
-                    <span class="loading loading-spinner loading-xs"></span> Mengunduh...
-                </span>
-            </x-ui.button>
-        </x-slot:footer>
+                {{-- Ringkasan Filter Aktif --}}
+                <div class="bg-base-200/50 rounded-xl p-3.5 border border-base-200 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-base-content/60">Filter Yang Digunakan</span>
+                        <span class="badge badge-primary badge-sm font-semibold">1 Region Terpilih</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-base-100 p-2 rounded-lg border border-base-200">
+                            <span class="text-base-content/50 block text-[10px] uppercase font-bold mb-0.5">Region</span>
+                            <span class="font-bold text-primary truncate block" title="{{ $selectedRegionName ?? $filterRegion }}">
+                                {{ $selectedRegionName ?? $filterRegion }}
+                            </span>
+                        </div>
+                        <div class="bg-base-100 p-2 rounded-lg border border-base-200">
+                            <span class="text-base-content/50 block text-[10px] uppercase font-bold mb-0.5">Area</span>
+                            <span class="font-semibold text-base-content truncate block" title="{{ !empty($filterArea) ? ($selectedAreaName ?? $filterArea) : 'Semua Area' }}">
+                                {{ !empty($filterArea) ? ($selectedAreaName ?? $filterArea) : 'Semua Area' }}
+                            </span>
+                        </div>
+                        <div class="bg-base-100 p-2 rounded-lg border border-base-200">
+                            <span class="text-base-content/50 block text-[10px] uppercase font-bold mb-0.5">SPV / DSR</span>
+                            <span class="font-semibold text-base-content truncate block" title="{{ !empty($filterSupervisor) ? ($selectedSupervisorName ?? $filterSupervisor) : 'Semua SPV' }}">
+                                {{ !empty($filterSupervisor) ? ($selectedSupervisorName ?? $filterSupervisor) : 'Semua SPV' }}
+                            </span>
+                        </div>
+                        <div class="bg-base-100 p-2 rounded-lg border border-base-200">
+                            <span class="text-base-content/50 block text-[10px] uppercase font-bold mb-0.5">Distributor</span>
+                            <span class="font-semibold text-base-content truncate block" title="{{ !empty($filterDistributor) ? ($selectedDistributorName ?? $filterDistributor) : 'Semua Distributor' }}">
+                                {{ !empty($filterDistributor) ? ($selectedDistributorName ?? $filterDistributor) : 'Semua Distributor' }}
+                            </span>
+                        </div>
+                        <div class="bg-base-100 p-2 rounded-lg border border-base-200">
+                            <span class="text-base-content/50 block text-[10px] uppercase font-bold mb-0.5">Pilar</span>
+                            <span class="font-semibold text-base-content truncate block">
+                                {{ !empty($filterPilar) ? $filterPilar : 'Semua Pilar' }}
+                            </span>
+                        </div>
+                        <div class="bg-base-100 p-2 rounded-lg border border-base-200">
+                            <span class="text-base-content/50 block text-[10px] uppercase font-bold mb-0.5">Kategori</span>
+                            <span class="font-semibold text-base-content truncate block">
+                                {{ !empty($filterPareto) ? $filterPareto : 'Semua Pareto' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    @if(!empty($search))
+                    <div class="bg-warning/10 border border-warning/20 p-2 rounded-lg text-xs flex items-center gap-2">
+                        <x-heroicon-o-magnifying-glass class="w-4 h-4 text-warning shrink-0" />
+                        <span class="text-base-content/80">Kata Kunci Pencarian: <b class="text-base-content">"{{ $search }}"</b></span>
+                    </div>
+                    @endif
+
+                    <div class="flex items-center justify-between pt-2.5 border-t border-base-300">
+                        <span class="text-xs text-base-content/70">Total Data Siap Diunduh:</span>
+                        <span class="font-bold text-sm text-primary">{{ number_format($exportTotalRows, 0, ',', '.') }} Baris</span>
+                    </div>
+                </div>
+            </div>
+
+            <x-slot:footer>
+                <x-ui.button type="button" variant="neutral" outline wire:click="closeExportModal">Batal</x-ui.button>
+                <x-ui.button type="button" variant="primary" icon="arrow-down-tray" wire:click="export" wire:loading.attr="disabled" wire:target="export">
+                    <span wire:loading.remove wire:target="export">Mulai Export ({{ number_format($exportTotalRows, 0, ',', '.') }})</span>
+                    <span wire:loading wire:target="export" class="flex items-center gap-1">
+                        <span class="loading loading-spinner loading-xs"></span> Mengunduh...
+                    </span>
+                </x-ui.button>
+            </x-slot:footer>
+        @endif
     </x-ui.modal>
 
     <!-- MODAL IMPORT CUSTOMER -->

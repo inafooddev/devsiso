@@ -2,16 +2,16 @@
 
 namespace App\Exports;
 
-use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use PhpOffice\PhpSpreadsheet\Cell\Cell;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 
-class JksMasterCustomerExport extends DefaultValueBinder implements FromCollection, WithHeadings, WithMapping, WithCustomValueBinder, ShouldAutoSize
+class JksMasterCustomerExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping, WithCustomValueBinder, WithColumnWidths
 {
     protected $query;
 
@@ -22,7 +22,8 @@ class JksMasterCustomerExport extends DefaultValueBinder implements FromCollecti
 
     public function bindValue(Cell $cell, $value)
     {
-        if (in_array($cell->getColumn(), ['O', 'P'])) {
+        // Pastikan kolom kode dan koordinat disimpan sebagai teks eksplisit agar tidak terpotong nol awal atau floating point
+        if (in_array($cell->getColumn(), ['G', 'I', 'J', 'O', 'P', 'Q'])) {
             $cell->setValueExplicit((string) $value, DataType::TYPE_STRING);
             return true;
         }
@@ -30,12 +31,47 @@ class JksMasterCustomerExport extends DefaultValueBinder implements FromCollecti
         return parent::bindValue($cell, $value);
     }
 
-    public function collection()
+    public function query()
     {
-        // Remove limit/offset if pagination was applied
-        $this->query->limit = null;
-        $this->query->offset = null;
-        return $this->query->get();
+        // Clone query dan hapus limit/offset pagination agar data 1 region ter-export penuh
+        $q = clone $this->query;
+        $q->limit = null;
+        $q->offset = null;
+        return $q;
+    }
+
+    public function columnWidths(): array
+    {
+        return [
+            'A' => 14, // Region Code
+            'B' => 20, // Region Name
+            'C' => 14, // Area Code
+            'D' => 22, // Area Name
+            'E' => 16, // Supervisor Code
+            'F' => 24, // Supervisor Name
+            'G' => 16, // Distributor Code
+            'H' => 30, // Distributor Name
+            'I' => 18, // Customer Code
+            'J' => 18, // Uniq Kd
+            'K' => 34, // Customer Name
+            'L' => 45, // Customer Address
+            'M' => 20, // Kabupaten
+            'N' => 20, // Kecamatan
+            'O' => 20, // Desa
+            'P' => 14, // Latitude
+            'Q' => 14, // Longitude
+            'R' => 16, // Channel
+            'S' => 18, // Classification
+            'T' => 16, // Segment
+            'U' => 14, // Pilar
+            'V' => 10, // Pilar Q1
+            'W' => 10, // Pilar Q2
+            'X' => 10, // Pilar Q3
+            'Y' => 10, // Pilar Q4
+            'Z' => 12, // Target
+            'AA' => 22, // Remarks SPM
+            'AB' => 10, // On Plan
+        ];
     }
 
     public function headings(): array
