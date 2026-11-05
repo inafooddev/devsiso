@@ -31,6 +31,20 @@
         </a>
     </x-ui.tab-menu>
 
+    @if(!$this->canManipulate && $appliedDistributor)
+        <div class="alert alert-warning py-2.5 px-4 rounded-xl shadow-sm border border-warning/30 bg-warning/10 text-xs flex items-center justify-between">
+            <div class="flex items-center gap-2.5 text-warning-content">
+                <x-heroicon-s-lock-closed class="w-5 h-5 text-warning shrink-0" />
+                <div>
+                    <span class="font-bold">Mode Terkunci (Read-Only):</span>
+                    <span>Anda sedang melihat JKS periode <strong>{{ \Carbon\Carbon::parse($appliedBulan . '-01')->translatedFormat('F Y') }}</strong>. 
+                    Manipulasi data (Tambah, Edit, Hapus, Tukar, Cleansing, Import) hanya diizinkan untuk periode bulan berjalan (<strong>{{ now()->translatedFormat('F Y') }}</strong>).</span>
+                </div>
+            </div>
+            <span class="badge badge-warning badge-sm font-bold uppercase tracking-wider shrink-0">Read-Only</span>
+        </div>
+    @endif
+
     @include('livewire.call-plan.jks-salesmans.partials._kpi_cards')
 
     {{-- Main Card (Tabel) yang mengambil sisa ruang flex --}}
@@ -731,6 +745,29 @@
                     <div>Jadwal dari <b>Periode Asal</b> akan disalin ke <b>Periode Tujuan</b>. Jika jadwal sudah ada di tujuan, jadwal tersebut akan tertimpa.</div>
                 </div>
 
+                @if($this->copyPendingApprovalsCount > 0)
+                    <div class="alert alert-error shadow-sm text-xs rounded-xl mb-6 border border-error/30 bg-error/10 text-error flex flex-col gap-2.5">
+                        <div class="flex items-start gap-2.5">
+                            <x-heroicon-s-x-circle class="w-5 h-5 text-error shrink-0 mt-0.5" />
+                            <div class="space-y-1">
+                                <div class="font-bold text-sm text-error">Salin Periode Tidak Dapat Diproses</div>
+                                <div class="leading-relaxed">
+                                    Terdeteksi terdapat <strong>{{ $this->copyPendingApprovalsCount }} pengajuan perubahan jadwal</strong> pada periode asal (<strong>{{ \Carbon\Carbon::parse($copySourceMonth . '-01')->translatedFormat('F Y') }}</strong>) yang masih berstatus <strong>PENDING</strong> (belum diproses).
+                                </div>
+                                <div class="leading-relaxed opacity-90 text-base-content/70">
+                                    Menyalin jadwal saat ini berisiko menduplikasi data lama yang belum diperbarui dan menimbulkan ketidaksinkronan rute di periode tujuan. Silakan selesaikan (Setujui atau Tolak) seluruh pengajuan terlebih dahulu.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-end pt-1">
+                            <a href="{{ route('call-plan.jks-approvals') }}" target="_blank" class="btn btn-xs btn-error text-white gap-1.5 font-semibold shadow-xs">
+                                <x-heroicon-s-clipboard-document-check class="w-3.5 h-3.5" />
+                                Buka Menu Persetujuan ({{ $this->copyPendingApprovalsCount }}) ↗
+                            </a>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="space-y-4">
                     <div class="grid grid-cols-2 gap-4">
                         <div class="form-control">
@@ -755,7 +792,7 @@
 
                     <div class="form-control">
                         <label class="label"><span class="label-text font-bold text-xs uppercase text-base-content/70">Distributor</span></label>
-                        <select wire:model.live="copyDistributor" class="select select-bordered select-sm w-full font-medium" {{ (!$copyRegion && !$copyArea) || $isCopying ? 'disabled' : '' }}>
+                        <select wire:model.live="copyDistributor" class="select select-bordered select-sm w-full font-medium" {{ $isCopying ? 'disabled' : '' }}>
                             <option value="">-- Semua Distributor --</option>
                             @foreach($this->copyFilterDistributors as $distributor)
                                 <option value="{{ $distributor->distributor_code }}">{{ $distributor->distributor_name }}</option>
@@ -765,7 +802,7 @@
 
                     <div class="form-control">
                         <label class="label"><span class="label-text font-bold text-xs uppercase text-base-content/70">Salesman</span></label>
-                        <select wire:model="copySalesmanCode" class="select select-bordered select-sm w-full font-medium" {{ !$copyDistributor || $isCopying ? 'disabled' : '' }}>
+                        <select wire:model.live="copySalesmanCode" class="select select-bordered select-sm w-full font-medium" {{ !$copyDistributor || $isCopying ? 'disabled' : '' }}>
                             <option value="">-- Semua Salesman --</option>
                             @foreach($this->copyFilterSalesmans as $salesman)
                                 <option value="{{ $salesman->salesman_code }}">{{ $salesman->salesman_name }} ({{ $salesman->salesman_code }})</option>
@@ -776,11 +813,11 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div class="form-control">
                             <label class="label"><span class="label-text font-bold text-xs uppercase text-base-content/70">Periode Asal</span></label>
-                            <input type="month" wire:model="copySourceMonth" class="input input-bordered input-sm w-full font-medium" {{ $isCopying ? 'disabled' : '' }}>
+                            <input type="month" wire:model.live="copySourceMonth" class="input input-bordered input-sm w-full font-medium" {{ $isCopying ? 'disabled' : '' }}>
                         </div>
                         <div class="form-control">
                             <label class="label"><span class="label-text font-bold text-xs uppercase text-base-content/70">Periode Tujuan</span></label>
-                            <input type="month" wire:model="copyTargetMonth" class="input input-bordered input-sm w-full font-medium" {{ $isCopying ? 'disabled' : '' }}>
+                            <input type="month" wire:model.live="copyTargetMonth" class="input input-bordered input-sm w-full font-medium" {{ $isCopying ? 'disabled' : '' }}>
                         </div>
                     </div>
 
@@ -803,7 +840,10 @@
             
             <x-slot:footer>
                 <button class="btn btn-ghost btn-sm" wire:click="closeCopyModal" {{ $isCopying ? 'disabled' : '' }}>Batal</button>
-                <button class="btn btn-info btn-sm text-white" wire:click="startCopyPeriod" {{ $isCopying ? 'disabled' : '' }}>
+                <button class="btn btn-info btn-sm text-white" 
+                        wire:click="startCopyPeriod" 
+                        {{ $isCopying || $this->copyPendingApprovalsCount > 0 ? 'disabled' : '' }}
+                        @if($this->copyPendingApprovalsCount > 0) title="Selesaikan pengajuan pending terlebih dahulu" @endif>
                     @if($isCopying)
                         <span class="loading loading-spinner loading-xs"></span>
                         Menyalin...
@@ -877,13 +917,20 @@
                                     <td class="text-center whitespace-nowrap">
                                         <div class="flex items-center justify-center">
                                             @canDelete('call-plan.jks-salesmans')
-                                                <button type="button" 
-                                                        wire:click="confirmDeleteFromCollision({{ $detail['id'] }})" 
-                                                        class="btn btn-xs btn-error btn-outline hover:text-white inline-flex items-center flex-nowrap whitespace-nowrap gap-1.5 px-3 h-7 min-h-[1.75rem] font-medium shadow-xs" 
-                                                        title="Hapus Jadwal Salesman Ini">
-                                                    <x-heroicon-s-trash class="w-3.5 h-3.5 shrink-0" />
-                                                    <span>Hapus Jadwal</span>
-                                                </button>
+                                                @if($this->canManipulate)
+                                                    <button type="button" 
+                                                            wire:click="confirmDeleteFromCollision({{ $detail['id'] }})" 
+                                                            class="btn btn-xs btn-error btn-outline hover:text-white inline-flex items-center flex-nowrap whitespace-nowrap gap-1.5 px-3 h-7 min-h-[1.75rem] font-medium shadow-xs" 
+                                                            title="Hapus Jadwal Salesman Ini">
+                                                        <x-heroicon-s-trash class="w-3.5 h-3.5 shrink-0" />
+                                                        <span>Hapus Jadwal</span>
+                                                    </button>
+                                                @else
+                                                    <span class="badge badge-sm badge-ghost text-base-content/50 gap-1" title="Periode Terkunci (Read-Only)">
+                                                        <x-heroicon-s-lock-closed class="w-3 h-3 text-warning" />
+                                                        <span>Terkunci</span>
+                                                    </span>
+                                                @endif
                                             @endcanDelete
                                         </div>
                                     </td>

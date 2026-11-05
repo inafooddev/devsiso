@@ -80,7 +80,7 @@
         @endif
         
         @canAdd('call-plan.jks-salesmans')
-            @if($appliedDistributor)
+            @if($appliedDistributor && $this->canManipulate)
                 @livewire('call-plan.jks-salesmans.create-modal', [
                     'appliedBulan' => $appliedBulan,
                     'appliedDistributor' => $appliedDistributor
@@ -88,7 +88,7 @@
             @endif
         @endcanAdd
         @canImport('call-plan.jks-salesmans')
-            @if(auth()->user()->hasRole(['admin', 'user', 'spm']))
+            @if(auth()->user()->hasRole(['admin', 'user', 'spm']) && $this->canManipulate)
                 @livewire('call-plan.jks-salesmans.import-modal')
             @endif
         @endcanImport
@@ -103,12 +103,14 @@
                     </div>
                     <ul tabindex="0" class="dropdown-content z-50 menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-200 mt-1">
                         @canEdit('call-plan.jks-salesmans')
-                            <li>
-                                <a wire:click="openSwapModal">
-                                    <x-heroicon-s-arrows-right-left class="w-4 h-4 text-primary" />
-                                    Tukar Jadwal
-                                </a>
-                            </li>
+                            @if($this->canManipulate)
+                                <li>
+                                    <a wire:click="openSwapModal">
+                                        <x-heroicon-s-arrows-right-left class="w-4 h-4 text-primary" />
+                                        Tukar Jadwal
+                                    </a>
+                                </li>
+                            @endif
                             
                             <li>
                                 <a wire:click="openCopyModal">
@@ -116,21 +118,26 @@
                                     Salin Periode
                                 </a>
                             </li>
-                            <li>
-                                <a wire:click="openCleansingModal" class="text-warning hover:bg-warning/10 hover:text-warning">
-                                    <x-heroicon-s-sparkles class="w-4 h-4" />
-                                    Cleansing Duplicate
-                                </a>
-                            </li>
+
+                            @if($this->canManipulate)
+                                <li>
+                                    <a wire:click="openCleansingModal" class="text-warning hover:bg-warning/10 hover:text-warning">
+                                        <x-heroicon-s-sparkles class="w-4 h-4" />
+                                        Cleansing Duplicate
+                                    </a>
+                                </li>
+                            @endif
                         @endcanEdit
                         
                         @canDelete('call-plan.jks-salesmans')
-                            <li>
-                                <a wire:click="openBulkDeleteModal" class="text-error hover:bg-error/10 hover:text-error">
-                                    <x-heroicon-s-trash class="w-4 h-4" />
-                                    Hapus Massal
-                                </a>
-                            </li>
+                            @if($this->canManipulate)
+                                <li>
+                                    <a wire:click="openBulkDeleteModal" class="text-error hover:bg-error/10 hover:text-error">
+                                        <x-heroicon-s-trash class="w-4 h-4" />
+                                        Hapus Massal
+                                    </a>
+                                </li>
+                            @endif
                         @endcanDelete
 
                         <div class="divider my-1"></div>

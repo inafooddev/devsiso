@@ -107,18 +107,24 @@
                     <td class="text-center px-1 bg-base-200/50">@if($row->w3 === 'Y') <x-heroicon-s-check-circle class="w-4 h-4 text-primary mx-auto"/> @endif</td>
                     <td class="text-center px-1 bg-base-200/50">@if($row->w4 === 'Y') <x-heroicon-s-check-circle class="w-4 h-4 text-primary mx-auto"/> @endif</td>
                     <td class="text-center">
-                        <div class="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            @canEdit('call-plan.jks-salesmans')
-                            <button wire:click="editJadwal({{ $row->id }})" class="btn btn-xs btn-circle btn-ghost text-primary hover:bg-primary/10" title="Edit Jadwal">
-                                <x-heroicon-o-pencil-square class="w-4 h-4" />
-                            </button>
-                            @endcanEdit
-                            @canDelete('call-plan.jks-salesmans')
-                            <button wire:click="confirmDelete({{ $row->id }})" class="btn btn-xs btn-circle btn-ghost text-error hover:bg-error/10" title="Hapus Jadwal">
-                                <x-heroicon-o-trash class="w-4 h-4" />
-                            </button>
-                            @endcanDelete
-                        </div>
+                        @if($this->canManipulate)
+                            <div class="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                @canEdit('call-plan.jks-salesmans')
+                                <button wire:click="editJadwal({{ $row->id }})" class="btn btn-xs btn-circle btn-ghost text-primary hover:bg-primary/10" title="Edit Jadwal">
+                                    <x-heroicon-o-pencil-square class="w-4 h-4" />
+                                </button>
+                                @endcanEdit
+                                @canDelete('call-plan.jks-salesmans')
+                                <button wire:click="confirmDelete({{ $row->id }})" class="btn btn-xs btn-circle btn-ghost text-error hover:bg-error/10" title="Hapus Jadwal">
+                                    <x-heroicon-o-trash class="w-4 h-4" />
+                                </button>
+                                @endcanDelete
+                            </div>
+                        @else
+                            <div class="text-base-content/30 flex items-center justify-center" title="Periode Terkunci (Hanya Baca)">
+                                <x-heroicon-s-lock-closed class="w-3.5 h-3.5 opacity-40" />
+                            </div>
+                        @endif
                     </td>
                 </tr>
                 @empty

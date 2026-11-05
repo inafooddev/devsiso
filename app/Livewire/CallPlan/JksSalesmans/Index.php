@@ -7,6 +7,7 @@ use Livewire\WithPagination;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Computed;
 use App\Traits\WithCallPlanFilters;
 use App\Services\JksSalesmanService;
 
@@ -32,6 +33,41 @@ class Index extends Component
     public $canDelete = false;
     public $canExport = false;
     public $canImport = false;
+
+    #[Computed]
+    public function isCurrentRunningMonth(): bool
+    {
+        if (empty($this->appliedBulan)) {
+            return false;
+        }
+        return substr($this->appliedBulan, 0, 7) === now()->format('Y-m');
+    }
+
+    #[Computed]
+    public function canManipulate(): bool
+    {
+        $user = auth()->user();
+        if ($user && $user->hasRole('admin')) {
+            return true;
+        }
+        return $this->isCurrentRunningMonth;
+    }
+
+    public function checkCanManipulate(bool $abort = false): bool
+    {
+        if (!$this->canManipulate) {
+            $currentMonthName = now()->translatedFormat('F Y');
+            $this->dispatch('toast', [
+                'type' => 'error',
+                'message' => 'Akses Ditolak: Manipulasi data hanya diizinkan untuk periode bulan berjalan (' . $currentMonthName . ').'
+            ]);
+            if ($abort) {
+                abort(403, 'Akses Ditolak: Manipulasi data hanya diizinkan untuk periode bulan berjalan (' . $currentMonthName . ').');
+            }
+            return false;
+        }
+        return true;
+    }
 
     public function mount()
     {
@@ -521,6 +557,30 @@ class Index extends Component
     public $eskalinkFlagDelete = 'N';
     public $exportEskalinkSalesman = '';
 
+    public function updatedCopySourceMonth()
+    {
+        if (!empty($this->copyDistributor)) {
+            $hasJks = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                ->where('distributor_code', $this->copyDistributor)
+                ->where('bulan', 'like', substr($this->copySourceMonth, 0, 7) . '%')
+                ->exists();
+            if (!$hasJks) {
+                $this->copyDistributor = '';
+                $this->copySalesmanCode = '';
+            }
+        }
+
+        if (!empty($this->copySalesmanCode)) {
+            $hasJks = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                ->where('salesman_code', $this->copySalesmanCode)
+                ->where('bulan', 'like', substr($this->copySourceMonth, 0, 7) . '%')
+                ->exists();
+            if (!$hasJks) {
+                $this->copySalesmanCode = '';
+            }
+        }
+    }
+
     public function updatedCopyRegion()
     {
         $this->copyArea = '';
@@ -537,35 +597,88 @@ class Index extends Component
     public function updatedCopyDistributor()
     {
         $this->copySalesmanCode = '';
+        if (!empty($this->copyDistributor)) {
+            $dist = \Illuminate\Support\Facades\DB::table('master_distributors')
+                ->where('distributor_code', $this->copyDistributor)
+                ->first(['region_code', 'area_code']);
+            if ($dist) {
+                if (empty($this->copyRegion)) {
+                    $this->copyRegion = $dist->region_code ?? '';
+                }
+                if (empty($this->copyArea)) {
+                    $this->copyArea = $dist->area_code ?? '';
+                }
+            }
+        }
     }
 
     #[\Livewire\Attributes\Computed]
     public function copyFilterAreas()
     {
         if (!$this->copyRegion) return collect([]);
-        return \Illuminate\Support\Facades\DB::table('master_areas')
-            ->select('area_code', 'area_name')
-            ->where('region_code', $this->copyRegion)
-            ->orderBy('area_name')->get();
+        $query = \Illuminate\Support\Facades\DB::table('master_areas as ma')
+            ->select('ma.area_code', 'ma.area_name')
+            ->join('master_distributors as md', 'ma.area_code', '=', 'md.area_code')
+            ->join('jks_salesmans as js', 'md.distributor_code', '=', 'js.distributor_code')
+            ->where('ma.region_code', $this->copyRegion);
+
+        if (!empty($this->copySourceMonth)) {
+            $query->where('js.bulan', 'like', substr($this->copySourceMonth, 0, 7) . '%');
+        }
+
+        return $query->distinct()->orderBy('ma.area_name')->get();
     }
 
     #[\Livewire\Attributes\Computed]
     public function copyFilterDistributors()
     {
-        $query = \Illuminate\Support\Facades\DB::table('master_distributors')->select('distributor_code', 'distributor_name');
-        if ($this->copyRegion) $query->where('region_code', $this->copyRegion);
-        if ($this->copyArea) $query->where('area_code', $this->copyArea);
-        return $query->orderBy('distributor_name')->get();
+        $query = \Illuminate\Support\Facades\DB::table('master_distributors as md')
+            ->select('md.distributor_code', 'md.distributor_name')
+            ->join('jks_salesmans as js', 'md.distributor_code', '=', 'js.distributor_code');
+
+        if (!empty($this->copySourceMonth)) {
+            $query->where('js.bulan', 'like', substr($this->copySourceMonth, 0, 7) . '%');
+        }
+
+        if ($this->copyRegion) $query->where('md.region_code', $this->copyRegion);
+        if ($this->copyArea) $query->where('md.area_code', $this->copyArea);
+
+        $user = auth()->user();
+        if ($user && !$user->hasRole(['admin', 'spm'])) {
+            $accessLevel = $user->getAccessLevel();
+            if ($accessLevel === 'region' && !empty($user->region_code)) {
+                $query->whereIn('md.region_code', (array) $user->region_code);
+            } elseif ($accessLevel === 'area' && !empty($user->area_code)) {
+                $query->whereIn('md.area_code', (array) $user->area_code);
+            } elseif ($accessLevel === 'supervisor' && !empty($user->supervisor_code)) {
+                $query->where('md.supervisor_code', $user->supervisor_code);
+            }
+        }
+
+        return $query->distinct()->orderBy('md.distributor_name')->get();
     }
 
     #[\Livewire\Attributes\Computed]
     public function copyFilterSalesmans()
     {
         if (!$this->copyDistributor) return collect([]);
-        return \Illuminate\Support\Facades\DB::table('salesmans')
-            ->select('salesman_code', 'salesman_name')
-            ->where('distributor_code', $this->copyDistributor)
-            ->orderBy('salesman_name')->get();
+
+        $query = \Illuminate\Support\Facades\DB::table('jks_salesmans as js')
+            ->leftJoin('salesmans as s', function($join) {
+                $join->on('js.salesman_code', '=', 's.salesman_code')
+                     ->on('js.distributor_code', '=', 's.distributor_code');
+            })
+            ->where('js.distributor_code', $this->copyDistributor)
+            ->select(
+                'js.salesman_code',
+                \Illuminate\Support\Facades\DB::raw("COALESCE(s.salesman_name, js.salesman_code) as salesman_name")
+            );
+
+        if (!empty($this->copySourceMonth)) {
+            $query->where('js.bulan', 'like', substr($this->copySourceMonth, 0, 7) . '%');
+        }
+
+        return $query->distinct()->orderBy('salesman_name')->get();
     }
 
     // Batching State
@@ -585,6 +698,27 @@ class Index extends Component
         
         $this->copySourceMonth = $this->appliedBulan ?: date('Y-m-01');
         $this->copyTargetMonth = date('Y-m', strtotime('+1 month', strtotime($this->copySourceMonth . '-01')));
+
+        // Validasi apakah distributor aktif di halaman utama ada jadwalnya di copySourceMonth
+        if (!empty($this->copyDistributor)) {
+            $hasJks = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+                ->where('distributor_code', $this->copyDistributor)
+                ->where('bulan', 'like', substr($this->copySourceMonth, 0, 7) . '%')
+                ->exists();
+            if (!$hasJks) {
+                $this->copyDistributor = '';
+                $this->copySalesmanCode = '';
+            } else {
+                $dist = \Illuminate\Support\Facades\DB::table('master_distributors')
+                    ->where('distributor_code', $this->copyDistributor)
+                    ->first(['region_code', 'area_code']);
+                if ($dist) {
+                    if (empty($this->copyRegion)) $this->copyRegion = $dist->region_code ?? '';
+                    if (empty($this->copyArea)) $this->copyArea = $dist->area_code ?? '';
+                }
+            }
+        }
+
         $this->isCopying = false;
         $this->copyProgress = 0;
         $this->copyTotal = 0;
@@ -595,6 +729,78 @@ class Index extends Component
     {
         $this->showCopyModal = false;
         $this->isCopying = false;
+    }
+
+    #[Computed]
+    public function copyPendingApprovalsCount(): int
+    {
+        if (empty($this->copySourceMonth)) {
+            return 0;
+        }
+
+        $sourceMonth = substr($this->copySourceMonth, 0, 7);
+
+        $distributorCodes = [];
+        if (!empty($this->copyDistributor)) {
+            $distributorCodes = [$this->copyDistributor];
+        } elseif (!empty($this->copyArea)) {
+            $distributorCodes = \Illuminate\Support\Facades\DB::table('master_distributors')
+                ->where('area_code', $this->copyArea)
+                ->pluck('distributor_code')
+                ->toArray();
+        } elseif (!empty($this->copyRegion)) {
+            $distributorCodes = \Illuminate\Support\Facades\DB::table('master_distributors')
+                ->where('region_code', $this->copyRegion)
+                ->pluck('distributor_code')
+                ->toArray();
+        } else {
+            $user = auth()->user();
+            if ($user && !$user->hasRole(['admin', 'spm'])) {
+                $accessLevel = $user->getAccessLevel();
+                $distQuery = \Illuminate\Support\Facades\DB::table('master_distributors');
+                if ($accessLevel === 'region' && !empty($user->region_code)) {
+                    $distQuery->whereIn('region_code', (array) $user->region_code);
+                } elseif ($accessLevel === 'area' && !empty($user->area_code)) {
+                    $distQuery->whereIn('area_code', (array) $user->area_code);
+                } elseif ($accessLevel === 'supervisor' && !empty($user->supervisor_code)) {
+                    $distQuery->where('supervisor_code', $user->supervisor_code);
+                }
+                $distributorCodes = $distQuery->pluck('distributor_code')->toArray();
+            }
+        }
+
+        $query = \Illuminate\Support\Facades\DB::table('jks_approvals as ja')
+            ->where('ja.status', 'PENDING');
+
+        if (!empty($distributorCodes)) {
+            $query->whereIn('ja.distributor_code', $distributorCodes);
+        }
+
+        $query->leftJoin('jks_salesmans as js', function($join) {
+            $join->on(\Illuminate\Support\Facades\DB::raw("CAST(NULLIF(ja.payload->>'id', '') AS BIGINT)"), '=', 'js.id');
+        });
+
+        $query->where(function($q) use ($sourceMonth) {
+            $q->where(\Illuminate\Support\Facades\DB::raw("ja.payload->>'bulan'"), 'like', $sourceMonth . '%')
+              ->orWhere('js.bulan', 'like', $sourceMonth . '%')
+              ->orWhere(function($sub) use ($sourceMonth) {
+                  $sub->whereNull(\Illuminate\Support\Facades\DB::raw("ja.payload->>'bulan'"))
+                      ->whereNull('js.id')
+                      ->where('ja.created_at', 'like', $sourceMonth . '%');
+              });
+        });
+
+        if (!empty($this->copySalesmanCode)) {
+            $salesman = $this->copySalesmanCode;
+            $query->where(function($q) use ($salesman) {
+                $q->where(\Illuminate\Support\Facades\DB::raw("ja.payload->>'salesman_code'"), $salesman)
+                  ->orWhere(\Illuminate\Support\Facades\DB::raw("ja.payload->>'salesman_asal'"), $salesman)
+                  ->orWhere(\Illuminate\Support\Facades\DB::raw("ja.payload->>'salesman_tujuan'"), $salesman)
+                  ->orWhere('js.salesman_code', $salesman);
+            });
+        }
+
+        return $query->count();
     }
 
     public function startCopyPeriod()
@@ -608,6 +814,16 @@ class Index extends Component
 
         if ($this->copySourceMonth === $this->copyTargetMonth) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Periode Asal dan Periode Tujuan tidak boleh sama.']);
+            return;
+        }
+
+        $pendingCount = $this->copyPendingApprovalsCount();
+        if ($pendingCount > 0) {
+            $sourceMonthName = \Carbon\Carbon::parse($this->copySourceMonth . '-01')->translatedFormat('F Y');
+            $this->dispatch('toast', [
+                'type' => 'error',
+                'message' => "Salin Periode Ditolak: Masih terdapat {$pendingCount} pengajuan perubahan jadwal berstatus PENDING pada periode {$sourceMonthName}. Harap selesaikan seluruh persetujuan terlebih dahulu!"
+            ]);
             return;
         }
 
@@ -710,6 +926,10 @@ class Index extends Component
 
     protected function handleJksAction($actionType, $payload, $reason, callable $executeCallback, $successMessage)
     {
+        if (!$this->checkCanManipulate(true)) {
+            return;
+        }
+
         \Illuminate\Support\Facades\DB::table('jks_approvals')->insert([
             'maker_id' => auth()->id(),
             'checker_id' => null,
@@ -728,6 +948,10 @@ class Index extends Component
 
     public function openSwapModal()
     {
+        if (!$this->checkCanManipulate()) {
+            return;
+        }
+
         $this->swapSalesmanCode = '';
         $this->swapHariAsal = '';
         $this->swapHariTujuan = '';
@@ -748,6 +972,9 @@ class Index extends Component
     public function executeSwapDay()
     {
         abort_if(!$this->canEdit, 403, 'Akses ditolak.');
+        if (!$this->checkCanManipulate(true)) {
+            return;
+        }
 
         $this->abortIfUnauthorizedDistributor($this->appliedDistributor);
 
@@ -768,6 +995,7 @@ class Index extends Component
         }
 
         $payload = [
+            'bulan' => $this->appliedBulan,
             'salesman_code' => $this->swapSalesmanCode,
             'hari_asal' => $this->swapHariAsal,
             'hari_tujuan' => $this->swapHariTujuan,
@@ -913,6 +1141,9 @@ class Index extends Component
     public function executeSwapMinggu()
     {
         abort_if(!$this->canEdit, 403, 'Akses ditolak.');
+        if (!$this->checkCanManipulate(true)) {
+            return;
+        }
 
         $this->abortIfUnauthorizedDistributor($this->appliedDistributor);
 
@@ -933,6 +1164,7 @@ class Index extends Component
         }
 
         $payload = [
+            'bulan' => $this->appliedBulan,
             'salesman_code' => $this->swapSalesmanCode,
             'minggu_asal' => $this->swapMingguAsal,
             'minggu_tujuan' => $this->swapMingguTujuan,
@@ -1026,6 +1258,9 @@ class Index extends Component
     public function executeSwapSalesman()
     {
         abort_if(!$this->canEdit, 403, 'Akses ditolak.');
+        if (!$this->checkCanManipulate(true)) {
+            return;
+        }
 
         $this->abortIfUnauthorizedDistributor($this->appliedDistributor);
 
@@ -1046,6 +1281,7 @@ class Index extends Component
         }
 
         $payload = [
+            'bulan' => $this->appliedBulan,
             'salesman_asal' => $this->swapSalesmanAsal,
             'salesman_tujuan' => $this->swapSalesmanTujuan,
         ];
@@ -1103,6 +1339,10 @@ class Index extends Component
     // --- BULK DELETE METHODS ---
     public function openBulkDeleteModal()
     {
+        if (!$this->checkCanManipulate()) {
+            return;
+        }
+
         $this->bdSalesman = '';
         $this->bdHari = '';
         $this->bdMinggu = '';
@@ -1196,6 +1436,9 @@ class Index extends Component
     public function executeBulkDelete()
     {
         abort_if(!$this->canDelete, 403, 'Akses ditolak.');
+        if (!$this->checkCanManipulate(true)) {
+            return;
+        }
 
         $this->abortIfUnauthorizedJksIds($this->bdSelectedIds);
 
@@ -1289,6 +1532,10 @@ class Index extends Component
 
     public function openCleansingModal()
     {
+        if (!$this->checkCanManipulate()) {
+            return;
+        }
+
         if (!auth()->user()->hasRole(['admin', 'user'])) {
             $this->dispatch('toast', ['type' => 'error', 'message' => 'Anda tidak memiliki akses untuk fitur ini!']);
             return;
@@ -1441,6 +1688,10 @@ class Index extends Component
     public function executeCleansing()
     {
         $this->abortIfUnauthorizedDistributor($this->appliedDistributor);
+        if (!$this->checkCanManipulate(true)) {
+            return;
+        }
+
         if (!auth()->check() || !auth()->user()->hasRole(['admin', 'spm', 'admspm', 'spvlapangan', 'asm', 'rsm', 'spvspm'])) { abort(403, 'Akses ditolak. Anda tidak memiliki role yang diizinkan.'); }
 
         if (!auth()->user()->hasRole(['admin', 'user'])) {
@@ -1528,6 +1779,10 @@ class Index extends Component
 
     public function editJadwal($id)
     {
+        if (!$this->checkCanManipulate()) {
+            return;
+        }
+
         $jks = \Illuminate\Support\Facades\DB::table('jks_salesmans as js')
             ->select('js.*', 'ltpte.customer_name')
             ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
@@ -1573,6 +1828,9 @@ class Index extends Component
     public function saveJadwal()
     {
         abort_if(!$this->canEdit, 403, 'Akses ditolak.');
+        if (!$this->checkCanManipulate(true)) {
+            return;
+        }
 
         if (!$this->editId) return;
 
@@ -1591,6 +1849,7 @@ class Index extends Component
         try {
             $payload = [
                 'id' => $this->editId,
+                'bulan' => $this->appliedBulan,
                 'update' => [
                     'salesman_code' => $this->editSalesmanCode,
                     'h1' => $this->editHari['h1'] ? 'Y' : 'T',
@@ -1634,6 +1893,10 @@ class Index extends Component
 
     public function confirmDelete($id)
     {
+        if (!$this->checkCanManipulate()) {
+            return;
+        }
+
         $jks = \Illuminate\Support\Facades\DB::table('jks_salesmans as js')
             ->select('js.*', 'ltpte.customer_name')
             ->leftJoin('list_toko_pareto_team_elite as ltpte', function($join) {
@@ -1671,6 +1934,9 @@ class Index extends Component
     public function executeDelete()
     {
         abort_if(!$this->canDelete, 403, 'Akses ditolak.');
+        if (!$this->checkCanManipulate(true)) {
+            return;
+        }
 
         if (!$this->deleteId) return;
 
@@ -1982,6 +2248,9 @@ class Index extends Component
 
     public function confirmDeleteFromCollision($id)
     {
+        if (!$this->checkCanManipulate()) {
+            return;
+        }
         $this->showCollisionModal = false;
         $this->confirmDelete($id);
     }

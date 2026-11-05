@@ -87,6 +87,15 @@ class CreateModal extends Component
         $this->errorMessage = '';
         $this->successMessage = '';
 
+        $user = auth()->user();
+        $isAdmin = $user && $user->hasRole('admin');
+        $isCurrentMonth = substr($this->appliedBulan, 0, 7) === now()->format('Y-m');
+
+        if (!$isAdmin && !$isCurrentMonth) {
+            $this->errorMessage = 'Akses Ditolak: Penambahan jadwal hanya diizinkan untuk periode bulan berjalan (' . now()->translatedFormat('F Y') . ').';
+            return;
+        }
+
         if (empty($this->appliedBulan) || empty($this->appliedDistributor)) {
             $this->errorMessage = 'Pilih Bulan dan Distributor terlebih dahulu di filter utama.';
             return;

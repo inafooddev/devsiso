@@ -51,6 +51,11 @@
                         <x-heroicon-s-exclamation-triangle class="w-5 h-5" />
                         <span>Silakan pilih <strong>Bulan</strong> dan <strong>Distributor</strong> pada filter utama terlebih dahulu sebelum menambah jadwal.</span>
                     </div>
+                @elseif(!auth()->user()->hasRole('admin') && substr($appliedBulan, 0, 7) !== date('Y-m'))
+                    <div class="alert alert-warning shadow-sm text-sm">
+                        <x-heroicon-s-lock-closed class="w-5 h-5" />
+                        <span>Akses Ditolak: Penambahan jadwal hanya diizinkan untuk periode bulan berjalan (<strong>{{ now()->translatedFormat('F Y') }}</strong>). Periode yang dipilih saat ini terkunci.</span>
+                    </div>
                 @else
                     {{-- Row 1: Basic Info --}}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -159,7 +164,7 @@
                 <form method="dialog">
                     <button class="btn btn-sm btn-ghost">Batal</button>
                 </form>
-                <button type="button" wire:click="submit" class="btn btn-sm btn-primary" wire:loading.class="opacity-50" wire:target="submit" @if(empty($appliedBulan) || empty($appliedDistributor)) disabled @endif>
+                <button type="button" wire:click="submit" class="btn btn-sm btn-primary" wire:loading.class="opacity-50" wire:target="submit" @if(empty($appliedBulan) || empty($appliedDistributor) || (!auth()->user()->hasRole('admin') && substr($appliedBulan, 0, 7) !== date('Y-m'))) disabled @endif>
                     <span wire:loading.remove wire:target="submit">
                         <x-heroicon-s-paper-airplane class="w-4 h-4" />
                     </span>

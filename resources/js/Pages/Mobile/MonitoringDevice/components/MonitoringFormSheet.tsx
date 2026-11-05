@@ -87,10 +87,13 @@ export const MonitoringFormSheet = ({ show, onClose, formHook, salesName }: any)
     };
 
     return (
-        <div className="fixed inset-0 z-40">
-            <div className={`fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity duration-300 ${animate ? 'opacity-100' : 'opacity-0'}`} onClick={onClose}></div>
+        <div 
+            className={`fixed inset-0 z-50 flex flex-col justify-end bg-slate-950/60 backdrop-blur-xs transition-opacity duration-300 overflow-hidden ${animate ? 'opacity-100' : 'opacity-0'}`}
+            onClick={onClose}
+        >
             <div 
-                className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white rounded-t-[32px] shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.15)] max-h-[90%] flex flex-col z-50 transition-transform duration-300 ease-out ${animate ? 'translate-y-0' : 'translate-y-full'}`}
+                className={`relative z-10 w-full max-w-md mx-auto bg-white rounded-t-[32px] shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.15)] max-h-[90%] flex flex-col transition-transform duration-300 ease-out overflow-hidden ${animate ? 'translate-y-0' : 'translate-y-full'}`}
+                onClick={(e) => e.stopPropagation()}
                 onTransitionEnd={handleAnimationEnd}
             >
                 
@@ -101,12 +104,12 @@ export const MonitoringFormSheet = ({ show, onClose, formHook, salesName }: any)
                         <span className="badge badge-primary badge-xs font-mono font-bold rounded-lg px-2 text-[0.5625rem]">{data.form_sales_code}</span>
                         <h4 className="text-xs font-black text-slate-900 mt-1">{editId ? 'Edit Monitoring' : 'Tambah Monitoring'}</h4>
                     </div>
-                    <button onClick={onClose} className="btn btn-ghost btn-circle btn-xs text-slate-400">
+                    <button type="button" onClick={onClose} className="btn btn-ghost btn-circle btn-xs text-slate-400">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>
                     </button>
                 </div>
                 
-                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4 min-h-0">
                     
                     <div className="form-control">
                         <label className="label py-1"><span className="label-text text-[0.625rem] font-extrabold uppercase tracking-wider text-slate-500">Bulan Monitoring</span></label>
@@ -267,7 +270,7 @@ export const MonitoringFormSheet = ({ show, onClose, formHook, salesName }: any)
 
                     <div className="pb-16 pt-2"></div> 
                     
-                    <div className="absolute bottom-0 left-0 right-0 p-5 border-t border-slate-100 bg-slate-50 flex items-center gap-3">
+                    <div className="absolute bottom-0 left-0 right-0 p-5 border-t border-slate-100 bg-slate-50 flex items-center gap-3 z-20">
                         <button type="button" onClick={onClose} className="btn btn-outline border-slate-200 flex-1 h-11 rounded-xl text-xs font-bold text-slate-700">Batal</button>
                         <button type="submit" disabled={processing || !isFormValid} className="btn btn-primary flex-1 h-11 rounded-xl text-xs font-bold text-white shadow-md shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">
                             {processing ? <span className="loading loading-spinner loading-sm"></span> : 'Simpan'}

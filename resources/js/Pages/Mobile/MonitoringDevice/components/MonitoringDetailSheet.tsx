@@ -25,26 +25,30 @@ export const MonitoringDetailSheet = ({ show, onClose, data, salesName, onEdit }
     if (!render || !data) return null;
 
     return (
-        <div className="fixed inset-0 z-40">
-            <div className={`fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity duration-300 ${animate ? 'opacity-100' : 'opacity-0'}`} onClick={onClose}></div>
+        <>
             <div 
-                className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white rounded-t-[32px] shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.15)] max-h-[85%] flex flex-col z-50 transition-transform duration-300 ease-out ${animate ? 'translate-y-0' : 'translate-y-full'} overflow-hidden`}
-                onTransitionEnd={handleAnimationEnd}
+                className={`fixed inset-0 z-50 flex flex-col justify-end bg-slate-950/60 backdrop-blur-xs transition-opacity duration-300 overflow-hidden ${animate ? 'opacity-100' : 'opacity-0'}`}
+                onClick={onClose}
             >
-                
-                <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto my-3 shrink-0"></div>
-                
-                <div className="px-5 pb-3 pt-2 flex items-start justify-between border-b border-slate-100 shrink-0">
-                    <div className="min-w-0 pr-4">
-                        <span className="badge badge-secondary badge-xs font-mono font-bold rounded-lg px-2 text-[0.5625rem]">Detail Monitoring</span>
-                        <h4 className="text-xs font-black text-slate-900 mt-1 truncate">{data.sales_code} - {salesName}</h4>
+                <div 
+                    className={`relative z-10 w-full max-w-md mx-auto bg-white rounded-t-[32px] shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.15)] max-h-[85%] flex flex-col transition-transform duration-300 ease-out overflow-hidden ${animate ? 'translate-y-0' : 'translate-y-full'}`}
+                    onClick={(e) => e.stopPropagation()}
+                    onTransitionEnd={handleAnimationEnd}
+                >
+                    
+                    <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto my-3 shrink-0"></div>
+                    
+                    <div className="px-5 pb-3 pt-2 flex items-start justify-between border-b border-slate-100 shrink-0">
+                        <div className="min-w-0 pr-4">
+                            <span className="badge badge-secondary badge-xs font-mono font-bold rounded-lg px-2 text-[0.5625rem]">Detail Monitoring</span>
+                            <h4 className="text-xs font-black text-slate-900 mt-1 truncate">{data.sales_code} - {salesName}</h4>
+                        </div>
+                        <button type="button" onClick={onClose} className="btn btn-ghost btn-circle btn-xs text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>
+                        </button>
                     </div>
-                    <button onClick={onClose} className="btn btn-ghost btn-circle btn-xs text-slate-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>
-                    </button>
-                </div>
-                
-                <div className="flex-1 overflow-y-auto p-5 space-y-5 text-xs font-medium text-slate-600">
+                    
+                    <div className="flex-1 overflow-y-auto p-5 space-y-5 text-xs font-medium text-slate-600 min-h-0">
                     <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
                         <div className="col-span-2">
                             <span className="text-[0.5625rem] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Bulan</span>
@@ -112,16 +116,17 @@ export const MonitoringDetailSheet = ({ show, onClose, data, salesName, onEdit }
                     </button>
                 </div>
             </div>
-
-            {/* Full Screen Image Preview Modal */}
-            {previewImage && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4 animate-fade-in" onClick={() => setPreviewImage(null)}>
-                    <button className="absolute top-4 right-4 btn btn-circle btn-sm btn-ghost text-white bg-black/50 hover:bg-black/80" onClick={() => setPreviewImage(null)}>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>
-                    </button>
-                    <img src={previewImage} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()} />
-                </div>
-            )}
         </div>
+
+        {/* Full Screen Image Preview Modal */}
+        {previewImage && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 animate-fade-in" onClick={() => setPreviewImage(null)}>
+                <button type="button" className="absolute top-4 right-4 btn btn-circle btn-sm btn-ghost text-white bg-black/50 hover:bg-black/80 z-20" onClick={() => setPreviewImage(null)}>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>
+                </button>
+                <img src={previewImage} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl relative z-10" onClick={(e) => e.stopPropagation()} />
+            </div>
+        )}
+    </>
     );
 };

@@ -112,10 +112,14 @@ class ImportModal extends Component
             // Convert any float/excel dates to string if needed, but assuming it's imported as string
             $bulanStr = trim($row->bulan);
             
+            $isAdmin = auth()->user() && auth()->user()->hasRole('admin');
+
             if (empty($bulanStr)) {
                 $error = "Bulan kosong";
             } elseif (!preg_match('/^20\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/', $bulanStr)) {
                 $error = "Format Bulan salah (wajib YYYY-MM-DD, contoh: 2026-09-01)";
+            } elseif (!$isAdmin && substr($bulanStr, 0, 7) !== date('Y-m')) {
+                $error = "Bulan tidak valid (" . $bulanStr . "). Import hanya diizinkan untuk periode bulan berjalan (" . date('Y-m') . "-01)";
             } elseif (empty($row->distributor_code)) {
                 $error = "Distributor Code kosong";
             } elseif (empty($row->salesman_code)) {
