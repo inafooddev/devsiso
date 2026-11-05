@@ -24,9 +24,15 @@ class Index extends Component
     public $appliedBulan = '';
     public $appliedStandpro = ''; // '' = semua, 'belum' = < 300, 'sudah' = >= 300
     public $perPage = 100;
+    public $accessLevel = 'nasional';
 
     public function mount()
     {
+        $user = auth()->user();
+        if ($user) {
+            $this->accessLevel = $user->hasRole(['admin', 'spm']) ? 'nasional' : $user->getAccessLevel();
+        }
+
         if (session()->has('jks_summary_state')) {
             $state = session()->get('jks_summary_state');
             $this->appliedRegion = $state['appliedRegion'] ?? '';
@@ -143,6 +149,25 @@ class Index extends Component
 
     public function updatedAppliedDistributor()
     {
+        if (!empty($this->appliedDistributor)) {
+            $distInfo = DB::table('master_distributors as md')
+                ->leftJoin('team_elite_code_mappings as te', 'md.supervisor_code', '=', 'te.siso_code')
+                ->where('md.distributor_code', $this->appliedDistributor)
+                ->select('md.region_code', 'md.area_code', 'te.team_elite_code')
+                ->first();
+
+            if ($distInfo) {
+                if (!empty($distInfo->region_code)) {
+                    $this->appliedRegion = $distInfo->region_code;
+                }
+                if (!empty($distInfo->area_code)) {
+                    $this->appliedArea = $distInfo->area_code;
+                }
+                if (!empty($distInfo->team_elite_code)) {
+                    $this->appliedSupervisor = $distInfo->team_elite_code;
+                }
+            }
+        }
         $this->resetPage();
     }
 
@@ -583,6 +608,7 @@ class Index extends Component
             'distributorOptions' => $this->filterDistributors(),
             'availableMonths' => $this->availableMonths(),
             'summaryData' => $this->summaryData(),
+            'accessLevel' => $this->accessLevel,
             'appliedRegion' => $this->appliedRegion,
             'appliedArea' => $this->appliedArea,
             'appliedSupervisor' => $this->appliedSupervisor,

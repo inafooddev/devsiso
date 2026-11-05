@@ -23,121 +23,109 @@
         {{-- Main Card --}}
         <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
             
-            {{-- Header Card & Filters --}}
-            <div class="p-3 border-b border-base-300 shrink-0 flex flex-col gap-2.5 bg-base-200/40">
-                
-                {{-- Baris 1: Filter Hierarki Wilayah & Periode --}}
-                <div class="flex flex-wrap items-center gap-2">
-                    @php $accessLevel = auth()->user() ? auth()->user()->getAccessLevel() : 'nasional'; @endphp
-                    
-                    {{-- Filter Bulan --}}
-                    <div class="w-full sm:w-36">
-                        <select wire:model.live="appliedBulan" class="select select-sm select-bordered w-full bg-base-100 text-xs font-semibold" title="Pilih Bulan">
-                            @foreach($availableMonths as $ym)
-                                <option value="{{ $ym }}">{{ \Carbon\Carbon::parse($ym . '-01')->translatedFormat('F Y') }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+            {{-- Filter Toolbar (Standard UI Components) --}}
+            <x-ui.filter-toolbar>
+                {{-- Hierarchy Filter Breadcrumb Capsule --}}
+                <x-ui.filter-breadcrumb>
+                    @if(in_array($accessLevel, ['nasional', 'region']))
+                        <x-ui.filter-select 
+                            wire:model.live="appliedRegion" 
+                            :options="$regionOptions" 
+                            placeholder="Semua Region" 
+                            valueField="region_code" 
+                            labelField="region_name" 
+                            icon="region" 
+                            width="w-32 sm:w-36" 
+                        />
+                    @endif
 
-                    {{-- Filter Region --}}
-                    <div class="w-full sm:w-40">
-                        <select wire:model.live="appliedRegion" class="select select-sm select-bordered w-full bg-base-100 text-xs font-medium" @if($accessLevel != 'nasional' && count($regionOptions) <= 1) disabled @endif title="Filter Region">
-                            @if(count($regionOptions) != 1) <option value="">-- Semua Region --</option> @endif
-                            @foreach($regionOptions as $region)
-                                <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                    @if(!in_array($accessLevel, ['supervisor', 'area']))
+                        <x-ui.filter-select 
+                            wire:model.live="appliedArea" 
+                            :options="$areaOptions" 
+                            placeholder="Semua Area" 
+                            valueField="area_code" 
+                            labelField="area_name" 
+                            icon="area" 
+                            width="w-32 sm:w-36" 
+                            :disabled="empty($appliedRegion)" 
+                        />
+                    @endif
 
-                    {{-- Filter Area --}}
-                    <div class="w-full sm:w-44">
-                        <select wire:model.live="appliedArea" class="select select-sm select-bordered w-full bg-base-100 text-xs font-medium" @if(empty($appliedRegion) && $accessLevel == 'nasional') disabled @endif title="Filter Area">
-                            @if(count($areaOptions) != 1) <option value="">-- Semua Area --</option> @endif
-                            @foreach($areaOptions as $area)
-                                <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                    <x-ui.filter-select 
+                        wire:model.live="appliedSupervisor" 
+                        :options="$supervisorOptions" 
+                        placeholder="Semua Supervisor" 
+                        valueField="supervisor_code" 
+                        labelField="description" 
+                        icon="user" 
+                        width="w-36 sm:w-44" 
+                        :disabled="empty($appliedArea)" 
+                    />
 
-                    {{-- Filter Supervisor --}}
-                    <div class="w-full sm:w-48">
-                        <select wire:model.live="appliedSupervisor" class="select select-sm select-bordered w-full bg-base-100 text-xs font-medium" @if($accessLevel == 'supervisor') disabled @endif title="Filter Supervisor">
-                            @if(count($supervisorOptions) != 1) <option value="">-- Semua Supervisor --</option> @endif
-                            @foreach($supervisorOptions as $spv)
-                                <option value="{{ $spv->supervisor_code }}">{{ $spv->description ?? $spv->supervisor_code }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                    {{-- Distributor Searchable Capsule --}}
+                    <x-ui.filter-searchable 
+                        wire:key="summary-dist-capsule-{{ $appliedRegion }}-{{ $appliedArea }}-{{ $appliedSupervisor }}"
+                        wire:model.live="appliedDistributor" 
+                        :options="$distributorOptions" 
+                        valueField="distributor_code" 
+                        labelField="distributor_name" 
+                        placeholder="Semua Distributor" 
+                        searchPlaceholder="Cari nama / kode distributor..." 
+                        icon="distributor" 
+                        width="w-44 sm:w-56" 
+                        popoverWidth="w-72 sm:w-84" 
+                        allowAll="true"
+                        allLabel="Semua Distributor"
+                    />
+                </x-ui.filter-breadcrumb>
 
-                    {{-- Filter Distributor --}}
-                    <div class="w-full sm:w-56">
-                        <select wire:model.live="appliedDistributor" class="select select-sm select-bordered w-full bg-base-100 text-xs font-medium truncate" title="Filter Distributor">
-                            <option value="">-- Semua Distributor --</option>
-                            @foreach($distributorOptions as $dist)
-                                <option value="{{ $dist->distributor_code }}">{{ $dist->distributor_code }} - {{ $dist->distributor_name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                {{-- Month Filter Capsule --}}
+                <div class="inline-flex items-center gap-1.5 bg-base-100 px-2.5 py-1 rounded-xl border border-base-300 shadow-2xs text-xs font-medium shrink-0" title="Pilih Periode Bulan Evaluasi">
+                    <x-heroicon-m-calendar-days class="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <input type="month" wire:model.live="appliedBulan" class="bg-transparent border-none focus:outline-none text-xs font-semibold cursor-pointer w-28 text-base-content" />
                 </div>
 
-                {{-- Baris 2: Quick Filter Standpro, Pencarian, & Aksi --}}
-                <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-base-200">
-                    <div class="flex flex-wrap items-center gap-2">
-                        {{-- Standpro Quick Filter --}}
-                        <div class="join shadow-2xs border border-base-300">
-                            <button type="button" wire:click="setStandpro('')" class="btn btn-xs join-item {{ empty($appliedStandpro) ? 'btn-active btn-neutral' : 'btn-ghost' }}">Semua</button>
-                            <button type="button" wire:click="setStandpro('sudah')" class="btn btn-xs join-item {{ $appliedStandpro === 'sudah' ? 'btn-active btn-success text-white font-bold' : 'btn-ghost text-success' }}" title="Toko JKS >= 300">Standar (≥ 300)</button>
-                            <button type="button" wire:click="setStandpro('belum')" class="btn btn-xs join-item {{ $appliedStandpro === 'belum' ? 'btn-active btn-error text-white font-bold' : 'btn-ghost text-error' }}" title="Toko JKS < 300">Belum (&lt; 300)</button>
-                        </div>
-
-                        {{-- Per Page --}}
-                        <div class="flex items-center gap-1.5 text-xs text-base-content/60">
-                            <span>Baris:</span>
-                            <select wire:model.live="perPage" class="select select-2xs select-bordered bg-base-100 font-medium">
-                                <option value="50">50</option>
-                                <option value="100">100</option>
-                                <option value="200">200</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    {{-- Sisi Kanan: Search, Reset, Export --}}
-                    <div class="flex items-center gap-2 ml-auto">
-                        {{-- Search Input --}}
-                        <div class="relative w-48 sm:w-64">
-                            <input 
-                                type="text" 
-                                wire:model.live.debounce.300ms="search" 
-                                placeholder="Cari Salesman / Dist..." 
-                                class="input input-sm input-bordered w-full pr-8 text-xs bg-base-100"
-                            />
-                            @if(!empty($search))
-                                <button type="button" wire:click="$set('search', '')" class="absolute right-2 top-2 text-base-content/40 hover:text-base-content">
-                                    <x-heroicon-m-x-mark class="w-4 h-4" />
-                                </button>
-                            @else
-                                <span class="absolute right-2.5 top-2.5 text-base-content/40 pointer-events-none">
-                                    <x-heroicon-m-magnifying-glass class="w-4 h-4" />
-                                </span>
-                            @endif
-                        </div>
-
-                        {{-- Tombol Export Excel --}}
-                        <button class="btn btn-sm btn-success text-white gap-1.5 shadow-2xs" wire:click="exportExcel" wire:loading.class="opacity-50 pointer-events-none" wire:target="exportExcel" title="Export Rekapitulasi ke Excel">
-                            <x-heroicon-o-arrow-down-tray class="w-4 h-4" wire:loading.remove wire:target="exportExcel" />
-                            <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
-                            <span class="hidden sm:inline text-xs font-semibold">Excel</span>
-                        </button>
-
-                        {{-- Tombol Reset --}}
-                        <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-error gap-1" wire:click="resetFilters" title="Reset Semua Filter">
-                            <x-heroicon-o-arrow-path class="w-4 h-4" />
-                            <span class="hidden sm:inline text-xs">Reset</span>
-                        </button>
-                    </div>
+                {{-- Standpro Quick Filter Segmented Pills --}}
+                <div class="inline-flex items-center bg-base-200/60 p-0.5 rounded-xl border border-base-300 shadow-2xs text-xs shrink-0" title="Filter Pencapaian Standar Pareto (300 Toko)">
+                    <button type="button" wire:click="setStandpro('')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer {{ empty($appliedStandpro) ? 'bg-primary text-white font-bold shadow-2xs' : 'text-base-content/70 hover:text-base-content' }}">Semua</button>
+                    <button type="button" wire:click="setStandpro('sudah')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer {{ $appliedStandpro === 'sudah' ? 'bg-success text-white font-bold shadow-2xs' : 'text-base-content/70 hover:text-base-content' }}" title="Toko JKS >= 300">Standar (≥ 300)</button>
+                    <button type="button" wire:click="setStandpro('belum')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer {{ $appliedStandpro === 'belum' ? 'bg-error text-white font-bold shadow-2xs' : 'text-base-content/70 hover:text-base-content' }}" title="Toko JKS < 300">Belum (&lt; 300)</button>
                 </div>
 
-            </div>
+                <x-slot:actions>
+                    {{-- Per Page Dropdown --}}
+                    <div class="flex items-center gap-1.5 text-xs text-base-content/60">
+                        <span>Baris:</span>
+                        <select wire:model.live="perPage" class="select select-2xs select-bordered bg-base-100 rounded-lg font-medium">
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="200">200</option>
+                        </select>
+                    </div>
+
+                    {{-- Search Component --}}
+                    <x-ui.search-input wire:model.live.debounce.300ms="search" placeholder="Cari Salesman / Dist..." />
+
+                    {{-- Reset Button --}}
+                    <button type="button" class="btn btn-sm btn-ghost border border-base-300 rounded-xl text-base-content/70 hover:text-base-content text-xs cursor-pointer" wire:click="resetFilters" title="Reset Semua Filter">
+                        <x-heroicon-m-arrow-path class="w-3.5 h-3.5" />
+                        <span class="hidden sm:inline">Reset</span>
+                    </button>
+
+                    {{-- Export Excel Button --}}
+                    <button type="button" class="btn btn-sm btn-success text-white rounded-xl gap-1 text-xs font-semibold shadow-xs cursor-pointer" wire:click="exportExcel" wire:loading.class="opacity-50 pointer-events-none" wire:target="exportExcel" title="Export Rekapitulasi ke Excel">
+                        <span wire:loading.remove wire:target="exportExcel" class="flex items-center gap-1">
+                            <x-heroicon-s-arrow-down-tray class="w-4 h-4" /> 
+                            <span class="hidden sm:inline">Excel</span>
+                        </span>
+                        <span wire:loading wire:target="exportExcel" class="flex items-center gap-1">
+                            <span class="loading loading-spinner loading-xs"></span>
+                            <span class="hidden sm:inline">Loading...</span>
+                        </span>
+                    </button>
+                </x-slot:actions>
+            </x-ui.filter-toolbar>
 
             {{-- Body Card (Table Scrollable area) --}}
             <div class="flex-1 overflow-auto bg-base-100 w-full relative shadow-inner">
