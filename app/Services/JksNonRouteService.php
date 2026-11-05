@@ -39,21 +39,30 @@ class JksNonRouteService
     {
         $bulan = $filters['bulan'] ?? date('Y-m-01');
         $baseBulan = \Carbon\Carbon::parse($bulan);
+        $targetBulan = $baseBulan->format('Y-m');
         
         $query = DB::table('jks_se_master_toko_ool as mto')
-            ->leftJoin('jks_salesmans as js', function($join) {
+            ->leftJoin('jks_salesmans as js', function($join) use ($targetBulan) {
                 $join->on('mto.distributor_code', '=', 'js.distributor_code')
-                     ->on('mto.customer_code', '=', 'js.customer_code');
+                     ->on('mto.customer_code', '=', 'js.customer_code')
+                     ->where('js.bulan', 'like', $targetBulan . '%');
             })
             ->leftJoin('jks_se_toko_ool_remarks as mtor', function($join) {
                 $join->on('mto.distributor_code', '=', 'mtor.distributor_code')
                      ->on('mto.customer_code', '=', 'mtor.customer_code');
             })
-            ->leftJoin('jks_approvals as ja', function($join) {
+            ->leftJoin('jks_approvals as ja', function($join) use ($targetBulan) {
                 $join->on('mto.distributor_code', '=', 'ja.distributor_code')
                      ->where('ja.status', '=', 'PENDING')
                      ->where('ja.action_type', '=', 'TAMBAH_JADWAL')
-                     ->whereRaw("ja.payload->>'customer_code' = mto.customer_code");
+                     ->where(function($q) use ($targetBulan) {
+                         $q->whereRaw("ja.payload->>'bulan' LIKE ?", [$targetBulan . '%'])
+                           ->orWhereRaw("ja.payload->>'bulan' IS NULL");
+                     })
+                     ->where(function($q) {
+                         $q->whereRaw("ja.payload->>'customer_code' = mto.customer_code")
+                           ->orWhereRaw("(ja.payload::jsonb->'tokos') @> jsonb_build_array(jsonb_build_object('code', mto.customer_code))");
+                     });
             });
 
         // Dynamic 6 months history joins

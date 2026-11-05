@@ -8,7 +8,7 @@
         <a href="#" class="tab">Dashboard</a>
         <a href="{{ route('call-plan.jks-summary') }}" class="tab tab-active bg-primary text-primary-content">Summary</a>
         <a href="{{ route('call-plan.jks-salesmans') }}" class="tab">Detail</a>
-        <a href="#" class="tab">Maps</a>
+        <a href="{{ route('call-plan.jks-maps') }}" class="tab">Maps</a>
         <a href="{{ route('call-plan.jks-non-route') }}" class="tab">Outlet non JKS</a>
         <a href="{{ route('call-plan.jks-approvals') }}" class="tab">
             Persetujuan

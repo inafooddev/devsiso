@@ -50,13 +50,13 @@ class Index extends Component
             $this->appliedArea = $state['appliedArea'] ?? '';
             $this->appliedSupervisor = $state['appliedSupervisor'] ?? '';
             $this->appliedDistributor = $state['appliedDistributor'] ?? '';
-            $this->appliedBulan = $state['appliedBulan'] ?? date('Y-m-01');
+            $this->appliedBulan = $state['appliedBulan'] ?? date('Y-m');
             
             $this->selectedRegion = $state['selectedRegion'] ?? '';
             $this->selectedArea = $state['selectedArea'] ?? '';
             $this->selectedSupervisor = $state['selectedSupervisor'] ?? '';
             $this->selectedDistributor = $state['selectedDistributor'] ?? '';
-            $this->selectedBulan = $state['selectedBulan'] ?? date('Y-m-01');
+            $this->selectedBulan = $state['selectedBulan'] ?? date('Y-m');
 
             $this->search = $state['search'] ?? '';
             $this->selected = $state['selected'] ?? [];
@@ -65,6 +65,14 @@ class Index extends Component
             if (isset($state['page'])) {
                 $this->setPage($state['page']);
             }
+        }
+        
+        if (empty($this->appliedBulan)) {
+            $this->appliedBulan = date('Y-m');
+            $this->selectedBulan = date('Y-m');
+        } else {
+            $this->appliedBulan = substr($this->appliedBulan, 0, 7);
+            $this->selectedBulan = $this->appliedBulan;
         }
         
         $this->applyDefaultFiltersForRestrictedUser();
@@ -219,9 +227,17 @@ class Index extends Component
             ->select('distributor_code', 'distributor_name')
             ->whereNotNull('distributor_code');
             
-        if ($this->selectedRegion) $query->where('region_code', $this->selectedRegion);
-        if ($this->selectedArea) $query->where('area_code', $this->selectedArea);
-        if ($this->selectedSupervisor) $query->where('supervisor_code', $this->selectedSupervisor);
+        $supervisor = $this->appliedSupervisor ?: $this->selectedSupervisor;
+        $area = $this->appliedArea ?: $this->selectedArea;
+        $region = $this->appliedRegion ?: $this->selectedRegion;
+
+        if ($supervisor) {
+            $query->where('supervisor_code', $supervisor);
+        } elseif ($area) {
+            $query->where('area_code', $area);
+        } elseif ($region) {
+            $query->where('region_code', $region);
+        }
         
         $query = $this->applyHierarchyAccess($query);
         
@@ -288,6 +304,35 @@ class Index extends Component
     public function updatedAppliedDistributor()
     {
         $this->selectedDistributor = $this->appliedDistributor;
+
+        if (!empty($this->appliedDistributor)) {
+            $distInfo = \Illuminate\Support\Facades\DB::table('master_distributors')
+                ->where('distributor_code', $this->appliedDistributor)
+                ->first();
+
+            if ($distInfo) {
+                if (!empty($distInfo->region_code)) {
+                    $this->appliedRegion = $distInfo->region_code;
+                    $this->selectedRegion = $this->appliedRegion;
+                }
+                if (!empty($distInfo->area_code)) {
+                    $this->appliedArea = $distInfo->area_code;
+                    $this->selectedArea = $this->appliedArea;
+                }
+                if (!empty($distInfo->supervisor_code)) {
+                    $this->appliedSupervisor = $distInfo->supervisor_code;
+                    $this->selectedSupervisor = $this->appliedSupervisor;
+                }
+            }
+        }
+
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatedAppliedBulan()
+    {
+        $this->selectedBulan = $this->appliedBulan;
         $this->resetPage();
         $this->resetSelection();
     }
@@ -374,7 +419,7 @@ class Index extends Component
 
         
         $this->formSalesman = '';
-        $this->formBulan = date('Y-m-01'); // Default current month
+        $this->formBulan = now()->format('Y-m'); // Default current running month
         $this->formH = [];
         $this->formW = [];
 
@@ -407,7 +452,7 @@ class Index extends Component
         $this->bulkDistributorCode = $distributorCodes->first();
         
         $this->formSalesman = '';
-        $this->formBulan = date('Y-m-01');
+        $this->formBulan = now()->format('Y-m');
         $this->formH = [];
         $this->formW = [];
 
@@ -460,6 +505,15 @@ class Index extends Component
     public function submitAddJks()
     {
         abort_if(!$this->canAdd, 403, 'Akses ditolak.');
+
+        $user = auth()->user();
+        $currentMonth = now()->format('Y-m');
+        $targetMonth = substr($this->formBulan, 0, 7);
+
+        if (!$user || (!$user->hasRole('admin') && $targetMonth !== $currentMonth)) {
+            $this->dispatch('show-toast', type: 'error', message: 'Akses Ditolak: Pengajuan penambahan jadwal hanya diizinkan untuk periode bulan berjalan (' . now()->translatedFormat('F Y') . ').');
+            return;
+        }
 
         $this->validate([
             'formSalesman' => 'required',
@@ -523,9 +577,7 @@ class Index extends Component
         }
 
         $filters = $this->getAppliedFilters();
-        if (isset($filters['bulan'])) {
-            unset($filters['bulan']);
-        }
+        $filters['bulan'] = $this->appliedBulan;
 
         $fileName = 'Outlet_Non_JKS_' . date('Ymd_His') . '.xlsx';
         

@@ -397,6 +397,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/call-plan/jks-approvals', \App\Livewire\CallPlan\JksApprovals\Index::class)->name('call-plan.jks-approvals');
     Route::get('/call-plan/jks-non-route', \App\Livewire\CallPlan\JksNonRoute\Index::class)->name('call-plan.jks-non-route');
     Route::get('/call-plan/jks-summary', \App\Livewire\CallPlan\JksSummary\Index::class)->name('call-plan.jks-summary');
+    Route::get('/call-plan/jks-maps', \App\Livewire\CallPlan\JksMaps\Index::class)->name('call-plan.jks-maps');
 
     // ==========================================
     // SELLING IN & OUT

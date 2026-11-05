@@ -8,7 +8,7 @@
         <a href="#" class="tab">Dashboard</a>
         <a href="{{ route('call-plan.jks-summary') }}" class="tab">Summary</a>
         <a href="{{ route('call-plan.jks-salesmans') }}" class="tab">Detail</a>
-        <a href="#" class="tab">Maps</a>
+        <a href="{{ route('call-plan.jks-maps') }}" class="tab">Maps</a>
         <a href="{{ route('call-plan.jks-non-route') }}" class="tab tab-active bg-primary text-primary-content">Outlet non JKS</a>
         <a href="{{ route('call-plan.jks-approvals') }}" class="tab">
             Persetujuan
@@ -23,49 +23,76 @@
         {{-- Main Card --}}
         <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
             
-            {{-- Header Card & Actions --}}
-            <div class="p-3 md:p-4 lg:p-5 border-b border-base-300 shrink-0 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-base-200/30">
-                <div class="shrink-0 w-full xl:w-auto">
-                    <h2 class="text-base md:text-lg font-bold">Outlet Non JKS</h2>
-                    <p class="text-[10px] md:text-xs text-base-content/60 font-semibold uppercase tracking-wider mt-0.5">Daftar toko aktif yang belum terdaftar di JKS Salesman</p>
+            {{-- Filter Toolbar --}}
+            <x-ui.filter-toolbar>
+                {{-- Hierarchy Filter Breadcrumb Capsule --}}
+                <x-ui.filter-breadcrumb>
+                    @if(in_array($this->accessLevel, ['nasional', 'region']))
+                        <x-ui.filter-select 
+                            wire:model.live="appliedRegion" 
+                            :options="$regionOptions" 
+                            placeholder="Semua Region" 
+                            valueField="region_code" 
+                            labelField="region_name" 
+                            icon="region" 
+                            width="w-32 sm:w-36" 
+                        />
+                    @endif
+
+                    @if(!in_array($this->accessLevel, ['supervisor', 'area']))
+                        <x-ui.filter-select 
+                            wire:model.live="appliedArea" 
+                            :options="$areaOptions" 
+                            placeholder="Semua Area" 
+                            valueField="area_code" 
+                            labelField="area_name" 
+                            icon="area" 
+                            width="w-32 sm:w-36" 
+                            :disabled="empty($appliedRegion)" 
+                        />
+                    @endif
+
+                    <x-ui.filter-select 
+                        wire:model.live="appliedSupervisor" 
+                        :options="$supervisorOptions" 
+                        placeholder="Semua Supervisor" 
+                        valueField="supervisor_code" 
+                        labelField="description" 
+                        icon="user" 
+                        width="w-36 sm:w-44" 
+                        :disabled="empty($appliedArea)" 
+                    />
+
+                    {{-- Distributor: Bebas dicari & dipilih langsung tanpa harus isi hierarki dulu --}}
+                    <x-ui.filter-searchable 
+                        wire:key="nonroute-dist-capsule-{{ $appliedRegion }}-{{ $appliedArea }}-{{ $appliedSupervisor }}"
+                        wire:model.live="appliedDistributor" 
+                        :options="$distributorOptions" 
+                        valueField="distributor_code" 
+                        labelField="distributor_name" 
+                        placeholder="Pilih Distributor" 
+                        searchPlaceholder="Cari nama / kode distributor..." 
+                        icon="distributor" 
+                        width="w-48 sm:w-60" 
+                        popoverWidth="w-72 sm:w-84" 
+                    />
+                </x-ui.filter-breadcrumb>
+
+                {{-- Month Filter Capsule --}}
+                <div class="inline-flex items-center gap-1.5 bg-base-100 px-2.5 py-1 rounded-xl border border-base-300 shadow-2xs text-xs font-medium shrink-0" title="Pilih Periode Bulan Evaluasi">
+                    <x-heroicon-m-calendar-days class="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <input type="month" wire:model.live="appliedBulan" class="bg-transparent border-none focus:outline-none text-xs font-semibold cursor-pointer w-28 text-base-content" />
                 </div>
-                
-                {{-- Hierarchy Filters & Search --}}
-                <div class="flex flex-wrap items-center justify-start xl:justify-end gap-2 md:gap-3 w-full xl:w-auto">
-                    <select wire:model.live="appliedRegion" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0 @if(!in_array($accessLevel, ['nasional', 'region'])) hidden @endif">
-                        <option value="">Semua Region</option>
-                        @foreach($regionOptions as $region)
-                            <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
-                        @endforeach
-                    </select>
 
-                    <select wire:model.live="appliedArea" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0 @if(in_array($accessLevel, ['supervisor', 'area'])) hidden @endif" @if(empty($appliedRegion)) disabled @endif>
-                        <option value="">Semua Area</option>
-                        @foreach($areaOptions as $area)
-                            <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
-                        @endforeach
-                    </select>
-
-                    <select wire:model.live="appliedSupervisor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0" @if(empty($appliedArea)) disabled @endif>
-                        <option value="">Semua Supervisor</option>
-                        @foreach($supervisorOptions as $spv)
-                            <option value="{{ $spv->supervisor_code }}">{{ $spv->description ?? $spv->supervisor_code }}</option>
-                        @endforeach
-                    </select>
-
-                    <select wire:model.live="appliedDistributor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0" @if(empty($appliedSupervisor)) disabled @endif>
-                        @foreach($distributorOptions as $dist)
-                            <option value="{{ $dist->distributor_code }}">{{ $dist->distributor_name }}</option>
-                        @endforeach
-                    </select>
-
+                <x-slot:actions>
                     {{-- Bulk Actions --}}
                     @if(count($selected) > 0)
-                        <div class="flex items-center gap-2 border-l border-base-300 pl-2">
-                            <span class="badge badge-primary">{{ count($selected) }} terpilih</span>
+                        <div class="flex items-center gap-1.5 pr-2 border-r border-base-300">
+                            <span class="badge badge-primary badge-sm">{{ count($selected) }} terpilih</span>
                             @canAdd('call-plan.jks-salesmans')
-                                <button class="btn btn-sm btn-primary text-white" wire:click="openBulkAddJksModal">
-                                    <x-heroicon-s-plus-circle class="w-4 h-4" /> Tambah Massal ke JKS
+                                <button type="button" class="btn btn-sm btn-primary text-white gap-1 rounded-xl" wire:click="openBulkAddJksModal">
+                                    <x-heroicon-s-plus-circle class="w-4 h-4" /> 
+                                    <span class="hidden md:inline">Tambah Massal ke JKS</span>
                                 </button>
                             @endcanAdd
                         </div>
@@ -73,25 +100,27 @@
 
                     {{-- Search Component --}}
                     <x-ui.search-input wire:model.live.debounce.300ms="search" placeholder="Cari outlet..." />
-                    
-                    {{-- Actions (Export & Reset) --}}
-                    <div class="border-l border-base-300 pl-2 hidden sm:flex items-center gap-2">
-                        <button class="btn btn-sm btn-ghost text-base-content/70" wire:click="resetFilters" title="Reset Filters & Cache">
-                            <x-heroicon-o-arrow-path class="w-4 h-4" />
+
+                    {{-- Reset Button --}}
+                    <button type="button" class="btn btn-sm btn-ghost border border-base-300 rounded-xl text-base-content/70 hover:text-base-content text-xs cursor-pointer" wire:click="resetFilters" title="Reset Filters & Cache">
+                        <x-heroicon-m-arrow-path class="w-3.5 h-3.5" />
+                        <span class="hidden sm:inline">Reset</span>
+                    </button>
+
+                    {{-- Export Excel Button --}}
+                    @canExport('call-plan.jks-salesmans')
+                        <button type="button" class="btn btn-sm btn-success text-white rounded-xl gap-1 text-xs font-semibold shadow-xs cursor-pointer" wire:click="exportExcel">
+                            <span wire:loading.remove wire:target="exportExcel" class="flex items-center gap-1">
+                                <x-heroicon-s-arrow-down-tray class="w-4 h-4" /> 
+                                <span class="hidden sm:inline">Export Excel</span>
+                            </span>
+                            <span wire:loading wire:target="exportExcel" class="flex items-center gap-1">
+                                <span class="loading loading-spinner loading-xs"></span> Loading...
+                            </span>
                         </button>
-                        @canExport('call-plan.jks-salesmans')
-                            <button class="btn btn-sm btn-success text-white" wire:click="exportExcel">
-                                <span wire:loading.remove wire:target="exportExcel" class="flex items-center gap-1">
-                                    <x-heroicon-s-arrow-down-tray class="w-4 h-4" /> Export Excel
-                                </span>
-                                <span wire:loading wire:target="exportExcel" class="flex items-center gap-1">
-                                    <span class="loading loading-spinner loading-xs"></span> Loading...
-                                </span>
-                            </button>
-                        @endcanExport
-                    </div>
-                </div>
-            </div>
+                    @endcanExport
+                </x-slot:actions>
+            </x-ui.filter-toolbar>
 
             {{-- Message if no filter applied --}}
             @if(empty($appliedRegion) && empty($appliedArea) && empty($appliedSupervisor) && empty($appliedDistributor) && empty($search))
@@ -163,7 +192,7 @@
                                 <td class="text-center">
                                     <div class="flex items-center justify-center gap-1">
                                         @if($row->pending_approval_id)
-                                            <span class="badge badge-warning badge-sm text-[10px]" title="Sedang Diajukan ke JKS">Pending</span>
+                                            <span class="badge badge-warning badge-xs font-semibold" title="Sedang Diajukan ke JKS">Pending</span>
                                         @else
                                             @canAdd('call-plan.jks-salesmans')
                                                 <button 
@@ -329,8 +358,23 @@
                         </div>
 
                         <div class="form-control">
-                            <label class="label"><span class="label-text font-medium">Bulan Target <span class="text-error">*</span></span></label>
-                            <input type="month" wire:model.live="formBulan" class="input input-bordered @error('formBulan') input-error @enderror" />
+                            <label class="label">
+                                <span class="label-text font-medium">Bulan Target <span class="text-error">*</span></span>
+                                @if(!auth()->user()?->hasRole('admin'))
+                                    <span class="label-text-alt text-warning font-semibold flex items-center gap-1">
+                                        <x-heroicon-s-lock-closed class="w-3.5 h-3.5" /> Bulan Berjalan
+                                    </span>
+                                @endif
+                            </label>
+                            @if(auth()->user()?->hasRole('admin'))
+                                <input type="month" wire:model.live="formBulan" class="input input-bordered @error('formBulan') input-error @enderror" />
+                            @else
+                                <input type="month" wire:model.live="formBulan" class="input input-bordered bg-base-200 pointer-events-none opacity-80 cursor-not-allowed" readonly title="Pengajuan hanya diizinkan untuk bulan berjalan" />
+                                <div class="text-xs text-base-content/60 mt-1 flex items-center gap-1">
+                                    <x-heroicon-o-information-circle class="w-3.5 h-3.5 shrink-0 text-info" />
+                                    <span>Hanya diizinkan mengajukan ke bulan berjalan (<strong>{{ now()->translatedFormat('F Y') }}</strong>).</span>
+                                </div>
+                            @endif
                             @error('formBulan') <span class="text-error text-xs mt-1">{{ $message }}</span> @enderror
                         </div>
                     </div>
@@ -386,13 +430,13 @@
                                 <!-- Month View -->
                                 <div>
                                     <div class="grid grid-cols-7 gap-1 text-center mb-1.5 border-b border-base-200 pb-1">
-                                        <div class="text-[10px] font-bold text-error uppercase">Min</div>
-                                        <div class="text-[10px] font-bold uppercase">Sen</div>
-                                        <div class="text-[10px] font-bold uppercase">Sel</div>
-                                        <div class="text-[10px] font-bold uppercase">Rab</div>
-                                        <div class="text-[10px] font-bold uppercase">Kam</div>
-                                        <div class="text-[10px] font-bold uppercase">Jum</div>
-                                        <div class="text-[10px] font-bold uppercase">Sab</div>
+                                        <div class="text-xs font-bold text-error uppercase">Min</div>
+                                        <div class="text-xs font-bold uppercase">Sen</div>
+                                        <div class="text-xs font-bold uppercase">Sel</div>
+                                        <div class="text-xs font-bold uppercase">Rab</div>
+                                        <div class="text-xs font-bold uppercase">Kam</div>
+                                        <div class="text-xs font-bold uppercase">Jum</div>
+                                        <div class="text-xs font-bold uppercase">Sab</div>
                                     </div>
                                     <div class="grid grid-cols-7 gap-1">
                                         @for($i=0; $i<$offset; $i++)
@@ -409,8 +453,8 @@
                                                       :class="{ 'text-primary font-bold': $wire.formH.includes('{{ $day->day_number }}') && $wire.formW.includes('{{ $day->week_month }}') && !{{ $day->libur_nasional || $day->day_number == 7 ? 'true' : 'false' }} }">
                                                     {{ (int)date('d', strtotime($day->date)) }}
                                                 </span>
-                                                <span class="text-[9px] absolute bottom-1 right-1 font-bold px-1 rounded-sm"
-                                                      :class="($wire.formH.includes('{{ $day->day_number }}') && $wire.formW.includes('{{ $day->week_month }}')) ? 'bg-primary text-primary-content' : 'bg-primary/10 text-primary'">
+                                                <span class="badge badge-xs absolute bottom-0.5 right-0.5 font-bold"
+                                                      :class="($wire.formH.includes('{{ $day->day_number }}') && $wire.formW.includes('{{ $day->week_month }}')) ? 'badge-primary' : 'badge-ghost text-primary'">
                                                     W{{ $day->week_month }}
                                                 </span>
                                             </div>
