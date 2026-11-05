@@ -8,29 +8,23 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Computed;
 use Illuminate\Support\Facades\DB;
-use App\Traits\WithCallPlanFilters;
 
 class Index extends Component
 {
     use WithPagination;
-    use WithCallPlanFilters;
 
     #[Title('Summary JKS')]
     #[Layout('layouts.app')]
 
+    public $search = '';
+    public $appliedRegion = '';
+    public $appliedArea = '';
+    public $appliedSupervisor = '';
+    public $appliedDistributor = '';
+    public $appliedBulan = '';
     public $appliedStandpro = ''; // '' = semua, 'belum' = < 300, 'sudah' = >= 300
+    public $perPage = 100;
 
-    public function setStandpro($val)
-    {
-        $this->appliedStandpro = $val;
-        $this->resetPage();
-    }
-
-    public function updatedAppliedStandpro()
-    {
-        $this->resetPage();
-    }
-    
     public function mount()
     {
         if (session()->has('jks_summary_state')) {
@@ -39,18 +33,16 @@ class Index extends Component
             $this->appliedArea = $state['appliedArea'] ?? '';
             $this->appliedSupervisor = $state['appliedSupervisor'] ?? '';
             $this->appliedDistributor = $state['appliedDistributor'] ?? '';
-            $this->appliedBulan = $state['appliedBulan'] ?? date('Y-m-01');
+            $this->appliedBulan = $state['appliedBulan'] ?? date('Y-m');
             $this->appliedStandpro = $state['appliedStandpro'] ?? '';
-            
-            $this->selectedRegion = $state['selectedRegion'] ?? '';
-            $this->selectedArea = $state['selectedArea'] ?? '';
-            $this->selectedSupervisor = $state['selectedSupervisor'] ?? '';
-            $this->selectedDistributor = $state['selectedDistributor'] ?? '';
-            $this->selectedBulan = $state['selectedBulan'] ?? date('Y-m-01');
+            $this->search = $state['search'] ?? '';
+            $this->perPage = $state['perPage'] ?? 100;
 
             if (isset($state['page'])) {
                 $this->setPage($state['page']);
             }
+        } else {
+            $this->appliedBulan = date('Y-m');
         }
 
         $this->applyDefaultFiltersForRestrictedUser();
@@ -63,18 +55,16 @@ class Index extends Component
             $accessLevel = $user->getAccessLevel();
             
             if (in_array($accessLevel, ['region', 'area', 'supervisor'])) {
-                // Determine region from user profile
                 if (!empty($user->region_code) && count((array)$user->region_code) == 1 && empty($this->appliedRegion)) {
                     $this->appliedRegion = ((array)$user->region_code)[0];
                 }
             }
             if (in_array($accessLevel, ['area', 'supervisor'])) {
-                // Determine area from user profile
                 if (!empty($user->area_code) && count((array)$user->area_code) == 1 && empty($this->appliedArea)) {
                     $this->appliedArea = ((array)$user->area_code)[0];
                     
                     if ($accessLevel === 'area' && empty($this->appliedRegion)) {
-                        $areaData = \Illuminate\Support\Facades\DB::table('master_distributors')
+                        $areaData = DB::table('master_distributors')
                             ->where('area_code', $this->appliedArea)
                             ->select('region_code')
                             ->first();
@@ -88,8 +78,7 @@ class Index extends Component
                 if (!empty($user->supervisor_code) && empty($this->appliedSupervisor)) {
                     $this->appliedSupervisor = $user->supervisor_code;
                     
-                    // Fetch supervisor's area and region from master_distributors
-                    $spvData = \Illuminate\Support\Facades\DB::table('master_distributors as md')
+                    $spvData = DB::table('master_distributors as md')
                         ->join('team_elite_code_mappings as te', 'md.supervisor_code', '=', 'te.siso_code')
                         ->where('te.team_elite_code', $user->supervisor_code)
                         ->select('md.region_code', 'md.area_code')
@@ -117,66 +106,82 @@ class Index extends Component
             'appliedDistributor' => $this->appliedDistributor,
             'appliedBulan' => $this->appliedBulan,
             'appliedStandpro' => $this->appliedStandpro,
-            'selectedRegion' => $this->selectedRegion,
-            'selectedArea' => $this->selectedArea,
-            'selectedSupervisor' => $this->selectedSupervisor,
-            'selectedDistributor' => $this->selectedDistributor,
-            'selectedBulan' => $this->selectedBulan,
+            'search' => $this->search,
+            'perPage' => $this->perPage,
             'page' => $this->paginators['page'] ?? $this->getPage(),
         ]);
+    }
+
+    // --- Lifecycle Event Handlers (Cascading) ---
+
+    public function updatedAppliedBulan()
+    {
+        // Ganti bulan TIDAK me-reset hierarki wilayah
+        $this->resetPage();
+    }
+
+    public function updatedAppliedRegion()
+    {
+        $this->appliedArea = '';
+        $this->appliedSupervisor = '';
+        $this->appliedDistributor = '';
+        $this->resetPage();
+    }
+
+    public function updatedAppliedArea()
+    {
+        $this->appliedSupervisor = '';
+        $this->appliedDistributor = '';
+        $this->resetPage();
+    }
+
+    public function updatedAppliedSupervisor()
+    {
+        $this->appliedDistributor = '';
+        $this->resetPage();
+    }
+
+    public function updatedAppliedDistributor()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedAppliedStandpro()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedPerPage()
+    {
+        $this->resetPage();
+    }
+
+    public function setStandpro($val)
+    {
+        $this->appliedStandpro = $val;
+        $this->resetPage();
     }
 
     public function resetFilters()
     {
         $this->reset([
-            'selectedRegion', 'selectedArea', 'selectedSupervisor', 'selectedBulan',
-            'appliedRegion', 'appliedArea', 'appliedSupervisor', 'appliedBulan', 'appliedStandpro'
+            'appliedRegion', 'appliedArea', 'appliedSupervisor', 'appliedDistributor', 'appliedStandpro', 'search'
         ]);
         
-        $this->appliedBulan = date('Y-m-01');
+        $this->appliedBulan = date('Y-m');
         $this->appliedStandpro = '';
+        $this->perPage = 100;
 
         if (session()->has('jks_summary_state')) {
             session()->forget('jks_summary_state');
         }
 
         $this->applyDefaultFiltersForRestrictedUser();
-
-        $this->resetPage();
-    }
-
-    public function render()
-    {
-        return view('livewire.call-plan.jks-summary.index', [
-            'regionOptions' => $this->filterRegions,
-            'areaOptions' => $this->filterAreas,
-            'supervisorOptions' => $this->filterSupervisors,
-            'supervisorOptions' => $this->filterSupervisors,
-            'summaryData' => $this->summaryData,
-        ]);
-    }
-
-    public function updatedAppliedBulan()
-    {
-        $this->reset(['appliedRegion', 'appliedArea', 'appliedSupervisor']);
-        $this->applyDefaultFiltersForRestrictedUser();
-        $this->resetPage();
-    }
-
-    public function updatedAppliedRegion()
-    {
-        $this->reset(['appliedArea', 'appliedSupervisor']);
-        $this->resetPage();
-    }
-
-    public function updatedAppliedArea()
-    {
-        $this->reset(['appliedSupervisor']);
-        $this->resetPage();
-    }
-
-    public function updatedAppliedSupervisor()
-    {
         $this->resetPage();
     }
 
@@ -190,8 +195,7 @@ class Index extends Component
         }
 
         if (!empty($user->supervisor_code)) {
-            // Map the team_elite_code (from users table) to siso_code (used in master_distributors)
-            $sisoCodes = \Illuminate\Support\Facades\DB::table('team_elite_code_mappings')
+            $sisoCodes = DB::table('team_elite_code_mappings')
                            ->where('team_elite_code', $user->supervisor_code)
                            ->pluck('siso_code');
             return $query->whereIn('md.supervisor_code', $sisoCodes);
@@ -206,6 +210,26 @@ class Index extends Component
         }
 
         return $query;
+    }
+
+    // --- Computed Filter Options ---
+
+    #[Computed]
+    public function availableMonths()
+    {
+        $months = DB::table('jks_salesmans')
+            ->select(DB::raw('substr(bulan::text, 1, 7) as ym'))
+            ->groupBy(DB::raw('substr(bulan::text, 1, 7)'))
+            ->orderByDesc(DB::raw('substr(bulan::text, 1, 7)'))
+            ->pluck('ym')
+            ->toArray();
+
+        $currentMonth = date('Y-m');
+        if (!in_array($currentMonth, $months)) {
+            array_unshift($months, $currentMonth);
+        }
+
+        return $months;
     }
 
     #[Computed]
@@ -259,23 +283,41 @@ class Index extends Component
                   ->whereColumn('md.supervisor_code', 'te.siso_code')
                   ->where('md.is_active', true);
                 
-                // Dependency Filter
                 if ($this->appliedRegion) $q->where('md.region_code', $this->appliedRegion);
                 if ($this->appliedArea) $q->where('md.area_code', $this->appliedArea);
                 
-                // Hierarki/RBAC
                 $this->applyHierarchyAccess($q);
             });
 
         return $query->orderBy('f.SLSNAME')->get();
     }
 
-
-    
     #[Computed]
+    public function filterDistributors()
+    {
+        $query = DB::table('master_distributors as md')
+            ->select('md.distributor_code', 'md.distributor_name')
+            ->where('md.is_active', true);
+
+        if ($this->appliedRegion) $query->where('md.region_code', $this->appliedRegion);
+        if ($this->appliedArea) $query->where('md.area_code', $this->appliedArea);
+        if ($this->appliedSupervisor) {
+            $sisoCodes = DB::table('team_elite_code_mappings')
+                ->where('team_elite_code', $this->appliedSupervisor)
+                ->pluck('siso_code');
+            $query->whereIn('md.supervisor_code', $sisoCodes);
+        }
+
+        $query = $this->applyHierarchyAccess($query);
+
+        return $query->orderBy('md.distributor_name')->get();
+    }
+
+    // --- Data Query ---
+
     public function getBaseQuery()
     {
-        $bulan = $this->appliedBulan ?: date('Y-m-01');
+        $bulan = !empty($this->appliedBulan) ? substr($this->appliedBulan, 0, 7) : date('Y-m');
 
         $query = DB::table('master_distributors as md')
             ->leftJoin('team_elite_code_mappings as te', 'md.supervisor_code', '=', 'te.siso_code')
@@ -369,10 +411,23 @@ class Index extends Component
 
         $query = $this->applyHierarchyAccess($query);
 
-        // Apply Filters
-        if ($this->appliedRegion) $query->where('md.region_code', $this->appliedRegion);
-        if ($this->appliedArea) $query->where('md.area_code', $this->appliedArea);
-        if ($this->appliedSupervisor) $query->where('te.team_elite_code', $this->appliedSupervisor);
+        // Filter Hierarki Wilayah
+        if (!empty($this->appliedRegion)) $query->where('md.region_code', $this->appliedRegion);
+        if (!empty($this->appliedArea)) $query->where('md.area_code', $this->appliedArea);
+        if (!empty($this->appliedSupervisor)) $query->where('te.team_elite_code', $this->appliedSupervisor);
+        if (!empty($this->appliedDistributor)) $query->where('md.distributor_code', $this->appliedDistributor);
+
+        // Filter Pencarian (Salesman / Distributor / Supervisor)
+        if (!empty($this->search)) {
+            $search = trim($this->search);
+            $query->where(function($q) use ($search) {
+                $q->where('s.salesman_name', 'ilike', "%{$search}%")
+                  ->orWhere('s.salesman_code', 'ilike', "%{$search}%")
+                  ->orWhere('md.distributor_name', 'ilike', "%{$search}%")
+                  ->orWhere('md.distributor_code', 'ilike', "%{$search}%")
+                  ->orWhere('f.SLSNAME', 'ilike', "%{$search}%");
+            });
+        }
 
         // Standpro Filter (Belum < 300, Sudah >= 300)
         if ($this->appliedStandpro === 'belum') {
@@ -387,21 +442,22 @@ class Index extends Component
     #[Computed]
     public function summaryData()
     {
-        $bulan = $this->appliedBulan ?: date('Y-m-01');
+        $bulan = !empty($this->appliedBulan) ? substr($this->appliedBulan, 0, 7) : date('Y-m');
         $query = $this->getBaseQuery();
 
-        $accessLevel = auth()->user() ? auth()->user()->getAccessLevel() : 'nasional';
-        $jksData = $accessLevel === 'nasional' ? $query->paginate(9999) : $query->paginate(100);
+        $perPage = (int) ($this->perPage ?? 100);
+        if ($perPage <= 0) $perPage = 100;
         
-        // --- Approvals ---
-        // Get salesman codes in current page to fetch their approvals
+        $jksData = $query->paginate($perPage);
+        
+        // --- Approvals Handling (Hanya untuk salesman pada halaman aktif) ---
         $salesmanCodes = collect($jksData->items())->pluck('salesman_code')->unique()->toArray();
         
         $approvals = collect();
         if (!empty($salesmanCodes)) {
             $rawApprovals = DB::table('jks_approvals')
                 ->where('status', 'APPROVED')
-                ->where('payload->bulan', $bulan)
+                ->where('payload->bulan', 'like', $bulan . '%')
                 ->orderBy('created_at', 'asc')
                 ->get();
                 
@@ -429,7 +485,7 @@ class Index extends Component
                                 if ($cCode) {
                                     $currentState = $storeStates[$sCode][$cCode] ?? null;
                                     if ($currentState === 'DELETED') {
-                                        $storeStates[$sCode][$cCode] = 'PERUBAHAN'; // Input kembali
+                                        $storeStates[$sCode][$cCode] = 'PERUBAHAN';
                                     } else {
                                         $storeStates[$sCode][$cCode] = 'PENAMBAHAN';
                                     }
@@ -450,7 +506,7 @@ class Index extends Component
                                 if ($cCode) {
                                     $currentState = $storeStates[$sCode][$cCode] ?? null;
                                     if ($currentState === 'PENAMBAHAN') {
-                                        unset($storeStates[$sCode][$cCode]); // Cancel out
+                                        unset($storeStates[$sCode][$cCode]);
                                     } else {
                                         $storeStates[$sCode][$cCode] = 'DELETED';
                                     }
@@ -460,7 +516,6 @@ class Index extends Component
                             }
                         }
                     } else {
-                        // Sangat lama fallback
                         $sCodes = [];
                         if (isset($payload['salesman_code'])) $sCodes[] = $payload['salesman_code'];
                         foreach ($sCodes as $sCode) {
@@ -508,7 +563,7 @@ class Index extends Component
             $approvals = collect($appCounts);
         }
 
-        // Attach approvals
+        // Attach approvals ke items
         foreach ($jksData->items() as $item) {
             $app = $approvals->get($item->salesman_code);
             $item->penambahan = $app['penambahan'] ?? 0;
@@ -519,10 +574,30 @@ class Index extends Component
         return $jksData;
     }
 
+    public function render()
+    {
+        return view('livewire.call-plan.jks-summary.index', [
+            'regionOptions' => $this->filterRegions(),
+            'areaOptions' => $this->filterAreas(),
+            'supervisorOptions' => $this->filterSupervisors(),
+            'distributorOptions' => $this->filterDistributors(),
+            'availableMonths' => $this->availableMonths(),
+            'summaryData' => $this->summaryData(),
+            'appliedRegion' => $this->appliedRegion,
+            'appliedArea' => $this->appliedArea,
+            'appliedSupervisor' => $this->appliedSupervisor,
+            'appliedDistributor' => $this->appliedDistributor,
+            'appliedStandpro' => $this->appliedStandpro,
+            'appliedBulan' => $this->appliedBulan,
+            'search' => $this->search,
+            'perPage' => $this->perPage,
+        ]);
+    }
+
     public function exportExcel()
     {
-        $bulan = $this->appliedBulan ?: date('Y-m-01');
-        $fileName = 'JKS_Summary_' . \Carbon\Carbon::parse($bulan)->format('Y_m') . '.xlsx';
+        $bulan = !empty($this->appliedBulan) ? substr($this->appliedBulan, 0, 7) : date('Y-m');
+        $fileName = 'JKS_Summary_' . \Carbon\Carbon::parse($bulan . '-01')->format('Y_m') . '.xlsx';
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\JksSummaryExport($this->getBaseQuery()), $fileName);
     }
 }

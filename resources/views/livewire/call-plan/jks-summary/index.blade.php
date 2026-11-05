@@ -23,71 +23,121 @@
         {{-- Main Card --}}
         <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
             
-            {{-- Header Card & Actions --}}
-            <div class="p-2.5 md:p-3 border-b border-base-300 shrink-0 flex flex-wrap items-center justify-between gap-2.5 bg-base-200/30">
-                {{-- Hierarchy Filters --}}
-                <div class="flex flex-wrap items-center gap-2 md:gap-3">
+            {{-- Header Card & Filters --}}
+            <div class="p-3 border-b border-base-300 shrink-0 flex flex-col gap-2.5 bg-base-200/40">
+                
+                {{-- Baris 1: Filter Hierarki Wilayah & Periode --}}
+                <div class="flex flex-wrap items-center gap-2">
                     @php $accessLevel = auth()->user() ? auth()->user()->getAccessLevel() : 'nasional'; @endphp
                     
-                    <select wire:model.live="appliedBulan" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-36 shrink-0 pr-8 text-xs font-medium">
-                        <option value="">Bulan Ini</option>
-                        @for($i = -2; $i <= 2; $i++)
-                            @php 
-                                $date = date('Y-m-01', strtotime("$i months"));
-                                $label = date('M Y', strtotime($date));
-                            @endphp
-                            <option value="{{ $date }}">{{ $label }}</option>
-                        @endfor
-                    </select>
+                    {{-- Filter Bulan --}}
+                    <div class="w-full sm:w-36">
+                        <select wire:model.live="appliedBulan" class="select select-sm select-bordered w-full bg-base-100 text-xs font-semibold" title="Pilih Bulan">
+                            @foreach($availableMonths as $ym)
+                                <option value="{{ $ym }}">{{ \Carbon\Carbon::parse($ym . '-01')->translatedFormat('F Y') }}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                    <select wire:model.live="appliedRegion" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-44 shrink-0 pr-8 text-xs font-medium" @if($accessLevel != 'nasional') disabled @endif>
-                        @if(count($regionOptions) != 1) <option value="">Semua Region</option> @endif
-                        @foreach($regionOptions as $region)
-                            <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
-                        @endforeach
-                    </select>
+                    {{-- Filter Region --}}
+                    <div class="w-full sm:w-40">
+                        <select wire:model.live="appliedRegion" class="select select-sm select-bordered w-full bg-base-100 text-xs font-medium" @if($accessLevel != 'nasional' && count($regionOptions) <= 1) disabled @endif title="Filter Region">
+                            @if(count($regionOptions) != 1) <option value="">-- Semua Region --</option> @endif
+                            @foreach($regionOptions as $region)
+                                <option value="{{ $region->region_code }}">{{ $region->region_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                    <select wire:model.live="appliedArea" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-44 shrink-0 pr-8 text-xs font-medium" @if(empty($appliedRegion) || $accessLevel == 'supervisor') disabled @endif>
-                        @if(count($areaOptions) != 1) <option value="">Semua Area</option> @endif
-                        @foreach($areaOptions as $area)
-                            <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
-                        @endforeach
-                    </select>
+                    {{-- Filter Area --}}
+                    <div class="w-full sm:w-44">
+                        <select wire:model.live="appliedArea" class="select select-sm select-bordered w-full bg-base-100 text-xs font-medium" @if(empty($appliedRegion) && $accessLevel == 'nasional') disabled @endif title="Filter Area">
+                            @if(count($areaOptions) != 1) <option value="">-- Semua Area --</option> @endif
+                            @foreach($areaOptions as $area)
+                                <option value="{{ $area->area_code }}">{{ $area->area_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                    <select wire:model.live="appliedSupervisor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-52 shrink-0 pr-8 text-xs font-medium" @if(empty($appliedArea) || $accessLevel == 'supervisor') disabled @endif>
-                        @if(count($supervisorOptions) != 1) <option value="">Semua Supervisor</option> @endif
-                        @foreach($supervisorOptions as $spv)
-                            <option value="{{ $spv->supervisor_code }}">{{ $spv->description ?? $spv->supervisor_code }}</option>
-                        @endforeach
-                    </select>
+                    {{-- Filter Supervisor --}}
+                    <div class="w-full sm:w-48">
+                        <select wire:model.live="appliedSupervisor" class="select select-sm select-bordered w-full bg-base-100 text-xs font-medium" @if($accessLevel == 'supervisor') disabled @endif title="Filter Supervisor">
+                            @if(count($supervisorOptions) != 1) <option value="">-- Semua Supervisor --</option> @endif
+                            @foreach($supervisorOptions as $spv)
+                                <option value="{{ $spv->supervisor_code }}">{{ $spv->description ?? $spv->supervisor_code }}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                    {{-- Standpro Filter (Dropdown) --}}
-                    <select wire:model.live="appliedStandpro" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 w-full sm:w-60 shrink-0 pr-8 text-xs font-medium">
-                        <option value="">Semua Standpro</option>
-                        <option value="belum">Standpro: Belum (&lt; 300)</option>
-                        <option value="sudah">Standpro: Sudah (&ge; 300)</option>
-                    </select>
+                    {{-- Filter Distributor --}}
+                    <div class="w-full sm:w-56">
+                        <select wire:model.live="appliedDistributor" class="select select-sm select-bordered w-full bg-base-100 text-xs font-medium truncate" title="Filter Distributor">
+                            <option value="">-- Semua Distributor --</option>
+                            @foreach($distributorOptions as $dist)
+                                <option value="{{ $dist->distributor_code }}">{{ $dist->distributor_code }} - {{ $dist->distributor_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
 
-                {{-- Actions (Export & Reset) --}}
-                <div class="flex items-center gap-2 ml-auto">
-                    <button class="btn btn-sm btn-success text-white" wire:click="exportExcel" wire:loading.class="opacity-50 pointer-events-none" wire:target="exportExcel" title="Export to Excel">
-                        <x-heroicon-o-arrow-down-tray class="w-4 h-4" wire:loading.remove wire:target="exportExcel" />
-                        <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
-                    </button>
-                    <button class="btn btn-sm btn-ghost text-base-content/70" wire:click="resetFilters" title="Reset Filters & Cache">
-                        <x-heroicon-o-arrow-path class="w-4 h-4" />
-                    </button>
+                {{-- Baris 2: Quick Filter Standpro, Pencarian, & Aksi --}}
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-base-200">
+                    <div class="flex flex-wrap items-center gap-2">
+                        {{-- Standpro Quick Filter --}}
+                        <div class="join shadow-2xs border border-base-300">
+                            <button type="button" wire:click="setStandpro('')" class="btn btn-xs join-item {{ empty($appliedStandpro) ? 'btn-active btn-neutral' : 'btn-ghost' }}">Semua</button>
+                            <button type="button" wire:click="setStandpro('sudah')" class="btn btn-xs join-item {{ $appliedStandpro === 'sudah' ? 'btn-active btn-success text-white font-bold' : 'btn-ghost text-success' }}" title="Toko JKS >= 300">Standar (≥ 300)</button>
+                            <button type="button" wire:click="setStandpro('belum')" class="btn btn-xs join-item {{ $appliedStandpro === 'belum' ? 'btn-active btn-error text-white font-bold' : 'btn-ghost text-error' }}" title="Toko JKS < 300">Belum (&lt; 300)</button>
+                        </div>
+
+                        {{-- Per Page --}}
+                        <div class="flex items-center gap-1.5 text-xs text-base-content/60">
+                            <span>Baris:</span>
+                            <select wire:model.live="perPage" class="select select-2xs select-bordered bg-base-100 font-medium">
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="200">200</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Sisi Kanan: Search, Reset, Export --}}
+                    <div class="flex items-center gap-2 ml-auto">
+                        {{-- Search Input --}}
+                        <div class="relative w-48 sm:w-64">
+                            <input 
+                                type="text" 
+                                wire:model.live.debounce.300ms="search" 
+                                placeholder="Cari Salesman / Dist..." 
+                                class="input input-sm input-bordered w-full pr-8 text-xs bg-base-100"
+                            />
+                            @if(!empty($search))
+                                <button type="button" wire:click="$set('search', '')" class="absolute right-2 top-2 text-base-content/40 hover:text-base-content">
+                                    <x-heroicon-m-x-mark class="w-4 h-4" />
+                                </button>
+                            @else
+                                <span class="absolute right-2.5 top-2.5 text-base-content/40 pointer-events-none">
+                                    <x-heroicon-m-magnifying-glass class="w-4 h-4" />
+                                </span>
+                            @endif
+                        </div>
+
+                        {{-- Tombol Export Excel --}}
+                        <button class="btn btn-sm btn-success text-white gap-1.5 shadow-2xs" wire:click="exportExcel" wire:loading.class="opacity-50 pointer-events-none" wire:target="exportExcel" title="Export Rekapitulasi ke Excel">
+                            <x-heroicon-o-arrow-down-tray class="w-4 h-4" wire:loading.remove wire:target="exportExcel" />
+                            <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
+                            <span class="hidden sm:inline text-xs font-semibold">Excel</span>
+                        </button>
+
+                        {{-- Tombol Reset --}}
+                        <button class="btn btn-sm btn-ghost text-base-content/70 hover:text-error gap-1" wire:click="resetFilters" title="Reset Semua Filter">
+                            <x-heroicon-o-arrow-path class="w-4 h-4" />
+                            <span class="hidden sm:inline text-xs">Reset</span>
+                        </button>
+                    </div>
                 </div>
+
             </div>
-
-            {{-- Message if no filter applied --}}
-            @if(empty($appliedRegion) && empty($appliedArea) && empty($appliedSupervisor))
-                <div class="p-3 bg-info/10 text-info text-xs font-semibold flex items-center justify-center gap-2 border-b border-info/20">
-                    <x-heroicon-o-information-circle class="w-5 h-5 shrink-0" />
-                    Pilih minimal satu filter (Region/Area/Spv) untuk memuat rekapitulasi data.
-                </div>
-            @endif
 
             {{-- Body Card (Table Scrollable area) --}}
             <div class="flex-1 overflow-auto bg-base-100 w-full relative shadow-inner">
@@ -185,7 +235,8 @@
                                 <td colspan="32" class="text-center py-10 text-base-content/50">
                                     <div class="flex flex-col items-center justify-center gap-2">
                                         <x-heroicon-o-inbox class="w-12 h-12 text-base-300" />
-                                        <p>Tidak ada data summary untuk filter yang dipilih.</p>
+                                        <p class="font-semibold text-sm">Tidak ada data summary untuk filter yang dipilih.</p>
+                                        <p class="text-xs text-base-content/60">Coba ubah filter Region, Area, Supervisor, Distributor, atau kata kunci pencarian.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -223,8 +274,13 @@
 
             {{-- Footer Pagination --}}
             @if($summaryData->hasPages())
-                <div class="p-3 border-t border-base-300 bg-base-100 flex justify-end">
-                    {{ $summaryData->links(data: ['scrollTo' => false]) }}
+                <div class="p-3 border-t border-base-300 bg-base-100 flex items-center justify-between">
+                    <span class="text-xs text-base-content/60">
+                        Menampilkan {{ $summaryData->firstItem() ?? 0 }} - {{ $summaryData->lastItem() ?? 0 }} dari {{ number_format($summaryData->total()) }} salesman
+                    </span>
+                    <div>
+                        {{ $summaryData->links(data: ['scrollTo' => false]) }}
+                    </div>
                 </div>
             @endif
 
