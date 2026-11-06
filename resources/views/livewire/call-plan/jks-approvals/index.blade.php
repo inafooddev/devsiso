@@ -103,33 +103,106 @@
     {{-- Main Card (Tabel) yang mengambil sisa ruang flex --}}
     <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
         
-        {{-- Header Card & Actions Toolbar --}}
-        <div class="p-2.5 md:p-3.5 border-b border-base-300 shrink-0 flex flex-wrap items-center justify-between gap-2.5 bg-base-200/30">
-            
-            {{-- Sisi Kiri: Bulk Actions & Accordion Controls --}}
-            <div class="flex flex-wrap items-center gap-2">
-                {{-- Bulk Actions (Hanya muncul jika ada yang dipilih dan user memiliki role yang diizinkan) --}}
-                @if($filterStatus === 'PENDING' && count($selected) > 0)
+        {{-- Filter Toolbar (Standard UI Components) --}}
+        <x-ui.filter-toolbar>
+            {{-- Bulk Actions (Hanya muncul jika ada yang dipilih dan user memiliki role yang diizinkan) --}}
+            @if($filterStatus === 'PENDING' && count($selected) > 0)
+                <div class="inline-flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-xl border border-primary/20 shrink-0">
+                    <span class="badge badge-primary badge-sm font-bold">{{ count($selected) }} terpilih</span>
                     @if(auth()->check() && auth()->user()->hasRole(['admin', 'user', 'spm']))
-                        <div class="flex items-center gap-2 mr-1">
-                            <span class="badge badge-primary">{{ count($selected) }} terpilih</span>
-                            <button class="btn btn-sm btn-success text-white" wire:click="bulkApprove" wire:confirm="Setujui {{ count($selected) }} pengajuan?">
-                                <x-heroicon-s-check class="w-4 h-4" /> Setujui
-                            </button>
-                            <button class="btn btn-sm btn-error text-white" wire:click="confirmBulkReject">
-                                <x-heroicon-s-x-mark class="w-4 h-4" /> Tolak
-                            </button>
-                        </div>
-                    @else
-                        <div class="flex items-center gap-2 mr-1">
-                            <span class="badge badge-primary">{{ count($selected) }} terpilih</span>
-                            <span class="text-xs text-base-content/50 italic">Tidak ada akses persetujuan</span>
-                        </div>
+                        <button type="button" class="btn btn-xs btn-success text-white gap-1 rounded-lg" wire:click="bulkApprove" wire:confirm="Setujui {{ count($selected) }} pengajuan yang dipilih?">
+                            <x-heroicon-s-check class="w-3.5 h-3.5" />
+                            <span>Setujui</span>
+                        </button>
+                        <button type="button" class="btn btn-xs btn-error text-white gap-1 rounded-lg" wire:click="confirmBulkReject">
+                            <x-heroicon-s-x-mark class="w-3.5 h-3.5" />
+                            <span>Tolak</span>
+                        </button>
                     @endif
+                    <button type="button" wire:click="resetSelection" class="btn btn-xs btn-ghost text-base-content/60">Batal</button>
+                </div>
+            @endif
+
+            {{-- Hierarchy Filter Breadcrumb Capsule --}}
+            <x-ui.filter-breadcrumb>
+                @if(in_array($accessLevel, ['nasional', 'region']))
+                    <x-ui.filter-select 
+                        wire:model.live="appliedRegion" 
+                        :options="$regionOptions" 
+                        placeholder="Semua Region" 
+                        valueField="region_code" 
+                        labelField="region_name" 
+                        icon="region" 
+                        width="w-32 sm:w-36" 
+                    />
                 @endif
 
+                @if(!in_array($accessLevel, ['supervisor', 'area']))
+                    <x-ui.filter-select 
+                        wire:model.live="appliedArea" 
+                        :options="$areaOptions" 
+                        placeholder="Semua Area" 
+                        valueField="area_code" 
+                        labelField="area_name" 
+                        icon="area" 
+                        width="w-32 sm:w-36" 
+                        :disabled="empty($appliedRegion)" 
+                    />
+                @endif
+
+                {{-- Distributor Searchable Capsule --}}
+                <x-ui.filter-searchable 
+                    wire:key="approvals-dist-capsule-{{ $appliedRegion }}-{{ $appliedArea }}"
+                    wire:model.live="appliedDistributor" 
+                    :options="$distributorOptions" 
+                    valueField="distributor_code" 
+                    labelField="distributor_name" 
+                    placeholder="Semua Distributor" 
+                    searchPlaceholder="Cari nama / kode distributor..." 
+                    icon="distributor" 
+                    width="w-44 sm:w-56" 
+                    popoverWidth="w-72 sm:w-84" 
+                    allowAll="true"
+                    allLabel="Semua Distributor"
+                />
+
+                {{-- Filter Tipe Aksi Capsule --}}
+                <x-ui.filter-select 
+                    wire:model.live="filterType" 
+                    :options="$actionTypeOptions" 
+                    placeholder="Semua Tipe Aksi" 
+                    valueField="value" 
+                    labelField="label" 
+                    icon="tag" 
+                    width="w-36 sm:w-44" 
+                />
+            </x-ui.filter-breadcrumb>
+
+            {{-- Smart Date Range Filter Capsule --}}
+            <div class="inline-flex items-center gap-1 bg-base-100 p-0.5 rounded-xl border border-base-300 shadow-2xs text-xs shrink-0" title="Pilih Rentang Tanggal Evaluasi">
+                <span class="text-xs uppercase font-bold text-base-content/50 pl-2 hidden xl:inline">
+                    Tgl {{ $filterStatus === 'PENDING' ? 'Pengajuan' : ($filterStatus === 'APPROVED' ? 'Disetujui' : 'Ditolak') }}:
+                </span>
+                <x-ui.filter-date-range 
+                    start="startDate" 
+                    end="endDate" 
+                    :maxDays="0" 
+                    :presets="true" 
+                    :stepper="true" 
+                    class="border-none shadow-none bg-transparent" />
+                @if(!empty($startDate) || !empty($endDate))
+                    <button type="button" 
+                            wire:click="resetDateFilter" 
+                            class="btn btn-xs btn-ghost btn-circle text-error hover:bg-error/10 mr-1" 
+                            title="Hapus filter tanggal">
+                        <x-heroicon-s-x-mark class="w-3.5 h-3.5" />
+                    </button>
+                @endif
+            </div>
+
+            <x-slot:actions>
                 {{-- Expand / Collapse All Buttons --}}
-                <div class="flex items-center gap-1 bg-base-100 p-0.5 rounded-xl border border-base-300 shadow-sm">
+                <div class="inline-flex items-center gap-1 bg-base-100 p-0.5 rounded-xl border border-base-300 shadow-2xs text-xs">
                     <button type="button" 
                             @click="expandAll({{ json_encode(array_keys($groupedApprovals)) }})" 
                             class="btn btn-xs btn-ghost gap-1 text-base-content/70 hover:text-primary rounded-lg font-medium"
@@ -146,66 +219,35 @@
                         <span class="hidden sm:inline">Tutup Semua</span>
                     </button>
                 </div>
-            </div>
 
-            {{-- Sisi Kanan: Search & Filters & Actions --}}
-            <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2 grow sm:grow-0">
-                
-                {{-- Smart Date Range Filter (Kontekstual: Tgl Pengajuan jika PENDING, Tgl Disetujui/Diperiksa jika APPROVED/REJECTED) --}}
-                <div class="flex items-center gap-1 bg-base-100 p-0.5 rounded-xl border border-base-300 shadow-sm">
-                    <span class="text-xs uppercase font-bold text-base-content/50 pl-2 hidden xl:inline">
-                        Tgl {{ $filterStatus === 'PENDING' ? 'Pengajuan' : ($filterStatus === 'APPROVED' ? 'Disetujui' : 'Ditolak') }}:
-                    </span>
-                    <x-ui.filter-date-range 
-                        start="startDate" 
-                        end="endDate" 
-                        :maxDays="0" 
-                        :presets="true" 
-                        :stepper="true" 
-                        class="border-none shadow-none bg-transparent" />
-                    @if(!empty($startDate) || !empty($endDate))
+                {{-- Search Component with Clear Button --}}
+                <div class="relative flex items-center">
+                    <x-ui.search-input wire:model.live.debounce.300ms="search" placeholder="Cari data..." />
+                    @if(!empty(trim($search ?? '')))
                         <button type="button" 
-                                wire:click="resetDateFilter" 
-                                class="btn btn-xs btn-ghost btn-circle text-error hover:bg-error/10 mr-1" 
-                                title="Hapus filter tanggal">
-                            <x-heroicon-s-x-mark class="w-3.5 h-3.5" />
+                                wire:click="$set('search', '')" 
+                                class="btn btn-xs btn-circle btn-ghost text-base-content/50 hover:text-error absolute right-2 z-10" 
+                                title="Hapus pencarian">
+                            <x-heroicon-m-x-mark class="w-3.5 h-3.5" />
                         </button>
                     @endif
                 </div>
 
-                {{-- Search --}}
-                <div class="relative min-w-48 grow sm:grow-0">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <x-heroicon-o-magnifying-glass class="w-4 h-4 text-base-content/50" />
-                    </div>
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari data..." class="input input-sm input-bordered w-full pl-9 rounded-xl focus:outline-none focus:border-primary">
-                </div>
-                
-                {{-- Filter Distributor --}}
-                <select wire:model.live="filterDistributor" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0 focus:outline-none focus:border-primary">
-                    <option value="">Semua Distributor</option>
-                    @foreach($distributorOptions as $dist)
-                        <option value="{{ $dist }}">{{ $dist }}</option>
-                    @endforeach
-                </select>
-                
-                {{-- Filter Type --}}
-                <select wire:model.live="filterType" class="select select-sm select-bordered rounded-xl bg-base-100 border-base-300 grow sm:grow-0 focus:outline-none focus:border-primary">
-                    <option value="">Semua Tipe Aksi</option>
-                    @foreach($actionTypes as $type)
-                        <option value="{{ $type }}">{{ str_replace('_', ' ', $type) }}</option>
-                    @endforeach
-                </select>
+                {{-- Reset Button --}}
+                <button type="button" class="btn btn-sm btn-ghost border border-base-300 rounded-xl text-base-content/70 hover:text-base-content text-xs cursor-pointer" wire:click="resetFilters" title="Reset Semua Filter">
+                    <x-heroicon-m-arrow-path class="w-3.5 h-3.5" />
+                    <span class="hidden sm:inline">Reset</span>
+                </button>
 
-                {{-- Export Excel (Khusus Admin dan SPM) --}}
+                {{-- Export Excel Dropdown --}}
                 @if(auth()->check() && auth()->user()->hasRole(['admin', 'spm']))
                     <div class="dropdown dropdown-end">
-                        <div tabindex="0" role="button" class="btn btn-sm btn-success text-white rounded-xl gap-1.5 shadow-sm">
+                        <div tabindex="0" role="button" class="btn btn-sm btn-success text-white rounded-xl gap-1 text-xs font-semibold shadow-xs cursor-pointer">
                             <span wire:loading.remove wire:target="exportExcel">
-                                <x-heroicon-s-document-arrow-down class="w-4 h-4" />
+                                <x-heroicon-s-arrow-down-tray class="w-4 h-4" />
                             </span>
                             <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
-                            <span>Export Excel</span>
+                            <span class="hidden sm:inline">Excel</span>
                             <x-heroicon-m-chevron-down class="w-3.5 h-3.5 opacity-70" />
                         </div>
                         <ul tabindex="0" class="dropdown-content z-30 menu p-1.5 shadow-xl bg-base-100 rounded-xl border border-base-300 w-60 text-xs mt-1">
@@ -231,20 +273,27 @@
                         </ul>
                     </div>
                 @endif
-            </div>
-        </div>
+            </x-slot:actions>
+        </x-ui.filter-toolbar>
 
         {{-- Body Card (Tabel Scrollable area) --}}
         <div class="flex-1 overflow-auto bg-base-100 w-full relative">
             <table class="table table-sm table-pin-rows w-full whitespace-nowrap">
-                <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
+                <thead class="text-xs uppercase tracking-wider bg-base-200 text-base-content/80 border-b border-base-300 shadow-sm sticky top-0 z-30">
                     <tr>
-                        <th class="w-12 text-center">Buka</th>
-                        <th class="w-72 font-semibold">Distributor</th>
-                        <th class="w-64 font-semibold">Salesman</th>
-                        <th class="w-48 font-semibold">Pengajuan Outlet</th>
-                        <th class="w-40 font-semibold">Waktu Terakhir</th>
-                        <th class="w-44 text-center font-semibold bg-base-200 shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] sticky right-0">Pemeriksaan</th>
+                        <th class="w-10 text-center bg-base-200">
+                            @if($filterStatus === 'PENDING')
+                                <input type="checkbox" wire:model.live="selectAll" class="checkbox checkbox-xs rounded" title="Pilih / Batal Semua Pengajuan" />
+                            @else
+                                #
+                            @endif
+                        </th>
+                        <th class="w-12 text-center bg-base-200">Buka</th>
+                        <th class="w-72 font-semibold bg-base-200">Distributor</th>
+                        <th class="w-64 font-semibold bg-base-200">Salesman</th>
+                        <th class="w-48 font-semibold bg-base-200">Pengajuan Outlet</th>
+                        <th class="w-40 font-semibold bg-base-200">Waktu Terakhir</th>
+                        <th class="w-44 text-center font-semibold bg-base-200 border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.05)] sticky right-0 z-20">Pemeriksaan</th>
                     </tr>
                 </thead>
                 <tbody class="text-sm transition-opacity duration-200 relative" wire:loading.class="opacity-50 grayscale pointer-events-none">
@@ -257,6 +306,17 @@
                                 : 'bg-base-100 hover:bg-base-200/60 border-l-4 border-l-transparent border-base-200'"
                             @click="toggleGroup('{{ $group['key'] }}')">
                             
+                            {{-- Checkbox Grup --}}
+                            <td class="text-center w-10" @click.stop>
+                                @if($filterStatus === 'PENDING')
+                                    <input type="checkbox" 
+                                           class="checkbox checkbox-xs rounded" 
+                                           title="Pilih / Batal grup ini"
+                                           wire:click="toggleSelectGroup({{ json_encode($group['approval_ids']) }})"
+                                           {{ count(array_intersect(array_map('strval', $group['approval_ids']), array_map('strval', $selected))) === count($group['approval_ids']) && count($group['approval_ids']) > 0 ? 'checked' : '' }} />
+                                @endif
+                            </td>
+
                             {{-- Chevron Toggle --}}
                             <td class="text-center w-12" @click.stop="toggleGroup('{{ $group['key'] }}')">
                                 <button type="button" class="btn btn-xs btn-circle btn-ghost text-base-content/60 group-hover:text-primary"
@@ -329,9 +389,9 @@
                                 <div class="text-xs text-base-content/50 leading-tight">{{ \Carbon\Carbon::parse($group['latest_created_at'])->format('H:i') }} WIB</div>
                             </td>
 
-                            {{-- Kolom Pemeriksaan / Expand --}}
-                            <td class="text-center border-l border-base-300 shadow-[inset_1px_0_0_rgba(0,0,0,0.02)] sticky right-0 whitespace-nowrap transition-colors"
-                                :class="isExpanded('{{ $group['key'] }}') ? 'bg-primary/15' : 'bg-base-200/40'"
+                            {{-- Kolom Pemeriksaan / Expand (Solid Opaque Background, No Bleeding) --}}
+                            <td class="text-center border-l border-base-300 sticky right-0 z-20 whitespace-nowrap transition-colors"
+                                :class="isExpanded('{{ $group['key'] }}') ? 'bg-base-200' : 'bg-base-100 group-hover:bg-base-200'"
                                 @click.stop>
                                 @if($filterStatus === 'PENDING')
                                     @php
@@ -352,8 +412,8 @@
                                     </div>
                                 @else
                                     <div class="flex items-center justify-center gap-1.5">
-                                        <span class="badge badge-sm {{ $filterStatus === 'APPROVED' ? 'badge-success text-white' : 'badge-error text-white' }} font-semibold">
-                                            {{ $filterStatus === 'APPROVED' ? 'Disetujui' : 'Ditolak' }}
+                                        <span class="badge badge-sm {{ in_array($filterStatus, ['APPROVED', 'AUTO_APPROVED']) ? 'badge-success text-white' : 'badge-error text-white' }} font-semibold">
+                                            {{ in_array($filterStatus, ['APPROVED', 'AUTO_APPROVED']) ? 'Disetujui' : 'Ditolak' }}
                                         </span>
                                         <button type="button" 
                                                 class="btn btn-xs btn-ghost btn-circle text-base-content/60 hover:text-primary"
@@ -370,7 +430,7 @@
                         <tr x-show="isExpanded('{{ $group['key'] }}')" 
                             wire:key="group-child-{{ $group['key'] }}"
                             class="bg-primary/[0.04] border-l-4 border-l-primary border-b-2 border-b-primary/30">
-                            <td colspan="6" class="p-2 sm:p-3 sm:pl-5">
+                            <td colspan="7" class="p-2 sm:p-3 sm:pl-5">
                                 <div x-show="isExpanded('{{ $group['key'] }}')"
                                      x-transition:enter="transition ease-out duration-150"
                                      x-transition:enter-start="opacity-0 -translate-y-1"
@@ -446,12 +506,12 @@
                                                             <th class="w-auto min-w-44 font-semibold">Alasan Penolakan</th>
                                                         @endif
                                                     @endif
-                                                    <th class="w-24 text-center font-semibold bg-base-200/60 sticky right-0">Aksi Outlet</th>
+                                                    <th class="w-24 text-center font-semibold bg-base-200 border-l border-base-300 sticky right-0 z-10">Aksi Outlet</th>
                                                 </tr>
                                             </thead>
                                             <tbody class="text-xs">
                                                 @foreach($group['items'] as $item)
-                                                    <tr wire:key="approval-item-{{ $item['approval_id'] }}" class="hover:bg-base-200/70 transition-colors">
+                                                    <tr wire:key="approval-item-{{ $item['approval_id'] }}" class="group hover:bg-base-200 transition-colors">
                                                         @if($filterStatus === 'PENDING')
                                                             <td class="text-center relative">
                                                                 @if($item['has_prc_issue'])
@@ -626,7 +686,7 @@
                                                         @endif
 
                                                         {{-- Aksi Per Outlet --}}
-                                                        <td class="text-center bg-base-200/50 border-l border-base-300 sticky right-0 whitespace-nowrap">
+                                                        <td class="text-center bg-base-100 group-hover:bg-base-200 border-l border-base-300 sticky right-0 z-10 whitespace-nowrap">
                                                             @if($filterStatus === 'PENDING')
                                                                 @if(auth()->check() && auth()->user()->hasRole(['admin', 'user', 'spm']))
                                                                     <div class="flex items-center justify-center gap-1">
@@ -654,9 +714,15 @@
                                                                     <span class="badge badge-xs badge-warning">Menunggu</span>
                                                                 @endif
                                                             @else
-                                                                <span class="badge badge-xs {{ $filterStatus === 'APPROVED' ? 'badge-success text-white' : 'badge-error text-white' }}">
-                                                                    {{ $filterStatus === 'APPROVED' ? 'Disetujui' : 'Ditolak' }}
-                                                                </span>
+                                                                @if(($item['raw_approval']->status ?? '') === 'AUTO_APPROVED')
+                                                                    <span class="badge badge-xs badge-success badge-outline font-semibold">
+                                                                        Auto Disetujui
+                                                                    </span>
+                                                                @else
+                                                                    <span class="badge badge-xs {{ in_array($filterStatus, ['APPROVED', 'AUTO_APPROVED']) ? 'badge-success text-white' : 'badge-error text-white' }}">
+                                                                        {{ in_array($filterStatus, ['APPROVED', 'AUTO_APPROVED']) ? 'Disetujui' : 'Ditolak' }}
+                                                                    </span>
+                                                                @endif
                                                             @endif
                                                         </td>
                                                     </tr>
@@ -669,10 +735,18 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-12">
+                            <td colspan="7" class="text-center py-12">
                                 <div class="flex flex-col items-center justify-center text-base-content/40">
                                     <x-heroicon-o-inbox class="w-12 h-12 mb-3" />
-                                    <p class="font-medium">Tidak ada data pengajuan {{ strtolower($filterStatus) }}</p>
+                                    @if(!empty(trim($search ?? '')))
+                                        <p class="font-medium text-base-content/70">Tidak ada data yang cocok dengan pencarian <span class="font-bold text-primary">"{{ $search }}"</span></p>
+                                        <button type="button" class="btn btn-xs btn-outline btn-primary mt-3 gap-1" wire:click="$set('search', '')">
+                                            <x-heroicon-m-x-mark class="w-3.5 h-3.5" />
+                                            <span>Hapus Pencarian</span>
+                                        </button>
+                                    @else
+                                        <p class="font-medium">Tidak ada data pengajuan {{ strtolower($filterStatus) }}</p>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -690,7 +764,7 @@
     </div>
 
     {{-- Modal Penolakan --}}
-    <div class="modal modal-bottom sm:modal-middle !items-start z-[10000]" :class="showRejectModal ? 'modal-open' : ''">
+    <div class="modal modal-bottom sm:modal-middle !items-start z-50" :class="showRejectModal ? 'modal-open' : ''">
         <div class="modal-box relative mt-6 sm:mt-16 mb-auto">
             <button @click="showRejectModal = false" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
             <h3 class="text-lg font-bold text-error flex items-center gap-2">
@@ -714,7 +788,7 @@
     </div>
 
     {{-- PRC Input Modal --}}
-    <div class="modal modal-bottom sm:modal-middle z-[10000]" :class="showPrcModal ? 'modal-open' : ''">
+    <div class="modal modal-bottom sm:modal-middle z-50" :class="showPrcModal ? 'modal-open' : ''">
         <div class="modal-box">
             <h3 class="font-bold text-lg mb-4 text-warning flex items-center gap-2">
                 <x-heroicon-o-exclamation-triangle class="w-6 h-6" />
@@ -760,7 +834,7 @@
     </div>
 
     {{-- Side Drawer (Alpine JS) --}}
-    <div class="fixed inset-0 z-[11000] flex justify-end" x-show="showDrawer" style="display: none;">
+    <div class="fixed inset-0 z-50 flex justify-end" x-show="showDrawer" style="display: none;">
         {{-- Backdrop --}}
         <div class="absolute inset-0 bg-neutral/40 transition-opacity" 
              x-show="showDrawer" 
@@ -985,7 +1059,7 @@
     </div>
 
     {{-- Toast Container --}}
-    <div class="toast toast-top toast-right z-[9999] mt-16" style="position: fixed;">
+    <div class="toast toast-top toast-right z-50 mt-16" style="position: fixed;">
         <template x-for="toast in toasts" :key="toast.id">
             <div x-show="true" 
                  x-transition:enter="transition ease-out duration-300"

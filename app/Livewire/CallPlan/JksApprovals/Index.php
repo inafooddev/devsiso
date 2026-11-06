@@ -18,11 +18,16 @@ class Index extends Component
     public $search = '';
     public $filterType = '';
     public $filterDistributor = '';
+    public $appliedRegion = '';
+    public $appliedArea = '';
+    public $appliedDistributor = '';
+    public $accessLevel = 'nasional';
     public $startDate = null;
     public $endDate = null;
     
     public $selected = [];
     public $selectAll = false;
+    public $searchJustUpdated = false;
     
     public $rejectReason = '';
     public $actionIdToReject = null;
@@ -31,17 +36,168 @@ class Index extends Component
     public $prcApprovalId = null;
     public $missingPrcTokos = []; // Array of missing tokos
 
-    
     public function mount()
     {
-        // if (!auth()->user()->hasRole('user')) {
-        //     abort(403, 'Akses Ditolak. Hanya Bagian Data yang bisa mengakses halaman ini.');
-        // }
+        $user = auth()->user();
+        if ($user) {
+            $this->accessLevel = $user->hasRole(['admin', 'spm']) ? 'nasional' : (method_exists($user, 'getAccessLevel') ? $user->getAccessLevel() : 'nasional');
+            if (in_array($this->accessLevel, ['region', 'area', 'supervisor'])) {
+                if (!empty($user->region_code) && count((array)$user->region_code) == 1 && empty($this->appliedRegion)) {
+                    $this->appliedRegion = ((array)$user->region_code)[0];
+                }
+                if (!empty($user->area_code) && count((array)$user->area_code) == 1 && empty($this->appliedArea)) {
+                    $this->appliedArea = ((array)$user->area_code)[0];
+                }
+            }
+        }
+    }
+
+    public function updatedAppliedRegion()
+    {
+        $this->appliedArea = '';
+        $this->appliedDistributor = '';
+        $this->filterDistributor = '';
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatedAppliedArea()
+    {
+        $this->appliedDistributor = '';
+        $this->filterDistributor = '';
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatedAppliedDistributor()
+    {
+        $this->filterDistributor = $this->appliedDistributor;
+        if (!empty($this->appliedDistributor)) {
+            $distInfo = DB::table('master_distributors')
+                ->where('distributor_code', $this->appliedDistributor)
+                ->first();
+            if ($distInfo) {
+                if (!empty($distInfo->region_code)) {
+                    $this->appliedRegion = $distInfo->region_code;
+                }
+                if (!empty($distInfo->area_code)) {
+                    $this->appliedArea = $distInfo->area_code;
+                }
+            }
+        }
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function resetFilters()
+    {
+        $this->reset([
+            'search', 'filterType', 'appliedRegion', 'appliedArea', 'appliedDistributor', 'filterDistributor', 'startDate', 'endDate'
+        ]);
+        $user = auth()->user();
+        if ($user && in_array($this->accessLevel, ['region', 'area', 'supervisor'])) {
+            if (!empty($user->region_code) && count((array)$user->region_code) == 1) {
+                $this->appliedRegion = ((array)$user->region_code)[0];
+            }
+            if (!empty($user->area_code) && count((array)$user->area_code) == 1) {
+                $this->appliedArea = ((array)$user->area_code)[0];
+            }
+        }
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function filterRegions()
+    {
+        $query = DB::table('master_regions as mr')
+            ->select('mr.region_code', 'mr.region_name')
+            ->whereExists(function($q) {
+                $q->select(DB::raw(1))
+                  ->from('master_distributors as md')
+                  ->whereColumn('md.region_code', 'mr.region_code')
+                  ->where('md.is_active', true);
+            });
+        
+        $user = auth()->user();
+        if ($user && !$user->hasRole(['admin', 'spm'])) {
+            $accessLevel = method_exists($user, 'getAccessLevel') ? $user->getAccessLevel() : 'nasional';
+            if ($accessLevel === 'region' && !empty($user->region_code)) {
+                $query->whereIn('mr.region_code', (array) $user->region_code);
+            }
+        }
+        return $query->orderBy('mr.region_name')->get();
+    }
+
+    public function filterAreas()
+    {
+        $query = DB::table('master_areas as ma')
+            ->select('ma.area_code', 'ma.area_name');
+
+        if (!empty($this->appliedRegion)) {
+            $query->where('ma.region_code', $this->appliedRegion);
+        }
+
+        $query->whereExists(function($q) {
+            $q->select(DB::raw(1))
+              ->from('master_distributors as md')
+              ->whereColumn('md.area_code', 'ma.area_code')
+              ->where('md.is_active', true);
+        });
+
+        $user = auth()->user();
+        if ($user && !$user->hasRole(['admin', 'spm'])) {
+            $accessLevel = method_exists($user, 'getAccessLevel') ? $user->getAccessLevel() : 'nasional';
+            if ($accessLevel === 'area' && !empty($user->area_code)) {
+                $query->whereIn('ma.area_code', (array) $user->area_code);
+            } elseif ($accessLevel === 'region' && !empty($user->region_code)) {
+                $query->whereIn('ma.region_code', (array) $user->region_code);
+            }
+        }
+
+        return $query->orderBy('ma.area_name')->get();
+    }
+
+    public function filterDistributors()
+    {
+        $query = DB::table('master_distributors as md')
+            ->select('md.distributor_code', 'md.distributor_name')
+            ->where('md.is_active', true);
+
+        if (!empty($this->appliedRegion)) {
+            $query->where('md.region_code', $this->appliedRegion);
+        }
+        if (!empty($this->appliedArea)) {
+            $query->where('md.area_code', $this->appliedArea);
+        }
+
+        $query->whereExists(function($q) {
+            $q->select(DB::raw(1))
+              ->from('jks_approvals as ja')
+              ->whereColumn('ja.distributor_code', 'md.distributor_code');
+        });
+
+        $user = auth()->user();
+        if ($user && !$user->hasRole(['admin', 'spm'])) {
+            $accessLevel = method_exists($user, 'getAccessLevel') ? $user->getAccessLevel() : 'nasional';
+            if ($accessLevel === 'area' && !empty($user->area_code)) {
+                $query->whereIn('md.area_code', (array) $user->area_code);
+            } elseif ($accessLevel === 'region' && !empty($user->region_code)) {
+                $query->whereIn('md.region_code', (array) $user->region_code);
+            } elseif ($accessLevel === 'supervisor' && !empty($user->supervisor_code)) {
+                $allowed = DB::table('jks_se_master_toko_ool')
+                    ->whereIn('supervisor_code', (array)$user->supervisor_code)
+                    ->pluck('distributor_code')->toArray();
+                $query->whereIn('md.distributor_code', $allowed);
+            }
+        }
+
+        return $query->orderBy('md.distributor_name')->get();
     }
 
     public function updatingSearch() {
         $this->resetPage();
         $this->resetSelection();
+        $this->searchJustUpdated = true;
     }
 
     public function updatingFilterType() {
@@ -57,6 +213,7 @@ class Index extends Component
     public function updatingFilterStatus() {
         $this->resetPage();
         $this->resetSelection();
+        $this->searchJustUpdated = true;
     }
 
     public function updatingStartDate() {
@@ -181,7 +338,9 @@ class Index extends Component
             $payload = json_decode($approval->payload, true);
             if (!empty($payload['tokos'])) {
                 foreach ($payload['tokos'] as $toko) {
-                    $allTokoCodes[] = $toko['code'];
+                    if (!empty($toko['code'])) {
+                        $allTokoCodes[] = $toko['code'];
+                    }
                 }
             }
         }
@@ -202,12 +361,30 @@ class Index extends Component
             ->get(['uniq_kd', 'distributor_code'])
             ->groupBy('distributor_code');
 
+        // BATCH PRE-FETCH existing Pareto PRCs (Single Query, 0 N+1)
+        $candidateEskas = $oolTokos->pluck('customer_eska')->filter()->unique()->values()->all();
+        $allDistCodes = collect($tambahJadwalApprovals)->pluck('distributor_code')->unique()->values()->all();
+
+        $paretoPrcMap = [];
+        if (!empty($candidateEskas) && !empty($allDistCodes)) {
+            $existingPrcs = DB::table('list_toko_pareto_team_elite')
+                ->whereIn('customer_code_prc', $candidateEskas)
+                ->whereIn('distributor_code', $allDistCodes)
+                ->select('distributor_code', 'customer_code_prc', 'uniq_kd')
+                ->get();
+
+            foreach ($existingPrcs as $ep) {
+                $paretoPrcMap[$ep->distributor_code][$ep->customer_code_prc][] = $ep->uniq_kd;
+            }
+        }
+
         foreach ($tambahJadwalApprovals as $approval) {
             $payload = json_decode($approval->payload, true);
             if (!empty($payload['tokos'])) {
                 foreach ($payload['tokos'] as $toko) {
                     $distCode = $approval->distributor_code;
-                    $tokoCode = $toko['code'];
+                    $tokoCode = $toko['code'] ?? null;
+                    if (!$tokoCode) continue;
 
                     $alreadyInPareto = false;
                     if (isset($paretoTokos[$distCode])) {
@@ -224,12 +401,9 @@ class Index extends Component
                             $prcIssues[$approval->id] = true;
                             break;
                         } else {
-                            $existsInPareto = DB::table('list_toko_pareto_team_elite')
-                                ->where('customer_code_prc', $oolData->customer_eska)
-                                ->where('distributor_code', $distCode)
-                                ->where('uniq_kd', '!=', $tokoCode)
-                                ->exists();
-                            if ($existsInPareto) {
+                            $assignedTokos = $paretoPrcMap[$distCode][$oolData->customer_eska] ?? [];
+                            $assignedOtherTokos = array_filter($assignedTokos, fn($tk) => $tk !== $tokoCode);
+                            if (!empty($assignedOtherTokos)) {
                                 $prcIssues[$approval->id] = true;
                                 break;
                             }
@@ -250,10 +424,36 @@ class Index extends Component
             ->select('ja.*', 'u.name as maker_name', 'c.name as checker_name');
 
         if (!$allStatus) {
-            $query->where('ja.status', $this->filterStatus);
+            if ($this->filterStatus === 'APPROVED') {
+                $query->whereIn('ja.status', ['APPROVED', 'AUTO_APPROVED']);
+            } else {
+                $query->where('ja.status', $this->filterStatus);
+            }
         }
             
         $query = $this->applyHierarchyAccess($query, 'ja.');
+
+        // Filter Region & Area
+        if (!empty($this->appliedRegion) || !empty($this->appliedArea)) {
+            $hasMdJoin = collect($query->joins ?? [])->contains(function ($join) {
+                return str_contains($join->table, 'master_distributors');
+            });
+            if (!$hasMdJoin) {
+                $query->leftJoin('master_distributors as md', 'ja.distributor_code', '=', 'md.distributor_code');
+            }
+
+            if (!empty($this->appliedRegion)) {
+                $query->where('md.region_code', $this->appliedRegion);
+            }
+            if (!empty($this->appliedArea)) {
+                $query->where('md.area_code', $this->appliedArea);
+            }
+        }
+
+        $activeDist = $this->appliedDistributor ?: $this->filterDistributor;
+        if (!empty($activeDist)) {
+            $query->where('ja.distributor_code', $activeDist);
+        }
 
         if (!empty($this->search)) {
             $searchTerm = trim($this->search);
@@ -266,6 +466,7 @@ class Index extends Component
 
             $matchingSalesmans = DB::table('salesmans')
                 ->where('salesman_name', 'ilike', '%' . $searchTerm . '%')
+                ->orWhere('salesman_code', 'ilike', '%' . $searchTerm . '%')
                 ->pluck('salesman_code')
                 ->toArray();
 
@@ -281,19 +482,17 @@ class Index extends Component
                 }
 
                 if (!empty($matchingSalesmans)) {
-                    foreach ($matchingSalesmans as $scode) {
-                        $q->orWhere('ja.payload', 'ilike', '%' . $scode . '%');
-                    }
+                    $q->orWhere(function($subQ) use ($matchingSalesmans) {
+                        $subQ->whereIn(DB::raw("ja.payload->>'salesman_code'"), $matchingSalesmans)
+                             ->orWhereIn(DB::raw("ja.payload->>'salesman_asal'"), $matchingSalesmans)
+                             ->orWhereIn(DB::raw("ja.payload->>'salesman_tujuan'"), $matchingSalesmans);
+                    });
                 }
             });
         }
 
         if (!empty($this->filterType)) {
             $query->where('ja.action_type', $this->filterType);
-        }
-
-        if (!empty($this->filterDistributor)) {
-            $query->where('ja.distributor_code', $this->filterDistributor);
         }
 
         $dateColumn = ($this->filterStatus === 'PENDING') ? 'ja.created_at' : 'ja.updated_at';
@@ -1418,16 +1617,19 @@ class Index extends Component
             ->orderBy('ja.created_at', 'desc')
             ->paginate(100);
 
-        // KPI Counts
+        // KPI Counts (Termasuk AUTO_APPROVED pada status Disetujui)
         $baseKpiQuery = $this->applyHierarchyAccess(DB::table('jks_approvals as ja'), 'ja.');
         $kpi = [
             'PENDING' => (clone $baseKpiQuery)->where('ja.status', 'PENDING')->count(),
-            'APPROVED' => (clone $baseKpiQuery)->where('ja.status', 'APPROVED')->count(),
+            'APPROVED' => (clone $baseKpiQuery)->whereIn('ja.status', ['APPROVED', 'AUTO_APPROVED'])->count(),
             'REJECTED' => (clone $baseKpiQuery)->where('ja.status', 'REJECTED')->count(),
         ];
 
-        $actionTypes = $this->applyHierarchyAccess(DB::table('jks_approvals as ja'), 'ja.')->select('ja.action_type')->distinct()->pluck('action_type');
-        $distributorOptions = $this->applyHierarchyAccess(DB::table('jks_approvals as ja'), 'ja.')->select('ja.distributor_code')->distinct()->pluck('distributor_code');
+        $rawActionTypes = DB::table('jks_approvals')->select('action_type')->distinct()->pluck('action_type');
+        $actionTypeOptions = collect($rawActionTypes)->map(fn($t) => [
+            'value' => $t,
+            'label' => ucwords(strtolower(str_replace('_', ' ', $t)))
+        ])->values()->all();
 
         // Pre-calculate PRC issues for PENDING TAMBAH_JADWAL approvals to prevent N+1 queries
         $prcIssues = [];
@@ -1436,30 +1638,55 @@ class Index extends Component
             $prcIssues = $this->calculatePrcIssues($tambahJadwalApprovals);
         }
 
-        // Preload lookup maps for grouped approvals
+        // Preload lookup maps for grouped approvals (Hanya salesman & distributor pada halaman aktif)
         $distributorCodes = collect($approvals->items())->pluck('distributor_code')->unique()->filter()->values()->toArray();
-        $distributorMap = DB::table('master_distributors')
-            ->whereIn('distributor_code', $distributorCodes)
-            ->pluck('distributor_name', 'distributor_code')
-            ->toArray();
+        $distributorMap = !empty($distributorCodes)
+            ? DB::table('master_distributors')
+                ->whereIn('distributor_code', $distributorCodes)
+                ->pluck('distributor_name', 'distributor_code')
+                ->toArray()
+            : [];
 
-        $salesmanMap = DB::table('salesmans')
-            ->pluck('salesman_name', 'salesman_code')
-            ->toArray();
+        $salesmanCodes = [];
+        foreach ($approvals->items() as $app) {
+            $p = json_decode($app->payload, true) ?: [];
+            if (!empty($p['salesman_code'])) $salesmanCodes[] = $p['salesman_code'];
+            if (!empty($p['salesman_asal'])) $salesmanCodes[] = $p['salesman_asal'];
+            if (!empty($p['salesman_tujuan'])) $salesmanCodes[] = $p['salesman_tujuan'];
+        }
+        $salesmanMap = !empty($salesmanCodes)
+            ? DB::table('salesmans')->whereIn('salesman_code', array_unique($salesmanCodes))->pluck('salesman_name', 'salesman_code')->toArray()
+            : [];
 
         $groupedApprovals = $this->buildGroupedApprovals($approvals->items(), $salesmanMap, $distributorMap, $prcIssues);
 
-        if (!empty(trim($this->search ?? ''))) {
+        if ($this->searchJustUpdated && !empty(trim($this->search ?? ''))) {
             $this->dispatch('expand-all-groups', keys: array_keys($groupedApprovals));
+            $this->searchJustUpdated = false;
         }
 
         return view('livewire.call-plan.jks-approvals.index', [
             'approvals' => $approvals,
             'groupedApprovals' => $groupedApprovals,
             'kpi' => $kpi,
-            'actionTypes' => $actionTypes,
-            'distributorOptions' => $distributorOptions,
-            'prcIssues' => $prcIssues
+            'actionTypes' => $rawActionTypes,
+            'actionTypeOptions' => $actionTypeOptions,
+            'regionOptions' => $this->filterRegions(),
+            'areaOptions' => $this->filterAreas(),
+            'distributorOptions' => $this->filterDistributors(),
+            'prcIssues' => $prcIssues,
+            'accessLevel' => $this->accessLevel,
+            'appliedRegion' => $this->appliedRegion,
+            'appliedArea' => $this->appliedArea,
+            'appliedDistributor' => $this->appliedDistributor,
+            'filterDistributor' => $this->filterDistributor,
+            'filterType' => $this->filterType,
+            'filterStatus' => $this->filterStatus,
+            'search' => $this->search,
+            'startDate' => $this->startDate,
+            'endDate' => $this->endDate,
+            'selected' => $this->selected,
+            'selectAll' => $this->selectAll,
         ])->layout('layouts.app')->title('Pusat Persetujuan JKS');
     }
 }
