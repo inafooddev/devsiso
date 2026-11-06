@@ -96,7 +96,7 @@ class Index extends Component
                     $this->appliedArea = $this->selectedArea;
                     
                     if ($accessLevel === 'area' && empty($this->selectedRegion)) {
-                        $areaData = \Illuminate\Support\Facades\DB::table('master_distributors')
+                        $areaData = \Illuminate\Support\Facades\DB::table('jks_se_master_toko_ool')
                             ->where('area_code', $this->selectedArea)
                             ->select('region_code')
                             ->first();
@@ -164,6 +164,9 @@ class Index extends Component
             session()->forget('jks_non_route_state');
         }
 
+        $this->appliedBulan = date('Y-m');
+        $this->selectedBulan = date('Y-m');
+
         $this->resetPage();
         $this->applyDefaultFiltersForRestrictedUser();
     }
@@ -192,8 +195,9 @@ class Index extends Component
             ->select('area_code', 'area_name')
             ->whereNotNull('area_code');
             
-        if ($this->selectedRegion) {
-            $query->where('region_code', $this->selectedRegion);
+        $region = $this->appliedRegion ?: $this->selectedRegion;
+        if ($region) {
+            $query->where('region_code', $region);
         }
         
         $query = $this->applyHierarchyAccess($query);
@@ -208,10 +212,13 @@ class Index extends Component
             ->select('supervisor_code', \Illuminate\Support\Facades\DB::raw('supervisor_name as description'))
             ->whereNotNull('supervisor_code');
             
-        if ($this->selectedArea) {
-            $query->where('area_code', $this->selectedArea);
-        } elseif ($this->selectedRegion) {
-            $query->where('region_code', $this->selectedRegion);
+        $area = $this->appliedArea ?: $this->selectedArea;
+        $region = $this->appliedRegion ?: $this->selectedRegion;
+
+        if ($area) {
+            $query->where('area_code', $area);
+        } elseif ($region) {
+            $query->where('region_code', $region);
         }
         
         $query = $this->applyHierarchyAccess($query);
@@ -252,8 +259,6 @@ class Index extends Component
         $accessLevel = $user->getAccessLevel();
         
         if ($accessLevel === 'supervisor' && !empty($user->supervisor_code)) {
-            // jks_se_master_toko_ool stores team_elite_code in supervisor_code, 
-            // and $user->supervisor_code is also team_elite_code.
             return $query->whereIn($prefix . 'supervisor_code', (array) $user->supervisor_code);
         }
         
@@ -306,7 +311,8 @@ class Index extends Component
         $this->selectedDistributor = $this->appliedDistributor;
 
         if (!empty($this->appliedDistributor)) {
-            $distInfo = \Illuminate\Support\Facades\DB::table('master_distributors')
+            // Lookup hierarchy directly from jks_se_master_toko_ool to prevent code mismatch
+            $distInfo = \Illuminate\Support\Facades\DB::table('jks_se_master_toko_ool')
                 ->where('distributor_code', $this->appliedDistributor)
                 ->first();
 
@@ -322,6 +328,9 @@ class Index extends Component
                 if (!empty($distInfo->supervisor_code)) {
                     $this->appliedSupervisor = $distInfo->supervisor_code;
                     $this->selectedSupervisor = $this->appliedSupervisor;
+                } else {
+                    $this->appliedSupervisor = '';
+                    $this->selectedSupervisor = '';
                 }
             }
         }
@@ -348,9 +357,10 @@ class Index extends Component
         if ($value) {
             $service = app(JksNonRouteService::class);
             $filters = $this->getAppliedFilters();
-            $filters['bulan'] = $this->appliedBulan; // ensure we pass bulan for 6 month history
+            $filters['bulan'] = $this->appliedBulan;
             
-            $data = $service->getFilteredPaginatedList($this->search, $filters, 100);
+            // Explicitly pass current page so selectAll selects the items visible on the current page
+            $data = $service->getFilteredPaginatedList($this->search, $filters, 100, $this->getPage());
             
             // Only select items that don't have pending approvals
             $this->selected = collect($data->items())
@@ -371,10 +381,10 @@ class Index extends Component
 
     public function openRemarkModal($distCode, $custCode, $custName, $existingRemark)
     {
-        $this->editingDistributorCode = $distCode;
-        $this->editingCustomerCode = $custCode;
-        $this->editingCustomerName = $custName;
-        $this->editingRemark = $existingRemark;
+        $this->editingDistributorCode = strtoupper(trim($distCode));
+        $this->editingCustomerCode = strtoupper(preg_replace('/\s+/', ' ', trim($custCode)));
+        $this->editingCustomerName = trim($custName);
+        $this->editingRemark = trim($existingRemark);
         $this->remarkModalOpen = true;
     }
 
@@ -382,20 +392,23 @@ class Index extends Component
     {
         abort_if(!$this->canEdit, 403, 'Akses ditolak.');
 
+        $distCode = strtoupper(trim($this->editingDistributorCode));
+        $custCode = strtoupper(preg_replace('/\s+/', ' ', trim($this->editingCustomerCode)));
+
         \Illuminate\Support\Facades\DB::table('jks_se_toko_ool_remarks')->updateOrInsert(
             [
-                'distributor_code' => $this->editingDistributorCode,
-                'customer_code' => $this->editingCustomerCode,
+                'distributor_code' => $distCode,
+                'customer_code' => $custCode,
             ],
             [
-                'remark' => $this->editingRemark,
+                'remark' => trim($this->editingRemark),
                 'created_by' => auth()->user()->nik ?? 'system',
                 'updated_at' => now(),
             ]
         );
 
         $this->remarkModalOpen = false;
-        $this->dispatch('show-toast', type: 'success', message: 'Remark berhasil disimpan!');
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Remark berhasil disimpan!']);
     }
 
     // --- TAMBAH KE JKS ---
@@ -410,14 +423,15 @@ class Index extends Component
     public function openAddJksModal($outletId)
     {
         abort_if(!$this->canAdd, 403, 'Akses ditolak.');
+        $this->resetErrorBag();
+        $this->resetValidation();
 
         $outlet = \Illuminate\Support\Facades\DB::table('jks_se_master_toko_ool')->where('id', $outletId)->first();
         if (!$outlet) return;
 
         $this->formOutlets = [(array)$outlet];
-        $this->bulkDistributorCode = $outlet->distributor_code;
+        $this->bulkDistributorCode = strtoupper(trim($outlet->distributor_code));
 
-        
         $this->formSalesman = '';
         $this->formBulan = now()->format('Y-m'); // Default current running month
         $this->formH = [];
@@ -429,9 +443,11 @@ class Index extends Component
     public function openBulkAddJksModal()
     {
         abort_if(!$this->canAdd, 403, 'Akses ditolak.');
+        $this->resetErrorBag();
+        $this->resetValidation();
 
         if (empty($this->selected)) {
-            $this->dispatch('show-toast', type: 'error', message: 'Pilih minimal satu outlet.');
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Pilih minimal satu outlet.']);
             return;
         }
 
@@ -441,10 +457,10 @@ class Index extends Component
 
         if ($outlets->isEmpty()) return;
 
-        $distributorCodes = $outlets->pluck('distributor_code')->unique();
+        $distributorCodes = $outlets->pluck('distributor_code')->map(fn($d) => strtoupper(trim($d)))->unique();
 
         if ($distributorCodes->count() > 1) {
-            $this->dispatch('show-toast', type: 'error', message: 'Semua outlet yang dipilih harus dari distributor yang sama!');
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Semua outlet yang dipilih harus dari distributor yang sama!']);
             return;
         }
 
@@ -460,7 +476,7 @@ class Index extends Component
     }
 
     #[Computed]
-    public function getJksSalesmanOptionsProperty()
+    public function jksSalesmanOptions()
     {
         if (empty($this->bulkDistributorCode)) return [];
 
@@ -472,12 +488,12 @@ class Index extends Component
     }
 
     #[Computed]
-    public function getCalendarDaysProperty()
+    public function calendarDays()
     {
-        if (empty($this->formBulan)) return [];
+        if (empty($this->formBulan)) return ['days' => collect(), 'offset' => 0];
         
         $parts = explode('-', $this->formBulan);
-        if (count($parts) !== 2) return [];
+        if (count($parts) !== 2) return ['days' => collect(), 'offset' => 0];
         
         $year = (int)$parts[0];
         $month = (int)$parts[1];
@@ -490,8 +506,6 @@ class Index extends Component
             
         if ($days->isEmpty()) return ['days' => collect(), 'offset' => 0];
 
-        // day_number: 1=Senin, 2=Selasa, 3=Rabu, 4=Kamis, 5=Jumat, 6=Sabtu, 7=Minggu
-        // We want Sunday as first column, so Sunday=0 offset, Senin=1, etc.
         $firstDayNumber = $days->first()->day_number;
         $offsetMap = [7 => 0, 1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6];
         $offset = $offsetMap[$firstDayNumber] ?? 0;
@@ -511,7 +525,10 @@ class Index extends Component
         $targetMonth = substr($this->formBulan, 0, 7);
 
         if (!$user || (!$user->hasRole('admin') && $targetMonth !== $currentMonth)) {
-            $this->dispatch('show-toast', type: 'error', message: 'Akses Ditolak: Pengajuan penambahan jadwal hanya diizinkan untuk periode bulan berjalan (' . now()->translatedFormat('F Y') . ').');
+            $this->dispatch('toast', [
+                'type' => 'error', 
+                'message' => 'Akses Ditolak: Pengajuan penambahan jadwal hanya diizinkan untuk periode bulan berjalan (' . now()->translatedFormat('F Y') . ').'
+            ]);
             return;
         }
 
@@ -527,23 +544,75 @@ class Index extends Component
             'formW.required' => 'Pilih minimal 1 minggu kunjungan.',
         ]);
 
-        // Construct payload
-        $hariArray = array_map(function($h) { return 'h' . $h; }, $this->formH);
-        $mingguArray = array_map(function($w) { return 'w' . $w; }, $this->formW);
-
-        // Construct tokos array
+        // Construct tokos array with strict sanitization
         $tokos = [];
         foreach ($this->formOutlets as $outlet) {
+            $code = strtoupper(preg_replace('/\s+/', ' ', trim($outlet['customer_code'])));
             $tokos[] = [
-                'code' => $outlet['customer_code'],
-                'name' => $outlet['customer_name']
+                'code' => $code,
+                'name' => trim($outlet['customer_name'])
             ];
         }
 
+        $tokoCodes = array_column($tokos, 'code');
+
+        // Backend Duplicate Check 1: Check if already present in jks_salesmans
+        $existingInJks = \Illuminate\Support\Facades\DB::table('jks_salesmans')
+            ->where('distributor_code', $this->bulkDistributorCode)
+            ->where('bulan', 'like', $targetMonth . '%')
+            ->whereIn('customer_code', $tokoCodes)
+            ->pluck('customer_code')
+            ->toArray();
+
+        if (!empty($existingInJks)) {
+            $this->dispatch('toast', [
+                'type' => 'error', 
+                'message' => 'Gagal: Toko (' . implode(', ', $existingInJks) . ') sudah memiliki jadwal rute JKS aktif di bulan ini.'
+            ]);
+            return;
+        }
+
+        // Backend Duplicate Check 2: Check if any toko already has a PENDING approval
+        $pendingApprovals = \Illuminate\Support\Facades\DB::table('jks_approvals')
+            ->where('distributor_code', $this->bulkDistributorCode)
+            ->where('status', 'PENDING')
+            ->where('action_type', 'TAMBAH_JADWAL')
+            ->where(function($q) use ($targetMonth) {
+                $q->whereRaw("payload->>'bulan' LIKE ?", [$targetMonth . '%'])
+                  ->orWhereRaw("payload->>'bulan' IS NULL");
+            })
+            ->get();
+
+        foreach ($pendingApprovals as $p) {
+            $payloadData = json_decode($p->payload, true);
+            $pendingCodes = [];
+            if (!empty($payloadData['customer_code'])) {
+                $pendingCodes[] = strtoupper(trim($payloadData['customer_code']));
+            }
+            if (!empty($payloadData['tokos'])) {
+                foreach ($payloadData['tokos'] as $pt) {
+                    if (!empty($pt['code'])) {
+                        $pendingCodes[] = strtoupper(trim($pt['code']));
+                    }
+                }
+            }
+            $intersect = array_intersect($tokoCodes, $pendingCodes);
+            if (!empty($intersect)) {
+                $this->dispatch('toast', [
+                    'type' => 'error',
+                    'message' => 'Gagal: Toko (' . implode(', ', $intersect) . ') sudah memiliki pengajuan penambahan yang berstatus PENDING.'
+                ]);
+                return;
+            }
+        }
+
+        $hariArray = array_map(function($h) { return 'h' . $h; }, $this->formH);
+        $mingguArray = array_map(function($w) { return 'w' . $w; }, $this->formW);
+
         $payload = [
             'distributor_code' => $this->bulkDistributorCode,
-            'customer_code' => count($tokos) === 1 ? $tokos[0]['code'] : null, // Retained for backward compatibility
-            'salesman_code' => $this->formSalesman,
+            'customer_code' => count($tokos) === 1 ? $tokos[0]['code'] : null,
+            'salesman_code' => strtoupper(trim($this->formSalesman)),
             'bulan' => \Carbon\Carbon::parse($this->formBulan)->format('Y-m-01'),
             'hari' => $hariArray,
             'minggu' => $mingguArray,
@@ -564,7 +633,7 @@ class Index extends Component
 
         $this->resetSelection();
         $this->addJksModalOpen = false;
-        $this->dispatch('show-toast', type: 'success', message: 'Pengajuan Tambah ke JKS berhasil dikirim (Status: Menunggu).');
+        $this->dispatch('toast', ['type' => 'success', 'message' => 'Pengajuan Tambah ke JKS berhasil dikirim (Status: Menunggu).']);
     }
 
     public function exportExcel()
@@ -572,7 +641,7 @@ class Index extends Component
         abort_if(!$this->canExport, 403, 'Akses ditolak.');
 
         if (empty($this->appliedArea) && empty($this->appliedSupervisor) && empty($this->appliedDistributor)) {
-            $this->dispatch('show-toast', type: 'warning', message: 'Silakan pilih filter minimal setingkat Area untuk melakukan export.');
+            $this->dispatch('toast', ['type' => 'warning', 'message' => 'Silakan pilih filter minimal setingkat Area untuk melakukan export.']);
             return;
         }
 
@@ -590,23 +659,20 @@ class Index extends Component
     public function render(JksNonRouteService $service)
     {
         $distributorOptions = $this->filterDistributors;
-        
-        if (empty($this->appliedDistributor) && $distributorOptions->count() > 0) {
-            $this->appliedDistributor = $distributorOptions->first()->distributor_code;
-            $this->selectedDistributor = $this->appliedDistributor;
-        }
 
         // Get applied filters from the trait
         $filters = $this->getAppliedFilters();
-        $filters['bulan'] = $this->appliedBulan; // ensure we pass bulan for 6 month history
+        $filters['bulan'] = $this->appliedBulan;
         
-        $data = $service->getFilteredPaginatedList($this->search, $filters, 100);
+        $data = $service->getFilteredPaginatedList($this->search, $filters, 100, $this->getPage());
         
         $historyLabels = [];
         $baseBulan = $this->appliedBulan ?: date('Y-m-01');
         for ($i = 1; $i <= 6; $i++) {
             $historyLabels[] = \Carbon\Carbon::parse($baseBulan)->subMonths($i)->translatedFormat('M y');
         }
+
+        $pendingApprovalsCount = \App\Livewire\CallPlan\JksApprovals\Index::getPendingCount();
 
         return view('livewire.call-plan.jks-non-route.index', [
             'outlets' => $data,
@@ -615,6 +681,7 @@ class Index extends Component
             'supervisorOptions' => $this->filterSupervisors,
             'distributorOptions' => $distributorOptions,
             'historyLabels' => $historyLabels,
+            'pendingApprovalsCount' => $pendingApprovalsCount,
         ]);
     }
 }

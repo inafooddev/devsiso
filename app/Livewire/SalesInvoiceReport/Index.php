@@ -47,18 +47,68 @@ class Index extends Component
     public $isExportModalOpen = false;
 
     /**
-     * Helper untuk memfilter query berdasarkan akses region user.
+     * Helper untuk memfilter query berdasarkan hierarki hak akses user:
+     * - Admin / Nasional: Akses semua
+     * - Supervisor (SPV): Hanya distributor/wilayah di bawah supervisinya
+     * - Area (ASM): Hanya distributor/wilayah di bawah area miliknya
+     * - Region (RSM): Hanya distributor/wilayah di bawah region miliknya
      */
-    private function applyRegionAccess($query, $column = 'region_code')
+    private function applyAccessScope($query, string $table = 'master_distributors')
     {
         $user = auth()->user();
-        
-        // Jika bukan admin dan memiliki batasan region_code (array)
-        if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            // Kita gunakan table prefix jika kolomnya ambigu (seperti saat JOIN)
-            $query->whereIn($column, $user->region_code);
+        if (!$user) {
+            return $query;
         }
-        
+
+        $level = $user->getAccessLevel();
+
+        if ($level === 'nasional') {
+            return $query;
+        }
+
+        if ($level === 'supervisor' && !empty($user->supervisor_code)) {
+            $spvCode = $user->supervisor_code;
+            if ($table === 'master_distributors') {
+                $query->where(function ($q) use ($spvCode) {
+                    $q->where('master_distributors.supervisor_code', $spvCode)
+                      ->orWhereIn('master_distributors.supervisor_code', function ($sub) use ($spvCode) {
+                          $sub->select('siso_code')
+                              ->from('team_elite_code_mappings')
+                              ->where('team_elite_code', $spvCode);
+                      });
+                });
+            } elseif ($table === 'master_regions') {
+                $query->whereIn('region_code', function ($sub) use ($spvCode) {
+                    $sub->select('region_code')
+                        ->from('vw_distributor_hierarchy')
+                        ->where('supervisor_code', $spvCode);
+                });
+            } elseif ($table === 'master_areas') {
+                $query->whereIn('area_code', function ($sub) use ($spvCode) {
+                    $sub->select('area_code')
+                        ->from('vw_distributor_hierarchy')
+                        ->where('supervisor_code', $spvCode);
+                });
+            }
+        } elseif ($level === 'area' && !empty($user->area_code)) {
+            $areas = (array) $user->area_code;
+            if ($table === 'master_distributors') {
+                $query->whereIn('master_distributors.area_code', $areas);
+            } elseif ($table === 'master_areas') {
+                $query->whereIn('area_code', $areas);
+            } elseif ($table === 'master_regions') {
+                $query->whereIn('region_code', function ($sub) use ($areas) {
+                    $sub->select('region_code')
+                        ->from('master_areas')
+                        ->whereIn('area_code', $areas);
+                });
+            }
+        } elseif ($level === 'region' && !empty($user->region_code)) {
+            $regions = (array) $user->region_code;
+            $column = $table === 'master_distributors' ? 'master_distributors.region_code' : 'region_code';
+            $query->whereIn($column, $regions);
+        }
+
         return $query;
     }
 
@@ -67,8 +117,8 @@ class Index extends Component
      */
     public function mount()
     {
-        // Filter daftar region yang muncul di dropdown awal
-        $this->regions = $this->applyRegionAccess(MasterRegion::query())
+        // Filter daftar region yang muncul di dropdown awal sesuai hak akses user
+        $this->regions = $this->applyAccessScope(MasterRegion::query(), 'master_regions')
             ->orderBy('region_name')
             ->where('region_code', '<>', 'HOINA')
             ->get();
@@ -80,7 +130,17 @@ class Index extends Component
         $this->regionFilter = '';
         $this->areaFilter = '';
 
+        // Auto-select jika user bukan nasional dan hanya memiliki akses ke 1 region
+        if (count($this->regions) === 1) {
+            $this->regionFilter = $this->regions->first()->region_code;
+        }
+
         $this->updatedRegionFilter();
+
+        // Inisialisasi filter ekspor awal
+        $this->exportMonthFilter = $this->monthFilter;
+        $this->exportYearFilter = $this->yearFilter;
+        $this->exportRegionFilter = $this->regionFilter;
 
         // Tampilkan data langsung saat pertama kali dimuat
         $this->hasAppliedFilters = true;
@@ -96,9 +156,12 @@ class Index extends Component
         if (!empty($this->regionFilter)) {
             $regions = is_array($this->regionFilter) ? $this->regionFilter : [$this->regionFilter];
             $query->whereIn('region_code', $regions);
+            // Tetap kawal dengan hak akses user
+            $this->applyAccessScope($query, 'master_areas');
         } else {
-            // Jika tidak ada region yang dipilih, tetap batasi berdasarkan hak akses user
-            $this->applyRegionAccess($query);
+            // Jika tidak ada region yang dipilih, batasi berdasarkan hak akses user dan kosongkan areaFilter
+            $this->applyAccessScope($query, 'master_areas');
+            $this->areaFilter = '';
         }
 
         $this->areas = $query->orderBy('area_name')->get();
@@ -162,6 +225,17 @@ class Index extends Component
     }
 
     // --- LOGIKA UNTUK FILTER EKSPOR (DI DALAM MODAL) ---
+    public function openExportModal()
+    {
+        $this->exportMonthFilter = $this->monthFilter ?? now()->month;
+        $this->exportYearFilter = $this->yearFilter ?? now()->year;
+        $this->exportRegionFilter = $this->regionFilter ?: '';
+        $this->updatedExportRegionFilter($this->exportRegionFilter);
+        $this->exportAreaFilter = $this->areaFilter ?: '';
+        $this->updatedExportAreaFilter($this->exportAreaFilter);
+        $this->isExportModalOpen = true;
+    }
+
     public function updatedExportRegionFilter($value)
     {
         $this->reset(['exportAreaFilter', 'exportDistributorFilter']);
@@ -169,8 +243,9 @@ class Index extends Component
         $query = MasterArea::query();
         if ($value) {
             $query->where('region_code', $value);
+            $this->applyAccessScope($query, 'master_areas');
         } else {
-            $this->applyRegionAccess($query);
+            $this->applyAccessScope($query, 'master_areas');
         }
         
         $this->exportAreas = $query->orderBy('area_name')->get();
@@ -179,7 +254,13 @@ class Index extends Component
     public function updatedExportAreaFilter($value)
     {
         $this->reset('exportDistributorFilter');
-        $this->exportDistributors = $value ? MasterDistributor::where('area_code', $value)->orderBy('distributor_name')->get() : collect();
+        if ($value) {
+            $query = MasterDistributor::where('area_code', $value);
+            $this->applyAccessScope($query, 'master_distributors');
+            $this->exportDistributors = $query->orderBy('distributor_name')->get();
+        } else {
+            $this->exportDistributors = collect();
+        }
     }
 
     /**
@@ -223,14 +304,15 @@ class Index extends Component
                 ->selectSub($kodemapingQuery, 'kodemaping')
                 ->leftJoinSub($salesSummary, 's', fn ($join) => $join->on('master_distributors.distributor_code', '=', 's.distributor_code'));
             
-            // --- PENERAPAN SCOPE KEAMANAN DATA ---
-            $this->applyRegionAccess($query, 'master_distributors.region_code');
+            // --- PENERAPAN SCOPE KEAMANAN DATA SESUAI HAK AKSES USER ---
+            $this->applyAccessScope($query, 'master_distributors');
 
             // --- FILTER TAMBAHAN DARI UI ---
             if ($this->search) {
                 $query->where(fn($q) => $q->where('master_distributors.region_name', 'ilike', "%{$this->search}%")
                       ->orWhere('master_distributors.area_name', 'ilike', "%{$this->search}%")
-                      ->orWhere('master_distributors.distributor_name', 'ilike', "%{$this->search}%"));
+                      ->orWhere('master_distributors.distributor_name', 'ilike', "%{$this->search}%")
+                      ->orWhere('master_distributors.distributor_code', 'ilike', "%{$this->search}%"));
             }
             if (!empty($this->regionFilter)) {
                 $regions = is_array($this->regionFilter) ? $this->regionFilter : [$this->regionFilter];
@@ -240,7 +322,13 @@ class Index extends Component
                 $areas = is_array($this->areaFilter) ? $this->areaFilter : [$this->areaFilter];
                 $query->whereIn('master_distributors.area_code', $areas);
             }
-            if ($this->statusFilter !== '' && $this->statusFilter !== null) $query->where('master_distributors.is_active', $this->statusFilter);
+            if ($this->statusFilter !== '' && $this->statusFilter !== null) {
+                if ($this->statusFilter === '1' || $this->statusFilter === 1 || $this->statusFilter === true || $this->statusFilter === 'true' || $this->statusFilter === 'Dist. Aktif') {
+                    $query->where('master_distributors.is_active', true);
+                } elseif ($this->statusFilter === '0' || $this->statusFilter === 0 || $this->statusFilter === false || $this->statusFilter === 'false' || $this->statusFilter === 'Dist. Tidak Aktif') {
+                    $query->where('master_distributors.is_active', false);
+                }
+            }
             
             $summaryData = $query->orderBy('master_distributors.region_name')
                                  ->orderBy('master_distributors.area_name')
@@ -251,19 +339,14 @@ class Index extends Component
             $dayOfWeek = $now->dayOfWeekIso; // 1 = Senin ... 7 = Minggu
 
             if ($dayOfWeek >= 1 && $dayOfWeek <= 3) {
-                // Siklus Senin (Senin - Rabu): jendela upload sejak Minggu atau Senin dini hari
-                $startOfCycle = $now->copy()->startOfWeek()->subDay()->startOfDay();
-                // Minimal ada data setelah hari Rabu minggu lalu (yaitu Kamis, Jumat, Sabtu)
+                // Siklus Senin (Senin - Rabu): Minimal ada data setelah hari Rabu minggu lalu (yaitu Kamis, Jumat, Sabtu)
                 $minInvoiceDate = $now->copy()->startOfWeek()->subDays(4)->startOfDay();
             } else {
-                // Siklus Kamis (Kamis - Minggu): jendela upload sejak Kamis 00:00
-                $startOfCycle = $now->copy()->startOfWeek()->addDays(3)->startOfDay();
-                // Minimal ada data minggu ini (Senin, Selasa, dst)
+                // Siklus Kamis (Kamis - Minggu): Minimal ada data minggu ini (Senin, Selasa, dst)
                 $minInvoiceDate = $now->copy()->startOfWeek()->startOfDay();
             }
 
-            $isCurrentMonth = (!$this->monthFilter || $this->monthFilter == now()->month)
-                           && (!$this->yearFilter || $this->yearFilter == now()->year);
+            $isCurrentMonth = ($this->monthFilter == now()->month) && ($this->yearFilter == now()->year);
 
             $summaryData->transform(function ($item) use ($minInvoiceDate, $isCurrentMonth) {
                 if (!$isCurrentMonth) {
@@ -314,35 +397,15 @@ class Index extends Component
 
         $this->isExportModalOpen = false;
 
-        // Untuk Ekspor, kita pastikan region yang dilempar ke Excel juga tervalidasi hak aksesnya
-        $finalRegionFilter = $this->exportRegionFilter;
-        
-        $user = auth()->user();
-        if (!$user->hasRole('admin') && !empty($user->region_code)) {
-            // Jika user iseng mengosongkan region di modal ekspor, 
-            // kita paksa ekspor semua region miliknya.
-            if (empty($finalRegionFilter)) {
-                $finalRegionFilter = $user->region_code;
-            } 
-            // Jika user memilih region, pastikan region tersebut ada dalam hak aksesnya
-            elseif (is_array($finalRegionFilter)) {
-                $finalRegionFilter = array_intersect($finalRegionFilter, $user->region_code);
-            } else {
-                if (!in_array($finalRegionFilter, $user->region_code)) {
-                    $finalRegionFilter = $user->region_code;
-                }
-            }
-        }
-
         $filters = [
-            'regionFilter' => $finalRegionFilter,
+            'regionFilter' => $this->exportRegionFilter,
             'areaFilter' => $this->exportAreaFilter,
             'distributorFilter' => $this->exportDistributorFilter,
             'monthFilter' => $this->exportMonthFilter,
             'yearFilter' => $this->exportYearFilter,
         ];
 
-        \App\Helpers\ActivityLogger::log('Export Sales Invoice', "Mengekspor laporan sales invoice. Filter Region: " . json_encode($finalRegionFilter));
+        \App\Helpers\ActivityLogger::log('Export Sales Invoice', "Mengekspor laporan sales invoice. Filter: " . json_encode($filters));
 
         return Excel::download(new SalesInvoiceExport($filters), 'laporan_sales_invoice_detail.xlsx');
     }

@@ -2,9 +2,6 @@
     <x-slot name="title">Summary JKS</x-slot>
 
     <x-ui.tab-menu>
-        @php
-            $pendingApprovalsCount = \App\Livewire\CallPlan\JksApprovals\Index::getPendingCount();
-        @endphp
         <a href="#" class="tab">Dashboard</a>
         <a href="{{ route('call-plan.jks-summary') }}" class="tab tab-active bg-primary text-primary-content">Summary</a>
         <a href="{{ route('call-plan.jks-salesmans') }}" class="tab">Detail</a>
@@ -65,7 +62,7 @@
 
                     {{-- Distributor Searchable Capsule --}}
                     <x-ui.filter-searchable 
-                        wire:key="summary-dist-capsule-{{ $appliedRegion }}-{{ $appliedArea }}-{{ $appliedSupervisor }}"
+                        wire:key="summary-dist-capsule"
                         wire:model.live="appliedDistributor" 
                         :options="$distributorOptions" 
                         valueField="distributor_code" 
@@ -185,11 +182,11 @@
                     <tbody>
                         @forelse($summaryData as $row)
                             <tr class="hover:bg-base-200/50 transition-colors group text-xs">
-                                <td title="{{ $row->region_name ?: $row->region_code }}" class="bg-base-100 group-hover:bg-base-200/50 sticky left-0 z-30 border-b border-r border-base-200 truncate w-[100px] min-w-[100px] max-w-[100px] text-base-content/70">{{ $row->region_name ?: $row->region_code }}</td>
-                                <td title="{{ $row->area_name ?: $row->area_code }}" class="bg-base-100 group-hover:bg-base-200/50 sticky left-[100px] z-30 border-b border-r border-base-200 truncate w-[120px] min-w-[120px] max-w-[120px] text-base-content/70">{{ $row->area_name ?: $row->area_code }}</td>
-                                <td title="{{ $row->supervisor_name ?: $row->supervisor_code }}" class="bg-base-100 group-hover:bg-base-200/50 sticky left-[220px] z-30 border-b border-r border-base-200 truncate w-[150px] min-w-[150px] max-w-[150px] text-base-content/90">{{ $row->supervisor_name ?: $row->supervisor_code }}</td>
-                                <td title="{{ $row->distributor_name ?: $row->distributor_code }}" class="bg-base-100 group-hover:bg-base-200/50 sticky left-[370px] z-30 border-b border-r border-base-200 truncate w-[150px] min-w-[150px] max-w-[150px] text-base-content/90">{{ $row->distributor_name ?: $row->distributor_code }}</td>
-                                <td title="{{ $row->salesman_name ?: $row->salesman_code }}" class="bg-base-100 group-hover:bg-base-200/50 sticky left-[520px] z-30 border-b border-r border-base-200 shadow-[4px_0_12px_-2px_rgba(0,0,0,0.1)] truncate w-[150px] min-w-[150px] max-w-[150px] font-medium text-base-content/90">{{ $row->salesman_name ?: $row->salesman_code }}</td>
+                                <td title="{{ $row->region_name ?: $row->region_code }}" class="bg-base-100 group-hover:bg-base-200 sticky left-0 z-30 border-b border-r border-base-200 truncate w-[100px] min-w-[100px] max-w-[100px] text-base-content/70">{{ $row->region_name ?: $row->region_code }}</td>
+                                <td title="{{ $row->area_name ?: $row->area_code }}" class="bg-base-100 group-hover:bg-base-200 sticky left-[100px] z-30 border-b border-r border-base-200 truncate w-[120px] min-w-[120px] max-w-[120px] text-base-content/70">{{ $row->area_name ?: $row->area_code }}</td>
+                                <td title="{{ $row->supervisor_name ?: $row->supervisor_code }}" class="bg-base-100 group-hover:bg-base-200 sticky left-[220px] z-30 border-b border-r border-base-200 truncate w-[150px] min-w-[150px] max-w-[150px] text-base-content/90">{{ $row->supervisor_name ?: $row->supervisor_code }}</td>
+                                <td title="{{ $row->distributor_name ?: $row->distributor_code }}" class="bg-base-100 group-hover:bg-base-200 sticky left-[370px] z-30 border-b border-r border-base-200 truncate w-[150px] min-w-[150px] max-w-[150px] text-base-content/90">{{ $row->distributor_name ?: $row->distributor_code }}</td>
+                                <td title="{{ $row->salesman_name ?: $row->salesman_code }}" class="bg-base-100 group-hover:bg-base-200 sticky left-[520px] z-30 border-b border-r border-base-200 shadow-[4px_0_12px_-2px_rgba(0,0,0,0.1)] truncate w-[150px] min-w-[150px] max-w-[150px] font-medium text-base-content/90">{{ $row->salesman_name ?: $row->salesman_code }}</td>
                                 
                                 <td class="text-right pr-4 border-b border-r border-base-200 {{ $row->total_ro < 300 ? 'bg-error/5 text-error font-medium' : 'text-base-content/80' }}">{{ number_format($row->total_ro) }}</td>
                                 <td class="text-right pr-4 border-b border-r border-base-200 {{ $row->total_jks < 300 ? 'bg-error/5 text-error font-medium' : 'text-base-content/80' }}">{{ number_format($row->total_jks) }}</td>

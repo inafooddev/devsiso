@@ -44,7 +44,9 @@
                     {{-- Status Distributor Segment --}}
                     <x-ui.filter-select 
                         wire:model.live="statusFilter" 
-                        :options="['1' => 'Dist. Aktif', '0' => 'Dist. Tidak Aktif']" 
+                        :options="[['value' => '1', 'label' => 'Dist. Aktif'], ['value' => '0', 'label' => 'Dist. Tidak Aktif']]" 
+                        valueField="value"
+                        labelField="label"
                         placeholder="Semua Status Dist." 
                         icon="tag" 
                         width="w-32 sm:w-36" 
@@ -53,7 +55,9 @@
                     {{-- Status Update Segment (Sudah / Belum) --}}
                     <x-ui.filter-select 
                         wire:model.live="updateStatusFilter" 
-                        :options="['sudah' => '🟢 Sudah Update', 'belum' => '🔴 Belum Update']" 
+                        :options="[['value' => 'sudah', 'label' => '🟢 Sudah Update'], ['value' => 'belum', 'label' => '🔴 Belum Update']]" 
+                        valueField="value"
+                        labelField="label"
                         placeholder="Semua Status Update" 
                         icon="tag" 
                         width="w-36 sm:w-40" 
@@ -125,7 +129,7 @@
                          <div class="grid grid-cols-4 gap-1.5 mb-4">
                              <template x-for="(name, index) in monthNames">
                                  <button type="button" 
-                                         @click="month = index + 1; open = false;"
+                                         @click="month = index + 1; if (!year) year = safeYear; open = false;"
                                          class="px-1 py-1.5 rounded-lg text-sm font-medium transition-colors"
                                          :class="month === (index + 1) ? 'bg-primary text-primary-content shadow-md shadow-primary/20' : 'hover:bg-base-200 text-base-content/80'"
                                          x-text="name">
@@ -142,7 +146,11 @@
 
                 {{-- 4. Actions Slot (Reset & Export) --}}
                 <x-slot:actions>
-                    @if (!empty($search) || $statusFilter !== '1' || !empty($updateStatusFilter) || !empty($regionFilter) || !empty($areaFilter))
+                    @php
+                        $isDefaultMonth = ($monthFilter == now()->month && $yearFilter == now()->year);
+                        $hasActiveFilters = !empty($search) || $statusFilter !== '1' || !empty($updateStatusFilter) || !empty($regionFilter) || !empty($areaFilter) || !$isDefaultMonth;
+                    @endphp
+                    @if ($hasActiveFilters)
                         <button type="button" 
                             wire:click="resetFilters" 
                             class="btn btn-sm btn-ghost border border-base-300 rounded-xl text-base-content/70 hover:text-base-content text-xs cursor-pointer gap-1"
@@ -155,7 +163,7 @@
                     @canExport('sales-invoice-report.index')
                     <x-ui.action-button
                         type="export"
-                        wire:click="$set('isExportModalOpen', true)"
+                        wire:click="openExportModal"
                     />
                     @endcanExport
                 </x-slot:actions>
@@ -325,7 +333,7 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label for="exportMonthFilter" class="block text-sm font-medium text-base-content/70 mb-1.5">Bulan</label>
-                                <select wire:model.defer="exportMonthFilter" id="exportMonthFilter" class="select select-bordered select-sm w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-success/50">
+                                <select wire:model="exportMonthFilter" id="exportMonthFilter" class="select select-bordered select-sm w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-success/50">
                                     @for ($m = 1; $m <= 12; $m++)
                                         <option value="{{ $m }}">{{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}</option>
                                     @endfor
@@ -333,7 +341,7 @@
                             </div>
                             <div>
                                 <label for="exportYearFilter" class="block text-sm font-medium text-base-content/70 mb-1.5">Tahun</label>
-                                <select wire:model.defer="exportYearFilter" id="exportYearFilter" class="select select-bordered select-sm w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-success/50">
+                                <select wire:model="exportYearFilter" id="exportYearFilter" class="select select-bordered select-sm w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-success/50">
                                     @for ($y = now()->year; $y >= now()->year - 5; $y--)
                                         <option value="{{ $y }}">{{ $y }}</option>
                                     @endfor

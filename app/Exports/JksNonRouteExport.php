@@ -10,7 +10,6 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 class JksNonRouteExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithColumnFormatting
 {
@@ -25,38 +24,40 @@ class JksNonRouteExport implements FromQuery, WithHeadings, WithMapping, WithSty
 
     public function query()
     {
-        // Using an anonymous class to easily access the protected method of the service
-        // Since getBaseQuery is protected in JksNonRouteService, we can instantiate it and use reflection,
-        // or just recreate the query logic here, but using the service method is cleaner if we use a helper.
-        // Let's create a proxy to the protected method:
-        $service = new class extends JksNonRouteService {
-            public function getQuery($search, $filters) {
-                return $this->getBaseQuery($search, $filters);
-            }
-        };
+        $service = app(JksNonRouteService::class);
 
-        return $service->getQuery($this->search, $this->filters)
+        return $service->getBaseQueryBuilder($this->search, $this->filters)
             ->orderBy('mto.distributor_name')
             ->orderBy('mto.customer_name');
     }
 
     public function headings(): array
     {
-        return [
+        $bulan = $this->filters['bulan'] ?? date('Y-m-01');
+        $baseBulan = \Carbon\Carbon::parse($bulan);
+        
+        $headings = [
             'Distributor Code',
             'Distributor Name',
             'Customer Kode',
             'Customer Kode PRC',
             'Nama Cust',
             'Alamat',
-            'Avg',
-            'Remark'
+            'Avg 2026',
         ];
+
+        for ($i = 1; $i <= 6; $i++) {
+            $headings[] = $baseBulan->copy()->subMonths($i)->translatedFormat('M y');
+        }
+
+        $headings[] = 'Remark';
+
+        return $headings;
     }
 
     public function map($row): array
     {
-        return [
+        $data = [
             $row->distributor_code,
             $row->distributor_name,
             $row->customer_code,
@@ -64,21 +65,36 @@ class JksNonRouteExport implements FromQuery, WithHeadings, WithMapping, WithSty
             $row->customer_name,
             $row->alamat ?: '-',
             $row->avg_value_net ? (float) $row->avg_value_net : 0,
-            $row->remark ?: '-'
         ];
+
+        for ($i = 1; $i <= 6; $i++) {
+            $histField = 'history_' . $i;
+            $val = $row->$histField ?? 0;
+            $data[] = $val > 0 ? (float) $val : 0;
+        }
+
+        $data[] = $row->remark ?: '-';
+
+        return $data;
     }
 
     public function columnFormats(): array
     {
         return [
-            'G' => '"Rp" #,##0_-', // Format Rupiah yang bisa dijumlahkan di Excel
+            'G' => '"Rp" #,##0_-', // Avg
+            'H' => '#,##0_-',
+            'I' => '#,##0_-',
+            'J' => '#,##0_-',
+            'K' => '#,##0_-',
+            'L' => '#,##0_-',
+            'M' => '#,##0_-',
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
         return [
-            1    => ['font' => ['bold' => true]],
+            1 => ['font' => ['bold' => true]],
         ];
     }
 }

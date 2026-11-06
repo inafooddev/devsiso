@@ -12,20 +12,36 @@ class JksNonRouteService
      * @param string $search
      * @param array $filters
      * @param int $perPage
+     * @param int|null $page
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function getFilteredPaginatedList($search = '', $filters = [], $perPage = 50)
+    public function getFilteredPaginatedList($search = '', $filters = [], $perPage = 50, $page = null)
     {
+        $cleanSearch = preg_replace('/\s+/', ' ', trim($search));
+
         // Require at least one hierarchy filter to prevent loading massive unindexed data initially
-        if (empty($search) && empty($filters['region']) && empty($filters['area']) && empty($filters['supervisor']) && empty($filters['distributor'])) {
-            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
+        if (empty($cleanSearch) && empty($filters['region']) && empty($filters['area']) && empty($filters['supervisor']) && empty($filters['distributor'])) {
+            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage, $page ?: 1);
         }
 
-        return $this->getBaseQuery($search, $filters)
+        return $this->getBaseQuery($cleanSearch, $filters)
             ->orderByDesc('mto.avg_value_net')
             ->orderBy('mto.distributor_name')
             ->orderBy('mto.customer_name')
-            ->paginate($perPage);
+            ->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * Public accessor for query builder (e.g. for Excel Export).
+     *
+     * @param string $search
+     * @param array $filters
+     * @return \Illuminate\Database\Query\Builder
+     */
+    public function getBaseQueryBuilder($search = '', $filters = [])
+    {
+        $cleanSearch = preg_replace('/\s+/', ' ', trim($search));
+        return $this->getBaseQuery($cleanSearch, $filters);
     }
 
     /**
@@ -40,6 +56,7 @@ class JksNonRouteService
         $bulan = $filters['bulan'] ?? date('Y-m-01');
         $baseBulan = \Carbon\Carbon::parse($bulan);
         $targetBulan = $baseBulan->format('Y-m');
+        $cleanSearch = preg_replace('/\s+/', ' ', trim($search));
         
         $query = DB::table('jks_se_master_toko_ool as mto')
             ->leftJoin('jks_salesmans as js', function($join) use ($targetBulan) {
@@ -97,26 +114,30 @@ class JksNonRouteService
         }
 
         $query->select($selectCols)
-            ->whereNull('js.id')
-            ->when($filters['region'] ?? null, function ($q, $region) {
-                return $q->where('mto.region_code', $region);
-            })
-            ->when($filters['area'] ?? null, function ($q, $area) {
-                return $q->where('mto.area_code', $area);
-            })
-            ->when($filters['supervisor'] ?? null, function ($q, $supervisor) {
-                return $q->where('mto.supervisor_code', $supervisor);
-            })
-            ->when($filters['distributor'] ?? null, function ($q, $distributor) {
-                return $q->where('mto.distributor_code', $distributor);
-            })
-            ->where(function ($query) use ($search) {
-                if ($search) {
-                    $query->where('mto.customer_code', 'ilike', '%' . $search . '%')
-                          ->orWhere('mto.customer_name', 'ilike', '%' . $search . '%')
-                          ->orWhere('mto.alamat', 'ilike', '%' . $search . '%');
-                }
+            ->whereNull('js.id');
+
+        // Scoping hierarchy cleanly: if distributor is selected, it is the most specific filter
+        if (!empty($filters['distributor'])) {
+            $query->where('mto.distributor_code', $filters['distributor']);
+        } else {
+            if (!empty($filters['supervisor'])) {
+                $query->where('mto.supervisor_code', $filters['supervisor']);
+            }
+            if (!empty($filters['area'])) {
+                $query->where('mto.area_code', $filters['area']);
+            }
+            if (!empty($filters['region'])) {
+                $query->where('mto.region_code', $filters['region']);
+            }
+        }
+
+        if (!empty($cleanSearch)) {
+            $query->where(function ($q) use ($cleanSearch) {
+                $q->where('mto.customer_code', 'ilike', '%' . $cleanSearch . '%')
+                  ->orWhere('mto.customer_name', 'ilike', '%' . $cleanSearch . '%')
+                  ->orWhere('mto.alamat', 'ilike', '%' . $cleanSearch . '%');
             });
+        }
             
         $user = auth()->user();
         if ($user && !$user->hasRole(['admin', 'spm'])) {

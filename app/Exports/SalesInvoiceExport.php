@@ -55,12 +55,35 @@ class SalesInvoiceExport extends DefaultValueBinder implements FromQuery, WithHe
                 'sales_invoice_distributor.*'
             );
 
+        // Terapkan scope keamanan data user
+        $user = auth()->user();
+        if ($user && !$user->hasRole('admin')) {
+            $level = method_exists($user, 'getAccessLevel') ? $user->getAccessLevel() : 'nasional';
+            if ($level === 'supervisor' && !empty($user->supervisor_code)) {
+                $spvCode = $user->supervisor_code;
+                $query->where(function ($q) use ($spvCode) {
+                    $q->where('master_distributors.supervisor_code', $spvCode)
+                      ->orWhereIn('master_distributors.supervisor_code', function ($sub) use ($spvCode) {
+                          $sub->select('siso_code')
+                              ->from('team_elite_code_mappings')
+                              ->where('team_elite_code', $spvCode);
+                      });
+                });
+            } elseif ($level === 'area' && !empty($user->area_code)) {
+                $query->whereIn('master_distributors.area_code', (array) $user->area_code);
+            } elseif ($level === 'region' && !empty($user->region_code)) {
+                $query->whereIn('master_distributors.region_code', (array) $user->region_code);
+            }
+        }
+
         // Terapkan filter
         if (!empty($this->filters['regionFilter'])) {
-            $query->where('master_distributors.region_code', $this->filters['regionFilter']);
+            $regions = is_array($this->filters['regionFilter']) ? $this->filters['regionFilter'] : [$this->filters['regionFilter']];
+            $query->whereIn('master_distributors.region_code', $regions);
         }
         if (!empty($this->filters['areaFilter'])) {
-            $query->where('master_distributors.area_code', $this->filters['areaFilter']);
+            $areas = is_array($this->filters['areaFilter']) ? $this->filters['areaFilter'] : [$this->filters['areaFilter']];
+            $query->whereIn('master_distributors.area_code', $areas);
         }
         if (!empty($this->filters['distributorFilter'])) {
             $query->where('sales_invoice_distributor.distributor_code', $this->filters['distributorFilter']);

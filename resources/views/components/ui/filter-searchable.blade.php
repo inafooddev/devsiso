@@ -38,15 +38,38 @@
 
     $currentVal = $wireModel && isset($this) ? ($this->{$wireModel} ?? null) : null;
     $isActive = !empty($currentVal);
+    $encodedOptions = json_encode($normalizedOptions, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 @endphp
 
 <div {{ $attributes->only('wire:key') }}
     x-data="{
         open: false,
         search: '',
-        selectedCode: @if($wireModel) @if($isLive) @entangle($wireModel).live @else @entangle($wireModel) @endif @else '' @endif,
-        options: @js($normalizedOptions),
+        selectedCode: @if($wireModel) @entangle($attributes->wire('model')) @else '' @endif,
+        options: [],
         placeholder: '{{ $placeholder }}',
+        init() {
+            try {
+                this.options = JSON.parse(this.$el.dataset.options || '[]');
+            } catch(e) {
+                this.options = [];
+            }
+
+            // MutationObserver agar options tetap reaktif saat Livewire melakukan DOM morphing
+            let observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'data-options') {
+                        try {
+                            this.options = JSON.parse(this.$el.dataset.options || '[]');
+                            if (this.selectedCode && !this.options.some(o => o.code === this.selectedCode)) {
+                                this.select('');
+                            }
+                        } catch(e) {}
+                    }
+                });
+            });
+            observer.observe(this.$el, { attributes: true, attributeFilter: ['data-options'] });
+        },
         get selectedLabel() {
             if (!this.selectedCode) return this.placeholder;
             const found = this.options.find(o => o.code === this.selectedCode);
@@ -56,8 +79,8 @@
             if (!this.search.trim()) return this.options;
             const q = this.search.toLowerCase();
             return this.options.filter(o => 
-                o.name.toLowerCase().includes(q) || 
-                o.code.toLowerCase().includes(q)
+                (o.name && o.name.toLowerCase().includes(q)) || 
+                (o.code && o.code.toLowerCase().includes(q))
             );
         },
         select(code) {
@@ -70,6 +93,7 @@
             @endif
         }
     }"
+    data-options="{{ $encodedOptions }}"
     @click.outside="open = false"
     @keydown.escape.window="open = false"
     class="relative flex items-center {{ $width }} shrink-0 min-w-0 {{ $disabled ? 'opacity-40 pointer-events-none' : '' }}"
@@ -94,7 +118,7 @@
             @endif
             <span class="truncate text-xs font-medium"
                 :class="selectedCode ? 'text-primary font-bold' : 'text-base-content/75'"
-                x-text="selectedLabel"></span>
+                x-text="selectedLabel">{{ $placeholder }}</span>
         </div>
         <div class="flex items-center gap-0.5 shrink-0">
             <template x-if="selectedCode">

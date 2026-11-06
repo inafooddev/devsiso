@@ -243,10 +243,13 @@ class Index extends Component
     public function availableMonths()
     {
         $months = DB::table('jks_salesmans')
-            ->select(DB::raw('substr(bulan::text, 1, 7) as ym'))
-            ->groupBy(DB::raw('substr(bulan::text, 1, 7)'))
-            ->orderByDesc(DB::raw('substr(bulan::text, 1, 7)'))
-            ->pluck('ym')
+            ->select('bulan')
+            ->distinct()
+            ->orderByDesc('bulan')
+            ->pluck('bulan')
+            ->map(fn($b) => substr($b, 0, 7))
+            ->unique()
+            ->values()
             ->toArray();
 
         $currentMonth = date('Y-m');
@@ -354,11 +357,18 @@ class Index extends Component
                      ->where('js.bulan', 'like', $bulan . '%');
             })
             ->leftJoinSub(
-                DB::table('jks_salesmans')
-                    ->select('customer_code', 'distributor_code')
-                    ->where('bulan', 'like', $bulan . '%')
-                    ->groupBy('customer_code', 'distributor_code')
-                    ->havingRaw('COUNT(DISTINCT salesman_code) > 1'),
+                function($subQuery) use ($bulan) {
+                    $subQuery->from('jks_salesmans')
+                        ->select('customer_code', 'distributor_code')
+                        ->where('bulan', 'like', $bulan . '%');
+                    
+                    if (!empty($this->appliedDistributor)) {
+                        $subQuery->where('distributor_code', $this->appliedDistributor);
+                    }
+                    
+                    $subQuery->groupBy('customer_code', 'distributor_code')
+                        ->havingRaw('COUNT(DISTINCT salesman_code) > 1');
+                },
                 'dc',
                 function ($join) {
                     $join->on('js.customer_code', '=', 'dc.customer_code')
@@ -481,7 +491,7 @@ class Index extends Component
         $approvals = collect();
         if (!empty($salesmanCodes)) {
             $rawApprovals = DB::table('jks_approvals')
-                ->where('status', 'APPROVED')
+                ->whereIn('status', ['APPROVED', 'AUTO_APPROVED'])
                 ->where('payload->bulan', 'like', $bulan . '%')
                 ->orderBy('created_at', 'asc')
                 ->get();
@@ -602,12 +612,13 @@ class Index extends Component
     public function render()
     {
         return view('livewire.call-plan.jks-summary.index', [
-            'regionOptions' => $this->filterRegions(),
-            'areaOptions' => $this->filterAreas(),
-            'supervisorOptions' => $this->filterSupervisors(),
-            'distributorOptions' => $this->filterDistributors(),
-            'availableMonths' => $this->availableMonths(),
-            'summaryData' => $this->summaryData(),
+            'regionOptions' => $this->filterRegions,
+            'areaOptions' => $this->filterAreas,
+            'supervisorOptions' => $this->filterSupervisors,
+            'distributorOptions' => $this->filterDistributors,
+            'availableMonths' => $this->availableMonths,
+            'summaryData' => $this->summaryData,
+            'pendingApprovalsCount' => \App\Livewire\CallPlan\JksApprovals\Index::getPendingCount(),
             'accessLevel' => $this->accessLevel,
             'appliedRegion' => $this->appliedRegion,
             'appliedArea' => $this->appliedArea,

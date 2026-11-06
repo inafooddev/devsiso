@@ -1,10 +1,36 @@
-<div class="flex-1 flex flex-col min-h-0 w-full h-full">
+<div class="flex-1 flex flex-col min-h-0 w-full h-full"
+    x-data="{
+        toasts: [], 
+        addToast(toast) {
+            const id = Date.now() + Math.random();
+            this.toasts.push({ id, ...toast });
+            setTimeout(() => {
+                this.removeToast(id);
+            }, 4000);
+        },
+        removeToast(id) {
+            this.toasts = this.toasts.filter(t => t.id !== id);
+        }
+    }"
+    @toast.window="addToast(Array.isArray($event.detail) ? $event.detail[0] : $event.detail)"
+>
     <x-slot name="title">Outlet Non JKS</x-slot>
 
+    {{-- Toast Container --}}
+    <div class="toast toast-top toast-right z-50 mt-16" style="position: fixed;">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div :class="{
+                'alert alert-success text-white shadow-lg': toast.type === 'success',
+                'alert alert-error text-white shadow-lg': toast.type === 'error',
+                'alert alert-warning text-white shadow-lg': toast.type === 'warning',
+                'alert alert-info text-white shadow-lg': toast.type === 'info'
+            }" class="transition-all duration-300">
+                <span x-text="toast.message"></span>
+            </div>
+        </template>
+    </div>
+
     <x-ui.tab-menu>
-        @php
-            $pendingApprovalsCount = \App\Livewire\CallPlan\JksApprovals\Index::getPendingCount();
-        @endphp
         <a href="#" class="tab">Dashboard</a>
         <a href="{{ route('call-plan.jks-summary') }}" class="tab">Summary</a>
         <a href="{{ route('call-plan.jks-salesmans') }}" class="tab">Detail</a>
@@ -12,7 +38,7 @@
         <a href="{{ route('call-plan.jks-non-route') }}" class="tab tab-active bg-primary text-primary-content">Outlet non JKS</a>
         <a href="{{ route('call-plan.jks-approvals') }}" class="tab">
             Persetujuan
-            @if($pendingApprovalsCount > 0)
+            @if(isset($pendingApprovalsCount) && $pendingApprovalsCount > 0)
                 <span class="badge badge-sm badge-error ml-2">{{ $pendingApprovalsCount }}</span>
             @endif
         </a>
@@ -65,7 +91,7 @@
 
                     {{-- Distributor: Bebas dicari & dipilih langsung tanpa harus isi hierarki dulu --}}
                     <x-ui.filter-searchable 
-                        wire:key="nonroute-dist-capsule-{{ $appliedRegion }}-{{ $appliedArea }}-{{ $appliedSupervisor }}"
+                        wire:key="nonroute-dist-capsule"
                         wire:model.live="appliedDistributor" 
                         :options="$distributorOptions" 
                         valueField="distributor_code" 
@@ -90,7 +116,7 @@
                         <div class="flex items-center gap-1.5 pr-2 border-r border-base-300">
                             <span class="badge badge-primary badge-sm">{{ count($selected) }} terpilih</span>
                             @canAdd('call-plan.jks-salesmans')
-                                <button type="button" class="btn btn-sm btn-primary text-white gap-1 rounded-xl" wire:click="openBulkAddJksModal">
+                                <button type="button" class="btn btn-sm btn-primary text-white gap-1 rounded-xl cursor-pointer" wire:click="openBulkAddJksModal">
                                     <x-heroicon-s-plus-circle class="w-4 h-4" /> 
                                     <span class="hidden md:inline">Tambah Massal ke JKS</span>
                                 </button>
@@ -133,7 +159,7 @@
             {{-- Body Card (Table Scrollable area) --}}
             <div class="flex-1 overflow-auto bg-base-100 w-full relative">
                 <table class="table table-sm table-zebra table-pin-rows w-full whitespace-nowrap">
-                    <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm">
+                    <thead class="text-xs uppercase tracking-wider bg-base-300 text-base-content/80 border-b border-base-300 shadow-sm sticky top-0 z-20">
                         <tr>
                             <th class="w-12 text-center">
                                 <input type="checkbox" class="checkbox checkbox-sm rounded" wire:model.live="selectAll" />
@@ -152,12 +178,12 @@
                                 @endforeach
                             @endif
                             <th>Remark</th>
-                            <th class="w-20 text-center">Aksi</th>
+                            <th class="w-24 text-center sticky top-0 right-0 bg-base-300 z-30 shadow-l">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="text-sm">
                         @forelse($outlets as $index => $row)
-                            <tr class="hover:bg-base-200/50 transition-colors">
+                            <tr class="hover:bg-base-200 transition-colors group">
                                 <td class="text-center">
                                     <input type="checkbox" class="checkbox checkbox-sm rounded" wire:model.live="selected" value="{{ $row->id }}" @if($row->pending_approval_id) disabled @endif />
                                 </td>
@@ -189,7 +215,7 @@
                                         <span class="text-xs text-base-content/40 italic">-</span>
                                     @endif
                                 </td>
-                                <td class="text-center">
+                                <td class="text-center sticky right-0 bg-base-100 group-hover:bg-base-200 transition-colors z-10 shadow-l">
                                     <div class="flex items-center justify-center gap-1">
                                         @if($row->pending_approval_id)
                                             <span class="badge badge-warning badge-xs font-semibold" title="Sedang Diajukan ke JKS">Pending</span>
@@ -197,7 +223,7 @@
                                             @canAdd('call-plan.jks-salesmans')
                                                 <button 
                                                     wire:click="openAddJksModal('{{ $row->id }}')"
-                                                    class="btn btn-xs btn-primary btn-square"
+                                                    class="btn btn-xs btn-primary btn-square cursor-pointer"
                                                     title="Tambah ke JKS"
                                                 >
                                                     <x-heroicon-o-calendar-days class="w-4 h-4" />
@@ -208,7 +234,7 @@
                                         @canEdit('call-plan.jks-salesmans')
                                             <button 
                                                 wire:click="openRemarkModal('{{ $row->distributor_code }}', '{{ $row->customer_code }}', '{{ addslashes($row->customer_name) }}', '{{ addslashes($row->remark) }}')"
-                                                class="btn btn-xs btn-ghost btn-square text-base-content/50 hover:text-primary transition-colors"
+                                                class="btn btn-xs btn-ghost btn-square text-base-content/50 hover:text-primary transition-colors cursor-pointer"
                                                 title="{{ $row->remark ? 'Edit Remark' : 'Tambah Remark' }}"
                                             >
                                                 <x-heroicon-o-chat-bubble-bottom-center-text class="w-4 h-4" />
@@ -219,7 +245,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="11" class="text-center py-12">
+                                <td colspan="17" class="text-center py-12">
                                     <div class="flex flex-col items-center justify-center text-base-content/40">
                                         <x-heroicon-o-document-magnifying-glass class="w-12 h-12 mb-3 opacity-20" />
                                         @if(empty($appliedRegion) && empty($appliedArea) && empty($appliedSupervisor) && empty($appliedDistributor) && empty($search))
@@ -238,7 +264,7 @@
 
             {{-- Remark Modal --}}
             <template x-teleport="body">
-            <dialog class="modal items-start sm:pt-10 !z-[99999]" :class="$wire.remarkModalOpen ? 'modal-open' : ''">
+            <dialog class="modal items-start sm:pt-10 z-50" :class="$wire.remarkModalOpen ? 'modal-open' : ''">
                 <div class="modal-box">
                     <h3 class="font-bold text-lg mb-4">Catatan Outlet Non JKS</h3>
                     
@@ -260,8 +286,8 @@
                     </div>
 
                     <div class="modal-action">
-                        <button wire:click="$set('remarkModalOpen', false)" type="button" class="btn btn-ghost">Batal</button>
-                        <button wire:click="saveRemark" class="btn btn-primary" wire:loading.attr="disabled" wire:target="saveRemark">
+                        <button wire:click="$set('remarkModalOpen', false)" type="button" class="btn btn-ghost cursor-pointer">Batal</button>
+                        <button wire:click="saveRemark" class="btn btn-primary cursor-pointer" wire:loading.attr="disabled" wire:target="saveRemark">
                             <span wire:loading.remove wire:target="saveRemark">Simpan Remark</span>
                             <span wire:loading wire:target="saveRemark" class="loading loading-spinner loading-sm"></span>
                         </button>
@@ -273,7 +299,7 @@
 
             {{-- Add JKS Modal --}}
             <template x-teleport="body">
-            <dialog class="modal items-start sm:pt-10 !z-[99999]" :class="$wire.addJksModalOpen ? 'modal-open' : ''">
+            <dialog class="modal items-start sm:pt-10 z-50" :class="$wire.addJksModalOpen ? 'modal-open' : ''">
                 <div class="modal-box max-w-2xl">
                     <h3 class="font-bold text-lg mb-4">Pengajuan Tambah ke JKS</h3>
                     
@@ -466,8 +492,8 @@
                     </div>
 
                     <div class="modal-action">
-                        <button wire:click="$set('addJksModalOpen', false)" type="button" class="btn btn-ghost">Batal</button>
-                        <button wire:click="submitAddJks" class="btn btn-primary" wire:loading.attr="disabled" wire:target="submitAddJks">
+                        <button wire:click="$set('addJksModalOpen', false)" type="button" class="btn btn-ghost cursor-pointer">Batal</button>
+                        <button wire:click="submitAddJks" class="btn btn-primary cursor-pointer" wire:loading.attr="disabled" wire:target="submitAddJks">
                             <span wire:loading.remove wire:target="submitAddJks">Ajukan Penambahan</span>
                             <span wire:loading wire:target="submitAddJks" class="loading loading-spinner loading-sm"></span>
                         </button>

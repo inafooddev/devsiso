@@ -152,7 +152,7 @@
 
                 {{-- Distributor Searchable Capsule --}}
                 <x-ui.filter-searchable 
-                    wire:key="approvals-dist-capsule-{{ $appliedRegion }}-{{ $appliedArea }}"
+                    wire:key="approvals-dist-capsule"
                     wire:model.live="appliedDistributor" 
                     :options="$distributorOptions" 
                     valueField="distributor_code" 
