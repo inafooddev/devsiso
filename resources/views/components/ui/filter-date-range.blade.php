@@ -12,9 +12,25 @@
 @php
     $startVal = isset($this) ? ($this->{$start} ?? null) : null;
     $endVal = isset($this) ? ($this->{$end} ?? null) : null;
-    $diffDays = ($startVal && $endVal) ? (\Carbon\Carbon::parse($startVal)->diffInDays(\Carbon\Carbon::parse($endVal)) + 1) : 0;
-    $minStart = ($endVal && $maxDays) ? \Carbon\Carbon::parse($endVal)->subDays($maxDays - 1)->format('Y-m-d') : '';
-    $maxEnd = ($startVal && $maxDays) ? \Carbon\Carbon::parse($startVal)->addDays($maxDays - 1)->format('Y-m-d') : date('Y-m-d');
+    $diffDays = 0;
+    try {
+        if ($startVal && $endVal) {
+            $diffDays = \Carbon\Carbon::parse($startVal)->diffInDays(\Carbon\Carbon::parse($endVal)) + 1;
+        }
+    } catch (\Throwable $e) {}
+
+    $todayStr = date('Y-m-d');
+    $minStart = '';
+    $maxEnd = $todayStr;
+    try {
+        if ($endVal && $maxDays) {
+            $minStart = \Carbon\Carbon::parse($endVal)->subDays($maxDays - 1)->format('Y-m-d');
+        }
+        if ($startVal && $maxDays) {
+            $calcMaxEnd = \Carbon\Carbon::parse($startVal)->addDays($maxDays - 1)->format('Y-m-d');
+            $maxEnd = min($calcMaxEnd, $todayStr);
+        }
+    } catch (\Throwable $e) {}
 @endphp
 
 <div {{ $attributes->merge(['class' => 'inline-flex items-center gap-1 bg-base-100 px-1 py-0.5 rounded-xl border border-base-300 shadow-2xs text-xs shrink-0']) }}>
@@ -65,6 +81,7 @@
                 <li><a wire:click="{{ $presetAction }}('today')" class="py-1 cursor-pointer">Hari Ini</a></li>
                 <li><a wire:click="{{ $presetAction }}('yesterday')" class="py-1 cursor-pointer">Kemarin</a></li>
                 <li><a wire:click="{{ $presetAction }}('last_7_days')" class="py-1 cursor-pointer">7 Hari Terakhir</a></li>
+                <li><a wire:click="{{ $presetAction }}('last_14_days')" class="py-1 cursor-pointer">14 Hari Terakhir</a></li>
                 <li><a wire:click="{{ $presetAction }}('this_month')" class="py-1 font-semibold text-primary cursor-pointer">Bulan Ini (MTD)</a></li>
                 <li><a wire:click="{{ $presetAction }}('last_30_days')" class="py-1 cursor-pointer">30 Hari Terakhir</a></li>
                 <li><a wire:click="{{ $presetAction }}('last_month')" class="py-1 cursor-pointer">Bulan Lalu</a></li>

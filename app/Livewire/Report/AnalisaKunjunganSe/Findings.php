@@ -100,6 +100,17 @@ class Findings extends Component
             if (!empty($saved['endDate'])) $this->endDate = $saved['endDate'];
         }
 
+        // Pastikan rentang tanggal tidak melebihi 31 hari
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            try {
+                $s = Carbon::parse($this->startDate);
+                $e = Carbon::parse($this->endDate);
+                if ($s->diffInDays($e) > 30) {
+                    $this->startDate = $e->copy()->subDays(30)->format('Y-m-d');
+                }
+            } catch (\Exception $e) {}
+        }
+
         // Check if query params were passed from other tabs or restored from session
         if (!empty($this->selectedRegion)) {
             $this->updatedSelectedRegion($this->selectedRegion);
@@ -371,8 +382,17 @@ class Findings extends Component
                 $this->startDate = $now->format('Y-m-d');
                 $this->endDate = $now->format('Y-m-d');
                 break;
+            case 'yesterday':
+                $yesterday = $now->copy()->subDay()->format('Y-m-d');
+                $this->startDate = $yesterday;
+                $this->endDate = $yesterday;
+                break;
             case 'last_7_days':
                 $this->startDate = $now->copy()->subDays(6)->format('Y-m-d');
+                $this->endDate = $now->format('Y-m-d');
+                break;
+            case 'last_14_days':
+                $this->startDate = $now->copy()->subDays(13)->format('Y-m-d');
                 $this->endDate = $now->format('Y-m-d');
                 break;
             case 'this_month':
@@ -380,7 +400,7 @@ class Findings extends Component
                 $this->endDate = $now->format('Y-m-d');
                 break;
             case 'last_30_days':
-                $this->startDate = $now->copy()->subDays(30)->format('Y-m-d');
+                $this->startDate = $now->copy()->subDays(29)->format('Y-m-d');
                 $this->endDate = $now->format('Y-m-d');
                 break;
             case 'last_month':
@@ -388,6 +408,37 @@ class Findings extends Component
                 $this->endDate = $now->copy()->subMonth()->endOfMonth()->format('Y-m-d');
                 break;
         }
+    }
+
+    /**
+     * Stepper periode bulan sebelumnya.
+     */
+    public function previousMonth(): void
+    {
+        $currentStart = !empty($this->startDate) ? Carbon::parse($this->startDate) : Carbon::today();
+        $prevMonth = $currentStart->copy()->subMonthNoOverflow();
+        $this->startDate = $prevMonth->copy()->startOfMonth()->format('Y-m-d');
+        $this->endDate = $prevMonth->copy()->endOfMonth()->format('Y-m-d');
+    }
+
+    /**
+     * Stepper periode bulan berikutnya.
+     */
+    public function nextMonth(): void
+    {
+        $currentStart = !empty($this->startDate) ? Carbon::parse($this->startDate) : Carbon::today();
+        $nextMonth = $currentStart->copy()->addMonthNoOverflow();
+        $today = Carbon::today();
+        if ($nextMonth->copy()->startOfMonth()->gt($today)) {
+            return;
+        }
+        $this->startDate = $nextMonth->copy()->startOfMonth()->format('Y-m-d');
+        $this->endDate = min($nextMonth->copy()->endOfMonth()->format('Y-m-d'), $today->format('Y-m-d'));
+    }
+
+    public function resetFilter(): void
+    {
+        $this->resetFilters();
     }
 
     public function applyFilter(bool $forceRefresh = true)

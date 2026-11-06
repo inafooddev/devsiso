@@ -167,6 +167,10 @@ class Summary extends Component
                 $this->startDate = $today->copy()->subDays(6)->format('Y-m-d');
                 $this->endDate = $today->format('Y-m-d');
                 break;
+            case 'last_14_days':
+                $this->startDate = $today->copy()->subDays(13)->format('Y-m-d');
+                $this->endDate = $today->format('Y-m-d');
+                break;
             case 'this_month':
                 $this->startDate = $today->copy()->startOfMonth()->format('Y-m-d');
                 $this->endDate = $today->format('Y-m-d');

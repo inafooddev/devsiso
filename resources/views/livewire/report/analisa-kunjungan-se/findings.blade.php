@@ -184,388 +184,87 @@
     {{-- Main Container Card --}}
     <div class="bg-base-100 rounded-xl shadow-xl border border-base-300 flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
         
-        {{-- Header Card & Actions Toolbar (Hanya Filter & Action Buttons agar hemat ruang layar) --}}
-        <div class="p-2.5 sm:p-3 border-b border-base-300 shrink-0 bg-base-200/30">
-            <div class="flex flex-wrap items-center justify-between gap-2 w-full">
-                
-                {{-- Filter Group: Modern Hierarchical Breadcrumb Capsule (Static Fixed Width) --}}
-                <div class="flex flex-wrap items-center gap-2">
-                    
-                    {{-- 1. Kapsul Hierarki Wilayah (Hybrid: Region & Area Native + Distributor & SE Micro-Searchable Popover) --}}
-                    <div class="inline-flex flex-wrap sm:flex-nowrap items-center bg-base-100 rounded-xl border border-base-300 shadow-2xs divide-y sm:divide-y-0 sm:divide-x divide-base-200/80 p-0.5 text-xs max-w-full">
-                        
-                        {{-- Region Segment (jika multi-region/nasional) --}}
-                        @if(count($regions) > 1 || $accessLevel === 'nasional')
-                            @php
-                                $rTitle = collect($regions)->firstWhere('region_code', $selectedRegion)?->region_name ?? 'Pilih Region';
-                                $rIsActive = !empty($selectedRegion);
-                            @endphp
-                            <div class="relative flex items-center pl-2 pr-1.5 w-32 sm:w-36 shrink-0 min-w-0" title="{{ $rTitle }}">
-                                <x-heroicon-m-globe-asia-australia class="w-3.5 h-3.5 text-primary/70 shrink-0 mr-1 pointer-events-none" />
-                                <select wire:model.live="selectedRegion" 
-                                    class="appearance-none bg-none bg-transparent border-none focus:outline-none text-xs {{ $rIsActive ? 'text-primary font-bold' : 'font-medium text-base-content/75' }} w-full min-w-0 truncate pl-0 pr-4 py-1 cursor-pointer">
-                                    <option value="" class="text-base-content">Pilih Region</option>
-                                    @foreach($regions as $r)
-                                        <option value="{{ $r->region_code }}" class="text-base-content">{{ $r->region_name }}</option>
-                                    @endforeach
-                                </select>
-                                <x-heroicon-m-chevron-down class="w-3 h-3 text-base-content/40 shrink-0 pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2" />
-                            </div>
-                        @endif
+        {{-- Header Card & Actions Toolbar (Standar Kapsul Hybrid Breadcrumb Analisa Kunjungan SE) --}}
+        <x-ui.filter-toolbar>
+            {{-- 1. Kapsul Hierarki Wilayah (Region & Area Native + Distributor & Salesman Micro-Searchable Popover) --}}
+            <x-ui.filter-breadcrumb>
+                {{-- Region Segment (jika multi-region/nasional) --}}
+                @if(count($regions) > 1 || $accessLevel === 'nasional')
+                    <x-ui.filter-select 
+                        wire:model.live="selectedRegion" 
+                        :options="$regions" 
+                        valueField="region_code" 
+                        labelField="region_name" 
+                        placeholder="Pilih Region" 
+                        icon="globe" />
+                @endif
 
-                        {{-- Area Segment --}}
-                        @if(count($areas) > 1 || !in_array($accessLevel, ['area', 'supervisor']))
-                            @php
-                                $aTitle = collect($areas)->firstWhere('area_code', $selectedArea)?->area_name ?? 'Pilih Area';
-                                $aIsActive = !empty($selectedArea);
-                            @endphp
-                            <div class="relative flex items-center pl-2 pr-1.5 w-32 sm:w-36 shrink-0 min-w-0 {{ empty($selectedRegion) ? 'opacity-40' : '' }}" title="{{ $aTitle }}">
-                                <x-heroicon-m-map-pin class="w-3.5 h-3.5 text-rose-500/70 shrink-0 mr-1 pointer-events-none" />
-                                <select wire:model.live="selectedArea" 
-                                    class="appearance-none bg-none bg-transparent border-none focus:outline-none text-xs {{ $aIsActive ? 'text-primary font-bold' : 'font-medium text-base-content/75' }} w-full min-w-0 truncate pl-0 pr-4 py-1 cursor-pointer" 
-                                    @disabled(empty($selectedRegion))>
-                                    <option value="" class="text-base-content">Pilih Area</option>
-                                    @foreach($areas as $a)
-                                        <option value="{{ $a->area_code }}" class="text-base-content">{{ $a->area_name }}</option>
-                                    @endforeach
-                                </select>
-                                <x-heroicon-m-chevron-down class="w-3 h-3 text-base-content/40 shrink-0 pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2" />
-                            </div>
-                        @endif
+                {{-- Area Segment --}}
+                @if(count($areas) > 1 || !in_array($accessLevel, ['area', 'supervisor']))
+                    <x-ui.filter-select 
+                        wire:model.live="selectedArea" 
+                        :options="$areas" 
+                        valueField="area_code" 
+                        labelField="area_name" 
+                        placeholder="Pilih Area" 
+                        icon="map-pin" 
+                        :disabled="empty($selectedRegion)" />
+                @endif
 
-                        {{-- Distributor Segment (Hybrid: Statis di Kapsul + Searchable Popover Modern) --}}
-                        @php
-                            $dObj = collect($distributors)->firstWhere('distributor_code', $selectedDistributor);
-                            $dTitle = $dObj?->distributor_name ?? 'Semua Distributor';
-                            $dIsActive = !empty($selectedDistributor);
-                            $dDisabled = empty($selectedArea);
-                            $distributorOptions = collect($distributors)->map(fn($d) => [
-                                'code' => (string)$d->distributor_code,
-                                'name' => (string)($d->distributor_name ?: $d->distributor_code)
-                            ])->values()->all();
-                        @endphp
-                        <div wire:key="dist-capsule-{{ $selectedArea }}-{{ $selectedDistributor }}"
-                            x-data="{
-                                open: false,
-                                search: '',
-                                selectedCode: @js($selectedDistributor),
-                                selectedLabel: @js($dTitle),
-                                items: @js($distributorOptions),
-                                get filtered() {
-                                    if (!this.search.trim()) return this.items;
-                                    const q = this.search.toLowerCase().trim();
-                                    return this.items.filter(i => 
-                                        i.name.toLowerCase().includes(q) || 
-                                        i.code.toLowerCase().includes(q)
-                                    );
-                                },
-                                select(code) {
-                                    this.open = false;
-                                    this.search = '';
-                                    $wire.set('selectedDistributor', code);
-                                }
-                            }"
-                            @click.outside="open = false"
-                            @keydown.escape.window="open = false"
-                            class="relative flex items-center w-36 sm:w-44 shrink-0 min-w-0 {{ $dDisabled ? 'opacity-40 pointer-events-none' : '' }}"
-                            title="{{ $dTitle }}">
+                {{-- Distributor Segment (Micro-Searchable Popover) --}}
+                <x-ui.filter-searchable 
+                    wire:key="dist-capsule-{{ $selectedRegion }}-{{ $selectedArea }}-{{ $selectedDistributor }}"
+                    wire:model.live="selectedDistributor" 
+                    :options="$distributors" 
+                    valueField="distributor_code" 
+                    labelField="distributor_name" 
+                    placeholder="Semua Distributor" 
+                    :allowAll="true"
+                    allLabel="Semua Distributor"
+                    searchPlaceholder="Cari nama distributor / kode..."
+                    icon="building" 
+                    :disabled="empty($selectedArea)" />
 
-                            {{-- Trigger Button inside Capsule --}}
-                            <button type="button"
-                                @click="if (!{{ $dDisabled ? 'true' : 'false' }}) { open = !open; if(open) { $nextTick(() => $refs.distSearchInput?.focus()) } }"
-                                class="w-full flex items-center justify-between text-left py-1 pl-2 pr-1.5 focus:outline-none cursor-pointer group"
-                                {{ $dDisabled ? 'disabled' : '' }}>
-                                <div class="flex items-center min-w-0 flex-1 mr-1">
-                                    <x-heroicon-m-building-office-2 class="w-3.5 h-3.5 text-indigo-500/80 shrink-0 mr-1" />
-                                    <span class="truncate text-xs font-medium {{ $dIsActive ? 'text-primary font-bold' : 'text-base-content/75' }}"
-                                        x-text="selectedLabel"></span>
-                                </div>
-                                <div class="flex items-center gap-0.5 shrink-0">
-                                    @if($dIsActive)
-                                        <span @click.stop="select('')"
-                                            class="p-0.5 rounded-full hover:bg-base-200 text-base-content/40 hover:text-error transition-colors cursor-pointer"
-                                            title="Hapus pilihan distributor">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                            </svg>
-                                        </span>
-                                    @endif
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-base-content/40 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </button>
+                {{-- Salesman Segment (Micro-Searchable Popover) --}}
+                <x-ui.filter-searchable 
+                    wire:key="sales-capsule-{{ $selectedRegion }}-{{ $selectedArea }}-{{ $selectedDistributor }}-{{ $selectedSalesman }}"
+                    wire:model.live="selectedSalesman" 
+                    :options="$salesmen" 
+                    valueField="salesman_code" 
+                    labelField="salesman_name" 
+                    placeholder="Semua Salesman" 
+                    :allowAll="true"
+                    allLabel="Semua Salesman"
+                    searchPlaceholder="Cari nama salesman (SE)..."
+                    icon="user" 
+                    :disabled="empty($selectedArea) || count($salesmen) === 0" />
+            </x-ui.filter-breadcrumb>
 
-                            {{-- Dropdown Popover Menu --}}
-                            <div x-show="open"
-                                x-transition:enter="transition ease-out duration-150"
-                                x-transition:enter-start="opacity-0 translate-y-1 scale-95"
-                                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-                                x-transition:leave="transition ease-in duration-100"
-                                x-transition:leave-start="opacity-100 translate-y-0 scale-100"
-                                x-transition:leave-end="opacity-0 translate-y-1 scale-95"
-                                style="display: none;"
-                                class="absolute left-0 top-full mt-1.5 z-[70] w-72 sm:w-80 bg-base-100 rounded-xl shadow-2xl border border-base-300 p-2 flex flex-col text-xs focus:outline-none">
-                                
-                                {{-- Search Input Box --}}
-                                <div class="relative mb-2 shrink-0">
-                                    <x-heroicon-m-magnifying-glass class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none" />
-                                    <input type="text"
-                                        x-model="search"
-                                        x-ref="distSearchInput"
-                                        placeholder="Cari nama distributor / kode..."
-                                        class="input input-xs w-full pl-8 pr-6 rounded-lg bg-base-200/60 border border-transparent focus:border-primary focus:bg-base-100 text-xs font-normal" />
-                                    <button x-show="search"
-                                        @click="search = ''; $refs.distSearchInput?.focus()"
-                                        type="button"
-                                        class="absolute right-2 top-1/2 -translate-y-1/2 text-base-content/40 hover:text-base-content cursor-pointer">
-                                        <x-heroicon-m-x-mark class="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
+            {{-- 2. Kapsul Periode Pintar (Smart Date Range Filter - Maksimal 14 Hari) --}}
+            <x-ui.filter-date-range 
+                start="startDate" 
+                end="endDate" 
+                :maxDays="31" />
 
-                                {{-- Options List --}}
-                                <div class="overflow-y-auto max-h-60 flex flex-col gap-0.5 pr-0.5 divide-y divide-base-200/40">
-                                    {{-- Default: Semua Distributor --}}
-                                    <button type="button"
-                                        @click="select('')"
-                                        class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors"
-                                        :class="!selectedCode ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/75'">
-                                        <div class="flex items-center gap-1.5">
-                                            <x-heroicon-m-building-office-2 class="w-3.5 h-3.5 text-indigo-500/80 shrink-0" />
-                                            <span>Semua Distributor</span>
-                                        </div>
-                                        <template x-if="!selectedCode">
-                                            <x-heroicon-m-check class="w-4 h-4 text-primary shrink-0" />
-                                        </template>
-                                    </button>
-
-                                    {{-- List of Distributors --}}
-                                    <template x-for="item in filtered" :key="item.code">
-                                        <button type="button"
-                                            @click="select(item.code)"
-                                            class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors pt-1.5"
-                                            :class="selectedCode === item.code ? 'bg-primary text-white font-semibold shadow-xs' : 'hover:bg-base-200 text-base-content'"
-                                            :title="item.name + ' (' + item.code + ')'">
-                                            <div class="flex flex-col min-w-0 pr-1">
-                                                <span class="truncate font-medium text-xs" :class="selectedCode === item.code ? 'text-white' : 'text-base-content'" x-text="item.name"></span>
-                                                <span class="text-[0.625rem] font-mono" :class="selectedCode === item.code ? 'text-white/80' : 'text-base-content/50'" x-text="item.code"></span>
-                                            </div>
-                                            <template x-if="selectedCode === item.code">
-                                                <x-heroicon-m-check class="w-4 h-4 text-white shrink-0 ml-1.5" />
-                                            </template>
-                                        </button>
-                                    </template>
-
-                                    <template x-if="filtered.length === 0">
-                                        <div class="px-3 py-4 text-xs text-base-content/50 italic text-center">
-                                            Tidak ditemukan distributor yang cocok
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Salesman Segment (Hybrid: Statis di Kapsul + Searchable Popover Modern) --}}
-                        @php
-                            $sObj = collect($salesmen)->firstWhere('salesman_code', $selectedSalesman);
-                            $sTitle = $sObj?->salesman_name ?? 'Semua Salesman';
-                            $sIsActive = !empty($selectedSalesman);
-                            $sDisabled = empty($selectedArea);
-                            $salesmenOptions = collect($salesmen)->map(fn($s) => [
-                                'code' => (string)$s->salesman_code,
-                                'name' => (string)($s->salesman_name ?: $s->salesman_code)
-                            ])->values()->all();
-                        @endphp
-                        <div wire:key="sales-capsule-{{ $selectedArea }}-{{ $selectedDistributor }}-{{ $selectedSalesman }}"
-                            x-data="{
-                                open: false,
-                                search: '',
-                                selectedCode: @js($selectedSalesman),
-                                selectedLabel: @js($sTitle),
-                                items: @js($salesmenOptions),
-                                get filtered() {
-                                    if (!this.search.trim()) return this.items;
-                                    const q = this.search.toLowerCase().trim();
-                                    return this.items.filter(i => 
-                                        i.name.toLowerCase().includes(q) || 
-                                        i.code.toLowerCase().includes(q)
-                                    );
-                                },
-                                select(code) {
-                                    this.open = false;
-                                    this.search = '';
-                                    $wire.set('selectedSalesman', code);
-                                }
-                            }"
-                            @click.outside="open = false"
-                            @keydown.escape.window="open = false"
-                            class="relative flex items-center w-32 sm:w-40 shrink-0 min-w-0 {{ $sDisabled ? 'opacity-40 pointer-events-none' : '' }}"
-                            title="{{ $sTitle }}">
-
-                            {{-- Trigger Button inside Capsule --}}
-                            <button type="button"
-                                @click="if (!{{ $sDisabled ? 'true' : 'false' }}) { open = !open; if(open) { $nextTick(() => $refs.salesSearchInput?.focus()) } }"
-                                class="w-full flex items-center justify-between text-left py-1 pl-2 pr-1.5 focus:outline-none cursor-pointer group"
-                                {{ $sDisabled ? 'disabled' : '' }}>
-                                <div class="flex items-center min-w-0 flex-1 mr-1">
-                                    <x-heroicon-m-user class="w-3.5 h-3.5 text-emerald-600/80 shrink-0 mr-1" />
-                                    <span class="truncate text-xs font-medium {{ $sIsActive ? 'text-primary font-bold' : 'text-base-content/75' }}"
-                                        x-text="selectedLabel"></span>
-                                </div>
-                                <div class="flex items-center gap-0.5 shrink-0">
-                                    @if($sIsActive)
-                                        <span @click.stop="select('')"
-                                            class="p-0.5 rounded-full hover:bg-base-200 text-base-content/40 hover:text-error transition-colors cursor-pointer"
-                                            title="Hapus pilihan salesman">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                            </svg>
-                                        </span>
-                                    @endif
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-base-content/40 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </button>
-
-                            {{-- Dropdown Popover Menu --}}
-                            <div x-show="open"
-                                x-transition:enter="transition ease-out duration-150"
-                                x-transition:enter-start="opacity-0 translate-y-1 scale-95"
-                                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-                                x-transition:leave="transition ease-in duration-100"
-                                x-transition:leave-start="opacity-100 translate-y-0 scale-100"
-                                x-transition:leave-end="opacity-0 translate-y-1 scale-95"
-                                style="display: none;"
-                                class="absolute left-0 top-full mt-1.5 z-[70] w-72 sm:w-80 bg-base-100 rounded-xl shadow-2xl border border-base-300 p-2 flex flex-col text-xs focus:outline-none">
-                                
-                                {{-- Search Input Box --}}
-                                <div class="relative mb-2 shrink-0">
-                                    <x-heroicon-m-magnifying-glass class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none" />
-                                    <input type="text"
-                                        x-model="search"
-                                        x-ref="salesSearchInput"
-                                        placeholder="Cari nama salesman / kode SE..."
-                                        class="input input-xs w-full pl-8 pr-6 rounded-lg bg-base-200/60 border border-transparent focus:border-primary focus:bg-base-100 text-xs font-normal" />
-                                    <button x-show="search"
-                                        @click="search = ''; $refs.salesSearchInput?.focus()"
-                                        type="button"
-                                        class="absolute right-2 top-1/2 -translate-y-1/2 text-base-content/40 hover:text-base-content cursor-pointer">
-                                        <x-heroicon-m-x-mark class="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-
-                                {{-- Options List --}}
-                                <div class="overflow-y-auto max-h-60 flex flex-col gap-0.5 pr-0.5 divide-y divide-base-200/40">
-                                    {{-- Default: Semua Salesman --}}
-                                    <button type="button"
-                                        @click="select('')"
-                                        class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors"
-                                        :class="!selectedCode ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/75'">
-                                        <div class="flex items-center gap-1.5">
-                                            <x-heroicon-m-user class="w-3.5 h-3.5 text-emerald-600/80 shrink-0" />
-                                            <span>Semua Salesman</span>
-                                        </div>
-                                        <template x-if="!selectedCode">
-                                            <x-heroicon-m-check class="w-4 h-4 text-primary shrink-0" />
-                                        </template>
-                                    </button>
-
-                                    {{-- List of Salesmen --}}
-                                    <template x-for="item in filtered" :key="item.code">
-                                        <button type="button"
-                                            @click="select(item.code)"
-                                            class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors pt-1.5"
-                                            :class="selectedCode === item.code ? 'bg-primary text-white font-semibold shadow-xs' : 'hover:bg-base-200 text-base-content'"
-                                            :title="item.name + ' (' + item.code + ')'">
-                                            <div class="flex flex-col min-w-0 pr-1">
-                                                <span class="truncate font-medium text-xs" :class="selectedCode === item.code ? 'text-white' : 'text-base-content'" x-text="item.name"></span>
-                                                <span class="text-[0.625rem] font-mono" :class="selectedCode === item.code ? 'text-white/80' : 'text-base-content/50'" x-text="item.code"></span>
-                                            </div>
-                                            <template x-if="selectedCode === item.code">
-                                                <x-heroicon-m-check class="w-4 h-4 text-white shrink-0 ml-1.5" />
-                                            </template>
-                                        </button>
-                                    </template>
-
-                                    <template x-if="filtered.length === 0">
-                                        <div class="px-3 py-4 text-xs text-base-content/50 italic text-center">
-                                            Tidak ditemukan salesman yang cocok
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- 2. Kapsul Rentang Periode Tanggal (Lebar Statis) --}}
-                    <div class="inline-flex items-center bg-base-100 rounded-xl border border-base-300 shadow-2xs divide-x divide-base-200/80 p-0.5 text-xs shrink-0">
-                        <div class="flex items-center pl-2 pr-1.5 gap-1.5">
-                            <x-heroicon-m-calendar-days class="w-3.5 h-3.5 text-primary/70 shrink-0" />
-                            <input type="date" 
-                                wire:model.live="startDate" 
-                                max="{{ $endDate ?: date('Y-m-d') }}"
-                                class="input input-xs bg-transparent border-none text-xs w-[95px] focus:outline-none p-0 text-center font-mono font-medium" 
-                                title="Tanggal Mulai" />
-
-                            <span class="text-xs font-semibold text-base-content/30 select-none">s/d</span>
-
-                            <input type="date" 
-                                wire:model.live="endDate" 
-                                min="{{ $startDate ?: '' }}"
-                                max="{{ date('Y-m-d') }}"
-                                class="input input-xs bg-transparent border-none text-xs w-[95px] focus:outline-none p-0 text-center font-mono font-medium" 
-                                title="Tanggal Selesai" />
-                        </div>
-
-                        {{-- Preset Date Quick Dropdown --}}
-                        <div class="dropdown dropdown-end">
-                            <button type="button" tabindex="0" class="btn btn-xs btn-ghost rounded-lg px-1.5 text-base-content/60 hover:text-base-content" title="Pilihan Cepat Periode Tanggal">
-                                <x-heroicon-m-chevron-down class="w-3.5 h-3.5" />
-                            </button>
-                            <ul tabindex="0" class="dropdown-content menu z-50 p-2 shadow-2xl bg-base-100 rounded-xl w-44 border border-base-200 text-xs">
-                                <li><button type="button" wire:click="setDatePreset('today')" class="py-1.5 font-medium">Hari Ini</button></li>
-                                <li><button type="button" wire:click="setDatePreset('last_7_days')" class="py-1.5 font-medium">7 Hari Terakhir</button></li>
-                                <li><button type="button" wire:click="setDatePreset('this_month')" class="py-1.5 font-medium">Bulan Ini</button></li>
-                                <li><button type="button" wire:click="setDatePreset('last_30_days')" class="py-1.5 font-medium">30 Hari Terakhir</button></li>
-                                <li><button type="button" wire:click="setDatePreset('last_month')" class="py-1.5 font-medium">Bulan Lalu</button></li>
-                            </ul>
-                        </div>
-                    </div>
+            <x-slot name="actions">
+                {{-- Search Box --}}
+                <div class="relative w-full sm:w-auto">
+                    <input type="text"
+                           wire:model.live.debounce.300ms="search"
+                           placeholder="Cari Toko / SE / Alamat..."
+                           class="input input-sm input-bordered rounded-xl bg-base-100 border-base-300 text-xs pl-8 pr-2 w-full sm:w-44 focus:outline-none focus:border-primary" />
+                    <x-heroicon-o-magnifying-glass class="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40" />
                 </div>
 
-                {{-- Action Group: Search & Buttons --}}
-                <div class="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
-                    {{-- Search Box --}}
-                    <div class="relative w-full sm:w-auto">
-                        <input type="text"
-                               wire:model.live.debounce.300ms="search"
-                               placeholder="Cari Toko / SE / Alamat..."
-                               class="input input-sm input-bordered rounded-xl bg-base-100 border-base-300 text-xs pl-8 pr-2 w-full sm:w-44 focus:outline-none focus:border-primary" />
-                        <x-heroicon-o-magnifying-glass class="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40" />
-                    </div>
-
-                    {{-- Button Terapkan Filter --}}
-                    <button type="button" 
-                        wire:click="applyFilter" 
-                        wire:loading.attr="disabled"
-                        class="btn btn-sm btn-primary rounded-xl gap-1 text-xs font-semibold shadow-xs cursor-pointer">
-                        <span wire:loading.remove wire:target="applyFilter" class="flex items-center gap-1">
-                            <x-heroicon-m-funnel class="w-4 h-4" />
-                            <span>Terapkan</span>
-                        </span>
-                        <span wire:loading wire:target="applyFilter" class="loading loading-spinner loading-xs"></span>
-                    </button>
-
-                    {{-- Button Reset Filter --}}
-                    <button type="button" 
-                        wire:click="resetFilters" 
-                        class="btn btn-sm btn-ghost btn-square rounded-xl border border-base-300 hover:bg-base-200 text-base-content/70 hover:text-base-content" 
-                        title="Reset Filter ke Default">
-                        <x-heroicon-o-arrow-path class="w-4 h-4" />
-                    </button>
-
-                    {{-- Button Export Excel --}}
+                @php
+                    $canApply = !empty($selectedRegion) && !empty($selectedArea);
+                @endphp
+                <x-ui.filter-actions 
+                    applyAction="applyFilter" 
+                    resetAction="resetFilters" 
+                    :canApply="$canApply" 
+                    disabledTip="Pilih Region dan Area terlebih dahulu">
+                    
                     @if($canExport)
                         <button type="button" 
                             wire:click="exportExcel" 
@@ -579,9 +278,9 @@
                             <span wire:loading wire:target="exportExcel" class="loading loading-spinner loading-xs"></span>
                         </button>
                     @endif
-                </div>
-            </div>
-        </div>
+                </x-ui.filter-actions>
+            </x-slot>
+        </x-ui.filter-toolbar>
 
         {{-- Quick Filter Chips & Severity Toggle --}}
         <div class="px-3 md:px-4 py-2 border-b border-base-300 bg-base-100 flex flex-wrap items-center justify-between gap-2 text-xs">
