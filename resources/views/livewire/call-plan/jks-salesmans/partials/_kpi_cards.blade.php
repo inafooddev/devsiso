@@ -1,5 +1,5 @@
 @if($kpiSummary && $kpiSummary->isNotEmpty())
-<div class="bg-base-100 rounded-xl shadow-sm border border-base-300 shrink-0 overflow-hidden">
+<div wire:key="kpi-card-container-{{ $appliedDistributor ?: 'empty' }}" class="bg-base-100 rounded-xl shadow-sm border border-base-300 shrink-0 overflow-hidden">
     {{-- Header Toggle Bar --}}
     <div class="px-3.5 py-2.5 flex items-center justify-between cursor-pointer hover:bg-base-200/50 transition-colors select-none bg-base-200/20"
          @click="showKpiSummary = !showKpiSummary">
@@ -81,7 +81,7 @@
                         $totalRo = $row->all_ro ?? $row->total_toko ?? 0;
                         $nonRute = $row->non_rute ?? 0;
                     @endphp
-                    <tr class="hover:bg-base-300 transition-colors odd:bg-base-100 even:bg-base-200 group text-xs">
+                    <tr wire:key="kpi-row-{{ $row->salesman_code }}" class="hover:bg-base-300 transition-colors odd:bg-base-100 even:bg-base-200 group text-xs">
                         <td title="{{ $row->salesman_code }}" class="bg-inherit sticky left-0 z-30 border-r border-base-300 truncate w-[80px] min-w-[80px] max-w-[80px] text-base-content/70 font-mono">
                             {{ $row->salesman_code }}
                         </td>

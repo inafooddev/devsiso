@@ -1,52 +1,72 @@
-<input type="checkbox" id="modal_export_eskalink" class="modal-toggle" wire:model.live="showExportEskalinkModal" />
-<div class="modal modal-bottom sm:modal-middle bg-base-300/50 backdrop-blur-sm">
-    <div class="modal-box p-0 overflow-hidden shadow-2xl bg-base-100 rounded-2xl flex flex-col max-h-[85vh]">
-        <div class="bg-gradient-to-r from-success to-emerald-600 p-5 shrink-0 flex items-center justify-between text-white">
-            <h3 class="font-black text-xl tracking-wide flex items-center gap-2">
-                <x-heroicon-s-document-arrow-down class="w-6 h-6" />
-                Export Eskalink
-            </h3>
-            <button wire:click="closeExportEskalinkModal" class="btn btn-sm btn-circle btn-ghost text-white">
-                <x-heroicon-s-x-mark class="w-5 h-5"/>
-            </button>
-        </div>
-
-        <div class="p-6 overflow-y-auto grow bg-base-50 flex flex-col gap-5">
-            <div class="alert alert-info shadow-sm py-3 px-4 border border-info/30">
-                <x-heroicon-s-information-circle class="w-5 h-5 shrink-0" />
+{{-- Modal Export Eskalink --}}
+@if($showExportEskalinkModal)
+    <x-ui.modal 
+        id="modal_export_eskalink"
+        wire:key="modal-export-eskalink-{{ $appliedDistributor ?: 'all' }}"
+        title="Export Eskalink" 
+        icon="document-arrow-down" 
+        size="md" 
+        open="true" 
+        wire:close="closeExportEskalinkModal" 
+        position="top"
+    >
+        <div class="flex flex-col gap-4 text-xs">
+            <div class="alert alert-info shadow-xs py-2.5 px-3.5 border border-info/30 rounded-xl flex items-start gap-2.5">
+                <x-heroicon-s-information-circle class="w-5 h-5 shrink-0 text-info mt-0.5" />
                 <div>
-                    <h3 class="font-bold text-sm">Persiapan Export</h3>
-                    <div class="text-xs">Pilih metode Flag Delete dan Salesman untuk file Excel Eskalink.</div>
+                    <h4 class="font-bold text-xs text-base-content">Persiapan Export</h4>
+                    <p class="text-[11px] text-base-content/70">Pilih metode Flag Delete dan Salesman untuk file Excel Eskalink.</p>
                 </div>
             </div>
 
-            <div class="form-control w-full">
-                <label class="label pt-0 pb-1.5"><span class="label-text font-bold text-base-content/80 text-xs uppercase tracking-wider">Metode Flag Delete</span></label>
-                <select wire:model="eskalinkFlagDelete" class="select select-bordered select-md w-full font-semibold focus:border-success focus:ring-1 focus:ring-success/50 transition-all">
+            <div class="form-control w-full" wire:key="wrap-flag-delete-{{ $appliedDistributor ?: 'all' }}">
+                <label class="label pt-0 pb-1.5">
+                    <span class="label-text font-bold text-base-content/80 text-xs uppercase tracking-wider">Metode Flag Delete</span>
+                </label>
+                <select 
+                    wire:key="select-flag-delete-{{ $appliedDistributor ?: 'all' }}"
+                    wire:model.live="eskalinkFlagDelete" 
+                    class="select select-bordered select-sm w-full font-semibold focus:border-success focus:ring-1 focus:ring-success/50 transition-all text-xs"
+                >
                     <option value="N">N - Tidak Menghapus (Update/Insert)</option>
                     <option value="Y">Y - Hapus Data Existing</option>
                 </select>
+                <label class="label pt-1 pb-0">
+                    <span class="label-text-alt text-base-content/50 text-[10px]">Pilih 'Y' jika ingin data lama di Eskalink ditimpa/dihapus terlebih dahulu.</span>
+                </label>
             </div>
             
-            <div class="form-control w-full">
-                <label class="label pt-0 pb-1.5"><span class="label-text font-bold text-base-content/80 text-xs uppercase tracking-wider">Filter Salesman</span></label>
-                <select wire:model="exportEskalinkSalesman" class="select select-bordered select-md w-full font-semibold focus:border-success focus:ring-1 focus:ring-success/50 transition-all">
+            <div class="form-control w-full" wire:key="wrap-salesman-eskalink-{{ $appliedDistributor ?: 'all' }}">
+                <label class="label pt-0 pb-1.5">
+                    <span class="label-text font-bold text-base-content/80 text-xs uppercase tracking-wider">Filter Salesman</span>
+                </label>
+                <select 
+                    wire:key="select-salesman-eskalink-{{ $appliedDistributor ?: 'all' }}"
+                    wire:model.live="exportEskalinkSalesman" 
+                    class="select select-bordered select-sm w-full font-semibold focus:border-success focus:ring-1 focus:ring-success/50 transition-all text-xs"
+                >
                     <option value="">Semua Salesman</option>
                     @foreach($this->headerSalesmans as $sls)
                         <option value="{{ $sls->salesman_code }}">{{ $sls->salesman_code }} - {{ $sls->salesman_name }}</option>
                     @endforeach
                 </select>
+                <label class="label pt-1 pb-0">
+                    <span class="label-text-alt text-base-content/50 text-[10px]">Kosongkan untuk mengexport seluruh salesman dari distributor ini.</span>
+                </label>
             </div>
         </div>
 
-        <div class="bg-base-200/50 p-5 shrink-0 border-t border-base-300 flex justify-end gap-2">
-            <button wire:click="closeExportEskalinkModal" class="btn btn-md font-bold px-6">Batal</button>
-            <button wire:click="executeExportEskalink" class="btn btn-md btn-success text-white font-bold px-6 shadow-md shadow-success/20">
-                <span wire:loading.remove wire:target="executeExportEskalink">Download Excel</span>
+        <x-slot:footer>
+            <button type="button" wire:click="closeExportEskalinkModal" class="btn btn-sm btn-ghost font-bold px-4">Batal</button>
+            <button type="button" wire:click="executeExportEskalink" class="btn btn-sm btn-success text-white font-bold px-5 shadow-sm shadow-success/20">
+                <span wire:loading.remove wire:target="executeExportEskalink" class="flex items-center gap-1.5">
+                    <x-heroicon-s-document-arrow-down class="w-4 h-4" />
+                    Download Excel
+                </span>
                 <span wire:loading wire:target="executeExportEskalink" class="flex items-center gap-2">
-                    <span class="loading loading-spinner loading-sm"></span> Memproses...
+                    <span class="loading loading-spinner loading-xs"></span> Memproses...
                 </span>
             </button>
-        </div>
-    </div>
-</div>
+        </x-slot:footer>
+    </x-ui.modal>
+@endif

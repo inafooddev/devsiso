@@ -2,6 +2,7 @@
 @if($showVisitDetailModal)
     <x-ui.modal 
         id="modal-visit-detail" 
+        wire:key="modal-visit-detail-{{ $visitModalHeader['uniq_kode'] ?? 'none' }}"
         title="Riwayat Kunjungan & Alasan: {{ $visitModalHeader['customer_name'] ?? 'Toko' }}" 
         icon="clock" 
         size="xl" 

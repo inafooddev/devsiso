@@ -60,7 +60,7 @@
 
     {{-- Calendar Modal --}}
     @if($showCalendarModal)
-        <x-ui.modal id="modal-calendar" title="Kalender Minggu M{{ $selectedWeekForCalendar }}" icon="calendar-days" size="sm" open="true" wire:close="closeCalendarModal" position="top">
+        <x-ui.modal id="modal-calendar" wire:key="modal-calendar-{{ $selectedWeekForCalendar }}" title="Kalender Minggu M{{ $selectedWeekForCalendar }}" icon="calendar-days" size="sm" open="true" wire:close="closeCalendarModal" position="top">
             <div class="px-2 pb-2">
                 <div class="grid grid-cols-7 gap-1 text-center mb-2">
                     <div class="text-xs font-bold text-base-content/50 uppercase text-error">Min</div>
@@ -105,7 +105,7 @@
 
     {{-- Edit Modal --}}
     @if($showEditModal)
-        <x-ui.modal id="modal-edit" title="Modifikasi Jadwal" icon="pencil-square" size="md" open="true" wire:close="closeEditModal" position="top">
+        <x-ui.modal id="modal-edit" wire:key="modal-edit-{{ $editId }}" title="Modifikasi Jadwal" icon="pencil-square" size="md" open="true" wire:close="closeEditModal" position="top">
             <div class="px-2 pb-2">
                 <div class="mb-4">
                     <label class="text-xs text-base-content/50 font-bold uppercase">Nama Toko</label>
@@ -114,7 +114,7 @@
 
                 <div class="mb-4">
                     <label class="text-xs text-base-content/50 font-bold uppercase block mb-2">Pindah ke Salesman</label>
-                    <select wire:model="editSalesmanCode" class="select select-bordered select-sm w-full">
+                    <select wire:key="select-edit-salesman-{{ $editId }}" wire:model.live="editSalesmanCode" class="select select-bordered select-sm w-full">
                         <option value="">-- Pilih Salesman --</option>
                         @foreach($this->headerSalesmans as $salesman)
                             <option value="{{ $salesman->salesman_code }}">{{ $salesman->salesman_name }} ({{ $salesman->salesman_code }})</option>
@@ -170,7 +170,7 @@
 
     {{-- Delete Modal --}}
     @if($showDeleteMethodModal)
-        <x-ui.modal id="modal-delete-method" title="Hapus Jadwal" icon="trash" size="md" open="true" wire:close="closeDeleteModal" position="top">
+        <x-ui.modal id="modal-delete-method" wire:key="modal-delete-method-{{ $deleteId }}" title="Hapus Jadwal" icon="trash" size="md" open="true" wire:close="closeDeleteModal" position="top">
             <div class="px-4 pb-4">
                 @if($deletePreviewData)
                     <div class="mb-4 bg-base-200/50 p-3 rounded-lg border border-base-300">
@@ -266,7 +266,7 @@
 
     {{-- Bulk Swap Modal --}}
     @if($showSwapModal)
-        <x-ui.modal id="modal-swap" title="Tukar Jadwal Massal" icon="arrows-right-left" size="lg" open="true" wire:close="closeSwapModal" position="top" class="!items-start" boxClass="!mt-8">
+        <x-ui.modal id="modal-swap" wire:key="modal-swap-{{ $appliedDistributor ?: 'all' }}" title="Tukar Jadwal Massal" icon="arrows-right-left" size="lg" open="true" wire:close="closeSwapModal" position="top" class="!items-start" boxClass="!mt-8">
             <div class="px-2 pb-2">
                 {{-- Tabs --}}
                 <div class="tabs tabs-boxed mb-6 bg-base-200/50">
@@ -351,7 +351,7 @@
                                             </thead>
                                             <tbody>
                                                 @foreach($this->affectedStores as $idx => $s)
-                                                    <tr class="hover:bg-base-200/50">
+                                                    <tr wire:key="swap-store-{{ $s->customer_code }}" class="hover:bg-base-200/50">
                                                         <td class="text-base-content/50">{{ $idx + 1 }}</td>
                                                         <td class="font-medium text-xs">{{ $s->customer_code }}</td>
                                                         <td class="truncate max-w-[150px]" title="{{ $s->customer_name }}">{{ $s->customer_name ?? '-' }}</td>
@@ -443,7 +443,7 @@
                                             </thead>
                                             <tbody>
                                                 @foreach($this->affectedMingguSummary as $sum)
-                                                    <tr class="hover:bg-base-200/50">
+                                                    <tr wire:key="swap-minggu-{{ $sum->hari }}" class="hover:bg-base-200/50">
                                                         <td class="font-medium text-xs">{{ $sum->hari }}</td>
                                                         <td class="text-center">
                                                             <div class="badge {{ $sum->asal > 0 ? 'badge-primary badge-outline' : 'badge-ghost text-base-content/30 border-dashed' }} text-xs font-bold w-12">{{ $sum->asal }}</div>
@@ -571,7 +571,7 @@
 
     {{-- Bulk Delete Modal --}}
     @if($showBulkDeleteModal)
-        <x-ui.modal id="modal-bulk-delete" title="Hapus Jadwal Massal" icon="trash" size="7xl" open="true" wire:close="closeBulkDeleteModal" position="top" class="!items-start" boxClass="!mt-8 border-t-4 border-error">
+        <x-ui.modal id="modal-bulk-delete" wire:key="modal-bulk-delete-{{ $appliedDistributor ?: 'all' }}" title="Hapus Jadwal Massal" icon="trash" size="7xl" open="true" wire:close="closeBulkDeleteModal" position="top" class="!items-start" boxClass="!mt-8 border-t-4 border-error">
             <div class="px-2 pb-2">
                 {{-- Form Filters --}}
                 <div class="flex flex-wrap gap-4 bg-error/5 p-4 rounded-lg border border-error/20 mb-6">
@@ -734,7 +734,7 @@
 
     {{-- Copy Period Modal --}}
     @if($showCopyModal)
-        <x-ui.modal id="modal-copy-period" title="Salin Periode JKS" icon="document-duplicate" size="md" open="true" wire:close="closeCopyModal" position="top" class="!items-start" boxClass="!mt-8 border-t-4 border-info">
+        <x-ui.modal id="modal-copy-period" wire:key="modal-copy-period-{{ $appliedDistributor ?: 'all' }}" title="Salin Periode JKS" icon="document-duplicate" size="md" open="true" wire:close="closeCopyModal" position="top" class="!items-start" boxClass="!mt-8 border-t-4 border-info">
             <div class="px-4 pb-4" 
                  x-data
                  x-on:start-copy-batch.window="$wire.processNextCopyBatch()"
@@ -858,7 +858,7 @@
 
     {{-- Collision Detection Modal --}}
     @if($showCollisionModal)
-        <x-ui.modal id="collision_modal" title="Detail Bentrok Jadwal (Dobel Cover)" size="5xl" open="true" wire:close="closeCollisionModal" icon="exclamation-triangle" iconClass="text-error" position="top">
+        <x-ui.modal id="collision_modal" wire:key="modal-collision-{{ $appliedDistributor ?: 'all' }}" title="Detail Bentrok Jadwal (Dobel Cover)" size="5xl" open="true" wire:close="closeCollisionModal" icon="exclamation-triangle" iconClass="text-error" position="top">
             <div class="p-6">
                 <div class="mb-4 flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-error/10 border border-error/20 rounded-lg shadow-sm gap-4">
                     <div>
@@ -882,7 +882,7 @@
                         </thead>
                         <tbody>
                             @forelse($collisionDetails as $detail)
-                                <tr class="hover:bg-base-200/30">
+                                <tr wire:key="col-row-{{ $detail['id'] }}" class="hover:bg-base-200/30">
                                     <td class="font-medium whitespace-nowrap">
                                         <div class="flex items-center gap-2.5">
                                             <div class="avatar placeholder">
@@ -936,7 +936,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr>
+                                <tr wire:key="col-row-empty">
                                     <td colspan="4" class="text-center py-6 text-base-content/50 text-sm">Data tidak ditemukan.</td>
                                 </tr>
                             @endforelse

@@ -1559,6 +1559,8 @@ class Index extends Component
     {
         $this->showCleansingModal = false;
         $this->cleansingResults = [];
+        $this->cleansingTotalGroups = 0;
+        $this->cleansingTotalDuplicates = 0;
     }
 
     public function scanningDuplicates()
@@ -2548,6 +2550,8 @@ class Index extends Component
     public function closeExportEskalinkModal()
     {
         $this->showExportEskalinkModal = false;
+        $this->eskalinkFlagDelete = 'N';
+        $this->exportEskalinkSalesman = '';
     }
 
     public function executeExportEskalink()
@@ -2569,10 +2573,13 @@ class Index extends Component
         }
         $fileName .= '.xlsx';
 
+        $flagDelete = strtoupper(trim($this->eskalinkFlagDelete)) === 'Y' ? 'Y' : 'N';
+        $salesman = $this->exportEskalinkSalesman;
+
         $this->closeExportEskalinkModal();
 
         return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\JksEskalinkExport($this->appliedBulan, $this->appliedDistributor, $this->eskalinkFlagDelete, $this->exportEskalinkSalesman), 
+            new \App\Exports\JksEskalinkExport($this->appliedBulan, $this->appliedDistributor, $flagDelete, $salesman), 
             $fileName
         );
     }

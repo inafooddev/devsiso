@@ -66,7 +66,7 @@
                 </tr>
             @else
                 @forelse ($jksData as $index => $row)
-                    <tr class="hover:bg-primary/5 transition-colors group {{ empty($row->latitude) || empty($row->longitude) ? '!bg-error/20' : '' }}">
+                    <tr wire:key="jks-row-{{ $row->id }}" class="hover:bg-primary/5 transition-colors group {{ empty($row->latitude) || empty($row->longitude) ? '!bg-error/20' : '' }}">
                     <th class="text-center">{{ $jksData->firstItem() + $index }}</th>
                     
                     <td>
@@ -172,7 +172,7 @@
                     </td>
                 </tr>
                 @empty
-                    <tr>
+                    <tr wire:key="jks-row-empty">
                         <td colspan="22" class="text-center py-8">
                             <div class="text-base-content/50">
                                 @if($onlyDobelCover)

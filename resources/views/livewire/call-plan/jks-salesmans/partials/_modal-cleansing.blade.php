@@ -1,33 +1,37 @@
-<div>
-    <input type="checkbox" class="modal-toggle" wire:model.live="showCleansingModal" />
-    <div class="modal" role="dialog">
-        <div class="modal-box w-11/12 max-w-5xl">
-            <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-                <x-heroicon-s-sparkles class="w-5 h-5 text-warning" />
-                Cleansing Duplicate Route
-            </h3>
-
+{{-- Modal Cleansing Duplicate Route --}}
+@if($showCleansingModal)
+    <x-ui.modal 
+        id="modal_cleansing" 
+        wire:key="modal-cleansing-{{ $appliedDistributor ?: 'all' }}"
+        title="Cleansing Duplicate Route" 
+        icon="sparkles" 
+        size="5xl" 
+        open="true" 
+        wire:close="closeCleansingModal" 
+        position="top"
+    >
+        <div class="flex flex-col gap-4 text-xs">
             @if(empty($appliedDistributor))
-                <div class="alert alert-warning">
-                    <x-heroicon-o-exclamation-triangle class="w-6 h-6" />
+                <div class="alert alert-warning shadow-xs py-3 px-4 border border-warning/30 rounded-xl">
+                    <x-heroicon-o-exclamation-triangle class="w-6 h-6 text-warning shrink-0" />
                     <span>Silakan pilih <strong>Distributor</strong> terlebih dahulu pada filter utama untuk melakukan pembersihan data.</span>
                 </div>
             @else
                 @if($cleansingTotalGroups === 0)
-                    <div class="alert alert-success">
-                        <x-heroicon-o-check-circle class="w-6 h-6" />
+                    <div class="alert alert-success shadow-xs py-3 px-4 border border-success/30 rounded-xl">
+                        <x-heroicon-o-check-circle class="w-6 h-6 text-success shrink-0" />
                         <span><strong>Data Bersih!</strong> Tidak ditemukan duplicate route untuk Distributor dan Bulan yang dipilih.</span>
                     </div>
                 @else
-                    <div class="alert alert-warning mb-4 shadow-sm">
-                        <x-heroicon-o-exclamation-triangle class="w-6 h-6" />
+                    <div class="alert alert-warning shadow-xs py-3 px-4 border border-warning/30 rounded-xl flex items-start gap-3">
+                        <x-heroicon-o-exclamation-triangle class="w-6 h-6 text-warning shrink-0 mt-0.5" />
                         <div>
-                            <h3 class="font-bold">Ditemukan {{ $cleansingTotalGroups }} toko dengan total {{ $cleansingTotalDuplicates }} data rute duplikat.</h3>
-                            <div class="text-xs">Record <strong>Primary</strong> (berwarna hijau) akan dipertahankan dan menerima gabungan jadwal dari record lainnya. Record <strong>Duplicate</strong> (berwarna merah) akan dihapus secara permanen.</div>
+                            <h4 class="font-bold text-sm text-base-content">Ditemukan {{ $cleansingTotalGroups }} toko dengan total {{ $cleansingTotalDuplicates }} data rute duplikat.</h4>
+                            <div class="text-xs text-base-content/70 mt-1">Record <strong class="text-success font-semibold">Primary</strong> (berwarna hijau) akan dipertahankan dan menerima gabungan jadwal dari record lainnya. Record <strong class="text-error font-semibold">Duplicate</strong> (berwarna merah) akan dihapus secara permanen.</div>
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto max-h-96 border rounded-box bg-base-100 mb-4">
+                    <div class="overflow-x-auto max-h-96 border border-base-300 rounded-xl bg-base-100">
                         <table class="table table-sm table-pin-rows">
                             <thead>
                                 <tr class="bg-base-200">
@@ -43,7 +47,7 @@
                             <tbody>
                                 @foreach($cleansingResults as $index => $group)
                                     @foreach($group['records'] as $recIdx => $rec)
-                                        <tr class="{{ $rec['isPrimary'] ? 'bg-success/5' : 'bg-error/5' }}">
+                                        <tr wire:key="cleansing-rec-{{ $rec['id'] }}" class="{{ $rec['isPrimary'] ? 'bg-success/5' : 'bg-error/5' }}">
                                             @if($recIdx === 0)
                                                 <td rowspan="{{ count($group['records']) }}" class="align-top border-b border-r">{{ $index + 1 }}</td>
                                                 <td rowspan="{{ count($group['records']) }}" class="align-top border-b border-r">
@@ -91,24 +95,21 @@
                     </div>
                 @endif
             @endif
-
-            <div class="modal-action">
-                <button type="button" class="btn" wire:click="closeCleansingModal" wire:loading.attr="disabled" wire:target="executeCleansing">Batal</button>
-                @if(!empty($appliedDistributor) && $cleansingTotalGroups > 0)
-                    <button type="button" class="btn btn-error text-white" 
-                        onclick="confirm('Peringatan!\nAnda akan menghapus {{ $cleansingTotalDuplicates }} data duplicate.\nTindakan ini tidak dapat dibatalkan.\n\nLanjutkan?') || event.stopImmediatePropagation()" 
-                        wire:click="executeCleansing"
-                        wire:loading.attr="disabled"
-                        wire:target="executeCleansing">
-                        <span wire:loading wire:target="executeCleansing" class="loading loading-spinner loading-xs"></span>
-                        <x-heroicon-s-trash class="w-4 h-4" wire:loading.remove wire:target="executeCleansing" />
-                        Delete Duplicate
-                    </button>
-                @endif
-            </div>
         </div>
-        <form method="dialog" class="modal-backdrop">
-            <button wire:click="closeCleansingModal">close</button>
-        </form>
-    </div>
-</div>
+
+        <x-slot:footer>
+            <button type="button" class="btn btn-sm btn-ghost font-bold px-4" wire:click="closeCleansingModal" wire:loading.attr="disabled" wire:target="executeCleansing">Batal</button>
+            @if(!empty($appliedDistributor) && $cleansingTotalGroups > 0)
+                <button type="button" class="btn btn-sm btn-error text-white font-bold px-5 shadow-sm shadow-error/20" 
+                    onclick="confirm('Peringatan!\nAnda akan menghapus {{ $cleansingTotalDuplicates }} data duplicate.\nTindakan ini tidak dapat dibatalkan.\n\nLanjutkan?') || event.stopImmediatePropagation()" 
+                    wire:click="executeCleansing"
+                    wire:loading.attr="disabled"
+                    wire:target="executeCleansing">
+                    <span wire:loading wire:target="executeCleansing" class="loading loading-spinner loading-xs mr-1"></span>
+                    <x-heroicon-s-trash class="w-4 h-4 mr-1" wire:loading.remove wire:target="executeCleansing" />
+                    Delete Duplicate
+                </button>
+            @endif
+        </x-slot:footer>
+    </x-ui.modal>
+@endif
