@@ -11,7 +11,7 @@ interface NavbarProps {
 export default function Navbar({ user, title, backUrl }: NavbarProps) {
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm transition-all duration-300">
-            <div className="w-full max-w-2xl mx-auto px-5 md:px-6 h-16 md:h-20 flex items-center justify-between transition-all duration-300">
+            <div className="w-full max-w-2xl md:max-w-4xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between transition-all duration-300">
                 {/* Left Side (Back / Profile) */}
                 <div className="flex-shrink-0 flex items-center justify-start w-12">
                     {backUrl ? (
@@ -39,7 +39,7 @@ export default function Navbar({ user, title, backUrl }: NavbarProps) {
                 
                 {/* Center (Title) */}
                 {title && (
-                    <div className="font-bold text-gray-800 text-[17px] truncate px-2 flex-1 text-center">
+                    <div className="font-bold text-gray-800 text-base sm:text-lg truncate px-2 flex-1 text-center">
                         {title}
                     </div>
                 )}

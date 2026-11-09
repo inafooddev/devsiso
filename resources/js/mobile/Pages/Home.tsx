@@ -226,25 +226,36 @@ export default function Home() {
                         </div>
                     )}
                     
-                    {/* Card 3: Call Plan - Disabled for now */}
-                    <div className="group block h-full cursor-default select-none">
-                        <div className="bg-white p-5 rounded-[28px] h-full shadow-lg shadow-sky-100/50 hover:shadow-xl border border-slate-100 transition-all duration-300 flex flex-col justify-between relative overflow-hidden">
+                    {/* Card 3: Call Plan (JKS SE) */}
+                    <div 
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleNavigate('/mobile/jks-salesman', 'JKS Sales Executive')}
+                        className="group block h-full cursor-pointer select-none"
+                    >
+                        <div className="bg-white p-5 rounded-[28px] h-full shadow-lg shadow-sky-100/50 hover:shadow-xl border border-slate-100 transition-all duration-300 transform active:scale-95 flex flex-col justify-between relative overflow-hidden group-hover:-translate-y-1">
                             {/* Decorative gradient blob */}
                             <div className="absolute -right-6 -top-6 w-24 h-24 bg-sky-50 rounded-full blur-2xl group-hover:bg-sky-100 transition-colors"></div>
                             
                             <div className="relative z-10 mb-6">
-                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center shadow-md shadow-sky-200 text-white mb-4">
+                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center shadow-md shadow-sky-200 text-white mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                                     <CalendarDaysIcon className="w-6 h-6" />
                                 </div>
                                 <h2 className="text-sm font-black text-slate-800 uppercase tracking-wide leading-snug">
-                                    Call Plan
+                                    JKS Salesman
                                 </h2>
                             </div>
                             
                             <div className="relative z-10 flex items-center justify-between mt-auto">
-                                <span className="text-xs font-bold text-slate-400">Segera Hadir</span>
-                                <div className="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center">
-                                    <ArrowRightIcon className="w-3 h-3 text-slate-300" />
+                                <span className="text-xs font-bold text-slate-400">
+                                    {loadingModule === 'JKS Sales Executive' ? 'Memuat...' : 'Akses Modul'}
+                                </span>
+                                <div className="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-sky-50 transition-colors">
+                                    {loadingModule === 'JKS Sales Executive' ? (
+                                        <ArrowPathIcon className="w-3.5 h-3.5 text-sky-600 animate-spin" />
+                                    ) : (
+                                        <ArrowRightIcon className="w-3 h-3 text-slate-300 group-hover:text-sky-600 transition-colors" />
+                                    )}
                                 </div>
                             </div>
                         </div>

@@ -207,6 +207,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/mobile/call-plan/login', [\App\Http\Controllers\Mobile\CallPlan\IndexController::class, 'loginSupervisor'])->name('mobile.call-plan.login');
     Route::post('/mobile/call-plan/logout', [\App\Http\Controllers\Mobile\CallPlan\IndexController::class, 'logoutSupervisor'])->name('mobile.call-plan.logout');
 
+    Route::get('/mobile/jks-salesman', [\App\Http\Controllers\Mobile\JksSalesman\IndexController::class, 'index'])->name('mobile.jks-salesman.index');
+    Route::get('/mobile/jks-salesman/approvals', [\App\Http\Controllers\Mobile\JksSalesman\IndexController::class, 'getApprovals'])->name('mobile.jks-salesman.approvals');
+    Route::get('/mobile/jks-salesman/visit-detail/{customer_code}', [\App\Http\Controllers\Mobile\JksSalesman\IndexController::class, 'getVisitDetail'])->name('mobile.jks-salesman.visit-detail');
+    Route::post('/mobile/jks-salesman/update-schedule', [\App\Http\Controllers\Mobile\JksSalesman\IndexController::class, 'updateSchedule'])->name('mobile.jks-salesman.update-schedule');
+    Route::post('/mobile/jks-salesman/delete-schedule', [\App\Http\Controllers\Mobile\JksSalesman\IndexController::class, 'deleteSchedule'])->name('mobile.jks-salesman.delete-schedule');
+
 
     Route::get('/mobile/perbaikan-tikor-tim-elite', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'index'])->name('mobile.perbaikan.tikor-tim-elite.index');
     Route::post('/mobile/perbaikan-tikor-tim-elite', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'store'])->name('mobile.perbaikan.tikor-tim-elite.store');
