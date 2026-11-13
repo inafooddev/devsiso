@@ -23,7 +23,7 @@ class TargetPerSeUntukEskaImport implements ToCollection, WithHeadingRow, WithCh
     public $errorLogs = [];
     private $currentRow = 1; // Header = row 1
 
-    public function __construct(bool $truncatePeriod = true, string $importId = null)
+    public function __construct(bool $truncatePeriod = true, ?string $importId = null)
     {
         $this->truncatePeriod = $truncatePeriod;
         $this->importId = $importId;

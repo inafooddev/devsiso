@@ -54,7 +54,7 @@ class ImportBatch extends Model
      * @param string $status
      * @param string|null $initialMessage
      */
-    public function updateStatus(string $status, string $initialMessage = null)
+    public function updateStatus(string $status, ?string $initialMessage = null)
     {
         $this->update(['status' => $status]);
         if ($initialMessage) {
