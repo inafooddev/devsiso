@@ -832,7 +832,7 @@ class Index extends Component
             $this->isImporting = true;
             $this->importCompleted = false;
 
-            $queueConnection = env('IMPORT_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'sync'));
+            $queueConnection = config('queue.import_connection', config('queue.default', 'database'));
             \Illuminate\Support\Facades\Log::info("Dispatching JksMasterCustomerImportJob with ID {$this->importJobId} to connection {$queueConnection} on queue 'imports'");
             
             $job = new \App\Jobs\JksMasterCustomerImportJob($relativePath, $isAdmin, $allowedDistributors, $this->importMethod, $this->importJobId);
@@ -928,7 +928,7 @@ class Index extends Component
         $this->syncCompleted = false;
         
         try {
-            $queueConnection = env('IMPORT_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'sync'));
+            $queueConnection = config('queue.import_connection', config('queue.default', 'database'));
             \Illuminate\Support\Facades\Log::info("Dispatching JksSyncWilayahJob with ID {$this->syncJobId}");
             
             $job = new \App\Jobs\JksSyncWilayahJob($this->syncJobId);

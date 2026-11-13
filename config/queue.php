@@ -15,6 +15,8 @@ return [
 
     'default' => env('QUEUE_CONNECTION', 'database'),
 
+    'import_connection' => env('IMPORT_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'database')),
+
     /*
     |--------------------------------------------------------------------------
     | Queue Connections
