@@ -57,28 +57,39 @@ class JksNonRouteService
         $baseBulan = \Carbon\Carbon::parse($bulan);
         $targetBulan = $baseBulan->format('Y-m');
         $cleanSearch = preg_replace('/\s+/', ' ', trim($search));
+
+        // Ekspresi SQL standar untuk normalisasi kode (case-insensitive, trim spasi/tab/newline, hapus spasi ganda)
+        $cleanMtoDist  = "UPPER(REGEXP_REPLACE(BTRIM(mto.distributor_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g'))";
+        $cleanMtoCust  = "UPPER(REGEXP_REPLACE(BTRIM(mto.customer_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g'))";
+        $cleanJsDist   = "UPPER(REGEXP_REPLACE(BTRIM(js.distributor_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g'))";
+        $cleanJsCust   = "UPPER(REGEXP_REPLACE(BTRIM(js.customer_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g'))";
+        $cleanMtorDist = "UPPER(REGEXP_REPLACE(BTRIM(mtor.distributor_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g'))";
+        $cleanMtorCust = "UPPER(REGEXP_REPLACE(BTRIM(mtor.customer_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g'))";
+        $cleanJaDist   = "UPPER(REGEXP_REPLACE(BTRIM(ja.distributor_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g'))";
+        $cleanJaCust   = "UPPER(REGEXP_REPLACE(BTRIM(ja.payload->>'customer_code', E' \\t\\n\\r'), E'\\\\s+', ' ', 'g'))";
         
         $query = DB::table('jks_se_master_toko_ool as mto')
-            ->leftJoin('jks_salesmans as js', function($join) use ($targetBulan) {
-                $join->on('mto.distributor_code', '=', 'js.distributor_code')
-                     ->on('mto.customer_code', '=', 'js.customer_code')
+            ->leftJoin('jks_salesmans as js', function($join) use ($targetBulan, $cleanMtoDist, $cleanMtoCust, $cleanJsDist, $cleanJsCust) {
+                $join->on(DB::raw($cleanMtoDist), '=', DB::raw($cleanJsDist))
+                     ->on(DB::raw($cleanMtoCust), '=', DB::raw($cleanJsCust))
                      ->where('js.bulan', 'like', $targetBulan . '%');
             })
-            ->leftJoin('jks_se_toko_ool_remarks as mtor', function($join) {
-                $join->on('mto.distributor_code', '=', 'mtor.distributor_code')
-                     ->on('mto.customer_code', '=', 'mtor.customer_code');
+            ->leftJoin('jks_se_toko_ool_remarks as mtor', function($join) use ($cleanMtoDist, $cleanMtoCust, $cleanMtorDist, $cleanMtorCust) {
+                $join->on(DB::raw($cleanMtoDist), '=', DB::raw($cleanMtorDist))
+                     ->on(DB::raw($cleanMtoCust), '=', DB::raw($cleanMtorCust));
             })
-            ->leftJoin('jks_approvals as ja', function($join) use ($targetBulan) {
-                $join->on('mto.distributor_code', '=', 'ja.distributor_code')
+            ->leftJoin('jks_approvals as ja', function($join) use ($targetBulan, $cleanMtoDist, $cleanMtoCust, $cleanJaDist, $cleanJaCust) {
+                $join->on(DB::raw($cleanMtoDist), '=', DB::raw($cleanJaDist))
                      ->where('ja.status', '=', 'PENDING')
                      ->where('ja.action_type', '=', 'TAMBAH_JADWAL')
                      ->where(function($q) use ($targetBulan) {
                          $q->whereRaw("ja.payload->>'bulan' LIKE ?", [$targetBulan . '%'])
                            ->orWhereRaw("ja.payload->>'bulan' IS NULL");
                      })
-                     ->where(function($q) {
-                         $q->whereRaw("ja.payload->>'customer_code' = mto.customer_code")
-                           ->orWhereRaw("(ja.payload::jsonb->'tokos') @> jsonb_build_array(jsonb_build_object('code', mto.customer_code))");
+                     ->where(function($q) use ($cleanMtoCust, $cleanJaCust) {
+                         $q->whereRaw("{$cleanJaCust} = {$cleanMtoCust}")
+                           ->orWhereRaw("(ja.payload::jsonb->'tokos') @> jsonb_build_array(jsonb_build_object('code', mto.customer_code))")
+                           ->orWhereRaw("(ja.payload::jsonb->'tokos') @> jsonb_build_array(jsonb_build_object('code', {$cleanMtoCust}))");
                      });
             });
 
@@ -118,7 +129,8 @@ class JksNonRouteService
 
         // Scoping hierarchy cleanly: if distributor is selected, it is the most specific filter
         if (!empty($filters['distributor'])) {
-            $query->where('mto.distributor_code', $filters['distributor']);
+            $cleanDistFilter = strtoupper(preg_replace('/\s+/', ' ', trim((string) $filters['distributor'])));
+            $query->whereRaw("{$cleanMtoDist} = ?", [$cleanDistFilter]);
         } else {
             if (!empty($filters['supervisor'])) {
                 $query->where('mto.supervisor_code', $filters['supervisor']);

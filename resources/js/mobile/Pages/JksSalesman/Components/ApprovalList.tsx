@@ -338,14 +338,11 @@ export default function ApprovalList({
             <div className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-sm space-y-2.5">
                 {/* Filter Distributor (Default: Semua Distributor) */}
                 {distributors.length > 0 && (
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 pb-2.5 border-b border-slate-100">
-                        <label className="text-2xs font-bold uppercase tracking-wider text-slate-500 shrink-0">
-                            Filter Distributor
-                        </label>
+                    <div>
                         <select
                             value={filterDistributor}
                             onChange={(e) => handleDistributorChange(e.target.value)}
-                            className="w-full sm:flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-bold focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none truncate"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-bold focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none truncate"
                         >
                             <option value="ALL">Semua Distributor</option>
                             {distributors.map((d) => (

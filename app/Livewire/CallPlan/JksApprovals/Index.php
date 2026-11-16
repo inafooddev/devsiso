@@ -726,18 +726,21 @@ class Index extends Component
                         $now = now();
                         $insertData = [];
 
-                        // 0. Update PRCs in OOL safely inside this transaction
+                        // 0. Update PRCs in OOL safely inside this transaction (case-insensitive & clean whitespace)
                         foreach ($newPrcs as $custCode => $eskaCode) {
+                            $cleanCustCode = strtoupper(preg_replace('/[\s\t\n\r]+/u', ' ', trim((string) $custCode, " \t\n\r\0\x0B")));
                             DB::table('jks_se_master_toko_ool')
-                                ->where('customer_code', $custCode)
+                                ->whereRaw("UPPER(REGEXP_REPLACE(BTRIM(customer_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g')) = ?", [$cleanCustCode])
                                 ->update(['customer_eska' => $eskaCode]);
                         }
 
                         foreach ($payload['tokos'] as $toko) {
-                            $customerCode = $toko['code'];
+                            $customerCode = strtoupper(preg_replace('/[\s\t\n\r]+/u', ' ', trim((string) $toko['code'], " \t\n\r\0\x0B")));
 
-                            // 1. Get OOL data for Pareto Injection
-                            $oolData = DB::table('jks_se_master_toko_ool')->where('customer_code', $customerCode)->first();
+                            // 1. Get OOL data for Pareto Injection (case-insensitive & clean whitespace)
+                            $oolData = DB::table('jks_se_master_toko_ool')
+                                ->whereRaw("UPPER(REGEXP_REPLACE(BTRIM(customer_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g')) = ?", [$customerCode])
+                                ->first();
                             
                             if ($oolData) {
                                 // Calculate Pilar (ensure avg_value_net is not null, fallback to 0)

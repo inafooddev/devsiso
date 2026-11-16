@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { JksItem } from '../constants';
+import { JksItem, getCsrfHeaders } from '../constants';
 import { XMarkIcon, TrashIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 interface DeleteScheduleSheetProps {
@@ -41,14 +41,10 @@ export default function DeleteScheduleSheet({
         setIsSubmitting(true);
 
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
             const res = await fetch('/mobile/jks-salesman/delete-schedule', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json',
-                },
+                credentials: 'same-origin',
+                headers: getCsrfHeaders(),
                 body: JSON.stringify({
                     id: item.id,
                     distributor_code: distributorCode || item.distributor_code,

@@ -6,6 +6,8 @@ import EditScheduleSheet from './Components/EditScheduleSheet';
 import DeleteScheduleSheet from './Components/DeleteScheduleSheet';
 import VisitDetailSheet from './Components/VisitDetailSheet';
 import ApprovalList from './Components/ApprovalList';
+import NonJksList from './Components/NonJksList';
+import DashboardTab from './Components/DashboardTab';
 import BottomNav, { JksTabType } from './Components/BottomNav';
 import {
     JksItem,
@@ -63,7 +65,9 @@ export default function Index({
     approvalCounts,
     pendingApprovalsCount = 0,
 }: IndexProps) {
-    const [activeTab, setActiveTab] = useState<JksTabType>('jadwal');
+    const [activeTab, setActiveTab] = useState<JksTabType>(
+        currentFilters.distributor ? 'jadwal' : 'dashboard'
+    );
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [selectedDay, setSelectedDay] = useState<DayKeyType>(DEFAULT_DAY);
     const [selectedWeek, setSelectedWeek] = useState<WeekFilterType>(DEFAULT_WEEK);
@@ -149,10 +153,37 @@ export default function Index({
         });
     };
 
+    // Handler Pintas dari Dashboard ke Jadwal Salesman Spesifik
+    const handleOpenSalesmanFromDashboard = (distributorCode: string, salesmanCode: string) => {
+        setActiveTab('jadwal');
+        setDisplayLimit(PAGINATION_LIMIT);
+        router.get(
+            '/mobile/jks-salesman',
+            {
+                distributor: distributorCode,
+                salesman: salesmanCode,
+                bulan: currentFilters.bulan,
+            },
+            {
+                preserveState: true,
+                preserveScroll: false,
+                onStart: () => showToast('Memuat jadwal salesman...', 'success'),
+            }
+        );
+    };
+
     return (
         <MobileLayout
             user={user}
-            title={activeTab === 'jadwal' ? 'JKS Salesman' : 'Pengajuan JKS'}
+            title={
+                activeTab === 'dashboard'
+                    ? 'Dashboard JKS'
+                    : activeTab === 'jadwal'
+                    ? 'JKS Salesman'
+                    : activeTab === 'non_jks'
+                    ? 'Outlet NOO'
+                    : 'Pengajuan JKS'
+            }
             backUrl="/mobile/home"
             bottomNavigation={
                 <BottomNav
@@ -190,9 +221,6 @@ export default function Index({
                     <div className="px-3.5 grid grid-cols-2 gap-2">
                         {/* Pilih Distributor */}
                         <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                                Distributor
-                            </label>
                             <select
                                 value={currentFilters.distributor || ''}
                                 onChange={(e) => handleDistributorChange(e.target.value)}
@@ -209,9 +237,6 @@ export default function Index({
 
                         {/* Pilih Salesman (Wajib 1 Salesman) */}
                         <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                                Salesman (SE)
-                            </label>
                             <select
                                 value={currentFilters.salesman || ''}
                                 onChange={(e) => handleSalesmanChange(e.target.value)}
@@ -301,7 +326,14 @@ export default function Index({
 
             {/* Main Content Area */}
             <main className="flex-1 px-3.5 pt-2.5 pb-10 space-y-2">
-                {activeTab === 'jadwal' ? (
+                {activeTab === 'dashboard' ? (
+                    <DashboardTab
+                        distributors={distributors}
+                        initialDistributor={currentFilters.distributor}
+                        bulan={currentFilters.bulan}
+                        onOpenSalesmanSchedule={handleOpenSalesmanFromDashboard}
+                    />
+                ) : activeTab === 'jadwal' ? (
                     <>
                         {/* Counter Bar Rapat */}
                         <div className="px-1 flex items-center justify-between text-xs text-slate-500">
@@ -391,6 +423,14 @@ export default function Index({
                             </div>
                         )}
                     </>
+                ) : activeTab === 'non_jks' ? (
+                    <NonJksList
+                        distributors={distributors}
+                        initialDistributor={currentFilters.distributor}
+                        bulan={currentFilters.bulan}
+                        onScheduleSubmitted={handleActionSuccess}
+                        onShowToast={showToast}
+                    />
                 ) : (
                     <ApprovalList
                         approvals={approvals}

@@ -544,23 +544,27 @@ class Index extends Component
             'formW.required' => 'Pilih minimal 1 minggu kunjungan.',
         ]);
 
-        // Construct tokos array with strict sanitization
+        // Construct tokos array with strict sanitization (case-insensitive, trim spaces/tabs/newlines, collapse double spaces)
         $tokos = [];
         foreach ($this->formOutlets as $outlet) {
-            $code = strtoupper(preg_replace('/\s+/', ' ', trim($outlet['customer_code'])));
+            $code = strtoupper(preg_replace('/[\s\t\n\r]+/u', ' ', trim((string) $outlet['customer_code'], " \t\n\r\0\x0B")));
             $tokos[] = [
                 'code' => $code,
-                'name' => trim($outlet['customer_name'])
+                'name' => preg_replace('/[\s\t\n\r]+/u', ' ', trim((string) $outlet['customer_name']))
             ];
         }
 
         $tokoCodes = array_column($tokos, 'code');
+        $cleanBulkDist = strtoupper(preg_replace('/[\s\t\n\r]+/u', ' ', trim((string) $this->bulkDistributorCode, " \t\n\r\0\x0B")));
 
-        // Backend Duplicate Check 1: Check if already present in jks_salesmans
+        // Backend Duplicate Check 1: Check if already present in jks_salesmans (case-insensitive & clean whitespace)
         $existingInJks = \Illuminate\Support\Facades\DB::table('jks_salesmans')
-            ->where('distributor_code', $this->bulkDistributorCode)
+            ->whereRaw("UPPER(REGEXP_REPLACE(BTRIM(distributor_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g')) = ?", [$cleanBulkDist])
             ->where('bulan', 'like', $targetMonth . '%')
-            ->whereIn('customer_code', $tokoCodes)
+            ->whereIn(
+                \Illuminate\Support\Facades\DB::raw("UPPER(REGEXP_REPLACE(BTRIM(customer_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g'))"),
+                $tokoCodes
+            )
             ->pluck('customer_code')
             ->toArray();
 
@@ -572,9 +576,9 @@ class Index extends Component
             return;
         }
 
-        // Backend Duplicate Check 2: Check if any toko already has a PENDING approval
+        // Backend Duplicate Check 2: Check if any toko already has a PENDING approval (case-insensitive & clean whitespace)
         $pendingApprovals = \Illuminate\Support\Facades\DB::table('jks_approvals')
-            ->where('distributor_code', $this->bulkDistributorCode)
+            ->whereRaw("UPPER(REGEXP_REPLACE(BTRIM(distributor_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g')) = ?", [$cleanBulkDist])
             ->where('status', 'PENDING')
             ->where('action_type', 'TAMBAH_JADWAL')
             ->where(function($q) use ($targetMonth) {
@@ -587,12 +591,12 @@ class Index extends Component
             $payloadData = json_decode($p->payload, true);
             $pendingCodes = [];
             if (!empty($payloadData['customer_code'])) {
-                $pendingCodes[] = strtoupper(trim($payloadData['customer_code']));
+                $pendingCodes[] = strtoupper(preg_replace('/[\s\t\n\r]+/u', ' ', trim((string) $payloadData['customer_code'], " \t\n\r\0\x0B")));
             }
             if (!empty($payloadData['tokos'])) {
                 foreach ($payloadData['tokos'] as $pt) {
                     if (!empty($pt['code'])) {
-                        $pendingCodes[] = strtoupper(trim($pt['code']));
+                        $pendingCodes[] = strtoupper(preg_replace('/[\s\t\n\r]+/u', ' ', trim((string) $pt['code'], " \t\n\r\0\x0B")));
                     }
                 }
             }

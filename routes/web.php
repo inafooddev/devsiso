@@ -208,7 +208,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/mobile/call-plan/logout', [\App\Http\Controllers\Mobile\CallPlan\IndexController::class, 'logoutSupervisor'])->name('mobile.call-plan.logout');
 
     Route::get('/mobile/jks-salesman', [\App\Http\Controllers\Mobile\JksSalesman\IndexController::class, 'index'])->name('mobile.jks-salesman.index');
+    Route::get('/mobile/jks-salesman/dashboard', [\App\Http\Controllers\Mobile\JksSalesman\IndexController::class, 'getDashboardSummary'])->name('mobile.jks-salesman.dashboard');
     Route::get('/mobile/jks-salesman/approvals', [\App\Http\Controllers\Mobile\JksSalesman\IndexController::class, 'getApprovals'])->name('mobile.jks-salesman.approvals');
+    Route::get('/mobile/jks-salesman/non-jks', [\App\Http\Controllers\Mobile\JksSalesman\IndexController::class, 'getNonJksList'])->name('mobile.jks-salesman.non-jks');
+    Route::post('/mobile/jks-salesman/non-jks/add-schedule', [\App\Http\Controllers\Mobile\JksSalesman\IndexController::class, 'submitNonJksSchedule'])->name('mobile.jks-salesman.non-jks.add-schedule');
+    Route::post('/mobile/jks-salesman/non-jks/remark', [\App\Http\Controllers\Mobile\JksSalesman\IndexController::class, 'saveNonJksRemark'])->name('mobile.jks-salesman.non-jks.remark');
     Route::get('/mobile/jks-salesman/visit-detail/{customer_code}', [\App\Http\Controllers\Mobile\JksSalesman\IndexController::class, 'getVisitDetail'])->name('mobile.jks-salesman.visit-detail');
     Route::post('/mobile/jks-salesman/update-schedule', [\App\Http\Controllers\Mobile\JksSalesman\IndexController::class, 'updateSchedule'])->name('mobile.jks-salesman.update-schedule');
     Route::post('/mobile/jks-salesman/delete-schedule', [\App\Http\Controllers\Mobile\JksSalesman\IndexController::class, 'deleteSchedule'])->name('mobile.jks-salesman.delete-schedule');
@@ -217,6 +221,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/mobile/perbaikan-tikor-tim-elite', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'index'])->name('mobile.perbaikan.tikor-tim-elite.index');
     Route::post('/mobile/perbaikan-tikor-tim-elite', [\App\Http\Controllers\Mobile\PerbaikanTikorTimElite\IndexController::class, 'store'])->name('mobile.perbaikan.tikor-tim-elite.store');
 
+    // Mobile Insentif Sales (Monitoring)
+    Route::get('/mobile/insentif', [\App\Http\Controllers\Mobile\Insentif\IndexController::class, 'index'])->name('mobile.insentif.index');
 });
 
 Route::middleware('guest')->group(function () {

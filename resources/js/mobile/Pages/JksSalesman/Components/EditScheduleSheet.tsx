@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { JksItem, SalesmanOption } from '../constants';
+import { JksItem, SalesmanOption, getCsrfHeaders } from '../constants';
 import { XMarkIcon, PencilSquareIcon, CheckIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 interface EditScheduleSheetProps {
@@ -94,14 +94,10 @@ export default function EditScheduleSheet({
         setIsSubmitting(true);
 
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
             const res = await fetch('/mobile/jks-salesman/update-schedule', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json',
-                },
+                credentials: 'same-origin',
+                headers: getCsrfHeaders(),
                 body: JSON.stringify({
                     id: item.id,
                     distributor_code: distributorCode || item.distributor_code,

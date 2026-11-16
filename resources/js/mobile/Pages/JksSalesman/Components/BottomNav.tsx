@@ -1,14 +1,18 @@
 import React from 'react';
 import {
+    ChartBarIcon as ChartBarOutline,
     CalendarDaysIcon as CalendarDaysOutline,
+    BuildingStorefrontIcon as BuildingStorefrontOutline,
     ClipboardDocumentCheckIcon as ClipboardDocumentCheckOutline,
 } from '@heroicons/react/24/outline';
 import {
+    ChartBarIcon as ChartBarSolid,
     CalendarDaysIcon as CalendarDaysSolid,
+    BuildingStorefrontIcon as BuildingStorefrontSolid,
     ClipboardDocumentCheckIcon as ClipboardDocumentCheckSolid,
 } from '@heroicons/react/24/solid';
 
-export type JksTabType = 'jadwal' | 'pengajuan';
+export type JksTabType = 'dashboard' | 'jadwal' | 'non_jks' | 'pengajuan';
 
 interface BottomNavProps {
     activeTab: JksTabType;
@@ -29,10 +33,22 @@ export default function BottomNav({
         badge?: number;
     }[] = [
         {
+            id: 'dashboard',
+            label: 'Dashboard',
+            outlineIcon: ChartBarOutline,
+            solidIcon: ChartBarSolid,
+        },
+        {
             id: 'jadwal',
             label: 'Jadwal',
             outlineIcon: CalendarDaysOutline,
             solidIcon: CalendarDaysSolid,
+        },
+        {
+            id: 'non_jks',
+            label: 'NOO',
+            outlineIcon: BuildingStorefrontOutline,
+            solidIcon: BuildingStorefrontSolid,
         },
         {
             id: 'pengajuan',

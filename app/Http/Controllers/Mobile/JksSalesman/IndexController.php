@@ -243,6 +243,281 @@ class IndexController extends Controller
     }
 
     /**
+     * Endpoint JSON On-Demand untuk mengambil data Summary & KPI Dashboard per Salesman.
+     */
+    public function getDashboardSummary(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $distributorCode = trim((string) $request->input('distributor', 'ALL'));
+        if (empty($distributorCode)) {
+            $distributorCode = 'ALL';
+        }
+        $bulan = substr((string) $request->input('bulan', date('Y-m')), 0, 7);
+
+        $query = DB::table('jks_salesmans as js')
+            ->join('master_distributors as md', 'js.distributor_code', '=', 'md.distributor_code')
+            ->leftJoin('team_elite_code_mappings as te', 'md.supervisor_code', '=', 'te.siso_code')
+            ->join('salesmans as s', function ($join) {
+                $join->on('js.distributor_code', '=', 's.distributor_code')
+                     ->on('js.salesman_code', '=', 's.salesman_code');
+            })
+            ->leftJoinSub(
+                function ($subQuery) use ($bulan, $distributorCode) {
+                    $subQuery->from('jks_salesmans')
+                        ->select('customer_code', 'distributor_code')
+                        ->where('bulan', 'like', $bulan . '%');
+
+                    if ($distributorCode !== 'ALL') {
+                        $subQuery->where('distributor_code', $distributorCode);
+                    }
+
+                    $subQuery->groupBy('customer_code', 'distributor_code')
+                        ->havingRaw('COUNT(DISTINCT salesman_code) > 1');
+                },
+                'dc',
+                function ($join) {
+                    $join->on('js.customer_code', '=', 'dc.customer_code')
+                         ->on('js.distributor_code', '=', 'dc.distributor_code');
+                }
+            )
+            ->leftJoin('list_toko_pareto_team_elite as lt', function ($join) {
+                $join->on('lt.uniq_kd', '=', 'js.customer_code')
+                     ->on('lt.distributor_code', '=', 'js.distributor_code');
+            })
+            ->where('js.bulan', 'like', $bulan . '%')
+            ->where('md.is_active', true)
+            ->where('s.is_active', true)
+            ->where('s.salesman_code', 'not ilike', '%OFI%');
+
+        // Hak Akses Wilayah User
+        if (!$user->hasRole(['admin', 'spm'])) {
+            $accessLevel = method_exists($user, 'getAccessLevel') ? $user->getAccessLevel() : 'all';
+            if ($accessLevel === 'region' && !empty($user->region_code)) {
+                $query->whereIn('md.region_code', (array) $user->region_code);
+            } elseif ($accessLevel === 'area' && !empty($user->area_code)) {
+                $query->whereIn('md.area_code', (array) $user->area_code);
+            } elseif ($accessLevel === 'supervisor' && !empty($user->supervisor_code)) {
+                $oolDistributors = DB::table('jks_se_master_toko_ool')
+                    ->whereIn('supervisor_code', (array) $user->supervisor_code)
+                    ->pluck('distributor_code')
+                    ->toArray();
+
+                $query->where(function ($q) use ($user, $oolDistributors) {
+                    $q->whereIn('te.team_elite_code', (array) $user->supervisor_code);
+                    if (!empty($oolDistributors)) {
+                        $q->orWhereIn('md.distributor_code', $oolDistributors);
+                    }
+                });
+            }
+        }
+
+        if ($distributorCode !== 'ALL') {
+            $query->where('js.distributor_code', $distributorCode);
+        }
+
+        $rows = $query->select([
+            'md.distributor_code',
+            'md.distributor_name',
+            's.salesman_code',
+            's.salesman_name',
+            DB::raw('COUNT(DISTINCT js.customer_code) as total_ro'),
+            DB::raw("COUNT(DISTINCT CASE WHEN (js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') AND (js.h7 IS NULL OR js.h7 != 'Y') AND (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y') AND dc.customer_code IS NULL THEN js.customer_code END) as total_jks"),
+            DB::raw("COUNT(DISTINCT CASE WHEN NOT ((js.h1 = 'Y' OR js.h2 = 'Y' OR js.h3 = 'Y' OR js.h4 = 'Y' OR js.h5 = 'Y' OR js.h6 = 'Y') AND (js.w1 = 'Y' OR js.w2 = 'Y' OR js.w3 = 'Y' OR js.w4 = 'Y')) OR js.h7 = 'Y' OR dc.customer_code IS NOT NULL THEN js.customer_code END) as non_rute"),
+            DB::raw("COUNT(DISTINCT CASE WHEN (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as non_gps"),
+
+            // Senin (h1)
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h1 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as h1_gjl"),
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h1 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as h1_gnp"),
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h1 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as h1_non_gps"),
+
+            // Selasa (h2)
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h2 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as h2_gjl"),
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h2 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as h2_gnp"),
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h2 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as h2_non_gps"),
+
+            // Rabu (h3)
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h3 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as h3_gjl"),
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h3 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as h3_gnp"),
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h3 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as h3_non_gps"),
+
+            // Kamis (h4)
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h4 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as h4_gjl"),
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h4 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as h4_gnp"),
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h4 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as h4_non_gps"),
+
+            // Jumat (h5)
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h5 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as h5_gjl"),
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h5 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as h5_gnp"),
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h5 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as h5_non_gps"),
+
+            // Sabtu (h6)
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h6 = 'Y' AND (js.w1 = 'Y' OR js.w3 = 'Y') THEN js.customer_code END) as h6_gjl"),
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h6 = 'Y' AND (js.w2 = 'Y' OR js.w4 = 'Y') THEN js.customer_code END) as h6_gnp"),
+            DB::raw("COUNT(DISTINCT CASE WHEN js.h6 = 'Y' AND (lt.latitude IS NULL OR lt.latitude = 0 OR lt.longitude IS NULL OR lt.longitude = 0) THEN js.customer_code END) as h6_non_gps"),
+        ])
+            ->groupBy('md.distributor_code', 'md.distributor_name', 's.salesman_code', 's.salesman_name')
+            ->orderBy('md.distributor_name')
+            ->orderBy('s.salesman_name')
+            ->get();
+
+        // Hitung Mutasi Penambahan & Delete per (distributor_code + salesman_code)
+        $compositeKeys = $rows->map(fn ($r) => $r->distributor_code . '_' . $r->salesman_code)->unique()->values()->all();
+        $mutationMap = [];
+
+        if (!empty($compositeKeys)) {
+            $approvalsQuery = DB::table('jks_approvals')
+                ->whereIn('status', ['APPROVED', 'AUTO_APPROVED'])
+                ->whereRaw("payload->>'bulan' LIKE ?", [$bulan . '%']);
+
+            if ($distributorCode !== 'ALL') {
+                $approvalsQuery->where('distributor_code', $distributorCode);
+            }
+
+            $rawApprovals = $approvalsQuery->orderBy('created_at', 'asc')->get();
+
+            $storeStates = [];
+            $rawCounts = [];
+            foreach ($compositeKeys as $ck) {
+                $storeStates[$ck] = [];
+                $rawCounts[$ck] = ['penambahan' => 0, 'deleted' => 0];
+            }
+
+            foreach ($rawApprovals as $app) {
+                $payload = json_decode($app->payload, true);
+                if (!$payload) continue;
+
+                $action = $app->action_type;
+                $tokoCount = isset($payload['tokos']) && is_array($payload['tokos']) ? count($payload['tokos']) : 1;
+
+                if ($action === 'TAMBAH_JADWAL') {
+                    $sCode = $payload['salesman_code'] ?? null;
+                    $ck = $app->distributor_code . '_' . $sCode;
+                    if ($sCode && isset($rawCounts[$ck])) {
+                        if (isset($payload['tokos']) && is_array($payload['tokos'])) {
+                            foreach ($payload['tokos'] as $toko) {
+                                $cCode = $toko['code'] ?? $toko['customer_code'] ?? null;
+                                if ($cCode) {
+                                    $currentState = $storeStates[$ck][$cCode] ?? null;
+                                    $storeStates[$ck][$cCode] = $currentState === 'DELETED' ? 'PERUBAHAN' : 'PENAMBAHAN';
+                                } else {
+                                    $rawCounts[$ck]['penambahan'] += 1;
+                                }
+                            }
+                        } else {
+                            $rawCounts[$ck]['penambahan'] += $tokoCount;
+                        }
+                    }
+                } elseif (in_array($action, ['HAPUS_JADWAL', 'DELETE_MASSAL', 'DELETE_INDIVIDU'])) {
+                    if (isset($payload['records']) && is_array($payload['records'])) {
+                        foreach ($payload['records'] as $record) {
+                            $sCode = $record['salesman_code'] ?? null;
+                            $ck = $app->distributor_code . '_' . $sCode;
+                            if ($sCode && isset($rawCounts[$ck])) {
+                                $cCode = $record['customer_code'] ?? null;
+                                if ($cCode) {
+                                    $currentState = $storeStates[$ck][$cCode] ?? null;
+                                    if ($currentState === 'PENAMBAHAN') {
+                                        unset($storeStates[$ck][$cCode]);
+                                    } else {
+                                        $storeStates[$ck][$cCode] = 'DELETED';
+                                    }
+                                } else {
+                                    $rawCounts[$ck]['deleted'] += 1;
+                                }
+                            }
+                        }
+                    } else {
+                        $sCode = $payload['salesman_code'] ?? null;
+                        $ck = $app->distributor_code . '_' . $sCode;
+                        if ($sCode && isset($rawCounts[$ck])) {
+                            $rawCounts[$ck]['deleted'] += $tokoCount;
+                        }
+                    }
+                }
+            }
+
+            foreach ($compositeKeys as $ck) {
+                $add = $rawCounts[$ck]['penambahan'];
+                $del = $rawCounts[$ck]['deleted'];
+                foreach ($storeStates[$ck] as $state) {
+                    if ($state === 'PENAMBAHAN') $add++;
+                    elseif ($state === 'DELETED') $del++;
+                }
+                $mutationMap[$ck] = ['penambahan' => $add, 'deleted' => $del];
+            }
+        }
+
+        $items = [];
+        $totals = [
+            'total_se' => 0,
+            'standar_se' => 0,
+            'belum_standar_se' => 0,
+            'total_ro' => 0,
+            'total_jks' => 0,
+            'total_non_rute' => 0,
+            'total_non_gps' => 0,
+            'total_penambahan' => 0,
+            'total_deleted' => 0,
+        ];
+
+        foreach ($rows as $r) {
+            $ck = $r->distributor_code . '_' . $r->salesman_code;
+            $mut = $mutationMap[$ck] ?? ['penambahan' => 0, 'deleted' => 0];
+
+            $ro = (int) $r->total_ro;
+            $jks = (int) $r->total_jks;
+            $nonRute = (int) $r->non_rute;
+            $nonGps = (int) $r->non_gps;
+            $add = (int) $mut['penambahan'];
+            $del = (int) $mut['deleted'];
+
+            $totals['total_se']++;
+            if ($jks >= 300) {
+                $totals['standar_se']++;
+            } else {
+                $totals['belum_standar_se']++;
+            }
+            $totals['total_ro'] += $ro;
+            $totals['total_jks'] += $jks;
+            $totals['total_non_rute'] += $nonRute;
+            $totals['total_non_gps'] += $nonGps;
+            $totals['total_penambahan'] += $add;
+            $totals['total_deleted'] += $del;
+
+            $items[] = [
+                'key' => $ck,
+                'distributor_code' => $r->distributor_code,
+                'distributor_name' => $r->distributor_name,
+                'salesman_code' => $r->salesman_code,
+                'salesman_name' => $r->salesman_name ?: $r->salesman_code,
+                'total_ro' => $ro,
+                'total_jks' => $jks,
+                'non_rute' => $nonRute,
+                'non_gps' => $nonGps,
+                'penambahan' => $add,
+                'deleted' => $del,
+                'days' => [
+                    ['label' => 'Senin', 'short' => 'Sen', 'gjl' => (int) $r->h1_gjl, 'gnp' => (int) $r->h1_gnp, 'non_gps' => (int) $r->h1_non_gps],
+                    ['label' => 'Selasa', 'short' => 'Sel', 'gjl' => (int) $r->h2_gjl, 'gnp' => (int) $r->h2_gnp, 'non_gps' => (int) $r->h2_non_gps],
+                    ['label' => 'Rabu', 'short' => 'Rab', 'gjl' => (int) $r->h3_gjl, 'gnp' => (int) $r->h3_gnp, 'non_gps' => (int) $r->h3_non_gps],
+                    ['label' => 'Kamis', 'short' => 'Kam', 'gjl' => (int) $r->h4_gjl, 'gnp' => (int) $r->h4_gnp, 'non_gps' => (int) $r->h4_non_gps],
+                    ['label' => 'Jumat', 'short' => 'Jum', 'gjl' => (int) $r->h5_gjl, 'gnp' => (int) $r->h5_gnp, 'non_gps' => (int) $r->h5_non_gps],
+                    ['label' => 'Sabtu', 'short' => 'Sab', 'gjl' => (int) $r->h6_gjl, 'gnp' => (int) $r->h6_gnp, 'non_gps' => (int) $r->h6_non_gps],
+                ],
+            ];
+        }
+
+        return response()->json([
+            'totals' => $totals,
+            'items' => $items,
+        ]);
+    }
+
+    /**
      * Endpoint JSON On-Demand untuk mengambil daftar pengajuan per Status & Distributor
      * tanpa membebani halaman utama.
      */
@@ -907,5 +1182,277 @@ class IndexController extends Controller
                 'direct_update' => false,
             ]);
         }
+    }
+
+    /**
+     * Endpoint JSON On-Demand untuk mengambil daftar Outlet Non-JKS (NOO) per Distributor
+     * beserta daftar Salesman aktif dan histori omset 6 bulan terakhir.
+     */
+    public function getNonJksList(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $distributorCode = trim((string) $request->input('distributor', ''));
+        $bulan = $request->input('bulan', date('Y-m'));
+
+        $baseBulan = \Carbon\Carbon::parse(substr($bulan, 0, 7) . '-01');
+        $historyLabels = [];
+        for ($i = 1; $i <= 6; $i++) {
+            $historyLabels[] = $baseBulan->copy()->subMonths($i)->translatedFormat('M y');
+        }
+
+        if (empty($distributorCode)) {
+            return response()->json([
+                'items' => [],
+                'salesmans' => [],
+                'history_labels' => $historyLabels,
+            ]);
+        }
+
+        // Ambil daftar salesman aktif untuk distributor terpilih
+        $salesmans = DB::table('salesmans')
+            ->where('distributor_code', $distributorCode)
+            ->where('is_active', true)
+            ->select('salesman_code', 'salesman_name')
+            ->orderBy('salesman_name')
+            ->get();
+
+        // Gunakan JksNonRouteService agar logika query identik 100% dengan versi Web
+        $service = app(\App\Services\JksNonRouteService::class);
+        $rows = $service->getBaseQueryBuilder('', [
+            'distributor' => $distributorCode,
+            'bulan' => $baseBulan->format('Y-m-01'),
+        ])
+            ->orderByDesc('mto.avg_value_net')
+            ->orderBy('mto.customer_name')
+            ->get();
+
+        $items = $rows->map(function ($r) {
+            return [
+                'id' => (int) $r->id,
+                'distributor_code' => $r->distributor_code,
+                'distributor_name' => $r->distributor_name,
+                'customer_code' => $r->customer_code,
+                'customer_eska' => $r->customer_eska,
+                'customer_name' => $r->customer_name,
+                'alamat' => $r->alamat ?: '-',
+                'avg_value_net' => (float) ($r->avg_value_net ?? 0),
+                'remark' => $r->remark,
+                'pending_approval_id' => $r->pending_approval_id ? (int) $r->pending_approval_id : null,
+                'history' => [
+                    (float) ($r->history_1 ?? 0),
+                    (float) ($r->history_2 ?? 0),
+                    (float) ($r->history_3 ?? 0),
+                    (float) ($r->history_4 ?? 0),
+                    (float) ($r->history_5 ?? 0),
+                    (float) ($r->history_6 ?? 0),
+                ],
+            ];
+        })->values();
+
+        return response()->json([
+            'items' => $items,
+            'salesmans' => $salesmans,
+            'history_labels' => $historyLabels,
+        ]);
+    }
+
+    /**
+     * Ajukan penambahan Outlet Non-JKS (Single maupun Multi-Select / Massal) ke jadwal JKS.
+     */
+    public function submitNonJksSchedule(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $validated = $request->validate([
+            'distributor_code' => 'required|string',
+            'salesman_code' => 'required|string',
+            'bulan' => 'nullable|string',
+            'outlet_ids' => 'required|array|min:1',
+            'outlet_ids.*' => 'integer',
+            'hari' => 'required|array|min:1',
+            'hari.*' => 'string|in:h1,h2,h3,h4,h5,h6,h7',
+            'minggu' => 'required|array|min:1',
+            'minggu.*' => 'string|in:w1,w2,w3,w4',
+            'reason' => 'nullable|string|max:500',
+        ], [
+            'salesman_code.required' => 'Salesman wajib dipilih.',
+            'outlet_ids.required' => 'Pilih minimal 1 outlet.',
+            'hari.required' => 'Pilih minimal 1 hari kunjungan.',
+            'minggu.required' => 'Pilih minimal 1 minggu kunjungan.',
+        ]);
+
+        $distributorCode = $this->cleanEntityCode($validated['distributor_code']);
+        $currentMonth = now()->format('Y-m');
+        $targetMonth = !empty($validated['bulan']) ? substr($validated['bulan'], 0, 7) : $currentMonth;
+
+        if (!$user->hasRole('admin') && $targetMonth !== $currentMonth) {
+            return response()->json([
+                'error' => 'Akses Ditolak: Pengajuan penambahan jadwal hanya diizinkan untuk periode bulan berjalan (' . now()->translatedFormat('F Y') . ').',
+            ], 403);
+        }
+
+        $outlets = DB::table('jks_se_master_toko_ool')
+            ->whereIn('id', $validated['outlet_ids'])
+            ->whereRaw("UPPER(REGEXP_REPLACE(BTRIM(distributor_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g')) = ?", [$distributorCode])
+            ->get();
+
+        if ($outlets->isEmpty()) {
+            return response()->json(['error' => 'Data outlet tidak ditemukan pada distributor terpilih.'], 404);
+        }
+
+        $tokos = [];
+        foreach ($outlets as $outlet) {
+            $code = $this->cleanEntityCode($outlet->customer_code);
+            $tokos[] = [
+                'code' => $code,
+                'name' => preg_replace('/[\s\t\n\r]+/u', ' ', trim((string) $outlet->customer_name)),
+            ];
+        }
+
+        $tokoCodes = array_column($tokos, 'code');
+
+        // 1. Cek Duplikat di tabel jks_salesmans pada bulan berjalan (Case-insensitive & clean whitespace/tab/double-space)
+        $existingInJks = DB::table('jks_salesmans')
+            ->whereRaw("UPPER(REGEXP_REPLACE(BTRIM(distributor_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g')) = ?", [$distributorCode])
+            ->where('bulan', 'like', $targetMonth . '%')
+            ->whereIn(
+                DB::raw("UPPER(REGEXP_REPLACE(BTRIM(customer_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g'))"),
+                $tokoCodes
+            )
+            ->pluck('customer_code')
+            ->toArray();
+
+        if (!empty($existingInJks)) {
+            return response()->json([
+                'error' => 'Gagal: Toko (' . implode(', ', $existingInJks) . ') sudah memiliki jadwal rute JKS aktif di bulan ini.',
+            ], 422);
+        }
+
+        // 2. Cek Duplikat di tabel jks_approvals yang berstatus PENDING (Case-insensitive & clean whitespace/tab/double-space)
+        $pendingApprovals = DB::table('jks_approvals')
+            ->whereRaw("UPPER(REGEXP_REPLACE(BTRIM(distributor_code, E' \\t\\n\\r'), E'\\\\s+', ' ', 'g')) = ?", [$distributorCode])
+            ->where('status', 'PENDING')
+            ->where('action_type', 'TAMBAH_JADWAL')
+            ->where(function ($q) use ($targetMonth) {
+                $q->whereRaw("payload->>'bulan' LIKE ?", [$targetMonth . '%'])
+                  ->orWhereRaw("payload->>'bulan' IS NULL");
+            })
+            ->get();
+
+        foreach ($pendingApprovals as $p) {
+            $payloadData = json_decode($p->payload, true) ?: [];
+            $pendingCodes = [];
+            if (!empty($payloadData['customer_code'])) {
+                $pendingCodes[] = $this->cleanEntityCode($payloadData['customer_code']);
+            }
+            if (!empty($payloadData['tokos']) && is_array($payloadData['tokos'])) {
+                foreach ($payloadData['tokos'] as $pt) {
+                    if (!empty($pt['code'])) {
+                        $pendingCodes[] = $this->cleanEntityCode($pt['code']);
+                    }
+                }
+            }
+            $intersect = array_intersect($tokoCodes, $pendingCodes);
+            if (!empty($intersect)) {
+                return response()->json([
+                    'error' => 'Gagal: Toko (' . implode(', ', $intersect) . ') sudah memiliki pengajuan penambahan yang berstatus PENDING.',
+                ], 422);
+            }
+        }
+
+        $defaultReason = count($tokos) === 1
+            ? 'Pengajuan penambahan outlet Non JKS'
+            : 'Pengajuan penambahan ' . count($tokos) . ' outlet Non JKS secara massal';
+        $cleanReason = !empty(trim((string) ($validated['reason'] ?? '')))
+            ? trim($validated['reason'])
+            : $defaultReason;
+
+        $payload = [
+            'distributor_code' => $distributorCode,
+            'customer_code' => count($tokos) === 1 ? $tokos[0]['code'] : null,
+            'salesman_code' => strtoupper(trim($validated['salesman_code'])),
+            'bulan' => \Carbon\Carbon::parse($targetMonth . '-01')->format('Y-m-01'),
+            'hari' => array_values($validated['hari']),
+            'minggu' => array_values($validated['minggu']),
+            'tokos' => $tokos,
+            'reason' => $cleanReason,
+        ];
+
+        $approvalId = DB::table('jks_approvals')->insertGetId([
+            'distributor_code' => $distributorCode,
+            'action_type' => 'TAMBAH_JADWAL',
+            'status' => 'PENDING',
+            'payload' => json_encode($payload),
+            'reason' => $cleanReason,
+            'maker_id' => $user->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => count($tokos) === 1
+                ? 'Pengajuan tambah toko ke JKS berhasil dikirim (Menunggu Approval).'
+                : 'Pengajuan tambah ' . count($tokos) . ' toko ke JKS berhasil dikirim (Menunggu Approval).',
+            'approval_id' => $approvalId,
+            'submitted_outlet_ids' => array_map('intval', $validated['outlet_ids']),
+        ]);
+    }
+
+    /**
+     * Simpan atau perbarui catatan (Remark) untuk Outlet Non-JKS.
+     */
+    public function saveNonJksRemark(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $validated = $request->validate([
+            'distributor_code' => 'required|string',
+            'customer_code' => 'required|string',
+            'remark' => 'nullable|string|max:500',
+        ]);
+
+        $distCode = $this->cleanEntityCode($validated['distributor_code']);
+        $custCode = $this->cleanEntityCode($validated['customer_code']);
+        $remarkText = trim((string) ($validated['remark'] ?? ''));
+
+        DB::table('jks_se_toko_ool_remarks')->updateOrInsert(
+            [
+                'distributor_code' => $distCode,
+                'customer_code' => $custCode,
+            ],
+            [
+                'remark' => $remarkText,
+                'created_by' => $user->userid ?? $user->name ?? 'system',
+                'updated_at' => now(),
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Catatan (Remark) outlet berhasil disimpan!',
+            'remark' => $remarkText,
+        ]);
+    }
+
+    /**
+     * Normalisasi kode entitas (customer_code / distributor_code):
+     * - Case-insensitive (UPPERCASE)
+     * - Menghapus spasi, tab (\t), dan newline (\n, \r) di awal maupun akhir
+     * - Mengubah spasi ganda / tab beruntun di tengah menjadi 1 spasi tunggal
+     */
+    private function cleanEntityCode(?string $value): string
+    {
+        return strtoupper(preg_replace('/[\s\t\n\r]+/u', ' ', trim((string) $value, " \t\n\r\0\x0B")));
     }
 }

@@ -111,3 +111,72 @@ export interface ApprovalItem {
     created_time_ago?: string;
     updated_at?: string | null;
 }
+
+export interface NonJksOutletItem {
+    id: number;
+    distributor_code: string;
+    distributor_name: string;
+    customer_code: string;
+    customer_eska?: string | null;
+    customer_name: string;
+    alamat: string;
+    avg_value_net: number;
+    remark?: string | null;
+    pending_approval_id?: number | null;
+    history: number[];
+}
+
+export interface DashboardDayStat {
+    label: string;
+    short: string;
+    gjl: number;
+    gnp: number;
+    non_gps: number;
+}
+
+export interface SalesmanDashboardRow {
+    key: string;
+    distributor_code: string;
+    distributor_name: string;
+    salesman_code: string;
+    salesman_name: string;
+    total_ro: number;
+    total_jks: number;
+    non_rute: number;
+    non_gps: number;
+    penambahan: number;
+    deleted: number;
+    days: DashboardDayStat[];
+}
+
+export interface DashboardTotals {
+    total_se: number;
+    standar_se: number;
+    belum_standar_se: number;
+    total_ro: number;
+    total_jks: number;
+    total_non_rute: number;
+    total_non_gps: number;
+    total_penambahan: number;
+    total_deleted: number;
+}
+
+export function getCsrfHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+    };
+
+    const xsrfMatch = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+    if (xsrfMatch && xsrfMatch[1]) {
+        headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrfMatch[1]);
+    } else {
+        const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (metaToken) {
+            headers['X-CSRF-TOKEN'] = metaToken;
+        }
+    }
+
+    return headers;
+}
