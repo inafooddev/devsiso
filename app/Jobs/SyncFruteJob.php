@@ -25,6 +25,9 @@ class SyncFruteJob implements ShouldQueue
         $this->batchId = $batchId;
     }
 
+    /**
+     * Execute the job safely with Download First -> Atomic Per-Region Replacement.
+     */
     public function handle(): void
     {
         $batch = null;
@@ -32,53 +35,77 @@ class SyncFruteJob implements ShouldQueue
             $batch = ImportBatch::find($this->batchId);
             if ($batch) {
                 $batch->update(['status' => 'processing']);
-                $this->logMessage($batch, 'info', "Memulai proses Sync Frute...");
+                $this->logMessage($batch, 'info', "Memulai proses Sync Frute (Mode Aman: Download First)...");
             }
         } else {
-            $this->logMessage(null, 'info', "Memulai proses Sync Frute...");
+            $this->logMessage(null, 'info', "Memulai proses Sync Frute (Mode Aman: Download First)...");
         }
 
         try {
             $blocks = ['JKSINAJWA1', 'JKSINAJWA2', 'JKSINAPUL1', 'JKSINASUM1', 'JKSINASUM2', 'JKSHOINA'];
             $token = 'em9WOU9KVjNVbEhBM1V6UlVVTUZxTTNvSEwzeHUxOGxKQlJyemtkbXxIT0lOQQ==';
-            $client = new Client(['verify' => false]);
+            $client = new Client([
+                'verify' => false,
+                'timeout' => 300,
+            ]);
             $now = now()->format('Y-m-d H:i:s');
 
-            // STEP 1: Truncate Table
-            $this->logMessage($batch, 'warning', "Tahap 1: Menghapus (Truncate) semua data lama di tabel frute...");
-            DB::statement('TRUNCATE TABLE frute');
-            $this->logMessage($batch, 'success', "Tahap 1 Selesai. Tabel frute berhasil dikosongkan.");
-
-            // STEP 2: Loop API Blocks & Insert
-            $this->logMessage($batch, 'info', "Tahap 2: Mulai mengunduh dan menyisipkan data dari API per block...");
-            
             $totalInserted = 0;
+            $failedBlocks = [];
+            $successBlocks = [];
+
+            $this->logMessage($batch, 'info', "Mulai mengunduh dan menyinkronkan data per block (Tanpa Global Truncate)...");
 
             foreach ($blocks as $block) {
-                $this->logMessage($batch, 'info', "-> Mengunduh blok: $block...");
+                $this->logMessage($batch, 'info', "-> Mengunduh blok API: {$block}...");
                 $url = "https://jobs.asiatop.co.id:9080/trx/export?block={$block}";
                 
-                $response = $client->get($url, [
-                    'headers' => [
-                        'Authorization' => 'Bearer ' . $token
-                    ]
-                ]);
+                // 1. Download data terlebih dahulu
+                try {
+                    $response = $client->get($url, [
+                        'headers' => [
+                            'Authorization' => 'Bearer ' . $token
+                        ]
+                    ]);
+                } catch (\Throwable $httpError) {
+                    $errorMsg = "Gagal mengunduh blok {$block}: " . $httpError->getMessage() . ". Data lama blok ini TIDAK DIHAPUS (Tetap Aman).";
+                    $this->logMessage($batch, 'error', $errorMsg);
+                    Log::error("SyncFruteJob: " . $errorMsg);
+                    $failedBlocks[] = $block;
+                    continue;
+                }
+
+                if ($response->getStatusCode() !== 200) {
+                    $errorMsg = "API mengembalikan HTTP {$response->getStatusCode()} untuk blok {$block}. Data lama TIDAK DIHAPUS.";
+                    $this->logMessage($batch, 'error', $errorMsg);
+                    Log::error("SyncFruteJob: " . $errorMsg);
+                    $failedBlocks[] = $block;
+                    continue;
+                }
 
                 $json = json_decode($response->getBody(), true);
                 $dataset = $json['data'] ?? [];
                 
                 if (empty($dataset)) {
-                    $this->logMessage($batch, 'warning', "   Blok $block kosong, dilewati.");
+                    $this->logMessage($batch, 'warning', "   Blok {$block} kosong dari API. Data lama TIDAK DIHAPUS, proses dilewati.");
                     continue;
                 }
 
-                $this->logMessage($batch, 'info', "   Blok $block berhasil diunduh. Memproses ".count($dataset)." baris...");
+                $totalBlockRows = count($dataset);
+                $this->logMessage($batch, 'info', "   Blok {$block} sukses diunduh ({$totalBlockRows} baris). Memetakan data...");
 
-                // Mapping
+                // 2. Mapping
                 $mappedData = [];
+                $detectedRegion = null;
+
                 foreach ($dataset as $row) {
+                    $reg = $row['REGION'] === '' ? null : $row['REGION'];
+                    if (!$detectedRegion && $reg) {
+                        $detectedRegion = $reg;
+                    }
+
                     $mappedData[] = [
-                        'region' => $row['REGION'] === '' ? null : $row['REGION'],
+                        'region' => $reg,
                         'kodecabang' => $row['KODECABANG'] === '' ? null : $row['KODECABANG'],
                         'cabang' => $row['ENTITY'] === '' ? null : $row['ENTITY'],
                         'slsno' => $row['KODESALES'] === '' ? null : $row['KODESALES'],
@@ -100,24 +127,46 @@ class SyncFruteJob implements ShouldQueue
                     ];
                 }
 
-                // Chunk Insert
-                $chunks = array_chunk($mappedData, 500);
-                foreach ($chunks as $chunk) {
-                    DB::table('frute')->insert($chunk);
-                    $totalInserted += count($chunk);
+                if (!$detectedRegion) {
+                    $detectedRegion = str_replace('JKS', '', $block);
                 }
-                
-                $this->logMessage($batch, 'success', "   Data $block selesai dimasukkan. Total tersimpan saat ini: $totalInserted");
+
+                // 3. ATOMIC REPLACEMENT PER REGION DALAM DATABASE TRANSACTION
+                DB::transaction(function () use ($detectedRegion, $mappedData, $batch, $block) {
+                    if ($detectedRegion) {
+                        $this->logMessage($batch, 'warning', "   Menghapus data lama region {$detectedRegion} di tabel frute...");
+                        DB::table('frute')->where('region', $detectedRegion)->delete();
+                    }
+
+                    $chunks = array_chunk($mappedData, 500);
+                    foreach ($chunks as $chunk) {
+                        DB::table('frute')->insert($chunk);
+                    }
+                });
+
+                $totalInserted += count($mappedData);
+                $successBlocks[] = $block;
+                $this->logMessage($batch, 'success', "   Blok {$block} ({$detectedRegion}) selesai diperbarui: " . count($mappedData) . " baris. Total: {$totalInserted}");
             }
 
-            $this->logMessage($batch, 'success', "Tahap 2 Selesai. Seluruh blok telah disinkronisasi. Total baris masuk: $totalInserted");
-            $this->logMessage($batch, 'success', "Proses Selesai. Sync Frute sukses dijalankan.");
-            
-            if ($batch) $batch->update(['status' => 'completed']);
-            Log::info("SyncFruteJob selesai. Inserted $totalInserted rows.");
+            // 4. Ringkasan Akhir
+            if (!empty($failedBlocks)) {
+                $statusSummary = "Perhatian: Sebagian blok gagal diunduh: " . implode(', ', $failedBlocks) . ". Data lama blok tersebut tetap aman.";
+                $this->logMessage($batch, 'warning', $statusSummary);
+            }
+
+            if (empty($successBlocks) && !empty($failedBlocks)) {
+                $this->logMessage($batch, 'error', "Gagal: Tidak ada blok yang berhasil disinkronisasi.");
+                if ($batch) $batch->update(['status' => 'failed']);
+            } else {
+                $this->logMessage($batch, 'success', "Proses Selesai. Total baris masuk/tersimpan: {$totalInserted}");
+                if ($batch) $batch->update(['status' => 'completed']);
+            }
+
+            Log::info("SyncFruteJob selesai. Total inserted: {$totalInserted} rows.");
 
         } catch (\Exception $e) {
-            $this->logMessage($batch, 'error', "Terjadi kesalahan: " . $e->getMessage());
+            $this->logMessage($batch, 'error', "Terjadi kesalahan sistem: " . $e->getMessage());
             if ($batch) $batch->update(['status' => 'failed']);
             Log::error("SyncFruteJob Error: " . $e->getMessage());
             throw $e;

@@ -35,50 +35,52 @@ class UpdateAoListTokoJob implements ShouldQueue
         }
 
         try {
-            // STEP 1: TRUNCATE TABLE
-            if ($batch) $batch->addLog('warning', "Mengeksekusi Tahap 1: TRUNCATE TABLE ao_list_toko...");
-            DB::statement("TRUNCATE TABLE ao_list_toko");
-            if ($batch) $batch->addLog('success', "Tahap 1 Selesai. Tabel berhasil dikosongkan.");
+            DB::transaction(function () use ($batch) {
+                // STEP 1: TRUNCATE TABLE
+                if ($batch) $batch->addLog('warning', "Mengeksekusi Tahap 1: TRUNCATE TABLE ao_list_toko...");
+                DB::statement("TRUNCATE TABLE ao_list_toko");
+                if ($batch) $batch->addLog('success', "Tahap 1 Selesai. Tabel berhasil dikosongkan.");
 
-            // STEP 2: INSERT DATA
-            if ($batch) $batch->addLog('info', "Mengeksekusi Tahap 2: INSERT DATA ke ao_list_toko dari t_sellingout...");
-            
-            $query = "
-                INSERT INTO ao_list_toko (
-                    bulan,
-                    kd_dist,
-                    uniq_kd,
-                    custno,
-                    custname,
-                    alamat,
-                    neto
-                )
-                SELECT 
-                    make_date(
-                        CAST(ts.\"THN\" AS INT),
-                        CAST(ts.\"BLN\" AS INT),
-                        1
-                    ) AS bulan,
-                    ts.\"KDDIST\" AS kd_dist,
-                    substring(ts.\"KDDIST\", 3, 3)
-                        || '-' || TRIM(UPPER(ts.\"CUSTNO\")) AS uniq_kd,
-                    ts.\"CUSTNO\" AS custno,
-                    MAX(ts.\"CUSTNAME\") AS custname,
-                    MAX(ts.\"ALAMAT\") AS alamat,
-                    SUM(ts.\"NETT\") AS neto
-                FROM t_sellingout ts
-                WHERE CAST(ts.\"THN\" AS INT) >= 2025
-                  AND ts.\"REG_FEST\" = 'REG'
-                GROUP BY 
-                    ts.\"THN\",
-                    ts.\"BLN\",
-                    ts.\"KDDIST\",
-                    ts.\"CUSTNO\",
-                    substring(ts.\"KDDIST\", 3, 3)
-                        || '-' || TRIM(UPPER(ts.\"CUSTNO\"))
-            ";
+                // STEP 2: INSERT DATA
+                if ($batch) $batch->addLog('info', "Mengeksekusi Tahap 2: INSERT DATA ke ao_list_toko dari t_sellingout...");
+                
+                $query = "
+                    INSERT INTO ao_list_toko (
+                        bulan,
+                        kd_dist,
+                        uniq_kd,
+                        custno,
+                        custname,
+                        alamat,
+                        neto
+                    )
+                    SELECT 
+                        make_date(
+                            CAST(ts.\"THN\" AS INT),
+                            CAST(ts.\"BLN\" AS INT),
+                            1
+                        ) AS bulan,
+                        ts.\"KDDIST\" AS kd_dist,
+                        substring(ts.\"KDDIST\", 3, 3)
+                            || '-' || TRIM(UPPER(ts.\"CUSTNO\")) AS uniq_kd,
+                        ts.\"CUSTNO\" AS custno,
+                        MAX(ts.\"CUSTNAME\") AS custname,
+                        MAX(ts.\"ALAMAT\") AS alamat,
+                        SUM(ts.\"NETT\") AS neto
+                    FROM t_sellingout ts
+                    WHERE CAST(ts.\"THN\" AS INT) >= 2025
+                      AND ts.\"REG_FEST\" = 'REG'
+                    GROUP BY 
+                        ts.\"THN\",
+                        ts.\"BLN\",
+                        ts.\"KDDIST\",
+                        ts.\"CUSTNO\",
+                        substring(ts.\"KDDIST\", 3, 3)
+                            || '-' || TRIM(UPPER(ts.\"CUSTNO\"))
+                ";
 
-            DB::statement($query);
+                DB::statement($query);
+            });
             if ($batch) $batch->addLog('success', "Tahap 2 Selesai. Data berhasil diisi.");
 
             if ($batch) {

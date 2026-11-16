@@ -37,15 +37,16 @@ class SyncJksSeMasterTokoOolJob implements ShouldQueue
         }
 
         try {
-            // STEP 1: Truncate Table
-            $this->logMessage($batch, 'warning', "Tahap 1: Menghapus (Truncate) semua data lama di tabel jks_se_master_toko_ool...");
-            DB::statement('TRUNCATE TABLE jks_se_master_toko_ool RESTART IDENTITY');
-            $this->logMessage($batch, 'success', "Tahap 1 Selesai. Tabel berhasil dikosongkan.");
+            DB::transaction(function () use ($batch) {
+                // STEP 1: Truncate Table
+                $this->logMessage($batch, 'warning', "Tahap 1: Menghapus (Truncate) semua data lama di tabel jks_se_master_toko_ool...");
+                DB::statement('TRUNCATE TABLE jks_se_master_toko_ool RESTART IDENTITY');
+                $this->logMessage($batch, 'success', "Tahap 1 Selesai. Tabel berhasil dikosongkan.");
 
-            // STEP 2: Insert using Query
-            $this->logMessage($batch, 'info', "Tahap 2: Mulai menyisipkan data menggunakan Query...");
-            
-            $query = <<<SQL
+                // STEP 2: Insert using Query
+                $this->logMessage($batch, 'info', "Tahap 2: Mulai menyisipkan data menggunakan Query...");
+                
+                $query = <<<SQL
 INSERT INTO jks_se_master_toko_ool (
     region_code, region_name, area_code, area_name, supervisor_code, supervisor_name,
     distributor_code, distributor_name, customer_code, customer_eska, customer_name,
@@ -133,7 +134,8 @@ LEFT JOIN customer_average ca
 WHERE lc.rn = 1
 SQL;
 
-            DB::statement($query);
+                DB::statement($query);
+            });
             
             $this->logMessage($batch, 'success', "Tahap 2 Selesai. Eksekusi query berhasil.");
             $this->logMessage($batch, 'success', "Proses Selesai. Sync JKS SE Master Toko OOL sukses dijalankan.");

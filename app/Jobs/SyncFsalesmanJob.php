@@ -25,6 +25,9 @@ class SyncFsalesmanJob implements ShouldQueue
         $this->batchId = $batchId;
     }
 
+    /**
+     * Execute the job safely with Download First -> Atomic Transaction Replacement.
+     */
     public function handle(): void
     {
         $batch = null;
@@ -32,45 +35,59 @@ class SyncFsalesmanJob implements ShouldQueue
             $batch = ImportBatch::find($this->batchId);
             if ($batch) {
                 $batch->update(['status' => 'processing']);
-                $this->logMessage($batch, 'info', "Memulai proses Sync Fsalesman...");
+                $this->logMessage($batch, 'info', "Memulai proses Sync Fsalesman (Mode Aman: Download First)...");
             }
         } else {
-            $this->logMessage(null, 'info', "Memulai proses Sync Fsalesman...");
+            $this->logMessage(null, 'info', "Memulai proses Sync Fsalesman (Mode Aman: Download First)...");
         }
 
         try {
             $token = 'em9WOU9KVjNVbEhBM1V6UlVVTUZxTTNvSEwzeHUxOGxKQlJyemtkbXxIT0lOQQ==';
-            $client = new Client(['verify' => false]);
+            $client = new Client([
+                'verify' => false,
+                'timeout' => 300,
+            ]);
             $now = now()->format('Y-m-d H:i:s');
 
-            // STEP 1: Truncate Table
-            $this->logMessage($batch, 'warning', "Tahap 1: Menghapus (Truncate) semua data lama di tabel fsalesman...");
-            DB::statement('TRUNCATE TABLE fsalesman');
-            $this->logMessage($batch, 'success', "Tahap 1 Selesai. Tabel fsalesman berhasil dikosongkan.");
-
-            // STEP 2: Fetch API & Insert
-            $this->logMessage($batch, 'info', "Tahap 2: Mulai mengunduh dan menyisipkan data dari API SLSINA...");
-            
+            // 1. Download data terlebih dahulu
+            $this->logMessage($batch, 'info', "Tahap 1: Mengunduh data dari API SLSINA...");
             $url = "https://jobs.asiatop.co.id:9080/trx/export?block=SLSINA";
-            $response = $client->get($url, [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $token
-                ]
-            ]);
+
+            try {
+                $response = $client->get($url, [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $token
+                    ]
+                ]);
+            } catch (\Throwable $httpError) {
+                $errorMsg = "Gagal mengunduh data API SLSINA: " . $httpError->getMessage() . ". Data lama fsalesman TIDAK DIHAPUS (Tetap Aman).";
+                $this->logMessage($batch, 'error', $errorMsg);
+                Log::error("SyncFsalesmanJob: " . $errorMsg);
+                if ($batch) $batch->update(['status' => 'failed']);
+                return;
+            }
+
+            if ($response->getStatusCode() !== 200) {
+                $errorMsg = "API mengembalikan HTTP {$response->getStatusCode()}. Data lama fsalesman TIDAK DIHAPUS (Tetap Aman).";
+                $this->logMessage($batch, 'error', $errorMsg);
+                Log::error("SyncFsalesmanJob: " . $errorMsg);
+                if ($batch) $batch->update(['status' => 'failed']);
+                return;
+            }
 
             $json = json_decode($response->getBody(), true);
             $dataset = $json['data'] ?? [];
-            
+
             if (empty($dataset)) {
-                $this->logMessage($batch, 'warning', "Data dari API SLSINA kosong. Proses dihentikan.");
+                $this->logMessage($batch, 'warning', "Data dari API SLSINA kosong. Data lama fsalesman TIDAK DIHAPUS.");
                 if ($batch) $batch->update(['status' => 'completed']);
                 return;
             }
 
             $totalData = count($dataset);
-            $this->logMessage($batch, 'info', "API SLSINA berhasil diunduh. Memproses {$totalData} baris...");
+            $this->logMessage($batch, 'info', "API SLSINA sukses diunduh ({$totalData} baris). Memetakan data...");
 
-            // Mapping
+            // 2. Mapping
             $mappedData = [];
             foreach ($dataset as $row) {
                 $mappedData[] = [
@@ -85,28 +102,31 @@ class SyncFsalesmanJob implements ShouldQueue
                 ];
             }
 
-            // Chunk Insert
-            $chunks = array_chunk($mappedData, 500);
+            // 3. ATOMIC REPLACEMENT DALAM DATABASE TRANSACTION
+            // Hanya dikosongkan jika data baru sudah di tangan dan siap disisipkan
             $totalInserted = 0;
-            foreach ($chunks as $chunk) {
-                DB::table('fsalesman')->insert($chunk);
-                $totalInserted += count($chunk);
-            }
-            
-            $this->logMessage($batch, 'success', "Tahap 2 Selesai. Total baris masuk: $totalInserted");
+            DB::transaction(function () use ($mappedData, $batch, &$totalInserted) {
+                $this->logMessage($batch, 'warning', "Download sukses! Mengosongkan data lama di tabel fsalesman...");
+                DB::statement('TRUNCATE TABLE fsalesman');
 
-            // STEP 3: Update FLAG_OFFICE
-            $this->logMessage($batch, 'info', "Tahap 3: Memperbarui FLAG_OFFICE yang kosong menjadi 'N'...");
-            DB::statement("UPDATE fsalesman SET \"FLAG_OFFICE\" = 'N' WHERE \"FLAG_OFFICE\" IS NULL");
-            $this->logMessage($batch, 'success', "Tahap 3 Selesai. Data FLAG_OFFICE berhasil diperbarui.");
+                $chunks = array_chunk($mappedData, 500);
+                foreach ($chunks as $chunk) {
+                    DB::table('fsalesman')->insert($chunk);
+                    $totalInserted += count($chunk);
+                }
 
+                // Update FLAG_OFFICE di dalam transaksi yang sama
+                DB::statement("UPDATE fsalesman SET \"FLAG_OFFICE\" = 'N' WHERE \"FLAG_OFFICE\" IS NULL");
+            });
+
+            $this->logMessage($batch, 'success', "Tahap Penggantian Data Selesai. Total baris tersimpan: {$totalInserted}");
             $this->logMessage($batch, 'success', "Proses Selesai. Sync Fsalesman sukses dijalankan.");
-            
+
             if ($batch) $batch->update(['status' => 'completed']);
-            Log::info("SyncFsalesmanJob selesai. Inserted $totalInserted rows.");
+            Log::info("SyncFsalesmanJob selesai. Inserted {$totalInserted} rows.");
 
         } catch (\Exception $e) {
-            $this->logMessage($batch, 'error', "Terjadi kesalahan: " . $e->getMessage());
+            $this->logMessage($batch, 'error', "Terjadi kesalahan sistem: " . $e->getMessage());
             if ($batch) $batch->update(['status' => 'failed']);
             Log::error("SyncFsalesmanJob Error: " . $e->getMessage());
             throw $e;
@@ -118,7 +138,7 @@ class SyncFsalesmanJob implements ShouldQueue
         if ($batch) {
             $batch->addLog($type, $message);
         }
-        
+
         if (app()->runningInConsole()) {
             $timestamp = now()->format('Y-m-d H:i:s');
             $typeUpper = strtoupper($type);

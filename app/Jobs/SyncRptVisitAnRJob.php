@@ -65,40 +65,36 @@ class SyncRptVisitAnRJob implements ShouldQueue
             $totalData = count($dataset);
             $this->logMessage($batch, 'success', "Tahap 1 Selesai. Berhasil mengunduh $totalData baris data.");
 
-            // STEP 2: Delete Current Month Data
-            $this->logMessage($batch, 'warning', "Tahap 2: Menghapus data bulan berjalan di database...");
-            
+            // STEP 2 & 3: Delete Current Month Data & Bulk Insert dalam Transaksi Atomik
             $sampleDate = $dataset[0]['TANGGAL'] ?? now()->toDateString();
             $carbonDate = Carbon::parse($sampleDate);
             $startOfMonth = $carbonDate->copy()->startOfMonth()->toDateString();
             $endOfMonth = $carbonDate->copy()->endOfMonth()->toDateString() . ' 23:59:59';
             
-            DB::table('rpt_visit_an_r')
-                ->whereBetween('TANGGAL', [$startOfMonth, $endOfMonth])
-                ->delete();
-                
-            $this->logMessage($batch, 'success', "Tahap 2 Selesai. Data periode " . $carbonDate->format('M Y') . " berhasil dihapus dari tabel.");
-
-            // STEP 3: Bulk Insert
-            $this->logMessage($batch, 'info', "Tahap 3: Memasukkan (Insert) data baru ke database...");
-            
-            $chunks = array_chunk($dataset, 500);
             $inserted = 0;
-            
-            foreach ($chunks as $chunk) {
-                $insertData = [];
-                foreach ($chunk as $row) {
-                    $formattedRow = [];
-                    foreach ($row as $key => $value) {
-                        $formattedRow[$key] = ($value === '') ? null : $value;
+            $chunks = array_chunk($dataset, 500);
+
+            DB::transaction(function () use ($startOfMonth, $endOfMonth, $carbonDate, $chunks, $totalData, $batch, &$inserted) {
+                $this->logMessage($batch, 'warning', "Tahap 2: Menghapus data lama periode " . $carbonDate->format('M Y') . " di database...");
+                DB::table('rpt_visit_an_r')
+                    ->whereBetween('TANGGAL', [$startOfMonth, $endOfMonth])
+                    ->delete();
+
+                $this->logMessage($batch, 'info', "Tahap 3: Memasukkan (Insert) data baru ke database...");
+                foreach ($chunks as $chunk) {
+                    $insertData = [];
+                    foreach ($chunk as $row) {
+                        $formattedRow = [];
+                        foreach ($row as $key => $value) {
+                            $formattedRow[$key] = ($value === '') ? null : $value;
+                        }
+                        $insertData[] = $formattedRow;
                     }
-                    $insertData[] = $formattedRow;
+                    
+                    DB::table('rpt_visit_an_r')->insert($insertData);
+                    $inserted += count($chunk);
                 }
-                
-                DB::table('rpt_visit_an_r')->insert($insertData);
-                $inserted += count($chunk);
-                $this->logMessage($batch, 'info', "Progress Insert: $inserted / $totalData baris...");
-            }
+            });
 
             $this->logMessage($batch, 'success', "Tahap 3 Selesai. $inserted baris data berhasil ditambahkan.");
             $this->logMessage($batch, 'success', "Proses Selesai. Sync RPT Visit An R sukses dijalankan.");
