@@ -697,7 +697,7 @@ export default function DetailModal({ data, isMonitoring, onClose, showToast, fo
                                             <div className="mb-6 bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm animate-fade-in mx-1">
                                                 <div className="flex items-center gap-2 mb-3">
                                                     <ChartBarIcon className="w-4 h-4 text-indigo-600" />
-                                                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-700">History by Produk (2026)</h4>
+                                                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-700">History by Produk (6 Bulan Terakhir)</h4>
                                                 </div>
                                                 
                                                 {isLoadingProduk ? (

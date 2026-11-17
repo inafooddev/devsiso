@@ -451,9 +451,13 @@ class IndexController extends Controller
             $headers[] = $monthName . ' ' . substr($y, 2);
         }
 
-        $query = DB::table('t_sellingout_y2026')
+        $startDate = min($months) . '-01';
+        $endDate = date('Y-m-t', strtotime(max($months) . '-01'));
+
+        $query = DB::table('t_sellingout')
             ->where('KDDIST', $kd_dist)
             ->where('KDUNIQ', $uniq_kd)
+            ->whereBetween('INVOICE_DATE', [$startDate, $endDate])
             ->select(
                 DB::raw("DATE_TRUNC('month', TO_DATE(\"THN\" || '-' || \"BLN\" || '-01', 'YYYY-MM-DD'))::date AS bulan"),
                 'SUBBRAND as produk_subbrand',
