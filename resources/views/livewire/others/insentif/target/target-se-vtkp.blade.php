@@ -1,4 +1,4 @@
-<div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full relative" x-data="{ isEditOpen: @entangle('isEditModalOpen'), isImportOpen: @entangle('isImportModalOpen') }">
+<div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full relative">
 
     {{-- Notifikasi --}}
     @if (session()->has('message'))
@@ -153,212 +153,138 @@
     </div>
 
     {{-- ========== MODAL IMPORT ========== --}}
-    <div x-show="isImportOpen" x-cloak class="fixed inset-0 z-[60] overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-            <div x-show="isImportOpen"
-                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                 class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="isImportOpen = false"></div>
-
-            <div x-show="isImportOpen"
-                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
-                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-                 class="relative text-left bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-lg ring-1 ring-base-content/5 text-base-content my-8">
-
-                <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30 rounded-t-3xl">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2.5 rounded-2xl bg-info/10 text-info">
-                            <x-heroicon-s-arrow-up-tray class="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-lg leading-none">Import Target SE VTKP</h3>
-                            <p class="text-[11px] text-base-content/50 mt-1 uppercase tracking-wider font-semibold">Upload Excel Format List</p>
-                        </div>
-                    </div>
-                    <button wire:click="closeImportModal" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300">
-                        <x-heroicon-s-x-mark class="w-5 h-5" />
-                    </button>
-                </div>
-
-                <form wire:submit.prevent="processImport">
-                    <div class="p-6 space-y-5">
-                        <div class="space-y-1.5">
-                            <div class="flex items-center justify-between ml-1">
-                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50">File Excel <span class="text-error">*</span></label>
-                                <button type="button" wire:click="downloadFormat" class="text-xs text-info hover:underline flex items-center gap-1 font-semibold">
-                                    <x-heroicon-s-arrow-down-tray class="w-3 h-3"/> Download Format
-                                </button>
-                            </div>
-                            <input wire:model="importExcel" type="file" accept=".xlsx, .xls, .csv" class="file-input file-input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('importExcel') file-input-error @enderror" required>
-                            <span class="text-[10px] text-base-content/40 ml-1">Format: xlsx, xls, csv (Max: 10MB)</span>
-                            @error('importExcel') <span class="block text-error text-[10px] font-medium ml-1 mt-1">{{ $message }}</span> @enderror
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-end gap-3 px-6 py-5 border-t border-base-300 bg-base-200/30 rounded-b-3xl">
-                        <button type="button" wire:click="closeImportModal" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300">Batal</button>
-                        <button type="submit" class="btn btn-info text-white rounded-xl px-10 normal-case shadow-sm shadow-info/20 gap-2">
-                            <span wire:loading.remove wire:target="processImport">Import Data</span>
-                            <span wire:loading wire:target="processImport" class="loading loading-spinner loading-xs"></span>
-                            <x-heroicon-s-arrow-up-tray wire:loading.remove wire:target="processImport" class="w-4 h-4" />
+    @if($isImportModalOpen)
+    <x-ui.modal id="modal-import-se-vtkp" wire:key="modal-import-se-vtkp" title="Import Target SE VTKP" icon="arrow-up-tray" size="md" open="true" wire:close="closeImportModal">
+        <form wire:submit.prevent="processImport" id="form-import-se-vtkp">
+            <div class="space-y-4">
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between ml-1">
+                        <label class="text-xs font-bold uppercase tracking-wider text-base-content/50">File Excel <span class="text-error">*</span></label>
+                        <button type="button" wire:click="downloadFormat" class="text-xs text-info hover:underline flex items-center gap-1 font-semibold">
+                            <x-heroicon-s-arrow-down-tray class="w-3 h-3"/> Download Format
                         </button>
                     </div>
-                </form>
+                    <input wire:model="importExcel" type="file" accept=".xlsx, .xls, .csv" class="file-input file-input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('importExcel') file-input-error @enderror" required>
+                    <div wire:loading wire:target="importExcel" class="text-xs text-info mt-1 font-medium flex items-center gap-1">
+                        <span class="loading loading-spinner loading-xs"></span> Mengunggah file...
+                    </div>
+                    <span class="text-[10px] text-base-content/40 ml-1">Format: xlsx, xls, csv (Max: 10MB)</span>
+                    @error('importExcel') <span class="block text-error text-[10px] font-medium ml-1 mt-1">{{ $message }}</span> @enderror
+                </div>
             </div>
-        </div>
-    </div>
+        </form>
+
+        <x-slot:footer>
+            <button type="button" wire:click="closeImportModal" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300">Batal</button>
+            <button form="form-import-se-vtkp" type="submit" class="btn btn-info text-white rounded-xl px-8 normal-case shadow-sm shadow-info/20 gap-2" wire:loading.attr="disabled" wire:target="processImport, importExcel">
+                <span wire:loading.remove wire:target="processImport">Import Data</span>
+                <span wire:loading wire:target="processImport" class="loading loading-spinner loading-xs"></span>
+                <x-heroicon-s-arrow-up-tray wire:loading.remove wire:target="processImport" class="w-4 h-4" />
+            </button>
+        </x-slot:footer>
+    </x-ui.modal>
+    @endif
 
     {{-- ========== MODAL EDIT ========== --}}
-    <div x-show="isEditOpen" x-cloak class="fixed inset-0 z-[60] overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-            <div x-show="isEditOpen"
-                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                 class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="isEditOpen = false"></div>
-
-            <div x-show="isEditOpen"
-                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
-                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-                 class="relative text-left bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-md ring-1 ring-base-content/5 text-base-content my-8">
-
-                <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30 rounded-t-3xl">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2.5 rounded-2xl bg-primary/10 text-primary">
-                            <x-heroicon-s-pencil-square class="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-lg leading-none">Edit Target SE VTKP</h3>
-                            <p class="text-[11px] text-base-content/50 mt-1 uppercase tracking-wider font-semibold">Ubah Data Target {{ $quarterFilter }} {{ $yearFilter }}</p>
-                        </div>
+    @if($isEditModalOpen)
+    <x-ui.modal id="modal-edit-se-vtkp" wire:key="modal-edit-se-vtkp-{{ $editDistributorCode }}-{{ $editSalesmanCode }}" title="Edit Target SE VTKP ({{ $quarterFilter }} {{ $yearFilter }})" icon="pencil-square" size="lg" open="true" wire:close="closeEditModal">
+        <form wire:submit.prevent="saveEdit" id="form-edit-se-vtkp">
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Distributor</label>
+                        <input type="text" class="input input-sm input-bordered w-full bg-base-200/50 font-mono font-semibold" wire:model="editDistributorCode" readonly>
                     </div>
-                    <button wire:click="closeEditModal" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300">
-                        <x-heroicon-s-x-mark class="w-5 h-5" />
-                    </button>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Salesman</label>
+                        <input type="text" class="input input-sm input-bordered w-full bg-base-200/50 font-mono font-semibold" wire:model="editSalesmanCode" readonly>
+                    </div>
                 </div>
 
-                <form wire:submit.prevent="saveEdit">
-                    <div class="p-6 space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-1.5">
-                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Distributor</label>
-                                <input type="text" class="input input-sm input-bordered w-full bg-base-200/50 font-mono font-semibold" wire:model="editDistributorCode" readonly>
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Salesman</label>
-                                <input type="text" class="input input-sm input-bordered w-full bg-base-200/50 font-mono font-semibold" wire:model="editSalesmanCode" readonly>
-                            </div>
+                <div class="divider text-xs uppercase tracking-widest text-base-content/30 font-bold my-2">TARGET QTY</div>
+
+                <div class="grid grid-cols-2 gap-4 max-h-[40vh] overflow-y-auto px-1 pb-1">
+                    @foreach($productGroups as $idx => $pg)
+                        <div class="space-y-1.5" wire:key="edit-pg-{{ $idx }}">
+                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">{{ $pg }} <span class="text-error">*</span></label>
+                            <input wire:model="editTargets.{{ $idx }}" type="number" step="any" min="0" class="input input-sm input-bordered w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-primary/50" required>
+                            @error("editTargets.{$idx}") <span class="text-error text-[10px] font-medium ml-1">{{ $message }}</span> @enderror
                         </div>
-
-                        <div class="divider text-xs uppercase tracking-widest text-base-content/30 font-bold my-2">TARGET QTY</div>
-
-                        <div class="grid grid-cols-2 gap-4 max-h-[40vh] overflow-y-auto px-1 pb-1">
-                            @foreach($productGroups as $idx => $pg)
-                                <div class="space-y-1.5">
-                                    <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">{{ $pg }} <span class="text-error">*</span></label>
-                                    <input wire:model="editTargets.{{ $idx }}" type="number" step="any" min="0" class="input input-sm input-bordered w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-primary/50" required>
-                                    @error("editTargets.{$idx}") <span class="text-error text-[10px] font-medium ml-1">{{ $message }}</span> @enderror
-                                </div>
-                            @endforeach
-                        </div>
-                        
-                        @if(empty($productGroups))
-                            <div class="text-center py-4 text-xs text-base-content/50 italic">
-                                Belum ada Produk Grup di Kuartal ini.
-                            </div>
-                        @endif
+                    @endforeach
+                </div>
+                
+                @if(empty($productGroups))
+                    <div class="text-center py-4 text-xs text-base-content/50 italic">
+                        Belum ada Produk Grup di Kuartal ini.
                     </div>
-
-                    <div class="flex items-center justify-end gap-3 px-6 py-5 border-t border-base-300 bg-base-200/30 rounded-b-3xl">
-                        <button type="button" wire:click="closeEditModal" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300">Batal</button>
-                        <button type="submit" class="btn btn-primary text-white rounded-xl px-10 normal-case shadow-sm shadow-primary/20 gap-2" {{ empty($productGroups) ? 'disabled' : '' }}>
-                            Simpan Target
-                        </button>
-                    </div>
-                </form>
+                @endif
             </div>
-        </div>
-    </div>
+        </form>
+
+        <x-slot:footer>
+            <button type="button" wire:click="closeEditModal" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300">Batal</button>
+            <button form="form-edit-se-vtkp" type="submit" class="btn btn-primary text-white rounded-xl px-8 normal-case shadow-sm shadow-primary/20 gap-2" {{ empty($productGroups) ? 'disabled' : '' }} wire:loading.attr="disabled" wire:target="saveEdit">
+                <span wire:loading.remove wire:target="saveEdit">Simpan Target</span>
+                <span wire:loading wire:target="saveEdit" class="loading loading-spinner loading-xs"></span>
+            </button>
+        </x-slot:footer>
+    </x-ui.modal>
+    @endif
+
     {{-- ========== MODAL SWAP TARGET ========== --}}
-    <div x-show="$wire.isSwapModalOpen" x-cloak class="fixed inset-0 z-[60] overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-            <div x-show="$wire.isSwapModalOpen"
-                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                 class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" wire:click="closeSwapModal"></div>
-
-            <div x-show="$wire.isSwapModalOpen"
-                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
-                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-                 class="relative text-left bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-lg ring-1 ring-base-content/5 text-base-content my-8">
-
-                <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-warning/10 rounded-t-3xl">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2.5 rounded-2xl bg-warning/20 text-warning-content">
-                            <x-heroicon-s-arrows-right-left class="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-lg leading-none">Tukar Target (Swap)</h3>
-                            <p class="text-[11px] text-base-content/50 mt-1 uppercase tracking-wider font-semibold">Tukar Nilai Target antar SE (Kuartal Ini)</p>
-                        </div>
+    @if($isSwapModalOpen)
+    <x-ui.modal id="modal-swap-se-vtkp" wire:key="modal-swap-se-vtkp-{{ $swapSourceDistributorCode }}-{{ $swapSourceSalesmanCode }}" title="Tukar Target SE VTKP ({{ $quarterFilter }} {{ $yearFilter }})" icon="arrows-right-left" size="lg" open="true" wire:close="closeSwapModal">
+        <form wire:submit.prevent="processSwap" id="form-swap-se-vtkp">
+            <div class="space-y-5">
+                @if($swapSourceSalesmanCode)
+                <div class="bg-base-200 p-4 rounded-xl space-y-2 border border-base-300">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-base-content/70">Tahun & Kuartal</span>
+                        <span class="font-bold">{{ $yearFilter }} - {{ $quarterFilter }}</span>
                     </div>
-                    <button wire:click="closeSwapModal" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300">
-                        <x-heroicon-s-x-mark class="w-5 h-5" />
-                    </button>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-base-content/70">Distributor</span>
+                        <span class="font-bold">{{ $swapSourceDistributorCode }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-base-content/70">SE Sumber (A)</span>
+                        <span class="font-bold text-primary">{{ $swapSourceSalesmanCode }}</span>
+                    </div>
                 </div>
-
-                <form wire:submit.prevent="processSwap">
-                    <div class="p-6 space-y-5">
-                        
-                        @if($swapSourceSalesmanCode)
-                        <div class="bg-base-200 p-4 rounded-xl space-y-2 border border-base-300">
-                            <div class="flex justify-between items-center text-sm">
-                                <span class="text-base-content/70">Tahun & Kuartal</span>
-                                <span class="font-bold">{{ $yearFilter }} - {{ $quarterFilter }}</span>
-                            </div>
-                            <div class="flex justify-between items-center text-sm">
-                                <span class="text-base-content/70">Distributor</span>
-                                <span class="font-bold">{{ $swapSourceDistributorCode }}</span>
-                            </div>
-                            <div class="flex justify-between items-center text-sm">
-                                <span class="text-base-content/70">SE Sumber (A)</span>
-                                <span class="font-bold text-primary">{{ $swapSourceSalesmanCode }}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="flex justify-center -my-2 relative z-10">
-                            <div class="bg-base-100 border border-base-300 p-2 rounded-full text-warning shadow-sm">
-                                <x-heroicon-s-arrows-up-down class="w-5 h-5" />
-                            </div>
-                        </div>
-                        
-                        <div class="space-y-1.5">
-                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Pilih SE Tujuan (B) <span class="text-error">*</span></label>
-                            <select wire:model="swapTargetSalesmanCode" class="select select-bordered w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-warning/50">
-                                <option value="">-- Pilih Salesman (SE) --</option>
-                                @foreach($swapListSE as $se)
-                                    <option value="{{ $se }}">{{ $se }}</option>
-                                @endforeach
-                            </select>
-                            @error('swapTargetSalesmanCode') <span class="text-error text-[10px] font-medium ml-1">{{ $message }}</span> @enderror
-                        </div>
-                        
-                        <p class="text-xs text-base-content/60 text-center mt-2">
-                            <strong>SELURUH</strong> nilai target per Produk Grup milik <strong>SE A</strong> akan diberikan ke <strong>SE B</strong>, dan sebaliknya, pada kuartal ini.
-                        </p>
-                        @endif
-
+                
+                <div class="flex justify-center -my-2 relative z-10">
+                    <div class="bg-base-100 border border-base-300 p-2 rounded-full text-warning shadow-sm">
+                        <x-heroicon-s-arrows-up-down class="w-5 h-5" />
                     </div>
-
-                    <div class="flex items-center justify-end gap-3 px-6 py-5 border-t border-base-300 bg-base-200/30 rounded-b-3xl">
-                        <button type="button" wire:click="closeSwapModal" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300">Batal</button>
-                        <button type="submit" class="btn btn-warning text-warning-content rounded-xl px-10 normal-case shadow-sm shadow-warning/20 gap-2" {{ empty($swapListSE) ? 'disabled' : '' }}>
-                            Proses Tukar
-                        </button>
-                    </div>
-                </form>
+                </div>
+                
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Pilih SE Tujuan (B) <span class="text-error">*</span></label>
+                    <select wire:model.live="swapTargetSalesmanCode" class="select select-bordered w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-warning/50">
+                        <option value="">-- Pilih Salesman (SE) --</option>
+                        @foreach($swapListSE as $se)
+                            <option value="{{ $se }}">{{ $se }}</option>
+                        @endforeach
+                    </select>
+                    @error('swapTargetSalesmanCode') <span class="text-error text-[10px] font-medium ml-1">{{ $message }}</span> @enderror
+                </div>
+                
+                <p class="text-xs text-base-content/60 text-center mt-2">
+                    <strong>SELURUH</strong> nilai target per Produk Grup milik <strong>SE A</strong> akan diberikan ke <strong>SE B</strong>, dan sebaliknya, pada kuartal ini.
+                </p>
+                @endif
             </div>
-        </div>
-    </div>
+        </form>
+
+        <x-slot:footer>
+            <button type="button" wire:click="closeSwapModal" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300">Batal</button>
+            <button form="form-swap-se-vtkp" type="submit" class="btn btn-warning text-warning-content rounded-xl px-8 normal-case shadow-sm shadow-warning/20 gap-2" {{ empty($swapListSE) ? 'disabled' : '' }} wire:loading.attr="disabled" wire:target="processSwap">
+                <span wire:loading.remove wire:target="processSwap">Proses Tukar</span>
+                <span wire:loading wire:target="processSwap" class="loading loading-spinner loading-xs"></span>
+            </button>
+        </x-slot:footer>
+    </x-ui.modal>
+    @endif
     @script
     <script>
         $wire.on('download-error-file', (event) => {

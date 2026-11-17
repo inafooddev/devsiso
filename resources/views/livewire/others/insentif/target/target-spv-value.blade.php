@@ -1,4 +1,4 @@
-<div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full relative" x-data="{ isEditOpen: @entangle('isEditModalOpen'), isImportOpen: @entangle('isImportModalOpen') }">
+<div class="flex-1 min-h-0 min-w-0 flex flex-col w-full h-full relative">
 
     {{-- Notifikasi --}}
     @if (session()->has('message'))
@@ -140,141 +140,93 @@
     </div>
 
     {{-- ========== MODAL IMPORT ========== --}}
-    <div x-show="isImportOpen" x-cloak class="fixed inset-0 z-[60] overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-            <div x-show="isImportOpen"
-                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                 class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="isImportOpen = false"></div>
-
-            <div x-show="isImportOpen"
-                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
-                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-                 class="relative text-left bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-lg ring-1 ring-base-content/5 text-base-content my-8">
-
-                <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30 rounded-t-3xl">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2.5 rounded-2xl bg-info/10 text-info">
-                            <x-heroicon-s-arrow-up-tray class="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-lg leading-none">Import Target SPV Value</h3>
-                            <p class="text-[11px] text-base-content/50 mt-1 uppercase tracking-wider font-semibold">Upload Excel Format</p>
-                        </div>
-                    </div>
-                    <button wire:click="closeImportModal" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300">
-                        <x-heroicon-s-x-mark class="w-5 h-5" />
-                    </button>
-                </div>
-
-                <form wire:submit.prevent="processImport">
-                    <div class="p-6 space-y-5">
-                        <div class="space-y-1.5">
-                            <div class="flex items-center justify-between ml-1">
-                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50">File Excel <span class="text-error">*</span></label>
-                                <button type="button" wire:click="downloadFormat" class="text-xs text-info hover:underline flex items-center gap-1 font-semibold">
-                                    <x-heroicon-s-arrow-down-tray class="w-3 h-3"/> Download Format
-                                </button>
-                            </div>
-                            <input wire:model="importExcel" type="file" accept=".xlsx, .xls, .csv" class="file-input file-input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('importExcel') file-input-error @enderror" required>
-                            <span class="text-[10px] text-base-content/40 ml-1">Format: xlsx, xls, csv (Max: 10MB)</span>
-                            @error('importExcel') <span class="block text-error text-[10px] font-medium ml-1 mt-1">{{ $message }}</span> @enderror
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-end gap-3 px-6 py-5 border-t border-base-300 bg-base-200/30 rounded-b-3xl">
-                        <button type="button" wire:click="closeImportModal" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300">Batal</button>
-                        <button type="submit" class="btn btn-info text-white rounded-xl px-10 normal-case shadow-sm shadow-info/20 gap-2">
-                            <span wire:loading.remove wire:target="processImport">Import Data</span>
-                            <span wire:loading wire:target="processImport" class="loading loading-spinner loading-xs"></span>
-                            <x-heroicon-s-arrow-up-tray wire:loading.remove wire:target="processImport" class="w-4 h-4" />
+    @if($isImportModalOpen)
+    <x-ui.modal id="modal-import-spv-value" wire:key="modal-import-spv-value" title="Import Target SPV Value" icon="arrow-up-tray" size="md" open="true" wire:close="closeImportModal">
+        <form wire:submit.prevent="processImport" id="form-import-spv-value">
+            <div class="space-y-4">
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between ml-1">
+                        <label class="text-xs font-bold uppercase tracking-wider text-base-content/50">File Excel <span class="text-error">*</span></label>
+                        <button type="button" wire:click="downloadFormat" class="text-xs text-info hover:underline flex items-center gap-1 font-semibold">
+                            <x-heroicon-s-arrow-down-tray class="w-3 h-3"/> Download Format
                         </button>
                     </div>
-                </form>
+                    <input wire:model="importExcel" type="file" accept=".xlsx, .xls, .csv" class="file-input file-input-bordered w-full bg-base-200 border-base-300 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all duration-300 @error('importExcel') file-input-error @enderror" required>
+                    <div wire:loading wire:target="importExcel" class="text-xs text-info mt-1 font-medium flex items-center gap-1">
+                        <span class="loading loading-spinner loading-xs"></span> Mengunggah file...
+                    </div>
+                    <span class="text-[10px] text-base-content/40 ml-1">Format: xlsx, xls, csv (Max: 10MB)</span>
+                    @error('importExcel') <span class="block text-error text-[10px] font-medium ml-1 mt-1">{{ $message }}</span> @enderror
+                </div>
             </div>
-        </div>
-    </div>
+        </form>
+
+        <x-slot:footer>
+            <button type="button" wire:click="closeImportModal" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300">Batal</button>
+            <button form="form-import-spv-value" type="submit" class="btn btn-info text-white rounded-xl px-8 normal-case shadow-sm shadow-info/20 gap-2" wire:loading.attr="disabled" wire:target="processImport, importExcel">
+                <span wire:loading.remove wire:target="processImport">Import Data</span>
+                <span wire:loading wire:target="processImport" class="loading loading-spinner loading-xs"></span>
+                <x-heroicon-s-arrow-up-tray wire:loading.remove wire:target="processImport" class="w-4 h-4" />
+            </button>
+        </x-slot:footer>
+    </x-ui.modal>
+    @endif
 
     {{-- ========== MODAL EDIT ========== --}}
-    <div x-show="isEditOpen" x-cloak class="fixed inset-0 z-[60] overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-            <div x-show="isEditOpen"
-                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                 class="fixed inset-0 bg-base-100/60 backdrop-blur-sm" @click="isEditOpen = false"></div>
-
-            <div x-show="isEditOpen"
-                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
-                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-                 class="relative text-left bg-base-100 rounded-3xl shadow-2xl border border-base-300 w-full max-w-md ring-1 ring-base-content/5 text-base-content my-8">
-
-                <div class="flex items-center justify-between px-6 py-5 border-b border-base-300 bg-base-200/30 rounded-t-3xl">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2.5 rounded-2xl bg-primary/10 text-primary">
-                            <x-heroicon-s-pencil-square class="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-lg leading-none">Edit Target SPV Value</h3>
-                            <p class="text-[11px] text-base-content/50 mt-1 uppercase tracking-wider font-semibold">Ubah Data Target REG & FEST</p>
-                        </div>
+    @if($isEditModalOpen)
+    <x-ui.modal id="modal-edit-spv-value" wire:key="modal-edit-spv-value-{{ $editBulan }}-{{ $editCabang }}" title="Edit Target SPV Value" icon="pencil-square" size="md" open="true" wire:close="closeEditModal">
+        <form wire:submit.prevent="saveEdit" id="form-edit-spv-value">
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Bulan</label>
+                        <input type="text" class="input input-sm input-bordered w-full bg-base-200/50" wire:model="editBulan" readonly>
                     </div>
-                    <button wire:click="closeEditModal" class="btn btn-sm btn-circle btn-ghost text-base-content/30 hover:text-base-content hover:bg-base-300">
-                        <x-heroicon-s-x-mark class="w-5 h-5" />
-                    </button>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Cabang</label>
+                        <input type="text" class="input input-sm input-bordered w-full bg-base-200/50 font-mono font-semibold" wire:model="editCabang" readonly>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Region</label>
+                        <input type="text" class="input input-sm input-bordered w-full bg-base-200/50" wire:model="editRegion" readonly>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Area</label>
+                        <input type="text" class="input input-sm input-bordered w-full bg-base-200/50" wire:model="editArea" readonly>
+                    </div>
                 </div>
 
-                <form wire:submit.prevent="saveEdit">
-                    <div class="p-6 space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-1.5">
-                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Bulan</label>
-                                <input type="text" class="input input-sm input-bordered w-full bg-base-200/50" wire:model="editBulan" readonly>
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Cabang</label>
-                                <input type="text" class="input input-sm input-bordered w-full bg-base-200/50 font-mono font-semibold" wire:model="editCabang" readonly>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-1.5">
-                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Region</label>
-                                <input type="text" class="input input-sm input-bordered w-full bg-base-200/50" wire:model="editRegion" readonly>
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Area</label>
-                                <input type="text" class="input input-sm input-bordered w-full bg-base-200/50" wire:model="editArea" readonly>
-                            </div>
-                        </div>
-
-                        <div class="space-y-1.5 pt-2">
-                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Target REG <span class="text-error">*</span></label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-base-content/50">Rp</span>
-                                <input wire:model="editTargetReg" type="number" step="any" min="0" class="input input-bordered w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-primary/50 pl-10" required>
-                            </div>
-                            @error('editTargetReg') <span class="text-error text-[10px] font-medium ml-1">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div class="space-y-1.5 pt-2">
-                            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Target FEST <span class="text-error">*</span></label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-base-content/50">Rp</span>
-                                <input wire:model="editTargetFest" type="number" step="any" min="0" class="input input-bordered w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-primary/50 pl-10" required>
-                            </div>
-                            @error('editTargetFest') <span class="text-error text-[10px] font-medium ml-1">{{ $message }}</span> @enderror
-                        </div>
+                <div class="space-y-1.5 pt-2">
+                    <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Target REG <span class="text-error">*</span></label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-base-content/50">Rp</span>
+                        <input wire:model="editTargetReg" type="number" step="any" min="0" class="input input-bordered w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-primary/50 pl-10" required>
                     </div>
+                    @error('editTargetReg') <span class="text-error text-[10px] font-medium ml-1">{{ $message }}</span> @enderror
+                </div>
 
-                    <div class="flex items-center justify-end gap-3 px-6 py-5 border-t border-base-300 bg-base-200/30 rounded-b-3xl">
-                        <button type="button" wire:click="closeEditModal" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300">Batal</button>
-                        <button type="submit" class="btn btn-primary text-white rounded-xl px-10 normal-case shadow-sm shadow-primary/20 gap-2">
-                            Simpan Perubahan
-                        </button>
+                <div class="space-y-1.5 pt-2">
+                    <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 ml-1">Target FEST <span class="text-error">*</span></label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-base-content/50">Rp</span>
+                        <input wire:model="editTargetFest" type="number" step="any" min="0" class="input input-bordered w-full bg-base-100 border-base-300 rounded-xl focus:ring-2 focus:ring-primary/50 pl-10" required>
                     </div>
-                </form>
+                    @error('editTargetFest') <span class="text-error text-[10px] font-medium ml-1">{{ $message }}</span> @enderror
+                </div>
             </div>
-        </div>
-    </div>
+        </form>
+
+        <x-slot:footer>
+            <button type="button" wire:click="closeEditModal" class="btn btn-ghost rounded-xl normal-case hover:bg-base-300">Batal</button>
+            <button form="form-edit-spv-value" type="submit" class="btn btn-primary text-white rounded-xl px-8 normal-case shadow-sm shadow-primary/20 gap-2" wire:loading.attr="disabled" wire:target="saveEdit">
+                <span wire:loading.remove wire:target="saveEdit">Simpan Perubahan</span>
+                <span wire:loading wire:target="saveEdit" class="loading loading-spinner loading-xs"></span>
+            </button>
+        </x-slot:footer>
+    </x-ui.modal>
+    @endif
 
     @script
     <script>
