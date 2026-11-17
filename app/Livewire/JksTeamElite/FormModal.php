@@ -360,6 +360,12 @@ class FormModal extends Component
         $this->dispatchMapUpdate();
     }
 
+    public function clearCart()
+    {
+        $this->selectedCustomers = [];
+        $this->dispatchMapUpdate();
+    }
+
     public function addRecommendedStore($custno, $distributorCode = null)
     {
         $customer = collect($this->recommendedStores)

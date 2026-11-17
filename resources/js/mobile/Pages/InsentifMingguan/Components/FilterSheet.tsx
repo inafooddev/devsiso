@@ -66,15 +66,15 @@ export default function FilterSheet({
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex flex-col justify-end">
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
             {/* Clickable Backdrop */}
             <div
-                className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
                 onClick={onClose}
             />
 
             {/* Sheet Box */}
-            <div className="relative z-10 w-full max-w-2xl md:max-w-4xl mx-auto bg-white rounded-t-3xl shadow-2xl overflow-hidden flex flex-col max-h-full animate-slide-up border-x border-gray-200/80">
+            <div className="relative z-10 w-full max-w-2xl md:max-w-4xl mx-auto bg-white rounded-t-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-slide-up border-x border-gray-200/80">
                 {/* Drag Handle (Mobile) */}
                 <div className="pt-2.5 pb-1 flex justify-center bg-slate-50" onClick={onClose}>
                     <div className="w-10 h-1.5 bg-gray-300 rounded-full" />

@@ -55,29 +55,27 @@
             z-index: 99999 !important;
         }
 
-        /* 2. Inner Backdrop di dalam Modal Container */
-        /* Selektor ini mewarisi specificity parent container + child agar menang atas Rule 1 */
-        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) .fixed.inset-0,
+        /* 2. Inner Backdrop di dalam Modal Container (HANYA direct child dari wrapper) */
         .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) > .fixed.inset-0,
-        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) .absolute.inset-0,
-        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) [class*="backdrop"],
-        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) [class*="bg-black"],
-        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) [class*="bg-base"],
-        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) [class*="bg-gray"],
-        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) [class*="bg-slate"],
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) > .absolute.inset-0,
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) > [class*="backdrop"],
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) > [class*="bg-black"],
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) > [class*="bg-base"],
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) > [class*="bg-gray"],
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) > [class*="bg-slate"],
         .modal .modal-backdrop,
         .modal-backdrop {
             z-index: 1 !important;
         }
 
-        /* 3. Modal Content Box / Card (selalu di atas backdrop) */
+        /* 3. Modal Content Box / Card (HANYA direct child box di atas backdrop) */
         .modal-box,
         .modal .modal-box,
-        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) .modal-box,
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) > .modal-box,
         .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) > div:not(.fixed),
-        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) div[class*="relative"]:not([class*="backdrop"]):not([class*="fixed"]),
-        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) [class*="rounded-3xl"]:not([class*="fixed"]):not([class*="backdrop"]),
-        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) [class*="rounded-2xl"]:not([class*="fixed"]):not([class*="backdrop"]) {
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) > div[class*="relative"]:not([class*="backdrop"]),
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) > [class*="rounded-3xl"]:not(.fixed):not([class*="backdrop"]),
+        .fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) > [class*="rounded-2xl"]:not(.fixed):not([class*="backdrop"]) {
             position: relative;
             z-index: 50 !important;
         }

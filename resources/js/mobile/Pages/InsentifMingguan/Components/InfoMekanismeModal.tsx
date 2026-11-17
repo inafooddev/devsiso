@@ -34,7 +34,7 @@ export default function InfoMekanismeModal({ isOpen, onClose }: InfoMekanismeMod
         <div className="fixed top-16 md:top-20 inset-x-0 bottom-0 z-[100] flex flex-col justify-end">
             {/* Clickable Backdrop */}
             <div
-                className="fixed top-16 md:top-20 inset-x-0 bottom-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
                 onClick={onClose}
             />
 

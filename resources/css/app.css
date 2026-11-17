@@ -165,7 +165,7 @@ dialog.modal,
 .fixed.inset-0 > div:not(.fixed),
 .fixed.inset-0 > div[class*="relative"] {
     position: relative;
-    z-index: 10 !important;
+    z-index: 50 !important;
 }
 
 /* 5. Pastikan Global Loading Spinner selalu di layer paling teratas */
