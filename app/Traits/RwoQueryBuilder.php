@@ -134,31 +134,40 @@ trait RwoQueryBuilder
         ];
 
         if ($withDetailStats) {
-            $zvStatsSub = DB::table('zv_so_per_toko_2026')
-                ->select(
-                    'kd_dist', 
-                    'uniq_kd',
-                    DB::raw('MAX(neto) as max_transaction'),
-                    DB::raw('AVG(neto) as avg_transaction'),
-                    DB::raw('SUM(neto) as total_transaction')
-                );
+            $monthlyAgg = DB::table('zv_so_per_toko_2026')
+                ->select('kd_dist', 'uniq_kd', 'bulan', DB::raw('SUM(neto) as monthly_neto'));
             if ($customerCode) {
-                $zvStatsSub->where('uniq_kd', $customerCode);
+                $monthlyAgg->where('uniq_kd', $customerCode);
             }
             if ($distributorCode) {
-                $zvStatsSub->where('kd_dist', $distributorCode);
+                $monthlyAgg->where('kd_dist', $distributorCode);
             }
-            $zvStatsSub->groupBy('kd_dist', 'uniq_kd');
+            $monthlyAgg->groupBy('kd_dist', 'uniq_kd', 'bulan');
 
-            $zvLastSub = DB::table('zv_so_per_toko_2026')
-                ->selectRaw('DISTINCT ON (kd_dist, uniq_kd) kd_dist, uniq_kd, neto as last_transaction_value, bulan as last_transaction_date');
+            $zvStatsSub = DB::query()->fromSub($monthlyAgg, 'm')
+                ->select(
+                    'kd_dist',
+                    'uniq_kd',
+                    DB::raw('MAX(CASE WHEN monthly_neto > 0 THEN monthly_neto ELSE 0 END) as max_transaction'),
+                    DB::raw('AVG(CASE WHEN monthly_neto > 0 THEN monthly_neto ELSE NULL END) as avg_transaction'),
+                    DB::raw('SUM(monthly_neto) as total_transaction')
+                )
+                ->groupBy('kd_dist', 'uniq_kd');
+
+            $monthlyActive = DB::table('zv_so_per_toko_2026')
+                ->select('kd_dist', 'uniq_kd', 'bulan', DB::raw('SUM(neto) as monthly_neto'));
             if ($customerCode) {
-                $zvLastSub->where('uniq_kd', $customerCode);
+                $monthlyActive->where('uniq_kd', $customerCode);
             }
             if ($distributorCode) {
-                $zvLastSub->where('kd_dist', $distributorCode);
+                $monthlyActive->where('kd_dist', $distributorCode);
             }
-            $zvLastSub->orderBy('kd_dist')
+            $monthlyActive->groupBy('kd_dist', 'uniq_kd', 'bulan')
+                ->havingRaw('SUM(neto) > 0');
+
+            $zvLastSub = DB::query()->fromSub($monthlyActive, 'ma')
+                ->selectRaw('DISTINCT ON (kd_dist, uniq_kd) kd_dist, uniq_kd, monthly_neto as last_transaction_value, bulan as last_transaction_date')
+                ->orderBy('kd_dist')
                 ->orderBy('uniq_kd')
                 ->orderBy('bulan', 'desc');
 

@@ -46,9 +46,9 @@
             <div class="stat">
                 <div class="stat-title text-xs font-bold uppercase tracking-wider text-base-content/60">Total Transaksi / Toko</div>
                 <div class="stat-value text-2xl text-primary">{{ number_format($tokoTransaksi, 0, ',', '.') }}</div>
-                <div class="stat-desc text-[11px] font-semibold text-primary/80 mt-1 flex justify-between items-center">
+                <div class="stat-desc text-xs font-semibold text-primary/80 mt-1 flex justify-between items-center">
                     <span>dari Total {{ number_format($totalToko, 0, ',', '.') }} Toko ({{ number_format($tokoTransaksiPct, 1, ',', '.') }}%)</span>
-                    <span class="text-[10px] font-bold text-error">Gap: {{ number_format($tokoBelumTransaksi, 0, ',', '.') }}</span>
+                    <span class="text-xs font-bold text-error">Gap: {{ number_format($tokoBelumTransaksi, 0, ',', '.') }}</span>
                 </div>
                 <div class="w-full mt-2">
                     <progress class="progress progress-primary w-full h-1.5" value="{{ min($tokoTransaksiPct, 100) }}" max="100"></progress>
@@ -61,7 +61,7 @@
             <div class="stat">
                 <div class="stat-title text-xs font-bold uppercase tracking-wider text-base-content/60">Target & Pencapaian</div>
                 <div class="stat-value text-xl text-success font-black mt-1">Rp {{ number_format($kpi->total_achievement, 0, ',', '.') }}</div>
-                <div class="stat-desc text-[11px] font-semibold text-base-content/70 mt-1">
+                <div class="stat-desc text-xs font-semibold text-base-content/70 mt-1">
                     Target Prorata: Rp {{ number_format($kpi->total_target, 0, ',', '.') }}
                 </div>
                 <div class="w-full mt-2 flex items-center gap-2">
@@ -76,7 +76,7 @@
             <div class="stat">
                 <div class="stat-title text-xs font-bold uppercase tracking-wider text-base-content/60">Kolom Hijau (>= 100%)</div>
                 <div class="stat-value text-2xl text-success">{{ number_format($tokoHijau, 0, ',', '.') }} <span class="text-xs font-bold opacity-75">Toko</span></div>
-                <div class="stat-desc text-[11px] font-semibold text-success/80 mt-1">
+                <div class="stat-desc text-xs font-semibold text-success/80 mt-1">
                     {{ number_format($tokoHijauPct, 1, ',', '.') }}% dari Total Toko
                 </div>
                 <div class="w-full mt-2">
@@ -90,7 +90,7 @@
             <div class="stat">
                 <div class="stat-title text-xs font-bold uppercase tracking-wider text-base-content/60">Kolom Kuning (80-99%)</div>
                 <div class="stat-value text-2xl text-warning">{{ number_format($tokoKuning, 0, ',', '.') }} <span class="text-xs font-bold opacity-75">Toko</span></div>
-                <div class="stat-desc text-[11px] font-semibold text-warning/80 mt-1">
+                <div class="stat-desc text-xs font-semibold text-warning/80 mt-1">
                     {{ number_format($tokoKuningPct, 1, ',', '.') }}% dari Total Toko
                 </div>
                 <div class="w-full mt-2">
@@ -104,7 +104,7 @@
             <div class="stat">
                 <div class="stat-title text-xs font-bold uppercase tracking-wider text-base-content/60">Kolom Merah (< 80%)</div>
                 <div class="stat-value text-2xl text-error">{{ number_format($tokoMerah, 0, ',', '.') }} <span class="text-xs font-bold opacity-75">Toko</span></div>
-                <div class="stat-desc text-[11px] font-semibold text-error/80 mt-1">
+                <div class="stat-desc text-xs font-semibold text-error/80 mt-1">
                     {{ number_format($tokoMerahPct, 1, ',', '.') }}% dari Total Toko
                 </div>
                 <div class="w-full mt-2">
@@ -353,23 +353,23 @@
                                 @if(($row->jenis_reward ?? '') === 'CB')
                                     @if($row->status_skb === 'Sudah')
                                         @if($row->is_approved === 1 || $row->is_approved === true)
-                                            <span class="badge badge-success text-[10px] font-bold text-white py-2">Approved</span>
+                                            <span class="badge badge-success badge-sm text-xs font-bold text-white py-1">Approved</span>
                                         @elseif($row->is_approved === 0 || $row->is_approved === false)
-                                            <span class="badge badge-error text-[10px] font-bold text-white py-2">Rejected</span>
+                                            <span class="badge badge-error badge-sm text-xs font-bold text-white py-1">Rejected</span>
                                         @else
-                                            <span class="badge badge-info text-[10px] font-bold text-white py-2">Submitted</span>
+                                            <span class="badge badge-info badge-sm text-xs font-bold text-white py-1">Submitted</span>
                                         @endif
                                     @else
-                                        <span class="badge badge-ghost text-[10px] font-bold py-2 opacity-60">Belum</span>
+                                        <span class="badge badge-ghost badge-sm text-xs font-bold py-1 opacity-60">Belum</span>
                                     @endif
                                 @endif
                             </td>
                             <td class="text-center">
                                 @if(($row->jenis_reward ?? '') !== 'BB')
                                     @if($row->status_data_lengkap === 'Lengkap')
-                                        <span class="badge badge-success text-[10px] font-bold text-white py-2">Lengkap</span>
+                                        <span class="badge badge-success badge-sm text-xs font-bold text-white py-1">Lengkap</span>
                                     @else
-                                        <span class="badge badge-warning text-[10px] font-bold text-white py-2">Belum</span>
+                                        <span class="badge badge-warning badge-sm text-xs font-bold text-white py-1">Belum</span>
                                     @endif
                                 @endif
                             </td>
@@ -379,7 +379,7 @@
                             <td class="text-right font-mono font-bold text-success/90">{{ number_format($activeAchievement, 0, ',', '.') }}</td>
                             <td class="text-center">
                                 <div class="flex flex-col items-center gap-0.5 min-w-[70px]">
-                                    <span class="{{ $textClass }} text-[11px]">{{ number_format($percent, 1, ',', '.') }}%</span>
+                                    <span class="{{ $textClass }} text-xs font-bold">{{ number_format($percent, 1, ',', '.') }}%</span>
                                     <progress class="progress {{ $progressClass }} w-14 h-1" value="{{ min($percent, 100) }}" max="100"></progress>
                                 </div>
                             </td>
@@ -487,6 +487,9 @@
                     <div class="tabs tabs-boxed mb-4 bg-base-200 p-1 w-fit">
                         <button type="button" @click="tab = 'info'" class="tab tab-sm" :class="tab === 'info' ? 'tab-active font-bold bg-base-100 shadow-sm' : ''">Informasi & Kelengkapan</button>
                         <button type="button" @click="tab = 'so'" class="tab tab-sm" :class="tab === 'so' ? 'tab-active font-bold bg-base-100 shadow-sm' : ''">Kinerja Sales & Transaksi</button>
+                        <button type="button" @click="tab = 'qty'" class="tab tab-sm" :class="tab === 'qty' ? 'tab-active font-bold bg-base-100 shadow-sm' : ''">History Penjualan by Qty</button>
+                        <button type="button" @click="tab = 'visit'" class="tab tab-sm" :class="tab === 'visit' ? 'tab-active font-bold bg-base-100 shadow-sm' : ''">Analisa Kunjungan</button>
+                        <button type="button" @click="tab = 'fulfillment'" class="tab tab-sm" :class="tab === 'fulfillment' ? 'tab-active font-bold bg-base-100 shadow-sm' : ''">Komparasi Order vs Realisasi</button>
                     </div>
 
                     {{-- TAB 1: Informasi --}}
@@ -549,7 +552,7 @@
 
                                     <div class="col-span-2 border-t mt-1 pt-3">
                                         <div class="font-bold text-xs mb-2 text-base-content/80">Detail Pencapaian Per Bulan:</div>
-                                        <div class="grid grid-cols-3 gap-2 text-[10px]">
+                                        <div class="grid grid-cols-3 gap-2 text-xs">
                                             <div class="bg-base-100 p-2 rounded border border-base-300 text-center">
                                                 <div class="uppercase text-base-content/60 font-bold mb-1">{{ $monthLabels[0] ?? 'Bln 1' }}</div>
                                                 <div class="font-mono font-bold text-success/90">Rp {{ number_format($selectedStore->month_1_value ?? 0, 0, ',', '.') }}</div>
@@ -666,7 +669,7 @@
                                                 {{ $isMe ? 'Anda' : ($chat->user->name ?? 'User') }}
                                             </div>
                                             <div class="chat-bubble {{ $isMe ? 'chat-bubble-primary' : '' }} text-sm shadow-sm whitespace-pre-wrap">{{ $chat->message }}</div>
-                                            <div class="chat-footer opacity-50 text-[10px] mt-1">
+                                            <div class="chat-footer opacity-50 text-xs mt-1">
                                                 {{ $chat->created_at->format('H:i, d M') }}
                                             </div>
                                         </div>
@@ -692,24 +695,31 @@
 
                     {{-- TAB 2: Transaksi --}}
                     <div x-show="tab === 'so'" class="flex flex-col gap-4">
+                        {{-- 1. KPI CARDS --}}
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="card bg-success/10 border border-success/20 p-4 rounded-xl">
-                                <span class="text-xs font-bold uppercase tracking-wider text-success">Omset Bulanan Tertinggi</span>
+                                <span class="text-xs font-bold uppercase tracking-wider text-success">Omset Bulanan Tertinggi (2026)</span>
                                 <span class="text-xl font-bold font-mono mt-1">Rp {{ number_format($selectedStore->max_transaction ?? 0, 0, ',', '.') }}</span>
                             </div>
                             <div class="card bg-info/10 border border-info/20 p-4 rounded-xl">
-                                <span class="text-xs font-bold uppercase tracking-wider text-info">Rata-rata per Bulan</span>
+                                <span class="text-xs font-bold uppercase tracking-wider text-info">Rata-rata per Bulan (2026)</span>
                                 <span class="text-xl font-bold font-mono mt-1">Rp {{ number_format($selectedStore->avg_transaction ?? 0, 0, ',', '.') }}</span>
                             </div>
                             <div class="card bg-warning/10 border border-warning/20 p-4 rounded-xl">
                                 <span class="text-xs font-bold uppercase tracking-wider text-warning">Bulan Aktif Terakhir</span>
                                 <div class="flex flex-col mt-1">
-                                    <span class="text-sm font-bold font-mono">Rp {{ number_format($selectedStore->last_transaction_value ?? 0, 0, ',', '.') }}</span>
-                                    <span class="text-xs opacity-80 mt-0.5">{{ $selectedStore->last_transaction_date ? \Carbon\Carbon::parse($selectedStore->last_transaction_date)->translatedFormat('F Y') : '-' }}</span>
+                                    @if($selectedStore->last_transaction_date)
+                                        <span class="text-sm font-bold font-mono">Rp {{ number_format($selectedStore->last_transaction_value ?? 0, 0, ',', '.') }}</span>
+                                        <span class="text-xs opacity-80 mt-0.5">{{ \Carbon\Carbon::parse($selectedStore->last_transaction_date)->translatedFormat('F Y') }}</span>
+                                    @else
+                                        <span class="text-sm font-bold font-mono text-base-content/50">Rp 0</span>
+                                        <span class="text-xs opacity-60 mt-0.5">Tidak ada transaksi aktif</span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
 
+                        {{-- 2. TREN TAHUN BERJALAN & RINCIAN BULANAN (DATA HISTORIS ANGKA) --}}
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <!-- CHART -->
                             <div class="card bg-base-200/50 p-4 rounded-xl border border-base-300">
@@ -732,7 +742,7 @@
                                                     Rp 0
                                                 </div>
                                             @endif
-                                            <span class="text-[9px] mt-2 font-bold uppercase text-base-content/70 tracking-tighter">{{ $data['label'] }}</span>
+                                            <span class="text-xs mt-2 font-bold uppercase text-base-content/70 tracking-tighter">{{ $data['label'] }}</span>
                                         </div>
                                     @endforeach
                                 </div>
@@ -754,7 +764,7 @@
                                             @foreach(array_reverse($yearlyHistory) as $data)
                                             <tr>
                                                 <td class="font-medium whitespace-nowrap">{{ $data['full_label'] }}</td>
-                                                <td class="text-right font-mono text-[11px] whitespace-nowrap">Rp {{ number_format($data['value'], 0, ',', '.') }}</td>
+                                                <td class="text-right font-mono text-xs whitespace-nowrap">Rp {{ number_format($data['value'], 0, ',', '.') }}</td>
                                                 <td class="text-center">
                                                     @if($data['trend'] === 'up')
                                                         <span class="text-success text-xs" title="Naik dari bulan sebelumnya">▲</span>
@@ -771,6 +781,1416 @@
                                 </div>
                             </div>
                         </div>
+
+                        {{-- 3. WIDGET 1: ANALISIS MOMENTUM BELANJA (KATEGORI RANGE) --}}
+                        @php
+                            $momentum = $this->salesMomentumAnalysis;
+                        @endphp
+                        @if($momentum)
+                            <div class="card bg-base-200/50 p-4 rounded-xl border border-base-300 shadow-sm">
+                                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-base-300 pb-3">
+                                    <div class="flex items-center gap-2">
+                                        <div class="p-1.5 rounded-lg bg-primary/10 text-primary">
+                                            <x-heroicon-o-chart-bar class="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <h4 class="font-bold text-xs uppercase tracking-wider text-base-content/80">Analisis Momentum Belanja Toko (2026)</h4>
+                                            <span class="text-xs text-base-content/60">
+                                                Evaluasi: <strong class="text-base-content">{{ $momentum['evalPeriod'] }}</strong>
+                                                ({{ $momentum['isCurrentMonth'] ? 'Bulan Berjalan' : 'Bulan Terakhir Aktif' }}) vs Rata-rata 2026
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {{-- Range Badges Selector Display --}}
+                                    <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                                        <span class="px-2 py-0.5 rounded font-bold border transition-all {{ $momentum['status'] === 'UNDER' ? 'bg-error text-white border-error shadow-sm scale-105' : 'bg-base-100 text-base-content/50 border-base-300 opacity-60' }}">
+                                            &lt; 100% Under
+                                        </span>
+                                        <span class="px-2 py-0.5 rounded font-bold border transition-all {{ $momentum['status'] === 'NORMAL' ? 'bg-success text-white border-success shadow-sm scale-105' : 'bg-base-100 text-base-content/50 border-base-300 opacity-60' }}">
+                                            100% - 120% Normal
+                                        </span>
+                                        <span class="px-2 py-0.5 rounded font-bold border transition-all {{ $momentum['status'] === 'HIGH' ? 'bg-info text-white border-info shadow-sm scale-105' : 'bg-base-100 text-base-content/50 border-base-300 opacity-60' }}">
+                                            120% - 170% High
+                                        </span>
+                                        <span class="px-2 py-0.5 rounded font-bold border transition-all {{ $momentum['status'] === 'OVER' ? 'bg-warning text-white border-warning shadow-sm scale-105' : 'bg-base-100 text-base-content/50 border-base-300 opacity-60' }}">
+                                            &gt; 170% Over
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3 items-center">
+                                    {{-- Kolom Metrik Angka --}}
+                                    <div class="space-y-1.5 text-xs">
+                                        <div class="flex justify-between items-center text-xs">
+                                            <span class="text-base-content/70">Transaksi Evaluasi:</span>
+                                            <span class="font-mono font-bold">Rp {{ number_format($momentum['evalValue'], 0, ',', '.') }}</span>
+                                        </div>
+                                        <div class="flex justify-between items-center text-xs">
+                                            <span class="text-base-content/70">Rata-rata 2026 (Baseline):</span>
+                                            <span class="font-mono font-semibold text-primary">Rp {{ number_format($momentum['avgValue'], 0, ',', '.') }}</span>
+                                        </div>
+                                        <div class="flex justify-between items-center pt-1 border-t border-base-300 text-xs">
+                                            <span class="font-semibold text-base-content/80">Rasio Performa:</span>
+                                            <span class="font-mono font-extrabold text-sm {{ $momentum['status'] === 'UNDER' ? 'text-error' : ($momentum['status'] === 'NORMAL' ? 'text-success' : ($momentum['status'] === 'HIGH' ? 'text-info' : 'text-warning')) }}">
+                                                {{ number_format($momentum['ratio'], 1, ',', '.') }}%
+                                                <span class="text-xs font-bold uppercase">({{ $momentum['status'] }})</span>
+                                            </span>
+                                        </div>
+                                        <div class="w-full pt-0.5">
+                                            <progress class="progress {{ $momentum['status'] === 'UNDER' ? 'progress-error' : ($momentum['status'] === 'NORMAL' ? 'progress-success' : ($momentum['status'] === 'HIGH' ? 'progress-info' : 'progress-warning')) }} w-full h-1.5" value="{{ min($momentum['ratio'], 200) }}" max="200"></progress>
+                                        </div>
+                                    </div>
+
+                                    {{-- Kolom Diagnosa & Saran Aksi --}}
+                                    <div class="col-span-1 md:col-span-2 card bg-base-100 p-3 rounded-lg border border-base-300 text-xs space-y-1.5">
+                                        <div class="flex items-start gap-2 text-xs leading-tight">
+                                            <strong class="text-base-content/70 shrink-0">Diagnosa:</strong>
+                                            <span class="text-base-content/90 font-medium">{{ $momentum['diagnosis'] }}</span>
+                                        </div>
+                                        <div class="flex items-start gap-2 pt-1 border-t border-base-200 text-xs leading-tight">
+                                            <strong class="text-primary shrink-0">Rekomendasi Aksi:</strong>
+                                            <span class="text-base-content/80">{{ $momentum['action'] }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- 4. DUAL INTELLIGENCE & DECISION WIDGET --}}
+                        @php
+                            $stock = $this->stockVerification;
+                            $target = $this->targetFeasibility;
+                        @endphp
+
+                        @if($stock || $target)
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {{-- CARD 1: ANALISIS KETAHANAN STOK & KONSISTENSI --}}
+                                @if($stock)
+                                    <div class="card bg-base-200/50 p-4 rounded-xl border {{ $stock['borderClass'] }} shadow-sm flex flex-col justify-between">
+                                        <div>
+                                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-base-300 pb-2.5">
+                                                <div class="flex items-center gap-2 min-w-0 flex-1">
+                                                    <div class="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                                                        <x-heroicon-o-archive-box class="w-4 h-4" />
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <h4 class="font-bold text-xs uppercase tracking-wider text-base-content/80 truncate">Analisis Ketahanan & Penyerapan Stok</h4>
+                                                        <span class="text-xs text-base-content/60 block truncate">
+                                                            Estimasi ketersediaan stok berdasarkan daya serap normal (Burn-Rate)
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div class="badge {{ $stock['badgeClass'] }} text-xs font-semibold shrink-0 whitespace-nowrap shadow-sm h-auto py-1 px-2.5">
+                                                    {{ $stock['label'] }}
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-2 my-3 text-xs">
+                                                <div class="bg-base-100 p-2 rounded-lg border border-base-300">
+                                                    <span class="text-xs text-base-content/60 font-semibold block uppercase">Pembelian Terakhir</span>
+                                                    <span class="font-mono font-bold text-sm">Rp {{ number_format($stock['evalValue'], 0, ',', '.') }}</span>
+                                                    <span class="text-xs opacity-75 block mt-0.5">{{ $stock['evalPeriod'] }}</span>
+                                                </div>
+                                                <div class="bg-base-100 p-2 rounded-lg border border-base-300">
+                                                    <span class="text-xs text-base-content/60 font-semibold block uppercase">Rata-rata 2026 (Burn-Rate)</span>
+                                                    <span class="font-mono font-bold text-sm text-primary">Rp {{ number_format($stock['avgValue'], 0, ',', '.') }}</span>
+                                                    <span class="text-xs opacity-75 block mt-0.5">Daya serap / bulan</span>
+                                                </div>
+                                            </div>
+
+                                            {{-- Matriks Estimasi Ketahanan Stok --}}
+                                            <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 text-xs space-y-1 mb-3">
+                                                <div class="flex justify-between items-center text-xs">
+                                                    <span class="text-base-content/70">Waktu Sejak Order Terakhir:</span>
+                                                    <span class="font-semibold {{ $stock['monthsElapsed'] > 1 ? 'text-error font-bold' : '' }}">
+                                                        {{ $stock['monthsElapsed'] > 0 ? $stock['monthsElapsed'] . ' Bulan' : 'Bulan Berjalan (0 Bulan)' }}
+                                                    </span>
+                                                </div>
+                                                <div class="flex justify-between items-center text-xs">
+                                                    <span class="text-base-content/70">Ketahanan Stok Pembelian:</span>
+                                                    <span class="font-semibold">{{ $stock['monthsCoverage'] }} Bulan Konsumsi Normal</span>
+                                                </div>
+                                                <div class="flex justify-between items-center text-xs pt-1 border-t border-base-200">
+                                                    <span class="text-base-content/70 font-semibold">Estimasi Cadangan Stok Toko:</span>
+                                                    <span class="font-mono font-bold {{ $stock['theoreticalBalance'] > 0 ? 'text-success' : 'text-error' }}">
+                                                        {{ $stock['theoreticalBalance'] > 0 ? '~Rp ' . number_format($stock['theoreticalBalance'], 0, ',', '.') : 'Terserap Habis (Rp 0)' }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-2 pt-2 border-t border-base-300">
+                                            <div class="flex items-center justify-between text-xs">
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="text-base-content/70">Konsistensi Belanja:</span>
+                                                    <span class="font-bold text-primary">{{ $stock['consistencyRate'] }}%</span>
+                                                    <span class="text-xs text-base-content/50">({{ $stock['activeMonths'] }}/{{ $stock['totalMonths'] }} bln)</span>
+                                                </div>
+                                                <span class="badge {{ $stock['dormancyBadge'] }} badge-xs py-1 text-xs font-bold shrink-0">
+                                                    {{ $stock['dormancyText'] }}
+                                                </span>
+                                            </div>
+
+                                            <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 text-xs space-y-1">
+                                                <div class="text-xs leading-tight">
+                                                    <strong class="text-base-content/80">Analisa Kondisi:</strong>
+                                                    <span class="text-base-content/90">{{ $stock['diagnosis'] }}</span>
+                                                </div>
+                                                <div class="text-xs leading-tight pt-1 border-t border-base-200">
+                                                    <strong class="text-primary">Rekomendasi Tim Sales:</strong>
+                                                    <span class="text-base-content/80">{{ $stock['action'] }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                {{-- CARD 2: KELAYAKAN TARGET & PANDUAN ORDER PO --}}
+                                @if($target)
+                                    <div class="card bg-base-200/50 p-4 rounded-xl border {{ $target['borderClass'] }} shadow-sm flex flex-col justify-between">
+                                        <div>
+                                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-base-300 pb-2.5">
+                                                <div class="flex items-center gap-2 min-w-0 flex-1">
+                                                    <div class="p-1.5 rounded-lg bg-success/10 text-success shrink-0">
+                                                        <x-heroicon-o-chart-bar class="w-4 h-4" />
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <h4 class="font-bold text-xs uppercase tracking-wider text-base-content/80 truncate">Kelayakan Target & Panduan Order</h4>
+                                                        <span class="text-xs text-base-content/60 block truncate">
+                                                            Target Kuartal: <strong class="text-base-content">{{ $target['rewardLabel'] }}</strong>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div class="badge {{ $target['badgeClass'] }} text-xs font-semibold shrink-0 whitespace-nowrap shadow-sm h-auto py-1 px-2.5">
+                                                    {{ $target['label'] }}
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-2 my-3 text-xs">
+                                                <div class="bg-base-100 p-2 rounded-lg border border-base-300">
+                                                    <span class="text-xs text-base-content/60 font-semibold block uppercase">Target Total Kuartal</span>
+                                                    <span class="font-mono font-bold text-sm">Rp {{ number_format($target['totalTarget'], 0, ',', '.') }}</span>
+                                                    <span class="text-xs opacity-75 block mt-0.5">Realisasi: Rp {{ number_format($target['activeAchievement'], 0, ',', '.') }}</span>
+                                                </div>
+                                                <div class="bg-base-100 p-2 rounded-lg border border-base-300">
+                                                    <span class="text-xs text-base-content/60 font-semibold block uppercase">Kekurangan (Gap Target)</span>
+                                                    <span class="font-mono font-bold text-sm {{ $target['gap'] > 0 ? 'text-error' : 'text-success' }}">
+                                                        Rp {{ number_format($target['gap'], 0, ',', '.') }}
+                                                    </span>
+                                                    <span class="text-xs opacity-75 block mt-0.5">Pencapaian: {{ number_format($target['percent'], 1, ',', '.') }}%</span>
+                                                </div>
+                                            </div>
+
+                                            {{-- Box Rekomendasi PO Minimal --}}
+                                            <div class="bg-base-100 p-3 rounded-lg border border-base-300 text-xs mb-3">
+                                                <div class="flex items-center justify-between">
+                                                    <div>
+                                                        <span class="text-xs uppercase font-bold text-base-content/60 block">Rekomendasi PO Kunjungan</span>
+                                                        <span class="text-xs text-base-content/75">
+                                                            {{ $target['remainingMonths'] > 0 ? 'Sisa Waktu: ' . $target['remainingMonths'] . ' Bulan' : 'Kuartal Ditutup' }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <span class="font-mono font-extrabold text-base text-primary block">
+                                                            Rp {{ number_format($target['recommendedPO'], 0, ',', '.') }}
+                                                        </span>
+                                                        <span class="text-xs font-semibold text-base-content/60">
+                                                            per bulan di sisa kuartal
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                @if($target['gap'] > 0)
+                                                    <div class="w-full mt-2">
+                                                        <progress class="progress {{ $target['status'] === 'ON_TRACK' ? 'progress-success' : ($target['status'] === 'NEED_PUSH' ? 'progress-warning' : 'progress-error') }} w-full h-1.5" value="{{ min($target['percent'], 100) }}" max="100"></progress>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        <div class="pt-2 border-t border-base-300">
+                                            <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 text-xs">
+                                                <div class="flex items-start gap-1.5 text-xs leading-tight">
+                                                    <strong class="text-primary shrink-0">💡 Panduan Sales Pitch:</strong>
+                                                    <span class="text-base-content/85">{{ $target['pitch'] }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- TAB 3: History Penjualan by Qty --}}
+                    @php
+                        $qtyData = $this->qtyHistory;
+                    @endphp
+                    <div x-show="tab === 'qty'" x-data="{ openSubbrands: {} }" class="flex flex-col gap-4">
+                        @if(!$qtyData || empty($qtyData['subbrands']))
+                            <div class="card bg-base-200/50 p-8 rounded-xl border border-base-300 text-center flex flex-col items-center justify-center">
+                                <x-heroicon-o-archive-box class="w-12 h-12 text-base-content/30 mb-2" />
+                                <h4 class="font-bold text-sm text-base-content/70">Belum Ada Histori Kuantitas Penjualan (6 Bulan Terakhir)</h4>
+                                <p class="text-xs text-base-content/50 mt-1 max-w-md">Tidak ditemukan data faktur pada t_sellingout untuk toko ini dalam rentang 6 bulan terakhir.</p>
+                            </div>
+                        @else
+                            {{-- 1. 4 KPI MINI CARDS --}}
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div class="card bg-primary/10 border border-primary/20 p-3 rounded-xl">
+                                    <span class="text-xs font-bold uppercase tracking-wider text-primary">Total 6 Bulan (KTN)</span>
+                                    <span class="text-lg font-bold font-mono mt-0.5">{{ number_format($qtyData['kpi']['total_qty'], 1, ',', '.') }} <span class="text-xs font-normal opacity-70">KTN</span></span>
+                                </div>
+                                <div class="card bg-info/10 border border-info/20 p-3 rounded-xl">
+                                    <span class="text-xs font-bold uppercase tracking-wider text-info">Rata-rata per Bulan</span>
+                                    <span class="text-lg font-bold font-mono mt-0.5">{{ number_format($qtyData['kpi']['avg_qty'], 1, ',', '.') }} <span class="text-xs font-normal opacity-70">KTN/bln</span></span>
+                                </div>
+                                <div class="card bg-success/10 border border-success/20 p-3 rounded-xl">
+                                    <span class="text-xs font-bold uppercase tracking-wider text-success">Lini Subbrand Aktif</span>
+                                    <span class="text-lg font-bold font-mono mt-0.5">{{ $qtyData['kpi']['active_subbrands'] }} <span class="text-xs font-normal opacity-70">Subbrand</span></span>
+                                </div>
+                                <div class="card bg-warning/10 border border-warning/20 p-3 rounded-xl">
+                                    <span class="text-xs font-bold uppercase tracking-wider text-warning">Subbrand Terlaris (Hero)</span>
+                                    <div class="flex items-baseline gap-1 mt-0.5 truncate">
+                                        <span class="text-xs font-bold truncate" title="{{ $qtyData['kpi']['hero_subbrand'] }}">{{ $qtyData['kpi']['hero_subbrand'] }}</span>
+                                        <span class="text-xs font-mono font-bold text-warning shrink-0">({{ $qtyData['kpi']['hero_percent'] }}%)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- 2. EXPANDABLE PIVOT TABLE --}}
+                            <div class="card bg-base-200/50 p-4 rounded-xl border border-base-300 shadow-sm flex flex-col">
+                                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                                    <div class="flex items-center gap-2">
+                                        <div class="p-1.5 rounded-lg bg-primary/10 text-primary">
+                                            <x-heroicon-o-table-cells class="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <h4 class="font-bold text-xs uppercase tracking-wide text-base-content/90">Histori Penjualan 6 Bulan Terakhir (TTL_QTY_KTN)</h4>
+                                            <span class="text-xs text-base-content/60">Klik baris subbrand untuk melihat rincian per varian rasa / SKU</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-xs text-base-content/60 flex items-center gap-2">
+                                        <button type="button" @click="openSubbrands = Object.keys(openSubbrands).length > 0 ? {} : { @foreach($qtyData['subbrands'] as $sb) '{{ $sb['key'] }}': true, @endforeach }" class="btn btn-ghost btn-xs text-xs font-bold">
+                                            Toggle Buka/Tutup Semua
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="overflow-x-auto max-h-[380px] border border-base-300 rounded-lg">
+                                    <table class="table table-xs table-pin-rows table-zebra w-full text-xs">
+                                        <thead class="sticky top-0 z-20 bg-base-300 text-base-content font-bold shadow-sm">
+                                            <tr class="bg-base-300 text-base-content font-bold">
+                                                <th class="min-w-[220px]">Subbrand / Varian Item</th>
+                                                @foreach($qtyData['months'] as $m)
+                                                    <th class="text-right whitespace-nowrap px-2">{{ $m['label'] }}</th>
+                                                @endforeach
+                                                <th class="text-right whitespace-nowrap bg-base-300 px-3">Total (KTN)</th>
+                                                <th class="text-right whitespace-nowrap px-3">Avg/Bln</th>
+                                                <th class="text-center w-12">Tren</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($qtyData['subbrands'] as $sbKey => $sb)
+                                                {{-- Parent Row (Subbrand) --}}
+                                                <tr @click="openSubbrands['{{ $sb['key'] }}'] = !openSubbrands['{{ $sb['key'] }}']" 
+                                                    class="cursor-pointer font-bold hover:bg-base-200 transition-colors select-none group border-t border-base-300"
+                                                    wire:key="sb-row-{{ $sb['key'] }}">
+                                                    <td class="font-semibold whitespace-nowrap flex items-center gap-1.5 py-2">
+                                                        <span class="text-primary transition-transform duration-200 inline-block text-xs" :class="openSubbrands['{{ $sb['key'] }}'] ? 'rotate-90' : ''">▶</span>
+                                                        <span class="text-base-content/90">{{ $sb['name'] }}</span>
+                                                        <span class="badge badge-ghost badge-sm text-xs font-normal opacity-70">({{ count($sb['items']) }} SKU)</span>
+                                                    </td>
+                                                    @foreach($qtyData['months'] as $m)
+                                                        @php $mVal = $sb['monthly'][$m['key']] ?? 0; @endphp
+                                                        <td class="text-right font-mono text-xs whitespace-nowrap px-2">
+                                                            @if($mVal > 0)
+                                                                <span class="text-base-content font-semibold">{{ number_format($mVal, $mVal == (int)$mVal ? 0 : 1, ',', '.') }}</span>
+                                                            @elseif($mVal < 0)
+                                                                <span class="text-error font-semibold">({{ number_format(abs($mVal), 1, ',', '.') }})</span>
+                                                            @else
+                                                                <span class="text-base-content/25">-</span>
+                                                            @endif
+                                                        </td>
+                                                    @endforeach
+                                                    <td class="text-right font-mono font-bold whitespace-nowrap bg-base-200/50 px-3 text-primary">
+                                                        {{ number_format($sb['total'], 1, ',', '.') }}
+                                                    </td>
+                                                    <td class="text-right font-mono font-semibold whitespace-nowrap px-3 text-base-content/80">
+                                                        {{ number_format($sb['avg'], 1, ',', '.') }}
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if($sb['trend'] === 'up')
+                                                            <span class="text-success text-xs font-bold" title="Naik dari bulan sebelumnya">▲</span>
+                                                        @elseif($sb['trend'] === 'down')
+                                                            <span class="text-error text-xs font-bold" title="Turun dari bulan sebelumnya">▼</span>
+                                                        @else
+                                                            <span class="text-base-content/30 text-xs font-bold">-</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+
+                                                {{-- Child Rows (SKU Items) --}}
+                                                @foreach($sb['items'] as $itKey => $it)
+                                                    <tr x-show="openSubbrands['{{ $sb['key'] }}']" 
+                                                        x-cloak 
+                                                        class="bg-base-100/70 hover:bg-base-200/40 text-xs border-b border-base-200/50"
+                                                        wire:key="it-row-{{ $sb['key'] }}-{{ md5($itKey) }}">
+                                                        <td class="pl-6 font-normal whitespace-nowrap text-base-content/80 flex items-center gap-1.5 py-1.5">
+                                                            <span class="text-base-content/40 text-xs">└─</span>
+                                                            <span>{{ $it['name'] }}</span>
+                                                        </td>
+                                                        @foreach($qtyData['months'] as $m)
+                                                            @php $itMVal = $it['monthly'][$m['key']] ?? 0; @endphp
+                                                            <td class="text-right font-mono whitespace-nowrap px-2">
+                                                                @if($itMVal > 0)
+                                                                    <span class="text-base-content/80">{{ number_format($itMVal, $itMVal == (int)$itMVal ? 0 : 1, ',', '.') }}</span>
+                                                                @elseif($itMVal < 0)
+                                                                    <span class="text-error/80">({{ number_format(abs($itMVal), 1, ',', '.') }})</span>
+                                                                @else
+                                                                    <span class="text-base-content/20">-</span>
+                                                                @endif
+                                                            </td>
+                                                        @endforeach
+                                                        <td class="text-right font-mono font-semibold whitespace-nowrap bg-base-200/30 px-3 text-base-content/80">
+                                                            {{ number_format($it['total'], 1, ',', '.') }}
+                                                        </td>
+                                                        <td class="text-right font-mono whitespace-nowrap px-3 text-base-content/60">
+                                                            {{ number_format($it['avg'], 1, ',', '.') }}
+                                                        </td>
+                                                        <td class="text-center text-base-content/20">-</td>
+                                                    </tr>
+                                                @endforeach
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="bg-base-300 font-bold text-xs text-base-content border-t-2 border-base-content/20">
+                                                <th class="uppercase">TOTAL KARTON (KTN)</th>
+                                                @foreach($qtyData['months'] as $m)
+                                                    @php $totMVal = $qtyData['grandTotalPerMonth'][$m['key']] ?? 0; @endphp
+                                                    <th class="text-right font-mono px-2">
+                                                        {{ number_format($totMVal, $totMVal == (int)$totMVal ? 0 : 1, ',', '.') }}
+                                                    </th>
+                                                @endforeach
+                                                <th class="text-right font-mono bg-primary/20 text-primary px-3 text-sm">
+                                                    {{ number_format($qtyData['grandTotal6Bln'], 1, ',', '.') }}
+                                                </th>
+                                                <th class="text-right font-mono px-3">
+                                                    {{ number_format($qtyData['grandTotalAvg'], 1, ',', '.') }}
+                                                </th>
+                                                <th></th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {{-- 3. DUAL INTELLIGENCE GRID: 4 ANALISA PENDUKUNG QTY --}}
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {{-- CARD 1: ALERT PRODUK PUTUS / DROP SKU --}}
+                                <div class="card bg-base-200/50 p-4 rounded-xl border {{ !empty($qtyData['dropSkus']) ? 'border-warning/40' : 'border-base-300' }} shadow-sm flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-base-300 pb-2.5">
+                                            <div class="flex items-center gap-2 min-w-0 flex-1">
+                                                <div class="p-1.5 rounded-lg {{ !empty($qtyData['dropSkus']) ? 'bg-warning/10 text-warning' : 'bg-base-300 text-base-content/60' }} shrink-0">
+                                                    <x-heroicon-o-exclamation-triangle class="w-4 h-4" />
+                                                </div>
+                                                <div class="min-w-0">
+                                                    <h4 class="font-bold text-xs uppercase tracking-wider text-base-content/80 truncate">Alert Produk Putus / Drop SKU</h4>
+                                                    <span class="text-xs text-base-content/60 block truncate">Subbrand yang sebelumnya aktif namun terhenti di 1–2 bulan terakhir</span>
+                                                </div>
+                                            </div>
+                                            @if(!empty($qtyData['dropSkus']))
+                                                <span class="badge badge-warning text-white text-xs font-semibold shrink-0 whitespace-nowrap shadow-sm h-auto py-1 px-2.5">
+                                                    {{ count($qtyData['dropSkus']) }} Produk Terindikasi
+                                                </span>
+                                            @else
+                                                <span class="badge badge-success text-white text-xs font-semibold shrink-0 whitespace-nowrap shadow-sm h-auto py-1 px-2.5">
+                                                    Semua SKU Terjaga
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        <div class="space-y-2 my-3">
+                                            @forelse($qtyData['dropSkus'] as $drop)
+                                                <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 text-xs">
+                                                    <div class="flex items-center justify-between font-semibold">
+                                                        <span class="text-base-content font-bold">{{ $drop['subbrand'] }}</span>
+                                                        <span class="badge {{ $drop['badge'] }} badge-sm text-xs shrink-0 whitespace-nowrap">{{ $drop['duration'] }}</span>
+                                                    </div>
+                                                    <div class="flex items-center justify-between text-xs text-base-content/70 mt-1">
+                                                        <span>Historis Belanja Sebelumnya:</span>
+                                                        <span class="font-mono font-semibold">~{{ $drop['historical_avg'] }} KTN/bln</span>
+                                                    </div>
+                                                    <div class="text-xs text-base-content/80 pt-1.5 mt-1 border-t border-base-200">
+                                                        <strong class="text-warning-content">Aksi:</strong> {{ $drop['action'] }}
+                                                    </div>
+                                                </div>
+                                            @empty
+                                                <div class="bg-base-100 p-4 rounded-lg border border-base-300 text-center text-xs text-base-content/60">
+                                                    Tidak ditemukan produk yang mengalami putus order mendadak. Seluruh subbrand yang aktif tetap melakukan order rutin.
+                                                </div>
+                                            @endforelse
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- CARD 2: KONSENTRASI PORTOFOLIO PRODUK (PARETO) --}}
+                                @php $pareto = $qtyData['pareto']; @endphp
+                                <div class="card bg-base-200/50 p-4 rounded-xl border {{ $pareto['border'] }} shadow-sm flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-base-300 pb-2.5">
+                                            <div class="flex items-center gap-2 min-w-0 flex-1">
+                                                <div class="p-1.5 rounded-lg bg-info/10 text-info shrink-0">
+                                                    <x-heroicon-o-chart-pie class="w-4 h-4" />
+                                                </div>
+                                                <div class="min-w-0">
+                                                    <h4 class="font-bold text-xs uppercase tracking-wider text-base-content/80 truncate">Ketergantungan Portofolio (Pareto)</h4>
+                                                    <span class="text-xs text-base-content/60 block truncate">Tingkat diversifikasi dan konsentrasi volume toko</span>
+                                                </div>
+                                            </div>
+                                            <span class="badge {{ $pareto['badge'] }} text-xs font-semibold shrink-0 whitespace-nowrap shadow-sm h-auto py-1 px-2.5">
+                                                {{ $pareto['label'] }}
+                                            </span>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-2 my-3 text-xs">
+                                            <div class="bg-base-100 p-2.5 rounded-lg border border-base-300">
+                                                <span class="text-xs text-base-content/60 font-semibold uppercase block">Hero Subbrand (#1)</span>
+                                                <span class="font-bold text-sm text-primary block truncate" title="{{ $pareto['hero'] }}">{{ $pareto['hero'] }}</span>
+                                                <span class="text-xs opacity-75 font-mono">{{ $pareto['hero_percent'] }}% dari total karton</span>
+                                            </div>
+                                            <div class="bg-base-100 p-2.5 rounded-lg border border-base-300">
+                                                <span class="text-xs text-base-content/60 font-semibold uppercase block">Top 2 Subbrand</span>
+                                                <span class="font-bold text-sm block font-mono">{{ $pareto['top2_percent'] }}%</span>
+                                                <span class="text-xs opacity-75">Kontribusi 2 produk teratas</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 text-xs space-y-1">
+                                            <p class="text-xs text-base-content/90">{{ $pareto['desc'] }}</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="pt-2 border-t border-base-300 mt-2">
+                                        <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 text-xs">
+                                            <div class="flex items-start gap-1.5 text-xs leading-tight">
+                                                <strong class="text-primary shrink-0">💡 Rekomendasi Sales:</strong>
+                                                <span class="text-base-content/85">{{ $pareto['action'] }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- CARD 3: PELUANG PENETRASI PRODUK (CROSS-SELLING) --}}
+                                <div class="card bg-base-200/50 p-4 rounded-xl border border-success/30 shadow-sm flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-base-300 pb-2.5">
+                                            <div class="flex items-center gap-2 min-w-0 flex-1">
+                                                <div class="p-1.5 rounded-lg bg-success/10 text-success shrink-0">
+                                                    <x-heroicon-o-sparkles class="w-4 h-4" />
+                                                </div>
+                                                <div class="min-w-0">
+                                                    <h4 class="font-bold text-xs uppercase tracking-wider text-base-content/80 truncate">Peluang Penetrasi Produk Baru (Top Item)</h4>
+                                                    <span class="text-xs text-base-content/60 block truncate">Subbrand prioritas principal yang belum pernah dibeli toko ini</span>
+                                                </div>
+                                            </div>
+                                            <span class="badge badge-success text-white text-xs font-semibold shrink-0 whitespace-nowrap shadow-sm h-auto py-1 px-2.5">
+                                                Peluang Tambah Qty
+                                            </span>
+                                        </div>
+
+                                        <div class="space-y-2 my-3">
+                                            @forelse($qtyData['crossSelling'] as $cs)
+                                                <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 text-xs">
+                                                    <div class="flex items-center justify-between font-semibold">
+                                                        <span class="text-base-content font-bold">{{ $cs['subbrand'] }}</span>
+                                                        <span class="badge badge-outline badge-primary badge-xs py-1 text-xs shrink-0 whitespace-nowrap">{{ $cs['kategori'] }}</span>
+                                                    </div>
+                                                    <div class="text-xs text-base-content/80 mt-1">
+                                                        {{ $cs['action'] }}
+                                                    </div>
+                                                </div>
+                                            @empty
+                                                <div class="bg-base-100 p-4 rounded-lg border border-base-300 text-center text-xs text-base-content/60">
+                                                    Toko ini telah mengambil seluruh subbrand prioritas TOP ITEM utama distributor.
+                                                </div>
+                                            @endforelse
+                                        </div>
+                                    </div>
+
+                                    <div class="pt-2 border-t border-base-300 mt-2">
+                                        <span class="text-xs text-base-content/60 italic block">
+                                            *Memperkenalkan SKU baru membantu meningkatkan total karton toko tanpa kanibalisasi SKU lama.
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {{-- CARD 4: BEDAH KOMPOSISI RASA SUBBRAND UNGGULAN --}}
+                                @php $flavor = $qtyData['flavorAnalysis']; @endphp
+                                <div class="card bg-base-200/50 p-4 rounded-xl border border-secondary/30 shadow-sm flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-base-300 pb-2.5">
+                                            <div class="flex items-center gap-2 min-w-0 flex-1">
+                                                <div class="p-1.5 rounded-lg bg-secondary/10 text-secondary shrink-0">
+                                                    <x-heroicon-o-fire class="w-4 h-4" />
+                                                </div>
+                                                <div class="min-w-0">
+                                                    <h4 class="font-bold text-xs uppercase tracking-wider text-base-content/80 truncate">Bedah Rasa Subbrand Unggulan</h4>
+                                                    <span class="text-xs text-base-content/60 block truncate">Komposisi rasa cepat laku vs seret pada {{ $flavor['hero_subbrand'] ?? 'Subbrand Terlaris' }}</span>
+                                                </div>
+                                            </div>
+                                            <span class="badge badge-secondary text-white text-xs font-semibold shrink-0 whitespace-nowrap shadow-sm h-auto py-1 px-2.5">
+                                                Flavor Run-Rate
+                                            </span>
+                                        </div>
+
+                                        @if($flavor)
+                                            <div class="grid grid-cols-2 gap-2 my-3 text-xs">
+                                                <div class="bg-base-100 p-2.5 rounded-lg border border-base-300">
+                                                    <span class="text-xs text-success font-bold uppercase block">⭐ Rasa Terlaris (Favorit)</span>
+                                                    <span class="font-bold text-xs text-base-content block mt-0.5 truncate" title="{{ $flavor['top_flavor'] }}">{{ $flavor['top_flavor'] }}</span>
+                                                    <span class="text-xs opacity-75 font-mono">{{ number_format($flavor['top_total'], 1, ',', '.') }} KTN ({{ $flavor['top_percent'] }}%)</span>
+                                                </div>
+                                                <div class="bg-base-100 p-2.5 rounded-lg border border-base-300">
+                                                    <span class="text-xs text-warning font-bold uppercase block">🐢 Rasa Paling Seret (Slow)</span>
+                                                    <span class="font-bold text-xs text-base-content block mt-0.5 truncate" title="{{ $flavor['bottom_flavor'] }}">{{ $flavor['bottom_flavor'] }}</span>
+                                                    <span class="text-xs opacity-75 font-mono">{{ number_format($flavor['bottom_total'], 1, ',', '.') }} KTN ({{ $flavor['bottom_percent'] }}%)</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="bg-base-100 p-2.5 rounded-lg border border-base-300 text-xs">
+                                                <div class="flex items-start gap-1.5 text-xs leading-tight">
+                                                    <strong class="text-secondary shrink-0">🎯 Trik Negosiasi:</strong>
+                                                    <span class="text-base-content/85">{{ $flavor['tip'] }}</span>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <div class="bg-base-100 p-4 rounded-lg border border-base-300 text-center text-xs text-base-content/60 my-3">
+                                                Belum ada cukup data varian rasa untuk dianalisa.
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <div class="pt-2 border-t border-base-300 mt-2">
+                                        <span class="text-xs text-base-content/60 italic block">
+                                            *Mencegah alasan toko "stok banyak" yang sebenarnya hanya menumpuk pada varian lambat.
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- TAB 4: ANALISA KUNJUNGAN --}}
+                    <div x-show="tab === 'visit'" class="space-y-4">
+                        @php
+                            $visitData = $this->visitHistory;
+                        @endphp
+
+                        @if(!$visitData)
+                            <div class="bg-base-200/50 p-6 rounded-xl border border-base-300 text-center">
+                                <span class="loading loading-spinner loading-md text-primary"></span>
+                                <p class="text-xs text-base-content/60 mt-2 font-medium">Memuat data histori kunjungan...</p>
+                            </div>
+                        @elseif(!$visitData['hasPrc'])
+                            <div class="alert alert-warning shadow-sm border border-warning/30 rounded-xl">
+                                <x-heroicon-o-exclamation-triangle class="w-6 h-6 shrink-0 text-warning" />
+                                <div>
+                                    <h4 class="font-bold text-xs uppercase tracking-wider">Kode PRC Toko Belum Terhubung</h4>
+                                    <p class="text-xs opacity-90 mt-0.5">
+                                        Toko ini (<strong>{{ $visitData['customer_code'] }}</strong> - {{ $visitData['customer_name'] }}) belum memiliki mapping kode <em>Principal Customer (PRC)</em> di sistem. 
+                                        Monitoring histori kunjungan dari tim Head Office / Principal hanya dapat disinkronkan untuk outlet yang memiliki kode PRC.
+                                    </p>
+                                </div>
+                            </div>
+                        @else
+                            {{-- Header Top Info --}}
+                            <div class="flex flex-wrap items-center justify-between gap-2 bg-base-200/50 p-3 rounded-xl border border-base-300">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <div class="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                                        <x-heroicon-o-map-pin class="w-4 h-4" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <span class="text-xs text-base-content/60 font-medium block">Monitoring Kunjungan Principal (HOINA)</span>
+                                        <span class="text-xs font-bold text-base-content truncate block">
+                                            Kode PRC: <strong class="text-primary font-mono">{{ $visitData['prc'] }}</strong> &bull; Periode: {{ $visitData['kuartalLabel'] }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <span class="badge badge-ghost badge-sm text-xs font-mono font-semibold">
+                                        {{ count($visitData['timeline']) }} Total Riwayat
+                                    </span>
+                                </div>
+                            </div>
+
+                            {{-- SEKSI 1: 4 KPI SUMMARY CARDS --}}
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                {{-- Card 1: Total Kunjungan Kuartal --}}
+                                <div class="card bg-base-200/50 p-3.5 rounded-xl border border-base-300 shadow-sm flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs font-bold uppercase tracking-wider text-base-content/60">Total Kunjungan</span>
+                                            <div class="p-1 rounded-md bg-primary/10 text-primary shrink-0">
+                                                <x-heroicon-o-calendar-days class="w-3.5 h-3.5" />
+                                            </div>
+                                        </div>
+                                        <div class="mt-2 flex items-baseline gap-1.5">
+                                            <span class="text-2xl font-black text-primary">{{ $visitData['kpi']['total_visits'] }}x</span>
+                                            <span class="text-xs text-base-content/60 font-semibold">Fisik ({{ $visitData['kpi']['total_schedules'] }}x Rute)</span>
+                                        </div>
+                                    </div>
+                                    <div class="pt-2 border-t border-base-300 mt-2 text-xs">
+                                        @if($visitData['kpi']['last_visit'])
+                                            <div class="flex items-start gap-1">
+                                                <span class="text-base-content/60 shrink-0">Terakhir:</span>
+                                                <div class="min-w-0 truncate">
+                                                    <strong class="text-base-content font-bold">{{ $visitData['kpi']['last_visit']['formatted_date'] }}</strong>
+                                                    <span class="text-xs text-base-content/60 block truncate">
+                                                        ({{ $visitData['kpi']['last_visit']['days_ago'] }}) &bull; {{ $visitData['kpi']['last_visit']['visitor_role'] }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <span class="text-error font-semibold flex items-center gap-1">
+                                                <x-heroicon-o-x-circle class="w-3.5 h-3.5 shrink-0" />
+                                                Belum dikunjungi di kuartal ini
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                {{-- Card 2: Pembagian Tingkatan Kunjungan (SPV, ASM, RSM) --}}
+                                <div class="card bg-base-200/50 p-3.5 rounded-xl border border-base-300 shadow-sm flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs font-bold uppercase tracking-wider text-base-content/60">Pemisahan Role</span>
+                                            <div class="p-1 rounded-md bg-secondary/10 text-secondary shrink-0">
+                                                <x-heroicon-o-user-group class="w-3.5 h-3.5" />
+                                            </div>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-1.5 mt-2 text-center">
+                                            {{-- SPV --}}
+                                            <div class="bg-base-100 p-1.5 rounded-lg border border-base-300">
+                                                <span class="badge badge-primary badge-xs text-xs font-bold text-white px-1.5">SPV</span>
+                                                <span class="font-black text-sm text-base-content block mt-1">{{ $visitData['roles']['SPV']['visits'] }}x</span>
+                                                <span class="text-xs text-base-content/50 block truncate">{{ $visitData['roles']['SPV']['last_date'] ? \Carbon\Carbon::parse($visitData['roles']['SPV']['last_date'])->format('d/m') : '-' }}</span>
+                                            </div>
+                                            {{-- ASM --}}
+                                            <div class="bg-base-100 p-1.5 rounded-lg border border-base-300">
+                                                <span class="badge badge-secondary badge-xs text-xs font-bold text-white px-1.5">ASM</span>
+                                                <span class="font-black text-sm text-base-content block mt-1">{{ $visitData['roles']['ASM']['visits'] }}x</span>
+                                                <span class="text-xs text-base-content/50 block truncate">{{ $visitData['roles']['ASM']['last_date'] ? \Carbon\Carbon::parse($visitData['roles']['ASM']['last_date'])->format('d/m') : '-' }}</span>
+                                            </div>
+                                            {{-- RSM --}}
+                                            <div class="bg-base-100 p-1.5 rounded-lg border border-base-300">
+                                                <span class="badge badge-accent badge-xs text-xs font-bold text-white px-1.5">RSM</span>
+                                                <span class="font-black text-sm text-base-content block mt-1">{{ $visitData['roles']['RSM']['visits'] }}x</span>
+                                                <span class="text-xs text-base-content/50 block truncate">{{ $visitData['roles']['RSM']['last_date'] ? \Carbon\Carbon::parse($visitData['roles']['RSM']['last_date'])->format('d/m') : '-' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="pt-2 border-t border-base-300 mt-2 text-xs flex justify-between items-center text-base-content/60 font-semibold">
+                                        <span>Total Tim: 3 Level</span>
+                                        <span>Jadwal: {{ $visitData['kpi']['total_schedules'] }} Rute</span>
+                                    </div>
+                                </div>
+
+                                {{-- Card 3: Efektivitas Order (Strike Rate & Value) --}}
+                                <div class="card bg-base-200/50 p-3.5 rounded-xl border border-base-300 shadow-sm flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs font-bold uppercase tracking-wider text-base-content/60">Efektivitas Order (EC)</span>
+                                            <div class="p-1 rounded-md bg-success/10 text-success shrink-0">
+                                                <x-heroicon-o-shopping-bag class="w-3.5 h-3.5" />
+                                            </div>
+                                        </div>
+                                        <div class="mt-2 flex items-baseline gap-1.5">
+                                            <span class="text-2xl font-black {{ $visitData['kpi']['strike_rate'] >= 70 ? 'text-success' : ($visitData['kpi']['strike_rate'] > 0 ? 'text-warning' : 'text-error') }}">
+                                                {{ $visitData['kpi']['strike_rate'] }}%
+                                            </span>
+                                            <span class="text-xs text-base-content/60 font-semibold">Strike Rate</span>
+                                        </div>
+                                    </div>
+                                    <div class="pt-2 border-t border-base-300 mt-2 text-xs">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-base-content/60">PO Visit:</span>
+                                            <span class="font-mono font-bold text-success">Rp {{ number_format($visitData['kpi']['total_order_val'], 0, ',', '.') }}</span>
+                                        </div>
+                                        <div class="flex justify-between items-center text-xs opacity-75 mt-0.5">
+                                            <span>Kuantiti PO:</span>
+                                            <span class="font-mono font-semibold">{{ number_format($visitData['kpi']['total_order_qty'], 0, ',', '.') }} unit</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Card 4: Rata-Rata Durasi di Toko --}}
+                                <div class="card bg-base-200/50 p-3.5 rounded-xl border border-base-300 shadow-sm flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs font-bold uppercase tracking-wider text-base-content/60">Durasi di Toko</span>
+                                            <div class="p-1 rounded-md bg-warning/10 text-warning shrink-0">
+                                                <x-heroicon-o-clock class="w-3.5 h-3.5" />
+                                            </div>
+                                        </div>
+                                        <div class="mt-2 flex items-baseline gap-1.5">
+                                            <span class="text-2xl font-black text-primary">⏱ ~{{ $visitData['kpi']['avg_duration'] }}</span>
+                                            <span class="text-xs text-base-content/60 font-semibold">Menit / Visit</span>
+                                        </div>
+                                    </div>
+                                    <div class="pt-2 border-t border-base-300 mt-2 text-xs">
+                                        @if($visitData['kpi']['avg_duration'] >= 15)
+                                            <span class="badge badge-success text-white badge-xs py-1 text-xs font-semibold shrink-0 whitespace-nowrap gap-1">
+                                                <x-heroicon-m-check class="w-3 h-3" /> Durasi Kunjungan Efektif
+                                            </span>
+                                        @elseif($visitData['kpi']['avg_duration'] > 0)
+                                            <span class="badge badge-warning text-white badge-xs py-1 text-xs font-semibold shrink-0 whitespace-nowrap gap-1">
+                                                <x-heroicon-m-bolt class="w-3 h-3" /> Kunjungan Kilat / Cepat
+                                            </span>
+                                        @else
+                                            <span class="text-xs text-base-content/50">Tidak ada durasi tercatat</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- SEKSI 2: REKAPITULASI ALASAN KENDALA (NOT BUY / NOT VISIT) --}}
+                            @if(!empty($visitData['reasons']['not_buy']) || !empty($visitData['reasons']['not_visit']))
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {{-- Kolom Alasan Tidak Beli (Not Buy) --}}
+                                    @if(!empty($visitData['reasons']['not_buy']))
+                                        <div class="card bg-warning/5 p-3.5 rounded-xl border border-warning/20 shadow-sm">
+                                            <div class="flex items-center justify-between pb-2 border-b border-warning/20">
+                                                <div class="flex items-center gap-1.5 min-w-0">
+                                                    <span class="badge badge-warning text-white badge-xs py-1 text-xs font-bold shrink-0 whitespace-nowrap">NOT BUY</span>
+                                                    <h5 class="text-xs font-bold text-base-content/90 truncate">Alasan Dikunjungi Tapi Tidak Order</h5>
+                                                </div>
+                                                <span class="text-xs font-bold text-warning shrink-0">{{ count($visitData['reasons']['not_buy']) }} Kategori</span>
+                                            </div>
+                                            <div class="space-y-1.5 mt-2.5">
+                                                @foreach($visitData['reasons']['not_buy'] as $rb)
+                                                    <div class="bg-base-100 p-2 rounded-lg border border-base-300 text-xs">
+                                                        <div class="flex items-center justify-between">
+                                                            <span class="font-bold text-base-content">{{ $rb['desc'] }}</span>
+                                                            <span class="badge badge-warning badge-outline badge-xs text-xs font-bold shrink-0 whitespace-nowrap">{{ $rb['count'] }}x Kejadian</span>
+                                                        </div>
+                                                        @if(!empty($rb['notes']))
+                                                            <div class="text-xs text-base-content/70 italic mt-1 pt-1 border-t border-base-200">
+                                                                Catatan: {{ implode(' | ', $rb['notes']) }}
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    {{-- Kolom Alasan Tidak Kunjung (Not Visit) --}}
+                                    @if(!empty($visitData['reasons']['not_visit']))
+                                        <div class="card bg-error/5 p-3.5 rounded-xl border border-error/20 shadow-sm">
+                                            <div class="flex items-center justify-between pb-2 border-b border-error/20">
+                                                <div class="flex items-center gap-1.5 min-w-0">
+                                                    <span class="badge badge-error text-white badge-xs py-1 text-xs font-bold shrink-0 whitespace-nowrap">NOT VISIT</span>
+                                                    <h5 class="text-xs font-bold text-base-content/90 truncate">Alasan Terjadwal Tapi Batal Kunjung</h5>
+                                                </div>
+                                                <span class="text-xs font-bold text-error shrink-0">{{ count($visitData['reasons']['not_visit']) }} Kategori</span>
+                                            </div>
+                                            <div class="space-y-1.5 mt-2.5">
+                                                @foreach($visitData['reasons']['not_visit'] as $rv)
+                                                    <div class="bg-base-100 p-2 rounded-lg border border-base-300 text-xs">
+                                                        <div class="flex items-center justify-between">
+                                                            <span class="font-bold text-base-content">{{ $rv['desc'] }}</span>
+                                                            <span class="badge badge-error badge-outline badge-xs text-xs font-bold shrink-0 whitespace-nowrap">{{ $rv['count'] }}x Kejadian</span>
+                                                        </div>
+                                                        @if(!empty($rv['notes']))
+                                                            <div class="text-xs text-base-content/70 italic mt-1 pt-1 border-t border-base-200">
+                                                                Catatan: {{ implode(' | ', $rv['notes']) }}
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+
+                            {{-- SEKSI 3: TABEL DETAIL TIMELINE KUNJUNGAN --}}
+                            <div class="card bg-base-100 rounded-xl border border-base-300 shadow-sm overflow-hidden" 
+                                 x-data="{ filterRole: 'all', filterStatus: 'all' }">
+                                
+                                {{-- Table Header & Filters --}}
+                                <div class="p-3 bg-base-200/50 border-b border-base-300 flex flex-wrap items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="p-1.5 rounded-lg bg-base-300 text-base-content/70 shrink-0">
+                                            <x-heroicon-o-queue-list class="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <h4 class="font-bold text-xs uppercase tracking-wider text-base-content/90">Riwayat & Log Kunjungan Toko</h4>
+                                            <span class="text-xs text-base-content/60 block">Rincian aktivitas kunjungan lapangan tim principal per tanggal</span>
+                                        </div>
+                                    </div>
+
+                                    {{-- Quick Filters --}}
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        {{-- Filter Role --}}
+                                        <div class="join border border-base-300 rounded-lg overflow-hidden bg-base-100">
+                                            <button type="button" @click="filterRole = 'all'" :class="filterRole === 'all' ? 'bg-primary text-white font-bold' : 'text-base-content/70 hover:bg-base-200'" class="btn btn-xs join-item border-0">Semua Role</button>
+                                            <button type="button" @click="filterRole = 'SPV'" :class="filterRole === 'SPV' ? 'bg-primary text-white font-bold' : 'text-base-content/70 hover:bg-base-200'" class="btn btn-xs join-item border-0">SPV</button>
+                                            <button type="button" @click="filterRole = 'ASM'" :class="filterRole === 'ASM' ? 'bg-secondary text-white font-bold' : 'text-base-content/70 hover:bg-base-200'" class="btn btn-xs join-item border-0">ASM</button>
+                                            <button type="button" @click="filterRole = 'RSM'" :class="filterRole === 'RSM' ? 'bg-accent text-white font-bold' : 'text-base-content/70 hover:bg-base-200'" class="btn btn-xs join-item border-0">RSM</button>
+                                        </div>
+
+                                        {{-- Filter Status --}}
+                                        <div class="join border border-base-300 rounded-lg overflow-hidden bg-base-100">
+                                            <button type="button" @click="filterStatus = 'all'" :class="filterStatus === 'all' ? 'bg-neutral text-white font-bold' : 'text-base-content/70 hover:bg-base-200'" class="btn btn-xs join-item border-0">Semua Status</button>
+                                            <button type="button" @click="filterStatus = 'buy'" :class="filterStatus === 'buy' ? 'bg-success text-white font-bold' : 'text-base-content/70 hover:bg-base-200'" class="btn btn-xs join-item border-0">Beli (EC)</button>
+                                            <button type="button" @click="filterStatus = 'not_buy'" :class="filterStatus === 'not_buy' ? 'bg-warning text-white font-bold' : 'text-base-content/70 hover:bg-base-200'" class="btn btn-xs join-item border-0">Not Buy</button>
+                                            <button type="button" @click="filterStatus = 'unvisited'" :class="filterStatus === 'unvisited' ? 'bg-error text-white font-bold' : 'text-base-content/70 hover:bg-base-200'" class="btn btn-xs join-item border-0">Batal/Not Visit</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Responsive Table Container --}}
+                                <div class="overflow-x-auto max-h-[420px]">
+                                    <table class="table table-xs w-full">
+                                        <thead class="sticky top-0 z-20 bg-base-200 text-base-content/80 uppercase text-xs tracking-wider border-b border-base-300 shadow-sm">
+                                            <tr>
+                                                <th class="w-10 text-center whitespace-nowrap">No</th>
+                                                <th class="whitespace-nowrap">Tanggal & Jam</th>
+                                                <th class="whitespace-nowrap">Tingkatan & Petugas</th>
+                                                <th class="text-center whitespace-nowrap">Durasi</th>
+                                                <th class="text-center whitespace-nowrap">Status Kunjungan</th>
+                                                <th class="text-right whitespace-nowrap">Order PO</th>
+                                                <th class="whitespace-nowrap min-w-[240px]">Alasan & Catatan Lapangan</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-base-200 text-xs">
+                                            @forelse($visitData['timeline'] as $idx => $item)
+                                                <tr wire:key="visit-row-{{ $idx }}-{{ $item['date'] }}-{{ $item['muid'] }}"
+                                                    x-show="(filterRole === 'all' || '{{ $item['role'] }}' === filterRole) && 
+                                                            (filterStatus === 'all' || 
+                                                             (filterStatus === 'buy' && {{ $item['is_buy'] ? 'true' : 'false' }}) ||
+                                                             (filterStatus === 'not_buy' && {{ ($item['is_visit'] && !$item['is_buy']) ? 'true' : 'false' }}) ||
+                                                             (filterStatus === 'unvisited' && {{ (!$item['is_visit']) ? 'true' : 'false' }}))"
+                                                    class="hover:bg-base-200/40 transition-colors {{ $item['is_joint'] ? 'bg-warning/5' : '' }}">
+                                                    
+                                                    {{-- No --}}
+                                                    <td class="text-center font-mono opacity-60 whitespace-nowrap">{{ $loop->iteration }}</td>
+
+                                                    {{-- Tanggal & Jam --}}
+                                                    <td class="whitespace-nowrap">
+                                                        <span class="font-bold text-base-content block">{{ $item['formatted_date'] }}</span>
+                                                        <span class="text-xs text-base-content/60 font-mono block mt-0.5">
+                                                            {{ $item['time_range'] }}
+                                                        </span>
+                                                        @if($item['is_pjp'])
+                                                            <span class="text-xs text-primary font-semibold block mt-0.5">&bull; Rute Terjadwal (PJP)</span>
+                                                        @else
+                                                            <span class="text-xs text-warning-content font-semibold block mt-0.5">&bull; Kunjungan Non-PJP</span>
+                                                        @endif
+                                                    </td>
+
+                                                    {{-- Tingkatan & Petugas --}}
+                                                    <td class="whitespace-nowrap">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <span class="badge {{ $item['role_badge'] }} badge-sm text-xs font-bold text-white shrink-0 whitespace-nowrap h-auto py-0.5 px-2">
+                                                                {{ $item['role'] }}
+                                                            </span>
+                                                            <div class="min-w-0">
+                                                                <span class="font-bold text-xs text-base-content block truncate max-w-[160px]" title="{{ $item['muname'] }}">
+                                                                    {{ $item['muname'] }}
+                                                                </span>
+                                                                <span class="font-mono text-xs opacity-60 block truncate">{{ $item['muid'] }}</span>
+                                                            </div>
+                                                        </div>
+                                                        @if($item['is_joint'])
+                                                            <div class="mt-1">
+                                                                <span class="badge badge-warning text-white badge-xs text-xs font-semibold shrink-0 whitespace-nowrap h-auto py-0.5 px-1.5 gap-1">
+                                                                    🤝 Joint Visit
+                                                                </span>
+                                                            </div>
+                                                        @endif
+                                                    </td>
+
+                                                    {{-- Durasi --}}
+                                                    <td class="text-center whitespace-nowrap">
+                                                        @if($item['duration_minutes'] >= 15)
+                                                            <span class="badge badge-success text-white badge-sm text-xs font-bold font-mono shrink-0 whitespace-nowrap h-auto py-1 px-2.5 shadow-sm">
+                                                                ⏱ {{ $item['duration_minutes'] }} mnt
+                                                            </span>
+                                                        @elseif($item['duration_minutes'] > 0)
+                                                            <span class="badge badge-warning text-white badge-sm text-xs font-bold font-mono shrink-0 whitespace-nowrap h-auto py-1 px-2.5 shadow-sm">
+                                                                ⏱ {{ $item['duration_minutes'] }} mnt
+                                                            </span>
+                                                        @else
+                                                            <span class="badge badge-ghost badge-sm text-xs font-mono opacity-50 shrink-0 whitespace-nowrap h-auto py-1 px-2.5">
+                                                                0 mnt
+                                                            </span>
+                                                        @endif
+                                                    </td>
+
+                                                    {{-- Status Kunjungan --}}
+                                                    <td class="text-center whitespace-nowrap">
+                                                        @if($item['is_visit'])
+                                                            <span class="badge badge-success badge-sm text-xs font-bold text-white shadow-sm shrink-0 whitespace-nowrap h-auto py-1 px-2.5">
+                                                                Dikunjungi
+                                                            </span>
+                                                        @else
+                                                            <span class="badge badge-error badge-sm text-xs font-bold text-white shadow-sm shrink-0 whitespace-nowrap h-auto py-1 px-2.5">
+                                                                Tidak Kunjung
+                                                            </span>
+                                                        @endif
+                                                    </td>
+
+                                                    {{-- Order PO (Value & Qty) --}}
+                                                    <td class="text-right whitespace-nowrap">
+                                                        @if($item['is_buy'])
+                                                            <div class="font-mono whitespace-nowrap">
+                                                                <span class="font-bold text-xs text-success block">Rp {{ number_format($item['order_val'], 0, ',', '.') }}</span>
+                                                                <span class="text-xs text-base-content/75 font-semibold block">{{ number_format($item['order_qty'], 0, ',', '.') }} unit</span>
+                                                            </div>
+                                                        @elseif($item['is_visit'])
+                                                            <span class="badge badge-warning badge-sm text-xs font-semibold text-white shrink-0 whitespace-nowrap h-auto py-1 px-2.5">
+                                                                Tidak Order
+                                                            </span>
+                                                        @else
+                                                            <span class="text-xs opacity-50 block">-</span>
+                                                        @endif
+                                                    </td>
+
+                                                    {{-- Alasan & Catatan Lapangan --}}
+                                                    <td class="min-w-[240px]">
+                                                        @if(!empty($item['reason_desc']))
+                                                            <div class="space-y-1">
+                                                                <div class="flex items-center gap-1.5 flex-wrap">
+                                                                    <span class="badge {{ $item['reason_type'] === 'BUY' ? 'badge-warning text-white' : 'badge-error text-white' }} badge-xs text-xs font-semibold shrink-0 whitespace-nowrap h-auto py-0.5 px-2">
+                                                                        [{{ $item['reason_type'] ?? 'INFO' }}] {{ $item['reason_id'] }}
+                                                                    </span>
+                                                                    <span class="font-bold text-xs text-base-content">{{ $item['reason_desc'] }}</span>
+                                                                </div>
+                                                                @if(!empty($item['reason_note']))
+                                                                    <div class="text-xs text-base-content/80 italic bg-base-200/60 p-1.5 rounded border border-base-300">
+                                                                        "{{ $item['reason_note'] }}"
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        @elseif($item['is_buy'])
+                                                            <span class="text-xs text-success font-semibold flex items-center gap-1 whitespace-nowrap">
+                                                                <x-heroicon-m-check-circle class="w-3.5 h-3.5 shrink-0" />
+                                                                Kunjungan Efektif (PO Berhasil)
+                                                            </span>
+                                                        @else
+                                                            <span class="text-xs text-base-content/40 italic">Tidak ada catatan kendala</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="7" class="text-center py-8">
+                                                        <div class="flex flex-col items-center justify-center text-base-content/50">
+                                                            <x-heroicon-o-calendar class="w-10 h-10 mb-2 opacity-40" />
+                                                            <span class="font-bold text-xs">Belum Ada Riwayat Kunjungan pada Kuartal Ini</span>
+                                                            <span class="text-xs opacity-75 mt-0.5">Toko ini belum memiliki catatan rute kunjungan dari tim SPI/HOINA di periode terpilih.</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- TAB 5: KOMPARASI ORDER VS REALISASI --}}
+                    <div x-show="tab === 'fulfillment'" class="space-y-4">
+                        @php
+                            $fulData = $this->orderFulfillment;
+                        @endphp
+
+                        @if(!$fulData)
+                            <div class="bg-base-200/50 p-6 rounded-xl border border-base-300 text-center">
+                                <span class="loading loading-spinner loading-md text-primary"></span>
+                                <p class="text-xs text-base-content/60 mt-2 font-medium">Memuat data komparasi order vs realisasi...</p>
+                            </div>
+                        @else
+                            {{-- Header Top Info --}}
+                            <div class="flex flex-wrap items-center justify-between gap-2 bg-base-200/50 p-3 rounded-xl border border-base-300">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <div class="p-1.5 rounded-lg bg-info/10 text-info shrink-0">
+                                        <x-heroicon-o-scale class="w-4 h-4" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <span class="text-xs text-base-content/60 font-medium block">Evaluasi Eksekusi & Pemenuhan Pesanan (Fulfillment)</span>
+                                        <span class="text-xs font-bold text-base-content truncate block">
+                                            Komparasi Order PO Kunjungan vs Faktur Selling Out Distributor &bull; {{ $fulData['kuartalLabel'] }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <span class="badge {{ $fulData['kpi']['overall_badge'] }} text-xs font-bold shrink-0 whitespace-nowrap h-auto py-1 px-2.5 shadow-sm">
+                                        {{ $fulData['kpi']['overall_status'] }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {{-- Alert Info Jika Ada Joint Visit Auto-Deduplication --}}
+                            @if($fulData['kpi']['has_jv'])
+                                <div class="alert alert-info bg-info/10 border border-info/30 text-xs py-2.5 px-3.5 rounded-xl flex flex-wrap items-center justify-between gap-2 shadow-sm">
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <span class="badge badge-info badge-sm font-bold text-white shrink-0 whitespace-nowrap h-auto py-0.5 px-2">
+                                            🤝 JV Auto-Deduplication
+                                        </span>
+                                        <span class="text-base-content/85 text-xs">
+                                            Sistem mendeteksi transaksi <strong>Joint Visit (kunjungan bersama)</strong> dan otomatis mendeduplikasi pesanan ganda sebesar 
+                                            <strong class="text-primary font-mono">Rp {{ number_format($fulData['kpi']['jv_savings'], 0, ',', '.') }}</strong> agar komparasi 100% objektif.
+                                        </span>
+                                    </div>
+                                    <span class="text-xs opacity-75 font-mono shrink-0 whitespace-nowrap">
+                                        Laporan Kasar: Rp {{ number_format($fulData['kpi']['total_po_raw'], 0, ',', '.') }} &rarr; <strong>Bersih: Rp {{ number_format($fulData['kpi']['total_po_val'], 0, ',', '.') }}</strong>
+                                    </span>
+                                </div>
+                            @endif
+
+                            {{-- SEKSI 1: 4 KPI SUMMARY CARDS --}}
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                {{-- Card 1: Total Order PO (Kunjungan) --}}
+                                <div class="card bg-base-200/50 p-3.5 rounded-xl border border-base-300 shadow-sm flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs font-bold uppercase tracking-wider text-base-content/60">Total Order PO</span>
+                                            <div class="p-1 rounded-md bg-primary/10 text-primary shrink-0">
+                                                <x-heroicon-o-shopping-bag class="w-3.5 h-3.5" />
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="text-xl font-black text-primary font-mono block">
+                                                Rp {{ number_format($fulData['kpi']['total_po_val'], 0, ',', '.') }}
+                                            </span>
+                                            <span class="text-xs text-base-content/60 font-semibold block mt-0.5">
+                                                {{ $fulData['kpi']['total_po_sessions'] }} Sesi Order ({{ number_format($fulData['kpi']['total_po_qty'], 0, ',', '.') }} unit)
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="pt-2 border-t border-base-300 mt-2 text-xs text-base-content/60">
+                                        <span>Sumber: Mobile Visit HOINA</span>
+                                    </div>
+                                </div>
+
+                                {{-- Card 2: Total Realisasi Faktur (Selling Out) --}}
+                                <div class="card bg-base-200/50 p-3.5 rounded-xl border border-base-300 shadow-sm flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs font-bold uppercase tracking-wider text-base-content/60">Realisasi Faktur SO</span>
+                                            <div class="p-1 rounded-md bg-success/10 text-success shrink-0">
+                                                <x-heroicon-o-document-check class="w-3.5 h-3.5" />
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="text-xl font-black text-success font-mono block">
+                                                Rp {{ number_format($fulData['kpi']['total_so_val'], 0, ',', '.') }}
+                                            </span>
+                                            <span class="text-xs text-base-content/60 font-semibold block mt-0.5">
+                                                {{ $fulData['kpi']['total_so_invoices'] }} Faktur ({{ number_format($fulData['kpi']['total_so_ktn'], 1, ',', '.') }} KTN)
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="pt-2 border-t border-base-300 mt-2 text-xs text-base-content/60">
+                                        <span>Sumber: Faktur Distributor</span>
+                                    </div>
+                                </div>
+
+                                {{-- Card 3: Tingkat Pemenuhan (Service Level) --}}
+                                <div class="card bg-base-200/50 p-3.5 rounded-xl border border-base-300 shadow-sm flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs font-bold uppercase tracking-wider text-base-content/60">Tingkat Pemenuhan</span>
+                                            <div class="p-1 rounded-md bg-info/10 text-info shrink-0">
+                                                <x-heroicon-o-chart-pie class="w-3.5 h-3.5" />
+                                            </div>
+                                        </div>
+                                        <div class="mt-2 flex items-baseline gap-1.5">
+                                            <span class="text-2xl font-black {{ $fulData['kpi']['fulfillment_rate'] >= 80 ? 'text-success' : ($fulData['kpi']['fulfillment_rate'] > 0 ? 'text-warning' : 'text-error') }}">
+                                                {{ $fulData['kpi']['fulfillment_rate'] }}%
+                                            </span>
+                                            <span class="text-xs text-base-content/60 font-semibold">Service Level</span>
+                                        </div>
+                                        <div class="w-full mt-2">
+                                            <progress class="progress {{ $fulData['kpi']['fulfillment_rate'] >= 80 ? 'progress-success' : ($fulData['kpi']['fulfillment_rate'] > 0 ? 'progress-warning' : 'progress-error') }} w-full h-1.5" 
+                                                      value="{{ min($fulData['kpi']['fulfillment_rate'], 100) }}" max="100"></progress>
+                                        </div>
+                                    </div>
+                                    <div class="pt-2 border-t border-base-300 mt-2 text-xs font-semibold">
+                                        <span class="text-base-content/80">{{ $fulData['kpi']['overall_status'] }}</span>
+                                    </div>
+                                </div>
+
+                                {{-- Card 4: Selisih / Gap Pemenuhan --}}
+                                <div class="card bg-base-200/50 p-3.5 rounded-xl border border-base-300 shadow-sm flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs font-bold uppercase tracking-wider text-base-content/60">Selisih / Gap</span>
+                                            <div class="p-1 rounded-md bg-warning/10 text-warning shrink-0">
+                                                <x-heroicon-o-arrows-right-left class="w-3.5 h-3.5" />
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="text-xl font-black font-mono block {{ $fulData['kpi']['gap'] >= 0 ? 'text-success' : 'text-error' }}">
+                                                {{ $fulData['kpi']['gap'] >= 0 ? '+' : '' }}Rp {{ number_format($fulData['kpi']['gap'], 0, ',', '.') }}
+                                            </span>
+                                            <span class="text-xs text-base-content/60 font-semibold block mt-0.5">
+                                                Realisasi vs Pesanan PO
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="pt-2 border-t border-base-300 mt-2 text-xs">
+                                        @if($fulData['kpi']['gap'] < 0)
+                                            <span class="text-error font-semibold flex items-center gap-1">
+                                                <x-heroicon-m-arrow-trending-down class="w-3.5 h-3.5 shrink-0" />
+                                                Drop PO / Tertahan Kirim
+                                            </span>
+                                        @else
+                                            <span class="text-success font-semibold flex items-center gap-1">
+                                                <x-heroicon-m-arrow-trending-up class="w-3.5 h-3.5 shrink-0" />
+                                                Surplus / Repeat Order
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- SEKSI 2: TABEL KOMPARASI BULANAN --}}
+                            <div class="card bg-base-100 rounded-xl border border-base-300 shadow-sm overflow-hidden">
+                                <div class="p-3 bg-base-200/50 border-b border-base-300 flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <div class="p-1.5 rounded-lg bg-base-300 text-base-content/70 shrink-0">
+                                            <x-heroicon-o-calendar class="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <h4 class="font-bold text-xs uppercase tracking-wider text-base-content/90">Komparasi Performa Bulanan</h4>
+                                            <span class="text-xs text-base-content/60 block">Rincian perbandingan nilai order PO vs faktur realisasi per bulan</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="overflow-x-auto">
+                                    <table class="table table-xs w-full">
+                                        <thead class="bg-base-200 text-base-content/80 uppercase text-xs tracking-wider border-b border-base-300">
+                                            <tr>
+                                                <th>Bulan</th>
+                                                <th class="text-right whitespace-nowrap">Order PO Kunjungan</th>
+                                                <th class="text-right whitespace-nowrap">Realisasi Faktur SO</th>
+                                                <th class="text-right whitespace-nowrap">Selisih (Gap)</th>
+                                                <th class="text-center whitespace-nowrap">% Pemenuhan</th>
+                                                <th class="text-center whitespace-nowrap">Status Eksekusi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-base-200 text-xs">
+                                            @foreach($fulData['monthly'] as $mRow)
+                                                <tr class="hover:bg-base-200/40 transition-colors">
+                                                    <td class="font-bold text-base-content whitespace-nowrap">
+                                                        {{ $mRow['label'] }}
+                                                    </td>
+                                                    <td class="text-right font-mono whitespace-nowrap">
+                                                        <span class="font-bold block {{ $mRow['po_val'] > 0 ? 'text-primary' : 'text-base-content/40' }}">
+                                                            Rp {{ number_format($mRow['po_val'], 0, ',', '.') }}
+                                                        </span>
+                                                        <span class="text-xs text-base-content/60 block">
+                                                            {{ $mRow['po_count'] }} Sesi ({{ number_format($mRow['po_qty'], 0, ',', '.') }} unit)
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-right font-mono whitespace-nowrap">
+                                                        <span class="font-bold block {{ $mRow['so_val'] > 0 ? 'text-success' : 'text-base-content/40' }}">
+                                                            Rp {{ number_format($mRow['so_val'], 0, ',', '.') }}
+                                                        </span>
+                                                        <span class="text-xs text-base-content/60 block">
+                                                            {{ $mRow['so_count'] }} Faktur ({{ number_format($mRow['so_ktn'], 1, ',', '.') }} KTN)
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-right font-mono whitespace-nowrap font-bold {{ $mRow['gap'] >= 0 ? 'text-success' : 'text-error' }}">
+                                                        {{ $mRow['gap'] >= 0 ? '+' : '' }}Rp {{ number_format($mRow['gap'], 0, ',', '.') }}
+                                                    </td>
+                                                    <td class="text-center whitespace-nowrap">
+                                                        <span class="font-mono font-bold text-xs {{ $mRow['rate'] >= 80 ? 'text-success' : ($mRow['rate'] > 0 ? 'text-warning' : 'text-base-content/40') }}">
+                                                            {{ $mRow['rate'] }}%
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center whitespace-nowrap">
+                                                        <span class="badge {{ $mRow['status_badge'] }} badge-sm text-xs font-semibold shrink-0 whitespace-nowrap h-auto py-1 px-2.5">
+                                                            {{ $mRow['status'] }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot class="bg-base-200/70 border-t-2 border-base-300 font-bold text-xs">
+                                            <tr>
+                                                <td class="whitespace-nowrap">TOTAL KUARTAL</td>
+                                                <td class="text-right font-mono whitespace-nowrap text-primary">
+                                                    Rp {{ number_format($fulData['kpi']['total_po_val'], 0, ',', '.') }}
+                                                </td>
+                                                <td class="text-right font-mono whitespace-nowrap text-success">
+                                                    Rp {{ number_format($fulData['kpi']['total_so_val'], 0, ',', '.') }}
+                                                </td>
+                                                <td class="text-right font-mono whitespace-nowrap {{ $fulData['kpi']['gap'] >= 0 ? 'text-success' : 'text-error' }}">
+                                                    {{ $fulData['kpi']['gap'] >= 0 ? '+' : '' }}Rp {{ number_format($fulData['kpi']['gap'], 0, ',', '.') }}
+                                                </td>
+                                                <td class="text-center font-mono whitespace-nowrap {{ $fulData['kpi']['fulfillment_rate'] >= 80 ? 'text-success' : 'text-warning' }}">
+                                                    {{ $fulData['kpi']['fulfillment_rate'] }}%
+                                                </td>
+                                                <td class="text-center whitespace-nowrap">
+                                                    <span class="badge {{ $fulData['kpi']['overall_badge'] }} badge-sm text-xs font-bold shrink-0 whitespace-nowrap h-auto py-1 px-2.5">
+                                                        {{ $fulData['kpi']['overall_status'] }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {{-- SEKSI 3: DUAL DETAIL LIST (BERDAMPINGAN: PO KUNJUNGAN VS FAKTUR REALISASI) --}}
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {{-- Kolom Kiri: Riwayat Order PO Kunjungan --}}
+                                <div class="card bg-base-100 rounded-xl border border-base-300 shadow-sm overflow-hidden flex flex-col justify-between">
+                                    <div>
+                                        <div class="p-3 bg-base-200/50 border-b border-base-300 flex items-center justify-between">
+                                            <div class="flex items-center gap-2 min-w-0">
+                                                <div class="p-1 rounded-md bg-primary/10 text-primary shrink-0">
+                                                    <x-heroicon-o-clipboard-document-list class="w-3.5 h-3.5" />
+                                                </div>
+                                                <h5 class="font-bold text-xs uppercase tracking-wider text-base-content/90 truncate">
+                                                    Daftar Order PO Kunjungan (Mobile App)
+                                                </h5>
+                                            </div>
+                                            <span class="badge badge-primary badge-outline badge-sm text-xs font-mono font-bold shrink-0 whitespace-nowrap">
+                                                {{ count($fulData['po_sessions']) }} Sesi PO
+                                            </span>
+                                        </div>
+
+                                        <div class="overflow-x-auto max-h-[350px]">
+                                            <table class="table table-xs w-full">
+                                                <thead class="sticky top-0 z-20 bg-base-200 text-base-content/80 uppercase text-xs border-b border-base-300 shadow-sm">
+                                                    <tr>
+                                                        <th class="whitespace-nowrap">Tgl & Jam</th>
+                                                        <th class="whitespace-nowrap">Petugas Sales</th>
+                                                        <th class="text-right whitespace-nowrap">Nilai PO (Bersih)</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-base-200 text-xs">
+                                                    @forelse($fulData['po_sessions'] as $pos)
+                                                        <tr class="hover:bg-base-200/40 transition-colors {{ $pos['is_jv'] ? 'bg-info/5' : '' }}">
+                                                            <td class="whitespace-nowrap">
+                                                                <span class="font-bold text-base-content block">{{ $pos['formatted_date'] }}</span>
+                                                                <span class="text-xs text-base-content/60 font-mono block">{{ $pos['time'] }} WIB</span>
+                                                            </td>
+                                                            <td>
+                                                                <div class="flex items-center gap-1.5 flex-wrap">
+                                                                    <span class="badge badge-primary badge-xs text-xs font-bold text-white shrink-0 whitespace-nowrap">
+                                                                        {{ $pos['lead_role'] }}
+                                                                    </span>
+                                                                    <span class="font-bold text-xs text-base-content truncate">{{ $pos['lead_person'] }}</span>
+                                                                </div>
+                                                                @if($pos['is_jv'])
+                                                                    <div class="mt-1">
+                                                                        <span class="badge badge-info text-white badge-xs text-xs font-semibold shrink-0 whitespace-nowrap h-auto py-0.5 px-1.5 gap-1"
+                                                                              title="Joint visit bersama {{ $pos['member_count'] }} petugas, nilai order diambil 1x transaksi tertinggi">
+                                                                            🤝 Joint Visit ({{ $pos['member_count'] }} Petugas)
+                                                                        </span>
+                                                                    </div>
+                                                                @endif
+                                                            </td>
+                                                            <td class="text-right font-mono whitespace-nowrap">
+                                                                <span class="font-bold text-xs text-primary block">
+                                                                    Rp {{ number_format($pos['val'], 0, ',', '.') }}
+                                                                </span>
+                                                                <span class="text-xs text-base-content/60 block">
+                                                                    {{ number_format($pos['qty'], 0, ',', '.') }} unit
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    @empty
+                                                        <tr>
+                                                            <td colspan="3" class="text-center py-6 text-xs text-base-content/50">
+                                                                Tidak ada catatan pesanan PO pada kuartal ini.
+                                                            </td>
+                                                        </tr>
+                                                    @endforelse
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="p-2.5 bg-base-200/30 border-t border-base-300 text-xs flex justify-between font-bold">
+                                        <span>Total PO Bersih:</span>
+                                        <span class="font-mono text-primary">Rp {{ number_format($fulData['kpi']['total_po_val'], 0, ',', '.') }}</span>
+                                    </div>
+                                </div>
+
+                                {{-- Kolom Kanan: Daftar Faktur Penjualan Distributor (Selling Out) --}}
+                                <div class="card bg-base-100 rounded-xl border border-base-300 shadow-sm overflow-hidden flex flex-col justify-between">
+                                    <div>
+                                        <div class="p-3 bg-base-200/50 border-b border-base-300 flex items-center justify-between">
+                                            <div class="flex items-center gap-2 min-w-0">
+                                                <div class="p-1 rounded-md bg-success/10 text-success shrink-0">
+                                                    <x-heroicon-o-document-text class="w-3.5 h-3.5" />
+                                                </div>
+                                                <h5 class="font-bold text-xs uppercase tracking-wider text-base-content/90 truncate">
+                                                    Daftar Faktur Resmi Distributor (SO)
+                                                </h5>
+                                            </div>
+                                            <span class="badge badge-success badge-outline badge-sm text-xs font-mono font-bold shrink-0 whitespace-nowrap">
+                                                {{ count($fulData['invoices']) }} Faktur
+                                            </span>
+                                        </div>
+
+                                        <div class="overflow-x-auto max-h-[350px]">
+                                            <table class="table table-xs w-full">
+                                                <thead class="sticky top-0 z-20 bg-base-200 text-base-content/80 uppercase text-xs border-b border-base-300 shadow-sm">
+                                                    <tr>
+                                                        <th class="whitespace-nowrap">No Faktur & Tgl</th>
+                                                        <th class="whitespace-nowrap">Salesman / Depo</th>
+                                                        <th class="text-right whitespace-nowrap">Netto Faktur</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-base-200 text-xs">
+                                                    @forelse($fulData['invoices'] as $inv)
+                                                        <tr class="hover:bg-base-200/40 transition-colors">
+                                                            <td class="whitespace-nowrap">
+                                                                <span class="font-mono font-bold text-xs text-base-content block">{{ $inv['invoice_no'] }}</span>
+                                                                <span class="text-xs text-base-content/60 block">{{ $inv['formatted_date'] }}</span>
+                                                            </td>
+                                                            <td class="whitespace-nowrap">
+                                                                <span class="font-bold text-xs text-base-content block">{{ $inv['slsname'] }}</span>
+                                                                <span class="text-xs text-base-content/60 block">{{ $inv['total_sku'] }} SKU Varian</span>
+                                                            </td>
+                                                            <td class="text-right font-mono whitespace-nowrap">
+                                                                <span class="font-bold text-xs text-success block">
+                                                                    Rp {{ number_format($inv['netto'], 0, ',', '.') }}
+                                                                </span>
+                                                                <span class="text-xs text-base-content/60 block">
+                                                                    {{ number_format($inv['total_ktn'], 1, ',', '.') }} KTN
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    @empty
+                                                        <tr>
+                                                            <td colspan="3" class="text-center py-6 text-xs text-base-content/50">
+                                                                Belum ada faktur penjualan yang terbit di kuartal ini.
+                                                            </td>
+                                                        </tr>
+                                                    @endforelse
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="p-2.5 bg-base-200/30 border-t border-base-300 text-xs flex justify-between font-bold">
+                                        <span>Total Realisasi SO:</span>
+                                        <span class="font-mono text-success">Rp {{ number_format($fulData['kpi']['total_so_val'], 0, ',', '.') }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div> <!-- Close x-data container -->
 
