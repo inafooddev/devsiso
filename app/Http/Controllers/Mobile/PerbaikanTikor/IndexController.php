@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use App\Helpers\ActivityLogger;
 
 class IndexController extends Controller
 {
@@ -164,15 +165,22 @@ class IndexController extends Controller
             }
         }
 
+        $loggedSalesName = $sales?->sales_name ?? strtoupper($request->sales_code);
         session([
             'sales_code' => strtoupper($request->sales_code),
-            'sales_name' => $sales?->sales_name ?? strtoupper($request->sales_code)
+            'sales_name' => $loggedSalesName
         ]);
+
+        ActivityLogger::log('Mobile Sales Login', "Sales login dengan kode: {$request->sales_code} ({$loggedSalesName})");
+
         return redirect()->route('mobile.perbaikan.tikor.index');
     }
 
     public function logoutSales(Request $request)
     {
+        $salesCode = session('sales_code') ?? '-';
+        ActivityLogger::log('Mobile Sales Logout', "Sales logout dengan kode: {$salesCode}");
+
         session()->forget(['sales_code', 'sales_name']);
         return redirect()->route('mobile.perbaikan.tikor.index');
     }
@@ -284,6 +292,11 @@ class IndexController extends Controller
 
         $data['created_at'] = now();
         DB::table('perbaikan_tikor_toko')->insert($data);
+
+        ActivityLogger::log(
+            'Submit Perbaikan Tikor (Mobile)',
+            "Mengajukan perbaikan titik koordinat toko: {$request->customer_code} pada dist: {$request->distributor_code} ke koordinat ({$request->latitude}, {$request->longitude}) akurasi {$request->accuracy}m via SE/Sales: {$salesCode}"
+        );
 
         return redirect()->back()->with('success', 'Perbaikan koordinat toko berhasil disimpan.');
     }

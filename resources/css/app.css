@@ -144,8 +144,8 @@ dialog.modal,
     z-index: 99999 !important;
 }
 
-/* 2. Seluruh Custom Livewire & Alpine Modals / Fixed Overlays */
-.fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay) {
+/* 2. Seluruh Custom Livewire & Alpine Modals / Fixed Overlays (Top-Level Container) */
+.fixed.inset-0:not(.navbar):not(header):not(aside):not(.drawer-side):not(.drawer-overlay):not([class*="backdrop"]):not([class*="bg-slate"]):not([class*="bg-black"]):not([class*="bg-gray"]):not([class*="bg-base"]):not(.modal-backdrop) {
     z-index: 99999 !important;
 }
 
@@ -156,13 +156,14 @@ dialog.modal,
 .fixed.inset-0 > div[class*="bg-base"],
 .fixed.inset-0 > div[class*="bg-gray"],
 .fixed.inset-0 > div[class*="bg-slate"],
+.fixed.inset-0 div[class*="backdrop-blur"],
 .modal-backdrop {
     z-index: 1 !important;
 }
 
 /* 4. Modal Content Box selalu di atas backdrop */
 .modal-box,
-.fixed.inset-0 > div:not(.fixed),
+.fixed.inset-0 > div:not(.fixed):not([class*="backdrop"]):not([class*="bg-slate"]):not([class*="bg-black"]):not([class*="bg-gray"]):not([class*="bg-base"]),
 .fixed.inset-0 > div[class*="relative"] {
     position: relative;
     z-index: 50 !important;

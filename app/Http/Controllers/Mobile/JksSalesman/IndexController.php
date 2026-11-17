@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use App\Helpers\ActivityLogger;
 
 class IndexController extends Controller
 {
@@ -1028,6 +1029,11 @@ class IndexController extends Controller
                 'updated_at' => now(),
             ]);
 
+            ActivityLogger::log(
+                'Update JKS Schedule (Mobile)',
+                "Memperbarui jadwal toko: {$custName} ({$jks->customer_code}) ke SE: {$seName} ({$validated['salesman_code']}) | Hari: [" . implode(', ', $activeHari) . "] | Minggu: [" . implode(', ', $activeMinggu) . "] pada dist: {$validated['distributor_code']}. Alasan: {$validated['reason']}"
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Jadwal berhasil diperbarui!',
@@ -1046,6 +1052,11 @@ class IndexController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            ActivityLogger::log(
+                'Request Update JKS Schedule (Mobile)',
+                "Mengajukan perubahan jadwal toko: {$custName} ({$jks->customer_code}) ke SE: {$seName} ({$validated['salesman_code']}) | Hari: [" . implode(', ', $activeHari) . "] | Minggu: [" . implode(', ', $activeMinggu) . "] pada dist: {$validated['distributor_code']}. Alasan: {$validated['reason']}"
+            );
 
             return response()->json([
                 'success' => true,
@@ -1157,6 +1168,11 @@ class IndexController extends Controller
                 'updated_at' => now(),
             ]);
 
+            ActivityLogger::log(
+                'Delete JKS Schedule (Mobile)',
+                "Menghapus jadwal ({$methodName}) toko: {$custName} ({$jks->customer_code}) pada dist: {$validated['distributor_code']}. Alasan: {$validated['reason']}"
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Jadwal berhasil dihapus!',
@@ -1175,6 +1191,11 @@ class IndexController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            ActivityLogger::log(
+                'Request Delete JKS Schedule (Mobile)',
+                "Mengajukan hapus jadwal ({$methodName}) toko: {$custName} ({$jks->customer_code}) pada dist: {$validated['distributor_code']}. Alasan: {$validated['reason']}"
+            );
 
             return response()->json([
                 'success' => true,
@@ -1396,6 +1417,11 @@ class IndexController extends Controller
             'updated_at' => now(),
         ]);
 
+        ActivityLogger::log(
+            'Request Add Non-JKS Schedule (Mobile)',
+            "Mengajukan penambahan " . count($tokos) . " outlet Non-JKS [" . implode(', ', $tokoCodes) . "] ke SE: {$payload['salesman_code']} pada dist: {$distributorCode} (Periode: {$targetMonth}). Alasan: {$cleanReason}"
+        );
+
         return response()->json([
             'success' => true,
             'message' => count($tokos) === 1
@@ -1436,6 +1462,11 @@ class IndexController extends Controller
                 'created_by' => $user->userid ?? $user->name ?? 'system',
                 'updated_at' => now(),
             ]
+        );
+
+        ActivityLogger::log(
+            'Save Non-JKS Remark (Mobile)',
+            "Menyimpan catatan (remark) outlet Non-JKS {$custCode} pada dist: {$distCode}: {$remarkText}"
         );
 
         return response()->json([

@@ -8,11 +8,28 @@ import { ShieldCheckIcon, XMarkIcon, EyeIcon, EyeSlashIcon } from '@heroicons/re
 
 // Modal component wrapper
 const BottomModal = ({ isOpen, onClose, title, children }: any) => {
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
+
     if (!isOpen) return null;
     return (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center">
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
-            <div className="relative bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md p-6 shadow-xl transform transition-all duration-300">
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4">
+            {/* Clickable Backdrop */}
+            <div 
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
+                onClick={onClose}
+                aria-hidden="true"
+            />
+            {/* Modal Dialog Content */}
+            <div className="relative z-10 bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md p-6 shadow-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 animate-slide-up sm:animate-scale-up">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-black text-slate-800">{title}</h3>
                     <button type="button" onClick={onClose} className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200">

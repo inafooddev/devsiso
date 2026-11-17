@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use App\Helpers\ActivityLogger;
 
 class IndexController extends Controller
 {
@@ -369,6 +370,11 @@ class IndexController extends Controller
         }
 
         DB::table('perbaikan_tikor_toko')->insert($data);
+
+        ActivityLogger::log(
+            'Submit Perbaikan Tikor (Mobile)',
+            "Mengajukan perbaikan titik koordinat toko: {$request->customer_code} pada dist: {$request->distributor_code} ke koordinat ({$request->latitude}, {$request->longitude}) akurasi {$request->accuracy}m via SE/Sales: {$salesCode}"
+        );
 
         return redirect()->back()->with('success', 'Perbaikan koordinat toko berhasil disimpan.');
     }

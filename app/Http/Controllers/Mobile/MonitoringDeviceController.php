@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+use App\Helpers\ActivityLogger;
 
 class MonitoringDeviceController extends Controller
 {
@@ -126,11 +127,16 @@ class MonitoringDeviceController extends Controller
             'sales_name' => $sales->SLSNAME
         ]);
 
+        ActivityLogger::log('Monitoring Device Sales Login', "Sales login dengan kode: {$salesCode} ({$sales->SLSNAME})");
+
         return redirect()->route('mobile.app.monitoring-device.index');
     }
 
     public function logoutSales(Request $request)
     {
+        $salesCode = session('sales_code') ?? '-';
+        ActivityLogger::log('Monitoring Device Sales Logout', "Sales logout dengan kode: {$salesCode}");
+
         session()->forget(['sales_code', 'sales_name']);
         return redirect()->route('mobile.app.monitoring-device.index');
     }
@@ -219,6 +225,8 @@ class MonitoringDeviceController extends Controller
             $message = 'Data monitoring berhasil ditambahkan.';
         }
 
+        ActivityLogger::log('Save Monitoring Device (Mobile)', ($existing ? 'Memperbarui' : 'Menambahkan') . " data monitoring device sales {$salesCode}");
+
         return redirect()->back()->with('success', $message);
     }
 
@@ -246,6 +254,8 @@ class MonitoringDeviceController extends Controller
             Storage::disk('public')->delete($record->foto_tampak_belakang);
             DB::table('monitoring_device_se')->where('id', $record->id)->update(['foto_tampak_belakang' => null]);
         }
+
+        ActivityLogger::log('Delete Monitoring Device Photo (Mobile)', "Menghapus foto {$request->type} monitoring device ID: {$request->id} untuk sales {$salesCode}");
 
         return redirect()->back()->with('success', 'Foto berhasil dihapus.');
     }

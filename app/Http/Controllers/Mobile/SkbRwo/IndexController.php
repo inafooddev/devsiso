@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use App\Helpers\ActivityLogger;
 
 class IndexController extends Controller
 {
@@ -339,6 +340,22 @@ class IndexController extends Controller
 
         $skb->save();
 
+        $statusLabel = $request->approval_status === 'approve' ? 'Approved (Disetujui)' : 'Rejected (Ditolak)';
+        $desc = "Submit SKB RWO outlet: {$request->customer_code} pada dist: {$request->distributor_code} (Q{$request->kuartal} {$request->tahun}). Status: {$statusLabel}";
+        if ($request->approval_status === 'reject' && $request->filled('reject_reason')) {
+            $desc .= " | Alasan Reject: {$request->reject_reason}";
+        }
+        if ($request->filled('nama_pemilik_toko')) {
+            $desc .= " | Pemilik: {$request->nama_pemilik_toko}";
+        }
+        if ($request->filled('no_hp')) {
+            $desc .= " | No HP: {$request->no_hp}";
+        }
+        if ($request->hasFile('foto_skb')) {
+            $desc .= " | Foto SKB diunggah";
+        }
+        ActivityLogger::log('Submit SKB RWO (Mobile)', $desc);
+
         return back()->with('success', 'Data persetujuan SKB berhasil disimpan.');
     }
 
@@ -397,6 +414,23 @@ class IndexController extends Controller
         }
 
         $outlet->save();
+
+        $updatedFields = [];
+        if ($request->filled('nama_pemilik_toko')) $updatedFields[] = "Pemilik: {$request->nama_pemilik_toko}";
+        if ($request->filled('no_hp')) $updatedFields[] = "HP: {$request->no_hp}";
+        if ($request->filled('nik_ktp')) $updatedFields[] = "NIK: {$request->nik_ktp}";
+        if ($request->filled('nama_bank') || $request->filled('no_rekening')) {
+            $updatedFields[] = "Rekening: {$request->no_rekening} ({$request->nama_bank} a.n {$request->nama_pemilik_norek})";
+        }
+        if ($request->filled('latitude') && $request->filled('longitude')) {
+            $updatedFields[] = "Tikor: ({$request->latitude}, {$request->longitude})";
+        }
+        if ($request->hasFile('foto_ktp')) $updatedFields[] = "Foto KTP";
+        if ($request->hasFile('foto_toko2')) $updatedFields[] = "Foto Toko 2";
+        if ($request->hasFile('foto_toko3')) $updatedFields[] = "Foto Toko 3";
+
+        $desc = "Memperbarui data outlet {$request->customer_code}" . (!empty($updatedFields) ? ": " . implode(', ', $updatedFields) : ".");
+        ActivityLogger::log('Update Outlet Data SKB RWO (Mobile)', $desc);
 
         return back()->with('success', 'Data toko berhasil disimpan.');
     }

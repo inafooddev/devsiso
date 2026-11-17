@@ -253,6 +253,9 @@ class ActivityLogManagement extends Component
                             ->orWhere('action', 'ilike', '%edit%')
                             ->orWhere('action', 'ilike', '%hapus%')
                             ->orWhere('action', 'ilike', '%process%')
+                            ->orWhere('action', 'ilike', '%submit%')
+                            ->orWhere('action', 'ilike', '%save%')
+                            ->orWhere('action', 'ilike', '%add%')
                             ->orWhere('action', 'ilike', '%map%');
                     });
                 } elseif ($this->activityCategory === 'menu') {
@@ -334,6 +337,9 @@ class ActivityLogManagement extends Component
                             ->orWhere('action', 'ilike', '%edit%')
                             ->orWhere('action', 'ilike', '%hapus%')
                             ->orWhere('action', 'ilike', '%process%')
+                            ->orWhere('action', 'ilike', '%submit%')
+                            ->orWhere('action', 'ilike', '%save%')
+                            ->orWhere('action', 'ilike', '%add%')
                             ->orWhere('action', 'ilike', '%map%');
                     });
                 } elseif ($this->activityCategory === 'menu') {
