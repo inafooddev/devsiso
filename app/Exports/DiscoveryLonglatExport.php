@@ -8,9 +8,13 @@ use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Cell\StringValueBinder;
+use App\Livewire\Reports\DiscoveryLonglatReport;
 
-class DiscoveryLonglatExport extends StringValueBinder implements FromQuery, WithHeadings, WithMapping, WithCustomValueBinder
+class DiscoveryLonglatExport extends StringValueBinder implements FromQuery, WithHeadings, WithMapping, WithCustomValueBinder, ShouldAutoSize, WithStyles
 {
     use Exportable;
 
@@ -18,82 +22,53 @@ class DiscoveryLonglatExport extends StringValueBinder implements FromQuery, Wit
     protected $endDate;
     protected $selectedRegion;
     protected $selectedArea;
+    protected $filterStatus;
 
-    public function __construct($startDate, $endDate, $selectedRegion = '', $selectedArea = '')
+    public function __construct($startDate, $endDate, $selectedRegion = '', $selectedArea = '', $filterStatus = 'clean')
     {
         $this->startDate = $startDate;
         $this->endDate = $endDate;
         $this->selectedRegion = $selectedRegion;
         $this->selectedArea = $selectedArea;
+        $this->filterStatus = $filterStatus;
     }
 
     public function query()
     {
-        $safeStart = \Carbon\Carbon::parse($this->startDate)->format('Y-m-d');
-        $safeEnd = \Carbon\Carbon::parse($this->endDate)->format('Y-m-d');
-
-        $query = DB::table('customer_prc_eska as cpe')
-            ->join(DB::raw("(
-                SELECT 
-                    \"BID\",
-                    \"CUSTNO\",
-                    \"V_LA\",
-                    \"V_LG\",
-                    \"TANGGAL\",
-                    ROW_NUMBER() OVER (PARTITION BY \"BID\", \"CUSTNO\" ORDER BY \"TANGGAL\" DESC) as rn
-                FROM rpt_visit_an_h
-                WHERE \"FLAG_PJP\" = 'R' 
-                  AND \"FLAG_VISIT\" = 'Y'
-                  AND \"TANGGAL\"::date BETWEEN '{$safeStart}' AND '{$safeEnd}'
-                  AND \"V_LA\" IS NOT NULL AND \"V_LA\" <> 0 AND \"V_LA\" BETWEEN -90 AND 90
-                  AND \"V_LG\" IS NOT NULL AND \"V_LG\" <> 0 AND \"V_LG\" BETWEEN -180 AND 180
-            ) as lv"), function($join) {
-                $join->on('cpe.kodecabang', '=', 'lv.BID')
-                     ->on('cpe.custno', '=', 'lv.CUSTNO');
-            })
-            ->where(function($q) {
-                $q->where('cpe.la', '0')
-                  ->orWhereNull('cpe.la')
-                  ->orWhere('cpe.la', '');
-            })
-            ->where(function($q) {
-                $q->where('cpe.lg', '0')
-                  ->orWhereNull('cpe.lg')
-                  ->orWhere('cpe.lg', '');
-            })
-            ->where('lv.rn', 1)
-            ->select(
-                'cpe.region_code',
-                'cpe.area_code',
-                'cpe.kodecabang',
-                'cpe.custno',
-                'cpe.custname',
-                'cpe.custadd1',
-                'cpe.ccity',
-                'cpe.cterm',
-                'cpe.typeout',
-                'cpe.grupout',
-                'cpe.gharga',
-                'lv.V_LA',
-                'lv.V_LG',
-                'lv.TANGGAL'
-            )
-            ->orderBy('cpe.region_code')
-            ->orderBy('cpe.area_code');
+        $query = DiscoveryLonglatReport::getBaseQuery($this->startDate, $this->endDate);
 
         if ($this->selectedRegion) {
-            $query->where('cpe.region_code', $this->selectedRegion);
+            $query->where('region_code', $this->selectedRegion);
         }
         if ($this->selectedArea) {
-            $query->where('cpe.area_code', $this->selectedArea);
+            $query->where('area_code', $this->selectedArea);
         }
 
-        return $query;
+        if ($this->filterStatus === 'clean') {
+            $query->where('status_clean', 'CLEAN');
+        } elseif ($this->filterStatus === 'at_distributor') {
+            $query->where('status_clean', 'AT_DISTRIBUTOR');
+        } elseif ($this->filterStatus === 'dup_visit') {
+            $query->whereIn('status_clean', ['DUP_VISIT', 'DUP_BOTH']);
+        } elseif ($this->filterStatus === 'dup_master') {
+            $query->whereIn('status_clean', ['DUP_MASTER', 'DUP_BOTH']);
+        } elseif ($this->filterStatus === 'dup_all') {
+            $query->whereIn('status_clean', ['AT_DISTRIBUTOR', 'DUP_VISIT', 'DUP_MASTER', 'DUP_BOTH']);
+        }
+
+        return $query
+            ->orderBy('region_code')
+            ->orderBy('area_code')
+            ->orderBy('custno');
     }
 
     public function headings(): array
     {
         return [
+            'Status Titik',
+            'Keterangan Titik',
+            'Jarak ke Depo (Meter)',
+            'Nama Depo/Distributor Terdekat',
             'Region Code',
             'Area Code',
             'Kode Cabang',
@@ -113,7 +88,32 @@ class DiscoveryLonglatExport extends StringValueBinder implements FromQuery, Wit
 
     public function map($row): array
     {
+        $statusLabel = match($row->status_clean ?? '') {
+            'CLEAN' => 'CLEAN (Unik & di Luar Depo)',
+            'AT_DISTRIBUTOR' => 'TITIK DI DEPO / DISTRIBUTOR (<=100m)',
+            'DUP_VISIT' => 'DUPLIKAT KUNJUNGAN',
+            'DUP_MASTER' => 'DUPLIKAT MASTER CUSTOMER',
+            'DUP_BOTH' => 'DUPLIKAT GANDA (Kunjungan & Master)',
+            default => 'UNKNOWN'
+        };
+
+        $desc = match($row->status_clean ?? '') {
+            'CLEAN' => 'Koordinat baru, unik, dan di luar depo (siap update)',
+            'AT_DISTRIBUTOR' => 'Titik anomali di kantor/gudang depo (' . ($row->dist_to_depo_meters ?? 0) . 'm dari ' . ($row->near_dist_name ?? 'Depo') . ')',
+            'DUP_VISIT' => 'Titik sama dengan ' . ($row->visit_coord_count ?? 1) . ' toko pada hasil kunjungan',
+            'DUP_MASTER' => 'Titik sudah terdaftar pada toko lain di master customer',
+            'DUP_BOTH' => 'Duplikat kunjungan (' . ($row->visit_coord_count ?? 1) . ' toko) dan sudah ada di master customer',
+            default => '-'
+        };
+
+        $distMeters = ($row->dist_to_depo_meters !== null) ? (string) $row->dist_to_depo_meters : '-';
+        $nearDepo = $row->near_dist_name ?? '-';
+
         return [
+            $statusLabel,
+            $desc,
+            $distMeters,
+            $nearDepo,
             $row->region_code,
             $row->area_code,
             $row->kodecabang,
@@ -125,9 +125,18 @@ class DiscoveryLonglatExport extends StringValueBinder implements FromQuery, Wit
             $row->typeout,
             $row->grupout,
             $row->gharga,
-            str_replace(',', '.', (string) $row->V_LA),
-            str_replace(',', '.', (string) $row->V_LG),
-            $row->TANGGAL,
+            str_replace(',', '.', (string) $row->v_la),
+            str_replace(',', '.', (string) $row->v_lg),
+            $row->visit_date,
+        ];
+    }
+
+    public function styles(Worksheet $sheet)
+    {
+        return [
+            1 => [
+                'font' => ['bold' => true],
+            ],
         ];
     }
 }
